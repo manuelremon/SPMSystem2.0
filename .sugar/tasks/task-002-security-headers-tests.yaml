@@ -1,0 +1,30 @@
+# Sugar Task
+id: task-002
+title: "Agregar tests para security_headers"
+priority: 5
+type: test_coverage
+status: completed
+created: 2025-11-28
+source: codebase_analysis
+
+description: |
+  El módulo backend_v2/core/security_headers.py configura
+  headers de seguridad HTTP pero no tiene tests.
+
+context:
+  file: "backend_v2/core/security_headers.py"
+  test_dir: "tests/unit/"
+
+technical_requirements:
+  - Crear tests/unit/test_security_headers.py
+  - Verificar Content-Security-Policy
+  - Verificar X-Frame-Options
+  - Verificar X-Content-Type-Options
+  - Verificar Strict-Transport-Security
+
+success_criteria:
+  - Tests pasan con pytest
+  - Todos los headers de seguridad verificados
+  - Documentación de headers esperados
+
+estimated_complexity: easy

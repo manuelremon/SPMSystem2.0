@@ -1,0 +1,5 @@
+# Sugar internal files
+sugar.db
+sugar.log
+*.log
+tasks/*.running

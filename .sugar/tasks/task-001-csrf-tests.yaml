@@ -1,0 +1,33 @@
+# Sugar Task
+id: task-001
+title: "Agregar tests unitarios para módulo CSRF"
+priority: 5
+type: test_coverage
+status: completed
+created: 2025-11-28
+source: codebase_analysis
+
+description: |
+  El módulo backend_v2/core/csrf.py no tiene tests unitarios.
+  CSRF es crítico para la seguridad de la aplicación.
+
+context:
+  file: "backend_v2/core/csrf.py"
+  test_dir: "tests/unit/"
+  related_files:
+    - "backend_v2/app.py"
+    - "backend_v2/routes/auth.py"
+
+technical_requirements:
+  - Crear tests/unit/test_csrf.py
+  - Probar generación de tokens CSRF
+  - Probar validación de tokens
+  - Probar expiración de tokens
+  - Probar protección contra ataques CSRF
+
+success_criteria:
+  - Tests pasan con pytest
+  - Cobertura > 80% para csrf.py
+  - Sin regresiones en tests existentes
+
+estimated_complexity: medium

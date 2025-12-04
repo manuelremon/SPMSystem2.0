@@ -1,0 +1,36 @@
+# Sugar Task
+id: task-004
+title: "Agregar tests para pipelines ML (demand_forecast, clustering, scoring)"
+priority: 5
+type: test_coverage
+status: completed
+created: 2025-11-28
+source: codebase_analysis
+
+description: |
+  Los pipelines de Machine Learning en backend_v2/agent/pipelines/
+  son críticos para el sistema de planificación pero no tienen
+  tests unitarios dedicados.
+
+context:
+  files:
+    - "backend_v2/agent/pipelines/demand_forecast.py"
+    - "backend_v2/agent/pipelines/clustering.py"
+    - "backend_v2/agent/pipelines/scoring.py"
+  test_dir: "tests/unit/"
+
+technical_requirements:
+  - Crear tests/unit/test_demand_forecast.py
+  - Crear tests/unit/test_clustering.py
+  - Crear tests/unit/test_scoring.py
+  - Probar con datos sintéticos/mock
+  - Verificar outputs esperados
+  - Probar edge cases (datos vacíos, valores extremos)
+
+success_criteria:
+  - Tests pasan con pytest
+  - Cobertura > 70% para cada pipeline
+  - Documentación de inputs/outputs esperados
+  - Tests reproducibles (seeds fijos para ML)
+
+estimated_complexity: hard

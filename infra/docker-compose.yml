@@ -1,0 +1,19 @@
+services:
+  spm:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      SPM_SECRET_KEY: "dev-secret-key-change-in-production"
+      SPM_ENV: "development"
+      SPM_DEBUG: "1"
+      SPM_DB_PATH: "/var/spm/spm.db"
+      SPM_LOG_PATH: "/var/spm/logs/app.log"
+      SPM_UPLOAD_DIR: "/var/spm/uploads"
+      FRONTEND_ORIGIN: "http://localhost:5000"
+    volumes:
+      - spm-state:/var/spm
+    restart: unless-stopped
+
+volumes:
+  spm-state:
