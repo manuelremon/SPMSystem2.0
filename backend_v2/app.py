@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory, render_template_string
 from flask_cors import CORS
 
 try:
@@ -46,7 +46,16 @@ def create_app(config_override: dict | None = None) -> Flask:
     Returns:
         Instancia de Flask configurada
     """
-    app = Flask(__name__)
+    # Determinar rutas de archivos estáticos
+    base_dir = Path(__file__).parent.parent  # Directorio raíz del proyecto
+    static_dir = base_dir / "frontend" / "dist"
+    
+    # Crear app con rutas de archivos estáticos
+    app = Flask(
+        __name__,
+        static_folder=str(static_dir),
+        static_url_path="",
+    )
 
     # Configuración
     app.config.from_mapping(
@@ -106,8 +115,47 @@ def create_app(config_override: dict | None = None) -> Flask:
     app.register_blueprint(trivias.bp, url_prefix="/api")  # Trivias: games, rankings, scores
     app.register_blueprint(foro.bp, url_prefix="/api")  # Forum: posts, replies, likes
 
+    # ==================== SERVIR FRONTEND REACT ====================
+    # Intentar cargar index.html para SPA routing
+    static_dir = Path(app.static_folder)
+    index_file = static_dir / "index.html"
+    
     @app.route("/")
-    def index():
+    def serve_spa_index():
+        """Servir index.html para React SPA"""
+        if index_file.exists():
+            with open(index_file) as f:
+                return f.read()
+        # Fallback a la API info si no existe index.html
+        return api_info()
+
+    @app.route("/<path:path>")
+    def serve_spa_routes(path):
+        """
+        Manejar rutas de React SPA.
+        Si el archivo existe (assets, imágenes, etc), servirlo.
+        Si no existe, devolver index.html para que React maneje el routing.
+        """
+        # Ignorar rutas de API
+        if path.startswith("api/"):
+            # Dejar que Flask siga con el enrutamiento normal
+            from flask import abort
+            abort(404)
+        
+        # Intentar servir archivo estático
+        file_path = static_dir / path
+        if file_path.exists() and file_path.is_file():
+            return send_from_directory(str(static_dir), path)
+        
+        # Si es una ruta que no existe, servir index.html (SPA routing)
+        if index_file.exists():
+            with open(index_file) as f:
+                return f.read()
+        
+        from flask import abort
+        abort(404)
+
+    def api_info():
         """Información sobre la API"""
         return (
             jsonify(
@@ -127,6 +175,13 @@ def create_app(config_override: dict | None = None) -> Flask:
             ),
             200,
         )
+
+    # ==================== RUTAS ANTIGUAS ====================
+    # Mantener compatibilidad
+    @app.route("/api")
+    def api_root():
+        """Endpoint API raíz"""
+        return api_info()
 
     @app.route("/favicon.ico")
     def favicon():
