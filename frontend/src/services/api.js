@@ -41,12 +41,20 @@ const api = axios.create({
   }
 })
 
-// Request interceptor - add CSRF token
+// Request interceptor - add CSRF token and Bearer token
 api.interceptors.request.use((config) => {
+  // Add CSRF token
   const csrfToken = localStorage.getItem('csrf_token')
   if (csrfToken) {
     config.headers['X-CSRF-Token'] = csrfToken
   }
+
+  // Add Bearer token for cross-domain auth (GitHub Pages + Cloudflare Tunnel)
+  const accessToken = localStorage.getItem('spm_access_token')
+  if (accessToken) {
+    config.headers['Authorization'] = `Bearer ${accessToken}`
+  }
+
   return config
 })
 
@@ -139,7 +147,9 @@ api.interceptors.response.use(
 function clearAuthState() {
   localStorage.removeItem('csrf_token')
   localStorage.removeItem('csrf_expiry')
-  // NO guardamos token en localStorage (estrategia cookies-only)
+  // Clear auth tokens for cross-domain auth
+  localStorage.removeItem('spm_access_token')
+  localStorage.removeItem('spm_refresh_token')
 }
 
 /**
