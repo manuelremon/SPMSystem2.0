@@ -18,10 +18,12 @@ from flask import Blueprint, g, jsonify, request
 from jwt import InvalidTokenError
 
 try:
+    from backend_v2.core.cache import user_cache
     from backend_v2.core.config import settings
     from backend_v2.core.roles import (format_user_response, is_admin,
                                        normalize_roles)
 except ImportError:
+    from core.cache import user_cache
     from core.config import settings
     from core.roles import format_user_response, is_admin, normalize_roles
 
@@ -98,6 +100,14 @@ def _get_user(username: str):
 
 
 def _get_user_by_id(user_id: str):
+    """Get user by ID with caching (for /me endpoint)"""
+    # Try cache first
+    cache_key = f"user:{user_id}"
+    cached_user = user_cache.get(cache_key)
+    if cached_user is not None:
+        return cached_user
+
+    # Cache miss - fetch from DB
     path = _db_path()
     if not path.exists():
         return None
@@ -107,7 +117,13 @@ def _get_user_by_id(user_id: str):
     cur.execute("SELECT * FROM usuarios WHERE id_spm=?", (str(user_id),))
     row = cur.fetchone()
     conn.close()
-    return dict(row) if row else None
+    user = dict(row) if row else None
+
+    # Cache the result (including None to avoid repeated DB queries)
+    if user:
+        user_cache.set(cache_key, user, ttl=120)  # 2 min TTL
+
+    return user
 
 
 def generate_tokens(user_id: str) -> dict:

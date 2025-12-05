@@ -4,8 +4,10 @@ from pathlib import Path
 from flask import Blueprint, jsonify
 
 try:
+    from backend_v2.core.cache import cached, catalog_cache
     from backend_v2.core.config import settings
 except ImportError:
+    from core.cache import cached, catalog_cache
     from core.config import settings
 
 bp = Blueprint("catalogos", __name__)
@@ -66,6 +68,7 @@ def get_usuarios():
     return jsonify(_usuarios()), 200
 
 
+@cached(catalog_cache, "centros", ttl=600)  # 10 min TTL
 def _centros():
     return _fetch(
         "SELECT codigo, nombre FROM catalog_centros WHERE activo=1",
@@ -73,6 +76,7 @@ def _centros():
     )
 
 
+@cached(catalog_cache, "sectores", ttl=600)  # 10 min TTL
 def _sectores():
     return _fetch(
         "SELECT nombre FROM catalog_sectores WHERE activo=1",
@@ -80,6 +84,7 @@ def _sectores():
     )
 
 
+@cached(catalog_cache, "almacenes", ttl=600)  # 10 min TTL
 def _almacenes():
     return _fetch(
         "SELECT codigo, nombre FROM catalog_almacenes WHERE activo=1",
@@ -87,6 +92,7 @@ def _almacenes():
     )
 
 
+@cached(catalog_cache, "usuarios", ttl=300)  # 5 min TTL (changes more often)
 def _usuarios():
     return _fetch(
         "SELECT id_spm, nombre, apellido, mail FROM usuarios WHERE estado_registro='Activo'",

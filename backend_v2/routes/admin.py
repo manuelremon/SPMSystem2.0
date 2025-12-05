@@ -10,9 +10,14 @@ from pathlib import Path
 from flask import Blueprint, jsonify, request
 
 try:
+    from backend_v2.core.cache import (get_cache_stats,
+                                       invalidate_catalog_cache,
+                                       invalidate_user_cache)
     from backend_v2.core.config import settings
     from backend_v2.routes.auth import _decode_token
 except ImportError:
+    from core.cache import (get_cache_stats, invalidate_catalog_cache,
+                            invalidate_user_cache)
     from core.config import settings
     from routes.auth import _decode_token
 
@@ -88,6 +93,7 @@ def admin_centros():
             (data["codigo"], data.get("nombre"), 1),
         )
         conn.commit()
+        invalidate_catalog_cache()  # Clear cache after change
     cur.execute("SELECT * FROM catalog_centros")
     rows = [dict(r) for r in cur.fetchall()]
     conn.close()
@@ -115,6 +121,7 @@ def admin_centros_mod(centro_codigo):
         cur.execute("UPDATE catalog_centros SET activo=0 WHERE codigo=?", (centro_codigo,))
     conn.commit()
     conn.close()
+    invalidate_catalog_cache()  # Clear cache after change
     return jsonify({"ok": True}), 200
 
 
@@ -135,6 +142,7 @@ def admin_almacenes():
             (data["codigo"], data.get("nombre"), 1),
         )
         conn.commit()
+        invalidate_catalog_cache()  # Clear cache after change
     cur.execute("SELECT * FROM catalog_almacenes")
     rows = [dict(r) for r in cur.fetchall()]
     conn.close()
@@ -162,6 +170,7 @@ def admin_almacenes_mod(almacen_codigo):
         cur.execute("UPDATE catalog_almacenes SET activo=0 WHERE codigo=?", (almacen_codigo,))
     conn.commit()
     conn.close()
+    invalidate_catalog_cache()  # Clear cache after change
     return jsonify({"ok": True}), 200
 
 
@@ -182,6 +191,7 @@ def admin_sectores():
             (data["nombre"], 1),
         )
         conn.commit()
+        invalidate_catalog_cache()  # Clear cache after change
     cur.execute("SELECT * FROM catalog_sectores")
     rows = [dict(r) for r in cur.fetchall()]
     conn.close()
@@ -205,6 +215,7 @@ def admin_sectores_mod(sector_nombre):
         cur.execute("UPDATE catalog_sectores SET activo=0 WHERE nombre=?", (sector_nombre,))
     conn.commit()
     conn.close()
+    invalidate_catalog_cache()  # Clear cache after change
     return jsonify({"ok": True}), 200
 
 
@@ -256,6 +267,8 @@ def admin_usuarios():
             ),
         )
         conn.commit()
+        invalidate_user_cache()  # Clear user cache after creation
+        invalidate_catalog_cache()  # Usuarios appear in catalogs
 
     # Obtener usuarios y normalizar formato de roles
     cur.execute("SELECT * FROM usuarios")
@@ -388,6 +401,8 @@ def admin_usuarios_mod(id_spm):
         cur.execute("UPDATE usuarios SET estado_registro='Inactivo' WHERE id_spm=?", (id_spm,))
     conn.commit()
     conn.close()
+    invalidate_user_cache(id_spm)  # Clear specific user cache
+    invalidate_catalog_cache()  # Usuarios list may have changed
     return jsonify({"ok": True}), 200
 
 
@@ -755,3 +770,32 @@ def admin_proveedores_externos_mod(id_proveedor):
     conn.commit()
     conn.close()
     return jsonify({"ok": True}), 200
+
+
+# ==============================================================================
+# CACHE STATS (for monitoring)
+# ==============================================================================
+
+
+@bp.route("/cache/stats", methods=["GET"])
+def admin_cache_stats():
+    """Get cache statistics for monitoring performance"""
+    guard = _admin_guard()
+    if guard:
+        return guard
+
+    stats = get_cache_stats()
+    return jsonify({"ok": True, "cache": stats}), 200
+
+
+@bp.route("/cache/clear", methods=["POST"])
+def admin_cache_clear():
+    """Clear all caches (use after major data changes)"""
+    guard = _admin_guard()
+    if guard:
+        return guard
+
+    invalidate_catalog_cache()
+    invalidate_user_cache()
+
+    return jsonify({"ok": True, "message": "All caches cleared"}), 200
