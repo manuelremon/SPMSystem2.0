@@ -70,8 +70,8 @@ class RateLimiter:
         self._attempts.pop(key, None)
 
 
-# Rate limiter global: 5 intentos cada 5 minutos por IP
-_login_limiter = RateLimiter(max_attempts=5, window_seconds=300)
+# Rate limiter global: 100 intentos cada 1 minuto por IP (permisivo para desarrollo)
+_login_limiter = RateLimiter(max_attempts=100, window_seconds=60)
 
 
 def _db_path():
