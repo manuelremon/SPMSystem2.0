@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { materiales, solicitudes } from '../services/spm'
 import api from '../services/api'
-import { formatCurrency } from '../utils/formatters'
+import { formatCurrency, formatAlmacen } from '../utils/formatters'
 import { useI18n } from '../context/i18n'
 import { renderSector } from '../constants/sectores'
 
@@ -1187,7 +1187,7 @@ function StockList({ rows = [], compact = false }) {
           key={idx}
           className="text-xs text-[var(--fg)] border border-dashed border-[var(--border)] px-2 py-1 rounded"
         >
-          Centro {r.centro || 'N/D'} / Almacén {r.almacen_consultado || r.almacen || 'N/D'}
+          Centro {r.centro || 'N/D'} / Almacén {formatAlmacen(r.almacen_consultado || r.almacen)}
           {r.lote ? ` / Lote ${r.lote}` : ''} / Stock {r.stock ?? r.cantidad ?? 'N/D'}
         </div>
       ))}

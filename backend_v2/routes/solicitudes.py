@@ -16,6 +16,7 @@ try:
     from backend_v2.routes.auth import _decode_token
 except ImportError:
     from core.config import settings
+
     from routes.auth import _decode_token
 
 bp = Blueprint("solicitudes", __name__, url_prefix="/api/solicitudes")
@@ -447,8 +448,7 @@ def aprobar_solicitud(solicitud_id):
 
     # 5. Validar y consumir presupuesto
     try:
-        from backend_v2.services.budget_service import \
-            aprobar_solicitud_con_presupuesto
+        from backend_v2.services.budget_service import aprobar_solicitud_con_presupuesto
     except ImportError:
         from services.budget_service import aprobar_solicitud_con_presupuesto
 
@@ -630,7 +630,7 @@ def _planificador_para(centro: str, sector: str) -> str:
     conn = _connect()
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
-    cur.execute("SELECT planificador_id, centro, sector FROM planificador_asignacion")
+    cur.execute("SELECT planificador_id, centro, sector FROM planificador_asignaciones")
     rows = cur.fetchall()
     conn.close()
     for r in rows:

@@ -9,6 +9,7 @@ import { Button } from "../ui/Button";
 import { Check } from "lucide-react";
 import StatusBadge from "../ui/StatusBadge";
 import { renderSector as renderSectorUtil } from "../../constants/sectores";
+import { formatAlmacen } from "../../utils/formatters";
 
 const PasoLabels = ["Analisis", "Decision", "Confirmacion"];
 
@@ -271,7 +272,7 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
             <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm text-[var(--fg-muted)]">
               <span><span className="font-semibold text-[var(--fg)]">Centro:</span> {solicitud.centro || "N/D"}</span>
               <span className="text-[var(--border)]">/</span>
-              <span><span className="font-semibold text-[var(--fg)]">Almacén:</span> {solicitud.almacen_virtual || "N/D"}</span>
+              <span><span className="font-semibold text-[var(--fg)]">Almacén:</span> {formatAlmacen(solicitud.almacen_virtual)}</span>
               <span className="text-[var(--border)]">/</span>
               <span><span className="font-semibold text-[var(--fg)]">Sector:</span> {renderSector(solicitud)}</span>
               <span className="text-[var(--border)]">/</span>

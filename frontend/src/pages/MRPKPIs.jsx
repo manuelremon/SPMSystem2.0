@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import Layout from "../components/Layout";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
 import { useI18n } from "../context/i18n";
@@ -269,7 +268,7 @@ export default function MRPKPIs() {
   ];
 
   return (
-    <Layout>
+    <div className="space-y-6">
       <PageHeader
         title={t("mrp_kpis_titulo", "KPI's MRP")}
         subtitle={t("mrp_kpis_subtitulo", "Métricas inteligentes sobre el comportamiento del MRP")}
@@ -448,6 +447,6 @@ export default function MRPKPIs() {
           </div>
         </>
       ) : null}
-    </Layout>
+    </div>
   );
 }

@@ -4,6 +4,7 @@ import { useAuthStore } from "../store/authStore";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Warehouse, Truck, Plus, Edit2, Trash2, Check, X, Building } from "lucide-react";
+import { formatAlmacen } from "../utils/formatters";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -234,7 +235,7 @@ function ProveedoresInternos({ token }) {
                 return (
                   <tr key={key} className="border-b border-[var(--border)] hover:bg-[var(--bg-hover)]">
                     <td className="px-4 py-3 text-[var(--fg)]">{alm.centro}</td>
-                    <td className="px-4 py-3 text-[var(--fg)] font-mono">{alm.almacen}</td>
+                    <td className="px-4 py-3 text-[var(--fg)] font-mono">{formatAlmacen(alm.almacen)}</td>
                     <td className="px-4 py-3">
                       {isEditing ? (
                         <input

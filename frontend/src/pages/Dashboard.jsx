@@ -39,7 +39,7 @@ import {
   Activity
 } from "lucide-react";
 import { useI18n } from "../context/i18n";
-import { toNumber, formatNumber, formatCurrency, formatDate } from "../utils/formatters";
+import { toNumber, formatNumber, formatCurrency, formatDate, formatAlmacen } from "../utils/formatters";
 import api from "../services/api";
 import { useAuthStore } from "../store/authStore";
 import { useNavigate } from "react-router-dom";
@@ -225,7 +225,7 @@ export default function Dashboard() {
       key: "almacen",
       header: "Almacen",
       render: (row) => (
-        <span className="text-xs text-[var(--fg-muted)]">{row.almacen_virtual || "-"}</span>
+        <span className="text-xs text-[var(--fg-muted)]">{formatAlmacen(row.almacen_virtual)}</span>
       ),
     },
     {

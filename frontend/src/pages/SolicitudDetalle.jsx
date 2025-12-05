@@ -8,7 +8,7 @@ import { Badge } from "../components/ui/Badge";
 import { Alert } from "../components/ui/Alert";
 import { PageHeader } from "../components/ui/PageHeader";
 import StatusBadge from "../components/ui/StatusBadge";
-import { formatDate, formatCurrency, getSectorNombre } from "../utils/formatters";
+import { formatDate, formatCurrency, getSectorNombre, formatAlmacen } from "../utils/formatters";
 import {
   ArrowLeft,
   Calendar,
@@ -224,7 +224,7 @@ export default function SolicitudDetalle() {
             <DetailRow
               icon={Package}
               label={t("detalle_almacen", "Almacén Virtual")}
-              value={solicitud.almacen_virtual || solicitud.almacen}
+              value={formatAlmacen(solicitud.almacen_virtual || solicitud.almacen)}
             />
             <DetailRow
               icon={DollarSign}

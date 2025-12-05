@@ -178,32 +178,41 @@ def get_alertas():
     cursor = conn.cursor()
 
     try:
-        # Obtener materiales con parámetros MRP
-        # Por ahora usamos datos simulados ya que la tabla mrp_parametros no existe aún
-        # En producción, esto se uniría con la tabla de parámetros MRP reales
-
+        # Obtener materiales MRP con datos reales de la tabla materiales_mrp
         base_query = """
             SELECT
-                m.codigo,
-                m.descripcion,
-                m.unidad,
-                m.precio_usd,
-                m.centro,
-                m.sector
-            FROM materiales m
+                codigo_material as codigo,
+                descripcion,
+                sector,
+                almacen,
+                centro,
+                stock_seguridad,
+                punto_pedido,
+                stock_maximo,
+                stock_actual,
+                pedidos_en_curso,
+                consumo_promedio_mensual,
+                lead_time_dias,
+                critico,
+                ubicacion
+            FROM materiales_mrp
             WHERE 1=1
         """
         params = []
 
         if centro:
-            base_query += " AND m.centro = ?"
-            params.append(centro)
+            base_query += " AND centro = ?"
+            params.append(int(centro))
+
+        if almacen:
+            base_query += " AND almacen = ?"
+            params.append(int(almacen))
 
         if sector:
-            base_query += " AND m.sector = ?"
+            base_query += " AND sector = ?"
             params.append(sector)
 
-        base_query += " ORDER BY m.codigo"
+        base_query += " ORDER BY codigo_material"
 
         cursor.execute(base_query, params)
         materiales = cursor.fetchall()
@@ -213,44 +222,15 @@ def get_alertas():
 
         for mat in materiales:
             codigo = mat["codigo"]
+            stock_actual = mat["stock_actual"] or 0
+            stock_seguridad = mat["stock_seguridad"] or 0
+            punto_pedido = mat["punto_pedido"] or 0
+            stock_maximo = mat["stock_maximo"] or 0
+            pedidos_en_curso = mat["pedidos_en_curso"] or 0
+            consumo_mensual = mat["consumo_promedio_mensual"] or 0
 
-            # Obtener datos de pedidos/solpeds en curso
-            cursor.execute(
-                """
-                SELECT COALESCE(SUM(cantidad), 0) as total
-                FROM solpeds
-                WHERE material = ? AND status IN ('creada', 'enviada')
-            """,
-                (codigo,),
-            )
-            solpeds_row = cursor.fetchone()
-            solpeds_en_curso = solpeds_row["total"] if solpeds_row else 0
-
-            cursor.execute(
-                """
-                SELECT COALESCE(SUM(cantidad), 0) as total
-                FROM traslados
-                WHERE material = ? AND status = 'planificado'
-            """,
-                (codigo,),
-            )
-            traslados_row = cursor.fetchone()
-            traslados_en_curso = traslados_row["total"] if traslados_row else 0
-
-            # Simular datos MRP (en producción, esto vendría de tabla mrp_parametros)
-            # Usando valores aleatorios basados en el código para demostración
-            import hashlib
-
-            hash_val = int(hashlib.md5(codigo.encode()).hexdigest()[:8], 16)
-
-            demanda_anual = (hash_val % 1000) + 100
-            stock_seguridad = (hash_val % 50) + 10
-            punto_pedido = stock_seguridad * 2
-            stock_maximo = punto_pedido * 3
-            stock_actual = hash_val % 200
-            consumo_promedio = demanda_anual / 12
-
-            pedidos_en_curso = solpeds_en_curso + traslados_en_curso
+            # Calcular demanda anual desde consumo mensual
+            demanda_anual = consumo_mensual * 12
 
             # Calcular rotación
             rotacion = calcular_rotacion(demanda_anual, stock_actual) if stock_actual > 0 else 0
@@ -261,7 +241,7 @@ def get_alertas():
                 stock_seguridad=stock_seguridad,
                 punto_pedido=punto_pedido,
                 stock_maximo=stock_maximo,
-                consumo_promedio=consumo_promedio,
+                consumo_promedio=consumo_mensual,
                 pedidos_en_curso=pedidos_en_curso,
             )
 
@@ -274,24 +254,26 @@ def get_alertas():
                 {
                     "codigo": codigo,
                     "descripcion": mat["descripcion"],
-                    "unidad": mat["unidad"],
-                    "precio_usd": mat["precio_usd"],
+                    "unidad": "UNI",
+                    "precio_usd": 0,
                     "centro": mat["centro"] or centro,
                     "sector": mat["sector"] or sector,
-                    "almacen": almacen or "0001",
-                    "demanda_estimada_anual": demanda_anual,
+                    "almacen": mat["almacen"] or almacen or "1",
+                    "demanda_estimada_anual": round(demanda_anual, 0),
                     "stock_seguridad": stock_seguridad,
                     "punto_pedido": punto_pedido,
                     "stock_maximo": stock_maximo,
                     "stock_actual": stock_actual,
                     "pedidos_en_curso": pedidos_en_curso,
-                    "solpeds_en_curso": solpeds_en_curso,
-                    "ventas_ute_en_curso": 0,  # Sin datos por ahora
+                    "solpeds_en_curso": 0,
+                    "ventas_ute_en_curso": 0,
                     "consumo_promedio_anual": round(demanda_anual, 2),
                     "rotacion_pct": round(rotacion * 100, 1),
                     "estado": estado_info["estado"],
                     "estado_clase": estado_info["estado_clase"],
                     "sugerencia": estado_info["sugerencia"],
+                    "critico": mat["critico"],
+                    "ubicacion": mat["ubicacion"],
                 }
             )
 
@@ -364,8 +346,8 @@ def get_kpis():
 
         fecha_inicio_str = fecha_inicio.strftime("%Y-%m-%d")
 
-        # Total de materiales
-        cursor.execute("SELECT COUNT(*) as total FROM materiales")
+        # Total de materiales MRP
+        cursor.execute("SELECT COUNT(*) as total FROM materiales_mrp")
         total_materiales = cursor.fetchone()["total"]
 
         # Materiales con solicitudes en el período (reservado para uso futuro)

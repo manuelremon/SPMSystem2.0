@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { materiales, equivalencias } from '../services/spm'
-import { formatCurrency } from '../utils/formatters'
+import { formatCurrency, formatAlmacen } from '../utils/formatters'
 import { useI18n } from '../context/i18n'
 
 // UI Components
@@ -426,7 +426,7 @@ export default function CatalogoMateriales() {
                       {detail.stock_detalle.map((row, idx) => (
                         <div key={idx} className="text-xs p-2 bg-[var(--bg)] rounded border border-[var(--border)]">
                           <span className="font-medium">Centro {row.centro}</span> /
-                          <span className="ml-1">Almacén {row.almacen_consultado || row.almacen}</span>
+                          <span className="ml-1">Almacén {formatAlmacen(row.almacen_consultado || row.almacen)}</span>
                           {row.lote && <span className="ml-1">/ Lote {row.lote}</span>}
                           <span className="ml-2 font-mono font-semibold text-[var(--primary)]">
                             Stock: {row.stock}

@@ -65,7 +65,19 @@
       "Bash(cat:*)",
       "Bash(cmd /c \"dir /b /a-d\")",
       "Bash(rm:*)",
-      "Bash(pytest:*)"
+      "Bash(pytest:*)",
+      "Bash(git push:*)",
+      "Bash(cloudflared:*)",
+      "Bash(GITHUB_PAGES=true npm run build:*)",
+      "Bash(git subtree:*)",
+      "Bash(start https://manuelremon.github.io/SPMSystem2.0/)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git fetch:*)",
+      "Bash(start http://localhost:4173)",
+      "Bash(git checkout:*)",
+      "Bash(git stash:*)",
+      "Bash(source .venv/Scripts/activate)"
     ],
     "deny": [],
     "ask": []

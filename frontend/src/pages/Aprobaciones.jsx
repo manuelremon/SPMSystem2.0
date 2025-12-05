@@ -10,7 +10,7 @@ import { PageHeader } from "../components/ui/PageHeader";
 import { Alert } from "../components/ui/Alert";
 import { TableSkeleton } from "../components/ui/Skeleton";
 import { useI18n } from "../context/i18n";
-import { formatCurrency } from "../utils/formatters";
+import { formatCurrency, formatAlmacen } from "../utils/formatters";
 import { useDebounced } from "../hooks/useDebounced";
 import { Modal } from "../components/ui/Modal";
 import { XCircle, CheckCircle, RefreshCw, Eye, Package } from "lucide-react";
@@ -142,7 +142,7 @@ export default function Aprobaciones() {
       header: t("aprov_almacen", "ALMACEN"),
       sortAccessor: (row) => row.almacen_virtual || row.almacen || "",
       render: (row) => (
-        <span className="font-mono text-sm">{row.almacen_virtual || row.almacen || "-"}</span>
+        <span className="font-mono text-sm">{formatAlmacen(row.almacen_virtual || row.almacen)}</span>
       ),
     },
     {

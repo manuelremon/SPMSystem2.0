@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import Layout from "../components/Layout";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
 import { useI18n } from "../context/i18n";
@@ -188,7 +187,7 @@ export default function MRPTableroAlertas() {
   ];
 
   return (
-    <Layout>
+    <div className="space-y-6">
       <PageHeader
         title={t("mrp_alertas_titulo", "Tablero de Alertas MRP")}
         subtitle={t("mrp_alertas_subtitulo", "Estado general de materiales planificados")}
@@ -488,6 +487,6 @@ export default function MRPTableroAlertas() {
           )}
         </CardContent>
       </Card>
-    </Layout>
+    </div>
   );
 }

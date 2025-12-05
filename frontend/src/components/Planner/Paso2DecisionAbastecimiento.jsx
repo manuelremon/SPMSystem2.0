@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../ui
 import { Button } from "../ui/Button";
 import { Package, TrendingUp, DollarSign, MapPin, Check } from "lucide-react";
 import StockDetalleModal from "./StockDetalleModal";
+import { formatAlmacen } from "../../utils/formatters";
 
 export default function Paso2DecisionAbastecimiento({
   solicitud,
@@ -754,7 +755,7 @@ function StockDetalleTooltip({ detalle }) {
                 className="flex justify-between text-xs text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 pb-1"
               >
                 <span className="font-medium">
-                  {item.almacen || item.centro || "Almacén"}
+                  {formatAlmacen(item.almacen || item.centro)}
                 </span>
                 <span className="font-semibold text-gray-900 dark:text-gray-100">
                   {item.cantidad || 0} un.

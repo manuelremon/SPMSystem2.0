@@ -215,6 +215,19 @@ const SECTOR_MAP = {
 };
 
 /**
+ * Formatea un código de almacén a 4 dígitos con ceros a la izquierda
+ * Ejemplos: 1 -> "0001", 100 -> "0100", 9999 -> "9999"
+ * @param {string|number} almacen - Código del almacén
+ * @returns {string} - Código formateado a 4 dígitos
+ */
+export function formatAlmacen(almacen) {
+  if (almacen === null || almacen === undefined || almacen === '') return '-';
+  const num = String(almacen).replace(/\D/g, ''); // Remove non-digits
+  if (!num) return '-';
+  return num.padStart(4, '0');
+}
+
+/**
  * Obtiene el nombre del sector a partir de su ID o nombre
  * @param {string|number} sectorId - ID o nombre del sector
  * @param {Array} sectoresFromBackend - Lista opcional de sectores del backend
