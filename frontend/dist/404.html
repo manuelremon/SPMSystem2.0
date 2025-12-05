@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>SPM - Redirecting...</title>
+  <script>
+    // Single Page App GitHub Pages redirect
+    // Redirige todas las rutas al index.html preservando el path
+    const path = window.location.pathname;
+    const base = '/SPMSystem2.0';
+
+    // Si ya estamos en la raíz, no hacer nada
+    if (path === base || path === base + '/') {
+      window.location.replace(base + '/');
+    } else {
+      // Guardar la ruta original y redirigir al index
+      sessionStorage.setItem('redirect', path);
+      window.location.replace(base + '/');
+    }
+  </script>
+</head>
+<body>
+  <p>Redirecting...</p>
+</body>
+</html>
