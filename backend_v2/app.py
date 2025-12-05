@@ -129,19 +129,13 @@ def create_app(config_override: dict | None = None) -> Flask:
         # Fallback a la API info si no existe index.html
         return api_info()
 
-    @app.route("/<path:path>")
+    @app.route("/<path:path>", methods=["GET"])
     def serve_spa_routes(path):
         """
         Manejar rutas de React SPA.
         Si el archivo existe (assets, imágenes, etc), servirlo.
         Si no existe, devolver index.html para que React maneje el routing.
         """
-        # Ignorar rutas de API
-        if path.startswith("api/"):
-            # Dejar que Flask siga con el enrutamiento normal
-            from flask import abort
-            abort(404)
-        
         # Intentar servir archivo estático
         file_path = static_dir / path
         if file_path.exists() and file_path.is_file():
@@ -238,6 +232,17 @@ def _register_error_handlers(app: Flask) -> None:
 
     @app.errorhandler(404)
     def not_found(error):
+        from flask import request
+        
+        # Si es una solicitud GET y la ruta no es de API, devolver index.html (SPA routing)
+        if request.method == "GET" and not request.path.startswith("/api"):
+            static_dir = Path(app.static_folder)
+            index_file = static_dir / "index.html"
+            if index_file.exists():
+                with open(index_file) as f:
+                    return f.read(), 200
+        
+        # Para API requests, devolver JSON error
         return (
             jsonify({"ok": False, "error": {"code": "not_found", "message": "Resource not found"}}),
             404,
