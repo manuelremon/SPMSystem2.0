@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useNotifications } from "../hooks/useNotifications";
+import api from "../services/api";
 import {
   FileText,
   FilePlus2,
@@ -209,20 +210,11 @@ export default function Layout({ children }) {
   useEffect(() => {
     const fetchUnreadCount = async () => {
       try {
-        const response = await fetch('/api/mensajes/unread-count', {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setUnreadMessagesCount(data.unread_count || 0);
-        }
+        const response = await api.get('/mensajes/unread-count');
+        setUnreadMessagesCount(response.data?.unread_count || 0);
       } catch (err) {
-        console.error('Error fetching unread count:', err);
+        // Silently fail - not critical
+        console.debug('Error fetching unread count:', err);
       }
     };
 
