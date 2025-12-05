@@ -1,0 +1,118 @@
+===============================================================================
+                        PASOS 2-4: INSTRUCCIONES FINALES
+===============================================================================
+
+Estoy aqui para ayudarte con los 3 pasos finales (8 minutos totales).
+
+He creado 3 archivos con las instrucciones:
+
+1. PASOS_2_3_4_SIMPLE.txt       <- EMPIEZA POR AQUI (texto puro, muy simple)
+2. PASOS_2_3_4_DETALLADO.md     <- Mas detallado con ejemplos
+3. wizard_pasos_2_3_4.py        <- Ejecuta: python wizard_pasos_2_3_4.py
+
+===============================================================================
+                               RESUMEN RAPIDO
+===============================================================================
+
+PASO 2 (5 min): Desplegar Frontend en Vercel
+  1. Abre: https://vercel.com/new
+  2. Import repo: manuelremon/SPMSystem2.0
+  3. Root: ./frontend, Build: npm run build, Output: dist
+  4. Environment Variable: VITE_API_URL = https://spmsystem2-0.onrender.com/api
+  5. Click Deploy
+  6. COPIA la URL resultante (https://spmv2-0-xxxxx.vercel.app)
+  
+PASO 3 (1 min): Actualizar CORS en Render
+  1. Abre: https://dashboard.render.com
+  2. Servicio: spmsystem2-0 → Settings → Environment
+  3. Edita FRONTEND_URL = https://tu-url-vercel.vercel.app
+  4. Edita CORS_ORIGINS = https://tu-url-vercel.vercel.app,https://spmsystem2-0.onrender.com
+  5. Save → Manual Deploy → Latest Commit
+
+PASO 4 (2 min): Testing
+  1. curl.exe https://spmsystem2-0.onrender.com/
+  2. Abre https://tu-url-vercel.vercel.app en navegador
+  3. Login: admin / a1
+  4. Verifica dashboard
+  5. (Opcional) python test_production.py
+
+===============================================================================
+                               ARCHIVOS PREPARADOS
+===============================================================================
+
+✓ PASOS_2_3_4_SIMPLE.txt
+  - Version simplificada, solo lo esencial
+  - Copiar-pegar listo
+  - Recomendado para la mayoria
+
+✓ PASOS_2_3_4_DETALLADO.md
+  - Con mas detalles y explicaciones
+  - Troubleshooting incluido
+  - Bueno como referencia
+
+✓ wizard_pasos_2_3_4.py
+  - Version interactiva
+  - Ejecuta: python wizard_pasos_2_3_4.py
+  - Todos los pasos con checklists
+
+===============================================================================
+                            QUE HACER AHORA
+===============================================================================
+
+OPCION 1: Seguir texto simple (recomendado)
+  - Lee: PASOS_2_3_4_SIMPLE.txt
+  - Sigue los 3 pasos
+  - Toma 8 minutos
+
+OPCION 2: Ver wizard interactivo
+  - Ejecuta: python wizard_pasos_2_3_4.py
+  - Te muestra todos los pasos con checklists
+  - Mas visualmente completo
+
+OPCION 3: Documentacion detallada
+  - Lee: PASOS_2_3_4_DETALLADO.md
+  - Incluye troubleshooting
+  - Bueno si algo falla
+
+===============================================================================
+                           VERIFICACION RAPIDA
+===============================================================================
+
+Despues de completar los 3 pasos, ejecuta:
+
+  curl.exe https://spmsystem2-0.onrender.com/
+
+Si ves JSON, el backend funciona.
+
+Abre en navegador:
+
+  https://tu-url-vercel.vercel.app
+
+Si ves login y puedes entrar con admin/a1, todo funciona!
+
+===============================================================================
+                            ENLACES IMPORTANTES
+===============================================================================
+
+Vercel Deploy:     https://vercel.com/new
+Render Dashboard:  https://dashboard.render.com
+Backend API:       https://spmsystem2-0.onrender.com
+GitHub Repo:       https://github.com/manuelremon/SPMSystem2.0
+
+===============================================================================
+                             TIMELINE TOTAL
+===============================================================================
+
+PASO 2 - Vercel:     5 minutos
+PASO 3 - CORS:       1 minuto
+PASO 4 - Testing:    2 minutos
+                     ─────────
+TOTAL:               8 MINUTOS
+
+¡Vamos a terminar esto!
+
+===============================================================================
+
+Lee PASOS_2_3_4_SIMPLE.txt y sigue los pasos. Son muy simples!
+
+===============================================================================
