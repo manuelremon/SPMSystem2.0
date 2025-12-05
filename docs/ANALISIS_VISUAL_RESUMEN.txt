@@ -1,308 +1,0 @@
-# 📊 ANÁLISIS VISUAL - SECCIÓN "AGREGAR MATERIALES"
-
-## 🔴 PROBLEMA CRÍTICO IDENTIFICADO
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                                                              │
-│         ❌ LA TABLA DE MATERIALES NO EXISTE EN STEP 2       │
-│                                                              │
-│  El usuario AGREGA materiales pero NO VE confirmación       │
-│  hasta el Step 3 (Revisar Solicitud)                        │
-│                                                              │
-│              Esto causa CONFUSIÓN y ERRORES                 │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 🔍 FLUJO ACTUAL (PROBLEMÁTICO)
-
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  STEP 1         │     │  STEP 2         │     │  STEP 3         │
-│  Información    │ ──→ │ Agregar Mater.  │ ──→ │ Revisar y       │
-│                 │     │                 │     │ Confirmar       │
-│ ✅ Ve datos     │     │ ❌ NO VE LO QUE │     │ ✅ Ve tabla     │
-│ rellenados      │     │    AGREGA       │     │ con items       │
-│                 │     │ (confusión)     │     │                 │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-```
-
----
-
-## 🔄 FLUJO MEJORADO (CON TABLA INTEGRADA)
-
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  STEP 1         │     │  STEP 2         │     │  STEP 3         │
-│  Información    │ ──→ │ Agregar Mater.  │ ──→ │ Revisar y       │
-│                 │     │ + TABLA VISUAL  │     │ Confirmar       │
-│ ✅ Ve datos     │     │ ✅ VE TODO LO   │     │ ✅ Confirmación │
-│ rellenados      │     │    QUE AGREGA   │     │ final           │
-│                 │     │ (claridad)      │     │                 │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-```
-
----
-
-## 📋 8 PROBLEMAS ENCONTRADOS
-
-```
-┌────────────────────────────────────────────────────────────┐
-│ # │ PROBLEMA                      │ SEVERIDAD │ IMPACTO    │
-├────────────────────────────────────────────────────────────┤
-│ 1 │ ❌ Tabla de materiales falta   │ 🔴 CRÍTICA │ CONFUSIÓN  │
-│ 2 │ 🔴 HTML corrupto/duplicado     │ 🔴 CRÍTICA │ ERRORES    │
-│ 3 │ ❌ Sin feedback de "agregar"   │ 🟠 ALTA    │ NO SABE SI │
-│ 4 │ ❌ Sin detalles del material   │ 🟠 ALTA    │ INSEGURO   │
-│ 5 │ ❌ Sin edición de items        │ 🟠 ALTA    │ NO PUEDE   │
-│ 6 │ ❌ Sin eliminación de items    │ 🟠 ALTA    │ ATRAPADO   │
-│ 7 │ ❌ Sin total acumulado         │ 🟡 MEDIA   │ INCERTIDU. │
-│ 8 │ ❌ Botón "Ampliada" usa alert()│ 🟡 MEDIA   │ POBRE UX   │
-└────────────────────────────────────────────────────────────┘
-```
-
----
-
-## ⚙️ ESTRUCTURA ACTUAL
-
-```
-FORM STEP 2 - Agregar Materiales
-│
-├── SECTION 1: 🔍 Buscar Material
-│   ├── [Código SAP: ________]
-│   ├── [Descripción: _________]
-│   └── [Descripción Ampliada]
-│
-├── SECTION 2: ➕ Seleccionar y Agregar
-│   ├── [Material: dropdown ▼]
-│   ├── [Cantidad: ___]
-│   ├── [Precio: ___.__ ]
-│   └── [Agregar]
-│
-└── ❌ FALTA: TABLA VISIBLE
-    └── Usuario no sabe si se agregó
-```
-
----
-
-## 🎯 PROPUESTA VISUAL - TABLA INTEGRADA
-
-```
-┌────────────────────────────────────────────────────────────────────┐
-│ FORM STEP 2 - Agregar Materiales (MEJORADO)                       │
-├────────────────────────────────────────────────────────────────────┤
-│                                                                    │
-│ SECTION 1: 🔍 Buscar Material                                     │
-│ ┌──────────────────────────────────────────────────────────────┐  │
-│ │ SAP: [________]  Desc: [____________]  [Ampliada]           │  │
-│ └──────────────────────────────────────────────────────────────┘  │
-│                                                                    │
-│ SECTION 2: ➕ Seleccionar y Agregar                              │
-│ ┌──────────────────────────────────────────────────────────────┐  │
-│ │ Material: [TORNILLO M8____▼]  Cantidad: [50]  Precio: [1.50]│  │
-│ │ [Agregar] [Agregar otro] [Importar CSV]                     │  │
-│ └──────────────────────────────────────────────────────────────┘  │
-│                                                                    │
-│ SECTION 3: 📋 Materiales Agregados (3)             TOTAL: $725.00│
-│ ┌──────────────────────────────────────────────────────────────┐  │
-│ │ Material          │ Cant. │ Precio │ Subtotal │  Acciones    │  │
-│ ├──────────────────────────────────────────────────────────────┤  │
-│ │ TORNILLO M8x30    │  50   │ $1.50  │ $75.00   │ ✏️   🗑️     │  │
-│ │ CABLE 2.5MM       │ 100   │ $2.00  │ $200.00  │ ✏️   🗑️     │  │
-│ │ SENSOR TEMP       │  10   │ $45.00 │ $450.00  │ ✏️   🗑️     │  │
-│ ├──────────────────────────────────────────────────────────────┤  │
-│ │                                           TOTAL:    $725.00   │  │
-│ ├──────────────────────────────────────────────────────────────┤  │
-│ │ [➕ Agregar Otro]  [🔄 Limpiar Todo]  [▶ Siguiente]         │  │
-│ └──────────────────────────────────────────────────────────────┘  │
-│                                                                    │
-│ ✅ MEJORAS:                                                        │
-│  • Confirmación visual inmediata                                  │
-│  • Edición inline (✏️)                                            │
-│  • Eliminación rápida (🗑️)                                        │
-│  • Total dinámico                                                 │
-│  • Botones de acción claros                                       │
-│                                                                    │
-└────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 📊 10 PROPUESTAS (RANKED BY IMPACT)
-
-```
-PROPUESTA 1: Tabla de Materiales Integrada ⭐ CRÍTICA
-├── Resuelve: Confirmación visual de lo agregado
-├── Impacto: MUY ALTO (evita confusión)
-├── Esfuerzo: BAJO
-└── Recomendación: IMPLEMENTAR YA
-
-PROPUESTA 2: Modal Descripción Ampliada 🔥 ALTA
-├── Resuelve: Especificaciones del material
-├── Impacto: ALTO (mejora decisión)
-├── Esfuerzo: MEDIO
-└── Recomendación: PRÓXIMA SESIÓN
-
-PROPUESTA 8: Validación Visual ⚡ ALTA
-├── Resuelve: Indicadores de errores
-├── Impacto: MEDIO (previene errores)
-├── Esfuerzo: BAJO
-└── Recomendación: PRÓXIMA SESIÓN
-
-PROPUESTA 3: Búsqueda con Vista Previa 📍 MEDIA
-├── Resuelve: Confirmación antes de seleccionar
-├── Impacto: ALTO (mejora confianza)
-├── Esfuerzo: MEDIO
-└── Recomendación: SESIÓN 3
-
-PROPUESTA 10: Editor Inline 🔧 MEDIA
-├── Resuelve: Edición rápida de cantidades
-├── Impacto: ALTO (facilita correcciones)
-├── Esfuerzo: MEDIO
-└── Recomendación: SESIÓN 3
-
-PROPUESTA 4: Cantidad Rápida (Dropdown) 💨 MEDIA
-├── Resuelve: Valores estándar frecuentes
-├── Impacto: MEDIO (agiliza entrada)
-├── Esfuerzo: BAJO
-└── Recomendación: SESIÓN 3
-
-PROPUESTA 5: Unidad de Medida 📏 MEDIA
-├── Resuelve: Confusión PZ/KG/MT/LT
-├── Impacto: ALTO (evita errores)
-├── Esfuerzo: MEDIO
-└── Recomendación: SESIÓN 3
-
-PROPUESTA 6: Detalles Expandibles 🔽 MEDIA
-├── Resuelve: Flexibilidad simple/completo
-├── Impacto: MEDIO (mejor UX)
-├── Esfuerzo: BAJO
-└── Recomendación: SESIÓN 4
-
-PROPUESTA 9: Historial Frecuentes ⭐ BAJA
-├── Resuelve: Acceso rápido a materiales
-├── Impacto: BAJO (conveniencia)
-├── Esfuerzo: MEDIO
-└── Recomendación: SESIÓN 4+
-
-PROPUESTA 7: Importar desde CSV 📤 BAJA
-├── Resuelve: Pedidos grandes por lote
-├── Impacto: ALTO (automatiza)
-├── Esfuerzo: ALTA
-└── Recomendación: SESIÓN 5+
-```
-
----
-
-## 🚀 PLAN DE IMPLEMENTACIÓN
-
-### FASE 1: HOY (1-2 horas)
-```
-✅ Limpiar HTML corrupto (líneas 1645-1655)
-✅ Insertar SECTION 3: Tabla de Materiales
-✅ Conectar con función addMaterialToList()
-✅ Agregar editar/eliminar por fila
-✅ Recalcular totales dinámicamente
-```
-
-**Resultado:** Usuario ve tabla con lo que agrega
-
----
-
-### FASE 2: PRÓXIMA SESIÓN (2-3 horas)
-```
-✅ Modal para Descripción Ampliada
-✅ Validación visual (✅/⚠️/🔴)
-✅ Editor inline en tabla
-✅ Feedback visual al agregar
-```
-
-**Resultado:** Experiencia mejorada, menos errores
-
----
-
-### FASE 3: FUTURAS SESIONES
-```
-✅ Búsqueda con vista previa
-✅ Cantidad estándar (dropdown)
-✅ Unidad de medida + conversión
-✅ Historial frecuentes
-✅ Importar CSV para lotes
-```
-
----
-
-## 💡 CAMBIOS NECESARIOS EN JAVASCRIPT
-
-### Funciones que faltan:
-```javascript
-// 1. Agregar material a tabla
-addMaterialToList()
-
-// 2. Actualizar fila en tabla
-addMaterialsTableRow(material, cantidad, precio)
-
-// 3. Eliminar material
-removeMaterialRow(index)
-
-// 4. Editar material inline
-editMaterialRow(index)
-
-// 5. Recalcular totales
-updateMaterialsTotal()
-
-// 6. Limpiar tabla
-clearAllMaterials()
-
-// 7. Validar campos
-validateMaterialFields()
-```
-
----
-
-## 📍 LÍNEAS A MODIFICAR EN HTML
-
-```
-Línea 1600: <div id="form-step-2"> ← Inicio STEP 2
-Línea 1610: SECTION 1: Buscar ← OK
-Línea 1650: SECTION 2: Agregar ← OK
-Línea 1680: Fin SECTION 2 ← INSERTAR SECTION 3 AQUÍ
-Línea 1685: Fin form-step-2 ← Cerrar SECTION 3
-```
-
----
-
-## ✅ RESUMEN DE CAMBIOS
-
-| Aspecto | Antes | Después |
-|---------|-------|---------|
-| Tabla visible | ❌ No | ✅ Sí |
-| Editar item | ❌ No | ✅ Inline |
-| Eliminar item | ❌ No | ✅ Por fila |
-| Ver total | ❌ No | ✅ Dinámico |
-| Feedback | ❌ No | ✅ Visual |
-| Contador | ❌ No | ✅ (X items) |
-| Confusión | ✅ Mucha | ❌ Ninguna |
-
----
-
-## 🎯 DECISIÓN: ¿PROCEDER?
-
-### ¿Quieres que implemente AHORA la Propuesta 1 (Tabla Integrada)?
-
-**Que incluye:**
-- ✅ Tabla visual con materiales agregados
-- ✅ Edición inline de cantidad/precio
-- ✅ Botón eliminar por fila
-- ✅ Total acumulado en tiempo real
-- ✅ Contador de materiales
-- ✅ Botones de acción (Agregar otro, Limpiar todo)
-
-**Tiempo estimado:** 1-2 horas
-
-**Resultado:** Problema CRÍTICO resuelto ✅
-
----
