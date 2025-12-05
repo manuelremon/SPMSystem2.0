@@ -16,8 +16,8 @@ import axios from 'axios'
 // En producción usa URL relativa, en desarrollo usa localhost
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
-// URL de refresh siempre relativa al origen
-const REFRESH_URL = '/api/auth/refresh'
+// URL de refresh usa la misma base que la API
+const REFRESH_URL = `${API_BASE_URL}/auth/refresh`
 
 let isRefreshing = false
 let failedQueue = []
@@ -148,7 +148,9 @@ function clearAuthState() {
 function redirectToLogin() {
   // Evitar redirección si ya estamos en login
   if (!window.location.pathname.includes('/login')) {
-    window.location.href = '/login'
+    // Usar BASE_URL para GitHub Pages
+    const baseUrl = import.meta.env.BASE_URL || '/'
+    window.location.href = `${baseUrl}login`
   }
 }
 
