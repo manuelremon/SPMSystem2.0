@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
 import { useI18n } from "../context/i18n";
 import { formatCurrency } from "../utils/formatters";
+import api from "../services/api";
 import {
   TrendingUp,
   TrendingDown,
@@ -13,7 +14,9 @@ import {
   DollarSign,
   Users,
   Package,
+  Layers,
   BarChart3,
+  Loader2,
 } from "lucide-react";
 
 // Componente de mini gráfico de barras
@@ -108,49 +111,51 @@ function TrendLine({ data }) {
 
 export default function KPI() {
   const { t } = useI18n();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [kpiData, setKpiData] = useState({
+    solicitudes: { total: 0, aprobadas: 0, rechazadas: 0, pendientes: 0, trend: [0,0,0,0,0,0,0], trendPercentage: 0 },
+    presupuesto: { total: 0, utilizado: 0, disponible: 0, percentage: 0, porCentro: [] },
+    tiempoAprobacion: { promedio: 0, meta: 3.0, trend: [0,0,0,0,0,0,0] },
+    materialesMasSolicitados: [],
+    gruposArticulosMasSolicitados: [],
+    solicitudesPorEstado: { labels: [], aprobadas: [], rechazadas: [], pendientes: [] },
+  });
 
-  // Mock data - En producción vendría del backend
-  const kpiData = useMemo(() => ({
-    solicitudes: {
-      total: 248,
-      aprobadas: 189,
-      rechazadas: 32,
-      pendientes: 27,
-      trend: [45, 52, 48, 61, 58, 67, 72],
-      trendPercentage: 12.5,
-    },
-    presupuesto: {
-      total: 2500000,
-      utilizado: 1875000,
-      disponible: 625000,
-      percentage: 75,
-      porCentro: [
-        { nombre: "Centro 1008", valor: 580000 },
-        { nombre: "Centro 1009", valor: 420000 },
-        { nombre: "Centro 1010", valor: 380000 },
-        { nombre: "Centro 1011", valor: 295000 },
-        { nombre: "Centro 1012", valor: 200000 },
-      ],
-    },
-    tiempoAprobacion: {
-      promedio: 2.3,
-      meta: 3.0,
-      trend: [3.2, 2.9, 2.7, 2.5, 2.4, 2.3, 2.3],
-    },
-    materialesMasSolicitados: [
-      { nombre: "Tuercas M12", cantidad: 4500 },
-      { nombre: "Tornillos M10", cantidad: 3800 },
-      { nombre: "Arandelas", cantidad: 3200 },
-      { nombre: "Pernos", cantidad: 2900 },
-      { nombre: "Cables", cantidad: 2400 },
-    ],
-    solicitudesPorEstado: {
-      labels: ["Ene", "Feb", "Mar", "Abr", "May", "Jun"],
-      aprobadas: [28, 35, 42, 38, 45, 52],
-      rechazadas: [5, 6, 4, 8, 5, 7],
-      pendientes: [3, 5, 4, 6, 5, 4],
-    },
-  }), []);
+  useEffect(() => {
+    const fetchKpis = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get("/kpis");
+        if (response.data?.ok && response.data?.data) {
+          setKpiData(response.data.data);
+        }
+      } catch (err) {
+        console.error("Error fetching KPIs:", err);
+        setError("Error al cargar los KPIs");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchKpis();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-[var(--danger)]">{error}</p>
+      </div>
+    );
+  }
 
 
   return (
@@ -328,29 +333,35 @@ export default function KPI() {
           </CardHeader>
           <CardContent className="px-6 pb-6">
             <div className="space-y-3">
-              {kpiData.materialesMasSolicitados.map((material, idx) => {
-                const maxCantidad = Math.max(...kpiData.materialesMasSolicitados.map(m => m.cantidad));
-                const percentage = (material.cantidad / maxCantidad) * 100;
-                return (
-                  <div key={idx} className="flex items-center gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[var(--primary-muted)]/20 grid place-items-center text-sm font-bold text-[var(--primary)]">
-                      {idx + 1}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1.5 text-sm">
-                        <span className="text-[var(--fg)] font-medium">{material.nombre}</span>
-                        <span className="text-[var(--fg-muted)]">{material.cantidad.toLocaleString()}</span>
+              {(kpiData.materialesMasSolicitados || []).length > 0 ? (
+                kpiData.materialesMasSolicitados.map((material, idx) => {
+                  const maxCantidad = Math.max(...kpiData.materialesMasSolicitados.map(m => m.cantidad), 1);
+                  const percentage = (material.cantidad / maxCantidad) * 100;
+                  return (
+                    <div key={idx} className="flex items-center gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[var(--primary-muted)]/20 grid place-items-center text-sm font-bold text-[var(--primary)]">
+                        {idx + 1}
                       </div>
-                      <div className="h-1.5 bg-[var(--bg-soft)] rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-[var(--primary)] to-[var(--primary-bright)] rounded-full transition-all duration-500"
-                          style={{ width: `${percentage}%` }}
-                        />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1.5 text-sm">
+                          <span className="text-[var(--fg)] font-medium">{material.nombre}</span>
+                          <span className="text-[var(--fg-muted)]">{(material.cantidad || 0).toLocaleString()}</span>
+                        </div>
+                        <div className="h-1.5 bg-[var(--bg-soft)] rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-[var(--primary)] to-[var(--primary-bright)] rounded-full transition-all duration-500"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <p className="text-sm text-[var(--fg-muted)] text-center py-4">
+                  No hay datos de materiales disponibles
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -375,8 +386,8 @@ export default function KPI() {
                   <span className="text-sm font-semibold text-[var(--fg)]">{kpiData.solicitudes.aprobadas}</span>
                 </div>
                 <MiniBarChart
-                  data={kpiData.solicitudesPorEstado.aprobadas}
-                  maxValue={Math.max(...kpiData.solicitudesPorEstado.aprobadas)}
+                  data={kpiData.solicitudesPorEstado.aprobadas || []}
+                  maxValue={Math.max(...(kpiData.solicitudesPorEstado.aprobadas || [1]), 1)}
                 />
               </div>
 
@@ -390,8 +401,8 @@ export default function KPI() {
                   <span className="text-sm font-semibold text-[var(--fg)]">{kpiData.solicitudes.rechazadas}</span>
                 </div>
                 <MiniBarChart
-                  data={kpiData.solicitudesPorEstado.rechazadas}
-                  maxValue={Math.max(...kpiData.solicitudesPorEstado.aprobadas)}
+                  data={kpiData.solicitudesPorEstado.rechazadas || []}
+                  maxValue={Math.max(...(kpiData.solicitudesPorEstado.aprobadas || [1]), 1)}
                 />
               </div>
 
@@ -405,15 +416,58 @@ export default function KPI() {
                   <span className="text-sm font-semibold text-[var(--fg)]">{kpiData.solicitudes.pendientes}</span>
                 </div>
                 <MiniBarChart
-                  data={kpiData.solicitudesPorEstado.pendientes}
-                  maxValue={Math.max(...kpiData.solicitudesPorEstado.aprobadas)}
+                  data={kpiData.solicitudesPorEstado.pendientes || []}
+                  maxValue={Math.max(...(kpiData.solicitudesPorEstado.aprobadas || [1]), 1)}
                 />
               </div>
             </div>
             <div className="mt-4 pt-4 border-t border-[var(--border)] grid grid-cols-6 gap-1 text-xs text-[var(--fg-muted)] text-center">
-              {kpiData.solicitudesPorEstado.labels.map((label) => (
-                <div key={label}>{label}</div>
+              {(kpiData.solicitudesPorEstado.labels || []).map((label, idx) => (
+                <div key={idx}>{label}</div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Grupos de Artículos Más Solicitados */}
+        <Card>
+          <CardHeader className="px-6 pt-6 pb-4">
+            <div className="flex items-center justify-between">
+              <CardTitle>Grupos de Artículos Más Solicitados</CardTitle>
+              <Layers className="w-5 h-5 text-[var(--accent)]" />
+            </div>
+          </CardHeader>
+          <CardContent className="px-6 pb-6">
+            <div className="space-y-3">
+              {(kpiData.gruposArticulosMasSolicitados || []).length > 0 ? (
+                kpiData.gruposArticulosMasSolicitados.map((grupo, idx) => {
+                  const maxCantidad = Math.max(...kpiData.gruposArticulosMasSolicitados.map(g => g.cantidad));
+                  const percentage = (grupo.cantidad / maxCantidad) * 100;
+                  return (
+                    <div key={idx} className="flex items-center gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[var(--accent)]/20 grid place-items-center text-sm font-bold text-[var(--accent)]">
+                        {idx + 1}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1.5 text-sm">
+                          <span className="text-[var(--fg)] font-medium">{grupo.nombre}</span>
+                          <span className="text-[var(--fg-muted)]">{grupo.cantidad.toLocaleString()}</span>
+                        </div>
+                        <div className="h-1.5 bg-[var(--bg-soft)] rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-[var(--accent)] to-cyan-400 rounded-full transition-all duration-500"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-[var(--fg-muted)] text-center py-4">
+                  No hay datos de grupos disponibles
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>

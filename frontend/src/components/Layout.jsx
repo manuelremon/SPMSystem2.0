@@ -34,6 +34,8 @@ import {
   Wallet,
   Trophy,
   Truck,
+  Search,
+  GitCompare,
 } from "lucide-react";
 import clsx from "clsx";
 import { useAuthStore } from "../store/authStore";
@@ -94,6 +96,7 @@ export default function Layout({ children }) {
   const [adminOpen, setAdminOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const [solicitudesOpen, setSolicitudesOpen] = useState(false);
+  const [materialesOpen, setMaterialesOpen] = useState(false);
   const [aprobacionesOpen, setAprobacionesOpen] = useState(false);
   const [plannerOpen, setPlannerOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -123,6 +126,7 @@ export default function Layout({ children }) {
     setAdminOpen(false);
     setUserOpen(false);
     setSolicitudesOpen(false);
+    setMaterialesOpen(false);
     setAprobacionesOpen(false);
     setPlannerOpen(false);
     setMobileMenuOpen(false);
@@ -141,6 +145,7 @@ export default function Layout({ children }) {
         setAdminOpen(false);
         setUserOpen(false);
         setSolicitudesOpen(false);
+        setMaterialesOpen(false);
         setAprobacionesOpen(false);
         setPlannerOpen(false);
         // Reset admin submenus when clicking outside
@@ -304,6 +309,7 @@ export default function Layout({ children }) {
                 className="relative"
                 onMouseEnter={() => {
                   setSolicitudesOpen(true);
+                  setMaterialesOpen(false);
                   setAdminOpen(false);
                   setAprobacionesOpen(false);
                   setPlannerOpen(false);
@@ -338,11 +344,48 @@ export default function Layout({ children }) {
                 )}
               </div>
 
+              {/* Materiales Dropdown */}
+              <div
+                className="relative"
+                onMouseEnter={() => {
+                  setMaterialesOpen(true);
+                  setSolicitudesOpen(false);
+                  setAdminOpen(false);
+                  setAprobacionesOpen(false);
+                  setPlannerOpen(false);
+                }}
+                onMouseLeave={() => setMaterialesOpen(false)}
+              >
+                <button
+                  type="button"
+                  className={clsx(navBtnClass, materialesOpen && activeNavClass)}
+                >
+                  <Package className="w-4 h-4 text-[var(--primary)]" />
+                  <span>{t("nav_materiales", "Materiales")}</span>
+                  <ChevronDown className={clsx("w-3.5 h-3.5 transition-transform", materialesOpen && "rotate-180")} />
+                </button>
+                {materialesOpen && (
+                  <div className={dropdownWrapperClass}>
+                    <div className={dropdownClass}>
+                      <NavLink to="/materiales/catalogo" className={clsx(dropdownItemClass, "animate-menu-item-reveal menu-item-stagger-1")}>
+                        <Search className="w-4 h-4 text-[var(--primary)]" />
+                        <span>{t("nav_catalogo_materiales", "Catálogo de Materiales")}</span>
+                      </NavLink>
+                      <NavLink to="/materiales/equivalencias" className={clsx(dropdownItemClass, "animate-menu-item-reveal menu-item-stagger-2")}>
+                        <GitCompare className="w-4 h-4 text-[var(--primary)]" />
+                        <span>{t("nav_equivalencias", "Materiales Alternativos")}</span>
+                      </NavLink>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Aprobaciones Dropdown */}
               <div
                 className="relative"
                 onMouseEnter={() => {
                   setAprobacionesOpen(true);
+                  setMaterialesOpen(false);
                   setAdminOpen(false);
                   setSolicitudesOpen(false);
                   setPlannerOpen(false);
@@ -379,6 +422,7 @@ export default function Layout({ children }) {
                   className="relative"
                   onMouseEnter={() => {
                     setPlannerOpen(true);
+                    setMaterialesOpen(false);
                     setAdminOpen(false);
                     setSolicitudesOpen(false);
                     setAprobacionesOpen(false);
@@ -449,6 +493,7 @@ export default function Layout({ children }) {
                   className="relative"
                   onMouseEnter={() => {
                     setAdminOpen(true);
+                    setMaterialesOpen(false);
                     setSolicitudesOpen(false);
                     setAprobacionesOpen(false);
                     setPlannerOpen(false);
@@ -676,6 +721,14 @@ export default function Layout({ children }) {
               <NavLink to="/mis-solicitudes" className={clsx(dropdownItemClass, "rounded-lg")}>
                 <FileText className="w-4 h-4" />
                 <span>{t("nav_mis", "Mis Solicitudes")}</span>
+              </NavLink>
+              <NavLink to="/materiales/catalogo" className={clsx(dropdownItemClass, "rounded-lg")}>
+                <Search className="w-4 h-4" />
+                <span>{t("nav_catalogo_materiales", "Catálogo de Materiales")}</span>
+              </NavLink>
+              <NavLink to="/materiales/equivalencias" className={clsx(dropdownItemClass, "rounded-lg")}>
+                <GitCompare className="w-4 h-4" />
+                <span>{t("nav_equivalencias", "Materiales Alternativos")}</span>
               </NavLink>
               <NavLink to="/aprobaciones" className={clsx(dropdownItemClass, "rounded-lg")}>
                 <CheckCircle2 className="w-4 h-4" />

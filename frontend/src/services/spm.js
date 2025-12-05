@@ -20,6 +20,15 @@ export const materiales = {
   buscar: ({ codigo = '', descripcion = '', limit = 500 } = {}) =>
     api.get('/materiales', { params: { codigo, descripcion, limit } }),
   detalle: (codigo, params = {}) => api.get(`/materiales/${codigo}/detalle`, { params }),
+  solicitudes: (codigo, limit = 20) => api.get(`/materiales/${codigo}/solicitudes`, { params: { limit } }),
+}
+
+export const equivalencias = {
+  listar: (params = {}) => api.get('/equivalencias', { params }),
+  porMaterial: (codigo) => api.get(`/equivalencias/${codigo}`),
+  crear: (payload) => api.post('/equivalencias', payload),
+  actualizar: (id, payload) => api.put(`/equivalencias/${id}`, payload),
+  eliminar: (id) => api.delete(`/equivalencias/${id}`),
 }
 
 export const planner = {

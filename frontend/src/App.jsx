@@ -30,6 +30,8 @@ const Ayuda = lazy(() => import('./pages/Ayuda'))
 const Trivias = lazy(() => import('./pages/Trivias'))
 const Foro = lazy(() => import('./pages/Foro'))
 const CompleteRegistration = lazy(() => import('./pages/CompleteRegistration'))
+const CatalogoMateriales = lazy(() => import('./pages/CatalogoMateriales'))
+const CatalogoEquivalencias = lazy(() => import('./pages/CatalogoEquivalencias'))
 
 // Budget pages (lazy-loaded)
 const BudgetRequests = lazy(() => import('./pages/BudgetRequests'))
@@ -95,6 +97,8 @@ function App() {
             <Route path="/presupuestos/nueva" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe']}><BudgetRequestCreate /></ProtectedRoute>} />
             <Route path="/presupuestos/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe', 'coordinador']}><BudgetRequestDetail /></ProtectedRoute>} />
             <Route path="/kpi" element={<ProtectedRoute><KPI /></ProtectedRoute>} />
+            <Route path="/materiales/catalogo" element={<ProtectedRoute><CatalogoMateriales /></ProtectedRoute>} />
+            <Route path="/materiales/equivalencias" element={<ProtectedRoute><CatalogoEquivalencias /></ProtectedRoute>} />
             <Route path="/mensajes" element={<ProtectedRoute><Mensajes /></ProtectedRoute>} />
             <Route path="/notificaciones" element={<ProtectedRoute><Notificaciones /></ProtectedRoute>} />
             <Route path="/mi-cuenta" element={<ProtectedRoute><MiCuenta /></ProtectedRoute>} />

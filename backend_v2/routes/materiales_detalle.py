@@ -1,3 +1,4 @@
+import json
 import sqlite3
 from pathlib import Path
 
@@ -323,3 +324,98 @@ def _detalle_db(codigo: str) -> dict:
     if not row:
         return {}
     return dict(row)
+
+
+@bp_detalle.route("/<codigo>/solicitudes", methods=["GET"])
+def solicitudes_por_material(codigo):
+    """
+    Obtiene las solicitudes SPM activas que contienen un material específico.
+
+    Busca en el campo data_json de solicitudes para encontrar las que
+    incluyen el código de material dado.
+
+    Query params:
+        limit: Número máximo de resultados (default 20)
+    """
+    limit = min(int(request.args.get("limit", 20)), 50)
+    codigo = str(codigo).strip()
+
+    path = _db_path()
+    if not path.exists():
+        return jsonify({"ok": False, "error": "Base de datos no encontrada"}), 500
+
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    try:
+        # Estados activos de solicitudes
+        estados_activos = ("submitted", "approved", "processing")
+
+        # Buscar solicitudes con el material en data_json
+        cursor.execute(
+            """
+            SELECT
+                s.id,
+                s.status,
+                s.created_at,
+                s.data_json,
+                u.nombre as solicitante_nombre
+            FROM solicitudes s
+            LEFT JOIN usuarios u ON s.solicitante_id = u.id
+            WHERE s.status IN (?, ?, ?)
+            ORDER BY s.created_at DESC
+        """,
+            estados_activos,
+        )
+
+        solicitudes_con_material = []
+
+        for row in cursor.fetchall():
+            try:
+                data = json.loads(row["data_json"] or "{}")
+                items = data.get("items", [])
+
+                # Buscar si el material está en esta solicitud
+                cantidad_solicitada = 0
+                material_encontrado = False
+
+                for item in items:
+                    item_codigo = str(item.get("codigo") or item.get("codigo_sap", "")).strip()
+                    # Comparar normalizando (sin ceros a la izquierda)
+                    if item_codigo.lstrip("0") == codigo.lstrip("0") or item_codigo == codigo:
+                        material_encontrado = True
+                        cantidad_solicitada += float(item.get("cantidad", 0) or 0)
+
+                if material_encontrado:
+                    solicitudes_con_material.append(
+                        {
+                            "id": row["id"],
+                            "estado": row["status"],
+                            "fecha": row["created_at"],
+                            "solicitante": row["solicitante_nombre"] or "Sin nombre",
+                            "cantidad_solicitada": cantidad_solicitada,
+                            "centro": data.get("centro"),
+                            "sector": data.get("sector"),
+                        }
+                    )
+
+                    if len(solicitudes_con_material) >= limit:
+                        break
+
+            except (json.JSONDecodeError, TypeError):
+                continue
+
+        return jsonify(
+            {
+                "ok": True,
+                "codigo": codigo,
+                "solicitudes": solicitudes_con_material,
+                "total": len(solicitudes_con_material),
+            }
+        )
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+    finally:
+        conn.close()

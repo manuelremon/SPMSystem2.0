@@ -18,22 +18,48 @@ try:
     from backend_v2.core.csrf import init_csrf_protection
     from backend_v2.core.db import db, init_db
     from backend_v2.core.security_headers import init_security_headers
-    from backend_v2.routes import (admin, auth, budget, catalogos, foro,
-                                   health, materiales, materiales_detalle,
-                                   mensajes, mi_cuenta, notificaciones)
+    from backend_v2.routes import (
+        admin,
+        auth,
+        budget,
+        catalogos,
+        equivalencias,
+        foro,
+        health,
+        kpis,
+        materiales,
+        materiales_detalle,
+        mensajes,
+        mi_cuenta,
+        notificaciones,
+        solicitudes,
+        trivias,
+    )
     from backend_v2.routes import planner as planner_new
-    from backend_v2.routes import solicitudes, trivias
 except ImportError:
     from agent import agent_bp
     from core.config import settings
     from core.csrf import init_csrf_protection
     from core.db import db, init_db
     from core.security_headers import init_security_headers
-    from routes import (admin, auth, budget, catalogos, foro, health,
-                        materiales, materiales_detalle, mensajes, mi_cuenta,
-                        notificaciones)
+    from routes import (
+        admin,
+        auth,
+        budget,
+        catalogos,
+        equivalencias,
+        foro,
+        health,
+        kpis,
+        materiales,
+        materiales_detalle,
+        mensajes,
+        mi_cuenta,
+        notificaciones,
+        solicitudes,
+        trivias,
+    )
     from routes import planner as planner_new
-    from routes import solicitudes, trivias
 
 
 def create_app(config_override: dict | None = None) -> Flask:
@@ -115,6 +141,8 @@ def create_app(config_override: dict | None = None) -> Flask:
     app.register_blueprint(budget.bp)  # Budget/BUR management at /api
     app.register_blueprint(trivias.bp, url_prefix="/api")  # Trivias: games, rankings, scores
     app.register_blueprint(foro.bp, url_prefix="/api")  # Forum: posts, replies, likes
+    app.register_blueprint(kpis.bp)  # KPIs and metrics at /api/kpis
+    app.register_blueprint(equivalencias.bp)  # Material equivalences at /api/equivalencias
 
     # ==================== SERVIR FRONTEND REACT ====================
     # Calcular rutas del frontend
