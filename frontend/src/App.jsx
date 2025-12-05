@@ -33,6 +33,10 @@ const CompleteRegistration = lazy(() => import('./pages/CompleteRegistration'))
 const CatalogoMateriales = lazy(() => import('./pages/CatalogoMateriales'))
 const CatalogoEquivalencias = lazy(() => import('./pages/CatalogoEquivalencias'))
 
+// MRP pages (lazy-loaded)
+const MRPTableroAlertas = lazy(() => import('./pages/MRPTableroAlertas'))
+const MRPKPIs = lazy(() => import('./pages/MRPKPIs'))
+
 // Budget pages (lazy-loaded)
 const BudgetRequests = lazy(() => import('./pages/BudgetRequests'))
 const BudgetRequestCreate = lazy(() => import('./pages/BudgetRequestCreate'))
@@ -93,6 +97,8 @@ function App() {
             <Route path="/aprobaciones" element={<ProtectedRoute><Aprobaciones /></ProtectedRoute>} />
             <Route path="/aprobaciones/historial" element={<ProtectedRoute><HistorialAprobaciones /></ProtectedRoute>} />
             <Route path="/planificador" element={<ProtectedRoute><Planner /></ProtectedRoute>} />
+            <Route path="/planificador/mrp/alertas" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><MRPTableroAlertas /></ProtectedRoute>} />
+            <Route path="/planificador/mrp/kpis" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><MRPKPIs /></ProtectedRoute>} />
             <Route path="/presupuestos" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe', 'coordinador']}><BudgetRequests /></ProtectedRoute>} />
             <Route path="/presupuestos/nueva" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe']}><BudgetRequestCreate /></ProtectedRoute>} />
             <Route path="/presupuestos/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe', 'coordinador']}><BudgetRequestDetail /></ProtectedRoute>} />

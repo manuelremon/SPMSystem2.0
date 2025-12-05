@@ -36,6 +36,9 @@ import {
   Truck,
   Search,
   GitCompare,
+  AlertTriangle,
+  TrendingUp,
+  Layers,
 } from "lucide-react";
 import clsx from "clsx";
 import { useAuthStore } from "../store/authStore";
@@ -100,6 +103,9 @@ export default function Layout({ children }) {
   const [aprobacionesOpen, setAprobacionesOpen] = useState(false);
   const [plannerOpen, setPlannerOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [plannerSubmenus, setPlannerSubmenus] = useState({
+    mrp: false
+  });
   const [adminSubmenus, setAdminSubmenus] = useState({
     registros: false,
     locaciones: false,
@@ -130,6 +136,8 @@ export default function Layout({ children }) {
     setAprobacionesOpen(false);
     setPlannerOpen(false);
     setMobileMenuOpen(false);
+    // Reset planner submenus when route changes
+    setPlannerSubmenus({ mrp: false });
     // Reset admin submenus when route changes
     setAdminSubmenus({
       registros: false,
@@ -148,6 +156,8 @@ export default function Layout({ children }) {
         setMaterialesOpen(false);
         setAprobacionesOpen(false);
         setPlannerOpen(false);
+        // Reset planner submenus when clicking outside
+        setPlannerSubmenus({ mrp: false });
         // Reset admin submenus when clicking outside
         setAdminSubmenus({
           registros: false,
@@ -236,6 +246,10 @@ export default function Layout({ children }) {
     { label: t("nav_trivias", "Trivias"), to: "/trivias", icon: Trophy },
     { label: t("nav_ayuda", "Ayuda"), to: "/ayuda", icon: HelpCircle },
   ];
+
+  const togglePlannerSubmenu = (key) => {
+    setPlannerSubmenus(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const toggleAdminSubmenu = (key) => {
     setAdminSubmenus(prev => ({ ...prev, [key]: !prev[key] }));
@@ -427,7 +441,10 @@ export default function Layout({ children }) {
                     setSolicitudesOpen(false);
                     setAprobacionesOpen(false);
                   }}
-                  onMouseLeave={() => setPlannerOpen(false)}
+                  onMouseLeave={() => {
+                    setPlannerOpen(false);
+                    setPlannerSubmenus({ mrp: false });
+                  }}
                 >
                   <button
                     type="button"
@@ -438,7 +455,7 @@ export default function Layout({ children }) {
                     <ChevronDown className={clsx("w-3.5 h-3.5 transition-transform", plannerOpen && "rotate-180")} />
                   </button>
                   {plannerOpen && (
-                    <div className={dropdownWrapperClass}>
+                    <div className={clsx(dropdownWrapperClass, "w-72")}>
                       <div className={dropdownClass}>
                         <NavLink to="/planificador" className={clsx(dropdownItemClass, "animate-menu-item-reveal menu-item-stagger-1")}>
                           <CheckCircle2 className="w-4 h-4 text-[var(--primary)]" />
@@ -452,6 +469,63 @@ export default function Layout({ children }) {
                           <FilePlus2 className="w-4 h-4 text-[var(--primary)]" />
                           <span>{t("nav_no_asignadas", "No Asignadas")}</span>
                         </NavLink>
+
+                        {/* MRP Submenu */}
+                        <div className="border-t border-[var(--border)] my-1">
+                          <button
+                            type="button"
+                            onMouseEnter={() => togglePlannerSubmenu("mrp")}
+                            className={clsx(
+                              "w-full flex items-center gap-3 px-4 py-3",
+                              "text-sm font-semibold text-[var(--fg)]",
+                              "hover:bg-[var(--bg-soft)] transition-all duration-150",
+                              "animate-menu-item-reveal menu-item-stagger-4"
+                            )}
+                          >
+                            <Layers className="w-4 h-4 text-[var(--primary)]" />
+                            <span className="flex-1 text-left">{t("nav_mrp", "MRP")}</span>
+                            <ChevronRight
+                              className={clsx(
+                                "w-3.5 h-3.5 transition-transform duration-200",
+                                plannerSubmenus.mrp && "rotate-90"
+                              )}
+                            />
+                          </button>
+
+                          {/* MRP Submenu Items */}
+                          {plannerSubmenus.mrp && (
+                            <div className="bg-[var(--bg-soft)]/50 animate-menu-reveal">
+                              <NavLink
+                                to="/planificador/mrp/alertas"
+                                className={clsx(
+                                  "flex items-center gap-3 px-4 py-2.5 pl-11",
+                                  "text-sm font-normal text-[var(--fg-muted)]",
+                                  "hover:text-[var(--fg-strong)] hover:bg-[var(--bg-elevated)]",
+                                  "transition-all duration-150 border-l-2 border-transparent",
+                                  "animate-menu-item-reveal menu-item-stagger-1",
+                                  location.pathname === "/planificador/mrp/alertas" && "border-l-[var(--primary)] bg-[var(--primary-muted)]/30 text-[var(--primary)] font-medium"
+                                )}
+                              >
+                                <AlertTriangle className="w-3.5 h-3.5 text-[var(--primary)]" />
+                                <span>{t("nav_mrp_alertas", "Tablero de Alertas")}</span>
+                              </NavLink>
+                              <NavLink
+                                to="/planificador/mrp/kpis"
+                                className={clsx(
+                                  "flex items-center gap-3 px-4 py-2.5 pl-11",
+                                  "text-sm font-normal text-[var(--fg-muted)]",
+                                  "hover:text-[var(--fg-strong)] hover:bg-[var(--bg-elevated)]",
+                                  "transition-all duration-150 border-l-2 border-transparent",
+                                  "animate-menu-item-reveal menu-item-stagger-2",
+                                  location.pathname === "/planificador/mrp/kpis" && "border-l-[var(--primary)] bg-[var(--primary-muted)]/30 text-[var(--primary)] font-medium"
+                                )}
+                              >
+                                <TrendingUp className="w-3.5 h-3.5 text-[var(--primary)]" />
+                                <span>{t("nav_mrp_kpis", "KPI's MRP")}</span>
+                              </NavLink>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}

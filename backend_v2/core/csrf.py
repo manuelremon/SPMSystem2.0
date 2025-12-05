@@ -71,6 +71,13 @@ class CSRFProtection:
         # Validate on state-changing methods (excepto en endpoints públicos)
         if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
             if request.path not in exempt_paths:
+                # Si hay Bearer token, el usuario está autenticado de forma segura
+                # CSRF protege contra ataques que explotan cookies, no Bearer tokens
+                auth_header = request.headers.get("Authorization", "")
+                if auth_header.startswith("Bearer "):
+                    # Usuario autenticado con Bearer token, CSRF no es necesario
+                    return None
+
                 header_token = request.headers.get("X-CSRF-Token")
                 if not header_token or header_token != token:
                     return (

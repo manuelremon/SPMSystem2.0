@@ -14,6 +14,7 @@ from flask_cors import CORS
 
 try:
     from backend_v2.agent import agent_bp
+    from backend_v2.core.auth_middleware import init_auth_middleware
     from backend_v2.core.config import settings
     from backend_v2.core.csrf import init_csrf_protection
     from backend_v2.core.db import db, init_db
@@ -31,6 +32,7 @@ try:
         materiales_detalle,
         mensajes,
         mi_cuenta,
+        mrp,
         notificaciones,
         solicitudes,
         trivias,
@@ -38,6 +40,7 @@ try:
     from backend_v2.routes import planner as planner_new
 except ImportError:
     from agent import agent_bp
+    from core.auth_middleware import init_auth_middleware
     from core.config import settings
     from core.csrf import init_csrf_protection
     from core.db import db, init_db
@@ -55,6 +58,7 @@ except ImportError:
         materiales_detalle,
         mensajes,
         mi_cuenta,
+        mrp,
         notificaciones,
         solicitudes,
         trivias,
@@ -105,6 +109,10 @@ def create_app(config_override: dict | None = None) -> Flask:
     # Inicializar DB
     db.init_app(app)
 
+    # Authentication middleware (sets g.user from Bearer token)
+    # MUST run before CSRF to enable authenticated routes
+    init_auth_middleware(app)
+
     # Protección CSRF
     init_csrf_protection(app)
 
@@ -143,6 +151,7 @@ def create_app(config_override: dict | None = None) -> Flask:
     app.register_blueprint(foro.bp, url_prefix="/api")  # Forum: posts, replies, likes
     app.register_blueprint(kpis.bp)  # KPIs and metrics at /api/kpis
     app.register_blueprint(equivalencias.bp)  # Material equivalences at /api/equivalencias
+    app.register_blueprint(mrp.bp)  # MRP (Material Requirements Planning) at /api/mrp
 
     # ==================== SERVIR FRONTEND REACT ====================
     # Calcular rutas del frontend

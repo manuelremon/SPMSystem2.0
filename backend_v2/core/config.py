@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     # Entorno
     ENV: str = os.getenv("FLASK_ENV", "development")
     DEBUG: bool = ENV == "development"
-    
+
     # Render/Producción
     RENDER_SERVICE_URL: str = os.getenv("RENDER_SERVICE_URL", "http://localhost:5000")
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
@@ -45,9 +45,10 @@ class Settings(BaseSettings):
     SECRET_KEY: str = ""
 
     # CORS - Dinámico según entorno
+    # Incluye: desarrollo local, GitHub Pages, y cualquier túnel de Cloudflare
     CORS_ORIGINS: str = os.getenv(
         "CORS_ORIGINS",
-        "http://localhost:5173,http://localhost:5174,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:5174,https://manuelremon.github.io"
+        "http://localhost:5173,http://localhost:5174,http://localhost:4173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:4173,https://manuelremon.github.io,https://*.trycloudflare.com",
     )
 
     # JWT - Clave segura (requerida en producción)
@@ -67,9 +68,24 @@ class Settings(BaseSettings):
     LOG_FILE: str = "logs/spm_backend.log"
 
     def get_cors_origins(self) -> List[str]:
-        """Parse CORS_ORIGINS from comma-separated string"""
+        """Parse CORS_ORIGINS from comma-separated string
+
+        Soporta wildcards para subdominios usando regex:
+        - https://*.trycloudflare.com -> r"https://.*\.trycloudflare\.com"
+        """
+        import re
+
         if isinstance(self.CORS_ORIGINS, str):
-            return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+            origins = []
+            for origin in self.CORS_ORIGINS.split(","):
+                origin = origin.strip()
+                if "*" in origin:
+                    # Convertir wildcard a regex pattern
+                    pattern = origin.replace(".", r"\.").replace("*", ".*")
+                    origins.append(re.compile(pattern))
+                else:
+                    origins.append(origin)
+            return origins
         return self.CORS_ORIGINS
 
 
