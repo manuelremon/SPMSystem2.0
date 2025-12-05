@@ -36,12 +36,17 @@ class Settings(BaseSettings):
     # Entorno
     ENV: str = os.getenv("FLASK_ENV", "development")
     DEBUG: bool = ENV == "development"
+    
+    # Render/Producción
+    RENDER_SERVICE_URL: str = os.getenv("RENDER_SERVICE_URL", "http://localhost:5000")
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
     # Flask - Clave segura (requerida en producción)
     SECRET_KEY: str = ""
 
-    # CORS - default value, can be overridden at init
-    CORS_ORIGINS: str = (
+    # CORS - Dinámico según entorno
+    CORS_ORIGINS: str = os.getenv(
+        "CORS_ORIGINS",
         "http://localhost:5173,http://localhost:5174,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:5174"
     )
 
