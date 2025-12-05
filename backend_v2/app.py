@@ -6,9 +6,10 @@ API REST limpia con CORS, blueprints, error handlers
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 
-from flask import Flask, jsonify, send_from_directory, render_template_string
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 
 try:
@@ -20,7 +21,6 @@ try:
     from backend_v2.routes import (admin, auth, budget, catalogos, foro,
                                    health, materiales, materiales_detalle,
                                    mensajes, mi_cuenta, notificaciones)
-    from backend_v2.routes import planner
     from backend_v2.routes import planner as planner_new
     from backend_v2.routes import solicitudes, trivias
 except ImportError:
@@ -46,22 +46,15 @@ def create_app(config_override: dict | None = None) -> Flask:
     Returns:
         Instancia de Flask configurada
     """
-    # Determinar rutas de archivos estáticos - Usar ruta absoluta robusta
-    import os
-    from pathlib import Path
-    
-    # Obtener la ruta raíz del proyecto
-    # Este archivo es: /app/backend_v2/app.py
-    # Necesitamos: /app/frontend/dist
-    current_file = Path(__file__).resolve()
-    backend_v2_dir = current_file.parent  # /app/backend_v2
-    root_dir = backend_v2_dir.parent      # /app
-    static_dir = root_dir / "frontend" / "dist"
-    
-    # Crear app con rutas de archivos estáticos
+    # Ruta del archivo actual: /path/to/backend_v2/app.py
+    # Necesitamos: /path/to/frontend/dist
+    current_dir = os.path.dirname(os.path.abspath(__file__))  # /path/to/backend_v2
+    root_dir = os.path.dirname(current_dir)  # /path/to
+    static_dir = os.path.join(root_dir, "frontend", "dist")  # /path/to/frontend/dist
+
     app = Flask(
         __name__,
-        static_folder=str(static_dir),
+        static_folder=static_dir,
         static_url_path="",
     )
 
@@ -101,10 +94,10 @@ def create_app(config_override: dict | None = None) -> Flask:
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     )
 
-    # Inicializar DB (solo en dev/test)
-    if settings.ENV in ["development", "test"]:
-        with app.app_context():
-            init_db()
+    # Inicializar DB (siempre, init_db verifica si ya existe)
+    # En Render/producción también necesitamos inicializar la BD
+    with app.app_context():
+        init_db()
 
     # Registrar blueprints
     app.register_blueprint(health.bp)
@@ -124,58 +117,56 @@ def create_app(config_override: dict | None = None) -> Flask:
     app.register_blueprint(foro.bp, url_prefix="/api")  # Forum: posts, replies, likes
 
     # ==================== SERVIR FRONTEND REACT ====================
-    # Cargar index.html para SPA routing
-    import os
-    from pathlib import Path
-    
-    root_dir = Path(__file__).resolve().parent.parent
-    frontend_dist = root_dir / "frontend" / "dist"
-    index_html_path = frontend_dist / "index.html"
-    
+    # Calcular rutas del frontend
+    current_dir = os.path.dirname(os.path.abspath(__file__))  # /path/to/backend_v2
+    root_dir = os.path.dirname(current_dir)  # /path/to
+    frontend_dist = os.path.join(root_dir, "frontend", "dist")
+    index_html_path = os.path.join(frontend_dist, "index.html")
+
     # Debug logging
-    app.logger.info(f"Frontend dist dir: {frontend_dist}")
-    app.logger.info(f"Frontend dist exists: {frontend_dist.exists()}")
-    app.logger.info(f"Index.html path: {index_html_path}")
-    app.logger.info(f"Index.html exists: {index_html_path.exists()}")
-    
+    app.logger.info(f"Frontend dist: {frontend_dist}")
+    app.logger.info(f"Frontend dist exists: {os.path.exists(frontend_dist)}")
+    app.logger.info(f"Index.html: {index_html_path}")
+    app.logger.info(f"Index.html exists: {os.path.exists(index_html_path)}")
+
     @app.route("/")
     def serve_spa_index():
         """Servir index.html para React SPA"""
         try:
-            if index_html_path.exists():
-                with open(index_html_path, encoding='utf-8') as f:
-                    return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
+            if os.path.exists(index_html_path):
+                with open(index_html_path, encoding="utf-8") as f:
+                    return f.read(), 200, {"Content-Type": "text/html; charset=utf-8"}
         except Exception as e:
             app.logger.error(f"Error serving index.html: {e}")
-        
-        # Fallback a la API info si no existe index.html
-        app.logger.warning(f"index.html not found, serving API info")
+
+        # Fallback a la API info
+        app.logger.warning("Serving API info (index.html not found)")
         return api_info()
 
     @app.route("/<path:path>", methods=["GET"])
     def serve_spa_routes(path):
         """
         Manejar rutas de React SPA.
-        Si el archivo existe (assets, imágenes, etc), servirlo.
-        Si no existe, devolver index.html para que React maneje el routing.
         """
         try:
-            # Intentar servir archivo estático
-            file_path = frontend_dist / path
-            if file_path.exists() and file_path.is_file():
-                return send_from_directory(str(frontend_dist), path)
+            file_path = os.path.join(frontend_dist, path)
+            # Validar que el archivo está dentro de frontend_dist (seguridad)
+            if os.path.commonpath([file_path, frontend_dist]) == frontend_dist:
+                if os.path.isfile(file_path):
+                    return send_from_directory(frontend_dist, path)
         except Exception as e:
-            app.logger.error(f"Error serving static file {path}: {e}")
-        
-        # Si es una ruta que no existe, servir index.html (SPA routing)
+            app.logger.error(f"Error serving {path}: {e}")
+
+        # Fallback a index.html para SPA routing
         try:
-            if index_html_path.exists():
-                with open(index_html_path, encoding='utf-8') as f:
-                    return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
+            if os.path.exists(index_html_path):
+                with open(index_html_path, encoding="utf-8") as f:
+                    return f.read(), 200, {"Content-Type": "text/html; charset=utf-8"}
         except Exception as e:
             app.logger.error(f"Error serving index.html fallback: {e}")
-        
+
         from flask import abort
+
         abort(404)
 
     def api_info():
@@ -262,7 +253,7 @@ def _register_error_handlers(app: Flask) -> None:
     @app.errorhandler(404)
     def not_found(error):
         from flask import request
-        
+
         # Si es una solicitud GET y la ruta no es de API, devolver index.html (SPA routing)
         if request.method == "GET" and not request.path.startswith("/api"):
             try:
@@ -270,11 +261,11 @@ def _register_error_handlers(app: Flask) -> None:
                 if static_folder:
                     index_file = Path(static_folder) / "index.html"
                     if index_file.exists():
-                        with open(index_file, encoding='utf-8') as f:
+                        with open(index_file, encoding="utf-8") as f:
                             return f.read(), 200
             except Exception as e:
                 app.logger.error(f"Error serving index.html: {e}")
-        
+
         # Para API requests, devolver JSON error
         return (
             jsonify({"ok": False, "error": {"code": "not_found", "message": "Resource not found"}}),

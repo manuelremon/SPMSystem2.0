@@ -2,9 +2,11 @@
 Security Headers - OWASP compliant
 
 Diferencia headers según el entorno:
-- Production: Headers estrictos (HSTS, CSP sin unsafe-inline)
+- Production: Headers estrictos (HSTS, CSP con dominios externos permitidos)
 - Development: Headers relajados para facilitar desarrollo
 """
+
+import os
 
 from flask import Flask
 
@@ -23,6 +25,9 @@ def init_security_headers(app: Flask):
     """
     is_production = settings.ENV == "production"
 
+    # Detectar si estamos en Render u otro hosting
+    is_render = os.getenv("RENDER", "") == "true"
+
     @app.after_request
     def set_security_headers(response):
         # Prevent MIME sniffing - siempre
@@ -34,7 +39,7 @@ def init_security_headers(app: Flask):
         # Permissions Policy - siempre
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
 
-        if is_production:
+        if is_production or is_render:
             # HSTS - Solo en produccion (requiere HTTPS)
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
 
@@ -44,14 +49,14 @@ def init_security_headers(app: Flask):
             # XSS Protection (legacy, CSP lo reemplaza)
             response.headers["X-XSS-Protection"] = "1; mode=block"
 
-            # Content Security Policy ESTRICTO - sin unsafe-inline
-            # Usa nonces o hashes para scripts inline si los necesitas
+            # Content Security Policy para PRODUCCION
+            # Permite Google Fonts y conexiones al propio dominio
             csp = (
                 "default-src 'self'; "
-                "script-src 'self'; "
-                "style-src 'self'; "
+                "script-src 'self' 'unsafe-inline'; "
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
                 "img-src 'self' data: https:; "
-                "font-src 'self'; "
+                "font-src 'self' https://fonts.gstatic.com; "
                 "connect-src 'self'; "
                 "frame-ancestors 'none'; "
                 "form-action 'self'; "
@@ -67,9 +72,9 @@ def init_security_headers(app: Flask):
             csp_dev = (
                 "default-src 'self' localhost:* 127.0.0.1:*; "
                 "script-src 'self' 'unsafe-inline' 'unsafe-eval' localhost:* 127.0.0.1:*; "
-                "style-src 'self' 'unsafe-inline' localhost:* 127.0.0.1:*; "
+                "style-src 'self' 'unsafe-inline' localhost:* 127.0.0.1:* https://fonts.googleapis.com; "
                 "img-src 'self' data: blob: localhost:* 127.0.0.1:*; "
-                "font-src 'self' data: localhost:* 127.0.0.1:*; "
+                "font-src 'self' data: localhost:* 127.0.0.1:* https://fonts.gstatic.com; "
                 "connect-src 'self' ws: wss: localhost:* 127.0.0.1:*;"
             )
             response.headers["Content-Security-Policy"] = csp_dev
