@@ -17,6 +17,7 @@ import { Modal } from '../components/ui/Modal'
 import { ConfirmModal } from '../components/ui/ConfirmModal'
 import { TableSkeleton } from '../components/ui/Skeleton'
 import { Badge } from '../components/ui/Badge'
+import { ScrollReveal } from '../components/ui/ScrollReveal'
 import { MessageSquare, Search, X, Loader2, Check, Trash2 } from 'lucide-react'
 
 const DEBOUNCE_MS = 250
@@ -471,20 +472,22 @@ export default function Materials() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <PageHeader
-        title={t('materials_title', 'Agregar Materiales')}
-        subtitle={hasUnsavedChanges ? <Badge variant="warning">{t('common_sin_guardar', 'Sin guardar')}</Badge> : null}
-        actions={
-          <Button
-            as={Link}
-            to="/mis-solicitudes"
-            variant="ghost"
-            aria-label={t('common_volver_mis_solicitudes', 'Volver a Mis Solicitudes')}
-          >
-            {t('common_volver', 'Volver')}
-          </Button>
-        }
-      />
+      <ScrollReveal>
+        <PageHeader
+          title={t('materials_title', 'Agregar Materiales')}
+          subtitle={hasUnsavedChanges ? <Badge variant="warning">{t('common_sin_guardar', 'Sin guardar')}</Badge> : null}
+          actions={
+            <Button
+              as={Link}
+              to="/mis-solicitudes"
+              variant="ghost"
+              aria-label={t('common_volver_mis_solicitudes', 'Volver a Mis Solicitudes')}
+            >
+              {t('common_volver', 'Volver')}
+            </Button>
+          }
+        />
+      </ScrollReveal>
 
       {/* Mensajes de error y acción */}
       {error && (
@@ -499,10 +502,11 @@ export default function Materials() {
       )}
 
       {/* Sección de búsqueda y contexto */}
-      <Card hover={false}>
-        <CardContent className="pt-6 space-y-4">
-          {/* Layout de 3 columnas: Búsqueda | Material seleccionado | Info contextual */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <ScrollReveal delay={100}>
+        <Card hover={false}>
+          <CardContent className="pt-6 space-y-4">
+            {/* Layout de 3 columnas: Búsqueda | Material seleccionado | Info contextual */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Columna izquierda: Búsqueda */}
             <div ref={searchContainerRef} className="space-y-3">
               <p className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wide">
@@ -670,14 +674,16 @@ export default function Materials() {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </ScrollReveal>
 
       {/* Sección de resumen de materiales */}
-      <Card hover={false}>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <CardTitle>{t('materials_resumen', 'Resumen de Materiales')}</CardTitle>
+      <ScrollReveal delay={200}>
+        <Card hover={false}>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <CardTitle>{t('materials_resumen', 'Resumen de Materiales')}</CardTitle>
             {items.length > 0 && (
               <Badge variant="primary">{items.length} {items.length === 1 ? t('common_item', 'item') : t('common_items', 'items')}</Badge>
             )}
@@ -828,8 +834,9 @@ export default function Materials() {
                 : t('materials_enviar', 'Enviar Solicitud')}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </ScrollReveal>
 
       {/* Modal de detalle del material */}
       <Modal

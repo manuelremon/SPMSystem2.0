@@ -12,6 +12,7 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { Modal } from '../components/ui/Modal'
 import { Badge } from '../components/ui/Badge'
 import { TableSkeleton } from '../components/ui/Skeleton'
+import { ScrollReveal } from '../components/ui/ScrollReveal'
 import {
   Search,
   Loader2,
@@ -186,13 +187,16 @@ export default function CatalogoMateriales() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <PageHeader
-        title={t('catalogo_materiales_titulo', 'Catálogo de Materiales')}
-        subtitle={t('catalogo_materiales_subtitulo', 'Busca materiales por código SAP, descripción o palabra clave')}
-      />
+      <ScrollReveal>
+        <PageHeader
+          title={t('catalogo_materiales_titulo', 'Catálogo de Materiales')}
+          subtitle={t('catalogo_materiales_subtitulo', 'Busca materiales por código SAP, descripción o palabra clave')}
+        />
+      </ScrollReveal>
 
       {/* Search Card */}
-      <Card hover={false}>
+      <ScrollReveal delay={100}>
+        <Card hover={false}>
         <CardContent className="pt-6">
           <div className="flex flex-col lg:flex-row gap-4">
             {/* Código SAP */}
@@ -260,7 +264,8 @@ export default function CatalogoMateriales() {
             </div>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </ScrollReveal>
 
       {/* Error */}
       {error && (
@@ -270,13 +275,14 @@ export default function CatalogoMateriales() {
       )}
 
       {/* Results Table */}
-      <Card hover={false}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-[var(--primary)]" />
-            {t('catalogo_resultados', 'Resultados de Búsqueda')}
-          </CardTitle>
-        </CardHeader>
+      <ScrollReveal delay={200}>
+        <Card hover={false}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-[var(--primary)]" />
+              {t('catalogo_resultados', 'Resultados de Búsqueda')}
+            </CardTitle>
+          </CardHeader>
         <CardContent>
           {loading ? (
             <TableSkeleton rows={5} columns={5} />
@@ -364,8 +370,9 @@ export default function CatalogoMateriales() {
               </table>
             </div>
           )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </ScrollReveal>
 
       {/* Detail Modal */}
       <Modal

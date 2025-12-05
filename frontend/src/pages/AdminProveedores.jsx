@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
+import { ScrollReveal } from "../components/ui/ScrollReveal";
 import { Warehouse, Truck, Plus, Edit2, Trash2, Check, X, Building } from "lucide-react";
 import { formatAlmacen } from "../utils/formatters";
 
@@ -24,17 +25,20 @@ export default function AdminProveedores() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-[var(--fg)]">Proveedores</h1>
-          <p className="text-sm text-[var(--fg-muted)]">
-            Gestiona proveedores internos (almacenes) y externos
-          </p>
+      <ScrollReveal>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-black text-[var(--fg)]">Proveedores</h1>
+            <p className="text-sm text-[var(--fg-muted)]">
+              Gestiona proveedores internos (almacenes) y externos
+            </p>
+          </div>
         </div>
-      </div>
+      </ScrollReveal>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-[var(--border)] pb-2">
+      <ScrollReveal delay={100}>
+        <div className="flex gap-2 border-b border-[var(--border)] pb-2">
         <button
           onClick={() => setTab("internos")}
           className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-semibold text-sm transition ${
@@ -57,13 +61,16 @@ export default function AdminProveedores() {
           <Truck className="w-4 h-4" />
           Externos
         </button>
-      </div>
+        </div>
+      </ScrollReveal>
 
-      {tab === "internos" ? (
-        <ProveedoresInternos token={token} />
-      ) : (
-        <ProveedoresExternos token={token} />
-      )}
+      <ScrollReveal delay={200}>
+        {tab === "internos" ? (
+          <ProveedoresInternos token={token} />
+        ) : (
+          <ProveedoresExternos token={token} />
+        )}
+      </ScrollReveal>
     </div>
   );
 }

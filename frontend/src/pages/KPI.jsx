@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
+import { ScrollReveal } from "../components/ui/ScrollReveal";
 import { useI18n } from "../context/i18n";
 import { formatCurrency } from "../utils/formatters";
 import api from "../services/api";
@@ -160,16 +161,19 @@ export default function KPI() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="KPI's"
-        breadcrumbs={[
-          { label: "Dashboard", to: "/dashboard" },
-          { label: "KPI's" }
-        ]}
-      />
+      <ScrollReveal>
+        <PageHeader
+          title="KPI's"
+          breadcrumbs={[
+            { label: "Dashboard", to: "/dashboard" },
+            { label: "KPI's" }
+          ]}
+        />
+      </ScrollReveal>
 
       {/* Métricas principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <ScrollReveal delay={100}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Solicitudes */}
         <Card className="border-l-4 border-l-[var(--primary)]">
           <CardContent className="pt-6 pb-6">
@@ -261,10 +265,12 @@ export default function KPI() {
             </div>
           </CardContent>
         </Card>
-      </div>
+        </div>
+      </ScrollReveal>
 
       {/* Gráficos detallados */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <ScrollReveal delay={200}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Tendencia de Solicitudes */}
         <Card>
           <CardHeader className="px-6 pt-6 pb-4">
@@ -471,10 +477,12 @@ export default function KPI() {
             </div>
           </CardContent>
         </Card>
-      </div>
+        </div>
+      </ScrollReveal>
 
       {/* Card de Progreso de Presupuesto */}
-      <Card>
+      <ScrollReveal delay={300}>
+        <Card>
         <CardHeader className="px-6 pt-6 pb-4">
           <CardTitle>Resumen de Presupuesto</CardTitle>
         </CardHeader>
@@ -511,7 +519,8 @@ export default function KPI() {
             </div>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </ScrollReveal>
     </div>
   );
 }

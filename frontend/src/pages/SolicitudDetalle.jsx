@@ -7,6 +7,7 @@ import { Button } from "../components/ui/Button";
 import { Badge } from "../components/ui/Badge";
 import { Alert } from "../components/ui/Alert";
 import { PageHeader } from "../components/ui/PageHeader";
+import { ScrollReveal } from "../components/ui/ScrollReveal";
 import StatusBadge from "../components/ui/StatusBadge";
 import { formatDate, formatCurrency, getSectorNombre, formatAlmacen } from "../utils/formatters";
 import {
@@ -145,21 +146,24 @@ export default function SolicitudDetalle() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <PageHeader
-        title={`${t("detalle_title", "Solicitud")} #${solicitud.id}`}
-        actions={
-          <div className="flex items-center gap-3">
-            <StatusBadge estado={estado} />
-            <Button variant="ghost" onClick={() => navigate(-1)}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              {t("common_back", "Volver")}
-            </Button>
-          </div>
-        }
-      />
+      <ScrollReveal>
+        <PageHeader
+          title={`${t("detalle_title", "Solicitud")} #${solicitud.id}`}
+          actions={
+            <div className="flex items-center gap-3">
+              <StatusBadge estado={estado} />
+              <Button variant="ghost" onClick={() => navigate(-1)}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                {t("common_back", "Volver")}
+              </Button>
+            </div>
+          }
+        />
+      </ScrollReveal>
 
       {/* Info Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <ScrollReveal delay={100}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Información General */}
         <Card>
           <CardHeader>
@@ -246,10 +250,12 @@ export default function SolicitudDetalle() {
             </div>
           </CardContent>
         </Card>
-      </div>
+        </div>
+      </ScrollReveal>
 
       {/* Justificación */}
-      <Card>
+      <ScrollReveal delay={200}>
+        <Card>
         <CardHeader>
           <CardTitle>{t("detalle_justificacion", "Justificación")}</CardTitle>
         </CardHeader>
@@ -263,10 +269,12 @@ export default function SolicitudDetalle() {
             </p>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </ScrollReveal>
 
       {/* Items/Materiales */}
-      <Card>
+      <ScrollReveal delay={300}>
+        <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>
             {t("detalle_materiales", "Materiales")} ({items.length})
@@ -352,7 +360,8 @@ export default function SolicitudDetalle() {
             </div>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </ScrollReveal>
 
       {/* Acciones según estado */}
       {estado.toLowerCase() === "borrador" && (

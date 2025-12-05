@@ -128,6 +128,11 @@ export default {
         "ease-out-expo": "cubic-bezier(0.19, 1, 0.22, 1)",
       },
 
+      transitionDuration: {
+        "600": "600ms",
+        "800": "800ms",
+      },
+
       animation: {
         fadeIn: "fadeIn 0.3s ease-out",
         slideUp: "slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1)",

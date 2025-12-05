@@ -18,6 +18,7 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
 import StatusBadge from "../components/ui/StatusBadge";
 import { TableSkeleton, StatCardSkeleton } from "../components/ui/Skeleton";
+import { ScrollReveal } from "../components/ui/ScrollReveal";
 import { useI18n } from "../context/i18n";
 import { formatDate, formatDateTime, formatCurrency, exportToExcel, getSectorNombre } from "../utils/formatters";
 import {
@@ -411,36 +412,39 @@ export default function MisSolicitudes() {
   return (
     <div className="space-y-6">
       {/* Encabezado de página */}
-      <PageHeader
-        title={t("mis_page_title", "MIS SOLICITUDES")}
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              onClick={handleRefresh}
-              disabled={refreshing || loading}
-              className="flex items-center gap-2"
-              title={t("mis_btn_refresh", "Actualizar")}
-              aria-label={t("mis_btn_refresh", "Actualizar datos")}
-            >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            </Button>
-            <Button
-              onClick={() => navigate("/solicitudes/nueva")}
-              className="flex items-center gap-2"
-            >
-              <FilePlus2 className="w-4 h-4" />
-              {t("nav_nueva", "Nueva Solicitud")}
-            </Button>
-          </div>
-        }
-      />
+      <ScrollReveal>
+        <PageHeader
+          title={t("mis_page_title", "MIS SOLICITUDES")}
+          actions={
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                onClick={handleRefresh}
+                disabled={refreshing || loading}
+                className="flex items-center gap-2"
+                title={t("mis_btn_refresh", "Actualizar")}
+                aria-label={t("mis_btn_refresh", "Actualizar datos")}
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button
+                onClick={() => navigate("/solicitudes/nueva")}
+                className="flex items-center gap-2"
+              >
+                <FilePlus2 className="w-4 h-4" />
+                {t("nav_nueva", "Nueva Solicitud")}
+              </Button>
+            </div>
+          }
+        />
+      </ScrollReveal>
 
       {/* Mensajes */}
       {error && <Alert variant="danger" onDismiss={() => setError("")}>{error}</Alert>}
       {success && <Alert variant="success" onDismiss={() => setSuccess("")}>{success}</Alert>}
 
       {/* Stats Cards */}
+      <ScrollReveal delay={100}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {loading ? (
           <>
@@ -564,9 +568,11 @@ export default function MisSolicitudes() {
           </>
         )}
       </div>
+      </ScrollReveal>
 
 
       {/* Card principal */}
+      <ScrollReveal delay={200}>
       <Card className="transition-all duration-200">
         <CardHeader className="px-6 pt-5 pb-4">
           <div className="flex items-center justify-between">
@@ -721,6 +727,7 @@ export default function MisSolicitudes() {
           )}
         </CardContent>
       </Card>
+      </ScrollReveal>
 
       {/* Modal de confirmación para eliminar */}
       <ConfirmModal

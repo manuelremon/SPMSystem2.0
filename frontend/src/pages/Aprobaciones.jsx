@@ -9,6 +9,7 @@ import StatusBadge from "../components/ui/StatusBadge";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Alert } from "../components/ui/Alert";
 import { TableSkeleton } from "../components/ui/Skeleton";
+import { ScrollReveal } from "../components/ui/ScrollReveal";
 import { useI18n } from "../context/i18n";
 import { formatCurrency, formatAlmacen } from "../utils/formatters";
 import { useDebounced } from "../hooks/useDebounced";
@@ -265,26 +266,29 @@ export default function Aprobaciones() {
   return (
     <div className="space-y-6">
       {/* Encabezado de página */}
-      <PageHeader
-        title="APROBACIONES"
-        actions={
-          <Button
-            variant="ghost"
-            onClick={handleRefresh}
-            disabled={refreshing || loading}
-            aria-label={t("common_refresh", "Actualizar")}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
-            {t("common_refresh", "Actualizar")}
-          </Button>
-        }
-      />
+      <ScrollReveal>
+        <PageHeader
+          title="APROBACIONES"
+          actions={
+            <Button
+              variant="ghost"
+              onClick={handleRefresh}
+              disabled={refreshing || loading}
+              aria-label={t("common_refresh", "Actualizar")}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+              {t("common_refresh", "Actualizar")}
+            </Button>
+          }
+        />
+      </ScrollReveal>
 
       {/* Mensajes de error y éxito unificados */}
       {error && <Alert variant="danger" onDismiss={() => setError("")}>{error}</Alert>}
       {msg && <Alert variant="success" onDismiss={() => setMsg("")}>{msg}</Alert>}
 
       {/* Card principal */}
+      <ScrollReveal delay={100}>
       <Card className="transition-all duration-200">
         <CardHeader>
           <div>
@@ -322,6 +326,7 @@ export default function Aprobaciones() {
           )}
         </CardContent>
       </Card>
+      </ScrollReveal>
 
       {/* Modal de rechazo */}
       <Modal

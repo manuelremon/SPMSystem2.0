@@ -5,6 +5,7 @@ import { Button } from "../components/ui/Button";
 import { DataTable } from "../components/ui/DataTable";
 import StatusBadge from "../components/ui/StatusBadge";
 import { TableSkeleton, StatCardSkeleton } from "../components/ui/Skeleton";
+import { ScrollReveal } from "../components/ui/ScrollReveal";
 import {
   KPICard,
   ProgressCircle,
@@ -257,22 +258,25 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Header con saludo y acciones */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-[var(--fg)]">
-          Hola, {userName}
-        </h1>
-        {isSolicitante && (
-          <Button onClick={() => navigate('/solicitudes/nueva')} className="gap-2">
-            <Plus className="w-4 h-4" />
-            {t("dash_nueva_solicitud_btn", "Nueva Solicitud")}
-          </Button>
-        )}
-      </div>
+      <ScrollReveal>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h1 className="text-2xl font-bold text-[var(--fg)]">
+            Hola, {userName}
+          </h1>
+          {isSolicitante && (
+            <Button onClick={() => navigate('/solicitudes/nueva')} className="gap-2">
+              <Plus className="w-4 h-4" />
+              {t("dash_nueva_solicitud_btn", "Nueva Solicitud")}
+            </Button>
+          )}
+        </div>
+      </ScrollReveal>
 
       {/* === DASHBOARD SOLICITANTE === */}
       {isSolicitante && !isAdmin && !isPlanificador && (
         <>
           {/* Primera fila: Mi Resumen + Mis Solicitudes Recientes (50/50) */}
+          <ScrollReveal delay={100}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Mi Resumen */}
             <Card>
@@ -382,8 +386,10 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+          </ScrollReveal>
 
           {/* Segunda fila: Notificaciones + Novedades SPM + Mi Actividad (33/33/33) */}
+          <ScrollReveal delay={200}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Notificaciones */}
             <Card>
@@ -511,12 +517,14 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+          </ScrollReveal>
         </>
       )}
 
       {/* === DASHBOARD APROBADOR === */}
       {isAprobador && !isAdmin && (
         <>
+          <ScrollReveal delay={100}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {loadingStats ? (
               <>
@@ -562,7 +570,9 @@ export default function Dashboard() {
               </>
             )}
           </div>
+          </ScrollReveal>
 
+          <ScrollReveal delay={200}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="lg:col-span-2">
               <CardHeader>
@@ -601,12 +611,14 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+          </ScrollReveal>
         </>
       )}
 
       {/* === DASHBOARD PLANIFICADOR === */}
       {isPlanificador && !isAdmin && (
         <>
+          <ScrollReveal delay={100}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {loadingStats ? (
               <>
@@ -650,7 +662,9 @@ export default function Dashboard() {
               </>
             )}
           </div>
+          </ScrollReveal>
 
+          <ScrollReveal delay={200}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="lg:col-span-2">
               <CardHeader>
@@ -677,12 +691,14 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+          </ScrollReveal>
         </>
       )}
 
       {/* === DASHBOARD ADMIN === */}
       {isAdmin && (
         <>
+          <ScrollReveal delay={100}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {loadingStats ? (
               <>
@@ -729,7 +745,9 @@ export default function Dashboard() {
               </>
             )}
           </div>
+          </ScrollReveal>
 
+          <ScrollReveal delay={200}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Grafico de tendencia */}
             <Card>
@@ -765,8 +783,10 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+          </ScrollReveal>
 
           {/* Tercera fila admin */}
+          <ScrollReveal delay={300}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card>
               <CardHeader className="pb-2">
@@ -817,6 +837,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+          </ScrollReveal>
         </>
       )}
     </div>
