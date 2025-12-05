@@ -8,5 +8,8 @@
       "src": "/(.*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "env": {
+    "VITE_API_URL": "https://spmsystem2-0.onrender.com/api"
+  }
 }
