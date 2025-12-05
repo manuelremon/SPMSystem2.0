@@ -46,11 +46,20 @@ def create_app(config_override: dict | None = None) -> Flask:
     Returns:
         Instancia de Flask configurada
     """
-    # Determinar rutas de archivos estáticos
-    base_dir = Path(__file__).parent.parent  # Directorio raíz del proyecto
-    static_dir = base_dir / "frontend" / "dist"
+    # Determinar rutas de archivos estáticos - Usar ruta absoluta robusta
+    # backend_v2/app.py → parent es backend_v2 → parent.parent es raíz
+    from pathlib import Path
+    import os
     
-    # Crear app con rutas de archivos estáticos
+    root_dir = Path(__file__).resolve().parent.parent
+    static_dir = root_dir / "frontend" / "dist"
+    
+    # Si no existe, intentar con variable de entorno
+    if not static_dir.exists():
+        env_static = os.environ.get("STATIC_DIR")
+        if env_static:
+            static_dir = Path(env_static)
+    
     app = Flask(
         __name__,
         static_folder=str(static_dir),
@@ -120,13 +129,19 @@ def create_app(config_override: dict | None = None) -> Flask:
     static_dir = Path(app.static_folder)
     index_file = static_dir / "index.html"
     
+    # Debug logging
+    app.logger.info(f"Static folder: {app.static_folder}")
+    app.logger.info(f"Index file path: {index_file}")
+    app.logger.info(f"Index file exists: {index_file.exists()}")
+    
     @app.route("/")
     def serve_spa_index():
         """Servir index.html para React SPA"""
         if index_file.exists():
-            with open(index_file) as f:
+            with open(index_file, encoding='utf-8') as f:
                 return f.read()
         # Fallback a la API info si no existe index.html
+        app.logger.warning(f"index.html not found at {index_file}, serving API info")
         return api_info()
 
     @app.route("/<path:path>", methods=["GET"])
@@ -236,11 +251,15 @@ def _register_error_handlers(app: Flask) -> None:
         
         # Si es una solicitud GET y la ruta no es de API, devolver index.html (SPA routing)
         if request.method == "GET" and not request.path.startswith("/api"):
-            static_dir = Path(app.static_folder)
-            index_file = static_dir / "index.html"
-            if index_file.exists():
-                with open(index_file) as f:
-                    return f.read(), 200
+            try:
+                static_folder = app.static_folder
+                if static_folder:
+                    index_file = Path(static_folder) / "index.html"
+                    if index_file.exists():
+                        with open(index_file, encoding='utf-8') as f:
+                            return f.read(), 200
+            except Exception as e:
+                app.logger.error(f"Error serving index.html: {e}")
         
         # Para API requests, devolver JSON error
         return (
