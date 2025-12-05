@@ -3,6 +3,12 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  // Base path para GitHub Pages (nombre del repo)
+  base: process.env.GITHUB_PAGES ? '/SPMSystem2.0/' : '/',
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+  },
   server: {
     port: 5173,
     proxy: {

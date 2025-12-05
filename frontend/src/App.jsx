@@ -74,6 +74,9 @@ function App() {
     init()
   }, [])
 
+  // Detectar basename para GitHub Pages
+  const basename = import.meta.env.BASE_URL || '/'
+
   const router = useMemo(
     () =>
       createBrowserRouter(
@@ -117,13 +120,14 @@ function App() {
           </>
         ),
         {
+          basename,
           future: {
             v7_startTransition: true,
             v7_relativeSplatPath: true
           }
         }
       ),
-    [user]
+    [user, basename]
   )
 
   if (appLoading || isLoading) {
