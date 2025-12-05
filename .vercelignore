@@ -41,6 +41,3 @@ jest.config.js
 logs/
 *.log
 
-# Keep frontend directory
-!/frontend/
-
