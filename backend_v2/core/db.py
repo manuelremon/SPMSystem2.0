@@ -28,17 +28,23 @@ def _get_schema_path() -> Path:
 
 
 def _is_db_empty(db_path: Path) -> bool:
-    """Verifica si la BD existe pero está vacía (sin tablas)"""
+    """Verifica si la BD necesita inicialización (no existe o sin usuarios)"""
     if not db_path.exists():
         return True
 
     try:
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
+        # Verificar si la tabla usuarios existe Y tiene al menos un registro
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='usuarios'")
-        result = cursor.fetchone()
+        if cursor.fetchone() is None:
+            conn.close()
+            return True
+        # La tabla existe, verificar si tiene datos
+        cursor.execute("SELECT COUNT(*) FROM usuarios")
+        count = cursor.fetchone()[0]
         conn.close()
-        return result is None
+        return count == 0  # Vacía = necesita inicialización
     except Exception:
         return True
 
@@ -47,8 +53,8 @@ def init_db():
     """
     Inicializa la base de datos.
 
-    Si la BD no existe o está vacía, ejecuta el schema.sql para crear
-    todas las tablas y datos iniciales (usuario admin).
+    Si la BD no existe o está vacía (sin usuarios), elimina y recrea
+    desde schema.sql con todas las tablas y datos iniciales.
     """
     from flask import current_app
 
@@ -64,6 +70,11 @@ def init_db():
         if not schema_path.exists():
             current_app.logger.error(f"Schema no encontrado: {schema_path}")
             return
+
+        # Si la BD existe pero está vacía, eliminarla para empezar limpio
+        if db_path.exists():
+            current_app.logger.info(f"Eliminando BD vacía para reinicializar: {db_path}")
+            db_path.unlink()
 
         # Asegurar que el directorio existe
         db_path.parent.mkdir(parents=True, exist_ok=True)
