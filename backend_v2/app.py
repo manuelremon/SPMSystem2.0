@@ -106,6 +106,28 @@ def create_app(config_override: dict | None = None) -> Flask:
     app.register_blueprint(trivias.bp, url_prefix="/api")  # Trivias: games, rankings, scores
     app.register_blueprint(foro.bp, url_prefix="/api")  # Forum: posts, replies, likes
 
+    @app.route("/")
+    def index():
+        """Información sobre la API"""
+        return (
+            jsonify(
+                {
+                    "ok": True,
+                    "message": "SPM v2.0 Backend API",
+                    "version": "2.0.0",
+                    "endpoints": {
+                        "health": "/api/health",
+                        "auth": "/api/auth/login",
+                        "solicitudes": "/api/solicitudes",
+                        "planificador": "/api/planificador",
+                        "catalogos": "/api/catalogos",
+                        "docs": "https://github.com/manuelremon/SPMSystem2.0",
+                    },
+                }
+            ),
+            200,
+        )
+
     @app.route("/favicon.ico")
     def favicon():
         """Serve a tiny SVG favicon to avoid 404 noise."""
