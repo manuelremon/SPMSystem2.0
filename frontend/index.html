@@ -2,9 +2,27 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SPM - Sistema de Gestión de Solicitudes</title>
+    <script>
+      // Clear any old service workers and caches
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (let registration of registrations) {
+            registration.unregister();
+          }
+        });
+      }
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          for (let name of names) caches.delete(name);
+        });
+      }
+    </script>
     <!-- Aptos Display + Space Mono for monospace -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
