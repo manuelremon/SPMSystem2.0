@@ -47,19 +47,18 @@ def create_app(config_override: dict | None = None) -> Flask:
         Instancia de Flask configurada
     """
     # Determinar rutas de archivos estáticos - Usar ruta absoluta robusta
-    # backend_v2/app.py → parent es backend_v2 → parent.parent es raíz
-    from pathlib import Path
     import os
+    from pathlib import Path
     
-    root_dir = Path(__file__).resolve().parent.parent
+    # Obtener la ruta raíz del proyecto
+    # Este archivo es: /app/backend_v2/app.py
+    # Necesitamos: /app/frontend/dist
+    current_file = Path(__file__).resolve()
+    backend_v2_dir = current_file.parent  # /app/backend_v2
+    root_dir = backend_v2_dir.parent      # /app
     static_dir = root_dir / "frontend" / "dist"
     
-    # Si no existe, intentar con variable de entorno
-    if not static_dir.exists():
-        env_static = os.environ.get("STATIC_DIR")
-        if env_static:
-            static_dir = Path(env_static)
-    
+    # Crear app con rutas de archivos estáticos
     app = Flask(
         __name__,
         static_folder=str(static_dir),
