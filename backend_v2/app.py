@@ -124,23 +124,32 @@ def create_app(config_override: dict | None = None) -> Flask:
     app.register_blueprint(foro.bp, url_prefix="/api")  # Forum: posts, replies, likes
 
     # ==================== SERVIR FRONTEND REACT ====================
-    # Intentar cargar index.html para SPA routing
-    static_dir = Path(app.static_folder)
-    index_file = static_dir / "index.html"
+    # Cargar index.html para SPA routing
+    import os
+    from pathlib import Path
+    
+    root_dir = Path(__file__).resolve().parent.parent
+    frontend_dist = root_dir / "frontend" / "dist"
+    index_html_path = frontend_dist / "index.html"
     
     # Debug logging
-    app.logger.info(f"Static folder: {app.static_folder}")
-    app.logger.info(f"Index file path: {index_file}")
-    app.logger.info(f"Index file exists: {index_file.exists()}")
+    app.logger.info(f"Frontend dist dir: {frontend_dist}")
+    app.logger.info(f"Frontend dist exists: {frontend_dist.exists()}")
+    app.logger.info(f"Index.html path: {index_html_path}")
+    app.logger.info(f"Index.html exists: {index_html_path.exists()}")
     
     @app.route("/")
     def serve_spa_index():
         """Servir index.html para React SPA"""
-        if index_file.exists():
-            with open(index_file, encoding='utf-8') as f:
-                return f.read()
+        try:
+            if index_html_path.exists():
+                with open(index_html_path, encoding='utf-8') as f:
+                    return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
+        except Exception as e:
+            app.logger.error(f"Error serving index.html: {e}")
+        
         # Fallback a la API info si no existe index.html
-        app.logger.warning(f"index.html not found at {index_file}, serving API info")
+        app.logger.warning(f"index.html not found, serving API info")
         return api_info()
 
     @app.route("/<path:path>", methods=["GET"])
@@ -150,15 +159,21 @@ def create_app(config_override: dict | None = None) -> Flask:
         Si el archivo existe (assets, imágenes, etc), servirlo.
         Si no existe, devolver index.html para que React maneje el routing.
         """
-        # Intentar servir archivo estático
-        file_path = static_dir / path
-        if file_path.exists() and file_path.is_file():
-            return send_from_directory(str(static_dir), path)
+        try:
+            # Intentar servir archivo estático
+            file_path = frontend_dist / path
+            if file_path.exists() and file_path.is_file():
+                return send_from_directory(str(frontend_dist), path)
+        except Exception as e:
+            app.logger.error(f"Error serving static file {path}: {e}")
         
         # Si es una ruta que no existe, servir index.html (SPA routing)
-        if index_file.exists():
-            with open(index_file) as f:
-                return f.read()
+        try:
+            if index_html_path.exists():
+                with open(index_html_path, encoding='utf-8') as f:
+                    return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
+        except Exception as e:
+            app.logger.error(f"Error serving index.html fallback: {e}")
         
         from flask import abort
         abort(404)
