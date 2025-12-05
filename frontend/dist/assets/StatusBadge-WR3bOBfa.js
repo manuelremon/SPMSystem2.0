@@ -1,0 +1,13 @@
+import{b as f,r as g,j as e}from"./index-Sv0ImAih.js";import{a as v}from"./styleConfig-C9yLMt_s.js";function N({estado:n,className:i="",showIcon:h=!0,uppercase:u=!0,tooltipInfo:a=null}){const{t:b}=f(),c=v(n),l=c.icon,[x,p]=g.useState(!1),s=[];if(a){const r=(n||"").toLowerCase();if(a.aprobador&&["aprobada","approved","en_planificacion","planificacion"].includes(r)){const o=a.fechaAprobacion?d(a.fechaAprobacion):"";s.push(o?`Aprobada el ${o} por ${a.aprobador}`:`Aprobada por ${a.aprobador}`)}if(a.planificador&&["aprobada","approved","en_planificacion","planificacion","progreso","proceso"].includes(r)&&s.push(`Asignada al Planificador ${a.planificador}`),["enviada","submitted","pendiente","pendiente_de_aprobacion"].includes(r)&&(a.fechaEnvio&&s.push(`Enviada el ${d(a.fechaEnvio)}`),s.push("Esperando aprobación...")),["rechazada","rejected"].includes(r)&&a.aprobador){const o=a.fechaRechazo?d(a.fechaRechazo):"";s.push(o?`Rechazada el ${o} por ${a.aprobador}`:`Rechazada por ${a.aprobador}`)}["borrador","draft"].includes(r)&&s.push("Borrador - No enviada aún")}const t=s.length>0,m=()=>{const r=`status_${(n||"").toLowerCase().replace(/\s+/g,"_")}`;return b(r,c.label||n||"Pendiente")};return e.jsxs("div",{className:"relative inline-block",onMouseEnter:()=>t&&p(!0),onMouseLeave:()=>p(!1),children:[e.jsxs("div",{className:`
+          inline-flex items-center gap-1.5
+          transition-all duration-[var(--transition-fast)]
+          ${t?"cursor-help":""}
+          ${i}
+        `,children:[h&&l&&e.jsx(l,{className:"w-4 h-4 flex-shrink-0",style:{color:c.color}}),e.jsx("span",{className:`text-xs font-semibold tracking-wide ${u?"uppercase":""}`,style:{color:c.color},children:m()})]}),x&&t&&e.jsxs("div",{className:`
+            absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2
+            min-w-[220px] max-w-[300px]
+            px-3 py-2.5 rounded-lg shadow-xl border
+            bg-[var(--card)] border-[var(--border)]
+            text-xs whitespace-normal
+            animate-in fade-in-0 zoom-in-95 duration-150
+          `,role:"tooltip",children:[e.jsx("div",{className:"space-y-1.5",children:s.map((r,o)=>e.jsxs("p",{className:"text-[var(--fg-muted)] leading-relaxed flex items-start gap-1.5",children:[e.jsx("span",{className:"text-[var(--primary)] mt-0.5",children:"•"}),e.jsx("span",{children:r})]},o))}),e.jsx("div",{className:"absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-[var(--border)]"})]})]})}function d(n){if(!n)return"";try{const i=new Date(n);return isNaN(i.getTime())?"":i.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"2-digit"})}catch{return""}}export{N as S};
