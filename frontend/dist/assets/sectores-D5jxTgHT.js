@@ -1,0 +1,1 @@
+const o={1:"Almacenes",2:"Compras",3:"Mantenimiento",4:"Planificacion"};function e(n){if(typeof n=="object"&&n!==null){const r=(n.sector_nombre||n.sector||"").toString().trim();return o[r]||r||"N/D"}const t=(n||"").toString().trim();return o[t]||t||"N/D"}export{e as r};
