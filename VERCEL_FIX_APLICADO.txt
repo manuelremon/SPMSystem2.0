@@ -1,0 +1,65 @@
+FIX APLICADO PARA VERCEL DEPLOYMENT
+====================================
+
+PROBLEMA:
+---------
+Vercel estaba intentando usar el package.json del root (Python + Node)
+en lugar del package.json del frontend, causando conflicto con React.
+
+SOLUCION APLICADA:
+------------------
+1. Creado vercel.json en raiz con configuracion correcta:
+   - buildCommand: cd frontend && npm run build
+   - outputDirectory: frontend/dist
+   - installCommand: cd frontend && npm install
+
+2. Creado .vercelignore para ignorar Python y backend:
+   - Ignora *.py, requirements*.txt, backend_v2/, etc.
+   - Mantiene frontend/ directory
+
+3. Actualizado frontend/vercel.json para no conflictuar
+
+PARA REINTENTAR DEPLOYMENT:
+---------------------------
+
+OPCION A: Redeploy automático en Vercel
+1. Ir a: https://vercel.com/dashboard
+2. Seleccionar proyecto SPMSystem2.0
+3. Click "Deployments"
+4. Click en el deployment fallido (el más reciente)
+5. Click "Redeploy"
+6. Espera a que termine (2-3 minutos)
+
+OPCION B: Nuevo deployment
+1. Ir a: https://vercel.com/dashboard
+2. Seleccionar proyecto SPMSystem2.0  
+3. Click "Settings" → "Git"
+4. Busca "Deployments"
+5. Click "Deploy" al lado de main branch
+
+RESULTADO ESPERADO:
+-------------------
+Build debe completarse exitosamente:
+- Detectará Vite como framework
+- Instalará npm packages del frontend/
+- Build output: frontend/dist
+- Deployment URL: https://spmv2-0-xxxxx.vercel.app
+
+VERIFICACION:
+-------------
+Cuando deployed:
+1. Abre tu URL de Vercel
+2. Debe mostrar página de login
+3. Intenta login con admin/a1
+4. Debe funcionar
+
+Si sigue fallando:
+- Verifica en Vercel Logs (Dashboard → Deployments → Logs)
+- El error debe ser diferente ahora
+- Envía el nuevo error para ayudarte
+
+TODO YA ESTÁ EN GITHUB:
+- commit: abf1c07
+- Push: completado
+
+Intenta el redeploy ahora!
