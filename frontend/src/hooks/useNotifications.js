@@ -11,7 +11,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import api from '../services/api'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 // Configuración
 const SSE_RECONNECT_BASE_DELAY = 1000 // 1 segundo inicial

@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../co
 import { Button } from "../components/ui/Button";
 import { Warehouse, Truck, Plus, Edit2, Trash2, Check, X, Building } from "lucide-react";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 export default function AdminProveedores() {
   const { token } = useAuthStore();

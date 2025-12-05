@@ -209,7 +209,7 @@ export default function Layout({ children }) {
   useEffect(() => {
     const fetchUnreadCount = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/mensajes/unread-count', {
+        const response = await fetch('/api/mensajes/unread-count', {
           method: 'GET',
           credentials: 'include',
           headers: {

@@ -13,25 +13,11 @@ import axios from 'axios'
  * 2. CSRF token protege contra ataques CSRF
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+// En producción usa URL relativa, en desarrollo usa localhost
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
-// Construir URL de refresh de forma segura
-function getRefreshUrl() {
-  try {
-    const base = new URL(API_BASE_URL)
-    // Si API_BASE_URL termina en /api, el refresh está en /api/auth/refresh
-    // Si no, asumimos que está en la misma base + /api/auth/refresh
-    if (base.pathname.endsWith('/api') || base.pathname.endsWith('/api/')) {
-      return new URL('/api/auth/refresh', base.origin).toString()
-    }
-    return new URL(`${base.pathname}/auth/refresh`, base.origin).toString()
-  } catch {
-    // Fallback para desarrollo local
-    return 'http://localhost:5000/api/auth/refresh'
-  }
-}
-
-const REFRESH_URL = getRefreshUrl()
+// URL de refresh siempre relativa al origen
+const REFRESH_URL = '/api/auth/refresh'
 
 let isRefreshing = false
 let failedQueue = []
