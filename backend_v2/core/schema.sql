@@ -464,24 +464,64 @@ CREATE TABLE IF NOT EXISTS config_lotes_excluidos (
 );
 
 -- ============================================================================
--- DATOS INICIALES
+-- DATOS INICIALES (exportados de spm.db local)
+-- Todos los usuarios tienen contraseña: "a"
 -- ============================================================================
 
--- Usuario administrador inicial
--- Usuario: admin / Contraseña: admin123
-INSERT OR IGNORE INTO usuarios (id_spm, nombre, apellido, rol, contrasena, mail, estado_registro)
-VALUES (
-    'admin',
-    'Administrador',
-    'Sistema',
-    'admin',
-    '$2b$12$yEQ7Qu304MtjuLOLwRkkRe3JGGP8Bd8D./AGJfI0JqSg8wktF2Qii',
-    'admin@spm.local',
-    'activo'
-);
+-- Usuarios del sistema
+INSERT OR IGNORE INTO usuarios (id_spm, nombre, apellido, rol, contrasena, mail, posicion, sector, centros, jefe, gerente1, gerente2, telefono, estado_registro, id_ypf, mail_respaldo, almacenes) VALUES
+('1', 'Manu', 'Remón', 'Admin, Administrador, Aprobador_presupuestos, Aprobador_solicitudes, Planificador', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'admin@spm.local', 'Administrador General', 'Mantenimiento', '1008,1050', NULL, NULL, NULL, '', 'Activo', '', NULL, NULL),
+('2', 'Laura', 'Planner', 'Planificador, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'planner1@spm.local', 'Planificador Senior', 'Planificacion', '1500', '6', '6', '7', '', 'Activo', '', NULL, NULL),
+('3', 'Sergio', 'Planner', 'Planificador, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'planner2@spm.local', 'Planificador', 'Mantenimiento', '1008,1050', '6', '6', '7', '', 'Activo', '', NULL, NULL),
+('4', 'Carlos', 'Perez', 'Aprobador_solicitudes, Jefe, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'jefe1@spm.local', 'Jefe de Sector', 'Planificacion', '1008,1050', '6', '6', '7', '', 'Activo', '', NULL, NULL),
+('5', 'Maria', 'Lopez', 'Aprobador_solicitudes, Jefe, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'jefe2@spm.local', 'Jefa de Area', 'Mantenimiento', '1008,1050', '6', '6', '7', '', 'Activo', '', NULL, '["0001"]'),
+('6', 'Andres', 'Garcia', 'Aprobador_presupuestos, Aprobador_solicitudes, Gerente1, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'gerente1@spm.local', 'Gerente Regional', 'Mantenimiento', '1008,1050,1064', '7', NULL, '7', '', 'Activo', '', NULL, NULL),
+('7', 'Luis', 'Lopez', 'Aprobador_presupuestos, Aprobador_solicitudes, Gerente2, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'gerente2@spm.local', 'Director de Operaciones', 'Mantenimiento', '1008,1050,1064', '1', NULL, NULL, '', 'Activo', '', NULL, NULL),
+('8', 'Juan', 'Levi', 'Solicitante, solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'juanlevi@spm.local', 'Empleado', 'Mantenimiento', '1050,1008', '4', '6', '7', '2994565456', 'Activo', '', '', '0101,0001'),
+('9', 'Pedro', 'Mamani', 'Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'pedromamani@spm.local', 'Tecnico', 'Mantenimiento', '1500', '4', '6', '7', '', 'Activo', '', NULL, NULL),
+('10', 'Roberto', 'Rosas', 'Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'robertorosas@spm.local', 'Operador', 'Mantenimiento', '1008,1050', '5', '6', '7', '', 'Activo', '', NULL, NULL);
 
--- Roles básicos
-INSERT OR IGNORE INTO catalog_roles (nombre, activo) VALUES ('admin', 1);
-INSERT OR IGNORE INTO catalog_roles (nombre, activo) VALUES ('coordinador', 1);
-INSERT OR IGNORE INTO catalog_roles (nombre, activo) VALUES ('usuario', 1);
-INSERT OR IGNORE INTO catalog_roles (nombre, activo) VALUES ('planner', 1);
+-- Catálogo de Sectores
+INSERT OR IGNORE INTO catalog_sectores (nombre, activo) VALUES ('Almacenes', 1);
+INSERT OR IGNORE INTO catalog_sectores (nombre, activo) VALUES ('Compras', 1);
+INSERT OR IGNORE INTO catalog_sectores (nombre, activo) VALUES ('Mantenimiento', 1);
+INSERT OR IGNORE INTO catalog_sectores (nombre, activo) VALUES ('Planificacion', 1);
+INSERT OR IGNORE INTO catalog_sectores (nombre, activo) VALUES ('Produccion', 1);
+INSERT OR IGNORE INTO catalog_sectores (nombre, activo) VALUES ('Logistica', 1);
+
+-- Catálogo de Centros
+INSERT OR IGNORE INTO catalog_centros (codigo, nombre, activo) VALUES ('1008', 'UP Loma La Lata', 1);
+INSERT OR IGNORE INTO catalog_centros (codigo, nombre, activo) VALUES ('1050', 'UP UTE Rio Neuquén', 1);
+INSERT OR IGNORE INTO catalog_centros (codigo, nombre, activo) VALUES ('1064', 'UP Añelo', 1);
+INSERT OR IGNORE INTO catalog_centros (codigo, nombre, activo) VALUES ('1500', 'MID Loma La Lata', 1);
+INSERT OR IGNORE INTO catalog_centros (codigo, nombre, activo) VALUES ('1501', 'MID Sierra Barrosa', 1);
+INSERT OR IGNORE INTO catalog_centros (codigo, nombre, activo) VALUES ('1502', 'MID El Portón', 1);
+
+-- Catálogo de Almacenes
+INSERT OR IGNORE INTO catalog_almacenes (codigo, nombre, activo) VALUES ('0001', 'Mantenimiento', 1);
+INSERT OR IGNORE INTO catalog_almacenes (codigo, nombre, activo) VALUES ('0012', 'Yacimiento Digital', 1);
+INSERT OR IGNORE INTO catalog_almacenes (codigo, nombre, activo) VALUES ('0101', 'Críticos', 1);
+INSERT OR IGNORE INTO catalog_almacenes (codigo, nombre, activo) VALUES ('9002', 'Energía', 1);
+INSERT OR IGNORE INTO catalog_almacenes (codigo, nombre, activo) VALUES ('9003', 'Obras', 1);
+INSERT OR IGNORE INTO catalog_almacenes (codigo, nombre, activo) VALUES ('9004', 'Producción', 1);
+
+-- Catálogo de Roles
+INSERT OR IGNORE INTO catalog_roles (nombre, activo) VALUES ('Administrador', 1);
+INSERT OR IGNORE INTO catalog_roles (nombre, activo) VALUES ('Solicitante', 1);
+INSERT OR IGNORE INTO catalog_roles (nombre, activo) VALUES ('Solicitante, Aprobador Solicitudes', 1);
+INSERT OR IGNORE INTO catalog_roles (nombre, activo) VALUES ('Solicitante, Aprobador Solicitudes, Aprobador de Presupuesto', 1);
+
+-- Catálogo de Puestos
+INSERT OR IGNORE INTO catalog_puestos (nombre, activo) VALUES ('Almacenes', 1);
+INSERT OR IGNORE INTO catalog_puestos (nombre, activo) VALUES ('Analista', 1);
+INSERT OR IGNORE INTO catalog_puestos (nombre, activo) VALUES ('Coordinador', 1);
+INSERT OR IGNORE INTO catalog_puestos (nombre, activo) VALUES ('Gerente1', 1);
+INSERT OR IGNORE INTO catalog_puestos (nombre, activo) VALUES ('Gerente2', 1);
+INSERT OR IGNORE INTO catalog_puestos (nombre, activo) VALUES ('Ingeniero', 1);
+INSERT OR IGNORE INTO catalog_puestos (nombre, activo) VALUES ('Jefe', 1);
+INSERT OR IGNORE INTO catalog_puestos (nombre, activo) VALUES ('Planificador', 1);
+INSERT OR IGNORE INTO catalog_puestos (nombre, activo) VALUES ('Supervisor', 1);
+
+-- Presupuestos iniciales
+INSERT OR IGNORE INTO presupuestos (centro, sector, monto_usd, saldo_usd, version, monto_cents, saldo_cents) VALUES ('1008', 'Mantenimiento', 2100110.0, 2047565.19, 6, 210011000, 204756519);
+INSERT OR IGNORE INTO presupuestos (centro, sector, monto_usd, saldo_usd, version, monto_cents, saldo_cents) VALUES ('1500', 'Mantenimiento', 200000.0, 200000.0, 1, 20000000, 20000000);
