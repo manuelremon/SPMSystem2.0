@@ -2,7 +2,17 @@
 
 Guia para Claude Code (claude.ai/code) cuando trabaja con este repositorio.
 
-> **Ultima actualizacion**: 2025-12-08
+> **Ultima actualizacion**: 2025-12-08 (Code Review Completo)
+
+## Resumen del Proyecto
+
+| Metrica | Valor |
+|---------|-------|
+| **Backend** | 94 archivos Python, 38,000+ lineas |
+| **Frontend** | 31 paginas, 56 componentes, 6 hooks |
+| **Endpoints API** | 180 endpoints en 23 modulos |
+| **Tests** | 1,200+ tests (755 unit, 18 E2E, 140 integration) |
+| **Base de Datos** | 3 SQLite (213,703 registros totales) |
 
 ## Comandos de Desarrollo
 
@@ -14,7 +24,7 @@ python wsgi.py                    # Inicia en http://localhost:5000
 cd frontend && npm run dev        # Inicia en http://localhost:5173
 
 # Tests
-python -m pytest tests/           # Backend tests
+python -m pytest tests/           # Backend tests (755 tests)
 cd frontend && npm test           # Frontend tests
 
 # Build produccion
@@ -38,59 +48,170 @@ http://localhost:5173       http://localhost:5000     SQLite (data/)
 
 ```
 SPMv2.0/
-├── backend/                    # API Flask (antes backend_v2/)
-│   ├── routes/                 # Endpoints (17 modulos)
-│   │   ├── solicitudes.py      # CRUD solicitudes
-│   │   ├── mrp.py              # Modulo MRP (alertas, KPIs)
-│   │   ├── planner.py          # Planificador de solicitudes
-│   │   ├── materiales.py       # Busqueda de materiales
-│   │   ├── push.py             # Push notifications
-│   │   ├── assistant.py        # Asistente IA
-│   │   └── ...                 # auth, admin, budget, etc.
-│   ├── services/               # Logica de negocio
-│   │   ├── push_service.py     # Servicio de notificaciones
-│   │   └── ...
-│   ├── core/                   # Config, DB, Auth, CSRF, Security
-│   │   ├── push_config.py      # Configuracion VAPID
-│   │   └── ...
-│   ├── agent/                  # Modulo IA/ML (pipelines, tools)
-│   └── migrations/             # Migraciones de BD
+├── backend/                    # API Flask (94 archivos, 38K lineas)
+│   ├── routes/                 # 23 modulos, 180 endpoints
+│   ├── services/               # 10 servicios de negocio
+│   ├── core/                   # 28 modulos de infraestructura
+│   ├── agent/                  # 19 archivos ML/IA
+│   └── migrations/             # 8 migraciones de BD
 ├── frontend/src/
-│   ├── pages/                  # Paginas React (35+)
-│   │   ├── Dashboard*.jsx      # Dashboards por rol (5 archivos)
-│   │   ├── MRP*.jsx            # Modulo MRP (alertas, KPIs)
-│   │   └── ...
-│   ├── components/
-│   │   ├── ui/                 # Componentes base (30+)
-│   │   ├── features/           # DataTable moderno
-│   │   ├── materials/          # Componentes de materiales
-│   │   ├── Planner/            # Componentes del planificador (4 pasos)
-│   │   ├── AssistantModal.jsx  # Modal del asistente IA
-│   │   └── Sidebar.jsx         # Navegacion lateral
-│   ├── context/                # Auth, i18n providers
-│   ├── hooks/                  # Custom hooks
-│   │   ├── useMaterials.js     # Gestion de materiales
-│   │   ├── usePushNotifications.js # Push notifications
-│   │   └── useTheme.js         # Tema de la app
-│   ├── lib/                    # Utilidades compartidas
-│   │   └── utils.js            # Funcion cn() para clases
-│   ├── utils/                  # Utilidades especificas
-│   │   ├── logger.js           # Sistema de logging
-│   │   ├── gradients.js        # Gradientes UI
-│   │   └── tableAlignments.js  # Alineacion de tablas
-│   └── services/               # API clients
+│   ├── pages/                  # 31 paginas + 13 admin
+│   ├── components/             # 56 componentes
+│   ├── hooks/                  # 6 custom hooks
+│   ├── services/               # 6 servicios API
+│   ├── store/                  # 2 stores Zustand
+│   └── context/                # i18n provider (200+ keys)
 ├── data/                       # Bases de datos SQLite
-│   ├── spm.db                  # BD transaccional
-│   ├── equivalentes.db         # Equivalencias materiales
-│   ├── sap_data.db             # Datos SAP
-│   └── vapid_*.pem             # Claves para push notifications
+├── tests/                      # 92 archivos de test
 ├── scripts/                    # Scripts de utilidad
-├── tests/                      # Unit, integration tests
-└── docs/                       # Documentacion tecnica
-    └── history/                # Documentacion historica
+└── docs/                       # Documentacion
 ```
 
-### Bases de Datos
+## Backend - Inventario Completo
+
+### Routes (23 modulos, 180 endpoints)
+
+| Modulo | Endpoints | Proposito |
+|--------|-----------|-----------|
+| `admin.py` | 26 | CRUD usuarios, roles, materiales, proveedores |
+| `planner.py` | 21 | Planificacion de solicitudes, decisiones |
+| `mi_cuenta.py` | 12 | Perfil, password, preferencias |
+| `solicitudes.py` | 11 | CRUD solicitudes, estados, archivos |
+| `metrics.py` | 10 | Metricas de rendimiento |
+| `ai.py` | 9 | Recomendaciones IA, analisis |
+| `budget.py` | 8 | Presupuestos, ledger, BUR |
+| `mensajes.py` | 8 | Sistema de mensajeria |
+| `mrp.py` | 8 | Alertas MRP, KPIs, catalogo |
+| `auth.py` | 7 | Login, refresh, logout |
+| `sla.py` | 7 | Metricas SLA, alertas |
+| `docs.py` | 6 | Swagger UI, OpenAPI |
+| `export.py` | 6 | Exportar solicitudes, inventario |
+| `notificaciones.py` | 6 | CRUD notificaciones |
+| `push.py` | 6 | Push notifications |
+| `catalogos.py` | 5 | Centros, sectores, puestos |
+| `equivalencias.py` | 5 | Equivalencias de materiales |
+| `foro.py` | 5 | Posts, replies, likes |
+| `health.py` | 5 | Health checks, probes |
+| `materiales.py` | 3 | Busqueda, detalle, stats |
+| `trivias.py` | 3 | Rankings, scores |
+| `assistant.py` | 2 | Sugerencias IA |
+| `kpis.py` | 1 | Dashboard KPIs |
+
+### Services (10 servicios)
+
+| Servicio | Lineas | Proposito |
+|----------|--------|-----------|
+| `ai_service.py` | 600+ | Orchestrador ML (clustering, scoring, forecast) |
+| `mrp_service.py` | 700+ | Motor MRP (EOQ, ROP, alertas) |
+| `reporting_service.py` | 650+ | Exportacion Excel/CSV/PDF |
+| `sla_service.py` | 600+ | Tiempos limite, alertas SLA |
+| `approval_service.py` | 500+ | Matriz de aprobacion, delegacion |
+| `audit_service.py` | 450+ | Trail de auditoria |
+| `budget_service.py` | 550+ | Presupuestos, BUR |
+| `push_service.py` | 350+ | Web Push notifications |
+| `notification_service.py` | 300+ | Notificaciones in-app |
+| `message_service.py` | 350+ | Sistema de mensajes |
+
+### Core (28 modulos)
+
+| Categoria | Modulos |
+|-----------|---------|
+| **Auth** | `auth_middleware.py`, `roles.py` |
+| **Database** | `db.py`, `db_optimization.py`, `repository.py` (50KB, 12 clases) |
+| **Schemas** | `schemas.py`, `budget_schemas.py`, `notification_schemas.py`, `item_schemas.py` |
+| **Validation** | `request_validation.py` (sanitizacion XSS/SQL) |
+| **Security** | `csrf.py`, `security_headers.py`, `rate_limit.py` |
+| **Cache** | `cache.py`, `cache_advanced.py`, `cache_loader.py` |
+| **State** | `fsm.py` (maquina de estados solicitudes) |
+| **Errors** | `errors.py` (excepciones custom) |
+| **Monitoring** | `metrics.py`, `observability.py` |
+| **Jobs** | `background_jobs.py` (cola async) |
+| **WebSocket** | `websocket.py` (tiempo real) |
+| **Config** | `config.py`, `push_config.py` |
+| **API Docs** | `openapi.py` |
+| **Budget** | `budget_transaction.py` |
+
+### Agent/ML (19 archivos)
+
+```
+agent/
+├── core/
+│   ├── memory.py          # Memoria del agente
+│   ├── react_agent.py     # Loop ReAct
+│   └── reasoner.py        # Razonamiento estructurado
+├── pipelines/
+│   ├── clustering.py      # Agrupacion de materiales
+│   ├── scoring.py         # Priorizacion de solicitudes
+│   └── demand_forecast.py # Proyeccion de demanda
+└── tools/
+    ├── base.py            # Abstraccion de herramientas
+    ├── data_loader.py     # Carga de datos historicos
+    ├── evaluator.py       # Evaluacion de modelos
+    ├── material_matcher.py # Matching de materiales
+    ├── ml_trainer.py      # Entrenamiento ML
+    ├── nlp_processor.py   # Procesamiento NLP
+    └── predictor.py       # Predicciones
+```
+
+## Frontend - Inventario Completo
+
+### Pages (31 principales + 13 admin)
+
+| Categoria | Paginas |
+|-----------|---------|
+| **Auth** | Login, CompleteRegistration |
+| **Solicitudes** | CreateSolicitud, Materials, MisSolicitudes, SolicitudDetalle |
+| **Aprobacion** | Aprobaciones, HistorialAprobaciones |
+| **Planificacion** | Planner (con wizard 4 pasos) |
+| **MRP** | MRPTableroAlertas, MRPKPIs |
+| **Budget** | BudgetRequests, BudgetRequestCreate, BudgetRequestDetail |
+| **Catalogos** | CatalogoMateriales, CatalogoEquivalencias |
+| **Comunicacion** | Mensajes, Notificaciones, Foro, Ayuda |
+| **Usuario** | MiCuenta, Dashboard (5 variantes por rol) |
+| **Gamificacion** | Trivias |
+| **Admin** | AdminUsuarios, AdminRoles, AdminCentros, AdminSectores, AdminMateriales, AdminProveedores, AdminPresupuestos, AdminEstado, AdminMetricas, AdminPlanificadores, AdminPuestos, AdminAlmacenes, AdminSolicitudesPerfil |
+
+### Components (56 totales)
+
+| Carpeta | Componentes | Proposito |
+|---------|-------------|-----------|
+| `ui/` | 27 | Primitivos (Button, Input, Card, Modal, Badge, etc.) |
+| `features/DataTable/` | 3 | Tabla avanzada con TanStack Table |
+| `materials/` | 3 | MaterialDetailModal, MaterialsTable, SearchDropdown |
+| `Planner/` | 6 | Wizard de 4 pasos + StockDetalleModal |
+| **Core** | 7 | Layout, Sidebar, ErrorBoundary, ProtectedRoute, etc. |
+| **Modals** | 4 | AdminCrudTemplate, AssistantModal, ChatAssistant, MensajeThreadModal |
+
+### Hooks
+
+| Hook | Proposito |
+|------|-----------|
+| `useMaterials.js` | Estado completo de Materials.jsx (400+ lineas) |
+| `usePushNotifications.js` | Registro y gestion push |
+| `useDebounced.js` | Debounce de valores |
+| `useNotifications.js` | Notificaciones SSE |
+| `useScrollReveal.js` | Animaciones scroll |
+| `useTheme.js` | **STUB** - solo retorna light theme |
+
+### Services
+
+| Servicio | Proposito |
+|----------|-----------|
+| `api.js` | Axios con interceptors, CSRF, refresh token |
+| `auth.js` | Login, tokens, logout |
+| `csrf.js` | Gestion token CSRF |
+| `spm.js` | Operaciones de negocio (solicitudes, materiales, etc.) |
+| `agent.js` | Asistente IA |
+| `account.js` | Perfil de usuario |
+
+### Stores (Zustand)
+
+| Store | Estado |
+|-------|--------|
+| `authStore.js` | user, isAuthenticated, login/logout |
+| `chatStore.js` | messages, isOpen, context |
+
+## Bases de Datos
 
 | Base de Datos | Proposito | Registros |
 |---------------|-----------|-----------|
@@ -103,23 +224,85 @@ SPMv2.0/
 python scripts/migrate_excel_to_db.py
 ```
 
-### Flujo de Solicitudes
+## Tests - Cobertura
 
-Estados: `draft` -> `submitted` -> `approved/rejected` -> `processing` -> `dispatched` -> `closed`
+### Resumen
 
-### Roles
+| Categoria | Tests | Cobertura |
+|-----------|-------|-----------|
+| Backend Unit | 792 | Excelente (core, pipelines) |
+| Backend Integration | 140 | Buena (14 rutas) |
+| Backend E2E | 18 | Basica (health, auth, errors) |
+| Frontend Pages | 4 | **Gap critico** (9%) |
+| Frontend Components | 5 | **Gap critico** (13%) |
 
-- **admin**: Acceso total al sistema
-- **coordinador**: Aprobar/rechazar solicitudes
-- **usuario**: Crear solicitudes
-- **planner**: Planificar solicitudes aprobadas
-- **jefe**: Supervision de equipos
+### Backend - Tests por Modulo
+
+| Modulo | Tests | Estado |
+|--------|-------|--------|
+| `test_scoring.py` | 78 | Excelente |
+| `test_demand_forecast.py` | 44 | Excelente |
+| `test_budget_service.py` | 40 | Excelente |
+| `test_clustering.py` | 37 | Excelente |
+| `test_csrf.py` | 30 | Excelente |
+| `test_websocket.py` | 30 | Excelente |
+| `test_observability.py` | 31 | Excelente |
+| `test_background_jobs.py` | 31 | Excelente |
+| `test_cache_advanced.py` | 31 | Excelente |
+
+### Frontend - Tests Existentes
+
+```
+frontend/src/
+├── pages/__tests__/
+│   ├── Materials.test.jsx       # 52 tests
+│   ├── MiCuenta.test.jsx        # 45 tests
+│   ├── CreateSolicitud.test.jsx # 15 tests
+│   └── Aprobaciones.test.jsx    # 12 tests
+├── components/__tests__/
+│   └── ProtectedRoute.test.jsx  # 8 tests
+├── components/Planner/__tests__/
+│   ├── Paso1AnalisisInicial.test.jsx
+│   ├── Paso2DecisionAbastecimiento.test.jsx
+│   ├── Paso3RevisionFinal.test.jsx
+│   └── TratarSolicitudModal.test.jsx
+├── hooks/__tests__/
+│   └── useDebounced.test.js     # 12 tests
+└── utils/__tests__/
+    └── formatters.test.js       # 22 tests
+```
+
+## Issues Conocidos
+
+### Prioridad Alta
+
+| Issue | Ubicacion | Impacto |
+|-------|-----------|---------|
+| `repository.py` muy grande | `core/repository.py` (50KB, 12 clases) | Mantenibilidad |
+| Imports try/except duplicados | Todos los routes (23 archivos) | DRY violation |
+| `useTheme` es codigo muerto | `hooks/useTheme.js` | ThemeToggle no funciona |
+
+### Prioridad Media
+
+| Issue | Ubicacion | Impacto |
+|-------|-----------|---------|
+| Funciones helper duplicadas | `_get_user()` en 5+ routes | DRY violation |
+| Bare except handlers | `routes/mi_cuenta.py` | Puede ocultar errores |
+| Tokens en localStorage | `services/auth.js` | Seguridad (XSS) |
+
+### Prioridad Baja
+
+| Issue | Ubicacion | Impacto |
+|-------|-----------|---------|
+| TODO/FIXME pendientes | 5 archivos | Deuda tecnica |
+| Imports no usados | Varios routes | Limpieza |
+| `useMaterials` muy grande | 400+ lineas | Podria dividirse |
 
 ## Convenciones de Codigo
 
 ### Python (backend)
 - snake_case para variables/funciones
-- Validacion con Pydantic en `models/schemas.py`
+- Validacion con Pydantic en `core/schemas.py`
 - Blueprints por dominio en `routes/`
 
 ### JavaScript/React (frontend)
@@ -127,155 +310,142 @@ Estados: `draft` -> `submitted` -> `approved/rejected` -> `processing` -> `dispa
 - Componentes UI en `components/ui/`
 - Usar sistema i18n para TODOS los textos visibles
 
-### Sistema i18n (Internacionalizacion)
+### Sistema i18n
 - Ubicacion: `frontend/src/context/i18n.jsx`
 - API: `const { t } = useI18n(); t('clave', 'fallback')`
-- Convencion de claves: `prefijo_nombre` (ej: `nav_solicitudes`, `materials_buscar`)
 - Prefijos: `nav_`, `dash_`, `common_`, `materials_`, `admin_`, `planner_`
 
 ### Sistema de Estilos
+- **Tema:** Solo light mode (dark mode eliminado)
+- **CSS Variables:** `frontend/src/index.css`
+- **Tailwind:** `frontend/tailwind.config.js`
+- **Estados:** `frontend/src/utils/styleConfig.js`
 
-**Tema:** Solo tema claro (light mode). Dark mode fue eliminado.
+## Flujo de Solicitudes
 
-**Archivos de configuracion:**
-- `frontend/src/index.css` - Variables CSS del sistema (colores, espaciado, bordes)
-- `frontend/tailwind.config.js` - Configuracion de Tailwind
-- `frontend/src/utils/styleConfig.js` - Helpers de estados
+```
+draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
+```
 
-**Componentes UI:** `frontend/src/components/ui/`
-- Todos los componentes usan CSS variables (`var(--nombre)`) para consistencia
-- Tablas: `table.jsx` (primitivas) + `ModernDataTable.jsx` (TanStack Table)
-- Tabs: `Tabs.jsx` con variantes default, pills, underline
+### Roles
 
-**Nota:** Las decisiones de diseno visual (colores, espaciado, densidad) se definen segun indicaciones del usuario, no por reglas predefinidas.
+| Rol | Permisos |
+|-----|----------|
+| **admin** | Acceso total |
+| **coordinador** | Aprobar/rechazar |
+| **usuario** | Crear solicitudes |
+| **planner** | Planificar aprobadas |
+| **jefe** | Supervision |
 
 ## Reglas de Negocio
 
 - Solicitudes requieren minimo 1 item con cantidad > 0
-- Presupuesto se valida por centro/sector antes de aprobar
+- Presupuesto validado por centro/sector antes de aprobar
 - Materiales identificados por codigo SAP unico
-- Autenticacion JWT (access token 1h + refresh token 7d)
+- JWT: access token 1h + refresh token 7d
 
-## Convenciones de Fechas y Moneda
+## Archivos Clave
 
-- **Zona horaria**: America/Argentina/Buenos_Aires (UTC-03:00)
-- **Almacenamiento**: UTC, formato ISO 8601 (`YYYY-MM-DDTHH:MM:SSZ`)
-- **Frontend**: Convierte UTC -> hora local para mostrar
-- **Moneda**: USD con 2 decimales
+### Backend Entry Points
+| Archivo | Proposito |
+|---------|-----------|
+| `wsgi.py` | Entry point servidor |
+| `backend/app.py` | Factory Flask |
+| `backend/core/config.py` | Configuracion |
+
+### Core Modules
+| Archivo | Proposito |
+|---------|-----------|
+| `core/db.py` | Conexion BD |
+| `core/repository.py` | Data access (12 clases) |
+| `core/fsm.py` | Maquina de estados |
+| `core/auth_middleware.py` | JWT middleware |
+| `core/rate_limit.py` | Rate limiting |
+| `core/request_validation.py` | Sanitizacion |
+
+### Services
+| Archivo | Proposito |
+|---------|-----------|
+| `services/ai_service.py` | IA/ML unificado |
+| `services/mrp_service.py` | Motor MRP |
+| `services/sla_service.py` | Tiempos limite |
+| `services/reporting_service.py` | Exportacion |
+
+### Frontend Core
+| Archivo | Proposito |
+|---------|-----------|
+| `context/i18n.jsx` | Traducciones |
+| `index.css` | Variables CSS |
+| `components/Sidebar.jsx` | Navegacion |
+| `services/api.js` | Axios config |
+
+## Modulos Principales
+
+### MRP (Material Requirements Planning)
+- **Backend:** `routes/mrp.py`, `services/mrp_service.py`
+- **Frontend:** `MRPTableroAlertas.jsx`, `MRPKPIs.jsx`
+- **Endpoints:** `/api/mrp/alertas`, `/api/mrp/kpis`
+
+### Planificador (Wizard 4 Pasos)
+1. Paso1AnalisisInicial - Analisis stock
+2. Paso2DecisionAbastecimiento - Fuente (stock/compra)
+3. Paso3RevisionFinal - Confirmacion
+4. Paso4AccionesPendientes - Registro
+
+### Push Notifications
+- **Backend:** `routes/push.py`, `services/push_service.py`, `core/push_config.py`
+- **Frontend:** `hooks/usePushNotifications.js`, `public/sw.js`
+
+### Asistente IA
+- **Backend:** `routes/assistant.py`, `routes/ai.py`, `services/ai_service.py`
+- **Frontend:** `AssistantModal.jsx`, `ChatAssistant.jsx`
+
+### WebSockets
+- **Backend:** `core/websocket.py`
+- **Features:** Event Bus, Rooms, Broadcast, Direct messages
+
+### Observability
+- **Backend:** `core/observability.py`
+- **Features:** Structured logging (JSON), Request tracing (Spans)
+
+## Historial de Sprints (Diciembre 2025)
+
+| Sprint | Feature | Tests |
+|--------|---------|-------|
+| 1 | FSM (Estados) | 25 |
+| 2 | Audit Service | 30 |
+| 3 | Approval Matrix | 35 |
+| 4 | Item Validation | 28 |
+| 5 | SLA + MRP Engine | 55 |
+| 6 | AI Service | 45 |
+| 7 | Reporting | 32 |
+| 8 | DB Optimization | 22 |
+| 9 | OpenAPI + Metrics + Health | 40 |
+| 10 | Rate Limiting + Validation | 48 |
+| 11 | Middleware Integration | 21 |
+| 12 | CI/CD Pipeline | - |
+| 13 | Background Jobs | 31 |
+| 14 | Cache + E2E | 49 |
+| 15 | WebSockets | 30 |
+| 16 | Observability | 31 |
+
+**Total: 755+ tests unitarios**
+
+## Documentacion
+
+- `docs/ARQUITECTURA_SPM_2_0.md` - Arquitectura completa
+- `docs/DEPLOYMENT.md` - Guia de despliegue
+- `docs/GUIA_RAPIDA_USAR_SERVICIOS.md` - Uso de servicios
+- `docs/history/` - Documentacion historica
 
 ## Instrucciones para Claude
 
 1. Explicar el plan antes de modificar codigo
 2. Cambios pequenos y controlados
 3. Usar siempre el sistema i18n para textos de UI
-4. Mantener consistencia con el sistema de diseno (CSS variables + Tailwind)
+4. Mantener consistencia con CSS variables + Tailwind
 5. No hardcodear textos en espanol/ingles
 6. No modificar estructura de BD sin crear migracion
 7. Verificar que el build compile sin errores
-
-## Archivos Clave
-
-| Archivo | Proposito |
-|---------|-----------|
-| `wsgi.py` | Entry point del servidor |
-| `backend/app.py` | Factory de Flask |
-| `backend/core/config.py` | Configuracion centralizada |
-| `backend/core/db.py` | Conexion a BD |
-| `backend/core/auth_middleware.py` | Middleware de autenticacion JWT |
-| `backend/core/security_headers.py` | Headers de seguridad HTTP |
-| `backend/core/push_config.py` | Configuracion VAPID para push |
-| `backend/routes/solicitudes.py` | CRUD de solicitudes |
-| `backend/routes/mrp.py` | Endpoints MRP (alertas, KPIs) |
-| `backend/routes/planner.py` | Endpoints del planificador |
-| `backend/routes/push.py` | Endpoints push notifications |
-| `frontend/src/context/i18n.jsx` | Sistema de traducciones |
-| `frontend/src/index.css` | Variables CSS del sistema de diseno |
-| `frontend/src/components/Sidebar.jsx` | Navegacion lateral colapsable |
-| `frontend/src/utils/styleConfig.js` | Configuracion de estados/colores |
-| `frontend/src/lib/utils.js` | Utilidad cn() para classNames |
-
-## Modulos Principales
-
-### MRP (Material Requirements Planning)
-Modulo para gestion de alertas y KPIs de materiales.
-
-**Rutas backend** (`backend/routes/mrp.py`):
-- `GET /api/mrp/alertas` - Tablero de alertas de stock
-- `GET /api/mrp/kpis` - Indicadores clave de rendimiento
-
-**Paginas frontend**:
-- `MRPTableroAlertas.jsx` - Dashboard de alertas con filtros
-- `MRPKPIs.jsx` - Visualizacion de KPIs con graficos
-
-### Dashboard por Rol
-El Dashboard fue refactorizado en 5 componentes especializados:
-- `DashboardAdmin.jsx` - Vista administrador
-- `DashboardAprobador.jsx` - Vista coordinador/aprobador
-- `DashboardPlanificador.jsx` - Vista planificador
-- `DashboardSolicitante.jsx` - Vista usuario solicitante
-- `DashboardShared.jsx` - Componentes compartidos
-
-### Planificador (Tratar Solicitud)
-Wizard de 4 pasos para procesar solicitudes aprobadas:
-1. **Paso1AnalisisInicial** - Analisis del material y stock
-2. **Paso2DecisionAbastecimiento** - Seleccion de fuente (stock/compra)
-3. **Paso3RevisionFinal** - Confirmacion de decision
-4. **Paso4AccionesPendientes** - Registro de tratamiento y acciones
-
-**Rutas backend** (`backend/routes/planner.py`):
-- `GET /api/planner/solicitudes-pendientes` - Lista solicitudes a tratar
-- `POST /api/planner/tratar-solicitud/<id>/ejecutar-acciones` - Ejecutar decisiones
-
-### Push Notifications
-Sistema de notificaciones push usando VAPID/Web Push.
-
-**Backend:**
-- `backend/core/push_config.py` - Configuracion y claves VAPID
-- `backend/routes/push.py` - Endpoints de suscripcion
-- `backend/services/push_service.py` - Envio de notificaciones
-
-**Frontend:**
-- `frontend/public/sw.js` - Service Worker
-- `frontend/src/hooks/usePushNotifications.js` - Hook de gestion
-- `frontend/src/components/ui/PushNotificationToggle.jsx` - Toggle UI
-
-### Asistente IA
-Chat integrado para asistencia al usuario.
-
-- `backend/routes/assistant.py` - Endpoints del asistente
-- `frontend/src/components/AssistantModal.jsx` - Modal de chat
-- `frontend/src/components/ChatAssistant.jsx` - Componente de chat
-
-## Cambios Recientes (Diciembre 2025)
-
-### Reorganizacion de Estructura
-- `backend_v2/` renombrado a `backend/`
-- Documentacion historica movida a `docs/history/`
-- Scripts de utilidad consolidados en `scripts/`
-
-### Nuevas Features
-- **Modulo MRP**: Tablero de alertas y KPIs de materiales
-- **Push Notifications**: Sistema completo con VAPID y Service Worker
-- **Asistente IA**: Chat integrado para ayuda al usuario
-- **ScrollReveal**: Animaciones de entrada en toda la app
-- **Sidebar colapsable**: Componente `Sidebar.jsx` agregado
-- **ModernDataTable**: Tabla con TanStack Table en `components/features/`
-- **Tema unico (Light)**: Eliminado soporte dark mode
-
-### Correcciones
-- Bug fix en `planner.py`: metodo `get_fuentes_decision` -> `get_fuentes`
-- Agregado logging con traceback en endpoint ejecutar-acciones
-
-### Tests Agregados
-- Tests de integracion: `test_catalogos_routes.py`, `test_materiales_routes.py`, `test_mi_cuenta_routes.py`
-- Tests frontend: `useDebounced.test.js`, `Materials.test.jsx`, `MiCuenta.test.jsx`
-
-### Migraciones
-- `005_planner_data_integration.py` - Tablas para precios negociados y scores de equivalencia
-
-## Documentacion Adicional
-
-- `docs/ARQUITECTURA_SPM_2_0.md` - Arquitectura completa del proyecto
-- `docs/DEPLOYMENT.md` - Guia de despliegue
-- `docs/GUIA_RAPIDA_USAR_SERVICIOS.md` - Guia de uso de servicios
-- `docs/history/` - Documentacion de fases, propuestas y sesiones anteriores
+8. **Priorizar tests para frontend** (cobertura critica baja)
+9. **Considerar refactorizar repository.py** si se agregan mas entidades

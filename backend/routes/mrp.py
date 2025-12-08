@@ -556,3 +556,229 @@ def get_catalogos():
 
     except Exception as e:
         return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+
+
+# =============================================================================
+# Endpoints MRP Avanzados (Sprint 5)
+# =============================================================================
+
+try:
+    from backend.services.mrp_service import (
+        analizar_material,
+        analizar_centro,
+        obtener_demanda_proyectada,
+        generar_recomendacion,
+        obtener_alertas_mrp,
+        crear_alerta_mrp,
+        resolver_alerta_mrp,
+    )
+except ImportError:
+    from services.mrp_service import (
+        analizar_material,
+        analizar_centro,
+        obtener_demanda_proyectada,
+        generar_recomendacion,
+        obtener_alertas_mrp,
+        crear_alerta_mrp,
+        resolver_alerta_mrp,
+    )
+
+
+@bp.route("/analisis/<material_codigo>", methods=["GET"])
+@require_planner_or_admin
+def get_analisis_material(material_codigo):
+    """
+    Analisis MRP completo de un material.
+
+    Path params:
+        material_codigo: Codigo del material
+
+    Query params:
+        centro: Centro de costo (requerido)
+
+    Returns:
+        Analisis con estado, requerimientos y recomendaciones
+    """
+    centro = request.args.get("centro", "").strip()
+    if not centro:
+        return jsonify({
+            "ok": False,
+            "error": {"code": "validation_error", "message": "Centro es requerido"}
+        }), 400
+
+    try:
+        resultado = analizar_material(
+            material_codigo=material_codigo,
+            centro=centro
+        )
+
+        if "error" in resultado:
+            return jsonify({
+                "ok": False,
+                "error": {"code": "not_found", "message": resultado["error"]}
+            }), 404
+
+        return jsonify({"ok": True, "data": resultado})
+
+    except Exception as e:
+        return jsonify({
+            "ok": False,
+            "error": {"code": "server_error", "message": str(e)}
+        }), 500
+
+
+@bp.route("/analisis/centro/<centro>", methods=["GET"])
+@require_planner_or_admin
+def get_analisis_centro(centro):
+    """
+    Analisis MRP de todos los materiales de un centro.
+
+    Path params:
+        centro: Centro de costo
+
+    Query params:
+        incluir_normales: Incluir materiales sin problemas (default: false)
+
+    Returns:
+        Resumen con materiales criticos y recomendaciones
+    """
+    incluir_normales = request.args.get("incluir_normales", "false").lower() == "true"
+
+    try:
+        resultado = analizar_centro(
+            centro=centro,
+            incluir_normales=incluir_normales
+        )
+
+        return jsonify({"ok": True, "data": resultado})
+
+    except Exception as e:
+        return jsonify({
+            "ok": False,
+            "error": {"code": "server_error", "message": str(e)}
+        }), 500
+
+
+@bp.route("/forecast/<material_codigo>", methods=["GET"])
+@require_planner_or_admin
+def get_forecast_demanda(material_codigo):
+    """
+    Obtiene proyeccion de demanda para un material.
+
+    Path params:
+        material_codigo: Codigo del material
+
+    Query params:
+        centro: Centro de costo (requerido)
+        dias: Dias a proyectar (default: 30)
+
+    Returns:
+        Demanda proyectada con metodo usado (ML o historico)
+    """
+    centro = request.args.get("centro", "").strip()
+    dias = request.args.get("dias", 30, type=int)
+
+    if not centro:
+        return jsonify({
+            "ok": False,
+            "error": {"code": "validation_error", "message": "Centro es requerido"}
+        }), 400
+
+    try:
+        resultado = obtener_demanda_proyectada(
+            material_codigo=material_codigo,
+            centro=centro,
+            dias=dias
+        )
+
+        return jsonify({"ok": True, "data": resultado})
+
+    except Exception as e:
+        return jsonify({
+            "ok": False,
+            "error": {"code": "server_error", "message": str(e)}
+        }), 500
+
+
+@bp.route("/alertas-mrp", methods=["GET"])
+@require_planner_or_admin
+def get_alertas_mrp_activas():
+    """
+    Obtiene alertas MRP activas.
+
+    Query params:
+        centro: Filtrar por centro (opcional)
+        tipo: Filtrar por tipo (opcional)
+
+    Returns:
+        Lista de alertas activas
+    """
+    centro = request.args.get("centro", "").strip() or None
+    tipo = request.args.get("tipo", "").strip() or None
+
+    try:
+        alertas = obtener_alertas_mrp(
+            centro=centro,
+            tipo=tipo,
+            solo_activas=True
+        )
+
+        return jsonify({
+            "ok": True,
+            "data": alertas,
+            "total": len(alertas)
+        })
+
+    except Exception as e:
+        return jsonify({
+            "ok": False,
+            "error": {"code": "server_error", "message": str(e)}
+        }), 500
+
+
+@bp.route("/alertas-mrp/<int:alerta_id>/resolver", methods=["PUT", "POST"])
+@require_planner_or_admin
+def resolver_alerta_mrp_endpoint(alerta_id):
+    """
+    Resuelve una alerta MRP.
+
+    Path params:
+        alerta_id: ID de la alerta
+
+    Body:
+        accion_tomada: Descripcion de la accion tomada
+
+    Returns:
+        Resultado de la operacion
+    """
+    data = request.get_json(silent=True) or {}
+    accion_tomada = data.get("accion_tomada", "Resuelta manualmente")
+
+    # Obtener usuario del contexto
+    user_id = "system"
+    if hasattr(g, "user") and g.user:
+        user_id = str(g.user.get("user_id", "system"))
+
+    try:
+        resultado = resolver_alerta_mrp(
+            alerta_id=alerta_id,
+            resuelto_por=user_id,
+            accion_tomada=accion_tomada
+        )
+
+        if resultado.get("resuelta"):
+            return jsonify({
+                "ok": True,
+                "message": "Alerta resuelta correctamente"
+            })
+        else:
+            return jsonify({
+                "ok": False,
+                "error": {"code": "not_found", "message": "Alerta no encontrada o ya resuelta"}
+            }), 404
+
+    except Exception as e:
+        return jsonify({
+            "ok": False,
+            "error": {"code": "server_error", "message": str(e)}
+        }), 500

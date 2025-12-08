@@ -1,5 +1,7 @@
 """
 Solicitudes routes - SQLite-backed (demo)
+
+Refactorizado para usar FSM centralizado (Sprint 1.6)
 """
 
 import json
@@ -12,11 +14,72 @@ from werkzeug.utils import secure_filename
 
 try:
     from backend.core.db import get_db_connection, get_db_transaction
+    from backend.core.fsm import (
+        cambiar_estado,
+        normalizar_estado,
+        estado_para_display,
+        validar_transicion,
+        EstadoSolicitud,
+        TransicionInvalidaError,
+        SolicitudNoEncontradaError,
+    )
     from backend.routes.auth import _decode_token
+    from backend.services.audit_service import (
+        auditar_creacion_solicitud,
+        auditar_aprobacion,
+        auditar_rechazo,
+    )
+    from backend.services.approval_service import (
+        obtener_aprobador_por_monto,
+        puede_aprobar,
+        obtener_regla_aprobacion,
+    )
+    from backend.core.item_schemas import (
+        validar_items,
+        validar_solicitud_create,
+        ItemValidationError,
+        SolicitudValidationError,
+    )
+    from backend.services.sla_service import (
+        obtener_configuracion_sla,
+        calcular_fecha_limite,
+        actualizar_sla_solicitud,
+        resolver_alertas_solicitud,
+    )
 except ImportError:
     from core.db import get_db_connection, get_db_transaction
-
+    from core.fsm import (
+        cambiar_estado,
+        normalizar_estado,
+        estado_para_display,
+        validar_transicion,
+        EstadoSolicitud,
+        TransicionInvalidaError,
+        SolicitudNoEncontradaError,
+    )
     from routes.auth import _decode_token
+    from services.audit_service import (
+        auditar_creacion_solicitud,
+        auditar_aprobacion,
+        auditar_rechazo,
+    )
+    from services.approval_service import (
+        obtener_aprobador_por_monto,
+        puede_aprobar,
+        obtener_regla_aprobacion,
+    )
+    from core.item_schemas import (
+        validar_items,
+        validar_solicitud_create,
+        ItemValidationError,
+        SolicitudValidationError,
+    )
+    from services.sla_service import (
+        obtener_configuracion_sla,
+        calcular_fecha_limite,
+        actualizar_sla_solicitud,
+        resolver_alertas_solicitud,
+    )
 
 bp = Blueprint("solicitudes", __name__, url_prefix="/api/solicitudes")
 
@@ -218,7 +281,25 @@ def create_solicitud():
         items = data.get("items") or []
         uploaded_files = []
 
-    total = _calcular_total(items)
+    # Validar items (Sprint 3.3)
+    validacion = validar_items(items)
+    if not validacion["ok"]:
+        return (
+            jsonify({
+                "ok": False,
+                "error": {
+                    "code": "validation_error",
+                    "message": validacion.get("mensaje", "Error de validacion en items"),
+                    "errores": validacion.get("errores", []),
+                    "items_validos": validacion.get("items_validos", 0),
+                },
+            }),
+            400,
+        )
+
+    # Usar items validados y total calculado por el validador
+    items_validos = [item.to_dict() for item in validacion["items"]]
+    total = validacion["total"]
     now = datetime.utcnow().isoformat()
 
     with get_db_transaction() as conn:
@@ -237,7 +318,7 @@ def create_solicitud():
                 data.get("almacen_virtual") or data.get("almacen") or "",
                 data.get("criticidad") or "Normal",
                 data.get("fecha_necesidad") or "",
-                json.dumps({"items": items, "archivos": []}),
+                json.dumps({"items": items_validos, "archivos": []}),
                 "Borrador",
                 total,
                 now,
@@ -270,6 +351,22 @@ def create_solicitud():
                     "UPDATE solicitudes SET data_json = ? WHERE id = ?",
                     (json.dumps(data_json), new_id),
                 )
+
+    # Auditar creación
+    try:
+        auditar_creacion_solicitud(
+            solicitud_id=new_id,
+            actor_id=str(user_id),
+            datos_solicitud={
+                "centro": data.get("centro"),
+                "sector": data.get("sector"),
+                "items_count": len(items),
+                "total_monto": total
+            },
+            ip_address=request.remote_addr
+        )
+    except Exception:
+        pass  # No fallar si auditoría falla
 
     return get_solicitud(new_id)
 
@@ -348,11 +445,32 @@ def guardar_borrador(solicitud_id):
     """Guardar borrador con items y total"""
     data = request.get_json(silent=True) or {}
     items = data.get("items") or []
-    total = data.get("total_monto") or _calcular_total(items)
+
+    # Validar items si se proporcionan (Sprint 3.3)
+    if items:
+        validacion = validar_items(items)
+        if not validacion["ok"]:
+            return (
+                jsonify({
+                    "ok": False,
+                    "error": {
+                        "code": "validation_error",
+                        "message": validacion.get("mensaje", "Error de validacion en items"),
+                        "errores": validacion.get("errores", []),
+                    },
+                }),
+                400,
+            )
+        items_validos = [item.to_dict() for item in validacion["items"]]
+        total = validacion["total"]
+    else:
+        items_validos = []
+        total = data.get("total_monto", 0)
+
     _update_solicitud(
         solicitud_id,
         {
-            "data_json": json.dumps({"items": items}),
+            "data_json": json.dumps({"items": items_validos}),
             "total_monto": total,
             "status": "Borrador",
         },
@@ -362,45 +480,127 @@ def guardar_borrador(solicitud_id):
 
 @bp.route("/<int:solicitud_id>/enviar", methods=["PUT", "POST"])
 def enviar_solicitud(solicitud_id):
-    """Enviar solicitud para aprobación"""
+    """Enviar solicitud para aprobación - Usa FSM centralizado"""
+    # SEGURIDAD: Requiere autenticación
+    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
+    if isinstance(user_payload, tuple):
+        return user_payload
+
+    user_id = str(user_payload.get("user_id", "system"))
+
     data = request.get_json(silent=True) or {}
     items = data.get("items") or []
-    total = data.get("total_monto") or _calcular_total(items)
+
+    # Validar items antes de enviar (Sprint 3.3)
+    # Si no se envian items, obtener los existentes de la solicitud
+    if not items:
+        solicitud = _get_raw(solicitud_id)
+        if solicitud:
+            try:
+                data_json = json.loads(solicitud.get("data_json") or "{}")
+                items = data_json.get("items", [])
+            except (json.JSONDecodeError, TypeError):
+                items = []
+
+    if items:
+        validacion = validar_items(items)
+        if not validacion["ok"]:
+            return (
+                jsonify({
+                    "ok": False,
+                    "error": {
+                        "code": "validation_error",
+                        "message": validacion.get("mensaje", "Error de validacion en items"),
+                        "errores": validacion.get("errores", []),
+                    },
+                }),
+                400,
+            )
+        items_validos = [item.to_dict() for item in validacion["items"]]
+        total = validacion["total"]
+    else:
+        return (
+            jsonify({
+                "ok": False,
+                "error": {
+                    "code": "validation_error",
+                    "message": "Se requiere al menos un item para enviar la solicitud",
+                },
+            }),
+            400,
+        )
+
     aprobador = _aprobador_por_monto(total)
+
+    # Actualizar items y total antes de cambiar estado
     _update_solicitud(
         solicitud_id,
         {
-            "data_json": json.dumps({"items": items}),
+            "data_json": json.dumps({"items": items_validos}),
             "total_monto": total,
-            "status": "Enviada",
             "aprobador_id": aprobador,
         },
     )
 
-    # Notificar al aprobador asignado
-    if aprobador:
-        try:
-            from backend.services.notification_service import notify_solicitud_created
-        except ImportError:
-            from services.notification_service import notify_solicitud_created
-        try:
-            print(
-                f"[NOTIF] Creando notificación para aprobador {aprobador}, solicitud {solicitud_id}"
-            )
-            notify_solicitud_created(solicitud_id, aprobador)
-            print("[NOTIF] Notificación creada exitosamente")
-        except Exception as e:
-            print(f"[NOTIF] Error creando notificación: {e}")
-            import traceback
+    # Usar FSM para cambiar estado (valida transición y registra historial)
+    try:
+        resultado = cambiar_estado(
+            solicitud_id=solicitud_id,
+            nuevo_estado=EstadoSolicitud.SUBMITTED,
+            actor_id=user_id,
+            razon="Solicitud enviada para aprobación",
+            metadata={"total_monto": total, "aprobador_asignado": aprobador}
+        )
+    except SolicitudNoEncontradaError:
+        return (
+            jsonify({"ok": False, "error": {"code": "not_found", "message": "Solicitud no encontrada"}}),
+            404,
+        )
+    except TransicionInvalidaError as e:
+        return (
+            jsonify({
+                "ok": False,
+                "error": {
+                    "code": "invalid_transition",
+                    "message": str(e),
+                    "estado_actual": e.estado_actual,
+                    "estado_solicitado": e.estado_nuevo
+                }
+            }),
+            400,
+        )
 
-            traceback.print_exc()
+    # Sprint 4.4: Calcular SLA para la transicion submitted -> approved
+    try:
+        sol = _get_raw(solicitud_id)
+        criticidad = sol.get("criticidad") or "Normal" if sol else "Normal"
+
+        sla_config = obtener_configuracion_sla(
+            criticidad=criticidad,
+            estado_desde="submitted",
+            estado_hasta="approved"
+        )
+
+        if sla_config:
+            fecha_limite = calcular_fecha_limite(
+                fecha_inicio=datetime.utcnow(),
+                horas=sla_config["tiempo_objetivo_horas"]
+            )
+            actualizar_sla_solicitud(
+                solicitud_id=solicitud_id,
+                fecha_limite=fecha_limite.isoformat() + "Z",
+                estado_sla="on_time"
+            )
+    except Exception:
+        # SLA es informativo, no debe bloquear el flujo principal
+        pass
 
     return get_solicitud(solicitud_id)
 
 
 @bp.route("/<int:solicitud_id>/aprobar", methods=["PUT", "POST"])
 def aprobar_solicitud(solicitud_id):
-    """Aprobar solicitud validando y consumiendo presupuesto"""
+    """Aprobar solicitud validando presupuesto - Usa FSM centralizado"""
     # 1. Validar autenticacion
     user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
     if isinstance(user_payload, tuple):
@@ -409,15 +609,10 @@ def aprobar_solicitud(solicitud_id):
     aprobador_id = str(user_payload.get("user_id"))
     if not aprobador_id:
         return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "unauthorized",
-                        "message": "Usuario no identificado en token",
-                    },
-                }
-            ),
+            jsonify({
+                "ok": False,
+                "error": {"code": "unauthorized", "message": "Usuario no identificado en token"},
+            }),
             401,
         )
 
@@ -425,31 +620,50 @@ def aprobar_solicitud(solicitud_id):
     solicitud = _get_raw(solicitud_id)
     if not solicitud:
         return (
-            jsonify(
-                {"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}
-            ),
+            jsonify({"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}),
             404,
         )
 
-    # 3. Verificar estado valido
-    estado_actual = (solicitud.get("status") or "").lower()
-    if estado_actual not in ("enviada", "submitted", "pendiente"):
+    # 3. Validar transición con FSM (submitted -> approved)
+    estado_actual = normalizar_estado(solicitud.get("status") or "")
+    if not validar_transicion(estado_actual, EstadoSolicitud.APPROVED):
         return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "invalid_state",
-                        "message": f"Solicitud no puede aprobarse desde estado '{solicitud.get('status')}'",
-                    },
-                }
-            ),
+            jsonify({
+                "ok": False,
+                "error": {
+                    "code": "invalid_transition",
+                    "message": f"Solicitud no puede aprobarse desde estado '{estado_para_display(estado_actual)}'",
+                    "estado_actual": estado_actual,
+                },
+            }),
             400,
         )
 
     # 4. Calcular total
     items = json.loads(solicitud.get("data_json") or "{}").get("items", [])
     total = solicitud.get("total_monto") or _calcular_total(items)
+
+    # 4.5 Validar permisos de aprobacion (matriz parametrizable)
+    permiso = puede_aprobar(
+        usuario_id=aprobador_id,
+        monto_usd=total,
+        centro=solicitud.get("centro"),
+        sector=solicitud.get("sector"),
+    )
+    if not permiso.get("puede_aprobar"):
+        return (
+            jsonify({
+                "ok": False,
+                "error": {
+                    "code": "insufficient_permission",
+                    "message": permiso.get("razon", "No tiene permisos para aprobar este monto"),
+                    "rol_usuario": permiso.get("rol_usuario"),
+                    "rol_requerido": permiso.get("rol_requerido"),
+                    "nivel_aprobacion": permiso.get("nivel_aprobacion"),
+                },
+            }),
+            403,
+        )
 
     # 5. Validar y consumir presupuesto
     try:
@@ -475,97 +689,177 @@ def aprobar_solicitud(solicitud_id):
 
     if not result["ok"]:
         error_code = result.get("error_code", "budget_error")
-        status_code = 400
-        if error_code == "saldo_insuficiente":
-            status_code = 422  # Unprocessable Entity
+        status_code = 422 if error_code == "saldo_insuficiente" else 400
         return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": error_code,
-                        "message": result.get("error_message", "Error de presupuesto"),
-                        "saldo_disponible": result.get("saldo_disponible_usd"),
-                        "monto_requerido": result.get("monto_requerido_usd"),
-                    },
-                }
-            ),
+            jsonify({
+                "ok": False,
+                "error": {
+                    "code": error_code,
+                    "message": result.get("error_message", "Error de presupuesto"),
+                    "saldo_disponible": result.get("saldo_disponible_usd"),
+                    "monto_requerido": result.get("monto_requerido_usd"),
+                },
+            }),
             status_code,
         )
 
-    # 6. Actualizar solicitud a Aprobada
+    # 6. Asignar planificador
     planificador = _planificador_para(solicitud.get("centro"), solicitud.get("sector"))
     _update_solicitud(
         solicitud_id,
-        {
-            "status": "Aprobada",
-            "total_monto": total,
-            "planner_id": planificador,
-            "aprobador_id": aprobador_id,
-        },
+        {"total_monto": total, "planner_id": planificador, "aprobador_id": aprobador_id},
     )
 
-    # 7. Notificar al solicitante y al planificador
+    # 7. Usar FSM para cambiar estado (registra historial y dispara notificaciones)
     try:
-        try:
-            from backend.services.notification_service import (
-                NotificationService,
-                notify_solicitud_approved,
-            )
-        except ImportError:
-            from services.notification_service import (
-                NotificationService,
-                notify_solicitud_approved,
-            )
+        resultado = cambiar_estado(
+            solicitud_id=solicitud_id,
+            nuevo_estado=EstadoSolicitud.APPROVED,
+            actor_id=aprobador_id,
+            razon="Solicitud aprobada",
+            metadata={
+                "total_monto": total,
+                "planificador_asignado": planificador,
+                "presupuesto_consumido": result.get("monto_consumido_cents"),
+            }
+        )
 
-        # Notificar al solicitante que su solicitud fue aprobada
-        solicitante_id = solicitud.get("id_usuario")
-        if solicitante_id:
-            notify_solicitud_approved(solicitud_id, solicitante_id)
+        # Registrar en auditoria
+        auditar_aprobacion(
+            solicitud_id=solicitud_id,
+            actor_id=aprobador_id,
+            actor_rol=aprobador_rol,
+            ip_address=request.remote_addr
+        )
 
-        # Notificar al planificador asignado
-        if planificador:
-            NotificationService.create_notification(
-                destinatario_id=str(planificador),
-                mensaje=f"Solicitud #{solicitud_id} aprobada y lista para planificar",
-                tipo="solicitud_to_plan",
+    except TransicionInvalidaError as e:
+        return (
+            jsonify({
+                "ok": False,
+                "error": {"code": "invalid_transition", "message": str(e)},
+            }),
+            400,
+        )
+
+    # Sprint 4.4: Resolver alertas SLA y calcular nuevo SLA para siguiente etapa
+    try:
+        # Resolver alertas de la transicion submitted -> approved
+        resolver_alertas_solicitud(
+            solicitud_id=solicitud_id,
+            resuelto_por=aprobador_id
+        )
+
+        # Calcular SLA para la siguiente transicion: approved -> in_treatment
+        criticidad = solicitud.get("criticidad") or "Normal"
+        sla_config = obtener_configuracion_sla(
+            criticidad=criticidad,
+            estado_desde="approved",
+            estado_hasta="in_treatment"
+        )
+
+        if sla_config:
+            fecha_limite = calcular_fecha_limite(
+                fecha_inicio=datetime.utcnow(),
+                horas=sla_config["tiempo_objetivo_horas"]
+            )
+            actualizar_sla_solicitud(
                 solicitud_id=solicitud_id,
+                fecha_limite=fecha_limite.isoformat() + "Z",
+                estado_sla="on_time"
             )
     except Exception:
-        pass  # No fallar si la notificación falla
+        # SLA es informativo, no debe bloquear el flujo principal
+        pass
 
     return get_solicitud(solicitud_id)
 
 
 @bp.route("/<int:solicitud_id>/rechazar", methods=["PUT", "POST"])
 def rechazar_solicitud(solicitud_id):
-    """Rechazar solicitud"""
-    # Obtener solicitud original para conocer al solicitante
+    """Rechazar solicitud - Usa FSM centralizado"""
+    # SEGURIDAD: Requiere autenticación
+    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
+    if isinstance(user_payload, tuple):
+        return user_payload
+
+    actor_id = str(user_payload.get("user_id", "system"))
+
+    # Obtener solicitud
     solicitud = _get_raw(solicitud_id)
+    if not solicitud:
+        return (
+            jsonify({"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}),
+            404,
+        )
+
+    # Validar transición con FSM
+    estado_actual = normalizar_estado(solicitud.get("status") or "")
+    if not validar_transicion(estado_actual, EstadoSolicitud.REJECTED):
+        return (
+            jsonify({
+                "ok": False,
+                "error": {
+                    "code": "invalid_transition",
+                    "message": f"Solicitud no puede rechazarse desde estado '{estado_para_display(estado_actual)}'",
+                    "estado_actual": estado_actual,
+                },
+            }),
+            400,
+        )
 
     data = request.get_json(silent=True) or {}
     motivo = data.get("motivo") or ""
-    extra = {"motivo_rechazo": motivo}
-    _update_solicitud(
-        solicitud_id,
-        {
-            "status": "Rechazada",
-            "data_json": json.dumps(extra),
-        },
-    )
 
-    # Notificar al solicitante que su solicitud fue rechazada
-    if solicitud:
-        solicitante_id = solicitud.get("id_usuario")
-        if solicitante_id:
-            try:
-                try:
-                    from backend.services.notification_service import notify_solicitud_rejected
-                except ImportError:
-                    from services.notification_service import notify_solicitud_rejected
-                notify_solicitud_rejected(solicitud_id, solicitante_id, motivo)
-            except Exception:
-                pass  # No fallar si la notificación falla
+    # Obtener rol del actor
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (actor_id,))
+        user_row = cur.fetchone()
+    actor_rol = user_row["rol"] if user_row else ""
+
+    # Usar FSM para cambiar estado (registra historial y dispara notificaciones)
+    try:
+        resultado = cambiar_estado(
+            solicitud_id=solicitud_id,
+            nuevo_estado=EstadoSolicitud.REJECTED,
+            actor_id=actor_id,
+            razon=motivo or "Rechazada",
+            metadata={"motivo_rechazo": motivo}
+        )
+
+        # Registrar en auditoria
+        auditar_rechazo(
+            solicitud_id=solicitud_id,
+            actor_id=actor_id,
+            motivo=motivo,
+            actor_rol=actor_rol,
+            ip_address=request.remote_addr
+        )
+
+    except TransicionInvalidaError as e:
+        return (
+            jsonify({
+                "ok": False,
+                "error": {"code": "invalid_transition", "message": str(e)},
+            }),
+            400,
+        )
+
+    # Sprint 4.4: Resolver todas las alertas SLA al rechazar
+    try:
+        resolver_alertas_solicitud(
+            solicitud_id=solicitud_id,
+            resuelto_por=actor_id
+        )
+        # Limpiar SLA de la solicitud
+        actualizar_sla_solicitud(
+            solicitud_id=solicitud_id,
+            fecha_limite=None,
+            estado_sla="closed"
+        )
+    except Exception:
+        # SLA es informativo, no debe bloquear el flujo principal
+        pass
 
     return get_solicitud(solicitud_id)
 
@@ -627,6 +921,88 @@ def comentar_solicitud(solicitud_id):
     return jsonify({"ok": True, "message": "Comentario agregado correctamente"}), 200
 
 
+@bp.route("/<int:solicitud_id>/historial-estados", methods=["GET"])
+def get_historial_estados(solicitud_id):
+    """
+    Obtener historial de transiciones de estado de una solicitud.
+
+    Endpoint v2 que usa el FSM centralizado.
+    """
+    # SEGURIDAD: Requiere autenticación
+    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
+    if isinstance(user_payload, tuple):
+        return user_payload
+
+    # Importar función del FSM
+    try:
+        from backend.core.fsm import obtener_historial_estados, estado_para_display
+    except ImportError:
+        from core.fsm import obtener_historial_estados, estado_para_display
+
+    # Verificar que la solicitud existe
+    solicitud = _get_raw(solicitud_id)
+    if not solicitud:
+        return (
+            jsonify({"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}),
+            404,
+        )
+
+    # Obtener historial
+    historial = obtener_historial_estados(solicitud_id)
+
+    # Enriquecer con nombres de display
+    for item in historial:
+        item["estado_anterior_display"] = estado_para_display(item["estado_anterior"])
+        item["estado_nuevo_display"] = estado_para_display(item["estado_nuevo"])
+
+    return jsonify({
+        "ok": True,
+        "solicitud_id": solicitud_id,
+        "estado_actual": normalizar_estado(solicitud.get("status") or ""),
+        "estado_actual_display": estado_para_display(solicitud.get("status") or ""),
+        "historial": historial,
+        "total_transiciones": len(historial)
+    }), 200
+
+
+@bp.route("/<int:solicitud_id>/transiciones-posibles", methods=["GET"])
+def get_transiciones_posibles(solicitud_id):
+    """
+    Obtener las transiciones de estado posibles desde el estado actual.
+
+    Útil para que el frontend muestre solo las acciones permitidas.
+    """
+    # SEGURIDAD: Requiere autenticación
+    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
+    if isinstance(user_payload, tuple):
+        return user_payload
+
+    # Importar función del FSM
+    try:
+        from backend.core.fsm import get_transiciones_posibles as fsm_transiciones
+    except ImportError:
+        from core.fsm import get_transiciones_posibles as fsm_transiciones
+
+    # Verificar que la solicitud existe
+    solicitud = _get_raw(solicitud_id)
+    if not solicitud:
+        return (
+            jsonify({"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}),
+            404,
+        )
+
+    estado_actual = normalizar_estado(solicitud.get("status") or "")
+    transiciones = fsm_transiciones(estado_actual)
+
+    return jsonify({
+        "ok": True,
+        "solicitud_id": solicitud_id,
+        "estado_actual": estado_actual,
+        "estado_actual_display": estado_para_display(estado_actual),
+        "transiciones_posibles": transiciones
+    }), 200
+
+
 def _update_solicitud(solicitud_id: int, fields: dict):
     if not fields:
         return
@@ -659,52 +1035,25 @@ def _calcular_total(items):
     return total
 
 
-def _aprobador_por_monto(total):
+def _aprobador_por_monto(total, centro: str = None):
     """Obtiene el ID del aprobador según el monto de la solicitud.
-    Busca usuarios con rol de aprobador en la base de datos.
+
+    Refactorizado para usar ApprovalService (Sprint 2.4).
+    Delega la lógica de reglas de aprobación al servicio centralizado.
+
+    Args:
+        total: Monto total de la solicitud
+        centro: Centro de costo (opcional, para priorizar aprobadores)
+
+    Returns:
+        ID del aprobador asignado
     """
     try:
-        t = float(total)
-    except Exception:
-        t = 0
+        monto = float(total)
+    except (TypeError, ValueError):
+        monto = 0
 
-    # Determinar qué tipo de aprobador se necesita según el monto
-    if t >= 50000:
-        rol_requerido = "gerente"
-    elif t >= 20000:
-        rol_requerido = "gerente"
-    elif t >= 5000:
-        rol_requerido = "jefe"
-    else:
-        rol_requerido = "aprobador"
-
-    # Buscar un aprobador real en la base de datos
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        # Buscar usuarios con rol de aprobador (priorizar el rol específico, luego cualquier aprobador)
-        cur.execute(
-            """
-            SELECT id_spm, nombre, apellido, rol FROM usuarios
-            WHERE LOWER(rol) LIKE '%aprobador%' OR LOWER(rol) LIKE '%jefe%' OR LOWER(rol) LIKE '%coordinador%' OR LOWER(rol) LIKE '%admin%'
-            ORDER BY
-                CASE
-                    WHEN LOWER(rol) LIKE ? THEN 1
-                    WHEN LOWER(rol) LIKE '%jefe%' THEN 2
-                    WHEN LOWER(rol) LIKE '%coordinador%' THEN 3
-                    WHEN LOWER(rol) LIKE '%aprobador%' THEN 4
-                    ELSE 5
-                END
-            LIMIT 1
-        """,
-            (f"%{rol_requerido}%",),
-        )
-        row = cur.fetchone()
-
-    if row:
-        return str(row["id_spm"])
-
-    # Fallback: retornar "1" (admin por defecto)
-    return "1"
+    return obtener_aprobador_por_monto(monto, centro)
 
 
 def _planificador_para(centro: str, sector: str) -> str:

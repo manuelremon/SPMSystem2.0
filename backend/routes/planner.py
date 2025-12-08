@@ -1,3 +1,9 @@
+"""
+Planner routes - Gestión de planificación de solicitudes
+
+Refactorizado para usar FSM centralizado (Sprint 1.7)
+"""
+
 import json
 import logging
 import traceback
@@ -15,6 +21,15 @@ try:
         error_not_found,
         error_validation,
     )
+    from backend.core.fsm import (
+        cambiar_estado,
+        normalizar_estado,
+        estado_para_display,
+        validar_transicion,
+        EstadoSolicitud,
+        TransicionInvalidaError,
+        SolicitudNoEncontradaError,
+    )
     from backend.core.repository import (
         DecisionAbastecimientoRepository,
         MrpRepository,
@@ -30,9 +45,19 @@ try:
         paso_3_guardar_tratamiento,
     )
     from backend.routes.auth import _decode_token
+    from backend.services.audit_service import auditar_modificacion
 except ImportError:
     from core.db import get_db_connection, get_db_transaction
     from core.errors import error_forbidden, error_internal, error_not_found, error_validation
+    from core.fsm import (
+        cambiar_estado,
+        normalizar_estado,
+        estado_para_display,
+        validar_transicion,
+        EstadoSolicitud,
+        TransicionInvalidaError,
+        SolicitudNoEncontradaError,
+    )
     from core.repository import (
         DecisionAbastecimientoRepository,
         MrpRepository,
@@ -48,6 +73,7 @@ except ImportError:
     )
 
     from routes.auth import _decode_token
+    from services.audit_service import auditar_modificacion
 
 # Blueprint histórico (/api/planner) con dashboard simple
 # TODO: [Refactor] Replace generic "except Exception" with specific exceptions
@@ -603,8 +629,12 @@ def _stock_detalle(codigo: str, centro: str = None, almacen: str = None, stock_d
 
 
 def _load_solicitudes(filters: dict):
+    # FSM: Soportar tanto estados legacy como nuevos (normalizados)
     where = [
-        "(s.status = 'Aprobada' OR s.status = 'En Progreso' OR s.status = 'En tratamiento' OR s.status = 'Tratado' OR s.status = 'Finalizada' OR s.status = 'Completada')"
+        """(
+            s.status IN ('Aprobada', 'En Progreso', 'En tratamiento', 'Tratado', 'Finalizada', 'Completada')
+            OR s.status IN ('approved', 'in_planning', 'in_treatment', 'treated', 'completed')
+        )"""
     ]
     params = []
     if filters.get("planner_id"):
@@ -692,26 +722,68 @@ def obtener_presupuesto():
 
 @bp.route("/solicitudes/<int:solicitud_id>/aceptar", methods=["POST"])
 def aceptar_solicitud(solicitud_id):
-    """Planificador marca como en progreso"""
+    """Planificador acepta y marca como en tratamiento - Usa FSM"""
     guard, user = _require_solicitud_access(solicitud_id)
     if guard:
         return guard
+
     actor_id = str(user.get("id_spm") or user.get("usuario") or user.get("id") or "planner")
-    _update_estado(solicitud_id, "En tratamiento")
-    _log_evento(solicitud_id, None, "planificador_acepta", "En tratamiento", {}, actor=actor_id)
-    return jsonify({"ok": True}), 200
+
+    # Usar FSM para cambiar estado (approved/in_planning -> in_treatment)
+    try:
+        resultado = cambiar_estado(
+            solicitud_id=solicitud_id,
+            nuevo_estado=EstadoSolicitud.IN_TREATMENT,
+            actor_id=actor_id,
+            razon="Planificador acepta tratamiento",
+            metadata={"paso": "aceptacion"}
+        )
+        _log_evento(solicitud_id, None, "planificador_acepta", resultado["estado_nuevo"], {}, actor=actor_id)
+        return jsonify({"ok": True, "estado": resultado["estado_nuevo"]}), 200
+
+    except TransicionInvalidaError as e:
+        return (
+            jsonify({
+                "ok": False,
+                "error": {"code": "invalid_transition", "message": str(e)}
+            }),
+            400,
+        )
+    except SolicitudNoEncontradaError:
+        return error_not_found("Solicitud", solicitud_id)
 
 
 @bp.route("/solicitudes/<int:solicitud_id>/finalizar", methods=["POST"])
 def finalizar_solicitud(solicitud_id):
-    """Planificador finaliza tratamiento"""
+    """Planificador finaliza tratamiento - Usa FSM"""
     guard, user = _require_solicitud_access(solicitud_id)
     if guard:
         return guard
+
     actor_id = str(user.get("id_spm") or user.get("usuario") or user.get("id") or "planner")
-    _update_estado(solicitud_id, "Tratado")
-    _log_evento(solicitud_id, None, "planificador_finaliza", "Tratado", {}, actor=actor_id)
-    return jsonify({"ok": True}), 200
+
+    # Usar FSM para cambiar estado (in_treatment -> treated)
+    try:
+        resultado = cambiar_estado(
+            solicitud_id=solicitud_id,
+            nuevo_estado=EstadoSolicitud.TREATED,
+            actor_id=actor_id,
+            razon="Planificador finaliza tratamiento",
+            metadata={"paso": "finalizacion"}
+        )
+        _log_evento(solicitud_id, None, "planificador_finaliza", resultado["estado_nuevo"], {}, actor=actor_id)
+        return jsonify({"ok": True, "estado": resultado["estado_nuevo"]}), 200
+
+    except TransicionInvalidaError as e:
+        return (
+            jsonify({
+                "ok": False,
+                "error": {"code": "invalid_transition", "message": str(e)}
+            }),
+            400,
+        )
+    except SolicitudNoEncontradaError:
+        return error_not_found("Solicitud", solicitud_id)
 
 
 @bp.route("/solicitudes/<int:solicitud_id>/comentar", methods=["POST"])
@@ -770,6 +842,40 @@ def tratar_items(solicitud_id):
         or data.get("actor_id")
         or "planner"
     )
+
+    # Validacion basica de items de tratamiento (Sprint 3.4)
+    if not items:
+        return error_validation("Se requiere al menos un item para tratar")
+
+    errores = []
+    for idx, it in enumerate(items):
+        if it.get("item_index") is None:
+            errores.append(f"Item {idx}: item_index es requerido")
+            continue
+
+        # Validar cantidad_aprobada
+        cant = it.get("cantidad_aprobada")
+        if cant is not None:
+            try:
+                cant = float(cant)
+                if cant < 0:
+                    errores.append(f"Item {idx}: cantidad_aprobada no puede ser negativa")
+            except (TypeError, ValueError):
+                errores.append(f"Item {idx}: cantidad_aprobada debe ser un numero")
+
+        # Validar precio_unitario_estimado
+        precio = it.get("precio_unitario_estimado")
+        if precio is not None:
+            try:
+                precio = float(precio)
+                if precio < 0:
+                    errores.append(f"Item {idx}: precio_unitario_estimado no puede ser negativo")
+            except (TypeError, ValueError):
+                errores.append(f"Item {idx}: precio_unitario_estimado debe ser un numero")
+
+    if errores:
+        return error_validation("; ".join(errores))
+
     with get_db_transaction() as conn:
         cur = conn.cursor()
         for it in items:
@@ -806,7 +912,27 @@ def tratar_items(solicitud_id):
                 solicitud_id, idx, "item_tratado", it.get("decision") or "", it, actor=actor
             )
 
-    _update_estado(solicitud_id, "En tratamiento")
+    # Usar FSM para asegurar estado correcto (si no está ya en tratamiento)
+    try:
+        # Solo cambiar si no está ya en in_treatment
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT status FROM solicitudes WHERE id=?", (solicitud_id,))
+            row = cur.fetchone()
+            if row:
+                estado_actual = normalizar_estado(row["status"])
+                if estado_actual != "in_treatment":
+                    cambiar_estado(
+                        solicitud_id=solicitud_id,
+                        nuevo_estado=EstadoSolicitud.IN_TREATMENT,
+                        actor_id=actor,
+                        razon="Items tratados",
+                        metadata={"items_count": len(items)}
+                    )
+    except TransicionInvalidaError:
+        # Si la transición no es válida, solo actualizar el timestamp
+        pass
+
     return jsonify({"ok": True}), 200
 
 
@@ -886,12 +1012,22 @@ def _generar_recomendaciones(conflictos: list, avisos: list) -> list:
     return recomendaciones
 
 
-def _update_estado(solicitud_id: int, estado: str):
+def _update_estado(solicitud_id: int, estado: str, actor_id: str = "system"):
+    """
+    Actualiza estado de solicitud.
+
+    NOTA: Preferir usar cambiar_estado() del FSM directamente para
+    validación de transiciones y registro de historial.
+    Esta función se mantiene para compatibilidad legacy.
+    """
+    # Normalizar estado para almacenamiento consistente
+    estado_normalizado = normalizar_estado(estado)
+
     with get_db_transaction() as conn:
         cur = conn.cursor()
         cur.execute(
             "UPDATE solicitudes SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-            (estado, solicitud_id),
+            (estado_normalizado, solicitud_id),
         )
 
 

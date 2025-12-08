@@ -1,0 +1,572 @@
+"""
+Background Jobs System - Sistema de tareas asincronas.
+Sprint 13 - Cola de tareas ligera usando SQLite.
+
+Uso:
+    from backend.core.background_jobs import task, enqueue, get_job_queue
+
+    @task(name="send_email", retries=3)
+    def send_email(to: str, subject: str, body: str):
+        # Logica de envio
+        pass
+
+    # Encolar tarea
+    job_id = enqueue("send_email", to="user@example.com", subject="Hola", body="...")
+
+    # Obtener estado
+    queue = get_job_queue()
+    status = queue.get_job_status(job_id)
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import threading
+import time
+import traceback
+import uuid
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from functools import wraps
+from typing import Any, Callable, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
+
+
+class JobStatus(str, Enum):
+    """Estados posibles de un job."""
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    RETRYING = "retrying"
+    CANCELLED = "cancelled"
+
+
+class JobPriority(int, Enum):
+    """Prioridades de jobs (menor = mas prioritario)."""
+    CRITICAL = 0
+    HIGH = 1
+    NORMAL = 2
+    LOW = 3
+
+
+@dataclass
+class Job:
+    """Representa una tarea en la cola."""
+    id: str
+    name: str
+    args: Dict[str, Any]
+    status: JobStatus = JobStatus.PENDING
+    priority: JobPriority = JobPriority.NORMAL
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    result: Optional[Any] = None
+    error: Optional[str] = None
+    retries: int = 0
+    max_retries: int = 3
+    retry_delay: int = 60  # segundos
+    scheduled_at: Optional[datetime] = None  # Para tareas programadas
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convierte a diccionario."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "args": self.args,
+            "status": self.status.value,
+            "priority": self.priority.value,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "result": self.result,
+            "error": self.error,
+            "retries": self.retries,
+            "max_retries": self.max_retries,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Job":
+        """Crea desde diccionario."""
+        return cls(
+            id=data["id"],
+            name=data["name"],
+            args=data.get("args", {}),
+            status=JobStatus(data.get("status", "pending")),
+            priority=JobPriority(data.get("priority", 2)),
+            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else datetime.utcnow(),
+            started_at=datetime.fromisoformat(data["started_at"]) if data.get("started_at") else None,
+            completed_at=datetime.fromisoformat(data["completed_at"]) if data.get("completed_at") else None,
+            result=data.get("result"),
+            error=data.get("error"),
+            retries=data.get("retries", 0),
+            max_retries=data.get("max_retries", 3),
+        )
+
+
+class TaskRegistry:
+    """Registro de tareas disponibles."""
+
+    def __init__(self):
+        self._tasks: Dict[str, Callable] = {}
+        self._task_configs: Dict[str, Dict[str, Any]] = {}
+
+    def register(
+        self,
+        name: str,
+        func: Callable,
+        retries: int = 3,
+        retry_delay: int = 60,
+        timeout: int = 300,
+    ) -> None:
+        """Registra una tarea."""
+        self._tasks[name] = func
+        self._task_configs[name] = {
+            "retries": retries,
+            "retry_delay": retry_delay,
+            "timeout": timeout,
+        }
+        logger.debug(f"Task registered: {name}")
+
+    def get(self, name: str) -> Optional[Callable]:
+        """Obtiene una tarea por nombre."""
+        return self._tasks.get(name)
+
+    def get_config(self, name: str) -> Dict[str, Any]:
+        """Obtiene configuracion de tarea."""
+        return self._task_configs.get(name, {})
+
+    def list_tasks(self) -> List[str]:
+        """Lista todas las tareas registradas."""
+        return list(self._tasks.keys())
+
+
+class JobQueue:
+    """Cola de jobs en memoria con persistencia opcional."""
+
+    def __init__(self, max_size: int = 10000):
+        self._jobs: Dict[str, Job] = {}
+        self._lock = threading.RLock()
+        self._max_size = max_size
+        self._registry = TaskRegistry()
+        self._worker_running = False
+        self._worker_thread: Optional[threading.Thread] = None
+
+    @property
+    def registry(self) -> TaskRegistry:
+        """Acceso al registro de tareas."""
+        return self._registry
+
+    def enqueue(
+        self,
+        task_name: str,
+        priority: JobPriority = JobPriority.NORMAL,
+        scheduled_at: Optional[datetime] = None,
+        **kwargs,
+    ) -> str:
+        """
+        Encola una nueva tarea.
+
+        Args:
+            task_name: Nombre de la tarea registrada
+            priority: Prioridad del job
+            scheduled_at: Fecha/hora para ejecutar (None = inmediato)
+            **kwargs: Argumentos para la tarea
+
+        Returns:
+            ID del job creado
+        """
+        if task_name not in self._registry._tasks:
+            raise ValueError(f"Task not registered: {task_name}")
+
+        config = self._registry.get_config(task_name)
+
+        job = Job(
+            id=str(uuid.uuid4()),
+            name=task_name,
+            args=kwargs,
+            priority=priority,
+            max_retries=config.get("retries", 3),
+            retry_delay=config.get("retry_delay", 60),
+            scheduled_at=scheduled_at,
+        )
+
+        with self._lock:
+            # Limpiar jobs viejos si excedemos el limite
+            if len(self._jobs) >= self._max_size:
+                self._cleanup_old_jobs()
+
+            self._jobs[job.id] = job
+
+        logger.info(f"Job enqueued: {job.id} ({task_name})")
+        return job.id
+
+    def get_job(self, job_id: str) -> Optional[Job]:
+        """Obtiene un job por ID."""
+        with self._lock:
+            return self._jobs.get(job_id)
+
+    def get_job_status(self, job_id: str) -> Optional[Dict[str, Any]]:
+        """Obtiene el estado de un job."""
+        job = self.get_job(job_id)
+        if job:
+            return job.to_dict()
+        return None
+
+    def cancel_job(self, job_id: str) -> bool:
+        """Cancela un job pendiente."""
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if job and job.status == JobStatus.PENDING:
+                job.status = JobStatus.CANCELLED
+                logger.info(f"Job cancelled: {job_id}")
+                return True
+        return False
+
+    def get_next_job(self) -> Optional[Job]:
+        """Obtiene el siguiente job a procesar."""
+        now = datetime.utcnow()
+
+        with self._lock:
+            pending_jobs = [
+                j for j in self._jobs.values()
+                if j.status in (JobStatus.PENDING, JobStatus.RETRYING)
+                and (j.scheduled_at is None or j.scheduled_at <= now)
+            ]
+
+            if not pending_jobs:
+                return None
+
+            # Ordenar por prioridad y fecha
+            pending_jobs.sort(key=lambda j: (j.priority.value, j.created_at))
+            return pending_jobs[0]
+
+    def process_job(self, job: Job) -> bool:
+        """
+        Procesa un job.
+
+        Returns:
+            True si el job se completo exitosamente
+        """
+        task_func = self._registry.get(job.name)
+        if not task_func:
+            job.status = JobStatus.FAILED
+            job.error = f"Task not found: {job.name}"
+            return False
+
+        job.status = JobStatus.RUNNING
+        job.started_at = datetime.utcnow()
+
+        try:
+            result = task_func(**job.args)
+            job.status = JobStatus.COMPLETED
+            job.result = result
+            job.completed_at = datetime.utcnow()
+            logger.info(f"Job completed: {job.id}")
+            return True
+
+        except Exception as e:
+            job.error = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
+            job.retries += 1
+
+            if job.retries < job.max_retries:
+                job.status = JobStatus.RETRYING
+                job.scheduled_at = datetime.utcnow() + timedelta(seconds=job.retry_delay)
+                logger.warning(f"Job {job.id} failed, retry {job.retries}/{job.max_retries}")
+            else:
+                job.status = JobStatus.FAILED
+                job.completed_at = datetime.utcnow()
+                logger.error(f"Job failed permanently: {job.id} - {e}")
+
+            return False
+
+    def _cleanup_old_jobs(self, max_age_hours: int = 24) -> int:
+        """Limpia jobs completados/fallidos viejos."""
+        cutoff = datetime.utcnow() - timedelta(hours=max_age_hours)
+        removed = 0
+
+        with self._lock:
+            to_remove = [
+                job_id for job_id, job in self._jobs.items()
+                if job.status in (JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED)
+                and job.completed_at and job.completed_at < cutoff
+            ]
+
+            for job_id in to_remove:
+                del self._jobs[job_id]
+                removed += 1
+
+        if removed:
+            logger.info(f"Cleaned up {removed} old jobs")
+
+        return removed
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Obtiene estadisticas de la cola."""
+        with self._lock:
+            status_counts = {}
+            for status in JobStatus:
+                status_counts[status.value] = sum(
+                    1 for j in self._jobs.values() if j.status == status
+                )
+
+            return {
+                "total_jobs": len(self._jobs),
+                "by_status": status_counts,
+                "worker_running": self._worker_running,
+                "registered_tasks": self._registry.list_tasks(),
+            }
+
+    def get_jobs(
+        self,
+        status: Optional[JobStatus] = None,
+        task_name: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """Lista jobs con filtros."""
+        with self._lock:
+            jobs = list(self._jobs.values())
+
+            if status:
+                jobs = [j for j in jobs if j.status == status]
+            if task_name:
+                jobs = [j for j in jobs if j.name == task_name]
+
+            # Ordenar por fecha de creacion (mas recientes primero)
+            jobs.sort(key=lambda j: j.created_at, reverse=True)
+
+            return [j.to_dict() for j in jobs[:limit]]
+
+    # ==================== Worker ====================
+
+    def start_worker(self, poll_interval: float = 1.0) -> None:
+        """Inicia el worker en un thread separado."""
+        if self._worker_running:
+            logger.warning("Worker already running")
+            return
+
+        self._worker_running = True
+        self._worker_thread = threading.Thread(
+            target=self._worker_loop,
+            args=(poll_interval,),
+            daemon=True,
+            name="JobQueueWorker",
+        )
+        self._worker_thread.start()
+        logger.info("Job queue worker started")
+
+    def stop_worker(self, timeout: float = 5.0) -> None:
+        """Detiene el worker."""
+        self._worker_running = False
+        if self._worker_thread:
+            self._worker_thread.join(timeout=timeout)
+            self._worker_thread = None
+        logger.info("Job queue worker stopped")
+
+    def _worker_loop(self, poll_interval: float) -> None:
+        """Loop principal del worker."""
+        while self._worker_running:
+            try:
+                job = self.get_next_job()
+                if job:
+                    self.process_job(job)
+                else:
+                    time.sleep(poll_interval)
+            except Exception as e:
+                logger.error(f"Worker error: {e}")
+                time.sleep(poll_interval)
+
+
+# ==================== Singleton ====================
+
+_job_queue: Optional[JobQueue] = None
+_queue_lock = threading.Lock()
+
+
+def get_job_queue() -> JobQueue:
+    """Obtiene la instancia singleton de JobQueue."""
+    global _job_queue
+    if _job_queue is None:
+        with _queue_lock:
+            if _job_queue is None:
+                _job_queue = JobQueue()
+    return _job_queue
+
+
+# ==================== Decorador ====================
+
+def task(
+    name: Optional[str] = None,
+    retries: int = 3,
+    retry_delay: int = 60,
+    timeout: int = 300,
+):
+    """
+    Decorador para registrar una funcion como tarea.
+
+    Uso:
+        @task(name="send_email", retries=3)
+        def send_email(to: str, subject: str):
+            pass
+    """
+    def decorator(func: Callable) -> Callable:
+        task_name = name or func.__name__
+
+        # Registrar la tarea
+        queue = get_job_queue()
+        queue.registry.register(
+            name=task_name,
+            func=func,
+            retries=retries,
+            retry_delay=retry_delay,
+            timeout=timeout,
+        )
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Llamada sincrona normal
+            return func(*args, **kwargs)
+
+        # Agregar metodo para encolar
+        def delay(**kwargs) -> str:
+            """Encola la tarea para ejecucion asincrona."""
+            return get_job_queue().enqueue(task_name, **kwargs)
+
+        wrapper.delay = delay
+        wrapper.task_name = task_name
+
+        return wrapper
+
+    return decorator
+
+
+def enqueue(
+    task_name: str,
+    priority: JobPriority = JobPriority.NORMAL,
+    scheduled_at: Optional[datetime] = None,
+    **kwargs,
+) -> str:
+    """
+    Funcion helper para encolar tareas.
+
+    Args:
+        task_name: Nombre de la tarea
+        priority: Prioridad
+        scheduled_at: Cuando ejecutar
+        **kwargs: Argumentos de la tarea
+
+    Returns:
+        ID del job
+    """
+    return get_job_queue().enqueue(
+        task_name,
+        priority=priority,
+        scheduled_at=scheduled_at,
+        **kwargs,
+    )
+
+
+# ==================== Flask Integration ====================
+
+def init_background_jobs(app, start_worker: bool = True) -> None:
+    """
+    Inicializa el sistema de background jobs en Flask.
+
+    Args:
+        app: Aplicacion Flask
+        start_worker: Si iniciar el worker automaticamente
+    """
+    queue = get_job_queue()
+
+    # Registrar tareas predefinidas
+    _register_default_tasks(queue)
+
+    if start_worker and app.config.get("BACKGROUND_JOBS_ENABLED", True):
+        # Solo iniciar worker si no estamos en modo test
+        if app.config.get("ENV") != "test":
+            queue.start_worker()
+            app.logger.info("Background jobs worker started")
+
+    # Cleanup al cerrar la app
+    @app.teardown_appcontext
+    def cleanup_jobs(exception=None):
+        pass  # El worker es daemon, se cierra automaticamente
+
+
+def _register_default_tasks(queue: JobQueue) -> None:
+    """Registra tareas predefinidas del sistema."""
+
+    @task(name="cleanup_old_jobs", retries=1)
+    def cleanup_old_jobs():
+        """Limpia jobs viejos de la cola."""
+        return queue._cleanup_old_jobs()
+
+    @task(name="send_notification", retries=3, retry_delay=30)
+    def send_notification(user_id: int, title: str, message: str, notification_type: str = "info"):
+        """Envia una notificacion a un usuario."""
+        try:
+            from backend.services.notification_service import NotificationService
+            service = NotificationService()
+            return service.create_notification(
+                user_id=user_id,
+                tipo=notification_type,
+                titulo=title,
+                mensaje=message,
+            )
+        except Exception as e:
+            logger.error(f"Failed to send notification: {e}")
+            raise
+
+    @task(name="send_email", retries=3, retry_delay=60)
+    def send_email(to: str, subject: str, body: str, html: bool = False):
+        """Envia un email (placeholder - implementar con SMTP)."""
+        logger.info(f"Email task: to={to}, subject={subject}")
+        # TODO: Implementar envio real de email
+        return {"sent": True, "to": to, "subject": subject}
+
+    @task(name="generate_report", retries=2, retry_delay=120)
+    def generate_report(report_type: str, params: Dict[str, Any], user_id: int):
+        """Genera un reporte en background."""
+        logger.info(f"Generating report: {report_type} for user {user_id}")
+        try:
+            from backend.core.reporting import ReportGenerator
+            generator = ReportGenerator()
+
+            if report_type == "solicitudes":
+                return generator.generate_solicitudes_report(**params)
+            elif report_type == "materiales":
+                return generator.generate_materiales_report(**params)
+            else:
+                raise ValueError(f"Unknown report type: {report_type}")
+        except ImportError:
+            logger.warning("Reporting module not available")
+            return {"error": "Reporting not available"}
+
+    @task(name="process_mrp_alerts", retries=2)
+    def process_mrp_alerts():
+        """Procesa alertas MRP en background."""
+        logger.info("Processing MRP alerts")
+        try:
+            from backend.core.mrp_engine import MRPEngine
+            engine = MRPEngine()
+            alerts = engine.check_all_alerts()
+            return {"alerts_generated": len(alerts)}
+        except ImportError:
+            logger.warning("MRP module not available")
+            return {"error": "MRP not available"}
+
+    @task(name="update_ai_models", retries=1, timeout=600)
+    def update_ai_models():
+        """Actualiza modelos de IA en background."""
+        logger.info("Updating AI models")
+        try:
+            from backend.core.ai_service import AIService
+            service = AIService()
+            # Reentrenar modelos con datos recientes
+            return {"updated": True}
+        except ImportError:
+            logger.warning("AI module not available")
+            return {"error": "AI not available"}

@@ -1,0 +1,225 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '20'
+
+jobs:
+  # ==================== Backend Tests ====================
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    env:
+      ENV: test
+      SECRET_KEY: test-secret-key-for-ci
+      DATABASE_URL: sqlite:///data/spm_test.db
+      LOG_LEVEL: WARNING
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Create data directory
+        run: mkdir -p data
+
+      - name: Run unit tests
+        run: |
+          python -m pytest tests/unit/ -v --tb=short \
+            --ignore=tests/unit/test_openapi.py \
+            -x --timeout=60
+
+      - name: Run integration tests
+        run: |
+          python -m pytest tests/integration/ -v --tb=short \
+            -x --timeout=120
+        continue-on-error: true  # Integration tests may need DB
+
+  # ==================== Backend Linting ====================
+  backend-lint:
+    name: Backend Linting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install linting tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff
+
+      - name: Run Ruff linter
+        run: ruff check backend/ --output-format=github
+        continue-on-error: true  # Don't fail on lint errors for now
+
+  # ==================== Frontend Tests ====================
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test -- --passWithNoTests
+        continue-on-error: true
+
+  # ==================== Frontend Build ====================
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_URL: http://localhost:5000
+
+      - name: Check build output
+        run: |
+          ls -la dist/
+          test -f dist/index.html
+
+  # ==================== Frontend Linting ====================
+  frontend-lint:
+    name: Frontend Linting
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npx eslint src/ --max-warnings=0
+        continue-on-error: true  # Don't fail on lint warnings for now
+
+  # ==================== Security Check ====================
+  security-check:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Run pip-audit
+        run: pip-audit -r requirements.txt
+        continue-on-error: true  # Report but don't fail
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run npm audit
+        working-directory: frontend
+        run: npm audit --audit-level=high
+        continue-on-error: true  # Report but don't fail
+
+  # ==================== Summary Job ====================
+  ci-complete:
+    name: CI Complete
+    runs-on: ubuntu-latest
+    needs: [backend-tests, backend-lint, frontend-tests, frontend-build, frontend-lint, security-check]
+    if: always()
+
+    steps:
+      - name: Check job results
+        run: |
+          echo "Backend Tests: ${{ needs.backend-tests.result }}"
+          echo "Backend Lint: ${{ needs.backend-lint.result }}"
+          echo "Frontend Tests: ${{ needs.frontend-tests.result }}"
+          echo "Frontend Build: ${{ needs.frontend-build.result }}"
+          echo "Frontend Lint: ${{ needs.frontend-lint.result }}"
+          echo "Security Check: ${{ needs.security-check.result }}"
+
+          # Fail if critical jobs failed
+          if [[ "${{ needs.backend-tests.result }}" == "failure" ]]; then
+            echo "Backend tests failed!"
+            exit 1
+          fi
+          if [[ "${{ needs.frontend-build.result }}" == "failure" ]]; then
+            echo "Frontend build failed!"
+            exit 1
+          fi
+
+          echo "CI pipeline completed successfully!"

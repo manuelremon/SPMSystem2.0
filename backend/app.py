@@ -19,24 +19,31 @@ try:
     from backend.core.csrf import init_csrf_protection
     from backend.core.db import db, init_db
     from backend.core.errors import register_spm_error_handler
+    from backend.core.rate_limit import init_rate_limiting
+    from backend.core.request_validation import init_request_validation
     from backend.core.security_headers import init_security_headers
     from backend.routes import (
         admin,
+        ai,
         assistant,
         auth,
         budget,
         catalogos,
+        docs,
         equivalencias,
+        export,
         foro,
         health,
         kpis,
         materiales,
         materiales_detalle,
         mensajes,
+        metrics,
         mi_cuenta,
         mrp,
         notificaciones,
         push,
+        sla,
         solicitudes,
         trivias,
     )
@@ -48,24 +55,31 @@ except ImportError:
     from core.csrf import init_csrf_protection
     from core.db import db, init_db
     from core.errors import register_spm_error_handler
+    from core.rate_limit import init_rate_limiting
+    from core.request_validation import init_request_validation
     from core.security_headers import init_security_headers
     from routes import (
         admin,
+        ai,
         assistant,
         auth,
         budget,
         catalogos,
+        docs,
         equivalencias,
+        export,
         foro,
         health,
         kpis,
         materiales,
         materiales_detalle,
         mensajes,
+        metrics,
         mi_cuenta,
         mrp,
         notificaciones,
         push,
+        sla,
         solicitudes,
         trivias,
     )
@@ -125,6 +139,14 @@ def create_app(config_override: dict | None = None) -> Flask:
     # Security headers
     init_security_headers(app)
 
+    # Rate limiting (proteccion contra abuso)
+    # Desactivar en tests si es necesario con config_override["RATE_LIMIT_ENABLED"] = False
+    if app.config.get("RATE_LIMIT_ENABLED", True) and settings.ENV != "test":
+        init_rate_limiting(app)
+
+    # Request validation (sanitizacion de inputs)
+    init_request_validation(app, max_content_length=10 * 1024 * 1024)  # 10MB max
+
     # CORS
     CORS(
         app,
@@ -160,6 +182,11 @@ def create_app(config_override: dict | None = None) -> Flask:
     app.register_blueprint(mrp.bp)  # MRP (Material Requirements Planning) at /api/mrp
     app.register_blueprint(push.bp)  # Push Notifications at /api/push
     app.register_blueprint(assistant.bp)  # NLP Assistant at /api/assistant
+    app.register_blueprint(sla.bp)  # SLA metrics and configuration at /api/sla
+    app.register_blueprint(ai.bp)  # AI recommendations at /api/ai
+    app.register_blueprint(export.bp)  # Export/reporting at /api/export
+    app.register_blueprint(docs.bp)  # API Documentation at /api/docs
+    app.register_blueprint(metrics.bp)  # Metrics and monitoring at /api/metrics
 
     # ==================== SERVIR FRONTEND REACT ====================
     # Calcular rutas del frontend

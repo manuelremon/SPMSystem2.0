@@ -953,3 +953,240 @@ def admin_cache_clear():
     invalidate_user_cache()
 
     return jsonify({"ok": True, "message": "All caches cleared"}), 200
+
+
+# ==============================================================================
+# REGLAS DE APROBACION (Sprint 2.5)
+# ==============================================================================
+
+
+try:
+    from backend.services.approval_service import (
+        listar_reglas,
+        crear_regla,
+        actualizar_regla,
+        desactivar_regla,
+        crear_delegacion,
+        obtener_delegacion_activa,
+        ApprovalValidationError,
+    )
+except ImportError:
+    from services.approval_service import (
+        listar_reglas,
+        crear_regla,
+        actualizar_regla,
+        desactivar_regla,
+        crear_delegacion,
+        obtener_delegacion_activa,
+        ApprovalValidationError,
+    )
+
+
+@bp.route("/reglas-aprobacion", methods=["GET", "POST"])
+def admin_reglas_aprobacion():
+    """
+    GET: Lista todas las reglas de aprobacion
+    POST: Crea una nueva regla de aprobacion
+    """
+    guard = _admin_guard()
+    if guard:
+        return guard
+
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+
+        # Validar campos requeridos
+        if not data.get("nombre"):
+            return jsonify({"ok": False, "error": "nombre es requerido"}), 400
+        if not data.get("rol_requerido"):
+            return jsonify({"ok": False, "error": "rol_requerido es requerido"}), 400
+
+        try:
+            # Obtener usuario que crea la regla
+            payload, _ = _require_admin()
+            created_by = payload.get("user_id") if payload else None
+
+            resultado = crear_regla(
+                nombre=data["nombre"],
+                rol_requerido=data["rol_requerido"],
+                nivel_aprobacion=data.get("nivel_aprobacion", 1),
+                monto_minimo_usd=data.get("monto_minimo_usd", 0),
+                monto_maximo_usd=data.get("monto_maximo_usd"),
+                centro=data.get("centro"),
+                sector=data.get("sector"),
+                criticidad=data.get("criticidad"),
+                requiere_justificacion=data.get("requiere_justificacion", False),
+                requiere_documentacion=data.get("requiere_documentacion", False),
+                descripcion=data.get("descripcion"),
+                created_by=str(created_by) if created_by else None,
+            )
+
+            return jsonify({"ok": True, "id": resultado["id"]}), 201
+
+        except ApprovalValidationError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": f"Error creando regla: {e}"}), 500
+
+    # GET: Listar reglas
+    solo_activas = request.args.get("activas", "true").lower() == "true"
+    reglas = listar_reglas(solo_activas=solo_activas)
+
+    return jsonify(reglas), 200
+
+
+@bp.route("/reglas-aprobacion/<int:regla_id>", methods=["GET", "PUT", "DELETE"])
+def admin_reglas_aprobacion_mod(regla_id):
+    """
+    GET: Obtiene detalle de una regla
+    PUT: Actualiza una regla
+    DELETE: Desactiva una regla (soft delete)
+    """
+    guard = _admin_guard()
+    if guard:
+        return guard
+
+    if request.method == "GET":
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM reglas_aprobacion WHERE id = ?", (regla_id,))
+            row = cur.fetchone()
+            if not row:
+                return jsonify({"ok": False, "error": "Regla no encontrada"}), 404
+        return jsonify(dict(row)), 200
+
+    elif request.method == "PUT":
+        data = request.get_json(silent=True) or {}
+
+        # Campos permitidos para actualizar
+        campos_permitidos = {
+            "nombre", "descripcion", "monto_minimo_usd", "monto_maximo_usd",
+            "centro", "sector", "criticidad", "rol_requerido", "nivel_aprobacion",
+            "requiere_justificacion", "requiere_documentacion", "activo"
+        }
+
+        campos = {k: v for k, v in data.items() if k in campos_permitidos}
+
+        if not campos:
+            return jsonify({"ok": False, "error": "No hay campos para actualizar"}), 400
+
+        try:
+            resultado = actualizar_regla(regla_id, **campos)
+            if not resultado.get("actualizado"):
+                return jsonify({"ok": False, "error": "Regla no encontrada o sin cambios"}), 404
+            return jsonify({"ok": True}), 200
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    else:  # DELETE
+        resultado = desactivar_regla(regla_id)
+        if not resultado.get("desactivado"):
+            return jsonify({"ok": False, "error": "Regla no encontrada"}), 404
+        return jsonify({"ok": True}), 200
+
+
+@bp.route("/delegaciones-aprobacion", methods=["GET", "POST"])
+def admin_delegaciones_aprobacion():
+    """
+    GET: Lista delegaciones de aprobacion activas
+    POST: Crea una nueva delegacion temporal
+    """
+    guard = _admin_guard()
+    if guard:
+        return guard
+
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+
+        # Validar campos requeridos
+        required = ["aprobador_original_id", "delegado_id", "fecha_inicio", "fecha_fin"]
+        for field in required:
+            if not data.get(field):
+                return jsonify({"ok": False, "error": f"{field} es requerido"}), 400
+
+        try:
+            payload, _ = _require_admin()
+            created_by = payload.get("user_id") if payload else None
+
+            resultado = crear_delegacion(
+                aprobador_original_id=data["aprobador_original_id"],
+                delegado_id=data["delegado_id"],
+                fecha_inicio=data["fecha_inicio"],
+                fecha_fin=data["fecha_fin"],
+                motivo=data.get("motivo"),
+                created_by=str(created_by) if created_by else None,
+            )
+
+            return jsonify({"ok": True, "id": resultado["id"]}), 201
+
+        except ApprovalValidationError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": f"Error creando delegacion: {e}"}), 500
+
+    # GET: Listar delegaciones activas
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT
+                d.*,
+                u1.nombre || ' ' || u1.apellido as aprobador_nombre,
+                u2.nombre || ' ' || u2.apellido as delegado_nombre
+            FROM aprobadores_delegados d
+            LEFT JOIN usuarios u1 ON d.aprobador_original_id = u1.id_spm
+            LEFT JOIN usuarios u2 ON d.delegado_id = u2.id_spm
+            WHERE d.activo = 1
+            ORDER BY d.fecha_fin DESC
+        """)
+        rows = [dict(r) for r in cur.fetchall()]
+
+    return jsonify(rows), 200
+
+
+@bp.route("/delegaciones-aprobacion/<int:delegacion_id>", methods=["PUT", "DELETE"])
+def admin_delegaciones_aprobacion_mod(delegacion_id):
+    """
+    PUT: Actualiza una delegacion
+    DELETE: Desactiva una delegacion
+    """
+    guard = _admin_guard()
+    if guard:
+        return guard
+
+    with get_db_transaction() as conn:
+        cur = conn.cursor()
+
+        if request.method == "PUT":
+            data = request.get_json(silent=True) or {}
+            campos = []
+            valores = []
+
+            if "fecha_fin" in data:
+                campos.append("fecha_fin = ?")
+                valores.append(data["fecha_fin"])
+            if "motivo" in data:
+                campos.append("motivo = ?")
+                valores.append(data["motivo"])
+            if "activo" in data:
+                campos.append("activo = ?")
+                valores.append(1 if data["activo"] else 0)
+
+            if not campos:
+                return jsonify({"ok": False, "error": "No hay campos para actualizar"}), 400
+
+            valores.append(delegacion_id)
+            cur.execute(
+                f"UPDATE aprobadores_delegados SET {', '.join(campos)} WHERE id = ?",
+                valores
+            )
+
+        else:  # DELETE
+            cur.execute(
+                "UPDATE aprobadores_delegados SET activo = 0 WHERE id = ?",
+                (delegacion_id,)
+            )
+
+        if cur.rowcount == 0:
+            return jsonify({"ok": False, "error": "Delegacion no encontrada"}), 404
+
+    return jsonify({"ok": True}), 200
