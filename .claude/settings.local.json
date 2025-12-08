@@ -117,7 +117,8 @@
       "Bash(cmd /c \"type C:\\Users\\MANUE\\SPMv2.0\\frontend\\.env 2>nul || echo No .env file\")",
       "Bash(cmd /c \"type C:\\Users\\MANUE\\SPMv2.0\\frontend\\.env.local 2>nul || echo No .env.local file\")",
       "Bash(for file in backend/routes/*.py)",
-      "Bash(cmd /c \"taskkill /F /IM python.exe 2>nul\")"
+      "Bash(cmd /c \"taskkill /F /IM python.exe 2>nul\")",
+      "Bash(git -C C:UsersMANUESPMv2.0 log --all --full-history --oneline -- \".env*\")"
     ],
     "deny": [],
     "ask": []

@@ -44,9 +44,15 @@ SPMv2.0/
 │   │   ├── mrp.py              # Modulo MRP (alertas, KPIs)
 │   │   ├── planner.py          # Planificador de solicitudes
 │   │   ├── materiales.py       # Busqueda de materiales
+│   │   ├── push.py             # Push notifications
+│   │   ├── assistant.py        # Asistente IA
 │   │   └── ...                 # auth, admin, budget, etc.
 │   ├── services/               # Logica de negocio
+│   │   ├── push_service.py     # Servicio de notificaciones
+│   │   └── ...
 │   ├── core/                   # Config, DB, Auth, CSRF, Security
+│   │   ├── push_config.py      # Configuracion VAPID
+│   │   └── ...
 │   ├── agent/                  # Modulo IA/ML (pipelines, tools)
 │   └── migrations/             # Migraciones de BD
 ├── frontend/src/
@@ -58,18 +64,30 @@ SPMv2.0/
 │   │   ├── ui/                 # Componentes base (30+)
 │   │   ├── features/           # DataTable moderno
 │   │   ├── materials/          # Componentes de materiales
-│   │   └── Planner/            # Componentes del planificador
+│   │   ├── Planner/            # Componentes del planificador (4 pasos)
+│   │   ├── AssistantModal.jsx  # Modal del asistente IA
+│   │   └── Sidebar.jsx         # Navegacion lateral
 │   ├── context/                # Auth, i18n providers
 │   ├── hooks/                  # Custom hooks
+│   │   ├── useMaterials.js     # Gestion de materiales
+│   │   ├── usePushNotifications.js # Push notifications
+│   │   └── useTheme.js         # Tema de la app
+│   ├── lib/                    # Utilidades compartidas
+│   │   └── utils.js            # Funcion cn() para clases
+│   ├── utils/                  # Utilidades especificas
+│   │   ├── logger.js           # Sistema de logging
+│   │   ├── gradients.js        # Gradientes UI
+│   │   └── tableAlignments.js  # Alineacion de tablas
 │   └── services/               # API clients
 ├── data/                       # Bases de datos SQLite
 │   ├── spm.db                  # BD transaccional
 │   ├── equivalentes.db         # Equivalencias materiales
-│   └── sap_data.db             # Datos SAP
+│   ├── sap_data.db             # Datos SAP
+│   └── vapid_*.pem             # Claves para push notifications
 ├── scripts/                    # Scripts de utilidad
 ├── tests/                      # Unit, integration tests
 └── docs/                       # Documentacion tecnica
-    └── history/                # Documentacion historica (fases, propuestas)
+    └── history/                # Documentacion historica
 ```
 
 ### Bases de Datos
@@ -165,18 +183,21 @@ Estados: `draft` -> `submitted` -> `approved/rejected` -> `processing` -> `dispa
 | `backend/core/db.py` | Conexion a BD |
 | `backend/core/auth_middleware.py` | Middleware de autenticacion JWT |
 | `backend/core/security_headers.py` | Headers de seguridad HTTP |
+| `backend/core/push_config.py` | Configuracion VAPID para push |
 | `backend/routes/solicitudes.py` | CRUD de solicitudes |
 | `backend/routes/mrp.py` | Endpoints MRP (alertas, KPIs) |
 | `backend/routes/planner.py` | Endpoints del planificador |
+| `backend/routes/push.py` | Endpoints push notifications |
 | `frontend/src/context/i18n.jsx` | Sistema de traducciones |
 | `frontend/src/index.css` | Variables CSS del sistema de diseno |
 | `frontend/src/components/Sidebar.jsx` | Navegacion lateral colapsable |
 | `frontend/src/utils/styleConfig.js` | Configuracion de estados/colores |
+| `frontend/src/lib/utils.js` | Utilidad cn() para classNames |
 
 ## Modulos Principales
 
 ### MRP (Material Requirements Planning)
-Modulo agregado en diciembre 2025 para gestion de alertas y KPIs de materiales.
+Modulo para gestion de alertas y KPIs de materiales.
 
 **Rutas backend** (`backend/routes/mrp.py`):
 - `GET /api/mrp/alertas` - Tablero de alertas de stock
@@ -198,8 +219,32 @@ El Dashboard fue refactorizado en 5 componentes especializados:
 Wizard de 4 pasos para procesar solicitudes aprobadas:
 1. **Paso1AnalisisInicial** - Analisis del material y stock
 2. **Paso2DecisionAbastecimiento** - Seleccion de fuente (stock/compra)
-3. Paso 3 - Confirmacion de decision
-4. Paso 4 - Registro de tratamiento
+3. **Paso3RevisionFinal** - Confirmacion de decision
+4. **Paso4AccionesPendientes** - Registro de tratamiento y acciones
+
+**Rutas backend** (`backend/routes/planner.py`):
+- `GET /api/planner/solicitudes-pendientes` - Lista solicitudes a tratar
+- `POST /api/planner/tratar-solicitud/<id>/ejecutar-acciones` - Ejecutar decisiones
+
+### Push Notifications
+Sistema de notificaciones push usando VAPID/Web Push.
+
+**Backend:**
+- `backend/core/push_config.py` - Configuracion y claves VAPID
+- `backend/routes/push.py` - Endpoints de suscripcion
+- `backend/services/push_service.py` - Envio de notificaciones
+
+**Frontend:**
+- `frontend/public/sw.js` - Service Worker
+- `frontend/src/hooks/usePushNotifications.js` - Hook de gestion
+- `frontend/src/components/ui/PushNotificationToggle.jsx` - Toggle UI
+
+### Asistente IA
+Chat integrado para asistencia al usuario.
+
+- `backend/routes/assistant.py` - Endpoints del asistente
+- `frontend/src/components/AssistantModal.jsx` - Modal de chat
+- `frontend/src/components/ChatAssistant.jsx` - Componente de chat
 
 ## Cambios Recientes (Diciembre 2025)
 
@@ -210,14 +255,15 @@ Wizard de 4 pasos para procesar solicitudes aprobadas:
 
 ### Nuevas Features
 - **Modulo MRP**: Tablero de alertas y KPIs de materiales
+- **Push Notifications**: Sistema completo con VAPID y Service Worker
+- **Asistente IA**: Chat integrado para ayuda al usuario
 - **ScrollReveal**: Animaciones de entrada en toda la app
 - **Sidebar colapsable**: Componente `Sidebar.jsx` agregado
 - **ModernDataTable**: Tabla con TanStack Table en `components/features/`
-- **Tema unico (Light)**: Eliminado soporte dark mode, sistema usa solo tema claro
-- **Estilos unificados**: Tablas y Tabs actualizados a usar CSS variables del sistema
+- **Tema unico (Light)**: Eliminado soporte dark mode
 
 ### Correcciones
-- Bug fix en `planner.py`: metodo `get_fuentes_decision` → `get_fuentes`
+- Bug fix en `planner.py`: metodo `get_fuentes_decision` -> `get_fuentes`
 - Agregado logging con traceback en endpoint ejecutar-acciones
 
 ### Tests Agregados
