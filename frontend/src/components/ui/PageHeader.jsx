@@ -21,15 +21,15 @@ export function PageHeader({
       <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="space-y-1">
           {displayBadge && (
-            <span className="inline-flex items-center px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--primary)] bg-[var(--primary-glow)] rounded-full border border-[var(--primary)]/30">
+            <span className="inline-flex items-center px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50/70 dark:bg-blue-900/40 rounded-full border border-blue-200/50 dark:border-blue-700/50">
               {displayBadge}
             </span>
           )}
-          <h1 className="text-2xl md:text-3xl font-black text-[var(--fg-strong)] tracking-tight">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">
             {title}
           </h1>
           {subtitle && (
-            <p className="text-sm text-[var(--fg-muted)]">{subtitle}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{subtitle}</p>
           )}
         </div>
 

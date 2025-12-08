@@ -1,6 +1,6 @@
 """
 Tests for materiales routes - Material search
-Tests all endpoints in backend_v2/routes/materiales.py
+Tests all endpoints in backend/routes/materiales.py
 """
 
 from __future__ import annotations
@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-from backend_v2.app import create_app
-from backend_v2.core.config import settings
+from backend.app import create_app
+from backend.core.config import settings
 
 
 def _db_path() -> Path:

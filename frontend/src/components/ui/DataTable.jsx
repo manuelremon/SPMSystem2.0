@@ -70,10 +70,10 @@ export function DataTable({
   }, [rows, columns, sortConfig]);
 
   const getSortIcon = (key) => {
-    if (sortConfig.key !== key) return <ChevronsUpDown className="w-3.5 h-3.5 opacity-40" />;
-    if (sortConfig.direction === "asc") return <ChevronUp className="w-3.5 h-3.5" />;
-    if (sortConfig.direction === "desc") return <ChevronDown className="w-3.5 h-3.5" />;
-    return <ChevronsUpDown className="w-3.5 h-3.5 opacity-40" />;
+    if (sortConfig.key !== key) return <ChevronsUpDown className="w-4 h-4 opacity-40" />;
+    if (sortConfig.direction === "asc") return <ChevronUp className="w-4 h-4" />;
+    if (sortConfig.direction === "desc") return <ChevronDown className="w-4 h-4" />;
+    return <ChevronsUpDown className="w-4 h-4 opacity-40" />;
   };
 
   if (rows.length === 0) {

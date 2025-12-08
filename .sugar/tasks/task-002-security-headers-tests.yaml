@@ -8,11 +8,11 @@ created: 2025-11-28
 source: codebase_analysis
 
 description: |
-  El módulo backend_v2/core/security_headers.py configura
+  El módulo backend/core/security_headers.py configura
   headers de seguridad HTTP pero no tiene tests.
 
 context:
-  file: "backend_v2/core/security_headers.py"
+  file: "backend/core/security_headers.py"
   test_dir: "tests/unit/"
 
 technical_requirements:

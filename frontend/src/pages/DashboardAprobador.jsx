@@ -1,201 +1,465 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
-import { DataTable } from "../components/ui/DataTable";
-import { TableSkeleton, StatCardSkeleton } from "../components/ui/Skeleton";
+import { ModernDataTable as DataTable } from "../components/features/DataTable";
+import { TableSkeleton } from "../components/ui/Skeleton";
 import { ScrollReveal } from "../components/ui/ScrollReveal";
-import { KPICard } from "../components/ui/Charts";
 import { solicitudes } from "../services/spm";
+import api from "../services/api";
+import { formatCurrency } from "../utils/formatters";
 import {
-  Bell,
-  AlertCircle,
+  CheckCircle,
+  Plus,
+  TrendingUp,
+  TrendingDown,
   FileText,
   CheckCircle2,
-  Clock
+  XCircle,
+  Clock,
+  DollarSign,
+  Package,
+  Layers,
+  BarChart3,
+  Loader2,
 } from "lucide-react";
 import { useI18n } from "../context/i18n";
-import { toNumber } from "../utils/formatters";
-import api from "../services/api";
 import { useAuthStore } from "../store/authStore";
-import { useNavigate } from "react-router-dom";
-import { MessageItem, getTableColumns } from "./DashboardShared";
+import { useNavigate, Link } from "react-router-dom";
+import { getTableColumns } from "./DashboardShared";
+import { Button } from "../components/ui/Button";
+import clsx from "clsx";
+
+// ============================================================================
+// KPI CHART COMPONENTS
+// ============================================================================
+
+function DonutChart({ data, colors, labels }) {
+  const total = data.reduce((sum, val) => sum + val, 0) || 1;
+  const radius = 70;
+  const strokeWidth = 24;
+  const innerRadius = radius - strokeWidth / 2;
+  const circumference = 2 * Math.PI * innerRadius;
+  let currentOffset = 0;
+
+  return (
+    <div className="relative w-full flex items-center justify-center">
+      <div className="relative w-48 h-48">
+        <svg viewBox="0 0 160 160" className="w-full h-full -rotate-90">
+          <circle cx="80" cy="80" r={innerRadius} fill="none" stroke="#f1f5f9" strokeWidth={strokeWidth} />
+          {data.map((value, idx) => {
+            const percentage = value / total;
+            const dashLength = percentage * circumference;
+            const dashOffset = currentOffset;
+            currentOffset += dashLength;
+            if (value === 0) return null;
+            return (
+              <circle key={idx} cx="80" cy="80" r={innerRadius} fill="none" stroke={colors[idx]}
+                strokeWidth={strokeWidth} strokeDasharray={`${dashLength} ${circumference - dashLength}`}
+                strokeDashoffset={-dashOffset} strokeLinecap="round" className="transition-all duration-500" />
+            );
+          })}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-3xl font-bold text-slate-800">{total}</span>
+          <span className="text-xs text-slate-500 uppercase tracking-wider">Total</span>
+        </div>
+      </div>
+      <div className="ml-6 space-y-3">
+        {labels.map((label, idx) => (
+          <div key={idx} className="flex items-center gap-3">
+            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: colors[idx] }} />
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-600">{label}</span>
+              <span className="text-sm font-semibold text-slate-800">{data[idx]}</span>
+              <span className="text-xs text-slate-400">({total > 0 ? Math.round((data[idx] / total) * 100) : 0}%)</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TrendLine({ data }) {
+  const safeData = data && data.length > 0 ? data : [0, 0, 0, 0, 0, 0, 0];
+  const max = Math.max(...safeData);
+  const min = Math.min(...safeData);
+  const padding = (max - min) * 0.2 || 1;
+  const adjustedMin = Math.max(0, min - padding);
+  const adjustedMax = max + padding;
+  const range = adjustedMax - adjustedMin || 1;
+  const points = safeData.map((value, idx) => {
+    const x = (idx / (safeData.length - 1)) * 100;
+    const y = 100 - ((value - adjustedMin) / range) * 100;
+    return `${x},${y}`;
+  }).join(" ");
+
+  return (
+    <div className="h-24 w-full">
+      <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="areaGradientAprobador" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        <polygon points={`0,100 ${points} 100,100`} fill="url(#areaGradientAprobador)" />
+        <polyline points={points} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+        {safeData.map((value, idx) => {
+          const x = (idx / (safeData.length - 1)) * 100;
+          const y = 100 - ((value - adjustedMin) / range) * 100;
+          return <circle key={idx} cx={x} cy={y} r="3" fill="white" stroke="#3b82f6" strokeWidth="2" vectorEffect="non-scaling-stroke" />;
+        })}
+      </svg>
+    </div>
+  );
+}
+
+function ProgressCircle({ percentage, color = "#3b82f6" }) {
+  const radius = 40;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percentage / 100) * circumference;
+  return (
+    <div className="relative w-24 h-24">
+      <svg className="w-full h-full -rotate-90">
+        <circle cx="48" cy="48" r={radius} stroke="#e2e8f0" strokeWidth="8" fill="none" />
+        <circle cx="48" cy="48" r={radius} stroke={color} strokeWidth="8" fill="none"
+          strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-500" />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-xl font-bold text-slate-800">{percentage}%</span>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// DASHBOARD APROBADOR COMPONENT
+// ============================================================================
 
 export default function DashboardAprobador() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const { t } = useI18n();
 
-  const [stats, setStats] = useState({
-    mis_borradores: 0,
-    mis_aprobadas: 0,
-    pendientes_aprobar: 0,
+  const [activeTab, setActiveTab] = useState("pendientes");
+  const [stats, setStats] = useState({ pendientes: 0, aprobadas: 0, rechazadas: 0 });
+  const [allData, setAllData] = useState({ pendientes: [], aprobadas: [], rechazadas: [] });
+  const [loading, setLoading] = useState(true);
+
+  // KPI state
+  const [kpiLoading, setKpiLoading] = useState(true);
+  const [kpiData, setKpiData] = useState({
+    solicitudes: { total: 0, aprobadas: 0, rechazadas: 0, pendientes: 0, trend: [0,0,0,0,0,0,0], trendPercentage: 0 },
+    presupuesto: { total: 0, utilizado: 0, disponible: 0, percentage: 0, porCentro: [] },
+    tiempoAprobacion: { promedio: 0, meta: 3.0 },
+    materialesMasSolicitados: [],
+    gruposArticulosMasSolicitados: [],
   });
-  const [recent, setRecent] = useState([]);
-  const [inboxMessages, setInboxMessages] = useState([]);
-  const [loadingMessages, setLoadingMessages] = useState(false);
-  const [loadingStats, setLoadingStats] = useState(true);
-  const [loadingRecent, setLoadingRecent] = useState(true);
 
-  // Cargar datos del aprobador
   useEffect(() => {
-    setLoadingStats(true);
-    setLoadingRecent(true);
+    setLoading(true);
+    const pendientesCall = solicitudes.listar({ estado: "Enviada", page_size: 100 }).catch(() => null);
+    const aprobadasCall = solicitudes.listar({ estado: "Aprobada", page_size: 100 }).catch(() => null);
+    const rechazadasCall = solicitudes.listar({ estado: "Rechazada", page_size: 100 }).catch(() => null);
 
-    const statsPromises = [];
+    Promise.all([pendientesCall, aprobadasCall, rechazadasCall])
+      .then(([pendientesRes, aprobadasRes, rechazadasRes]) => {
+        const pendientesLista = pendientesRes?.data?.solicitudes || pendientesRes?.data?.items || [];
+        const aprobadasLista = aprobadasRes?.data?.solicitudes || aprobadasRes?.data?.items || [];
+        const rechazadasLista = rechazadasRes?.data?.solicitudes || rechazadasRes?.data?.items || [];
 
-    // Cargar MIS solicitudes
-    if (user?.id) {
-      statsPromises.push(
-        solicitudes.listar({ user_id: user.id, page_size: 100 })
-          .then((res) => {
-            const lista = res.data.solicitudes || res.data.items || res.data || [];
-            let borradores = 0, aprobadas = 0;
-            lista.forEach(s => {
-              const estado = (s.status || s.estado || "").toLowerCase();
-              if (estado === "borrador" || estado === "draft") borradores++;
-              else if (estado === "aprobada" || estado === "approved") aprobadas++;
-            });
-            setStats(prev => ({
-              ...prev,
-              mis_borradores: borradores,
-              mis_aprobadas: aprobadas,
-            }));
-            setRecent(lista.slice(0, 5));
-          })
-          .catch((err) => console.error("Error solicitudes usuario", err))
-          .finally(() => setLoadingRecent(false))
-      );
-    } else {
-      setLoadingRecent(false);
-    }
-
-    // Cargar pendientes de aprobacion
-    statsPromises.push(
-      solicitudes.listar({ estado: "Enviada", page_size: 100 })
-        .then((res) => {
-          const lista = res.data.solicitudes || res.data.items || res.data || [];
-          setStats(prev => ({ ...prev, pendientes_aprobar: lista.length }));
-        })
-        .catch((err) => console.error("Error pendientes aprobacion", err))
-    );
-
-    Promise.allSettled(statsPromises).finally(() => setLoadingStats(false));
-
-    // Cargar mensajes del inbox
-    setLoadingMessages(true);
-    api.get("/mensajes/inbox?limit=4")
-      .then((res) => {
-        if (res.data.ok) {
-          setInboxMessages(res.data.messages || []);
-        }
+        setStats({ pendientes: pendientesLista.length, aprobadas: aprobadasLista.length, rechazadas: rechazadasLista.length });
+        setAllData({ pendientes: pendientesLista, aprobadas: aprobadasLista, rechazadas: rechazadasLista });
       })
-      .catch((err) => console.error("Error cargando mensajes", err))
-      .finally(() => setLoadingMessages(false));
+      .finally(() => setLoading(false));
   }, [user]);
 
+  useEffect(() => {
+    const fetchKpis = async () => {
+      try {
+        setKpiLoading(true);
+        const response = await api.get("/kpis");
+        if (response.data?.ok && response.data?.data) setKpiData(response.data.data);
+      } catch (err) {
+        console.error("Error fetching KPIs:", err);
+      } finally {
+        setKpiLoading(false);
+      }
+    };
+    fetchKpis();
+  }, []);
+
   const columns = useMemo(() => getTableColumns(t), [t]);
-  const userName = user?.nombre?.split(' ')[0] || 'Usuario';
+  const tabs = [
+    { key: "pendientes", label: t("dash_por_aprobar", "Por Aprobar"), count: stats.pendientes },
+    { key: "aprobadas", label: t("dash_aprobadas", "Aprobadas"), count: stats.aprobadas },
+    { key: "rechazadas", label: t("dash_rechazadas", "Rechazadas"), count: stats.rechazadas },
+  ];
+  const currentData = allData[activeTab] || [];
+
+  const getTableTitle = () => {
+    switch (activeTab) {
+      case "pendientes": return t("dash_pending_approval", "Solicitudes Pendientes de Aprobación");
+      case "aprobadas": return t("dash_approved", "Solicitudes Aprobadas");
+      case "rechazadas": return t("dash_rejected", "Solicitudes Rechazadas");
+      default: return t("dash_solicitudes", "Solicitudes");
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* Header con saludo */}
-      <ScrollReveal>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold text-[var(--fg)]">
-            Hola, {userName}
-          </h1>
+      {/* Header: Tabs + Button */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30">
+          {tabs.map((tab) => (
+            <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)}
+              className={clsx("flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                activeTab === tab.key ? "bg-white shadow-sm text-blue-600" : "text-slate-600 hover:text-slate-800 hover:bg-white/50")}>
+              <span>{tab.label}</span>
+              <span className={clsx("px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums",
+                activeTab === tab.key ? "bg-blue-100 text-blue-600" : "bg-slate-100 text-slate-500")}>{tab.count}</span>
+            </button>
+          ))}
         </div>
-      </ScrollReveal>
+        <Button as={Link} to="/solicitudes/nueva">
+          <Plus className="w-4 h-4" />
+          {t("dash_new_request", "Nueva Solicitud")}
+        </Button>
+      </div>
 
-      {/* Primera fila: KPIs */}
-      <ScrollReveal delay={100}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {loadingStats ? (
-            <>
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-            </>
-          ) : (
-            <>
-              <KPICard
-                icon={<AlertCircle className="w-6 h-6" />}
-                title={t("dash_pendientes_aprobar", "Pendientes de Aprobar")}
-                value={stats.pendientes_aprobar}
-                subtitle={t("dash_requieren_decision", "Requieren tu decision")}
-                borderColor="var(--warning)"
-                highlight={stats.pendientes_aprobar > 0}
-                onClick={() => navigate('/aprobaciones')}
-              />
-              <KPICard
-                icon={<FileText className="w-6 h-6" />}
-                title={t("dash_mis_borradores", "Mis Borradores")}
-                value={stats.mis_borradores}
-                subtitle="Solicitudes propias"
-                borderColor="var(--fg-muted)"
-                onClick={() => navigate('/mis-solicitudes')}
-              />
-              <KPICard
-                icon={<CheckCircle2 className="w-6 h-6" />}
-                title={t("dash_mis_aprobadas", "Mis Aprobadas")}
-                value={stats.mis_aprobadas}
-                subtitle="Solicitudes propias"
-                borderColor="var(--success)"
-                onClick={() => navigate('/mis-solicitudes')}
-              />
-              <KPICard
-                icon={<Clock className="w-6 h-6" />}
-                title="Tiempo Promedio"
-                value="2.3 dias"
-                subtitle="Meta: 3 dias"
-                borderColor="var(--info)"
-              />
-            </>
-          )}
-        </div>
-      </ScrollReveal>
-
-      {/* Segunda fila: Tabla + Notificaciones */}
-      <ScrollReveal delay={200}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>{t("dash_mis_recientes", "Mis Solicitudes Recientes")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingRecent ? (
-                <TableSkeleton rows={5} columns={3} />
-              ) : (
-                <DataTable columns={columns} rows={recent} emptyMessage="No hay solicitudes" />
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <Bell className="w-5 h-5 text-[var(--warning)]" />
-                <CardTitle className="text-base">Notificaciones</CardTitle>
+      {/* Tabla principal */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <h2 className="text-base font-semibold text-slate-800">{getTableTitle()}</h2>
+            <span className="text-xs text-slate-500 tabular-nums">{currentData.length} {t("dash_items", "items")}</span>
+          </div>
+          <div className="p-4">
+            {loading ? (
+              <TableSkeleton rows={5} columns={7} />
+            ) : currentData.length === 0 ? (
+              <div className="py-16 text-center">
+                <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto mb-4 opacity-60" />
+                <p className="text-slate-500 text-sm">
+                  {activeTab === "pendientes" ? t("dash_no_pending_approval", "No hay solicitudes pendientes de aprobación") : t("dash_no_requests_category", "No hay solicitudes en esta categoría")}
+                </p>
               </div>
-            </CardHeader>
-            <CardContent>
-              {loadingMessages ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--primary)]"></div>
+            ) : (
+              <DataTable columns={columns} rows={currentData} emptyMessage={t("dash_no_requests", "No hay solicitudes")} onRowClick={(row) => navigate(`/solicitudes/${row.id}`)} />
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* KPI SECTION */}
+      {kpiLoading ? (
+        <div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>
+      ) : (
+        <>
+          {/* Métricas principales */}
+          <ScrollReveal delay={100}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
+                <CardContent className="h-full flex flex-col justify-between py-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Total Solicitudes</p>
+                      <p className="text-3xl font-bold text-slate-800">{kpiData.solicitudes.total}</p>
+                    </div>
+                    <div className="h-12 w-12 rounded-2xl bg-blue-500/10 grid place-items-center"><FileText className="w-6 h-6 text-blue-600" /></div>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    {kpiData.solicitudes.trendPercentage >= 0 ? (
+                      <div className="flex items-center gap-1 text-emerald-600"><TrendingUp className="w-4 h-4" /><span className="font-semibold">+{kpiData.solicitudes.trendPercentage}%</span></div>
+                    ) : (
+                      <div className="flex items-center gap-1 text-red-600"><TrendingDown className="w-4 h-4" /><span className="font-semibold">{kpiData.solicitudes.trendPercentage}%</span></div>
+                    )}
+                    <span className="text-slate-500">vs mes anterior</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {(() => {
+                const tasaAprobacion = kpiData.solicitudes.total > 0 ? Math.round((kpiData.solicitudes.aprobadas / kpiData.solicitudes.total) * 100) : 0;
+                const isGood = tasaAprobacion >= 70;
+                const isWarning = tasaAprobacion >= 40 && tasaAprobacion < 70;
+                const bgColor = isGood ? "bg-emerald-500/10" : isWarning ? "bg-amber-500/10" : "bg-red-500/10";
+                const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+                const IconComp = isGood ? CheckCircle2 : isWarning ? Clock : XCircle;
+                return (
+                  <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
+                    <CardContent className="h-full flex flex-col justify-between py-5">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Tasa de Aprobación</p>
+                          <p className={`text-3xl font-bold ${isGood ? 'text-emerald-600' : isWarning ? 'text-amber-600' : 'text-red-600'}`}>{tasaAprobacion}%</p>
+                        </div>
+                        <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><IconComp className={`w-6 h-6 ${iconColor}`} /></div>
+                      </div>
+                      <div className="text-sm text-slate-500">{kpiData.solicitudes.aprobadas} aprobadas de {kpiData.solicitudes.total}</div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
+
+              {(() => {
+                const promedio = kpiData.tiempoAprobacion.promedio;
+                const meta = kpiData.tiempoAprobacion.meta;
+                const isGood = promedio <= meta;
+                const isWarning = promedio > meta && promedio <= meta * 1.5;
+                const bgColor = isGood ? "bg-emerald-500/10" : isWarning ? "bg-amber-500/10" : "bg-red-500/10";
+                const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+                const valueColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+                return (
+                  <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
+                    <CardContent className="h-full flex flex-col justify-between py-5">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Tiempo Promedio</p>
+                          <p className={`text-3xl font-bold ${valueColor}`}>{promedio} días</p>
+                        </div>
+                        <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><Clock className={`w-6 h-6 ${iconColor}`} /></div>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        {isGood ? <div className="flex items-center gap-1 text-emerald-600"><TrendingDown className="w-4 h-4" /><span className="font-semibold">Bajo meta</span></div>
+                          : <div className="flex items-center gap-1 text-amber-600"><TrendingUp className="w-4 h-4" /><span className="font-semibold">Sobre meta</span></div>}
+                        <span className="text-slate-500">Meta: {meta} días</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
+
+              {(() => {
+                const percentage = kpiData.presupuesto.percentage;
+                const isGood = percentage < 70;
+                const isWarning = percentage >= 70 && percentage <= 90;
+                const bgColor = isGood ? "bg-emerald-500/10" : isWarning ? "bg-amber-500/10" : "bg-red-500/10";
+                const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+                const textColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+                return (
+                  <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
+                    <CardContent className="h-full flex flex-col justify-between py-5">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Presupuesto</p>
+                          <p className="text-2xl font-bold text-slate-800">{formatCurrency(kpiData.presupuesto.utilizado)}</p>
+                        </div>
+                        <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><DollarSign className={`w-6 h-6 ${iconColor}`} /></div>
+                      </div>
+                      <div className="text-sm"><span className={`font-semibold ${textColor}`}>{percentage}%</span><span className="text-slate-500"> de {formatCurrency(kpiData.presupuesto.total)}</span></div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
+            </div>
+          </ScrollReveal>
+
+          {/* Tendencia + Donut */}
+          <ScrollReveal delay={200}>
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+              <Card className="lg:col-span-3 h-[280px] bg-white/70 backdrop-blur-md border-white/30">
+                <CardHeader className="px-6 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Tendencia de Solicitudes</CardTitle><BarChart3 className="w-5 h-5 text-blue-600" /></div></CardHeader>
+                <CardContent className="px-6 pb-5 flex flex-col justify-between h-[calc(100%-60px)]">
+                  <div className="flex-1 flex flex-col justify-center">
+                    <TrendLine data={kpiData.solicitudes.trend} />
+                    <div className="grid grid-cols-7 gap-1 text-xs text-slate-500 text-center mt-2">{["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((day) => <div key={day}>{day}</div>)}</div>
+                  </div>
+                  <div className="pt-3 border-t border-white/20 flex items-center justify-between text-sm">
+                    <span className="text-slate-500">Promedio semanal</span>
+                    <span className="font-semibold text-slate-800">{Math.round(kpiData.solicitudes.trend.reduce((a, b) => a + b, 0) / Math.max(kpiData.solicitudes.trend.length, 1))} solicitudes</span>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="lg:col-span-2 h-[280px] bg-white/70 backdrop-blur-md border-white/30">
+                <CardHeader className="px-6 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Distribución de Estados</CardTitle><BarChart3 className="w-5 h-5 text-blue-600" /></div></CardHeader>
+                <CardContent className="px-6 pb-5 flex items-center justify-center h-[calc(100%-60px)]">
+                  <DonutChart data={[kpiData.solicitudes.aprobadas, kpiData.solicitudes.rechazadas, kpiData.solicitudes.pendientes]} colors={["#10b981", "#ef4444", "#f59e0b"]} labels={["Aprobadas", "Rechazadas", "Pendientes"]} />
+                </CardContent>
+              </Card>
+            </div>
+          </ScrollReveal>
+
+          {/* Materiales | Grupos | Presupuesto */}
+          <ScrollReveal delay={250}>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
+                <CardHeader className="px-5 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Materiales Más Solicitados</CardTitle><Package className="w-5 h-5 text-blue-600" /></div></CardHeader>
+                <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
+                  <div className="space-y-3">
+                    {(kpiData.materialesMasSolicitados || []).length > 0 ? kpiData.materialesMasSolicitados.map((m, idx) => {
+                      const maxC = Math.max(...kpiData.materialesMasSolicitados.map(x => x.cantidad), 1);
+                      return (
+                        <div key={idx} className="group">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <div className="flex items-center gap-2 min-w-0 flex-1"><div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500/10 grid place-items-center text-xs font-bold text-blue-600">{idx + 1}</div><span className="text-sm text-slate-700 font-medium truncate" title={m.nombre}>{m.nombre}</span></div>
+                            <span className="text-xs font-semibold text-slate-800 tabular-nums flex-shrink-0 ml-2">{(m.cantidad || 0).toLocaleString()}</span>
+                          </div>
+                          <div className="h-2.5 bg-slate-100/70 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-500 group-hover:from-blue-600 group-hover:to-blue-500" style={{ width: `${(m.cantidad / maxC) * 100}%` }} /></div>
+                        </div>
+                      );
+                    }) : <p className="text-sm text-slate-500 text-center py-4">No hay datos disponibles</p>}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
+                <CardHeader className="px-5 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Grupos de Artículos</CardTitle><Layers className="w-5 h-5 text-cyan-600" /></div></CardHeader>
+                <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
+                  <div className="space-y-3">
+                    {(kpiData.gruposArticulosMasSolicitados || []).length > 0 ? kpiData.gruposArticulosMasSolicitados.map((g, idx) => {
+                      const maxC = Math.max(...kpiData.gruposArticulosMasSolicitados.map(x => x.cantidad), 1);
+                      return (
+                        <div key={idx} className="group">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <div className="flex items-center gap-2 min-w-0 flex-1"><div className="flex-shrink-0 w-5 h-5 rounded-full bg-cyan-500/10 grid place-items-center text-xs font-bold text-cyan-600">{idx + 1}</div><span className="text-sm text-slate-700 font-medium truncate" title={g.nombre}>{g.nombre}</span></div>
+                            <span className="text-xs font-semibold text-slate-800 tabular-nums flex-shrink-0 ml-2">{(g.cantidad || 0).toLocaleString()}</span>
+                          </div>
+                          <div className="h-2.5 bg-slate-100/70 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-full transition-all duration-500 group-hover:from-cyan-600 group-hover:to-cyan-500" style={{ width: `${(g.cantidad / maxC) * 100}%` }} /></div>
+                        </div>
+                      );
+                    }) : <p className="text-sm text-slate-500 text-center py-4">No hay datos disponibles</p>}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
+                <CardHeader className="px-5 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Presupuesto por Centro</CardTitle><DollarSign className="w-5 h-5 text-emerald-600" /></div></CardHeader>
+                <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
+                  <div className="space-y-3">
+                    {(kpiData.presupuesto.porCentro || []).length > 0 ? kpiData.presupuesto.porCentro.map((c, idx) => {
+                      const maxV = Math.max(...kpiData.presupuesto.porCentro.map(x => x.valor), 1);
+                      return (
+                        <div key={idx} className="group">
+                          <div className="flex items-center justify-between mb-1.5"><span className="text-sm text-slate-700 font-medium truncate flex-1" title={c.nombre}>{c.nombre}</span><span className="text-xs font-semibold text-slate-800 tabular-nums flex-shrink-0 ml-2">{formatCurrency(c.valor)}</span></div>
+                          <div className="h-2.5 bg-slate-100/70 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500 group-hover:from-emerald-600 group-hover:to-emerald-500" style={{ width: `${(c.valor / maxV) * 100}%` }} /></div>
+                        </div>
+                      );
+                    }) : <p className="text-sm text-slate-500 text-center py-4">No hay datos disponibles</p>}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </ScrollReveal>
+
+          {/* Resumen Presupuesto */}
+          <ScrollReveal delay={300}>
+            <Card className="bg-white/70 backdrop-blur-md border-white/30">
+              <CardHeader className="px-6 pt-6 pb-4"><CardTitle>Resumen de Presupuesto</CardTitle></CardHeader>
+              <CardContent className="px-6 pb-6">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+                  <div className="flex-shrink-0"><ProgressCircle percentage={kpiData.presupuesto.percentage} /></div>
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Presupuesto Total</p><p className="text-2xl font-bold text-slate-800">{formatCurrency(kpiData.presupuesto.total)}</p></div>
+                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Utilizado</p><p className="text-2xl font-bold text-amber-500">{formatCurrency(kpiData.presupuesto.utilizado)}</p></div>
+                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Disponible</p><p className="text-2xl font-bold text-emerald-500">{formatCurrency(kpiData.presupuesto.disponible)}</p></div>
+                  </div>
                 </div>
-              ) : inboxMessages.length === 0 ? (
-                <p className="text-center py-6 text-[var(--fg-muted)] text-sm">Sin mensajes nuevos</p>
-              ) : (
-                <div className="space-y-2">
-                  {inboxMessages.map((msg) => (
-                    <MessageItem key={msg.id} msg={msg} onClick={() => navigate('/mensajes')} />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </ScrollReveal>
+              </CardContent>
+            </Card>
+          </ScrollReveal>
+        </>
+      )}
     </div>
   );
 }

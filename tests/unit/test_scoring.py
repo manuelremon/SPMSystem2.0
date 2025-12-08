@@ -1,6 +1,6 @@
 """
 Tests unitarios para ScoringPipeline
-backend_v2/agent/pipelines/scoring.py
+backend/agent/pipelines/scoring.py
 
 Generado por Sugar Autonomous System
 """
@@ -13,7 +13,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from backend_v2.agent.pipelines.scoring import ScoringPipeline
+from backend.agent.pipelines.scoring import ScoringPipeline
 
 
 class TestScoringInitialization:

@@ -24,7 +24,7 @@
 
 **Backend (Flask):**
 - Python 3.11+, Flask 3.1.2, SQLAlchemy 2.0.44
-- Estructura: `backend_v2/routes/*.py`
+- Estructura: `backend/routes/*.py`
 - Auth: JWT (PyJWT 2.10.1)
 - DB: SQLite en `database/spm.db`
 - Tabla `notificaciones` ya existe en schema (según CLAUDE.md)
@@ -39,13 +39,13 @@
 
 ### Integration Points
 
-1. **Backend - Nueva Ruta**: `backend_v2/routes/notificaciones.py`
+1. **Backend - Nueva Ruta**: `backend/routes/notificaciones.py`
    - GET /api/notificaciones - Listar notificaciones del usuario
    - POST /api/notificaciones/:id/marcar-leida - Marcar como leída
    - GET /api/notificaciones/stream - SSE endpoint para tiempo real
 
 2. **Backend - Servicios**:
-   - `backend_v2/services/notification_service.py` - Lógica de negocio
+   - `backend/services/notification_service.py` - Lógica de negocio
    - Integrar con solicitudes.py para crear notificaciones automáticas
 
 3. **Frontend - Componente UI**:
@@ -64,8 +64,8 @@
 ### Affected Files
 
 **Crear:**
-- `backend_v2/routes/notificaciones.py`
-- `backend_v2/services/notification_service.py`
+- `backend/routes/notificaciones.py`
+- `backend/services/notification_service.py`
 - `frontend/src/components/ui/NotificationBell.jsx`
 - `frontend/src/components/ui/NotificationPanel.jsx`
 - `frontend/src/components/ui/Toast.jsx`
@@ -74,8 +74,8 @@
 - `frontend/src/hooks/useNotifications.js`
 
 **Modificar:**
-- `backend_v2/routes/__init__.py` - Registrar blueprint
-- `backend_v2/routes/solicitudes.py` - Crear notificaciones en eventos
+- `backend/routes/__init__.py` - Registrar blueprint
+- `backend/routes/solicitudes.py` - Crear notificaciones en eventos
 - `frontend/src/App.jsx` - Agregar NotificationProvider y NotificationBell
 - `database/schemas/refactored_schema.sql` - Verificar/actualizar tabla notificaciones
 
@@ -98,21 +98,21 @@
 
 ### Phase 1: Backend Foundation
 - [ ] 1.1 Verificar/crear tabla `notificaciones` en DB
-- [ ] 1.2 Crear `backend_v2/models/notification_schema.py` (Pydantic)
-- [ ] 1.3 Crear `backend_v2/services/notification_service.py`
+- [ ] 1.2 Crear `backend/models/notification_schema.py` (Pydantic)
+- [ ] 1.3 Crear `backend/services/notification_service.py`
   - [ ] create_notification(user_id, message, solicitud_id)
   - [ ] get_user_notifications(user_id, unread_only=False)
   - [ ] mark_as_read(notification_id)
   - [ ] get_unread_count(user_id)
-- [ ] 1.4 Crear `backend_v2/routes/notificaciones.py`
+- [ ] 1.4 Crear `backend/routes/notificaciones.py`
   - [ ] GET /api/notificaciones
   - [ ] POST /api/notificaciones/:id/marcar-leida
   - [ ] GET /api/notificaciones/stream (SSE)
-- [ ] 1.5 Registrar blueprint en `backend_v2/routes/__init__.py`
+- [ ] 1.5 Registrar blueprint en `backend/routes/__init__.py`
 - [ ] 1.6 Testear endpoints con curl/Postman
 
 ### Phase 2: Backend Integration
-- [ ] 2.1 Modificar `backend_v2/routes/solicitudes.py`
+- [ ] 2.1 Modificar `backend/routes/solicitudes.py`
   - [ ] Al crear solicitud: notificar a aprobadores
   - [ ] Al aprobar/rechazar: notificar a solicitante
   - [ ] Al planificar: notificar a planificador

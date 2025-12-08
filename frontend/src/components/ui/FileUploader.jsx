@@ -321,7 +321,7 @@ export function FileUploader({
                   "flex-shrink-0 p-1.5 rounded-md",
                   "text-[var(--fg-muted)] hover:text-[var(--danger)]",
                   "hover:bg-[var(--danger)]/10",
-                  "transition-colors duration-150",
+                  "transition-colors duration-[var(--transition-fast)]",
                   "focus:outline-none focus:ring-2 focus:ring-[var(--danger)]/50",
                   disabled && "opacity-50 cursor-not-allowed"
                 )}

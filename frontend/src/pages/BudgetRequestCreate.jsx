@@ -132,7 +132,7 @@ export default function BudgetRequestCreate() {
         title={t("bur_create_title", "NUEVA SOLICITUD DE PRESUPUESTO").toUpperCase()}
         actions={
           <Button variant="ghost" onClick={() => navigate("/presupuestos")}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-4 h-4" />
             {t("common_volver", "Volver")}
           </Button>
         }
@@ -153,7 +153,7 @@ export default function BudgetRequestCreate() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Centro */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--fg)]">
+                  <label className="text-sm font-medium text-slate-800">
                     <Building className="w-4 h-4 inline mr-2" />
                     {t("bur_campo_centro", "Centro")} *
                   </label>
@@ -161,7 +161,7 @@ export default function BudgetRequestCreate() {
                     name="centro"
                     value={form.centro}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none transition-all"
+                    className="w-full px-4 py-3 rounded-lg border border-white/30 bg-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
                     disabled={loading}
                   >
                     <option value="">{t("crud_select", "Selecciona")}...</option>
@@ -175,7 +175,7 @@ export default function BudgetRequestCreate() {
 
                 {/* Sector */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--fg)]">
+                  <label className="text-sm font-medium text-slate-800">
                     <MapPin className="w-4 h-4 inline mr-2" />
                     {t("bur_campo_sector", "Sector")} *
                   </label>
@@ -183,7 +183,7 @@ export default function BudgetRequestCreate() {
                     name="sector"
                     value={form.sector}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none transition-all"
+                    className="w-full px-4 py-3 rounded-lg border border-white/30 bg-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
                     disabled={loading}
                   >
                     <option value="">{t("crud_select", "Selecciona")}...</option>
@@ -197,7 +197,7 @@ export default function BudgetRequestCreate() {
 
                 {/* Monto */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--fg)]">
+                  <label className="text-sm font-medium text-slate-800">
                     <DollarSign className="w-4 h-4 inline mr-2" />
                     {t("bur_campo_monto", "Monto (USD)")} *
                   </label>
@@ -209,18 +209,18 @@ export default function BudgetRequestCreate() {
                     min="1"
                     step="0.01"
                     placeholder="0.00"
-                    className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none transition-all font-mono"
+                    className="w-full px-4 py-3 rounded-lg border border-white/30 bg-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all font-mono"
                   />
                   {montoNum > 0 && (
-                    <p className="text-xs text-[var(--fg-muted)]">
-                      {t("bur_col_nivel", "Nivel de aprobacion")}: <span className="font-semibold text-[var(--primary)]">{nivelInfo.label}</span>
+                    <p className="text-xs text-slate-500">
+                      {t("bur_col_nivel", "Nivel de aprobacion")}: <span className="font-semibold text-blue-600">{nivelInfo.label}</span>
                     </p>
                   )}
                 </div>
 
                 {/* Justificacion */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--fg)]">
+                  <label className="text-sm font-medium text-slate-800">
                     {t("bur_campo_justificacion", "Justificacion")} *
                   </label>
                   <textarea
@@ -229,15 +229,15 @@ export default function BudgetRequestCreate() {
                     onChange={handleChange}
                     rows={4}
                     placeholder={t("bur_campo_justificacion_placeholder", "Explica el motivo del aumento de presupuesto...")}
-                    className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none transition-all resize-none"
+                    className="w-full px-4 py-3 rounded-lg border border-white/30 bg-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all resize-none"
                   />
-                  <p className="text-xs text-[var(--fg-muted)]">
+                  <p className="text-xs text-slate-500">
                     {(form.justificacion || "").length}/10 {t("common_minimo", "minimo")}
                   </p>
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-3 pt-4 border-t border-[var(--border)]">
+                <div className="flex gap-3 pt-4 border-t border-white/30">
                   <Button
                     type="button"
                     variant="ghost"
@@ -251,7 +251,7 @@ export default function BudgetRequestCreate() {
                     disabled={submitting || loading}
                     className="flex-1"
                   >
-                    <Send className="w-4 h-4 mr-2" />
+                    <Send className="w-4 h-4" />
                     {submitting ? t("common_cargando", "Cargando...") : t("bur_btn_enviar", "Enviar Solicitud")}
                   </Button>
                 </div>
@@ -271,23 +271,23 @@ export default function BudgetRequestCreate() {
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-[var(--fg-muted)]">{t("common_presupuesto", "Presupuesto")}</span>
-                    <span className="font-mono text-lg font-semibold text-[var(--fg)]">
+                    <span className="text-sm text-slate-500">{t("common_presupuesto", "Presupuesto")}</span>
+                    <span className="font-mono text-lg font-semibold text-slate-800">
                       {formatCurrency(presupuestoInfo.monto_usd)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-[var(--fg-muted)]">{t("bur_saldo_actual", "Saldo")}</span>
-                    <span className="font-mono text-lg font-semibold text-[var(--success)]">
+                    <span className="text-sm text-slate-500">{t("bur_saldo_actual", "Saldo")}</span>
+                    <span className="font-mono text-lg font-semibold text-emerald-600">
                       {formatCurrency(presupuestoInfo.saldo_usd)}
                     </span>
                   </div>
                   {montoNum > 0 && (
                     <>
-                      <div className="border-t border-[var(--border)] pt-3">
+                      <div className="border-t border-white/30 pt-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-[var(--fg-muted)]">{t("bur_saldo_nuevo", "Nuevo saldo")}</span>
-                          <span className="font-mono text-lg font-semibold text-[var(--primary)]">
+                          <span className="text-sm text-slate-500">{t("bur_saldo_nuevo", "Nuevo saldo")}</span>
+                          <span className="font-mono text-lg font-semibold text-blue-600">
                             {formatCurrency(nuevoSaldo)}
                           </span>
                         </div>
@@ -302,20 +302,20 @@ export default function BudgetRequestCreate() {
           {/* Approval levels info */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">{t("bur_col_nivel", "Niveles de Aprobacion")}</CardTitle>
+              <CardTitle className="text-base">{t("bur_col_nivel", "Niveles de Aprobación")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-[var(--fg-muted)]">L1</span>
+                  <span className="text-slate-500">L1</span>
                   <span>{t("bur_nivel_l1", "Hasta $200K")}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--fg-muted)]">L2</span>
+                  <span className="text-slate-500">L2</span>
                   <span>{t("bur_nivel_l2", "Hasta $1M")}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--fg-muted)]">Admin</span>
+                  <span className="text-slate-500">Admin</span>
                   <span>{t("bur_nivel_admin", "Mas de $1M")}</span>
                 </div>
               </div>

@@ -5,7 +5,8 @@ import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
 import { SearchInput } from "./ui/SearchInput";
-import { DataTable } from "./ui/DataTable";
+import { ModernDataTable as DataTable } from "./features/DataTable";
+import { withSpmAlignments } from "../utils/tableAlignments";
 import { Alert } from "./ui/Alert";
 import { PageHeader } from "./ui/PageHeader";
 import { ConfirmModal } from "./ui/ConfirmModal";
@@ -187,8 +188,8 @@ export default function AdminCrudTemplate({
     setCurrentPage(1);
   }, [debouncedQ]);
 
-  // Columnas de la tabla con acciones
-  const tableColumns = useMemo(() => [
+  // Columnas de la tabla con acciones (alineación automática SPM)
+  const tableColumns = useMemo(() => withSpmAlignments([
     ...columns.map((col) => ({
       key: col.key,
       header: col.label,
@@ -199,14 +200,14 @@ export default function AdminCrudTemplate({
       key: "acciones",
       header: t("common_acciones", "Acciones"),
       render: (row) => (
-        <div className="flex gap-1.5" role="group" aria-label={`${t("common_acciones", "Acciones")} ${row[idKey]}`}>
+        <div className="flex gap-1.5 justify-center" role="group" aria-label={`${t("common_acciones", "Acciones")} ${row[idKey]}`}>
           <Button
             variant="secondary"
             className="px-2.5 py-1.5 text-xs"
             onClick={() => handleEdit(row)}
             aria-label={`${t("crud_edit", "Editar")} ${title} ${row[idKey]}`}
           >
-            <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
+            <Edit3 className="w-4 h-4" aria-hidden="true" />
           </Button>
           <Button
             variant="danger"
@@ -214,12 +215,12 @@ export default function AdminCrudTemplate({
             onClick={() => handleDelete(row)}
             aria-label={`${t("common_eliminar", "Eliminar")} ${title} ${row[idKey]}`}
           >
-            <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+            <Trash2 className="w-4 h-4" aria-hidden="true" />
           </Button>
         </div>
       ),
     },
-  ], [columns, t, idKey, title, handleEdit, handleDelete]);
+  ]), [columns, t, idKey, title, handleEdit, handleDelete]);
 
   return (
     <div className="space-y-6">
@@ -231,7 +232,7 @@ export default function AdminCrudTemplate({
       >
         <Button onClick={handleNew} aria-label={`${t("crud_new", "Nuevo")} ${title}`}>
           <Plus className="w-4 h-4" aria-hidden="true" />
-          <span className="ml-2">{t("crud_new", "Nuevo")} {title}</span>
+          {t("crud_new", "Nuevo")} {title}
         </Button>
       </PageHeader>
 
@@ -276,8 +277,8 @@ export default function AdminCrudTemplate({
 
               {/* Paginación */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-4 border-t border-[var(--border)]">
-                  <div className="text-sm text-[var(--fg-muted)]">
+                <div className="flex items-center justify-between pt-4 border-t border-white/30 dark:border-white/10">
+                  <div className="text-sm text-slate-500 dark:text-slate-400">
                     {t("common_pagina", "Página")} {currentPage} {t("common_de", "de")} {totalPages}
                     <span className="ml-2">
                       ({t("common_mostrando", "Mostrando")} {paginatedItems.length} {t("common_de", "de")} {filtered.length})
@@ -310,21 +311,34 @@ export default function AdminCrudTemplate({
 
       {/* Modal de formulario */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="presentation">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="presentation"
+          style={{
+            backgroundColor: 'var(--overlay, rgba(15, 23, 42, 0.4))',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+          }}
+        >
           <div
-            className="relative w-full max-w-2xl bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-strong max-h-[90vh] overflow-auto"
+            className="relative w-full max-w-2xl rounded-2xl border border-white/50 dark:border-white/10 max-h-[90vh] overflow-auto bg-white/95 dark:bg-slate-900/95"
             role="dialog"
             aria-modal="true"
             aria-labelledby="crud-modal-title"
+            style={{
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            }}
           >
             {/* Header */}
-            <div className="sticky top-0 z-10 flex items-start justify-between p-6 border-b border-[var(--border)] bg-[var(--card)]">
+            <div className="sticky top-0 z-10 flex items-start justify-between p-6 border-b border-white/30 dark:border-white/10 bg-white/70 dark:bg-slate-800/70 backdrop-blur-md">
               <div className="flex-1">
-                <h2 id="crud-modal-title" className="text-xl font-semibold text-[var(--fg-strong)]">
+                <h2 id="crud-modal-title" className="text-xl font-semibold text-slate-800 dark:text-slate-100">
                   {editingId ? `${t("crud_edit", "Editar")} ${title}` : `${t("crud_new", "Nuevo")} ${title}`}
                 </h2>
                 {!editingId && (
-                  <p className="text-sm text-[var(--fg-muted)] mt-1">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                     {t("crud_complete_required", "Completa los campos obligatorios")}
                   </p>
                 )}
@@ -332,7 +346,7 @@ export default function AdminCrudTemplate({
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="flex-shrink-0 ml-4 p-2 rounded-lg text-[var(--fg-muted)] hover:text-[var(--fg-strong)] hover:bg-[var(--bg-elevated)] transition-all"
+                className="flex-shrink-0 ml-4 p-2 rounded-xl text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50 transition-all"
                 disabled={loading}
                 aria-label={t("common_cerrar", "Cerrar")}
               >
@@ -353,14 +367,14 @@ export default function AdminCrudTemplate({
                 {fields.map((f) =>
                   f.type === "section" ? (
                     <div key={f.name} className="md:col-span-2 pt-4 first:pt-0">
-                      <div className="flex items-center gap-3 pb-3 border-b border-[var(--border)]">
-                        {f.icon && <f.icon className="w-5 h-5 text-[var(--primary)]" />}
+                      <div className="flex items-center gap-3 pb-3 border-b border-white/30 dark:border-white/10">
+                        {f.icon && <f.icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
                         <div>
-                          <h3 className="text-sm font-semibold text-[var(--fg-strong)] uppercase tracking-wide">
+                          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100 uppercase tracking-wide">
                             {f.label}
                           </h3>
                           {f.description && (
-                            <p className="text-xs text-[var(--fg-muted)] mt-0.5">{f.description}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{f.description}</p>
                           )}
                         </div>
                       </div>
@@ -371,13 +385,13 @@ export default function AdminCrudTemplate({
                     className={f.type === "textarea" || f.fullWidth ? "md:col-span-2" : ""}
                   >
                     <label className="block">
-                      <span className="text-sm font-medium text-[var(--fg)]">
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                         {f.label}
-                        {f.required && <span className="text-[var(--danger)] ml-1">*</span>}
+                        {f.required && <span className="text-red-500 ml-1">*</span>}
                       </span>
                       {f.type === "textarea" ? (
                         <textarea
-                          className="mt-2 w-full px-4 py-3 rounded-lg bg-[var(--input-bg)] border border-[var(--input-border)] text-sm text-[var(--fg)] placeholder:text-[var(--fg-subtle)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--input-focus)] focus:outline-none transition-all duration-200 resize-none"
+                          className="mt-2 w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/50 dark:border-white/10 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-blue-400/50 focus:ring-2 focus:ring-blue-400/20 focus:outline-none transition-all duration-200 resize-none"
                           value={form[f.name] ?? ""}
                           onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
                           required={f.required}
@@ -389,15 +403,15 @@ export default function AdminCrudTemplate({
                         <div className="mt-2 flex items-center gap-2">
                           <input
                             type="checkbox"
-                            className="w-4 h-4 rounded border-[var(--input-border)] text-[var(--primary)] focus:ring-[var(--primary)] focus:ring-offset-0"
+                            className="w-4 h-4 rounded border-white/50 dark:border-white/20 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 dark:bg-slate-700"
                             checked={Boolean(form[f.name])}
                             onChange={(e) => setForm({ ...form, [f.name]: e.target.checked ? 1 : 0 })}
                             disabled={loading}
                           />
-                          <span className="text-sm text-[var(--fg-muted)]">{f.placeholder || f.label}</span>
+                          <span className="text-sm text-slate-500 dark:text-slate-400">{f.placeholder || f.label}</span>
                         </div>
                       ) : f.type === "checkbox-group" && f.options ? (
-                        <div className="mt-2 space-y-2 p-3 border border-[var(--input-border)] rounded-lg bg-[var(--input-bg)]">
+                        <div className="mt-2 space-y-2 p-3 border border-white/50 dark:border-white/10 rounded-xl bg-white/30 dark:bg-slate-800/30 backdrop-blur-sm">
                           {f.options.map((opt) => {
                             const currentValues = Array.isArray(form[f.name])
                               ? form[f.name]
@@ -410,7 +424,7 @@ export default function AdminCrudTemplate({
                               <div key={opt.value} className="flex items-center gap-2">
                                 <input
                                   type="checkbox"
-                                  className="w-4 h-4 rounded border-[var(--input-border)] text-[var(--primary)] focus:ring-[var(--primary)] focus:ring-offset-0"
+                                  className="w-4 h-4 rounded border-white/50 dark:border-white/20 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 dark:bg-slate-700"
                                   checked={isChecked}
                                   onChange={(e) => {
                                     let newValues = [...currentValues];
@@ -425,10 +439,10 @@ export default function AdminCrudTemplate({
                                   }}
                                   disabled={loading}
                                 />
-                                <label className="text-sm text-[var(--fg)] cursor-pointer select-none">
+                                <label className="text-sm text-slate-700 dark:text-slate-200 cursor-pointer select-none">
                                   {opt.label}
                                   {opt.description && (
-                                    <span className="block text-xs text-[var(--fg-muted)] mt-0.5">
+                                    <span className="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                       {opt.description}
                                     </span>
                                   )}
@@ -437,7 +451,7 @@ export default function AdminCrudTemplate({
                             );
                           })}
                           {f.placeholder && (
-                            <p className="text-xs text-[var(--fg-subtle)] mt-2 pt-2 border-t border-[var(--border)]">
+                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 pt-2 border-t border-white/30 dark:border-white/10">
                               {f.placeholder}
                             </p>
                           )}
@@ -475,7 +489,7 @@ export default function AdminCrudTemplate({
               </div>
 
               {/* Footer */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border)]">
+              <div className="flex justify-end gap-3 pt-4 border-t border-white/30 dark:border-white/10">
                 <Button
                   variant="ghost"
                   type="button"
@@ -492,7 +506,7 @@ export default function AdminCrudTemplate({
                 >
                   {loading ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[var(--on-primary)]" aria-hidden="true" />
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" aria-hidden="true" />
                       <span className="ml-2">{t("crud_saving", "Guardando...")}</span>
                     </>
                   ) : (

@@ -132,7 +132,7 @@ export default function BudgetRequestDetail() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-[var(--fg-muted)]">{t("common_cargando", "Cargando...")}</div>
+        <div className="text-slate-500">{t("common_cargando", "Cargando...")}</div>
       </div>
     );
   }
@@ -144,7 +144,7 @@ export default function BudgetRequestDetail() {
           title={t("bur_detail_title", "DETALLE DE SOLICITUD").toUpperCase()}
           actions={
             <Button variant="ghost" onClick={() => navigate("/presupuestos")}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeft className="w-4 h-4" />
               {t("common_volver", "Volver")}
             </Button>
           }
@@ -161,17 +161,17 @@ export default function BudgetRequestDetail() {
         actions={
           <div className="flex gap-2">
             <Button variant="ghost" onClick={() => navigate("/presupuestos")}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeft className="w-4 h-4" />
               {t("common_volver", "Volver")}
             </Button>
             {canApprove && (
               <>
                 <Button onClick={() => setApproveModal({ open: true, comentario: "" })}>
-                  <CheckCircle className="w-4 h-4 mr-2" />
+                  <CheckCircle className="w-4 h-4" />
                   {t("bur_aprobar", "Aprobar")}
                 </Button>
                 <Button variant="danger" onClick={() => setRejectModal({ open: true, motivo: "" })}>
-                  <XCircle className="w-4 h-4 mr-2" />
+                  <XCircle className="w-4 h-4" />
                   {t("bur_rechazar", "Rechazar")}
                 </Button>
               </>
@@ -197,54 +197,54 @@ export default function BudgetRequestDetail() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Centro */}
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm text-[var(--fg-muted)]">
+                  <div className="flex items-center gap-2 text-sm text-slate-500">
                     <Building className="w-4 h-4" />
                     {t("bur_campo_centro", "Centro")}
                   </div>
-                  <div className="text-lg font-semibold text-[var(--fg)]">{bur.centro || "-"}</div>
+                  <div className="text-lg font-semibold text-slate-800">{bur.centro || "-"}</div>
                 </div>
 
                 {/* Sector */}
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm text-[var(--fg-muted)]">
+                  <div className="flex items-center gap-2 text-sm text-slate-500">
                     <MapPin className="w-4 h-4" />
                     {t("bur_campo_sector", "Sector")}
                   </div>
-                  <div className="text-lg font-semibold text-[var(--fg)]">{bur.sector || "-"}</div>
+                  <div className="text-lg font-semibold text-slate-800">{bur.sector || "-"}</div>
                 </div>
 
                 {/* Monto */}
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm text-[var(--fg-muted)]">
+                  <div className="flex items-center gap-2 text-sm text-slate-500">
                     <DollarSign className="w-4 h-4" />
                     {t("bur_col_monto", "Monto Solicitado")}
                   </div>
-                  <div className="text-2xl font-bold font-mono text-[var(--primary)]">
+                  <div className="text-2xl font-bold font-mono text-blue-600">
                     {formatCurrency(bur.monto_solicitado_usd)}
                   </div>
                 </div>
 
                 {/* Nivel */}
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm text-[var(--fg-muted)]">
+                  <div className="flex items-center gap-2 text-sm text-slate-500">
                     <Shield className="w-4 h-4" />
                     {t("bur_col_nivel", "Nivel de Aprobacion")}
                   </div>
-                  <div className="text-lg font-semibold text-[var(--fg)]">
+                  <div className="text-lg font-semibold text-slate-800">
                     {nivelLabels[bur.nivel_aprobacion_requerido] || bur.nivel_aprobacion_requerido}
                   </div>
                 </div>
 
                 {/* Solicitante */}
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm text-[var(--fg-muted)]">
+                  <div className="flex items-center gap-2 text-sm text-slate-500">
                     <User className="w-4 h-4" />
                     {t("bur_solicitante", "Solicitante")}
                   </div>
-                  <div className="text-lg font-semibold text-[var(--fg)]">
+                  <div className="text-lg font-semibold text-slate-800">
                     {bur.solicitante_id || "-"}
                     {bur.solicitante_rol && (
-                      <span className="ml-2 text-xs px-2 py-1 rounded bg-[var(--surface)] text-[var(--fg-muted)]">
+                      <span className="ml-2 text-xs px-2 py-1 rounded bg-slate-50/70 text-slate-500">
                         {bur.solicitante_rol}
                       </span>
                     )}
@@ -253,33 +253,33 @@ export default function BudgetRequestDetail() {
 
                 {/* Fecha */}
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm text-[var(--fg-muted)]">
+                  <div className="flex items-center gap-2 text-sm text-slate-500">
                     <Calendar className="w-4 h-4" />
-                    {t("bur_fecha_creacion", "Fecha de creacion")}
+                    {t("bur_fecha_creacion", "Fecha de creación")}
                   </div>
-                  <div className="text-lg font-semibold text-[var(--fg)]">{formatDate(bur.created_at)}</div>
+                  <div className="text-lg font-semibold text-slate-800">{formatDate(bur.created_at)}</div>
                 </div>
               </div>
 
               {/* Justificacion */}
-              <div className="mt-6 pt-6 border-t border-[var(--border)]">
-                <div className="flex items-center gap-2 text-sm text-[var(--fg-muted)] mb-2">
+              <div className="mt-6 pt-6 border-t border-white/30">
+                <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
                   <FileText className="w-4 h-4" />
-                  {t("bur_campo_justificacion", "Justificacion")}
+                  {t("bur_campo_justificacion", "Justificación")}
                 </div>
-                <div className="p-4 rounded-lg bg-[var(--surface)] text-[var(--fg)]">
+                <div className="p-4 rounded-lg bg-slate-50/70 text-slate-800">
                   {bur.justificacion || "-"}
                 </div>
               </div>
 
               {/* Rejection reason if rejected */}
               {bur.estado === "rechazado" && bur.motivo_rechazo && (
-                <div className="mt-6 pt-6 border-t border-[var(--border)]">
-                  <div className="flex items-center gap-2 text-sm text-[var(--danger)] mb-2">
+                <div className="mt-6 pt-6 border-t border-white/30">
+                  <div className="flex items-center gap-2 text-sm text-red-600 mb-2">
                     <XCircle className="w-4 h-4" />
                     {t("bur_motivo_rechazo", "Motivo de rechazo")}
                   </div>
-                  <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-[var(--fg)]">
+                  <div className="p-4 rounded-lg bg-red-50/70 border border-red-200/50 text-slate-800">
                     {bur.motivo_rechazo}
                   </div>
                 </div>
@@ -287,20 +287,20 @@ export default function BudgetRequestDetail() {
 
               {/* Approval info */}
               {bur.aprobador_id && (
-                <div className="mt-6 pt-6 border-t border-[var(--border)]">
-                  <div className="flex items-center gap-2 text-sm text-[var(--success)] mb-2">
+                <div className="mt-6 pt-6 border-t border-white/30">
+                  <div className="flex items-center gap-2 text-sm text-emerald-600 mb-2">
                     <CheckCircle className="w-4 h-4" />
                     {t("common_aprobado_por", "Aprobado por")}
                   </div>
-                  <div className="text-[var(--fg)]">
+                  <div className="text-slate-800">
                     {bur.aprobador_id}
                     {bur.aprobador_rol && (
-                      <span className="ml-2 text-xs px-2 py-1 rounded bg-[var(--surface)] text-[var(--fg-muted)]">
+                      <span className="ml-2 text-xs px-2 py-1 rounded bg-slate-50/70 text-slate-500">
                         {bur.aprobador_rol}
                       </span>
                     )}
                     {bur.aprobado_at && (
-                      <span className="ml-2 text-sm text-[var(--fg-muted)]">
+                      <span className="ml-2 text-sm text-slate-500">
                         {formatDate(bur.aprobado_at)}
                       </span>
                     )}
@@ -323,21 +323,21 @@ export default function BudgetRequestDetail() {
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-[var(--fg-muted)]">{t("bur_saldo_actual", "Saldo actual")}</span>
-                    <span className="font-mono text-lg font-semibold text-[var(--fg)]">
+                    <span className="text-sm text-slate-500">{t("bur_saldo_actual", "Saldo actual")}</span>
+                    <span className="font-mono text-lg font-semibold text-slate-800">
                       {formatCurrency(presupuestoInfo.saldo_usd)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-[var(--fg-muted)]">{t("bur_col_monto", "Aumento")}</span>
-                    <span className="font-mono text-lg font-semibold text-[var(--success)]">
+                    <span className="text-sm text-slate-500">{t("bur_col_monto", "Aumento")}</span>
+                    <span className="font-mono text-lg font-semibold text-emerald-600">
                       +{formatCurrency(bur.monto_solicitado_usd)}
                     </span>
                   </div>
-                  <div className="border-t border-[var(--border)] pt-3">
+                  <div className="border-t border-white/30 pt-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-[var(--fg-muted)]">{t("bur_saldo_nuevo", "Nuevo saldo")}</span>
-                      <span className="font-mono text-xl font-bold text-[var(--primary)]">
+                      <span className="text-sm text-slate-500">{t("bur_saldo_nuevo", "Nuevo saldo")}</span>
+                      <span className="font-mono text-xl font-bold text-blue-600">
                         {formatCurrency(nuevoSaldo)}
                       </span>
                     </div>
@@ -355,27 +355,27 @@ export default function BudgetRequestDetail() {
             <CardContent>
               <div className="space-y-3 text-sm">
                 <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-[var(--primary)]" />
+                  <div className="w-2 h-2 rounded-full bg-blue-600" />
                   <div>
-                    <div className="text-[var(--fg)]">{t("bur_estado_pendiente", "Creada")}</div>
-                    <div className="text-xs text-[var(--fg-muted)]">{formatDate(bur.created_at)}</div>
+                    <div className="text-slate-800">{t("bur_estado_pendiente", "Creada")}</div>
+                    <div className="text-xs text-slate-500">{formatDate(bur.created_at)}</div>
                   </div>
                 </div>
                 {bur.aprobado_at && (
                   <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-[var(--success)]" />
+                    <div className="w-2 h-2 rounded-full bg-emerald-600" />
                     <div>
-                      <div className="text-[var(--fg)]">{t("bur_estado_aprobado", "Aprobada")}</div>
-                      <div className="text-xs text-[var(--fg-muted)]">{formatDate(bur.aprobado_at)}</div>
+                      <div className="text-slate-800">{t("bur_estado_aprobado", "Aprobada")}</div>
+                      <div className="text-xs text-slate-500">{formatDate(bur.aprobado_at)}</div>
                     </div>
                   </div>
                 )}
                 {bur.estado === "rechazado" && (
                   <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-[var(--danger)]" />
+                    <div className="w-2 h-2 rounded-full bg-red-600" />
                     <div>
-                      <div className="text-[var(--fg)]">{t("bur_estado_rechazado", "Rechazada")}</div>
-                      <div className="text-xs text-[var(--fg-muted)]">{formatDate(bur.updated_at)}</div>
+                      <div className="text-slate-800">{t("bur_estado_rechazado", "Rechazada")}</div>
+                      <div className="text-xs text-slate-500">{formatDate(bur.updated_at)}</div>
                     </div>
                   </div>
                 )}
@@ -397,25 +397,25 @@ export default function BudgetRequestDetail() {
               {t("common_cancelar", "Cancelar")}
             </Button>
             <Button onClick={handleAprobar}>
-              <CheckCircle className="w-4 h-4 mr-2" />
+              <CheckCircle className="w-4 h-4" />
               {t("bur_aprobar", "Aprobar")}
             </Button>
           </>
         }
       >
         <div className="space-y-4">
-          <p className="text-sm text-[var(--fg-muted)]">
-            {t("bur_confirm_aprobar", "Esta accion aumentara el presupuesto de")} {bur.centro}/{bur.sector} {t("common_en", "en")} {formatCurrency(bur.monto_solicitado_usd)}.
+          <p className="text-sm text-slate-500">
+            {t("bur_confirm_aprobar", "Esta acción aumentará el presupuesto de")} {bur.centro}/{bur.sector} {t("common_en", "en")} {formatCurrency(bur.monto_solicitado_usd)}.
           </p>
           <div className="space-y-2">
-            <label className="text-sm text-[var(--fg-muted)]">
+            <label className="text-sm text-slate-500">
               {t("bur_comentario_aprobacion", "Comentario (opcional)")}
             </label>
             <textarea
               value={approveModal.comentario}
               onChange={(e) => setApproveModal((prev) => ({ ...prev, comentario: e.target.value }))}
               rows={3}
-              className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none transition-all"
+              className="w-full px-4 py-3 rounded-lg border border-white/30 bg-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
             />
           </div>
         </div>
@@ -433,21 +433,21 @@ export default function BudgetRequestDetail() {
               {t("common_cancelar", "Cancelar")}
             </Button>
             <Button variant="danger" onClick={handleRechazar}>
-              <XCircle className="w-4 h-4 mr-2" />
+              <XCircle className="w-4 h-4" />
               {t("bur_rechazar", "Rechazar")}
             </Button>
           </>
         }
       >
         <div className="space-y-2">
-          <label className="text-sm text-[var(--fg-muted)]">
+          <label className="text-sm text-slate-500">
             {t("bur_motivo_rechazo", "Motivo de rechazo")} *
           </label>
           <textarea
             value={rejectModal.motivo}
             onChange={(e) => setRejectModal((prev) => ({ ...prev, motivo: e.target.value }))}
             rows={3}
-            className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none transition-all"
+            className="w-full px-4 py-3 rounded-lg border border-white/30 bg-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
             placeholder={t("bur_motivo_placeholder", "Indica el motivo del rechazo...")}
           />
         </div>

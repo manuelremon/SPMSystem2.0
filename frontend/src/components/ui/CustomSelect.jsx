@@ -4,19 +4,8 @@ import { Check, ChevronDown } from "lucide-react";
 import clsx from "clsx";
 
 /**
- * CustomSelect - Select estilizado con dropdown animado
- * Usa Headless UI Listbox para accesibilidad completa
- *
- * @param {string} value - Valor seleccionado
- * @param {function} onChange - Callback (value) => void
- * @param {Array} options - [{value, label, icon?, disabled?}]
- * @param {string} placeholder - Texto cuando no hay selección
- * @param {boolean} disabled - Deshabilitar select
- * @param {boolean} error - Estado de error visual
- * @param {boolean} required - Campo requerido (visual)
- * @param {string} className - Clases adicionales
- * @param {string} name - Nombre del campo para formularios
- * @param {string} id - ID del elemento
+ * CustomSelect - Glass Morphism Style
+ * Translucent dropdown with blur effect
  */
 export function CustomSelect({
   value,
@@ -36,8 +25,6 @@ export function CustomSelect({
   // Handler que simula el evento de un input nativo para compatibilidad con onChange(e)
   const handleChange = (newValue) => {
     if (typeof onChange === "function") {
-      // Si el onChange espera un evento sintético (e.target.name, e.target.value)
-      // creamos uno falso para mantener compatibilidad
       const syntheticEvent = {
         target: {
           name: name,
@@ -55,32 +42,40 @@ export function CustomSelect({
           {/* Hidden input for form submission */}
           {name && <input type="hidden" name={name} value={value || ""} />}
 
-          {/* Trigger Button */}
+          {/* Trigger Button - Glass style */}
           <Listbox.Button
             id={id}
             aria-label={ariaLabel}
             aria-required={required || undefined}
             className={clsx(
-              "relative w-full cursor-pointer rounded-[var(--radius-md)]",
+              // Glass base
+              "relative w-full cursor-pointer",
+              "bg-white/50 backdrop-blur-sm",
+              "rounded-xl",
               "px-4 py-3 pr-10 text-left",
-              "bg-[var(--input-bg)] text-sm text-[var(--fg)]",
-              "border transition-all duration-[var(--transition-fast)]",
-              "focus:outline-none focus:ring-2",
-              disabled && "opacity-50 cursor-not-allowed bg-[var(--bg-soft)]",
+              // Typography
+              "text-sm text-slate-800",
+              // Transitions
+              "transition-all duration-200",
+              // Focus
+              "focus:outline-none",
+              "focus:bg-white/70",
+              // Disabled
+              disabled && "opacity-50 cursor-not-allowed bg-white/30",
+              // Border - Always blue (or red for error)
               error
-                ? "border-[var(--danger)] focus:border-[var(--danger)] focus:ring-[var(--danger)]/20"
-                : clsx(
-                    "border-[var(--border-strong)]",
-                    "focus:ring-[var(--primary)] focus:border-[var(--primary)]",
-                    "hover:border-[var(--border-hover)]"
-                  ),
-              open && !error && "ring-2 ring-[var(--primary)] border-[var(--primary)]"
+                ? "border border-red-400 ring-1 ring-red-100 focus:border-red-400 focus:ring-2 focus:ring-red-200"
+                : "border border-blue-300 ring-1 ring-blue-100 focus:border-blue-400 focus:ring-2 focus:ring-blue-200",
+              // Hover
+              !error && "hover:bg-white/60 hover:border-blue-400",
+              // Open state
+              open && !error && "ring-2 ring-blue-200 border-blue-400 bg-white/70"
             )}
           >
             <span
               className={clsx(
-                "block truncate",
-                !selectedOption && "text-[var(--fg-subtle)]"
+                "block truncate selected-text",
+                !selectedOption && "text-slate-400"
               )}
             >
               {selectedOption?.label || placeholder}
@@ -88,7 +83,7 @@ export function CustomSelect({
             <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
               <ChevronDown
                 className={clsx(
-                  "w-4 h-4 text-[var(--fg-muted)]",
+                  "w-4 h-4 text-slate-500",
                   "transition-transform duration-200",
                   open && "rotate-180"
                 )}
@@ -97,7 +92,7 @@ export function CustomSelect({
             </span>
           </Listbox.Button>
 
-          {/* Dropdown Options */}
+          {/* Dropdown Options - Glass style */}
           <Transition
             as={Fragment}
             leave="transition ease-in duration-100"
@@ -106,15 +101,18 @@ export function CustomSelect({
           >
             <Listbox.Options
               className={clsx(
-                "absolute z-50 mt-2 w-full max-h-60 overflow-auto",
-                "bg-[var(--card)] border border-[var(--border)]",
-                "rounded-xl shadow-strong",
+                // Glass dropdown
+                "absolute z-[9999] mt-2 w-full max-h-60 overflow-auto",
+                "bg-white/90 backdrop-blur-xl",
+                "border border-white/50",
+                "rounded-xl",
+                "shadow-glass",
                 "focus:outline-none",
                 "animate-menu-reveal origin-top"
               )}
             >
               {options.length === 0 ? (
-                <li className="px-4 py-3 text-sm text-[var(--fg-muted)] text-center">
+                <li className="px-4 py-3 text-sm text-slate-500 text-center">
                   No hay opciones disponibles
                 </li>
               ) : (
@@ -128,26 +126,26 @@ export function CustomSelect({
                         "relative cursor-pointer select-none",
                         "flex items-center gap-3 px-4 py-3",
                         "text-sm font-medium",
-                        "transition-all duration-150",
+                        "transition-all duration-200",
                         "animate-menu-item-reveal",
                         `menu-item-stagger-${Math.min(idx + 1, 7)}`,
                         option.disabled && "opacity-50 cursor-not-allowed",
-                        active && "bg-white/10 text-[var(--primary)]",
-                        selected && !active && "text-[var(--primary)]",
-                        !active && !selected && "text-white/90"
+                        active && "bg-blue-50/70 text-blue-600",
+                        selected && !active && "text-blue-600",
+                        !active && !selected && "text-slate-700"
                       )
                     }
                   >
                     {({ selected }) => (
                       <>
                         {option.icon && (
-                          <span className="text-[var(--primary)] flex-shrink-0">
+                          <span className="text-blue-500 flex-shrink-0">
                             {option.icon}
                           </span>
                         )}
                         <span className="flex-1 truncate">{option.label}</span>
                         {selected && (
-                          <Check className="w-4 h-4 text-[var(--primary)] flex-shrink-0" />
+                          <Check className="w-4 h-4 text-blue-500 flex-shrink-0" />
                         )}
                       </>
                     )}

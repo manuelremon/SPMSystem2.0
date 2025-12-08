@@ -1,14 +1,40 @@
 import React from "react";
 import clsx from "clsx";
 
-export const Input = React.forwardRef(({ className, ...props }, ref) => {
+/**
+ * Input Component - Glass Morphism Style
+ * Translucent inputs with blur effect
+ *
+ * @param {boolean} error - Show error state with red border/ring
+ */
+export const Input = React.forwardRef(({ className, error = false, ...props }, ref) => {
   return (
     <input
       ref={ref}
       className={clsx(
-        "w-full rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--fg)] placeholder:text-[var(--fg-subtle)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-all duration-[var(--transition-fast)]",
+        // Glass base
+        "w-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm",
+        "rounded-xl",
+        "px-4 py-3",
+        // Typography
+        "text-sm text-slate-800 dark:text-slate-200",
+        "placeholder:text-slate-400 dark:placeholder:text-slate-500",
+        // Focus state - Glass effect intensifies
+        "focus:bg-white/70 dark:focus:bg-slate-700/70",
+        "focus:outline-none",
+        // Hover
+        "hover:bg-white/60 dark:hover:bg-slate-700/60",
+        // Disabled
+        "disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-white/30 dark:disabled:bg-slate-800/30",
+        // Transition
+        "transition-all duration-200",
+        // Border - Blue (default) or Red (error)
+        error
+          ? "border border-red-400 dark:border-red-500 ring-1 ring-red-100 dark:ring-red-900/30 focus:border-red-400 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-800/30"
+          : "border border-blue-300 dark:border-blue-600 ring-1 ring-blue-100 dark:ring-blue-900/30 focus:border-blue-400 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800/30 hover:border-blue-400 dark:hover:border-blue-500",
         className
       )}
+      aria-invalid={error ? "true" : undefined}
       {...props}
     />
   );

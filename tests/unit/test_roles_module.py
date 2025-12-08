@@ -1,5 +1,5 @@
 """
-Tests para el módulo de normalización de roles (backend_v2/core/roles.py)
+Tests para el módulo de normalización de roles (backend/core/roles.py)
 
 Estos tests verifican que la normalización de roles funciona correctamente
 con todos los formatos posibles de entrada.
@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-# Agregar backend_v2 al path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "backend_v2"))
+# Agregar backend al path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "backend"))
 
 from core.roles import (ADMIN_ROLES, format_user_response, has_any_role,
                         has_role, is_admin, normalize_roles)

@@ -5,11 +5,8 @@ import clsx from "clsx";
 const RadioGroupContext = createContext(null);
 
 /**
- * RadioGroup - Container for radio buttons
- * @param {string} value - Current selected value
- * @param {function} onValueChange - Callback when selection changes
- * @param {string} name - Name attribute for the radio group
- * @param {string} orientation - "horizontal" | "vertical"
+ * RadioGroup - Glass Morphism Style
+ * Container for radio buttons
  */
 export function RadioGroup({
   children,
@@ -38,10 +35,8 @@ export function RadioGroup({
 }
 
 /**
- * Radio - Individual radio button
- * @param {string} value - Value for this radio option
- * @param {string} label - Label text
- * @param {string} description - Optional description text
+ * Radio - Glass Morphism Style
+ * Individual radio button with glow effect
  */
 export const Radio = React.forwardRef(({
   value,
@@ -81,31 +76,32 @@ export const Radio = React.forwardRef(({
           className="sr-only peer"
           {...props}
         />
-        {/* Radio circle */}
+        {/* Radio circle - Glass style */}
         <div
           className={clsx(
-            // Base
+            // Glass base
             "w-5 h-5 rounded-full",
-            "border-2 transition-all duration-[var(--transition-fast)]",
-            // Default state
-            "border-[var(--border-strong)]",
-            "bg-[var(--input-bg)]",
+            "border-2 transition-all duration-200",
+            "bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm",
+            "border-white/50 dark:border-white/10",
             // Hover
-            "group-hover:border-[var(--fg-muted)]",
-            // Focus
-            "peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--primary)] peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[var(--bg)]",
+            "group-hover:bg-white/70 dark:group-hover:bg-slate-700/70 group-hover:border-slate-300/50 dark:group-hover:border-slate-500/50",
+            // Focus - glass glow
+            "peer-focus-visible:ring-2 peer-focus-visible:ring-blue-400/30 peer-focus-visible:ring-offset-2",
             // Checked state
-            "peer-checked:border-[var(--primary)]",
+            "peer-checked:border-blue-500/50",
+            "peer-checked:bg-white/70 dark:peer-checked:bg-slate-700/70",
             // Flex for inner dot
             "flex items-center justify-center"
           )}
         >
-          {/* Inner dot */}
+          {/* Inner dot - gradient */}
           <div
             className={clsx(
               "w-2.5 h-2.5 rounded-full",
-              "bg-[var(--primary)]",
-              "transition-all duration-[var(--transition-fast)]",
+              "bg-gradient-to-br from-blue-500 to-blue-600",
+              "shadow-lg shadow-blue-500/30",
+              "transition-all duration-200",
               isChecked
                 ? "opacity-100 scale-100"
                 : "opacity-0 scale-0"
@@ -118,15 +114,15 @@ export const Radio = React.forwardRef(({
         <div className="flex flex-col">
           {label && (
             <span className={clsx(
-              "text-sm font-medium text-[var(--fg)]",
-              "transition-colors duration-[var(--transition-fast)]",
-              "group-hover:text-[var(--fg-strong)]"
+              "text-sm font-medium text-slate-700 dark:text-slate-300",
+              "transition-colors duration-200",
+              "group-hover:text-slate-900 dark:group-hover:text-slate-100"
             )}>
               {label}
             </span>
           )}
           {description && (
-            <span className="text-xs text-[var(--fg-muted)] mt-0.5">
+            <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {description}
             </span>
           )}

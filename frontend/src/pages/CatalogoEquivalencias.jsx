@@ -304,7 +304,7 @@ export default function CatalogoEquivalencias() {
         actions={
           canManage && (
             <Button onClick={() => { resetForm(); setShowCreateModal(true) }}>
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-4 w-4" />
               {t('equivalencias_nueva', 'Nueva Equivalencia')}
             </Button>
           )
@@ -316,11 +316,11 @@ export default function CatalogoEquivalencias() {
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4 items-end">
             <div className="flex-1">
-              <label className="block text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wide mb-2">
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
                 {t('equivalencias_buscar', 'Buscar por código o descripción')}
               </label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--fg-muted)]" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -331,9 +331,9 @@ export default function CatalogoEquivalencias() {
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[var(--bg-elevated)] rounded"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100/70 rounded"
                   >
-                    <X className="h-4 w-4 text-[var(--fg-muted)]" />
+                    <X className="h-4 w-4 text-slate-500" />
                   </button>
                 )}
               </div>
@@ -361,7 +361,7 @@ export default function CatalogoEquivalencias() {
       <Card hover={false}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <GitCompare className="h-5 w-5 text-[var(--accent)]" />
+            <GitCompare className="h-5 w-5 text-cyan-600" />
             {t('equivalencias_lista', 'Equivalencias')}
           </CardTitle>
         </CardHeader>
@@ -370,8 +370,8 @@ export default function CatalogoEquivalencias() {
             <TableSkeleton rows={5} columns={6} />
           ) : results.length === 0 ? (
             <div className="py-12 text-center">
-              <GitCompare className="h-12 w-12 text-[var(--fg-muted)]/30 mx-auto mb-4" />
-              <p className="text-[var(--fg-muted)]">
+              <GitCompare className="h-12 w-12 text-slate-500/30 mx-auto mb-4" />
+              <p className="text-slate-500">
                 {searchQuery
                   ? t('equivalencias_sin_resultados', 'No se encontraron equivalencias con los criterios de búsqueda')
                   : t('equivalencias_vacio', 'No hay equivalencias registradas')}
@@ -382,33 +382,33 @@ export default function CatalogoEquivalencias() {
                   className="mt-4"
                   onClick={() => { resetForm(); setShowCreateModal(true) }}
                 >
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus className="h-4 w-4" />
                   {t('equivalencias_crear_primera', 'Crear la primera equivalencia')}
                 </Button>
               )}
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto border border-[var(--border)] rounded-lg">
+              <div className="overflow-x-auto border border-white/30 rounded-lg">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[var(--border)] bg-[var(--bg-soft)]">
-                      <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                    <tr className="border-b border-white/30 bg-slate-50/70">
+                      <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                         {t('equivalencias_col_original', 'Material Original')}
                       </th>
-                      <th className="px-2 py-3 text-center text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                      <th className="px-2 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                      <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                         {t('equivalencias_col_equivalente', 'Material Equivalente')}
                       </th>
-                      <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                      <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
                         {t('equivalencias_col_compatibilidad', 'Compatibilidad')}
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                      <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                         {t('equivalencias_col_descripcion', 'Descripción')}
                       </th>
                       {canManage && (
-                        <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                        <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
                           {t('equivalencias_col_acciones', 'Acciones')}
                         </th>
                       )}
@@ -419,30 +419,30 @@ export default function CatalogoEquivalencias() {
                       <tr
                         key={eq.id}
                         className={`
-                          border-b border-[var(--border)] transition-colors
-                          ${idx % 2 === 0 ? 'bg-transparent' : 'bg-[var(--bg-soft)]/30'}
-                          hover:bg-[var(--bg-elevated)]
+                          border-b border-white/30 transition-colors
+                          ${idx % 2 === 0 ? 'bg-transparent' : 'bg-slate-50/70/30'}
+                          hover:bg-slate-100/70
                         `}
                       >
                         <td className="px-4 py-3">
                           <div>
-                            <span className="font-mono font-semibold text-[var(--primary)]">
+                            <span className="font-mono font-semibold text-blue-600">
                               {eq.codigo_original}
                             </span>
-                            <p className="text-xs text-[var(--fg-muted)] line-clamp-1 mt-0.5">
+                            <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
                               {eq.descripcion_original}
                             </p>
                           </div>
                         </td>
                         <td className="px-2 py-3 text-center">
-                          <ArrowRight className="h-4 w-4 text-[var(--fg-muted)] mx-auto" />
+                          <ArrowRight className="h-4 w-4 text-slate-500 mx-auto" />
                         </td>
                         <td className="px-4 py-3">
                           <div>
-                            <span className="font-mono font-semibold text-[var(--accent)]">
+                            <span className="font-mono font-semibold text-cyan-600">
                               {eq.codigo_equivalente}
                             </span>
-                            <p className="text-xs text-[var(--fg-muted)] line-clamp-1 mt-0.5">
+                            <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
                               {eq.descripcion_equivalente}
                             </p>
                           </div>
@@ -450,10 +450,10 @@ export default function CatalogoEquivalencias() {
                         <td className="px-4 py-3 text-center">
                           <CompatibilityBar percent={eq.compatibilidad_pct} />
                         </td>
-                        <td className="px-4 py-3 text-[var(--fg)]">
+                        <td className="px-4 py-3 text-slate-800">
                           <p className="line-clamp-2">{eq.descripcion || '-'}</p>
                           {eq.notas && (
-                            <p className="text-xs text-[var(--fg-muted)] line-clamp-1 mt-0.5 italic">
+                            <p className="text-xs text-slate-500 line-clamp-1 mt-0.5 italic">
                               {eq.notas}
                             </p>
                           )}
@@ -464,7 +464,7 @@ export default function CatalogoEquivalencias() {
                               <button
                                 type="button"
                                 onClick={() => openEditModal(eq)}
-                                className="p-2 rounded-lg text-[var(--info)] hover:bg-[var(--info)]/10 transition-colors"
+                                className="p-2 rounded-lg text-blue-500 hover:bg-blue-500/10 transition-colors"
                                 title={t('common_editar', 'Editar')}
                               >
                                 <Edit2 className="h-4 w-4" />
@@ -472,7 +472,7 @@ export default function CatalogoEquivalencias() {
                               <button
                                 type="button"
                                 onClick={() => openDeleteModal(eq)}
-                                className="p-2 rounded-lg text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-colors"
+                                className="p-2 rounded-lg text-red-600 hover:bg-red-500/10 transition-colors"
                                 title={t('common_eliminar', 'Eliminar')}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -488,7 +488,7 @@ export default function CatalogoEquivalencias() {
 
               {/* Pagination */}
               {(pagination.offset > 0 || pagination.hasMore) && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-[var(--border)]">
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/30">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -497,7 +497,7 @@ export default function CatalogoEquivalencias() {
                   >
                     {t('common_anterior', 'Anterior')}
                   </Button>
-                  <span className="text-sm text-[var(--fg-muted)]">
+                  <span className="text-sm text-slate-500">
                     {pagination.offset + 1} - {Math.min(pagination.offset + PAGE_SIZE, pagination.total)} de {pagination.total}
                   </span>
                   <Button
@@ -531,20 +531,20 @@ export default function CatalogoEquivalencias() {
 
           {/* Material Original */}
           <div>
-            <label className="block text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wide mb-2">
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
               {t('equivalencias_material_original', 'Material Original')} *
             </label>
             {selectedOriginal ? (
-              <div className="flex items-center gap-2 p-3 bg-[var(--bg-soft)] border border-[var(--primary)]/30 rounded-lg">
-                <Check className="h-4 w-4 text-[var(--success)]" />
-                <span className="font-mono text-[var(--primary)]">{selectedOriginal.codigo}</span>
-                <span className="text-sm text-[var(--fg)]">{selectedOriginal.descripcion}</span>
+              <div className="flex items-center gap-2 p-3 bg-slate-50/70 border border-blue-500/30 rounded-lg">
+                <Check className="h-4 w-4 text-emerald-600" />
+                <span className="font-mono text-blue-600">{selectedOriginal.codigo}</span>
+                <span className="text-sm text-slate-800">{selectedOriginal.descripcion}</span>
                 <button
                   type="button"
                   onClick={() => { setSelectedOriginal(null); setSearchOriginal(''); setFormData(prev => ({ ...prev, codigo_original: '' })) }}
-                  className="ml-auto p-1 hover:bg-[var(--bg-elevated)] rounded"
+                  className="ml-auto p-1 hover:bg-slate-100/70 rounded"
                 >
-                  <X className="h-4 w-4 text-[var(--fg-muted)]" />
+                  <X className="h-4 w-4 text-slate-500" />
                 </button>
               </div>
             ) : (
@@ -555,19 +555,19 @@ export default function CatalogoEquivalencias() {
                   placeholder={t('equivalencias_buscar_material', 'Buscar material por código o descripción...')}
                 />
                 {loadingOriginal && (
-                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-[var(--fg-muted)]" />
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-slate-500" />
                 )}
                 {originalResults.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-white/30 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                     {originalResults.map((mat) => (
                       <button
                         key={mat.codigo}
                         type="button"
                         onClick={() => selectOriginal(mat)}
-                        className="w-full text-left px-4 py-2 hover:bg-[var(--bg-elevated)] transition-colors"
+                        className="w-full text-left px-4 py-2 hover:bg-slate-100/70 transition-colors"
                       >
-                        <span className="font-mono text-sm text-[var(--primary)]">{mat.codigo}</span>
-                        <span className="text-sm text-[var(--fg)] ml-2">{mat.descripcion}</span>
+                        <span className="font-mono text-sm text-blue-600">{mat.codigo}</span>
+                        <span className="text-sm text-slate-800 ml-2">{mat.descripcion}</span>
                       </button>
                     ))}
                   </div>
@@ -578,20 +578,20 @@ export default function CatalogoEquivalencias() {
 
           {/* Material Equivalente */}
           <div>
-            <label className="block text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wide mb-2">
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
               {t('equivalencias_material_equivalente', 'Material Equivalente')} *
             </label>
             {selectedEquivalente ? (
-              <div className="flex items-center gap-2 p-3 bg-[var(--bg-soft)] border border-[var(--accent)]/30 rounded-lg">
-                <Check className="h-4 w-4 text-[var(--success)]" />
-                <span className="font-mono text-[var(--accent)]">{selectedEquivalente.codigo}</span>
-                <span className="text-sm text-[var(--fg)]">{selectedEquivalente.descripcion}</span>
+              <div className="flex items-center gap-2 p-3 bg-slate-50/70 border border-cyan-500/30 rounded-lg">
+                <Check className="h-4 w-4 text-emerald-600" />
+                <span className="font-mono text-cyan-600">{selectedEquivalente.codigo}</span>
+                <span className="text-sm text-slate-800">{selectedEquivalente.descripcion}</span>
                 <button
                   type="button"
                   onClick={() => { setSelectedEquivalente(null); setSearchEquivalente(''); setFormData(prev => ({ ...prev, codigo_equivalente: '' })) }}
-                  className="ml-auto p-1 hover:bg-[var(--bg-elevated)] rounded"
+                  className="ml-auto p-1 hover:bg-slate-100/70 rounded"
                 >
-                  <X className="h-4 w-4 text-[var(--fg-muted)]" />
+                  <X className="h-4 w-4 text-slate-500" />
                 </button>
               </div>
             ) : (
@@ -602,19 +602,19 @@ export default function CatalogoEquivalencias() {
                   placeholder={t('equivalencias_buscar_material', 'Buscar material por código o descripción...')}
                 />
                 {loadingEquivalente && (
-                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-[var(--fg-muted)]" />
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-slate-500" />
                 )}
                 {equivalenteResults.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-white/30 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                     {equivalenteResults.map((mat) => (
                       <button
                         key={mat.codigo}
                         type="button"
                         onClick={() => selectEquivalente(mat)}
-                        className="w-full text-left px-4 py-2 hover:bg-[var(--bg-elevated)] transition-colors"
+                        className="w-full text-left px-4 py-2 hover:bg-slate-100/70 transition-colors"
                       >
-                        <span className="font-mono text-sm text-[var(--accent)]">{mat.codigo}</span>
-                        <span className="text-sm text-[var(--fg)] ml-2">{mat.descripcion}</span>
+                        <span className="font-mono text-sm text-cyan-600">{mat.codigo}</span>
+                        <span className="text-sm text-slate-800 ml-2">{mat.descripcion}</span>
                       </button>
                     ))}
                   </div>
@@ -625,7 +625,7 @@ export default function CatalogoEquivalencias() {
 
           {/* Compatibilidad */}
           <div>
-            <label className="block text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wide mb-2">
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
               {t('equivalencias_compatibilidad', 'Porcentaje de Compatibilidad')} *
             </label>
             <div className="flex items-center gap-4">
@@ -653,7 +653,7 @@ export default function CatalogoEquivalencias() {
 
           {/* Descripción */}
           <div>
-            <label className="block text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wide mb-2">
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
               {t('equivalencias_descripcion', 'Descripción')}
             </label>
             <Input
@@ -665,7 +665,7 @@ export default function CatalogoEquivalencias() {
 
           {/* Notas */}
           <div>
-            <label className="block text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wide mb-2">
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
               {t('equivalencias_notas', 'Notas')}
             </label>
             <textarea
@@ -673,12 +673,12 @@ export default function CatalogoEquivalencias() {
               onChange={(e) => setFormData(prev => ({ ...prev, notas: e.target.value }))}
               placeholder={t('equivalencias_notas_placeholder', 'Notas adicionales...')}
               rows={2}
-              className="w-full px-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--input-border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] placeholder:text-[var(--fg-subtle)] focus:ring-2 focus:ring-[var(--input-focus)] focus:border-[var(--primary)] outline-none transition-all resize-none"
+              className="w-full px-3 py-2.5 rounded-xl border border-white/50 bg-white/50 backdrop-blur-sm text-sm text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all resize-none"
             />
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border)]">
+          <div className="flex justify-end gap-3 pt-4 border-t border-white/30">
             <Button variant="ghost" onClick={() => { setShowCreateModal(false); resetForm() }}>
               {t('common_cancelar', 'Cancelar')}
             </Button>
@@ -687,9 +687,9 @@ export default function CatalogoEquivalencias() {
               disabled={!formData.codigo_original || !formData.codigo_equivalente || formLoading}
             >
               {formLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4" />
               )}
               {t('equivalencias_crear', 'Crear Equivalencia')}
             </Button>
@@ -713,19 +713,19 @@ export default function CatalogoEquivalencias() {
 
           {/* Show readonly material info */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-3 bg-[var(--bg-soft)] border border-[var(--border)] rounded-lg">
-              <p className="text-xs text-[var(--fg-muted)] uppercase mb-1">Material Original</p>
-              <p className="font-mono text-[var(--primary)]">{formData.codigo_original}</p>
+            <div className="p-3 bg-slate-50/70 border border-white/30 rounded-lg">
+              <p className="text-xs text-slate-500 uppercase mb-1">Material Original</p>
+              <p className="font-mono text-blue-600">{formData.codigo_original}</p>
             </div>
-            <div className="p-3 bg-[var(--bg-soft)] border border-[var(--border)] rounded-lg">
-              <p className="text-xs text-[var(--fg-muted)] uppercase mb-1">Material Equivalente</p>
-              <p className="font-mono text-[var(--accent)]">{formData.codigo_equivalente}</p>
+            <div className="p-3 bg-slate-50/70 border border-white/30 rounded-lg">
+              <p className="text-xs text-slate-500 uppercase mb-1">Material Equivalente</p>
+              <p className="font-mono text-cyan-600">{formData.codigo_equivalente}</p>
             </div>
           </div>
 
           {/* Compatibilidad */}
           <div>
-            <label className="block text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wide mb-2">
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
               {t('equivalencias_compatibilidad', 'Porcentaje de Compatibilidad')}
             </label>
             <div className="flex items-center gap-4">
@@ -753,7 +753,7 @@ export default function CatalogoEquivalencias() {
 
           {/* Descripción */}
           <div>
-            <label className="block text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wide mb-2">
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
               {t('equivalencias_descripcion', 'Descripción')}
             </label>
             <Input
@@ -765,7 +765,7 @@ export default function CatalogoEquivalencias() {
 
           {/* Notas */}
           <div>
-            <label className="block text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wide mb-2">
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
               {t('equivalencias_notas', 'Notas')}
             </label>
             <textarea
@@ -773,20 +773,20 @@ export default function CatalogoEquivalencias() {
               onChange={(e) => setFormData(prev => ({ ...prev, notas: e.target.value }))}
               placeholder={t('equivalencias_notas_placeholder', 'Notas adicionales...')}
               rows={2}
-              className="w-full px-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--input-border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] placeholder:text-[var(--fg-subtle)] focus:ring-2 focus:ring-[var(--input-focus)] focus:border-[var(--primary)] outline-none transition-all resize-none"
+              className="w-full px-3 py-2.5 rounded-xl border border-white/50 bg-white/50 backdrop-blur-sm text-sm text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all resize-none"
             />
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border)]">
+          <div className="flex justify-end gap-3 pt-4 border-t border-white/30">
             <Button variant="ghost" onClick={() => { setShowEditModal(false); resetForm() }}>
               {t('common_cancelar', 'Cancelar')}
             </Button>
             <Button onClick={handleUpdate} disabled={formLoading}>
               {formLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Check className="h-4 w-4 mr-2" />
+                <Check className="h-4 w-4" />
               )}
               {t('equivalencias_guardar', 'Guardar Cambios')}
             </Button>
@@ -816,26 +816,26 @@ export default function CatalogoEquivalencias() {
 
 // Helper Component: Compatibility Bar
 function CompatibilityBar({ percent, showLabel = true }) {
-  let color = 'var(--success)'
-  let bgColor = 'var(--success)'
+  let colorClass = 'text-emerald-600'
+  let bgClass = 'bg-emerald-500'
   if (percent < 50) {
-    color = 'var(--danger)'
-    bgColor = 'var(--danger)'
+    colorClass = 'text-red-600'
+    bgClass = 'bg-red-500'
   } else if (percent < 80) {
-    color = 'var(--warning)'
-    bgColor = 'var(--warning)'
+    colorClass = 'text-amber-600'
+    bgClass = 'bg-amber-500'
   }
 
   return (
     <div className="flex items-center gap-2">
-      <div className="w-24 h-2 bg-[var(--bg-soft)] rounded-full overflow-hidden">
+      <div className="w-24 h-2 bg-slate-50/70 rounded-full overflow-hidden">
         <div
-          className="h-full rounded-full transition-all"
-          style={{ width: `${percent}%`, backgroundColor: bgColor }}
+          className={`h-full rounded-full transition-all ${bgClass}`}
+          style={{ width: `${percent}%` }}
         />
       </div>
       {showLabel && (
-        <span className="text-sm font-semibold" style={{ color }}>
+        <span className={`text-sm font-semibold ${colorClass}`}>
           {percent}%
         </span>
       )}

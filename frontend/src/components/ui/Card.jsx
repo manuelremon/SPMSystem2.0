@@ -1,26 +1,30 @@
 import React from "react";
 
-export function Card({ className = "", children, hover = true, glow = false, interactive, ...props }) {
+/**
+ * Card Component - Glass Morphism Style
+ * Apple/iOS inspired translucent cards with backdrop blur
+ * Soporta Dark Mode con variantes dark:
+ */
+export function Card({ className = "", children, hover = false, glow = false, interactive, ...props }) {
   // Support legacy 'interactive' prop
   const shouldHover = interactive !== undefined ? interactive : hover;
 
   return (
     <div
       className={`
-        relative overflow-hidden
-        bg-[var(--card)]
-        border border-[var(--border)]
-        rounded-[var(--radius-lg)]
-        transition-all duration-[var(--transition-base)]
-        ${shouldHover ? 'hover:border-[var(--border-hover)] hover:bg-[var(--card-hover)]' : ''}
-        ${glow ? 'shadow-[var(--shadow-glow)]' : ''}
+        relative
+        bg-white/70 dark:bg-slate-800/70
+        backdrop-blur-md
+        border border-white/30 dark:border-white/10
+        rounded-[20px]
+        shadow-glass
+        ${shouldHover ? 'transition-all duration-300 hover:bg-white/85 dark:hover:bg-slate-700/80 hover:shadow-glow-primary' : ''}
+        ${glow ? 'shadow-glow-primary' : ''}
         ${className}
       `}
       {...props}
     >
-      {/* Gradient overlay sutil */}
-      <div className="absolute inset-0 bg-[var(--gradient-card)] pointer-events-none opacity-50" />
-      <div className="relative z-10">{children}</div>
+      {children}
     </div>
   );
 }
@@ -39,7 +43,7 @@ export function CardHeader({ className = "", children, ...props }) {
 export function CardTitle({ className = "", children, ...props }) {
   return (
     <h3
-      className={`text-lg font-bold text-[var(--fg-strong)] tracking-tight ${className}`}
+      className={`text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight ${className}`}
       {...props}
     >
       {children}
@@ -50,7 +54,7 @@ export function CardTitle({ className = "", children, ...props }) {
 export function CardDescription({ className = "", children, ...props }) {
   return (
     <p
-      className={`text-sm text-[var(--fg-muted)] mt-1 ${className}`}
+      className={`text-sm text-slate-500 dark:text-slate-400 mt-1 ${className}`}
       {...props}
     >
       {children}

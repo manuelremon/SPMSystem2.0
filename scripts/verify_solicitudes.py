@@ -3,7 +3,7 @@
 
 import sqlite3
 
-con = sqlite3.connect("../backend_v2/spm.db")
+con = sqlite3.connect("../backend/spm.db")
 con.row_factory = sqlite3.Row
 
 print("=== Verificacion de Solicitudes #4 y #5 ===\n")

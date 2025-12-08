@@ -8,19 +8,23 @@ import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card"
 import { Select } from "../components/ui/Select";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
-import { Badge } from "../components/ui/Badge";
 import { SearchInput } from "../components/ui/SearchInput";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Alert } from "../components/ui/Alert";
-import { DataTable } from "../components/ui/DataTable";
+import { ModernDataTable as DataTable } from "../components/features/DataTable";
+import { withSpmAlignments } from "../utils/tableAlignments";
 import { Pagination } from "../components/ui/Pagination";
 import { EmptyState } from "../components/ui/EmptyState";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
+import { Modal } from "../components/ui/Modal";
 import StatusBadge from "../components/ui/StatusBadge";
-import { TableSkeleton, StatCardSkeleton } from "../components/ui/Skeleton";
+import { Tabs, TabsList, TabsTrigger } from "../components/ui/Tabs";
+import { TableSkeleton } from "../components/ui/Skeleton";
 import { ScrollReveal } from "../components/ui/ScrollReveal";
 import { useI18n } from "../context/i18n";
-import { formatDate, formatDateTime, formatCurrency, exportToExcel, getSectorNombre } from "../utils/formatters";
+import { formatDate, formatDateTime, formatCurrency, exportToExcel, getSectorNombre, formatAlmacen } from "../utils/formatters";
+import { getCriticidadConfig } from "../utils/styleConfig";
+import { InfoTooltip } from "../components/ui/Tooltip";
 import {
   FileSpreadsheet,
   FilePlus2,
@@ -35,10 +39,33 @@ import {
   Inbox,
   HelpCircle,
   RefreshCw,
+  Calendar,
+  Building2,
+  MapPin,
+  Package,
+  DollarSign,
+  AlertTriangle,
+  User,
+  Hash,
 } from "lucide-react";
 
 const DEBOUNCE_MS = 300;
 const PAGE_SIZE = 20;
+
+// Componente helper para mostrar filas de detalle
+function DetailRow({ icon: Icon, label, value }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="h-8 w-8 rounded-lg bg-white/50 border border-white/30 grid place-items-center flex-shrink-0">
+        <Icon className="w-4 h-4 text-slate-500" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium text-slate-500">{label}</p>
+        <p className="text-sm text-slate-800">{value || "-"}</p>
+      </div>
+    </div>
+  );
+}
 
 export default function MisSolicitudes() {
   const { user } = useAuthStore();
@@ -65,6 +92,9 @@ export default function MisSolicitudes() {
   const [deleteModal, setDeleteModal] = useState({ open: false, solicitudId: null });
   const [deleting, setDeleting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Modal de detalle de solicitud
+  const [detalleModal, setDetalleModal] = useState({ open: false, solicitud: null });
 
   // Cargar sectores desde el backend
   useEffect(() => {
@@ -250,6 +280,7 @@ export default function MisSolicitudes() {
       Criticidad: s.criticidad || "Normal",
       Monto: s.total_monto || 0,
       Estado: s.estado || s.status || "",
+      Planificador: `${s.planner_nombre || ""} ${s.planner_apellido || ""}`.trim() || "-",
       Fecha: formatDate(s.fecha_creacion || s.created_at),
     }));
     exportToExcel(dataToExport, `mis-solicitudes-${new Date().toISOString().split("T")[0]}.xls`);
@@ -257,29 +288,61 @@ export default function MisSolicitudes() {
     setTimeout(() => setSuccess(""), 3000);
   }, [filtered, sectores, t]);
 
-  // Columnas de la tabla (memoizadas para evitar re-renders)
-  const columns = useMemo(() => [
+  // Columnas de la tabla (memoizadas para evitar re-renders, con alineación SPM automática)
+  const columns = useMemo(() => withSpmAlignments([
     {
       key: "id",
       header: "ID",
       sortAccessor: (row) => Number(row.id) || 0,
-      render: (row) => <span className="font-semibold text-[var(--fg)]">{row.id}</span>,
+      render: (row) => <span className="font-semibold text-slate-700">{row.id}</span>,
+    },
+    {
+      key: "fecha_creacion",
+      header: t("mis_col_fecha", "Fecha"),
+      sortAccessor: (row) => new Date(row.fecha_creacion || row.created_at || 0).getTime(),
+      render: (row) => (
+        <span className="text-sm text-slate-500">
+          {formatDate(row.fecha_creacion || row.created_at)}
+        </span>
+      ),
     },
     {
       key: "justificacion",
-      header: t("mis_col_asunto", "Asunto"),
+      header: t("mis_col_justificacion", "Justificación"),
       sortAccessor: (row) => (row.justificacion || row.asunto || "").toLowerCase(),
-      render: (row) => (
-        <div className="max-w-xs truncate" title={row.justificacion || row.asunto}>
-          {row.justificacion || row.asunto || t("mis_col_asunto", "Solicitud")}
-        </div>
-      ),
+      render: (row) => {
+        const texto = row.justificacion || row.asunto || "-";
+        const MAX_CHARS = 15;
+        const truncado = texto.length > MAX_CHARS;
+        const textoVisible = truncado ? texto.slice(0, MAX_CHARS) + "..." : texto;
+
+        if (truncado) {
+          return (
+            <button
+              type="button"
+              onClick={() => setDetalleModal({ open: true, solicitud: row })}
+              className="text-left text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
+              title={t("mis_click_ver_completo", "Click para ver completo")}
+            >
+              {textoVisible}
+            </button>
+          );
+        }
+
+        return <span>{textoVisible}</span>;
+      },
     },
     {
       key: "centro",
       header: t("mis_col_centro", "Centro"),
       sortAccessor: (row) => row.centro || row.centro_id || "",
       render: (row) => row.centro || row.centro_id || "-",
+    },
+    {
+      key: "almacen",
+      header: t("mis_col_almacen", "Almacén"),
+      sortAccessor: (row) => row.almacen_virtual || row.almacen || "",
+      render: (row) => formatAlmacen(row.almacen_virtual || row.almacen) || "-",
     },
     {
       key: "sector",
@@ -293,11 +356,23 @@ export default function MisSolicitudes() {
       sortAccessor: (row) => (row.criticidad || "Normal").toLowerCase(),
       render: (row) => {
         const criticidad = row.criticidad || "Normal";
-        const isAlta = criticidad.toLowerCase().includes("alta");
+        const config = getCriticidadConfig(criticidad);
+        const Icon = config.icon;
         return (
-          <Badge variant={isAlta ? "danger" : "default"} className="uppercase text-xs font-semibold">
-            {criticidad}
-          </Badge>
+          <div className="inline-flex items-center gap-1.5">
+            {Icon && (
+              <Icon
+                className="w-4 h-4 flex-shrink-0"
+                style={{ color: config.color }}
+              />
+            )}
+            <span
+              className="text-xs font-semibold tracking-wide uppercase"
+              style={{ color: config.color }}
+            >
+              {config.label}
+            </span>
+          </div>
         );
       },
     },
@@ -308,7 +383,7 @@ export default function MisSolicitudes() {
       render: (row) => {
         const monto = Number(row.total_monto || 0);
         return (
-          <span className="font-mono text-sm text-[var(--fg)]">
+          <span className="font-mono text-sm text-slate-700">
             {formatCurrency(monto)}
           </span>
         );
@@ -319,19 +394,116 @@ export default function MisSolicitudes() {
       header: t("mis_estado", "Estado"),
       sortAccessor: (row) => (row.estado || row.status || "").toLowerCase(),
       render: (row) => {
-        const estado = row.estado || row.status || "pendiente";
-        return <StatusBadge estado={estado} />;
+        const estado = (row.estado || row.status || "pendiente").toLowerCase();
+        const plannerNombre = row.planner_nombre ? `${row.planner_nombre} ${row.planner_apellido || ""}`.trim() : null;
+        const aprobadorNombre = row.aprobador_nombre ? `${row.aprobador_nombre} ${row.aprobador_apellido || ""}`.trim() : null;
+
+        // Generar información del tooltip según el estado
+        const getTooltipInfo = () => {
+          switch (estado) {
+            case "borrador":
+              return {
+                title: t("estado_borrador_title", "Borrador"),
+                lines: [t("estado_borrador_desc", "Solicitud en borrador. Completa los datos y envíala para su aprobación.")]
+              };
+            case "enviada":
+            case "pendiente_de_aprobacion":
+              if (aprobadorNombre) {
+                return {
+                  title: t("estado_enviada_title", "Pendiente de aprobación"),
+                  lines: [
+                    t("estado_enviada_esperando", "Esperando aprobación de:"),
+                    `→ ${aprobadorNombre}`
+                  ]
+                };
+              }
+              return {
+                title: t("estado_enviada_title", "Pendiente de aprobación"),
+                lines: [t("estado_enviada_desc", "Esperando aprobación del coordinador o jefe de área.")]
+              };
+            case "aprobada":
+              if (plannerNombre) {
+                return {
+                  title: t("estado_aprobada_title", "Aprobada"),
+                  lines: [
+                    aprobadorNombre ? `${t("estado_aprobada_por", "Aprobada por:")} ${aprobadorNombre}` : null,
+                    t("estado_aprobada_asignada", "Asignada al planificador:"),
+                    `→ ${plannerNombre}`
+                  ].filter(Boolean)
+                };
+              }
+              return {
+                title: t("estado_aprobada_title", "Aprobada"),
+                lines: [
+                  aprobadorNombre ? `${t("estado_aprobada_por", "Aprobada por:")} ${aprobadorNombre}` : null,
+                  t("estado_aprobada_desc", "Pendiente de asignación a planificador.")
+                ].filter(Boolean)
+              };
+            case "rechazada":
+              return {
+                title: t("estado_rechazada_title", "Rechazada"),
+                lines: [
+                  aprobadorNombre ? `${t("estado_rechazada_por", "Rechazada por:")} ${aprobadorNombre}` : null,
+                  t("estado_rechazada_desc", "Revisa los comentarios del aprobador.")
+                ].filter(Boolean)
+              };
+            case "en_tratamiento":
+            case "processing":
+              return {
+                title: t("estado_tratamiento_title", "En tratamiento"),
+                lines: plannerNombre
+                  ? [`${t("estado_tratamiento_por", "Siendo procesada por:")} ${plannerNombre}`]
+                  : [t("estado_tratamiento_desc", "El planificador está procesando la solicitud.")]
+              };
+            case "despachada":
+            case "dispatched":
+              return {
+                title: t("estado_despachada_title", "Despachada"),
+                lines: [t("estado_despachada_desc", "Los materiales han sido despachados.")]
+              };
+            case "cerrada":
+            case "closed":
+              return {
+                title: t("estado_cerrada_title", "Cerrada"),
+                lines: [t("estado_cerrada_desc", "Solicitud completada y cerrada.")]
+              };
+            default:
+              return { title: estado, lines: [] };
+          }
+        };
+
+        const tooltipInfo = getTooltipInfo();
+
+        return (
+          <InfoTooltip title={tooltipInfo.title} lines={tooltipInfo.lines} position="top">
+            <StatusBadge estado={estado} />
+          </InfoTooltip>
+        );
       },
     },
     {
-      key: "fecha_creacion",
-      header: t("mis_col_fecha", "Fecha"),
-      sortAccessor: (row) => new Date(row.fecha_creacion || row.created_at || 0).getTime(),
-      render: (row) => (
-        <span className="text-sm text-[var(--fg-muted)]">
-          {formatDate(row.fecha_creacion || row.created_at)}
-        </span>
-      ),
+      key: "planificador",
+      header: t("mis_col_planificador", "Planificador"),
+      sortAccessor: (row) => {
+        const nombre = row.planner_nombre || "";
+        const apellido = row.planner_apellido || "";
+        return `${nombre} ${apellido}`.trim().toLowerCase();
+      },
+      render: (row) => {
+        const nombre = row.planner_nombre || "";
+        const apellido = row.planner_apellido || "";
+        const nombreCompleto = `${nombre} ${apellido}`.trim();
+
+        if (!nombreCompleto) {
+          return <span className="text-slate-400">—</span>;
+        }
+
+        return (
+          <span className="text-sm text-slate-700" title={nombreCompleto}>
+            {nombreCompleto}
+          </span>
+        );
+      },
     },
     {
       key: "acciones",
@@ -340,24 +512,24 @@ export default function MisSolicitudes() {
           <span>{t("mis_col_accion", "Acciones")}</span>
           <div className="relative group">
             <HelpCircle
-              className="w-4 h-4 text-[var(--fg-muted)] cursor-help hover:text-[var(--primary)] transition-colors"
+              className="w-4 h-4 text-slate-500 cursor-help hover:text-blue-600 transition-colors"
               aria-label={t("mis_help_title", "Acciones disponibles")}
               role="img"
             />
-            <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.4)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none text-left z-50">
-              <div className="absolute -top-1.5 right-2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-[var(--card)]"></div>
-              <p className="text-xs font-semibold text-[var(--fg)] mb-2">{t("mis_help_title", "Acciones disponibles:")}</p>
-              <ul className="text-xs text-[var(--fg-muted)] space-y-1.5">
+            <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-white/90 backdrop-blur-md border border-white/50 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none text-left z-50">
+              <div className="absolute -top-1.5 right-2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-white/90"></div>
+              <p className="text-xs font-semibold text-slate-700 mb-2">{t("mis_help_title", "Acciones disponibles:")}</p>
+              <ul className="text-xs text-slate-500 space-y-1.5">
                 <li className="flex items-start gap-2">
-                  <Edit3 className="w-3 h-3 mt-0.5 text-[var(--warning)] flex-shrink-0" />
+                  <Edit3 className="w-3 h-3 mt-0.5 text-amber-500 flex-shrink-0" />
                   <span><strong>{t("mis_help_editar", "Editar")}:</strong> {t("mis_help_editar_desc", "Solo borradores propios")}</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Trash2 className="w-3 h-3 mt-0.5 text-[var(--danger)] flex-shrink-0" />
+                  <Trash2 className="w-3 h-3 mt-0.5 text-red-500 flex-shrink-0" />
                   <span><strong>{t("mis_help_eliminar", "Eliminar")}:</strong> {t("mis_help_eliminar_desc", "Solo borradores propios")}</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Eye className="w-3 h-3 mt-0.5 text-[var(--info)] flex-shrink-0" />
+                  <Eye className="w-3 h-3 mt-0.5 text-blue-500 flex-shrink-0" />
                   <span><strong>{t("mis_help_ver", "Ver")}:</strong> {t("mis_help_ver_desc", "Todas tus solicitudes")}</span>
                 </li>
               </ul>
@@ -371,43 +543,42 @@ export default function MisSolicitudes() {
         // Acciones contextuales por estado
         if (estado === "borrador") {
           return (
-            <div className="flex gap-1.5">
-              <Button
-                variant="ghost"
-                className="px-2.5 py-1.5 text-xs"
+            <div className="flex items-center justify-center gap-2">
+              <button
                 onClick={() => navigate(`/solicitudes/${row.id}/materiales`)}
                 title={t("mis_btn_editar", "Editar")}
                 aria-label={`${t("mis_btn_editar", "Editar")} solicitud ${row.id}`}
+                className="p-1.5 rounded-lg hover:bg-amber-50/70 transition-colors cursor-pointer"
               >
-                <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
-              </Button>
-              <Button
-                variant="danger"
-                className="px-2.5 py-1.5 text-xs"
+                <Edit3 className="w-4 h-4 text-amber-500" aria-hidden="true" />
+              </button>
+              <button
                 onClick={() => openDeleteModal(row.id)}
                 title={t("mis_btn_eliminar", "Eliminar")}
                 aria-label={`${t("mis_btn_eliminar", "Eliminar")} solicitud ${row.id}`}
+                className="p-1.5 rounded-lg hover:bg-red-50/70 transition-colors cursor-pointer"
               >
-                <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
-              </Button>
+                <Trash2 className="w-4 h-4 text-red-500" aria-hidden="true" />
+              </button>
             </div>
           );
         }
 
         return (
-          <Button
-            variant="secondary"
-            className="px-3 py-1.5 text-xs flex items-center gap-1.5"
-            onClick={() => navigate(`/solicitudes/${row.id}`)}
-            aria-label={`${t("mis_btn_ver", "Ver")} solicitud ${row.id}`}
-          >
-            <Eye className="w-3.5 h-3.5" aria-hidden="true" />
-            {t("mis_btn_ver", "Ver")}
-          </Button>
+          <div className="flex items-center justify-center">
+            <button
+              onClick={() => setDetalleModal({ open: true, solicitud: row })}
+              title={t("mis_btn_ver", "Ver")}
+              aria-label={`${t("mis_btn_ver", "Ver")} solicitud ${row.id}`}
+              className="p-1.5 rounded-lg hover:bg-blue-50/70 transition-colors cursor-pointer"
+            >
+              <Eye className="w-4 h-4 text-blue-500" aria-hidden="true" />
+            </button>
+          </div>
         );
       },
     },
-  ], [t, navigate, sectores, openDeleteModal]);
+  ]), [t, navigate, sectores, openDeleteModal, setDetalleModal]);
 
   return (
     <div className="space-y-6">
@@ -443,131 +614,55 @@ export default function MisSolicitudes() {
       {error && <Alert variant="danger" onDismiss={() => setError("")}>{error}</Alert>}
       {success && <Alert variant="success" onDismiss={() => setSuccess("")}>{success}</Alert>}
 
-      {/* Stats Cards */}
+      {/* Tabs de filtro por estado */}
       <ScrollReveal delay={100}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {loading ? (
-          <>
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-          </>
-        ) : (
-          <>
-            <Card
-              className={clsx(
-                "hover:border-[var(--primary)] transition-all duration-200 cursor-pointer",
-                "hover:shadow-[0_4px_12px_rgba(255,107,53,0.15)]",
-                "hover:scale-[1.02] active:scale-[0.98]",
-                activeTab === "todas" && "border-[var(--primary)] shadow-glow"
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="w-full flex flex-wrap gap-1">
+            <TabsTrigger value="todas" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              <span>{t("mis_stats_total", "Todas")}</span>
+              <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
+                {stats.total}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="borradores" className="flex items-center gap-2">
+              <Edit3 className="w-4 h-4" />
+              <span>{t("mis_stats_borradores", "Borradores")}</span>
+              {stats.borradores > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
+                  {stats.borradores}
+                </span>
               )}
-              onClick={() => setActiveTab("todas")}
-            >
-              <CardContent className="pt-6 pb-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wider">{t("mis_stats_total", "Total")}</p>
-                    <p className="text-2xl font-bold text-[var(--fg)] mt-1">{stats.total}</p>
-                  </div>
-                  <div className="h-12 w-12 rounded-full bg-[var(--primary-muted)]/20 grid place-items-center">
-                    <FileText className="w-6 h-6 text-[var(--primary)]" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card
-              className={clsx(
-                "hover:border-[var(--warning)] transition-all duration-200 cursor-pointer",
-                "hover:shadow-[0_4px_12px_rgba(234,179,8,0.15)]",
-                "hover:scale-[1.02] active:scale-[0.98]",
-                activeTab === "borradores" && "border-[var(--warning)] shadow-glow"
+            </TabsTrigger>
+            <TabsTrigger value="enviadas" className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              <span>{t("mis_stats_enviadas", "Enviadas")}</span>
+              {stats.enviadas > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
+                  {stats.enviadas}
+                </span>
               )}
-              onClick={() => setActiveTab("borradores")}
-            >
-              <CardContent className="pt-6 pb-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wider">{t("mis_stats_borradores", "Borradores")}</p>
-                    <p className="text-2xl font-bold text-[var(--fg)] mt-1">{stats.borradores}</p>
-                  </div>
-                  <div className="h-12 w-12 rounded-full bg-[var(--warning-muted)]/20 grid place-items-center">
-                    <Edit3 className="w-6 h-6 text-[var(--warning)]" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card
-              className={clsx(
-                "hover:border-[var(--info)] transition-all duration-200 cursor-pointer",
-                "hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)]",
-                "hover:scale-[1.02] active:scale-[0.98]",
-                activeTab === "enviadas" && "border-[var(--info)] shadow-glow"
+            </TabsTrigger>
+            <TabsTrigger value="aprobadas" className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{t("mis_stats_aprobadas", "Aprobadas")}</span>
+              {stats.aprobadas > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
+                  {stats.aprobadas}
+                </span>
               )}
-              onClick={() => setActiveTab("enviadas")}
-            >
-              <CardContent className="pt-6 pb-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wider">{t("mis_stats_enviadas", "Enviadas")}</p>
-                    <p className="text-2xl font-bold text-[var(--fg)] mt-1">{stats.enviadas}</p>
-                  </div>
-                  <div className="h-12 w-12 rounded-full bg-[var(--info-muted)]/20 grid place-items-center">
-                    <Clock className="w-6 h-6 text-[var(--info)]" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card
-              className={clsx(
-                "hover:border-[var(--success)] transition-all duration-200 cursor-pointer",
-                "hover:shadow-[0_4px_12px_rgba(34,197,94,0.15)]",
-                "hover:scale-[1.02] active:scale-[0.98]",
-                activeTab === "aprobadas" && "border-[var(--success)] shadow-glow"
+            </TabsTrigger>
+            <TabsTrigger value="rechazadas" className="flex items-center gap-2">
+              <XCircle className="w-4 h-4" />
+              <span>{t("mis_stats_rechazadas", "Rechazadas")}</span>
+              {stats.rechazadas > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
+                  {stats.rechazadas}
+                </span>
               )}
-              onClick={() => setActiveTab("aprobadas")}
-            >
-              <CardContent className="pt-6 pb-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wider">{t("mis_stats_aprobadas", "Aprobadas")}</p>
-                    <p className="text-2xl font-bold text-[var(--fg)] mt-1">{stats.aprobadas}</p>
-                  </div>
-                  <div className="h-12 w-12 rounded-full bg-[var(--success-muted)]/20 grid place-items-center">
-                    <CheckCircle2 className="w-6 h-6 text-[var(--success)]" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card
-              className={clsx(
-                "hover:border-[var(--danger)] transition-all duration-200 cursor-pointer",
-                "hover:shadow-[0_4px_12px_rgba(239,68,68,0.15)]",
-                "hover:scale-[1.02] active:scale-[0.98]",
-                activeTab === "rechazadas" && "border-[var(--danger)] shadow-glow"
-              )}
-              onClick={() => setActiveTab("rechazadas")}
-            >
-              <CardContent className="pt-6 pb-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wider">{t("mis_stats_rechazadas", "Rechazadas/Eliminadas")}</p>
-                    <p className="text-2xl font-bold text-[var(--fg)] mt-1">{stats.rechazadas}</p>
-                  </div>
-                  <div className="h-12 w-12 rounded-full bg-[var(--danger-muted)]/20 grid place-items-center">
-                    <XCircle className="w-6 h-6 text-[var(--danger)]" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </div>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </ScrollReveal>
 
 
@@ -578,7 +673,7 @@ export default function MisSolicitudes() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>{t("mis_table_title", "Listado de Solicitudes")}</CardTitle>
-              <p className="text-sm text-[var(--fg-muted)] mt-1">
+              <p className="text-sm text-slate-500 mt-1">
                 {filtered.length} {filtered.length === 1 ? t("mis_solicitud", "solicitud") : t("mis_solicitudes", "solicitudes")}
                 {activeTab !== "todas" && ` - ${t(`mis_tab_${activeTab}`, activeTab)}`}
               </p>
@@ -596,76 +691,80 @@ export default function MisSolicitudes() {
         </CardHeader>
 
         <CardContent className="px-6 pb-6 pt-1 space-y-4">
-          {/* Filtros y búsqueda */}
-          <div className="flex flex-col gap-3">
-            {/* Fila 1: Búsqueda y Centro */}
-            <div className="flex flex-col md:flex-row gap-3">
-              <SearchInput
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder={t("mis_search", "Buscar por ID, asunto, centro, sector...")}
-                className="flex-1"
+          {/* Filtros y búsqueda - Una sola fila */}
+          <div className="flex flex-col md:flex-row gap-3 items-end">
+            {/* Búsqueda */}
+            <SearchInput
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={t("mis_search", "Buscar por ID, asunto, centro, sector...")}
+              className="flex-1"
+            />
+
+            {/* Fecha Desde */}
+            <div className="flex-shrink-0">
+              <label htmlFor="fecha-desde" className="block text-xs font-medium text-slate-500 mb-1">
+                {t("mis_filter_desde", "Desde")}
+              </label>
+              <Input
+                id="fecha-desde"
+                type="date"
+                value={fechaDesde}
+                onChange={(e) => setFechaDesde(e.target.value)}
+                aria-label={t("mis_filter_desde", "Desde")}
+                className="w-36"
               />
-              <Select
-                value={centroFilter}
-                onChange={(e) => setCentroFilter(e.target.value)}
-                className="md:w-48"
-              >
-                <option value="">{t("mis_filter_all_centros", "Todos los centros")}</option>
-                {centrosUnicos.map((centro) => (
-                  <option key={centro} value={centro}>
-                    {centro}
-                  </option>
-                ))}
-              </Select>
             </div>
 
-            {/* Fila 2: Filtros de fecha */}
-            <div className="flex flex-col md:flex-row gap-3 items-end">
-              <div className="flex-1 md:flex-none">
-                <label htmlFor="fecha-desde" className="block text-xs font-medium text-[var(--fg-muted)] mb-1">
-                  {t("mis_filter_desde", "Desde")}
-                </label>
-                <Input
-                  id="fecha-desde"
-                  type="date"
-                  value={fechaDesde}
-                  onChange={(e) => setFechaDesde(e.target.value)}
-                  aria-label={t("mis_filter_desde", "Desde")}
-                  className="w-full md:w-40"
-                />
-              </div>
-              <div className="flex-1 md:flex-none">
-                <label htmlFor="fecha-hasta" className="block text-xs font-medium text-[var(--fg-muted)] mb-1">
-                  {t("mis_filter_hasta", "Hasta")}
-                </label>
-                <Input
-                  id="fecha-hasta"
-                  type="date"
-                  value={fechaHasta}
-                  onChange={(e) => setFechaHasta(e.target.value)}
-                  aria-label={t("mis_filter_hasta", "Hasta")}
-                  className="w-full md:w-40"
-                />
-              </div>
-              {(fechaDesde || fechaHasta) && (
-                <Button
-                  variant="ghost"
-                  className="text-xs"
-                  onClick={() => {
-                    setFechaDesde("");
-                    setFechaHasta("");
-                  }}
-                >
-                  {t("mis_clear_dates", "Limpiar fechas")}
-                </Button>
-              )}
+            {/* Fecha Hasta */}
+            <div className="flex-shrink-0">
+              <label htmlFor="fecha-hasta" className="block text-xs font-medium text-slate-500 mb-1">
+                {t("mis_filter_hasta", "Hasta")}
+              </label>
+              <Input
+                id="fecha-hasta"
+                type="date"
+                value={fechaHasta}
+                onChange={(e) => setFechaHasta(e.target.value)}
+                aria-label={t("mis_filter_hasta", "Hasta")}
+                className="w-36"
+              />
             </div>
+
+            {/* Limpiar fechas */}
+            {(fechaDesde || fechaHasta) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs h-9 px-2"
+                onClick={() => {
+                  setFechaDesde("");
+                  setFechaHasta("");
+                }}
+                title={t("mis_clear_dates", "Limpiar fechas")}
+              >
+                ✕
+              </Button>
+            )}
+
+            {/* Centro */}
+            <Select
+              value={centroFilter}
+              onChange={(e) => setCentroFilter(e.target.value)}
+              className="w-44"
+            >
+              <option value="">{t("mis_filter_all_centros", "Todos los centros")}</option>
+              {centrosUnicos.map((centro) => (
+                <option key={centro} value={centro}>
+                  {centro}
+                </option>
+              ))}
+            </Select>
           </div>
 
           {/* Loading skeleton o tabla */}
           {loading ? (
-            <TableSkeleton rows={5} columns={8} />
+            <TableSkeleton rows={5} columns={9} />
           ) : (
             <>
               <DataTable
@@ -674,7 +773,7 @@ export default function MisSolicitudes() {
                 emptyMessage={
                   filtered.length === 0 && items.length > 0 ? (
                     <EmptyState
-                      icon={<Search className="w-8 h-8 text-[var(--fg-subtle)]" />}
+                      icon={<Search className="w-8 h-8 text-slate-400" />}
                       title={t("mis_no_results_title", "Sin resultados")}
                       description={t("mis_no_results", "No hay solicitudes que coincidan con los filtros aplicados")}
                       action={
@@ -694,12 +793,12 @@ export default function MisSolicitudes() {
                     />
                   ) : items.length === 0 ? (
                     <EmptyState
-                      icon={<Inbox className="w-8 h-8 text-[var(--fg-subtle)]" />}
+                      icon={<Inbox className="w-8 h-8 text-slate-400" />}
                       title={t("mis_empty_title", "No tienes solicitudes")}
                       description={t("mis_empty_desc", "Crea tu primera solicitud de materiales para comenzar")}
                       action={
                         <Button onClick={() => navigate("/solicitudes/nueva")}>
-                          <FilePlus2 className="w-4 h-4 mr-2" />
+                          <FilePlus2 className="w-4 h-4" />
                           {t("nav_nueva", "Nueva Solicitud")}
                         </Button>
                       }
@@ -741,6 +840,123 @@ export default function MisSolicitudes() {
         variant="danger"
         loading={deleting}
       />
+
+      {/* Modal de detalle de solicitud */}
+      <Modal
+        isOpen={detalleModal.open}
+        onClose={() => setDetalleModal({ open: false, solicitud: null })}
+        title={`${t("detalle_title", "Solicitud")} #${detalleModal.solicitud?.id || ""}`}
+        size="xl"
+      >
+        {detalleModal.solicitud && (
+          <div className="space-y-6">
+            {/* Estado actual */}
+            <div className="flex items-center justify-between">
+              <StatusBadge estado={detalleModal.solicitud.estado || detalleModal.solicitud.status || "pendiente"} />
+              {detalleModal.solicitud.criticidad && (
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase ${
+                  detalleModal.solicitud.criticidad.toLowerCase().includes("alta")
+                    ? "bg-red-100 text-red-700"
+                    : "bg-slate-100 text-slate-600"
+                }`}>
+                  {detalleModal.solicitud.criticidad}
+                </span>
+              )}
+            </div>
+
+            {/* Información General y Ubicación */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Información General */}
+              <div className="space-y-3 p-4 rounded-xl bg-slate-50/70 border border-white/30">
+                <h4 className="text-xs uppercase font-bold tracking-wider text-slate-500 mb-3">
+                  {t("detalle_info_general", "Información General")}
+                </h4>
+                <DetailRow icon={Hash} label={t("detalle_id", "ID")} value={detalleModal.solicitud.id} />
+                <DetailRow icon={Calendar} label={t("detalle_fecha_creacion", "Creación")} value={formatDate(detalleModal.solicitud.created_at)} />
+                <DetailRow icon={Clock} label={t("detalle_fecha_necesidad", "Fecha Necesidad")} value={formatDate(detalleModal.solicitud.fecha_necesidad)} />
+              </div>
+
+              {/* Ubicación */}
+              <div className="space-y-3 p-4 rounded-xl bg-slate-50/70 border border-white/30">
+                <h4 className="text-xs uppercase font-bold tracking-wider text-slate-500 mb-3">
+                  {t("detalle_ubicacion", "Ubicación")}
+                </h4>
+                <DetailRow icon={Building2} label={t("detalle_centro", "Centro")} value={detalleModal.solicitud.centro} />
+                <DetailRow icon={MapPin} label={t("detalle_sector", "Sector")} value={getSectorNombre(detalleModal.solicitud.sector, sectores)} />
+                <DetailRow icon={Package} label={t("detalle_almacen", "Almacén")} value={formatAlmacen(detalleModal.solicitud.almacen_virtual)} />
+              </div>
+            </div>
+
+            {/* Justificación */}
+            {detalleModal.solicitud.justificacion && (
+              <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-100/50">
+                <h4 className="text-xs uppercase font-bold tracking-wider text-slate-500 mb-2">
+                  {t("detalle_justificacion", "Justificación")}
+                </h4>
+                <p className="text-sm text-slate-700">{detalleModal.solicitud.justificacion}</p>
+              </div>
+            )}
+
+            {/* Items */}
+            {detalleModal.solicitud.items && detalleModal.solicitud.items.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-xs uppercase font-bold tracking-wider text-slate-500">
+                  {t("detalle_items", "Materiales")} ({detalleModal.solicitud.items.length})
+                </h4>
+                <div className="border border-white/30 rounded-xl overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50/70">
+                      <tr>
+                        <th className="text-left px-4 py-2 font-semibold text-slate-600">{t("detalle_codigo", "Código")}</th>
+                        <th className="text-left px-4 py-2 font-semibold text-slate-600">{t("detalle_descripcion", "Descripción")}</th>
+                        <th className="text-right px-4 py-2 font-semibold text-slate-600">{t("detalle_cantidad", "Cant.")}</th>
+                        <th className="text-right px-4 py-2 font-semibold text-slate-600">{t("detalle_precio", "Precio")}</th>
+                        <th className="text-right px-4 py-2 font-semibold text-slate-600">{t("detalle_subtotal", "Subtotal")}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/30">
+                      {detalleModal.solicitud.items.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/50">
+                          <td className="px-4 py-2 font-mono text-xs text-slate-600">{item.codigo || item.codigo_sap}</td>
+                          <td className="px-4 py-2 text-slate-800">{item.descripcion}</td>
+                          <td className="px-4 py-2 text-right font-semibold">{item.cantidad}</td>
+                          <td className="px-4 py-2 text-right text-slate-600">{formatCurrency(item.precio_unitario || 0)}</td>
+                          <td className="px-4 py-2 text-right font-semibold text-slate-800">
+                            {formatCurrency((item.cantidad || 0) * (item.precio_unitario || 0))}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-slate-50/70">
+                      <tr>
+                        <td colSpan={4} className="px-4 py-2 text-right font-bold text-slate-700">
+                          {t("detalle_total", "Total")}:
+                        </td>
+                        <td className="px-4 py-2 text-right font-bold text-blue-600">
+                          {formatCurrency(detalleModal.solicitud.total_monto || 0)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Botón para ir a detalle completo */}
+            <div className="flex justify-end pt-2">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setDetalleModal({ open: false, solicitud: null });
+                  navigate(`/solicitudes/${detalleModal.solicitud.id}`);
+                }}
+              >
+                {t("detalle_ver_completo", "Ver detalle completo")}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

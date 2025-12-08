@@ -101,10 +101,8 @@ export function exportToCSV(data, filename = "export.csv", headers = null) {
     return;
   }
 
-  // Get headers from first object if not provided
   const cols = headers || Object.keys(data[0]);
 
-  // Build CSV content
   let csv = cols.join(",") + "\n";
 
   data.forEach(row => {
@@ -117,7 +115,6 @@ export function exportToCSV(data, filename = "export.csv", headers = null) {
     csv += values.join(",") + "\n";
   });
 
-  // Create blob and download
   const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
@@ -141,10 +138,8 @@ export function exportToExcel(data, filename = "export.xls") {
     return;
   }
 
-  // Get headers from first object
   const headers = Object.keys(data[0]);
 
-  // Create worksheet data
   const wsData = [
     headers, // Header row
     ...data.map(row => headers.map(header => String(row[header] ?? "")))
@@ -158,7 +153,6 @@ export function exportToExcel(data, filename = "export.xls") {
     return Math.max(maxContentWidth, String(header).length);
   });
 
-  // Create aligned rows with padding
   const alignedRows = wsData.map(row => {
     return row.map((cell, idx) => {
       const cellValue = String(cell ?? "");

@@ -3,8 +3,9 @@ import { solicitudes } from "../services/spm";
 import { useAuthStore } from "../store/authStore";
 import { Button } from "../components/ui/Button";
 import { SearchInput } from "../components/ui/SearchInput";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/Card";
-import { DataTable } from "../components/ui/DataTable";
+import { Card, CardContent } from "../components/ui/Card";
+import { ModernDataTable as DataTable } from "../components/features/DataTable";
+import { withSpmAlignments } from "../utils/tableAlignments";
 import StatusBadge from "../components/ui/StatusBadge";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Alert } from "../components/ui/Alert";
@@ -14,7 +15,8 @@ import { useI18n } from "../context/i18n";
 import { formatCurrency, formatAlmacen } from "../utils/formatters";
 import { useDebounced } from "../hooks/useDebounced";
 import { Modal } from "../components/ui/Modal";
-import { XCircle, CheckCircle, RefreshCw, Eye, Package } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/Tabs";
+import { XCircle, CheckCircle, RefreshCw, Eye, Package, Clock } from "lucide-react";
 import { getCriticidadConfig } from "../utils/styleConfig";
 
 const DEBOUNCE_MS = 300;
@@ -22,9 +24,12 @@ const DEBOUNCE_MS = 300;
 export default function Aprobaciones() {
   const { user } = useAuthStore();
   const { t } = useI18n();
+  const [activeTab, setActiveTab] = useState("pendientes");
   const [items, setItems] = useState([]);
+  const [historial, setHistorial] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
   const [q, setQ] = useState("");
   const debouncedQ = useDebounced(q, DEBOUNCE_MS);
   const [msg, setMsg] = useState("");
@@ -32,7 +37,8 @@ export default function Aprobaciones() {
   const [refreshing, setRefreshing] = useState(false);
   const [detailModal, setDetailModal] = useState({ open: false, solicitud: null });
 
-  const load = useCallback(async () => {
+  // Load pending approvals
+  const loadPendientes = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -46,15 +52,43 @@ export default function Aprobaciones() {
     }
   }, []);
 
+  // Load approval history
+  const loadHistorial = useCallback(async () => {
+    setLoadingHistorial(true);
+    try {
+      // Cargar aprobadas y rechazadas
+      const [resAprobadas, resRechazadas] = await Promise.all([
+        solicitudes.listar({ estado: "Aprobada" }),
+        solicitudes.listar({ estado: "Rechazada" }),
+      ]);
+      const aprobadas = resAprobadas.data.solicitudes || resAprobadas.data.results || [];
+      const rechazadas = resRechazadas.data.solicitudes || resRechazadas.data.results || [];
+      // Combinar y ordenar por fecha más reciente
+      const all = [...aprobadas, ...rechazadas].sort((a, b) =>
+        new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at)
+      );
+      setHistorial(all);
+    } catch (err) {
+      // Silently handle error for historial
+      setHistorial([]);
+    } finally {
+      setLoadingHistorial(false);
+    }
+  }, []);
+
   useEffect(() => {
-    load();
-  }, [load]);
+    loadPendientes();
+    loadHistorial();
+  }, [loadPendientes, loadHistorial]);
+
+  // Alias for backward compatibility
+  const load = loadPendientes;
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await load();
+    await Promise.all([loadPendientes(), loadHistorial()]);
     setRefreshing(false);
-  }, [load]);
+  }, [loadPendientes, loadHistorial]);
 
   const filtered = useMemo(() => {
     const term = debouncedQ.trim().toLowerCase();
@@ -69,6 +103,21 @@ export default function Aprobaciones() {
       );
     });
   }, [items, debouncedQ]);
+
+  // Filter for historial tab
+  const filteredHistorial = useMemo(() => {
+    const term = debouncedQ.trim().toLowerCase();
+    if (!term) return historial;
+    return historial.filter((s) => {
+      return (
+        String(s.id).includes(term) ||
+        (s.justificacion || "").toLowerCase().includes(term) ||
+        (s.centro || "").toLowerCase().includes(term) ||
+        (s.sector || "").toLowerCase().includes(term) ||
+        (s.estado || "").toLowerCase().includes(term)
+      );
+    });
+  }, [historial, debouncedQ]);
 
   const aprobar = useCallback(async (id) => {
     setMsg("");
@@ -109,13 +158,28 @@ export default function Aprobaciones() {
     setDetailModal({ open: true, solicitud });
   }, []);
 
-  // Definición de columnas para DataTable (memoizadas)
-  const columns = useMemo(() => [
+  // Definición de columnas para DataTable (memoizadas, con alineación SPM automática)
+  const columns = useMemo(() => withSpmAlignments([
     {
       key: "id",
       header: "ID",
       sortAccessor: (row) => Number(row.id) || 0,
-      render: (row) => <span className="font-semibold text-[var(--fg)]">#{row.id}</span>,
+      render: (row) => <span className="font-semibold text-slate-700">{row.id}</span>,
+    },
+    {
+      key: "fecha_creacion",
+      header: t("aprov_fecha_creacion", "Fecha"),
+      sortAccessor: (row) => row.created_at || "",
+      render: (row) => {
+        const fecha = row.created_at;
+        if (!fecha) return <span className="text-sm text-slate-500">-</span>;
+        const d = new Date(fecha);
+        return (
+          <span className="text-sm text-slate-700">
+            {d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit" })}
+          </span>
+        );
+      },
     },
     {
       key: "solicitante",
@@ -124,7 +188,7 @@ export default function Aprobaciones() {
       render: (row) => {
         const nombre = `${row.solicitante_nombre || ""} ${row.solicitante_apellido || ""}`.trim();
         return (
-          <span className="text-[var(--fg)]" title={nombre}>
+          <span className="text-slate-700" title={nombre}>
             {nombre || "-"}
           </span>
         );
@@ -132,7 +196,7 @@ export default function Aprobaciones() {
     },
     {
       key: "centro",
-      header: t("aprov_centro", "CENTRO"),
+      header: t("aprov_centro", "Centro"),
       sortAccessor: (row) => row.centro || "",
       render: (row) => (
         <span className="font-mono text-sm">{row.centro || "-"}</span>
@@ -140,7 +204,7 @@ export default function Aprobaciones() {
     },
     {
       key: "almacen",
-      header: t("aprov_almacen", "ALMACEN"),
+      header: t("aprov_almacen", "Almacén"),
       sortAccessor: (row) => row.almacen_virtual || row.almacen || "",
       render: (row) => (
         <span className="font-mono text-sm">{formatAlmacen(row.almacen_virtual || row.almacen)}</span>
@@ -148,37 +212,22 @@ export default function Aprobaciones() {
     },
     {
       key: "sector",
-      header: t("aprov_sector", "SECTOR"),
+      header: t("aprov_sector", "Sector"),
       sortAccessor: (row) => row.sector || "",
       render: (row) => (
         <span className="text-sm">{row.sector || "-"}</span>
       ),
     },
     {
-      key: "fecha_creacion",
-      header: t("aprov_fecha_creacion", "F. CREACIÓN"),
-      sortAccessor: (row) => row.created_at || "",
-      render: (row) => {
-        const fecha = row.created_at;
-        if (!fecha) return <span className="text-sm text-[var(--fg-muted)]">-</span>;
-        const d = new Date(fecha);
-        return (
-          <span className="text-sm text-[var(--fg)]">
-            {d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit" })}
-          </span>
-        );
-      },
-    },
-    {
       key: "fecha_necesidad",
-      header: t("aprov_fecha_necesidad", "F. NECESIDAD"),
+      header: t("aprov_fecha_necesidad", "F. Necesidad"),
       sortAccessor: (row) => row.fecha_necesidad || "",
       render: (row) => {
         const fecha = row.fecha_necesidad;
-        if (!fecha) return <span className="text-sm text-[var(--fg-muted)]">-</span>;
+        if (!fecha) return <span className="text-sm text-slate-500">-</span>;
         const d = new Date(fecha);
         return (
-          <span className="text-sm text-[var(--fg)]">
+          <span className="text-sm text-slate-700">
             {d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit" })}
           </span>
         );
@@ -209,7 +258,7 @@ export default function Aprobaciones() {
       header: t("aprov_monto", "Monto"),
       sortAccessor: (row) => Number(row.total_monto || 0),
       render: (row) => (
-        <span className="font-mono text-sm text-[var(--fg)]">
+        <span className="whitespace-nowrap font-mono text-sm text-slate-700">
           {formatCurrency(row.total_monto)}
         </span>
       ),
@@ -219,7 +268,7 @@ export default function Aprobaciones() {
       header: t("aprov_items", "Items"),
       sortAccessor: (row) => (row.items?.length || 0),
       render: (row) => (
-        <span className="text-sm font-semibold text-[var(--fg)]">
+        <span className="text-sm font-semibold text-slate-700">
           {row.items?.length || 0}
         </span>
       ),
@@ -228,40 +277,43 @@ export default function Aprobaciones() {
       key: "acciones",
       header: t("aprov_acciones", "Acciones"),
       render: (row) => (
-        <div className="flex gap-2 flex-wrap justify-center" role="group" aria-label={`${t("aprov_acciones", "Acciones")} solicitud ${row.id}`}>
-          <Button
-            variant="ghost"
-            className="px-3 py-2 text-xs"
+        <div className="flex items-center justify-center gap-1" role="group" aria-label={`${t("aprov_acciones", "Acciones")} solicitud ${row.id}`}>
+          {/* Botón Ver */}
+          <button
+            className="p-1.5 rounded-lg hover:bg-blue-50/70 transition-colors cursor-pointer"
             onClick={() => openDetailModal(row)}
             type="button"
+            title={t("aprov_ver_tooltip", "Ver detalle de la solicitud")}
             aria-label={`Ver detalle solicitud ${row.id}`}
           >
-            <Eye className="w-3.5 h-3.5 mr-1" aria-hidden="true" />
-            {t("aprov_ver", "Ver")}
-          </Button>
-          <Button
-            className="px-3 py-2 text-xs"
+            <Eye className="w-4 h-4 text-blue-600" aria-hidden="true" />
+          </button>
+
+          {/* Botón Aprobar */}
+          <button
+            className="p-1.5 rounded-lg hover:bg-emerald-50/70 transition-colors cursor-pointer"
             onClick={() => aprobar(row.id)}
             type="button"
+            title={t("aprov_aprobar_tooltip", "Aprobar y asignar a planificador")}
             aria-label={`${t("aprov_aprobar", "Aprobar")} solicitud ${row.id}`}
           >
-            <CheckCircle className="w-3.5 h-3.5 mr-1" aria-hidden="true" />
-            {t("aprov_aprobar", "Aprobar")}
-          </Button>
-          <Button
-            variant="danger"
-            className="px-3 py-2 text-xs"
+            <CheckCircle className="w-4 h-4 text-emerald-600" aria-hidden="true" />
+          </button>
+
+          {/* Botón Rechazar */}
+          <button
+            className="p-1.5 rounded-lg hover:bg-red-50/70 transition-colors cursor-pointer"
             onClick={() => openRejectModal(row.id)}
             type="button"
+            title={t("aprov_rechazar_tooltip", "Rechazar la solicitud")}
             aria-label={`${t("aprov_rechazar", "Rechazar")} solicitud ${row.id}`}
           >
-            <XCircle className="w-3.5 h-3.5 mr-1" aria-hidden="true" />
-            {t("aprov_rechazar", "Rechazar")}
-          </Button>
+            <XCircle className="w-4 h-4 text-red-600" aria-hidden="true" />
+          </button>
         </div>
       ),
     },
-  ], [t, aprobar, openRejectModal, openDetailModal]);
+  ]), [t, aprobar, openRejectModal, openDetailModal]);
 
   return (
     <div className="space-y-6">
@@ -276,7 +328,7 @@ export default function Aprobaciones() {
               disabled={refreshing || loading}
               aria-label={t("common_refresh", "Actualizar")}
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
               {t("common_refresh", "Actualizar")}
             </Button>
           }
@@ -290,40 +342,80 @@ export default function Aprobaciones() {
       {/* Card principal */}
       <ScrollReveal delay={100}>
       <Card className="transition-all duration-200">
-        <CardHeader>
-          <div>
-            <CardTitle>{t("aprov_title", "Aprobaciones")}</CardTitle>
-            <CardDescription className="text-sm text-[var(--fg-muted)]">
-              {t("aprov_subtitle", "Solicitudes pendientes")}
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-1 space-y-4">
-          {/* Barra de búsqueda */}
-          <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-            <SearchInput
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder={t("aprov_search_placeholder", "Buscar por ID, centro, sector o justificacion")}
-              className="md:max-w-md"
-            />
-            {loading && (
-              <div className="text-xs font-bold uppercase tracking-[0.05em] text-[var(--fg-muted)]">
-                {t("aprov_loading", "Cargando...")}
-              </div>
-            )}
-          </div>
+        <CardContent className="pt-4 space-y-4">
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+              <TabsList>
+                <TabsTrigger value="pendientes">
+                  <CheckCircle className="w-4 h-4" />
+                  {t("aprov_tab_pendientes", "Pendientes")}
+                  {items.length > 0 && (
+                    <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-600 rounded-full">
+                      {items.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="historial">
+                  <Clock className="w-4 h-4" />
+                  {t("aprov_tab_historial", "Historial")}
+                </TabsTrigger>
+              </TabsList>
+              {(loading || loadingHistorial) && (
+                <div className="text-xs font-bold uppercase tracking-[0.05em] text-slate-500">
+                  {t("aprov_loading", "Cargando...")}
+                </div>
+              )}
+            </div>
 
-          {/* Tabla con DataTable */}
-          {loading ? (
-            <TableSkeleton rows={5} columns={11} />
-          ) : (
-            <DataTable
-              columns={columns}
-              rows={filtered}
-              emptyMessage={t("aprov_no_items", "No hay solicitudes pendientes")}
-            />
-          )}
+            {/* Tab content - Pendientes */}
+            <TabsContent value="pendientes">
+              {/* Barra de búsqueda */}
+              <div className="mb-4">
+                <SearchInput
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder={t("aprov_search_placeholder", "Buscar por ID, centro, sector o justificacion")}
+                  className="md:max-w-md"
+                />
+              </div>
+
+              {/* Tabla con DataTable */}
+              {loading ? (
+                <TableSkeleton rows={5} columns={11} />
+              ) : (
+                <DataTable
+                  columns={columns}
+                  rows={filtered}
+                  emptyMessage={t("aprov_no_items", "No hay solicitudes pendientes")}
+                />
+              )}
+            </TabsContent>
+
+            {/* Tab content - Historial */}
+            <TabsContent value="historial">
+              {/* Barra de búsqueda */}
+              <div className="mb-4">
+                <SearchInput
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder={t("aprov_search_historial", "Buscar en historial...")}
+                  className="md:max-w-md"
+                />
+              </div>
+
+              {/* Tabla de historial (sin botones de acción) */}
+              {loadingHistorial ? (
+                <TableSkeleton rows={5} columns={9} />
+              ) : (
+                <DataTable
+                  columns={columns.filter(col => col.key !== "acciones")}
+                  rows={filteredHistorial}
+                  emptyMessage={t("aprov_no_historial", "No hay registros en el historial")}
+                />
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
       </ScrollReveal>
@@ -355,7 +447,7 @@ export default function Aprobaciones() {
         }
       >
         <div className="space-y-2">
-          <label htmlFor="reject-motivo" className="text-sm text-[var(--fg-muted)]">
+          <label htmlFor="reject-motivo" className="text-sm text-slate-500">
             {t("aprov_motivo", "Motivo de rechazo")}
           </label>
           <textarea
@@ -363,7 +455,7 @@ export default function Aprobaciones() {
             value={rejectModal.motivo}
             onChange={(e) => setRejectModal((prev) => ({ ...prev, motivo: e.target.value }))}
             rows={3}
-            className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none transition-all"
+            className="w-full px-4 py-3 rounded-xl border border-white/50 bg-white/50 backdrop-blur-sm text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
             placeholder={t("planner_rechazar_placeholder", "Explica brevemente el motivo del rechazo...")}
             aria-label={t("aprov_motivo", "Motivo de rechazo")}
           />
@@ -412,23 +504,23 @@ export default function Aprobaciones() {
         {detailModal.solicitud && (
           <div className="space-y-6">
             {/* Información general */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-[var(--bg-soft)] rounded-lg">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50/50 rounded-xl border border-slate-200/50">
               <div>
-                <p className="text-xs text-[var(--fg-muted)] uppercase font-semibold mb-1">Solicitante</p>
-                <p className="text-sm text-[var(--fg)]">
+                <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Solicitante</p>
+                <p className="text-sm text-slate-700">
                   {`${detailModal.solicitud.solicitante_nombre || ""} ${detailModal.solicitud.solicitante_apellido || ""}`.trim() || "-"}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-[var(--fg-muted)] uppercase font-semibold mb-1">Centro</p>
-                <p className="text-sm text-[var(--fg)] font-mono">{detailModal.solicitud.centro || "-"}</p>
+                <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Centro</p>
+                <p className="text-sm text-slate-700 font-mono">{detailModal.solicitud.centro || "-"}</p>
               </div>
               <div>
-                <p className="text-xs text-[var(--fg-muted)] uppercase font-semibold mb-1">Sector</p>
-                <p className="text-sm text-[var(--fg)]">{detailModal.solicitud.sector || "-"}</p>
+                <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Sector</p>
+                <p className="text-sm text-slate-700">{detailModal.solicitud.sector || "-"}</p>
               </div>
               <div>
-                <p className="text-xs text-[var(--fg-muted)] uppercase font-semibold mb-1">Criticidad</p>
+                <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Criticidad</p>
                 <div className="flex items-center gap-1">
                   {(() => {
                     const config = getCriticidadConfig(detailModal.solicitud.criticidad);
@@ -449,8 +541,8 @@ export default function Aprobaciones() {
             {/* Justificación */}
             {detailModal.solicitud.justificacion && (
               <div>
-                <p className="text-xs text-[var(--fg-muted)] uppercase font-semibold mb-2">Justificación</p>
-                <p className="text-sm text-[var(--fg)] p-3 bg-[var(--bg-soft)] rounded-lg">
+                <p className="text-xs text-slate-500 uppercase font-semibold mb-2">Justificación</p>
+                <p className="text-sm text-slate-700 p-3 bg-slate-50/50 rounded-xl border border-slate-200/50">
                   {detailModal.solicitud.justificacion}
                 </p>
               </div>
@@ -459,61 +551,61 @@ export default function Aprobaciones() {
             {/* Tabla de materiales */}
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Package className="w-5 h-5 text-[var(--primary)]" />
-                <p className="text-sm font-semibold text-[var(--fg)]">
+                <Package className="w-5 h-5 text-blue-600" />
+                <p className="text-sm font-semibold text-slate-700">
                   {t("aprov_materiales_titulo", "Materiales Solicitados")} ({detailModal.solicitud.items?.length || 0})
                 </p>
               </div>
 
               {detailModal.solicitud.items && detailModal.solicitud.items.length > 0 ? (
-                <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
+                <div className="overflow-x-auto rounded-xl border border-slate-200/50">
                   <table className="min-w-full text-sm">
-                    <thead className="bg-[var(--bg-soft)] border-b border-[var(--border)]">
+                    <thead className="bg-slate-100/70 border-b border-slate-200/50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                           Código SAP
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                           Descripción
                         </th>
-                        <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                        <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
                           Cantidad
                         </th>
-                        <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                        <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-slate-500">
                           P. Unit.
                         </th>
-                        <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                        <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-slate-500">
                           Subtotal
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[var(--border)]">
+                    <tbody className="divide-y divide-slate-200/50">
                       {detailModal.solicitud.items.map((item, idx) => (
-                        <tr key={idx} className={idx % 2 === 0 ? "bg-[var(--card)]" : "bg-[var(--bg-soft)]"}>
-                          <td className="px-4 py-3 font-mono text-sm text-[var(--fg)]">
+                        <tr key={idx} className={idx % 2 === 0 ? "bg-transparent" : "bg-slate-50/30"}>
+                          <td className="px-4 py-3 font-mono text-sm text-slate-700">
                             {item.codigo_sap || item.material_id || "-"}
                           </td>
-                          <td className="px-4 py-3 text-sm text-[var(--fg)]">
+                          <td className="px-4 py-3 text-sm text-slate-700">
                             {item.descripcion || item.nombre || "-"}
                           </td>
-                          <td className="px-4 py-3 text-center text-sm text-[var(--fg)]">
+                          <td className="px-4 py-3 text-center text-sm text-slate-700">
                             {item.cantidad || 0} {item.unidad_medida || item.uom || "UN"}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono text-sm text-[var(--fg)]">
+                          <td className="px-4 py-3 text-right font-mono text-sm text-slate-700">
                             {formatCurrency(item.precio_unitario || item.precio || 0)}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono text-sm font-semibold text-[var(--fg)]">
+                          <td className="px-4 py-3 text-right font-mono text-sm font-semibold text-slate-700">
                             {formatCurrency((item.cantidad || 0) * (item.precio_unitario || item.precio || 0))}
                           </td>
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot className="bg-[var(--bg-soft)] border-t-2 border-[var(--border)]">
+                    <tfoot className="bg-slate-100/70 border-t-2 border-slate-200/50">
                       <tr>
-                        <td colSpan={4} className="px-4 py-3 text-right text-sm font-bold uppercase text-[var(--fg)]">
+                        <td colSpan={4} className="px-4 py-3 text-right text-sm font-bold uppercase text-slate-700">
                           Total:
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-base font-bold text-[var(--primary)]">
+                        <td className="px-4 py-3 text-right font-mono text-base font-bold text-blue-600">
                           {formatCurrency(detailModal.solicitud.total_monto)}
                         </td>
                       </tr>
@@ -521,7 +613,7 @@ export default function Aprobaciones() {
                   </table>
                 </div>
               ) : (
-                <p className="text-sm text-[var(--fg-muted)] text-center py-6 bg-[var(--bg-soft)] rounded-lg">
+                <p className="text-sm text-slate-500 text-center py-6 bg-slate-50/50 rounded-xl border border-slate-200/50">
                   {t("aprov_sin_materiales", "No hay materiales en esta solicitud")}
                 </p>
               )}

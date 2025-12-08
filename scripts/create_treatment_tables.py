@@ -11,7 +11,7 @@ import sqlite3
 from pathlib import Path
 
 # Ruta de la BD
-DB_PATH = Path(__file__).resolve().parent.parent / "backend_v2" / "spm.db"
+DB_PATH = Path(__file__).resolve().parent.parent / "backend" / "spm.db"
 
 # SQL para crear las tablas
 CREATE_TABLES_SQL = """

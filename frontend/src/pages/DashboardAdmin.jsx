@@ -1,280 +1,776 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
-import { DataTable } from "../components/ui/DataTable";
-import { TableSkeleton, StatCardSkeleton } from "../components/ui/Skeleton";
+import { ModernDataTable as DataTable } from "../components/features/DataTable";
+import { TableSkeleton } from "../components/ui/Skeleton";
 import { ScrollReveal } from "../components/ui/ScrollReveal";
-import {
-  KPICard,
-  ProgressBar,
-  TrendLine
-} from "../components/ui/Charts";
 import { planner, solicitudes } from "../services/spm";
+import api from "../services/api";
+import { formatCurrency } from "../utils/formatters";
 import {
-  Bell,
-  Wallet,
+  Plus,
+  CheckCircle,
   TrendingUp,
-  ListChecks,
-  ClipboardCheck,
-  Settings,
-  Calendar,
-  BarChart3
+  TrendingDown,
+  FileText,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  DollarSign,
+  Package,
+  Layers,
+  BarChart3,
+  Loader2,
 } from "lucide-react";
 import { useI18n } from "../context/i18n";
-import { toNumber, formatCurrency } from "../utils/formatters";
-import api from "../services/api";
+import { toNumber } from "../utils/formatters";
 import { useAuthStore } from "../store/authStore";
-import { useNavigate } from "react-router-dom";
-import { MessageItem, QuickAction, getTableColumns } from "./DashboardShared";
+import { useNavigate, Link } from "react-router-dom";
+import { getTableColumns } from "./DashboardShared";
+import { Button } from "../components/ui/Button";
+import clsx from "clsx";
+
+// ============================================================================
+// KPI CHART COMPONENTS
+// ============================================================================
+
+// Componente Donut Chart para distribución de estados
+function DonutChart({ data, colors, labels }) {
+  const total = data.reduce((sum, val) => sum + val, 0) || 1;
+  const radius = 70;
+  const strokeWidth = 24;
+  const innerRadius = radius - strokeWidth / 2;
+  const circumference = 2 * Math.PI * innerRadius;
+
+  let currentOffset = 0;
+
+  return (
+    <div className="relative w-full flex items-center justify-center">
+      <div className="relative w-48 h-48">
+        <svg viewBox="0 0 160 160" className="w-full h-full -rotate-90">
+          <circle
+            cx="80"
+            cy="80"
+            r={innerRadius}
+            fill="none"
+            stroke="#f1f5f9"
+            strokeWidth={strokeWidth}
+          />
+          {data.map((value, idx) => {
+            const percentage = value / total;
+            const dashLength = percentage * circumference;
+            const dashOffset = currentOffset;
+            currentOffset += dashLength;
+            if (value === 0) return null;
+            return (
+              <circle
+                key={idx}
+                cx="80"
+                cy="80"
+                r={innerRadius}
+                fill="none"
+                stroke={colors[idx]}
+                strokeWidth={strokeWidth}
+                strokeDasharray={`${dashLength} ${circumference - dashLength}`}
+                strokeDashoffset={-dashOffset}
+                strokeLinecap="round"
+                className="transition-all duration-500"
+              />
+            );
+          })}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-3xl font-bold text-slate-800">{total}</span>
+          <span className="text-xs text-slate-500 uppercase tracking-wider">Total</span>
+        </div>
+      </div>
+      <div className="ml-6 space-y-3">
+        {labels.map((label, idx) => (
+          <div key={idx} className="flex items-center gap-3">
+            <div
+              className="w-3 h-3 rounded-full flex-shrink-0"
+              style={{ backgroundColor: colors[idx] }}
+            />
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-600">{label}</span>
+              <span className="text-sm font-semibold text-slate-800">{data[idx]}</span>
+              <span className="text-xs text-slate-400">
+                ({total > 0 ? Math.round((data[idx] / total) * 100) : 0}%)
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Componente de línea de tendencia con relleno degradado
+function TrendLine({ data }) {
+  const safeData = data && data.length > 0 ? data : [0, 0, 0, 0, 0, 0, 0];
+  const max = Math.max(...safeData);
+  const min = Math.min(...safeData);
+  const padding = (max - min) * 0.2 || 1;
+  const adjustedMin = Math.max(0, min - padding);
+  const adjustedMax = max + padding;
+  const range = adjustedMax - adjustedMin || 1;
+
+  const points = safeData
+    .map((value, idx) => {
+      const x = (idx / (safeData.length - 1)) * 100;
+      const y = 100 - ((value - adjustedMin) / range) * 100;
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  return (
+    <div className="h-24 w-full">
+      <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="areaGradientDash" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        <polygon points={`0,100 ${points} 100,100`} fill="url(#areaGradientDash)" />
+        <polyline
+          points={points}
+          fill="none"
+          stroke="#3b82f6"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        {safeData.map((value, idx) => {
+          const x = (idx / (safeData.length - 1)) * 100;
+          const y = 100 - ((value - adjustedMin) / range) * 100;
+          return (
+            <circle
+              key={idx}
+              cx={x}
+              cy={y}
+              r="3"
+              fill="white"
+              stroke="#3b82f6"
+              strokeWidth="2"
+              vectorEffect="non-scaling-stroke"
+            />
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+// Componente de círculo de progreso
+function ProgressCircle({ percentage, color = "#3b82f6" }) {
+  const radius = 40;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div className="relative w-24 h-24">
+      <svg className="w-full h-full -rotate-90">
+        <circle cx="48" cy="48" r={radius} stroke="#e2e8f0" strokeWidth="8" fill="none" />
+        <circle
+          cx="48"
+          cy="48"
+          r={radius}
+          stroke={color}
+          strokeWidth="8"
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          className="transition-all duration-500"
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-xl font-bold text-slate-800">{percentage}%</span>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// DASHBOARD ADMIN COMPONENT
+// ============================================================================
 
 export default function DashboardAdmin() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const { t } = useI18n();
 
+  // Solicitudes state
+  const [activeTab, setActiveTab] = useState("pendientes");
   const [stats, setStats] = useState({
-    total_solicitudes: 0,
-    en_aprobacion: 0,
-    en_planificacion: 0,
-    presupuesto_disponible: 0,
-    pendientes_aprobar: 0,
-    mis_aprobadas: 0,
-    mis_rechazadas: 0,
+    pendientes: 0,
+    en_proceso: 0,
+    completadas: 0,
+    rechazadas: 0,
   });
-  const [recent, setRecent] = useState([]);
-  const [inboxMessages, setInboxMessages] = useState([]);
-  const [loadingMessages, setLoadingMessages] = useState(false);
-  const [loadingStats, setLoadingStats] = useState(true);
-  const [loadingRecent, setLoadingRecent] = useState(true);
+  const [allData, setAllData] = useState({
+    pendientes: [],
+    en_proceso: [],
+    completadas: [],
+    rechazadas: [],
+  });
+  const [loading, setLoading] = useState(true);
 
-  // Cargar datos del administrador
+  // KPI state
+  const [kpiLoading, setKpiLoading] = useState(true);
+  const [kpiData, setKpiData] = useState({
+    solicitudes: { total: 0, aprobadas: 0, rechazadas: 0, pendientes: 0, trend: [0,0,0,0,0,0,0], trendPercentage: 0 },
+    presupuesto: { total: 0, utilizado: 0, disponible: 0, percentage: 0, porCentro: [] },
+    tiempoAprobacion: { promedio: 0, meta: 3.0, trend: [0,0,0,0,0,0,0] },
+    materialesMasSolicitados: [],
+    gruposArticulosMasSolicitados: [],
+  });
+
+  // Fetch solicitudes
   useEffect(() => {
-    setLoadingStats(true);
-    setLoadingRecent(true);
+    setLoading(true);
 
-    const statsPromises = [];
+    const pendientesCall = solicitudes.listar({ estado: "Enviada", page_size: 100 }).catch(() => null);
+    const enProcesoCall = solicitudes.listar({ estado: "En Progreso", page_size: 100 }).catch(() => null);
+    const completadasCall = solicitudes.listar({ estado: "Aprobada", page_size: 100 }).catch(() => null);
+    const rechazadasCall = solicitudes.listar({ estado: "Rechazada", page_size: 100 }).catch(() => null);
 
-    // Cargar estadisticas generales
-    statsPromises.push(
-      planner.stats()
-        .then((res) => {
-          const payload = res?.data?.data || res?.data || {};
-          setStats(prev => ({
-            ...prev,
-            total_solicitudes: toNumber(payload.total_solicitudes ?? payload.total ?? 0),
-            en_aprobacion: toNumber(payload.en_aprobacion ?? payload.pending ?? 0),
-            en_planificacion: toNumber(payload.en_planificacion ?? payload.in_process ?? 0),
-            presupuesto_disponible: payload.presupuesto_disponible ?? payload.presupuesto ?? 0,
-          }));
-        })
-        .catch((err) => console.error("Error stats planner", err))
-    );
+    Promise.all([pendientesCall, enProcesoCall, completadasCall, rechazadasCall])
+      .then(([pendientesRes, enProcesoRes, completadasRes, rechazadasRes]) => {
+        const pendientesLista = pendientesRes?.data?.solicitudes || pendientesRes?.data?.items || [];
+        const enProcesoLista = enProcesoRes?.data?.solicitudes || enProcesoRes?.data?.items || [];
+        const completadasLista = completadasRes?.data?.solicitudes || completadasRes?.data?.items || [];
+        const rechazadasLista = rechazadasRes?.data?.solicitudes || rechazadasRes?.data?.items || [];
 
-    // Cargar MIS solicitudes
-    if (user?.id) {
-      statsPromises.push(
-        solicitudes.listar({ user_id: user.id, page_size: 100 })
-          .then((res) => {
-            const lista = res.data.solicitudes || res.data.items || res.data || [];
-            let aprobadas = 0, rechazadas = 0;
-            lista.forEach(s => {
-              const estado = (s.status || s.estado || "").toLowerCase();
-              if (estado === "aprobada" || estado === "approved") aprobadas++;
-              else if (estado === "rechazada" || estado === "rejected") rechazadas++;
-            });
-            setStats(prev => ({
-              ...prev,
-              mis_aprobadas: aprobadas,
-              mis_rechazadas: rechazadas,
-            }));
-            setRecent(lista.slice(0, 5));
-          })
-          .catch((err) => console.error("Error solicitudes usuario", err))
-          .finally(() => setLoadingRecent(false))
-      );
-    } else {
-      setLoadingRecent(false);
-    }
+        setStats({
+          pendientes: pendientesLista.length,
+          en_proceso: enProcesoLista.length,
+          completadas: completadasLista.length,
+          rechazadas: rechazadasLista.length,
+        });
 
-    // Cargar pendientes de aprobacion
-    statsPromises.push(
-      solicitudes.listar({ estado: "Enviada", page_size: 100 })
-        .then((res) => {
-          const lista = res.data.solicitudes || res.data.items || res.data || [];
-          setStats(prev => ({ ...prev, pendientes_aprobar: lista.length }));
-        })
-        .catch((err) => console.error("Error pendientes aprobacion", err))
-    );
-
-    Promise.allSettled(statsPromises).finally(() => setLoadingStats(false));
-
-    // Cargar mensajes del inbox
-    setLoadingMessages(true);
-    api.get("/mensajes/inbox?limit=4")
-      .then((res) => {
-        if (res.data.ok) {
-          setInboxMessages(res.data.messages || []);
-        }
+        setAllData({
+          pendientes: pendientesLista,
+          en_proceso: enProcesoLista,
+          completadas: completadasLista,
+          rechazadas: rechazadasLista,
+        });
       })
-      .catch((err) => console.error("Error cargando mensajes", err))
-      .finally(() => setLoadingMessages(false));
+      .finally(() => {
+        setLoading(false);
+      });
   }, [user]);
 
+  // Fetch KPIs
+  useEffect(() => {
+    const fetchKpis = async () => {
+      try {
+        setKpiLoading(true);
+        const response = await api.get("/kpis");
+        if (response.data?.ok && response.data?.data) {
+          setKpiData(response.data.data);
+        }
+      } catch (err) {
+        console.error("Error fetching KPIs:", err);
+      } finally {
+        setKpiLoading(false);
+      }
+    };
+    fetchKpis();
+  }, []);
+
   const columns = useMemo(() => getTableColumns(t), [t]);
-  const userName = user?.nombre?.split(' ')[0] || 'Usuario';
+
+  // Tabs configuration
+  const tabs = [
+    { key: "pendientes", label: t("dash_pendientes", "Pendientes"), count: stats.pendientes },
+    { key: "en_proceso", label: t("dash_en_proceso", "En Proceso"), count: stats.en_proceso },
+    { key: "completadas", label: t("dash_completadas", "Completadas"), count: stats.completadas },
+    { key: "rechazadas", label: t("dash_rechazadas", "Rechazadas"), count: stats.rechazadas },
+  ];
+
+  const currentData = allData[activeTab] || [];
+
+  const getTableTitle = () => {
+    switch (activeTab) {
+      case "pendientes":
+        return t("dash_pending_review", "Solicitudes Pendientes de Revisión");
+      case "en_proceso":
+        return t("dash_in_progress", "Solicitudes En Proceso");
+      case "completadas":
+        return t("dash_completed", "Solicitudes Completadas");
+      case "rechazadas":
+        return t("dash_rejected", "Solicitudes Rechazadas");
+      default:
+        return t("dash_solicitudes", "Solicitudes");
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* Header con saludo */}
-      <ScrollReveal>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold text-[var(--fg)]">
-            Hola, {userName}
-          </h1>
-        </div>
-      </ScrollReveal>
+      {/* ================================================================== */}
+      {/* SOLICITUDES SECTION */}
+      {/* ================================================================== */}
 
-      {/* Primera fila: KPIs */}
-      <ScrollReveal delay={100}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {loadingStats ? (
-            <>
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-            </>
-          ) : (
-            <>
-              <KPICard
-                icon={<TrendingUp className="w-6 h-6" />}
-                title={t("dash_total_solicitudes", "Total Solicitudes")}
-                value={stats.total_solicitudes}
-                subtitle="En el sistema"
-                trend={12.5}
-                trendLabel="vs mes anterior"
-                borderColor="var(--primary)"
-              />
-              <KPICard
-                icon={<ClipboardCheck className="w-6 h-6" />}
-                title={t("dash_en_aprobacion", "En Aprobacion")}
-                value={stats.pendientes_aprobar || stats.en_aprobacion}
-                subtitle="Pendientes de decision"
-                borderColor="var(--warning)"
-                highlight={stats.pendientes_aprobar > 0}
-                onClick={() => navigate('/aprobaciones')}
-              />
-              <KPICard
-                icon={<ListChecks className="w-6 h-6" />}
-                title={t("dash_en_planificacion", "En Planificacion")}
-                value={stats.en_planificacion}
-                subtitle="Para asignar"
-                borderColor="var(--success)"
-                onClick={() => navigate('/planificador')}
-              />
-              <KPICard
-                icon={<Wallet className="w-6 h-6" />}
-                title={t("dash_presupuesto", "Presupuesto")}
-                value={formatCurrency(stats.presupuesto_disponible)}
-                subtitle="Disponible global"
-                borderColor="var(--info)"
-              />
-            </>
-          )}
-        </div>
-      </ScrollReveal>
-
-      {/* Segunda fila: Tendencia + Tabla */}
-      <ScrollReveal delay={200}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Grafico de tendencia */}
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Tendencia Semanal</CardTitle>
-                <BarChart3 className="w-5 h-5 text-[var(--primary)]" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <TrendLine data={[45, 52, 48, 61, 58, 67, 72]} height={80} />
-              <div className="grid grid-cols-7 gap-1 text-[10px] text-[var(--fg-muted)] text-center mt-2">
-                {["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"].map((d) => <span key={d}>{d}</span>)}
-              </div>
-              <div className="mt-4 pt-4 border-t border-[var(--border)] flex items-center justify-between text-sm">
-                <span className="text-[var(--fg-muted)]">Promedio semanal</span>
-                <span className="font-semibold text-[var(--fg)]">58 solicitudes</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Tabla */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>{t("dash_ultimas_sistema", "Ultimas Solicitudes del Sistema")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingRecent ? (
-                <TableSkeleton rows={5} columns={3} />
-              ) : (
-                <DataTable columns={columns} rows={recent} emptyMessage="No hay solicitudes" />
+      {/* Header: Tabs + Nueva Solicitud button */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              className={clsx(
+                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                activeTab === tab.key
+                  ? "bg-white shadow-sm text-blue-600"
+                  : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
               )}
-            </CardContent>
-          </Card>
+            >
+              <span>{tab.label}</span>
+              <span
+                className={clsx(
+                  "px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums",
+                  activeTab === tab.key
+                    ? "bg-blue-100 text-blue-600"
+                    : "bg-slate-100 text-slate-500"
+                )}
+              >
+                {tab.count}
+              </span>
+            </button>
+          ))}
         </div>
-      </ScrollReveal>
 
-      {/* Tercera fila: Distribucion + Notificaciones + Accesos Rapidos */}
-      <ScrollReveal delay={300}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Distribucion de Estados</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <ProgressBar value={stats.mis_aprobadas || 65} max={100} color="var(--success)" label="Aprobadas" showValue />
-              <ProgressBar value={stats.pendientes_aprobar || 20} max={100} color="var(--warning)" label="Pendientes" showValue />
-              <ProgressBar value={stats.mis_rechazadas || 15} max={100} color="var(--danger)" label="Rechazadas" showValue />
-            </CardContent>
-          </Card>
+        <Button as={Link} to="/solicitudes/nueva">
+          <Plus className="w-4 h-4" />
+          {t("dash_new_request", "Nueva Solicitud")}
+        </Button>
+      </div>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <Bell className="w-5 h-5 text-[var(--warning)]" />
-                <CardTitle className="text-base">Notificaciones</CardTitle>
+      {/* Tabla principal */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <h2 className="text-base font-semibold text-slate-800">
+              {getTableTitle()}
+            </h2>
+            <span className="text-xs text-slate-500 tabular-nums">
+              {currentData.length} {t("dash_items", "items")}
+            </span>
+          </div>
+
+          <div className="p-4">
+            {loading ? (
+              <TableSkeleton rows={5} columns={7} />
+            ) : currentData.length === 0 ? (
+              <div className="py-16 text-center">
+                <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto mb-4 opacity-60" />
+                <p className="text-slate-500 text-sm">
+                  {activeTab === "pendientes"
+                    ? t("dash_no_pending", "No hay solicitudes pendientes de revisión")
+                    : t("dash_no_requests_category", "No hay solicitudes en esta categoría")}
+                </p>
               </div>
-            </CardHeader>
-            <CardContent>
-              {loadingMessages ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--primary)]"></div>
-                </div>
-              ) : inboxMessages.length === 0 ? (
-                <p className="text-center py-6 text-[var(--fg-muted)] text-sm">Sin mensajes nuevos</p>
-              ) : (
-                <div className="space-y-2">
-                  {inboxMessages.slice(0, 3).map((msg) => (
-                    <MessageItem key={msg.id} msg={msg} onClick={() => navigate('/mensajes')} />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            ) : (
+              <DataTable
+                columns={columns}
+                rows={currentData}
+                emptyMessage={t("dash_no_requests", "No hay solicitudes")}
+                onRowClick={(row) => navigate(`/solicitudes/${row.id}`)}
+              />
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Accesos Rapidos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-3">
-                <QuickAction icon={<Settings className="w-5 h-5" />} label="Admin" onClick={() => navigate('/admin')} primary />
-                <QuickAction icon={<BarChart3 className="w-5 h-5" />} label="KPIs" onClick={() => navigate('/kpi')} />
-                <QuickAction icon={<Calendar className="w-5 h-5" />} label="Planificador" onClick={() => navigate('/planificador')} />
-                <QuickAction icon={<Wallet className="w-5 h-5" />} label="Presupuestos" onClick={() => navigate('/presupuestos')} />
-              </div>
-            </CardContent>
-          </Card>
+      {/* ================================================================== */}
+      {/* KPI SECTION */}
+      {/* ================================================================== */}
+
+      {kpiLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
         </div>
-      </ScrollReveal>
+      ) : (
+        <>
+          {/* Métricas principales - 4 tarjetas */}
+          <ScrollReveal delay={100}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Total Solicitudes */}
+              <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
+                <CardContent className="h-full flex flex-col justify-between py-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
+                        Total Solicitudes
+                      </p>
+                      <p className="text-3xl font-bold text-slate-800">{kpiData.solicitudes.total}</p>
+                    </div>
+                    <div className="h-12 w-12 rounded-2xl bg-blue-500/10 grid place-items-center flex-shrink-0">
+                      <FileText className="w-6 h-6 text-blue-600" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    {kpiData.solicitudes.trendPercentage >= 0 ? (
+                      <div className="flex items-center gap-1 text-emerald-600">
+                        <TrendingUp className="w-4 h-4" />
+                        <span className="font-semibold">+{kpiData.solicitudes.trendPercentage}%</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 text-red-600">
+                        <TrendingDown className="w-4 h-4" />
+                        <span className="font-semibold">{kpiData.solicitudes.trendPercentage}%</span>
+                      </div>
+                    )}
+                    <span className="text-slate-500">vs mes anterior</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Tasa de Aprobación */}
+              {(() => {
+                const tasaAprobacion = kpiData.solicitudes.total > 0
+                  ? Math.round((kpiData.solicitudes.aprobadas / kpiData.solicitudes.total) * 100)
+                  : 0;
+                const isGood = tasaAprobacion >= 70;
+                const isWarning = tasaAprobacion >= 40 && tasaAprobacion < 70;
+                const bgColor = isGood ? "bg-emerald-500/10" : isWarning ? "bg-amber-500/10" : "bg-red-500/10";
+                const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+                const IconComponent = isGood ? CheckCircle2 : isWarning ? Clock : XCircle;
+
+                return (
+                  <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
+                    <CardContent className="h-full flex flex-col justify-between py-5">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
+                            Tasa de Aprobación
+                          </p>
+                          <p className={`text-3xl font-bold ${isGood ? 'text-emerald-600' : isWarning ? 'text-amber-600' : 'text-red-600'}`}>
+                            {tasaAprobacion}%
+                          </p>
+                        </div>
+                        <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center flex-shrink-0`}>
+                          <IconComponent className={`w-6 h-6 ${iconColor}`} />
+                        </div>
+                      </div>
+                      <div className="text-sm text-slate-500">
+                        {kpiData.solicitudes.aprobadas} aprobadas de {kpiData.solicitudes.total}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
+
+              {/* Tiempo Promedio */}
+              {(() => {
+                const promedio = kpiData.tiempoAprobacion.promedio;
+                const meta = kpiData.tiempoAprobacion.meta;
+                const isGood = promedio <= meta;
+                const isWarning = promedio > meta && promedio <= meta * 1.5;
+                const bgColor = isGood ? "bg-emerald-500/10" : isWarning ? "bg-amber-500/10" : "bg-red-500/10";
+                const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+                const valueColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+
+                return (
+                  <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
+                    <CardContent className="h-full flex flex-col justify-between py-5">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
+                            Tiempo Promedio
+                          </p>
+                          <p className={`text-3xl font-bold ${valueColor}`}>{promedio} días</p>
+                        </div>
+                        <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center flex-shrink-0`}>
+                          <Clock className={`w-6 h-6 ${iconColor}`} />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        {isGood ? (
+                          <div className="flex items-center gap-1 text-emerald-600">
+                            <TrendingDown className="w-4 h-4" />
+                            <span className="font-semibold">Bajo meta</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-amber-600">
+                            <TrendingUp className="w-4 h-4" />
+                            <span className="font-semibold">Sobre meta</span>
+                          </div>
+                        )}
+                        <span className="text-slate-500">Meta: {meta} días</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
+
+              {/* Presupuesto */}
+              {(() => {
+                const percentage = kpiData.presupuesto.percentage;
+                const isGood = percentage < 70;
+                const isWarning = percentage >= 70 && percentage <= 90;
+                const bgColor = isGood ? "bg-emerald-500/10" : isWarning ? "bg-amber-500/10" : "bg-red-500/10";
+                const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+                const textColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+
+                return (
+                  <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
+                    <CardContent className="h-full flex flex-col justify-between py-5">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
+                            Presupuesto
+                          </p>
+                          <p className="text-2xl font-bold text-slate-800">
+                            {formatCurrency(kpiData.presupuesto.utilizado)}
+                          </p>
+                        </div>
+                        <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center flex-shrink-0`}>
+                          <DollarSign className={`w-6 h-6 ${iconColor}`} />
+                        </div>
+                      </div>
+                      <div className="text-sm">
+                        <span className={`font-semibold ${textColor}`}>{percentage}%</span>
+                        <span className="text-slate-500"> de {formatCurrency(kpiData.presupuesto.total)}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
+            </div>
+          </ScrollReveal>
+
+          {/* Tendencia + Donut Chart */}
+          <ScrollReveal delay={200}>
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+              <Card className="lg:col-span-3 h-[280px] bg-white/70 backdrop-blur-md border-white/30">
+                <CardHeader className="px-6 pt-5 pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">Tendencia de Solicitudes</CardTitle>
+                    <BarChart3 className="w-5 h-5 text-blue-600" />
+                  </div>
+                </CardHeader>
+                <CardContent className="px-6 pb-5 flex flex-col justify-between h-[calc(100%-60px)]">
+                  <div className="flex-1 flex flex-col justify-center">
+                    <TrendLine data={kpiData.solicitudes.trend} />
+                    <div className="grid grid-cols-7 gap-1 text-xs text-slate-500 text-center mt-2">
+                      {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((day) => (
+                        <div key={day}>{day}</div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="pt-3 border-t border-white/20 flex items-center justify-between text-sm">
+                    <span className="text-slate-500">Promedio semanal</span>
+                    <span className="font-semibold text-slate-800">
+                      {Math.round(kpiData.solicitudes.trend.reduce((a, b) => a + b, 0) / Math.max(kpiData.solicitudes.trend.length, 1))} solicitudes
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="lg:col-span-2 h-[280px] bg-white/70 backdrop-blur-md border-white/30">
+                <CardHeader className="px-6 pt-5 pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">Distribución de Estados</CardTitle>
+                    <BarChart3 className="w-5 h-5 text-blue-600" />
+                  </div>
+                </CardHeader>
+                <CardContent className="px-6 pb-5 flex items-center justify-center h-[calc(100%-60px)]">
+                  <DonutChart
+                    data={[
+                      kpiData.solicitudes.aprobadas,
+                      kpiData.solicitudes.rechazadas,
+                      kpiData.solicitudes.pendientes,
+                    ]}
+                    colors={["#10b981", "#ef4444", "#f59e0b"]}
+                    labels={["Aprobadas", "Rechazadas", "Pendientes"]}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </ScrollReveal>
+
+          {/* Materiales | Grupos | Presupuesto por Centro */}
+          <ScrollReveal delay={250}>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Materiales Más Solicitados */}
+              <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
+                <CardHeader className="px-5 pt-5 pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">Materiales Más Solicitados</CardTitle>
+                    <Package className="w-5 h-5 text-blue-600" />
+                  </div>
+                </CardHeader>
+                <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
+                  <div className="space-y-3">
+                    {(kpiData.materialesMasSolicitados || []).length > 0 ? (
+                      kpiData.materialesMasSolicitados.map((material, idx) => {
+                        const maxCantidad = Math.max(...kpiData.materialesMasSolicitados.map(m => m.cantidad), 1);
+                        const percentage = (material.cantidad / maxCantidad) * 100;
+                        return (
+                          <div key={idx} className="group">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500/10 grid place-items-center text-xs font-bold text-blue-600">
+                                  {idx + 1}
+                                </div>
+                                <span className="text-sm text-slate-700 font-medium truncate" title={material.nombre}>
+                                  {material.nombre}
+                                </span>
+                              </div>
+                              <span className="text-xs font-semibold text-slate-800 tabular-nums flex-shrink-0 ml-2">
+                                {(material.cantidad || 0).toLocaleString()}
+                              </span>
+                            </div>
+                            <div className="h-2.5 bg-slate-100/70 backdrop-blur-sm rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-500 group-hover:from-blue-600 group-hover:to-blue-500"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-sm text-slate-500 text-center py-4">No hay datos disponibles</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Grupos de Artículos */}
+              <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
+                <CardHeader className="px-5 pt-5 pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">Grupos de Artículos</CardTitle>
+                    <Layers className="w-5 h-5 text-cyan-600" />
+                  </div>
+                </CardHeader>
+                <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
+                  <div className="space-y-3">
+                    {(kpiData.gruposArticulosMasSolicitados || []).length > 0 ? (
+                      kpiData.gruposArticulosMasSolicitados.map((grupo, idx) => {
+                        const maxCantidad = Math.max(...kpiData.gruposArticulosMasSolicitados.map(g => g.cantidad), 1);
+                        const percentage = (grupo.cantidad / maxCantidad) * 100;
+                        return (
+                          <div key={idx} className="group">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-cyan-500/10 grid place-items-center text-xs font-bold text-cyan-600">
+                                  {idx + 1}
+                                </div>
+                                <span className="text-sm text-slate-700 font-medium truncate" title={grupo.nombre}>
+                                  {grupo.nombre}
+                                </span>
+                              </div>
+                              <span className="text-xs font-semibold text-slate-800 tabular-nums flex-shrink-0 ml-2">
+                                {(grupo.cantidad || 0).toLocaleString()}
+                              </span>
+                            </div>
+                            <div className="h-2.5 bg-slate-100/70 backdrop-blur-sm rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-full transition-all duration-500 group-hover:from-cyan-600 group-hover:to-cyan-500"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-sm text-slate-500 text-center py-4">No hay datos disponibles</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Presupuesto por Centro */}
+              <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
+                <CardHeader className="px-5 pt-5 pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">Presupuesto por Centro</CardTitle>
+                    <DollarSign className="w-5 h-5 text-emerald-600" />
+                  </div>
+                </CardHeader>
+                <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
+                  <div className="space-y-3">
+                    {(kpiData.presupuesto.porCentro || []).length > 0 ? (
+                      kpiData.presupuesto.porCentro.map((centro, idx) => {
+                        const maxValor = Math.max(...kpiData.presupuesto.porCentro.map(c => c.valor), 1);
+                        const percentage = (centro.valor / maxValor) * 100;
+                        return (
+                          <div key={idx} className="group">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="text-sm text-slate-700 font-medium truncate flex-1" title={centro.nombre}>
+                                {centro.nombre}
+                              </span>
+                              <span className="text-xs font-semibold text-slate-800 tabular-nums flex-shrink-0 ml-2">
+                                {formatCurrency(centro.valor)}
+                              </span>
+                            </div>
+                            <div className="h-2.5 bg-slate-100/70 backdrop-blur-sm rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500 group-hover:from-emerald-600 group-hover:to-emerald-500"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-sm text-slate-500 text-center py-4">No hay datos disponibles</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </ScrollReveal>
+
+          {/* Resumen de Presupuesto */}
+          <ScrollReveal delay={300}>
+            <Card className="bg-white/70 backdrop-blur-md border-white/30">
+              <CardHeader className="px-6 pt-6 pb-4">
+                <CardTitle>Resumen de Presupuesto</CardTitle>
+              </CardHeader>
+              <CardContent className="px-6 pb-6">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+                  <div className="flex-shrink-0">
+                    <ProgressCircle percentage={kpiData.presupuesto.percentage} />
+                  </div>
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+                    <div className="text-center md:text-left">
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
+                        Presupuesto Total
+                      </p>
+                      <p className="text-2xl font-bold text-slate-800">
+                        {formatCurrency(kpiData.presupuesto.total)}
+                      </p>
+                    </div>
+                    <div className="text-center md:text-left">
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
+                        Utilizado
+                      </p>
+                      <p className="text-2xl font-bold text-amber-500">
+                        {formatCurrency(kpiData.presupuesto.utilizado)}
+                      </p>
+                    </div>
+                    <div className="text-center md:text-left">
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
+                        Disponible
+                      </p>
+                      <p className="text-2xl font-bold text-emerald-500">
+                        {formatCurrency(kpiData.presupuesto.disponible)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </ScrollReveal>
+        </>
+      )}
     </div>
   );
 }

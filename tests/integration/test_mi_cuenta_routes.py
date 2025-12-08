@@ -1,6 +1,6 @@
 """
 Tests for mi_cuenta routes - User profile management
-Tests all endpoints in backend_v2/routes/mi_cuenta.py
+Tests all endpoints in backend/routes/mi_cuenta.py
 """
 
 from __future__ import annotations
@@ -11,9 +11,9 @@ from pathlib import Path
 import bcrypt
 import pytest
 
-from backend_v2.app import create_app
-from backend_v2.core.config import settings
-from backend_v2.routes.auth import generate_tokens
+from backend.app import create_app
+from backend.core.config import settings
+from backend.routes.auth import generate_tokens
 
 
 def _db_path() -> Path:

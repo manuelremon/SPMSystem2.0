@@ -45,7 +45,7 @@ def setup_environment():
 
     root_dir = Path(__file__).resolve().parent.parent
     sys.path.insert(0, str(root_dir))
-    sys.path.insert(0, str(root_dir / "backend_v2"))
+    sys.path.insert(0, str(root_dir / "backend"))
     os.chdir(str(root_dir))
 
     # Cargar .env.staging si existe
@@ -74,9 +74,9 @@ def verify_directory_structure(root_dir):
     log("HEADER", "VERIFICACIÓN DE ESTRUCTURA")
 
     critical_paths = [
-        "backend_v2/app.py",
-        "backend_v2/core",
-        "backend_v2/routes",
+        "backend/app.py",
+        "backend/core",
+        "backend/routes",
         "tests",
         "scripts/run_backend.py",
     ]
@@ -135,8 +135,8 @@ def setup_database(root_dir):
     log("HEADER", "CONFIGURACIÓN DE BASE DE DATOS")
 
     try:
-        from backend_v2.app import create_app
-        from backend_v2.core.db import init_db
+        from backend.app import create_app
+        from backend.core.db import init_db
 
         # Crear aplicación
         app = create_app()
@@ -167,7 +167,7 @@ def verify_application():
     log("HEADER", "VERIFICACIÓN DE APLICACIÓN")
 
     try:
-        from backend_v2.app import create_app
+        from backend.app import create_app
 
         app = create_app()
         log("SUCCESS", "✓ Aplicación Flask creada")
@@ -266,9 +266,9 @@ def create_staging_report(root_dir):
 - **Config File**: .env.staging
 
 ### 2. Directory Structure
-- [+] backend_v2/app.py - Flask application factory
-- [+] backend_v2/core/ - Core modules (repository, cache, schemas, services)
-- [+] backend_v2/routes/ - API endpoints
+- [+] backend/app.py - Flask application factory
+- [+] backend/core/ - Core modules (repository, cache, schemas, services)
+- [+] backend/routes/ - API endpoints
 - [+] tests/ - Test suite (33 tests, 28 passing)
 - [+] run_backend.py - Backend startup script
 

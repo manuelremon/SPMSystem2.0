@@ -26,7 +26,7 @@ export default function AdminRoles() {
                     </Badge>
                   ))
                 ) : (
-                  <span className="text-xs text-[var(--fg-muted)]">Sin permisos</span>
+                  <span className="text-xs text-slate-500">Sin permisos</span>
                 )}
                 {permisosArray.length > 3 && (
                   <Badge variant="neutral" className="text-xs">

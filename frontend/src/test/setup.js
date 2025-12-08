@@ -22,6 +22,13 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
   disconnect: vi.fn(),
 }))
 
+// Mock de IntersectionObserver
+global.IntersectionObserver = vi.fn().mockImplementation(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
+}))
+
 // Mock de CSS variables
 document.documentElement.style.setProperty('--fg', '#000')
 document.documentElement.style.setProperty('--fg-muted', '#666')

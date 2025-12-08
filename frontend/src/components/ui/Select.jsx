@@ -2,6 +2,10 @@ import React from "react";
 import clsx from "clsx";
 import { ChevronDown } from "lucide-react";
 
+/**
+ * Select Component - Glass Morphism Style
+ * Translucent dropdown with blur effect
+ */
 export const Select = React.forwardRef(({
   className = "",
   error = false,
@@ -13,25 +17,28 @@ export const Select = React.forwardRef(({
       <select
         ref={ref}
         className={clsx(
-          // Base styles - matching Input component
-          "w-full appearance-none rounded-[var(--radius-md)]",
+          // Glass base
+          "w-full appearance-none",
+          "bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm",
+          "rounded-xl",
           "px-4 py-3 pr-10",
-          "bg-[var(--input-bg)]",
-          "text-sm text-[var(--fg)]",
-          // Border styles
-          "border border-[var(--border-strong)]",
+          // Typography
+          "text-sm text-slate-800 dark:text-slate-200",
           // Transitions
-          "transition-all duration-[var(--transition-fast)]",
+          "transition-all duration-200",
           // Focus states
-          "focus:outline-none focus:ring-2",
+          "focus:outline-none",
+          "focus:bg-white/70 dark:focus:bg-slate-700/70",
           // Cursor
           "cursor-pointer",
+          // Hover
+          "hover:bg-white/60 dark:hover:bg-slate-700/60",
           // Disabled state
-          "disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[var(--bg-soft)]",
-          // Error or normal states
+          "disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-white/30 dark:disabled:bg-slate-800/30",
+          // Border - Always blue (or red for error)
           error
-            ? "border-[var(--danger)] focus:border-[var(--danger)] focus:ring-[var(--danger)]/20"
-            : "focus:ring-[var(--primary)] focus:border-[var(--primary)] hover:border-[var(--border-strong)]",
+            ? "border border-red-400 dark:border-red-500 ring-1 ring-red-100 dark:ring-red-900/30 focus:border-red-400 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-800/30"
+            : "border border-blue-300 dark:border-blue-600 ring-1 ring-blue-100 dark:ring-blue-900/30 focus:border-blue-400 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800/30 hover:border-blue-400 dark:hover:border-blue-500",
           className
         )}
         aria-invalid={error ? "true" : undefined}
@@ -43,8 +50,8 @@ export const Select = React.forwardRef(({
         className={clsx(
           "absolute right-3 top-1/2 -translate-y-1/2",
           "w-4 h-4 pointer-events-none",
-          "text-[var(--fg-muted)]",
-          "transition-transform duration-150"
+          "text-slate-500 dark:text-slate-400",
+          "transition-transform duration-200"
         )}
         aria-hidden="true"
       />

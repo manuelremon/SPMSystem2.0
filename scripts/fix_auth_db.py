@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Script para crear/corregir tabla usuarios en backend_v2/spm.db
+Script para crear/corregir tabla usuarios en backend/spm.db
 """
 
 import sqlite3
 from pathlib import Path
 
 # Base de datos correcta
-db_path = Path("../backend_v2/spm.db")
+db_path = Path("../backend/spm.db")
 print(f"Trabajando con: {db_path}")
 
 conn = sqlite3.connect(db_path)

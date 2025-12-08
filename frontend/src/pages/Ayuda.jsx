@@ -158,7 +158,7 @@ ${formData.mensaje}
       />
 
       {/* Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-[var(--border)] pb-4">
+      <div className="flex flex-wrap gap-2 border-b border-white/30 pb-4">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -169,8 +169,8 @@ ${formData.mensaje}
               className={`
                 flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all
                 ${isActive
-                  ? "bg-[var(--primary)] text-white"
-                  : "bg-[var(--bg-soft)] text-[var(--fg-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--fg)]"
+                  ? "bg-blue-600 text-white"
+                  : "bg-slate-50/70 text-slate-500 hover:bg-slate-100/70 hover:text-slate-800"
                 }
               `}
             >
@@ -190,7 +190,7 @@ ${formData.mensaje}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-[var(--primary)]" />
+                    <MessageSquare className="w-5 h-5 text-blue-600" />
                     Enviar Mensaje al Administrador
                   </CardTitle>
                   <CardDescription>
@@ -200,16 +200,16 @@ ${formData.mensaje}
                 <CardContent>
                   {sent ? (
                     <div className="text-center py-8">
-                      <CheckCircle className="w-16 h-16 text-[var(--success)] mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-[var(--fg-strong)] mb-2">
+                      <CheckCircle className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-slate-900 mb-2">
                         Mensaje Enviado
                       </h3>
-                      <p className="text-[var(--fg-muted)] mb-4">
+                      <p className="text-slate-500 mb-4">
                         Tu mensaje ha sido enviado al administrador. Recibirás una respuesta pronto.
                       </p>
                       <button
                         onClick={() => setSent(false)}
-                        className="px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-hover)] transition-colors"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                       >
                         Enviar otro mensaje
                       </button>
@@ -217,7 +217,7 @@ ${formData.mensaje}
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-[var(--fg)] mb-1.5">
+                        <label className="block text-sm font-medium text-slate-800 mb-1.5">
                           Tipo de Consulta
                         </label>
                         <Select
@@ -233,7 +233,7 @@ ${formData.mensaje}
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-[var(--fg)] mb-1.5">
+                        <label className="block text-sm font-medium text-slate-800 mb-1.5">
                           Asunto
                         </label>
                         <input
@@ -242,12 +242,12 @@ ${formData.mensaje}
                           onChange={(e) => setFormData({ ...formData, asunto: e.target.value })}
                           placeholder="Describe brevemente tu consulta"
                           required
-                          className="w-full px-3 py-2 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border)] text-[var(--fg)] placeholder-[var(--fg-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                          className="w-full px-3 py-2 rounded-lg bg-slate-100/70 border border-white/30 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-[var(--fg)] mb-1.5">
+                        <label className="block text-sm font-medium text-slate-800 mb-1.5">
                           Mensaje
                         </label>
                         <textarea
@@ -256,12 +256,12 @@ ${formData.mensaje}
                           placeholder="Describe tu consulta o problema en detalle..."
                           required
                           rows={6}
-                          className="w-full px-3 py-2 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border)] text-[var(--fg)] placeholder-[var(--fg-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] resize-none"
+                          className="w-full px-3 py-2 rounded-lg bg-slate-100/70 border border-white/30 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 resize-none"
                         />
                       </div>
 
                       {error && (
-                        <div className="p-3 rounded-lg bg-[var(--error)]/10 border border-[var(--error)]/30 text-[var(--error)] text-sm">
+                        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-600 text-sm">
                           {error}
                         </div>
                       )}
@@ -269,7 +269,7 @@ ${formData.mensaje}
                       <button
                         type="submit"
                         disabled={sending}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-hover)] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {sending ? (
                           <>
@@ -297,24 +297,24 @@ ${formData.mensaje}
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-start gap-3">
-                    <Mail className="w-5 h-5 text-[var(--primary)] mt-0.5" />
+                    <Mail className="w-5 h-5 text-blue-600 mt-0.5" />
                     <div>
-                      <p className="font-medium text-[var(--fg-strong)]">Email</p>
-                      <p className="text-sm text-[var(--fg-muted)]">solicitudespuntualesmateriales@gmail.com</p>
+                      <p className="font-medium text-slate-900">Email</p>
+                      <p className="text-sm text-slate-500">solicitudespuntualesmateriales@gmail.com</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Phone className="w-5 h-5 text-[var(--primary)] mt-0.5" />
+                    <Phone className="w-5 h-5 text-blue-600 mt-0.5" />
                     <div>
-                      <p className="font-medium text-[var(--fg-strong)]">Teléfono</p>
-                      <p className="text-sm text-[var(--fg-muted)]">+54 11 1234-5678</p>
+                      <p className="font-medium text-slate-900">Teléfono</p>
+                      <p className="text-sm text-slate-500">+54 11 1234-5678</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Clock className="w-5 h-5 text-[var(--primary)] mt-0.5" />
+                    <Clock className="w-5 h-5 text-blue-600 mt-0.5" />
                     <div>
-                      <p className="font-medium text-[var(--fg-strong)]">Horario de Atención</p>
-                      <p className="text-sm text-[var(--fg-muted)]">Lun - Vie: 8:00 - 18:00</p>
+                      <p className="font-medium text-slate-900">Horario de Atención</p>
+                      <p className="text-sm text-slate-500">Lun - Vie: 8:00 - 18:00</p>
                     </div>
                   </div>
                 </CardContent>
@@ -329,18 +329,18 @@ ${formData.mensaje}
                     <button
                       key={idx}
                       onClick={() => setExpandedFaq(expandedFaq === idx ? null : idx)}
-                      className="w-full text-left p-3 rounded-lg bg-[var(--bg-soft)] hover:bg-[var(--bg-elevated)] transition-colors"
+                      className="w-full text-left p-3 rounded-lg bg-slate-50/70 hover:bg-slate-100/70 transition-colors"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-medium text-[var(--fg)]">{faq.pregunta}</span>
+                        <span className="text-sm font-medium text-slate-800">{faq.pregunta}</span>
                         {expandedFaq === idx ? (
-                          <ChevronDown className="w-4 h-4 text-[var(--fg-muted)] flex-shrink-0" />
+                          <ChevronDown className="w-4 h-4 text-slate-500 flex-shrink-0" />
                         ) : (
-                          <ChevronRight className="w-4 h-4 text-[var(--fg-muted)] flex-shrink-0" />
+                          <ChevronRight className="w-4 h-4 text-slate-500 flex-shrink-0" />
                         )}
                       </div>
                       {expandedFaq === idx && (
-                        <p className="mt-2 text-sm text-[var(--fg-muted)]">{faq.respuesta}</p>
+                        <p className="mt-2 text-sm text-slate-500">{faq.respuesta}</p>
                       )}
                     </button>
                   ))}
@@ -360,7 +360,7 @@ ${formData.mensaje}
                   <Card key={idx}>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <Icon className="w-5 h-5 text-[var(--primary)]" />
+                        <Icon className="w-5 h-5 text-blue-600" />
                         {instruccion.titulo}
                       </CardTitle>
                     </CardHeader>
@@ -368,10 +368,10 @@ ${formData.mensaje}
                       <ol className="space-y-2">
                         {instruccion.pasos.map((paso, pasoIdx) => (
                           <li key={pasoIdx} className="flex items-start gap-3">
-                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--primary)]/20 text-[var(--primary)] text-xs font-bold flex items-center justify-center">
+                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600/20 text-blue-600 text-xs font-bold flex items-center justify-center">
                               {pasoIdx + 1}
                             </span>
-                            <span className="text-sm text-[var(--fg-muted)]">{paso}</span>
+                            <span className="text-sm text-slate-500">{paso}</span>
                           </li>
                         ))}
                       </ol>
@@ -385,7 +385,7 @@ ${formData.mensaje}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <HelpCircle className="w-5 h-5 text-[var(--primary)]" />
+                  <HelpCircle className="w-5 h-5 text-blue-600" />
                   Preguntas Frecuentes
                 </CardTitle>
               </CardHeader>
@@ -394,18 +394,18 @@ ${formData.mensaje}
                   <button
                     key={idx}
                     onClick={() => setExpandedFaq(expandedFaq === `faq-${idx}` ? null : `faq-${idx}`)}
-                    className="w-full text-left p-4 rounded-lg bg-[var(--bg-soft)] hover:bg-[var(--bg-elevated)] transition-colors"
+                    className="w-full text-left p-4 rounded-lg bg-slate-50/70 hover:bg-slate-100/70 transition-colors"
                   >
                     <div className="flex items-center justify-between gap-4">
-                      <span className="font-medium text-[var(--fg)]">{faq.pregunta}</span>
+                      <span className="font-medium text-slate-800">{faq.pregunta}</span>
                       {expandedFaq === `faq-${idx}` ? (
-                        <ChevronDown className="w-5 h-5 text-[var(--fg-muted)] flex-shrink-0" />
+                        <ChevronDown className="w-5 h-5 text-slate-500 flex-shrink-0" />
                       ) : (
-                        <ChevronRight className="w-5 h-5 text-[var(--fg-muted)] flex-shrink-0" />
+                        <ChevronRight className="w-5 h-5 text-slate-500 flex-shrink-0" />
                       )}
                     </div>
                     {expandedFaq === `faq-${idx}` && (
-                      <p className="mt-3 text-[var(--fg-muted)] border-t border-[var(--border)] pt-3">
+                      <p className="mt-3 text-slate-500 border-t border-white/30 pt-3">
                         {faq.respuesta}
                       </p>
                     )}
@@ -419,9 +419,9 @@ ${formData.mensaje}
         {/* Ayuda Urgente */}
         {activeTab === "urgente" && (
           <div className="lg:col-span-3">
-            <Card className="border-[var(--warning)]/50 bg-[var(--warning)]/5">
+            <Card className="border-amber-500/50 bg-amber-500/5">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-[var(--warning)]">
+                <CardTitle className="flex items-center gap-2 text-amber-500">
                   <AlertTriangle className="w-6 h-6" />
                   Ayuda Urgente
                 </CardTitle>
@@ -432,44 +432,44 @@ ${formData.mensaje}
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Contacto de Emergencia */}
-                  <div className="p-6 rounded-xl bg-[var(--bg)] border border-[var(--border)]">
-                    <h3 className="font-semibold text-[var(--fg-strong)] mb-4 flex items-center gap-2">
-                      <Phone className="w-5 h-5 text-[var(--primary)]" />
+                  <div className="p-6 rounded-xl bg-white border border-white/30">
+                    <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                      <Phone className="w-5 h-5 text-blue-600" />
                       Contacto de Emergencia
                     </h3>
                     <div className="space-y-3">
-                      <div className="p-3 rounded-lg bg-[var(--bg-soft)]">
-                        <p className="text-sm text-[var(--fg-muted)]">Línea directa soporte:</p>
-                        <p className="text-lg font-mono font-bold text-[var(--primary)]">+54 11 1234-5678</p>
+                      <div className="p-3 rounded-lg bg-slate-50/70">
+                        <p className="text-sm text-slate-500">Línea directa soporte:</p>
+                        <p className="text-lg font-mono font-bold text-blue-600">+54 11 1234-5678</p>
                       </div>
-                      <div className="p-3 rounded-lg bg-[var(--bg-soft)]">
-                        <p className="text-sm text-[var(--fg-muted)]">WhatsApp urgencias:</p>
-                        <p className="text-lg font-mono font-bold text-[var(--success)]">+54 9 11 9876-5432</p>
+                      <div className="p-3 rounded-lg bg-slate-50/70">
+                        <p className="text-sm text-slate-500">WhatsApp urgencias:</p>
+                        <p className="text-lg font-mono font-bold text-emerald-600">+54 9 11 9876-5432</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Situaciones Urgentes */}
-                  <div className="p-6 rounded-xl bg-[var(--bg)] border border-[var(--border)]">
-                    <h3 className="font-semibold text-[var(--fg-strong)] mb-4 flex items-center gap-2">
-                      <AlertTriangle className="w-5 h-5 text-[var(--warning)]" />
+                  <div className="p-6 rounded-xl bg-white border border-white/30">
+                    <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5 text-amber-500" />
                       ¿Cuándo usar Ayuda Urgente?
                     </h3>
                     <ul className="space-y-2">
-                      <li className="flex items-start gap-2 text-sm text-[var(--fg-muted)]">
-                        <span className="text-[var(--warning)]">•</span>
+                      <li className="flex items-start gap-2 text-sm text-slate-500">
+                        <span className="text-amber-500">•</span>
                         No puedes acceder al sistema y tienes una solicitud crítica
                       </li>
-                      <li className="flex items-start gap-2 text-sm text-[var(--fg-muted)]">
-                        <span className="text-[var(--warning)]">•</span>
+                      <li className="flex items-start gap-2 text-sm text-slate-500">
+                        <span className="text-amber-500">•</span>
                         Error que bloquea operaciones de producción
                       </li>
-                      <li className="flex items-start gap-2 text-sm text-[var(--fg-muted)]">
-                        <span className="text-[var(--warning)]">•</span>
+                      <li className="flex items-start gap-2 text-sm text-slate-500">
+                        <span className="text-amber-500">•</span>
                         Problema de seguridad o acceso no autorizado
                       </li>
-                      <li className="flex items-start gap-2 text-sm text-[var(--fg-muted)]">
-                        <span className="text-[var(--warning)]">•</span>
+                      <li className="flex items-start gap-2 text-sm text-slate-500">
+                        <span className="text-amber-500">•</span>
                         Pérdida de datos o información crítica
                       </li>
                     </ul>
@@ -477,26 +477,26 @@ ${formData.mensaje}
                 </div>
 
                 {/* Administradores del Sistema */}
-                <div className="p-6 rounded-xl bg-[var(--bg)] border border-[var(--border)]">
-                  <h3 className="font-semibold text-[var(--fg-strong)] mb-4 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-[var(--primary)]" />
+                <div className="p-6 rounded-xl bg-white border border-white/30">
+                  <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-blue-600" />
                     Administradores del Sistema
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-lg bg-[var(--bg-soft)]">
-                      <p className="font-medium text-[var(--fg-strong)]">Admin Principal</p>
-                      <p className="text-sm text-[var(--fg-muted)]">solicitudespuntualesmateriales@gmail.com</p>
-                      <p className="text-xs text-[var(--fg-subtle)]">Horario: 24/7</p>
+                    <div className="p-4 rounded-lg bg-slate-50/70">
+                      <p className="font-medium text-slate-900">Admin Principal</p>
+                      <p className="text-sm text-slate-500">solicitudespuntualesmateriales@gmail.com</p>
+                      <p className="text-xs text-slate-400">Horario: 24/7</p>
                     </div>
-                    <div className="p-4 rounded-lg bg-[var(--bg-soft)]">
-                      <p className="font-medium text-[var(--fg-strong)]">Soporte Técnico</p>
-                      <p className="text-sm text-[var(--fg-muted)]">solicitudespuntualesmateriales@gmail.com</p>
-                      <p className="text-xs text-[var(--fg-subtle)]">Horario: 8:00 - 20:00</p>
+                    <div className="p-4 rounded-lg bg-slate-50/70">
+                      <p className="font-medium text-slate-900">Soporte Técnico</p>
+                      <p className="text-sm text-slate-500">solicitudespuntualesmateriales@gmail.com</p>
+                      <p className="text-xs text-slate-400">Horario: 8:00 - 20:00</p>
                     </div>
-                    <div className="p-4 rounded-lg bg-[var(--bg-soft)]">
-                      <p className="font-medium text-[var(--fg-strong)]">Mesa de Ayuda</p>
-                      <p className="text-sm text-[var(--fg-muted)]">solicitudespuntualesmateriales@gmail.com</p>
-                      <p className="text-xs text-[var(--fg-subtle)]">Horario: 8:00 - 18:00</p>
+                    <div className="p-4 rounded-lg bg-slate-50/70">
+                      <p className="font-medium text-slate-900">Mesa de Ayuda</p>
+                      <p className="text-sm text-slate-500">solicitudespuntualesmateriales@gmail.com</p>
+                      <p className="text-xs text-slate-400">Horario: 8:00 - 18:00</p>
                     </div>
                   </div>
                 </div>
@@ -505,7 +505,7 @@ ${formData.mensaje}
                 <div className="flex justify-center">
                   <a
                     href="tel:+541112345678"
-                    className="flex items-center gap-3 px-8 py-4 bg-[var(--warning)] text-black rounded-xl font-semibold text-lg hover:bg-[var(--warning)]/90 transition-colors shadow-lg"
+                    className="flex items-center gap-3 px-8 py-4 bg-amber-500 text-black rounded-xl font-semibold text-lg hover:bg-amber-500/90 transition-colors shadow-lg"
                   >
                     <Phone className="w-6 h-6" />
                     Llamar Ahora

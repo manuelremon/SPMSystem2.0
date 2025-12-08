@@ -1,5 +1,5 @@
 """
-Tests para el modulo de schemas de presupuesto (backend_v2/core/budget_schemas.py)
+Tests para el modulo de schemas de presupuesto (backend/core/budget_schemas.py)
 
 Verifica:
 - Dataclasses se instancian correctamente
@@ -13,8 +13,8 @@ from pathlib import Path
 
 import pytest
 
-# Agregar backend_v2 al path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "backend_v2"))
+# Agregar backend al path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "backend"))
 
 from core.budget_schemas import (UMBRAL_L1_CENTS, UMBRAL_L2_CENTS,
                                  BudgetOperationResult, BudgetUpdateRequest,

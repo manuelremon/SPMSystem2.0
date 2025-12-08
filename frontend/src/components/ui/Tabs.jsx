@@ -5,11 +5,8 @@ import clsx from "clsx";
 const TabsContext = createContext(null);
 
 /**
- * Tabs container component
- * @param {string} defaultValue - Default active tab value
- * @param {string} value - Controlled active tab value
- * @param {function} onValueChange - Callback when tab changes
- * @param {string} variant - Style variant: "default" | "pills" | "underline"
+ * Tabs Component - SPM Design System
+ * Usa CSS variables para consistencia global
  */
 export function Tabs({
   children,
@@ -40,15 +37,15 @@ export function Tabs({
 }
 
 /**
- * Tabs list - container for tab triggers
+ * TabsList - Container for tab triggers
  */
 export function TabsList({ children, className, ...props }) {
   const { variant } = useContext(TabsContext);
 
   const variantStyles = {
-    default: "bg-[var(--bg-soft)] p-1 rounded-[var(--radius-md)]",
+    default: "bg-[var(--card-glass)] backdrop-blur-sm p-1 rounded-xl border border-[var(--border-glass)]",
     pills: "gap-2",
-    underline: "border-b border-[var(--border)] gap-0",
+    underline: "border-b border-[var(--border-glass)] gap-0",
   };
 
   return (
@@ -67,8 +64,7 @@ export function TabsList({ children, className, ...props }) {
 }
 
 /**
- * Tab trigger button
- * @param {string} value - Unique value for this tab
+ * TabsTrigger - Tab button
  */
 export function TabsTrigger({ children, value, className, disabled = false, ...props }) {
   const { activeValue, onValueChange, variant } = useContext(TabsContext);
@@ -77,29 +73,29 @@ export function TabsTrigger({ children, value, className, disabled = false, ...p
   const baseStyles = clsx(
     "inline-flex items-center justify-center gap-2",
     "text-sm font-medium",
-    "transition-all duration-[var(--transition-fast)]",
-    "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2",
+    "transition-all duration-200",
+    "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/30 focus-visible:ring-offset-2",
     disabled && "opacity-50 cursor-not-allowed pointer-events-none"
   );
 
   const variantStyles = {
     default: clsx(
-      "px-4 py-2 rounded-[var(--radius-sm)]",
+      "px-4 py-2 rounded-lg",
       isActive
-        ? "bg-[var(--card)] text-[var(--fg-strong)] shadow-sm"
-        : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
+        ? "bg-[var(--bg-elevated)] backdrop-blur-sm text-[var(--fg)] shadow-sm border border-[var(--border-glass-strong)]"
+        : "text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--card-glass)]"
     ),
     pills: clsx(
       "px-4 py-2 rounded-full border",
       isActive
-        ? "bg-[var(--primary)] text-[var(--on-primary)] border-[var(--primary)]"
-        : "bg-transparent text-[var(--fg-muted)] border-[var(--border)] hover:border-[var(--fg-muted)] hover:text-[var(--fg)]"
+        ? "bg-gradient-to-r from-[var(--primary)] to-[var(--primary-strong)] text-white border-[var(--primary)]/50 shadow-lg shadow-[var(--primary-glow)]"
+        : "bg-[var(--card-glass)] backdrop-blur-sm text-[var(--fg-muted)] border-[var(--border-glass)] hover:border-[var(--border-glass-strong)] hover:text-[var(--fg)]"
     ),
     underline: clsx(
       "px-4 py-3 border-b-2 -mb-px",
       isActive
         ? "text-[var(--primary)] border-[var(--primary)]"
-        : "text-[var(--fg-muted)] border-transparent hover:text-[var(--fg)] hover:border-[var(--border-strong)]"
+        : "text-[var(--fg-muted)] border-transparent hover:text-[var(--fg)] hover:border-[var(--border)]"
     ),
   };
 
@@ -120,8 +116,7 @@ export function TabsTrigger({ children, value, className, disabled = false, ...p
 }
 
 /**
- * Tab content panel
- * @param {string} value - Value that matches the TabsTrigger
+ * TabsContent - Tab content panel
  */
 export function TabsContent({ children, value, className, ...props }) {
   const { activeValue } = useContext(TabsContext);

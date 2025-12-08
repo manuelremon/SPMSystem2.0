@@ -46,6 +46,15 @@ const translations = {
   tooltip_lang: { es: "Cambiar idioma", en: "Change language" },
   tooltip_abrir_menu: { es: "Abrir menú", en: "Open menu" },
   tooltip_cerrar_menu: { es: "Cerrar menú", en: "Close menu" },
+  tooltip_expandir: { es: "Expandir", en: "Expand" },
+  tooltip_colapsar: { es: "Colapsar", en: "Collapse" },
+  common_copyright: { es: "© 2025 SPM System", en: "© 2025 SPM System" },
+
+  // User menu
+  user_mi_cuenta: { es: "Mi Cuenta", en: "My Account" },
+  user_ajustes: { es: "Ajustes", en: "Settings" },
+  user_logout: { es: "Cerrar Sesión", en: "Sign Out" },
+  user_default: { es: "Usuario", en: "User" },
 
   // Dashboard
   dash_totales: { es: "Solicitudes totales", en: "Total requests" },
@@ -67,6 +76,21 @@ const translations = {
   dash_table_sector: { es: "Sector", en: "Sector" },
   dash_table_estado: { es: "Estado", en: "Status" },
   dash_table_creada: { es: "Creada", en: "Created" },
+  dash_greeting: { es: "Hola", en: "Hello" },
+  dash_in_system: { es: "En el sistema", en: "In system" },
+  dash_vs_last_month: { es: "vs mes anterior", en: "vs last month" },
+  dash_pending: { es: "Pendientes", en: "Pending" },
+  dash_to_assign: { es: "Para asignar", en: "To assign" },
+  dash_available: { es: "Disponible", en: "Available" },
+  dash_weekly_trend: { es: "Tendencia Semanal", en: "Weekly Trend" },
+  dash_weekly_avg: { es: "Promedio semanal", en: "Weekly average" },
+  dash_requests: { es: "solicitudes", en: "requests" },
+  dash_no_requests: { es: "No hay solicitudes", en: "No requests" },
+  dash_status_distribution: { es: "Distribución de Estados", en: "Status Distribution" },
+  dash_approved: { es: "Aprobadas", en: "Approved" },
+  dash_rejected: { es: "Rechazadas", en: "Rejected" },
+  dash_no_messages: { es: "Sin mensajes nuevos", en: "No new messages" },
+  dash_weekdays: { es: "Lun,Mar,Mie,Jue,Vie,Sab,Dom", en: "Mon,Tue,Wed,Thu,Fri,Sat,Sun" },
 
   // Login
   login_title: { es: "Inicia sesión", en: "Sign in" },
@@ -245,9 +269,9 @@ const translations = {
 
   // Create solicitud
   crear_title: { es: "Nueva Solicitud", en: "New Request" },
-  crear_subtitle: { es: "Completa la informacion basica", en: "Fill in the basic information" },
+  crear_subtitle: { es: "Completa la información básica", en: "Fill in the basic information" },
   crear_guardar: { es: "Guardar borrador", en: "Save draft" },
-  crear_enviar: { es: "Enviar para aprobacion", en: "Send for approval" },
+  crear_enviar: { es: "Enviar para aprobación", en: "Send for approval" },
   crear_items_title: { es: "Items", en: "Items" },
   crear_add_item: { es: "Agregar item", en: "Add item" },
   crear_remove_item: { es: "Eliminar", en: "Remove" },
@@ -270,6 +294,21 @@ const translations = {
   materials_busca_selecciona: { es: "Busca y selecciona un material", en: "Search and select a material" },
   materials_contexto: { es: "Contexto", en: "Context" },
   materials_saldo_disponible: { es: "Saldo disponible", en: "Available balance" },
+  materials_suggestions_loaded: { es: "material(es) sugeridos agregados", en: "suggested material(s) added" },
+
+  // Assistant (NLP)
+  assistant_title: { es: "Asistente IA", en: "AI Assistant" },
+  assistant_describe: { es: "Describí el problema o necesidad", en: "Describe the problem or need" },
+  assistant_placeholder: { es: "Ej: Se rompió la bomba de agua de la línea 3, pierde por el sello mecánico...", en: "E.g.: The water pump on line 3 broke, leaking from the mechanical seal..." },
+  assistant_criticidad: { es: "Criticidad", en: "Criticality" },
+  assistant_analyze: { es: "Analizar y sugerir materiales", en: "Analyze and suggest materials" },
+  assistant_analyzing: { es: "Analizando...", en: "Analyzing..." },
+  assistant_detected: { es: "Detectado en tu descripción", en: "Detected in your description" },
+  assistant_suggestions: { es: "Materiales sugeridos", en: "Suggested materials" },
+  assistant_no_results: { es: "No se encontraron materiales. Intenta con otra descripción.", en: "No materials found. Try another description." },
+  assistant_justification: { es: "Justificación generada", en: "Generated justification" },
+  assistant_use: { es: "Usar estas sugerencias", en: "Use these suggestions" },
+  create_from_description: { es: "Crear desde descripción", en: "Create from description" },
 
   // Mi cuenta
   micuenta_title: { es: "Mi cuenta", en: "My account" },
@@ -461,12 +500,12 @@ const translations = {
   bur_estado_rechazado: { es: "Rechazado", en: "Rejected" },
   bur_nivel_l1: { es: "Nivel 1 (hasta $200K)", en: "Level 1 (up to $200K)" },
   bur_nivel_l2: { es: "Nivel 2 (hasta $1M)", en: "Level 2 (up to $1M)" },
-  bur_nivel_admin: { es: "Admin (mas de $1M)", en: "Admin (over $1M)" },
+  bur_nivel_admin: { es: "Admin (más de $1M)", en: "Admin (over $1M)" },
   bur_motivo_rechazo: { es: "Motivo de rechazo", en: "Rejection reason" },
   bur_motivo_placeholder: { es: "Indica el motivo del rechazo...", en: "Enter the reason for rejection..." },
   bur_comentario_aprobacion: { es: "Comentario (opcional)", en: "Comment (optional)" },
   bur_solicitante: { es: "Solicitante", en: "Requester" },
-  bur_fecha_creacion: { es: "Fecha de creacion", en: "Creation date" },
+  bur_fecha_creacion: { es: "Fecha de creación", en: "Creation date" },
   bur_saldo_actual: { es: "Saldo actual", en: "Current balance" },
   bur_saldo_nuevo: { es: "Nuevo saldo (estimado)", en: "New balance (estimated)" },
   bur_pendientes: { es: "Pendientes de Aprobar", en: "Pending Approval" },
@@ -475,7 +514,173 @@ const translations = {
   bur_tab_pendientes: { es: "Pendientes", en: "Pending" },
   bur_tab_aprobadas: { es: "Aprobadas", en: "Approved" },
   bur_tab_rechazadas: { es: "Rechazadas", en: "Rejected" },
-  bur_permiso_denegado: { es: "No tienes permiso para realizar esta accion", en: "You don't have permission to perform this action" },
+  bur_permiso_denegado: { es: "No tienes permiso para realizar esta acción", en: "You don't have permission to perform this action" },
+
+  // ============================================
+  // MENSAJES DE ERROR ESPECÍFICOS (Enterprise Microcopy)
+  // ============================================
+  error_network: {
+    es: "No se pudo conectar al servidor. Verifica tu conexión a internet.",
+    en: "Could not connect to server. Please check your internet connection."
+  },
+  error_auth_expired: {
+    es: "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
+    en: "Your session has expired. Please sign in again."
+  },
+  error_validation_date: {
+    es: "La fecha de inicio debe ser anterior a la fecha de fin.",
+    en: "Start date must be before end date."
+  },
+  error_permission_denied: {
+    es: "No tienes permisos para realizar esta acción. Contacta al administrador si crees que es un error.",
+    en: "You don't have permission for this action. Contact your administrator if you believe this is an error."
+  },
+  error_budget_exceeded: {
+    es: "El monto excede el presupuesto disponible. Saldo actual: {balance}",
+    en: "Amount exceeds available budget. Current balance: {balance}"
+  },
+  error_material_not_found: {
+    es: "Material no encontrado en el catálogo. Intenta con otro código o descripción.",
+    en: "Material not found in catalog. Try another code or description."
+  },
+  error_file_too_large: {
+    es: "El archivo supera el tamaño máximo permitido ({max}). Reduce el tamaño e intenta nuevamente.",
+    en: "File exceeds maximum allowed size ({max}). Reduce the size and try again."
+  },
+  error_invalid_format: {
+    es: "Formato de archivo no soportado. Formatos permitidos: {formats}",
+    en: "Unsupported file format. Allowed formats: {formats}"
+  },
+  error_server: {
+    es: "Error en el servidor. El equipo técnico ha sido notificado. Intenta nuevamente en unos minutos.",
+    en: "Server error. The technical team has been notified. Please try again in a few minutes."
+  },
+
+  // ============================================
+  // CONFIRMACIONES EXPLÍCITAS (Acciones destructivas)
+  // ============================================
+  confirm_delete_solicitud_title: {
+    es: "Eliminar solicitud #{id}?",
+    en: "Delete request #{id}?"
+  },
+  confirm_delete_solicitud_body: {
+    es: "Esta acción es permanente y no se puede deshacer. Los materiales asociados serán liberados.",
+    en: "This action is permanent and cannot be undone. Associated materials will be released."
+  },
+  confirm_delete_action: {
+    es: "Sí, eliminar",
+    en: "Yes, delete"
+  },
+  confirm_cancel: {
+    es: "Cancelar",
+    en: "Cancel"
+  },
+  confirm_approve_title: {
+    es: "Aprobar solicitud #{id}",
+    en: "Approve request #{id}"
+  },
+  confirm_approve_body: {
+    es: "La solicitud será asignada a un planificador para su procesamiento. Se descontará del presupuesto una vez completada.",
+    en: "Request will be assigned to a planner for processing. Budget will be deducted once completed."
+  },
+  confirm_approve_action: {
+    es: "Aprobar",
+    en: "Approve"
+  },
+  confirm_reject_title: {
+    es: "Rechazar solicitud #{id}",
+    en: "Reject request #{id}"
+  },
+  confirm_reject_body: {
+    es: "El solicitante será notificado del rechazo. Por favor incluye un motivo claro.",
+    en: "The requester will be notified of the rejection. Please include a clear reason."
+  },
+  confirm_reject_action: {
+    es: "Rechazar solicitud",
+    en: "Reject request"
+  },
+  confirm_discard_changes_title: {
+    es: "Descartar cambios?",
+    en: "Discard changes?"
+  },
+  confirm_discard_changes_body: {
+    es: "Tienes cambios sin guardar que se perderán si sales de esta página.",
+    en: "You have unsaved changes that will be lost if you leave this page."
+  },
+  confirm_discard_action: {
+    es: "Descartar cambios",
+    en: "Discard changes"
+  },
+  confirm_stay: {
+    es: "Seguir editando",
+    en: "Keep editing"
+  },
+
+  // ============================================
+  // MENSAJES DE ÉXITO ESPECÍFICOS
+  // ============================================
+  success_solicitud_created: {
+    es: "Solicitud #{id} creada correctamente. Puedes editarla desde 'Mis Solicitudes'.",
+    en: "Request #{id} created successfully. You can edit it from 'My Requests'."
+  },
+  success_solicitud_submitted: {
+    es: "Solicitud #{id} enviada para aprobación. Te notificaremos cuando sea procesada.",
+    en: "Request #{id} submitted for approval. We'll notify you when it's processed."
+  },
+  success_solicitud_approved: {
+    es: "Solicitud #{id} aprobada y asignada a {planner}.",
+    en: "Request #{id} approved and assigned to {planner}."
+  },
+  success_data_exported: {
+    es: "Datos exportados correctamente. Revisa tu carpeta de descargas.",
+    en: "Data exported successfully. Check your downloads folder."
+  },
+  success_profile_updated: {
+    es: "Perfil actualizado correctamente.",
+    en: "Profile updated successfully."
+  },
+
+  // ============================================
+  // ESTADOS VACÍOS (Empty States)
+  // ============================================
+  empty_no_solicitudes: {
+    es: "No tienes solicitudes todavía. Crea tu primera solicitud para comenzar.",
+    en: "You don't have any requests yet. Create your first request to get started."
+  },
+  empty_no_results_filter: {
+    es: "No hay resultados para los filtros seleccionados. Intenta ampliar tu búsqueda.",
+    en: "No results for selected filters. Try broadening your search."
+  },
+  empty_no_notifications: {
+    es: "¡Todo al día! No tienes notificaciones pendientes.",
+    en: "All caught up! No pending notifications."
+  },
+  empty_no_messages: {
+    es: "Tu bandeja está vacía. Los mensajes nuevos aparecerán aquí.",
+    en: "Your inbox is empty. New messages will appear here."
+  },
+
+  // Push Notifications
+  push_denied: { es: "Notificaciones bloqueadas en tu navegador", en: "Notifications blocked in your browser" },
+  push_denied_hint: { es: "Habilita notificaciones en la configuración del navegador", en: "Enable notifications in browser settings" },
+  push_disable: { es: "Desactivar notificaciones", en: "Disable notifications" },
+  push_enable: { es: "Activar notificaciones", en: "Enable notifications" },
+  push_active: { es: "Notificaciones activas", en: "Notifications active" },
+  push_request: { es: "Habilitar notificaciones push", en: "Enable push notifications" },
+  push_inactive: { es: "Notificaciones desactivadas", en: "Notifications disabled" },
+  push_not_supported_title: { es: "Navegador no compatible", en: "Browser not supported" },
+  push_not_supported: { es: "Tu navegador no soporta notificaciones push. Prueba con Chrome, Firefox, Edge o Safari.", en: "Your browser does not support push notifications. Try Chrome, Firefox, Edge or Safari." },
+  push_blocked_title: { es: "Notificaciones bloqueadas", en: "Notifications blocked" },
+  push_blocked: { es: "Has bloqueado las notificaciones. Para habilitarlas, accede a la configuración de tu navegador.", en: "You have blocked notifications. To enable them, go to your browser settings." },
+  push_enabled_title: { es: "Notificaciones activas", en: "Notifications active" },
+  push_enabled_desc: { es: "Recibirás notificaciones aunque la app esté cerrada.", en: "You will receive notifications even when the app is closed." },
+  push_disabled_title: { es: "Notificaciones push", en: "Push notifications" },
+  push_disabled_desc: { es: "Recibe notificaciones de solicitudes, aprobaciones y mensajes importantes.", en: "Receive notifications about requests, approvals and important messages." },
+  push_test: { es: "Probar", en: "Test" },
+  push_test_sent: { es: "¡Enviado!", en: "Sent!" },
+  push_deactivate: { es: "Desactivar", en: "Deactivate" },
+  push_activate: { es: "Activar", en: "Activate" },
+  push_settings_title: { es: "Notificaciones Push", en: "Push Notifications" },
 };
 
 export function I18nProvider({ children }) {

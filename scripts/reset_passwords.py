@@ -20,7 +20,7 @@ if sys.platform == "win32":
 # Ruta de la base de datos (buscar en varios lugares)
 possible_paths = [
     Path("spm.db"),
-    Path("backend_v2/spm.db"),
+    Path("backend/spm.db"),
     Path("../spm.db"),
 ]
 
@@ -32,7 +32,7 @@ for path in possible_paths:
 
 if db_path is None:
     print("[ERROR] No se encuentra la base de datos")
-    print("        Se buscó en: spm.db, backend_v2/spm.db")
+    print("        Se buscó en: spm.db, backend/spm.db")
     print("        Asegurate de ejecutar este script desde la raiz del proyecto")
     exit(1)
 

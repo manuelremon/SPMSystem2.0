@@ -5,7 +5,8 @@ import { useAuthStore } from "../store/authStore";
 import { Button } from "../components/ui/Button";
 import { SearchInput } from "../components/ui/SearchInput";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/Card";
-import { DataTable } from "../components/ui/DataTable";
+import { ModernDataTable as DataTable } from "../components/features/DataTable";
+import { withSpmAlignments } from "../utils/tableAlignments";
 import StatusBadge from "../components/ui/StatusBadge";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Alert } from "../components/ui/Alert";
@@ -136,12 +137,12 @@ export default function BudgetRequests() {
     }
   }, [rejectModal.id, rejectModal.motivo, load, t]);
 
-  const columns = useMemo(() => [
+  const columns = useMemo(() => withSpmAlignments([
     {
       key: "id",
       header: t("bur_col_id", "ID"),
       sortAccessor: (row) => Number(row.id) || 0,
-      render: (row) => <span className="font-semibold text-[var(--fg)]">#{row.id}</span>,
+      render: (row) => <span className="font-semibold text-slate-800">#{row.id}</span>,
     },
     {
       key: "centro",
@@ -160,7 +161,7 @@ export default function BudgetRequests() {
       header: t("bur_col_monto", "Monto"),
       sortAccessor: (row) => Number(row.monto_solicitado_usd || 0),
       render: (row) => (
-        <span className="font-mono text-sm text-[var(--fg)]">
+        <span className="font-mono text-sm text-slate-800">
           {formatCurrency(row.monto_solicitado_usd)}
         </span>
       ),
@@ -170,7 +171,7 @@ export default function BudgetRequests() {
       header: t("bur_col_nivel", "Nivel"),
       sortAccessor: (row) => row.nivel_aprobacion_requerido || "",
       render: (row) => (
-        <span className="text-xs px-2 py-1 rounded bg-[var(--surface)] text-[var(--fg-muted)]">
+        <span className="text-xs px-2 py-1 rounded bg-slate-100/70 text-slate-500">
           {nivelLabels[row.nivel_aprobacion_requerido] || row.nivel_aprobacion_requerido}
         </span>
       ),
@@ -191,7 +192,7 @@ export default function BudgetRequests() {
             className="px-3 py-1.5 text-xs"
             onClick={() => navigate(`/presupuestos/${row.id}`)}
           >
-            <Eye className="w-3.5 h-3.5 mr-1" />
+            <Eye className="w-4 h-4 mr-1" />
             {t("bur_ver", "Ver")}
           </Button>
           {["pendiente", "aprobado_l1", "aprobado_l2"].includes(row.estado) && (
@@ -200,7 +201,7 @@ export default function BudgetRequests() {
                 className="px-3 py-1.5 text-xs"
                 onClick={() => openApproveModal(row.id)}
               >
-                <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                <CheckCircle className="w-4 h-4 mr-1" />
                 {t("bur_aprobar", "Aprobar")}
               </Button>
               <Button
@@ -208,7 +209,7 @@ export default function BudgetRequests() {
                 className="px-3 py-1.5 text-xs"
                 onClick={() => openRejectModal(row.id)}
               >
-                <XCircle className="w-3.5 h-3.5 mr-1" />
+                <XCircle className="w-4 h-4 mr-1" />
                 {t("bur_rechazar", "Rechazar")}
               </Button>
             </>
@@ -216,7 +217,7 @@ export default function BudgetRequests() {
         </div>
       ),
     },
-  ], [t, navigate, openApproveModal, openRejectModal]);
+  ]), [t, navigate, openApproveModal, openRejectModal]);
 
   const tabs = [
     { key: "todas", label: t("bur_tab_todas", "Todas") },
@@ -236,11 +237,11 @@ export default function BudgetRequests() {
               onClick={handleRefresh}
               disabled={refreshing || loading}
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
               {t("common_refresh", "Actualizar")}
             </Button>
             <Button onClick={() => navigate("/presupuestos/nueva")}>
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4" />
               {t("bur_crear", "Incorporar Saldo")}
             </Button>
           </div>
@@ -259,15 +260,15 @@ export default function BudgetRequests() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Tabs */}
-          <div className="flex gap-1 p-1 bg-[var(--surface)] rounded-lg w-fit">
+          <div className="flex gap-1 p-1 bg-slate-100/70 backdrop-blur-sm rounded-xl w-fit">
             {tabs.map((tabItem) => (
               <button
                 key={tabItem.key}
                 onClick={() => setTab(tabItem.key)}
-                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                   tab === tabItem.key
-                    ? "bg-[var(--primary)] text-white"
-                    : "text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--card)]"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-800 hover:bg-white/50"
                 }`}
               >
                 {tabItem.label}
@@ -284,7 +285,7 @@ export default function BudgetRequests() {
               className="md:max-w-md"
             />
             {loading && (
-              <div className="text-xs font-bold uppercase tracking-[0.05em] text-[var(--fg-muted)]">
+              <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                 {t("bur_loading", "Cargando...")}
               </div>
             )}
@@ -318,21 +319,21 @@ export default function BudgetRequests() {
               {t("common_cancelar", "Cancelar")}
             </Button>
             <Button onClick={confirmAprobar}>
-              <CheckCircle className="w-4 h-4 mr-2" />
+              <CheckCircle className="w-4 h-4" />
               {t("bur_aprobar", "Aprobar")}
             </Button>
           </>
         }
       >
         <div className="space-y-2">
-          <label className="text-sm text-[var(--fg-muted)]">
+          <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             {t("bur_comentario_aprobacion", "Comentario (opcional)")}
           </label>
           <textarea
             value={approveModal.comentario}
             onChange={(e) => setApproveModal((prev) => ({ ...prev, comentario: e.target.value }))}
             rows={3}
-            className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none transition-all"
+            className="w-full px-3 py-2.5 rounded-xl bg-white/50 backdrop-blur-sm border border-white/50 text-sm text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all resize-none"
             placeholder={t("bur_comentario_aprobacion", "Comentario (opcional)")}
           />
         </div>
@@ -353,21 +354,21 @@ export default function BudgetRequests() {
               {t("common_cancelar", "Cancelar")}
             </Button>
             <Button variant="danger" onClick={confirmRechazar}>
-              <XCircle className="w-4 h-4 mr-2" />
+              <XCircle className="w-4 h-4" />
               {t("bur_rechazar", "Rechazar")}
             </Button>
           </>
         }
       >
         <div className="space-y-2">
-          <label className="text-sm text-[var(--fg-muted)]">
+          <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             {t("bur_motivo_rechazo", "Motivo de rechazo")} *
           </label>
           <textarea
             value={rejectModal.motivo}
             onChange={(e) => setRejectModal((prev) => ({ ...prev, motivo: e.target.value }))}
             rows={3}
-            className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none transition-all"
+            className="w-full px-3 py-2.5 rounded-xl bg-white/50 backdrop-blur-sm border border-white/50 text-sm text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all resize-none"
             placeholder={t("bur_motivo_placeholder", "Indica el motivo del rechazo...")}
           />
         </div>

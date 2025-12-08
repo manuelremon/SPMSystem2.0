@@ -1,6 +1,6 @@
 """
 Tests for catalogos routes - Catalog services
-Tests all endpoints in backend_v2/routes/catalogos.py
+Tests all endpoints in backend/routes/catalogos.py
 """
 
 from __future__ import annotations
@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-from backend_v2.app import create_app
-from backend_v2.core.config import settings
+from backend.app import create_app
+from backend.core.config import settings
 
 
 def _db_path() -> Path:
@@ -325,7 +325,7 @@ def test_catalogos_empty_database(client):
     conn.close()
 
     # Clear cache
-    from backend_v2.core.cache import catalog_cache
+    from backend.core.cache import catalog_cache
 
     catalog_cache.clear()
 

@@ -104,7 +104,7 @@ Logging:
 Revisar configuración _configure_logging y evitar agregar handlers en cada reload.
 Asegurar if not app.logger.handlers: antes de configurar.
 Errores Consistentes:
-Crear backend_v2/core/errors.py con función api_error(code, message, details=None, status=400).
+Crear backend/core/errors.py con función api_error(code, message, details=None, status=400).
 Reemplazar respuestas ad-hoc en planner.py (ej. retornos 404 y 500).
 Validación Payloads Clave:
 Definir esquemas mínimos (pydantic o validación manual) para:

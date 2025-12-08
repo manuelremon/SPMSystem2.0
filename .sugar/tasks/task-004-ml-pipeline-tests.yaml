@@ -8,15 +8,15 @@ created: 2025-11-28
 source: codebase_analysis
 
 description: |
-  Los pipelines de Machine Learning en backend_v2/agent/pipelines/
+  Los pipelines de Machine Learning en backend/agent/pipelines/
   son críticos para el sistema de planificación pero no tienen
   tests unitarios dedicados.
 
 context:
   files:
-    - "backend_v2/agent/pipelines/demand_forecast.py"
-    - "backend_v2/agent/pipelines/clustering.py"
-    - "backend_v2/agent/pipelines/scoring.py"
+    - "backend/agent/pipelines/demand_forecast.py"
+    - "backend/agent/pipelines/clustering.py"
+    - "backend/agent/pipelines/scoring.py"
   test_dir: "tests/unit/"
 
 technical_requirements:

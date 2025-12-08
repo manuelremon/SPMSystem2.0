@@ -9,7 +9,7 @@
 ## 1. Estructura Rápida
 
 ```
-backend_v2/
+backend/
 ├── core/
 │   ├── repository.py       ← DB CRUD (5 clases)
 │   ├── cache_loader.py     ← Excel caché (singleton)
@@ -225,7 +225,7 @@ count = len(solicitudes)
 from core.cache_loader import get_stock_cache
 
 # ANTES:
-df = pd.read_excel("backend_v2/stock.xlsx")
+df = pd.read_excel("backend/stock.xlsx")
 stock = df[df["Material"] == "001"]["Stock"].sum()
 
 # AHORA:
@@ -404,7 +404,7 @@ def handler(id):
 ```python
 # ❌ MALO
 def paso_1(...):
-    df = pd.read_excel("backend_v2/stock.xlsx")  # ← Lento!
+    df = pd.read_excel("backend/stock.xlsx")  # ← Lento!
 
 # ✅ BIEN
 def paso_1(...):

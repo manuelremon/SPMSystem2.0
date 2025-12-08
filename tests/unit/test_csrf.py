@@ -1,6 +1,6 @@
 """
 Tests unitarios para el módulo CSRF
-backend_v2/core/csrf.py
+backend/core/csrf.py
 
 Generado por Sugar Autonomous System
 """
@@ -13,7 +13,7 @@ from flask import Flask, g
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from backend_v2.core.csrf import CSRFProtection, init_csrf_protection
+from backend.core.csrf import CSRFProtection, init_csrf_protection
 
 
 class TestCSRFTokenGeneration:

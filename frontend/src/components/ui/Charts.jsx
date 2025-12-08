@@ -4,7 +4,7 @@
  */
 
 // Mini grafico de barras
-export function MiniBarChart({ data, maxValue, color = "var(--primary)", height = 64 }) {
+export function MiniBarChart({ data, maxValue, color = "#3B82F6", height = 64 }) {
   const max = maxValue || Math.max(...data, 1);
   return (
     <div className="flex items-end gap-1" style={{ height }}>
@@ -32,8 +32,8 @@ export function ProgressCircle({
   percentage,
   size = 96,
   strokeWidth = 8,
-  color = "var(--primary)",
-  bgColor = "var(--border)",
+  color = "#3B82F6",
+  bgColor = "#E2E8F0",
   showLabel = true,
   label
 }) {
@@ -68,8 +68,8 @@ export function ProgressCircle({
       </svg>
       {showLabel && (
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-bold text-[var(--fg)]">{percentage}%</span>
-          {label && <span className="text-xs text-[var(--fg-muted)]">{label}</span>}
+          <span className="text-xl font-bold text-slate-800 tabular-nums">{percentage}%</span>
+          {label && <span className="text-xs text-slate-500">{label}</span>}
         </div>
       )}
     </div>
@@ -77,7 +77,7 @@ export function ProgressCircle({
 }
 
 // Linea de tendencia mini
-export function TrendLine({ data, color = "var(--primary)", height = 48 }) {
+export function TrendLine({ data, color = "#3B82F6", height = 48 }) {
   if (!data || data.length < 2) return null;
 
   const max = Math.max(...data);
@@ -116,8 +116,8 @@ export function TrendLine({ data, color = "var(--primary)", height = 48 }) {
 export function ProgressBar({
   value,
   max = 100,
-  color = "var(--primary)",
-  bgColor = "var(--bg-soft)",
+  color = "#3B82F6",
+  bgColor = "#F1F5F9",
   height = 8,
   showValue = false,
   label,
@@ -129,8 +129,8 @@ export function ProgressBar({
     <div>
       {(label || showValue) && (
         <div className="flex items-center justify-between mb-2 text-sm">
-          {label && <span className="text-[var(--fg-muted)] font-medium">{label}</span>}
-          {showValue && <span className="text-[var(--fg)] font-semibold">{value}</span>}
+          {label && <span className="text-slate-500 font-medium">{label}</span>}
+          {showValue && <span className="text-slate-800 font-semibold">{value}</span>}
         </div>
       )}
       <div
@@ -138,7 +138,7 @@ export function ProgressBar({
         style={{ height, backgroundColor: bgColor }}
       >
         <div
-          className={`h-full rounded-full transition-all duration-500 ${gradient ? 'bg-gradient-to-r from-[var(--primary)] to-[var(--primary-bright)]' : ''}`}
+          className={`h-full rounded-full transition-all duration-500 ${gradient ? 'bg-gradient-to-r from-blue-500 to-blue-400' : ''}`}
           style={{
             width: `${percentage}%`,
             backgroundColor: gradient ? undefined : color
@@ -171,7 +171,8 @@ export function TrendIndicator({ value, suffix = "%", positive = true }) {
   );
 }
 
-// Card de metrica estilo KPI
+// Card de metrica estilo KPI - Enterprise Compact Style
+// "Boring is Better" - No colored borders, clean and compact
 export function KPICard({
   icon,
   title,
@@ -179,25 +180,17 @@ export function KPICard({
   subtitle,
   trend,
   trendLabel,
-  borderColor = "var(--primary)",
-  iconBgColor,
   onClick,
   highlight = false,
   children
 }) {
-  const bgColor = iconBgColor || `${borderColor}20`;
-
-  const cardClasses = `
-    bg-[var(--card)] border border-[var(--border)] rounded-xl
-    border-l-4 transition-all duration-200
-    ${onClick ? 'cursor-pointer hover:shadow-lg hover:scale-[1.01]' : ''}
-    ${highlight ? 'ring-2 ring-[var(--warning)] ring-opacity-50 animate-pulse-subtle' : ''}
-  `;
-
   return (
     <div
-      className={cardClasses}
-      style={{ borderLeftColor: borderColor }}
+      className={`
+        bg-white border border-slate-200 rounded-lg shadow-sm p-4
+        ${onClick ? 'cursor-pointer' : ''}
+        ${highlight ? 'ring-1 ring-blue-500/30' : ''}
+      `}
       onClick={onClick}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -208,43 +201,47 @@ export function KPICard({
         }
       } : undefined}
     >
-      <div className="p-5">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <p className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wider mb-1">
-              {title}
-            </p>
-            <p className="text-3xl font-bold text-[var(--fg)]">{value}</p>
-          </div>
-          <div
-            className="h-12 w-12 rounded-full grid place-items-center flex-shrink-0"
-            style={{ backgroundColor: bgColor, color: borderColor }}
-          >
-            {icon}
-          </div>
+      {/* Header: Title + Icon */}
+      <div className="flex items-start justify-between mb-2">
+        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+          {title}
+        </p>
+        {/* Icon: Small, muted gray, top-right */}
+        <div className="text-slate-400 flex-shrink-0">
+          {icon && (
+            <span className="[&>svg]:w-4 [&>svg]:h-4">{icon}</span>
+          )}
         </div>
-
-        {(trend !== undefined || subtitle) && (
-          <div className="flex items-center gap-2 text-sm">
-            {trend !== undefined && <TrendIndicator value={trend} />}
-            {subtitle && <span className="text-[var(--fg-muted)]">{trendLabel || subtitle}</span>}
-          </div>
-        )}
-
-        {children && <div className="mt-4">{children}</div>}
       </div>
+
+      {/* Value: Large, bold, left-aligned */}
+      <p className="text-2xl font-bold text-slate-900 tabular-nums kpi-value leading-none">
+        {value}
+      </p>
+
+      {/* Trend + Subtitle: Small and subtle below value */}
+      {(trend !== undefined || subtitle) && (
+        <div className="flex items-center gap-2 mt-2 text-xs">
+          {trend !== undefined && <TrendIndicator value={trend} />}
+          {subtitle && (
+            <span className="text-slate-500">{trendLabel || subtitle}</span>
+          )}
+        </div>
+      )}
+
+      {children && <div className="mt-3 pt-3 border-t border-slate-200">{children}</div>}
     </div>
   );
 }
 
 // Stat compacto para grids
-export function StatItem({ label, value, color = "var(--fg)" }) {
+export function StatItem({ label, value, color = "#1e293b" }) {
   return (
     <div>
-      <p className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wider mb-1">
+      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
         {label}
       </p>
-      <p className="text-2xl font-bold" style={{ color }}>{value}</p>
+      <p className="text-2xl font-bold tabular-nums" style={{ color }}>{value}</p>
     </div>
   );
 }

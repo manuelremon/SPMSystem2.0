@@ -1,6 +1,6 @@
 """
 Tests unitarios para ClusteringPipeline
-backend_v2/agent/pipelines/clustering.py
+backend/agent/pipelines/clustering.py
 
 Generado por Sugar Autonomous System
 """
@@ -13,7 +13,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from backend_v2.agent.pipelines.clustering import ClusteringPipeline
+from backend.agent.pipelines.clustering import ClusteringPipeline
 
 
 class TestClusteringInitialization:

@@ -40,7 +40,7 @@ logs/
 # =============================================================================
 instance/
 backend/app/instance/
-backend_v2/instance/
+backend/instance/
 
 # =============================================================================
 # Node & Frontend
@@ -100,3 +100,15 @@ coverage/
 htmlcov/
 .nyc_output/
 nul
+
+# Data directory (DB storage)
+data/*.db
+data/*.db-journal
+data/*.db-shm
+data/*.db-wal
+
+# Data directory (Excel backups)
+data/xlsx/
+
+# Staging environment (local only)
+.env.staging

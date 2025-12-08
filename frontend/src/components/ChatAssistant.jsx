@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
-import { MessageSquare, Send, X, Loader } from 'lucide-react'
+import { Send, X, Loader2 } from 'lucide-react'
 import { useChatStore } from '../store/chatStore'
 import agentService from '../services/agent'
+import { Button } from './ui/Button'
 
 /**
  * Componente ChatAssistant
- * Chat flotante estilo C40/Neubrutalism que comunica con el agente ML
+ * Chat flotante estilo Glass Morphism que comunica con el agente ML
  */
 export default function ChatAssistant() {
   const messagesEndRef = useRef(null)
@@ -18,7 +19,6 @@ export default function ChatAssistant() {
     isOpen,
     isLoading,
     error,
-    toggleChat,
     closeChat,
     addUserMessage,
     addBotMessage,
@@ -161,137 +161,132 @@ export default function ChatAssistant() {
     setInputValue(suggestion)
   }
 
+  if (!isOpen) return null
+
   return (
-    <>
-      {/* Chat Panel */}
-      {isOpen && (
-        <div className="fixed bottom-0 left-0 z-50 w-full max-w-md h-[600px] bg-[var(--bg)]
-                        border-4 border-black shadow-[12px_12px_0_0_#000]
-                        flex flex-col rounded-none m-4 md:m-0"
-        >
-          {/* Header */}
-          <div className="px-4 py-3 border-b-4 border-black bg-primary-500 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-black rounded-full animate-pulse"></div>
-              <h3 className="text-base font-black text-black uppercase tracking-wider">
-                Asistente SPM
-              </h3>
-            </div>
-            <button
-              onClick={closeChat}
-              className="p-2 hover:bg-primary-600 transition-colors"
-              aria-label="Cerrar chat"
-            >
-              <X className="w-5 h-5 text-black" strokeWidth={3} />
-            </button>
-          </div>
-
-          {/* Messages Container */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-xs px-4 py-3 border-2 border-black rounded-none
-                    ${msg.type === 'user'
-                      ? 'bg-primary-500 text-black font-semibold shadow-[4px_4px_0_0_#000]'
-                      : 'bg-[var(--bg)] text-black shadow-[4px_4px_0_0_#000]'
-                    }`}
-                >
-                  <p className="text-sm leading-relaxed break-words">{msg.content}</p>
-
-                  {/* Sugerencias */}
-                  {msg.suggestions && msg.suggestions.length > 0 && msg.type === 'bot' && (
-                    <div className="mt-3 space-y-2 pt-3 border-t-2 border-gray-300">
-                      {msg.suggestions.map((suggestion, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => handleSuggestion(suggestion)}
-                          className="block w-full text-left text-xs px-2 py-1
-                                   bg-gray-100 hover:bg-gray-200 border border-gray-300
-                                   rounded-none transition-colors font-medium"
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Timestamp */}
-                  <p className="text-xs text-gray-500 mt-2">
-                    {msg.timestamp.toLocaleTimeString('es-ES', {
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
-                </div>
-              </div>
-            ))}
-
-            {/* Loading Indicator */}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="flex items-center gap-2 px-4 py-3 bg-[var(--bg)] border-2 border-black
-                              rounded-none shadow-[4px_4px_0_0_#000]">
-                  <Loader className="w-4 h-4 text-black animate-spin" strokeWidth={3} />
-                  <span className="text-sm text-gray-600">Procesando tu consulta...</span>
-                </div>
-              </div>
-            )}
-
-            {/* Error Message */}
-            {error && (
-              <div className="flex justify-start">
-                <div className="px-4 py-3 bg-[var(--danger-bg)] border-2 border-[var(--danger)] rounded-none
-                              shadow-[4px_4px_0_0_var(--danger)] text-sm text-[var(--danger)]">
-                  {error}
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Input Area */}
-          <form
-            onSubmit={handleSendMessage}
-            className="border-t-4 border-black p-4 bg-[var(--bg)] space-y-3"
-          >
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Escribe tu consulta..."
-                disabled={isLoading || isSending}
-                className="flex-1 px-4 py-2 border-2 border-black rounded-none
-                          text-sm font-medium placeholder-gray-500
-                          focus:outline-none focus:ring-2 focus:ring-primary-500
-                          disabled:bg-gray-100 disabled:cursor-not-allowed"
-              />
-              <button
-                type="submit"
-                disabled={!inputValue.trim() || isLoading || isSending}
-                className="px-4 py-2 bg-primary-500 border-2 border-black rounded-none
-                          font-black text-black shadow-[3px_3px_0_0_#000]
-                          hover:bg-primary-600 active:translate-y-[2px] active:shadow-[1px_1px_0_0_#000]
-                          disabled:bg-gray-300 disabled:cursor-not-allowed
-                          transition-all duration-100"
-                aria-label="Enviar mensaje"
-              >
-                <Send className="w-5 h-5" strokeWidth={3} />
-              </button>
-            </div>
-
-            {/* Helper text */}
-            <p className="text-xs text-gray-500">
-              💡 Prueba: "Ver mis solicitudes", "Buscar materiales", "Analizar solicitud #123"
-            </p>
-          </form>
+    <div className="fixed bottom-24 right-6 z-50 w-full max-w-sm h-[500px]
+                    bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl
+                    border border-white/50 dark:border-white/10
+                    rounded-2xl shadow-glass
+                    flex flex-col
+                    animate-scale-in"
+    >
+      {/* Header - Glass style */}
+      <div className="px-4 py-3 border-b border-white/30 dark:border-white/10 flex items-center justify-between rounded-t-2xl">
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full animate-pulse"></div>
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+            Asistente SPM
+          </h3>
         </div>
-      )}
-    </>
+        <button
+          onClick={closeChat}
+          className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50 transition-all"
+          aria-label="Cerrar chat"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Messages Container */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50 dark:bg-slate-800/50">
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div
+              className={`max-w-[85%] px-3 py-2 rounded-xl
+                ${msg.type === 'user'
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25'
+                  : 'bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border border-white/50 dark:border-white/10 text-slate-700 dark:text-slate-200 shadow-sm'
+                }`}
+            >
+              <p className="text-sm leading-relaxed break-words">{msg.content}</p>
+
+              {/* Sugerencias */}
+              {msg.suggestions && msg.suggestions.length > 0 && msg.type === 'bot' && (
+                <div className="mt-2 space-y-1.5 pt-2 border-t border-slate-200/50 dark:border-slate-600/50">
+                  {msg.suggestions.map((suggestion, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleSuggestion(suggestion)}
+                      className="block w-full text-left text-xs px-2 py-1.5
+                               bg-white/50 dark:bg-slate-700/50 hover:bg-blue-50/70 dark:hover:bg-blue-900/30 border border-slate-200/50 dark:border-slate-600/50
+                               rounded-lg transition-colors text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Timestamp */}
+              <p className={`text-[10px] mt-1.5 ${msg.type === 'user' ? 'text-blue-100' : 'text-slate-400'}`}>
+                {msg.timestamp.toLocaleTimeString('es-ES', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </p>
+            </div>
+          </div>
+        ))}
+
+        {/* Loading Indicator */}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="flex items-center gap-2 px-3 py-2 bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border border-white/50 dark:border-white/10 rounded-xl shadow-sm">
+              <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
+              <span className="text-sm text-slate-600 dark:text-slate-300">Procesando...</span>
+            </div>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="flex justify-start">
+            <div className="px-3 py-2 bg-red-50/70 dark:bg-red-900/30 backdrop-blur-sm border border-red-200/50 dark:border-red-500/30 rounded-xl text-sm text-red-600 dark:text-red-400">
+              {error}
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Area - Glass style */}
+      <form
+        onSubmit={handleSendMessage}
+        className="border-t border-white/30 dark:border-white/10 p-3 bg-white/50 dark:bg-slate-800/50 rounded-b-2xl"
+      >
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="Escribe tu consulta..."
+            disabled={isLoading || isSending}
+            className="flex-1 px-3 py-2 bg-white/70 dark:bg-slate-700/70 backdrop-blur-sm border border-white/50 dark:border-white/10 rounded-xl
+                      text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500
+                      focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50
+                      disabled:bg-slate-100/50 dark:disabled:bg-slate-600/50 disabled:cursor-not-allowed
+                      transition-all"
+          />
+          <Button
+            type="submit"
+            disabled={!inputValue.trim() || isLoading || isSending}
+            size="sm"
+            className="px-3"
+          >
+            <Send className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* Helper text */}
+        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 px-1">
+          Prueba: "Ver mis solicitudes", "Buscar materiales", "Analizar #123"
+        </p>
+      </form>
+    </div>
   )
 }

@@ -1,6 +1,6 @@
 """
 Tests unitarios para DemandForecastPipeline
-backend_v2/agent/pipelines/demand_forecast.py
+backend/agent/pipelines/demand_forecast.py
 
 Generado por Sugar Autonomous System
 """
@@ -13,7 +13,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from backend_v2.agent.pipelines.demand_forecast import DemandForecastPipeline
+from backend.agent.pipelines.demand_forecast import DemandForecastPipeline
 
 
 class TestDemandForecastInitialization:

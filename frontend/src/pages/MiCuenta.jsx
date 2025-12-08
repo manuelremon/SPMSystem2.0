@@ -7,6 +7,7 @@ import StatusBadge from "../components/ui/StatusBadge";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Alert } from "../components/ui/Alert";
 import { FormSkeleton } from "../components/ui/Skeleton";
+import { PushNotificationBanner } from "../components/ui/PushNotificationToggle";
 import { X, MessageSquare, Send } from "lucide-react";
 
 const initialPending = {
@@ -275,11 +276,14 @@ export default function MiCuenta() {
       <PageHeader title="MI CUENTA" />
       {error && <Alert variant="danger" onDismiss={() => setError("")}>{error}</Alert>}
 
+        {/* Push Notifications Banner */}
+        <PushNotificationBanner />
+
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card className="h-full">
             <CardHeader>
               <CardTitle className="text-lg font-black">Datos de identidad</CardTitle>
-              <CardDescription className="text-sm text-[var(--fg-muted)]">Informacion personal y de cuenta</CardDescription>
+              <CardDescription className="text-sm text-slate-500">Informacion personal y de cuenta</CardDescription>
             </CardHeader>
             <CardContent className="pt-1 space-y-3">
               <ReadOnlyField label="Nombre y Apellido" value={profile.nombre_apellido || "-"} />
@@ -291,7 +295,7 @@ export default function MiCuenta() {
           <Card className="h-full">
             <CardHeader>
               <CardTitle className="text-lg font-black">Datos de contacto</CardTitle>
-              <CardDescription className="text-sm text-[var(--fg-muted)]">Mail y telefono</CardDescription>
+              <CardDescription className="text-sm text-slate-500">Mail y telefono</CardDescription>
             </CardHeader>
             <CardContent className="pt-1 space-y-3">
               <ReadOnlyField label="Mail" value={profile.mail || "-"} />
@@ -300,11 +304,11 @@ export default function MiCuenta() {
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none"
+                  className="w-full px-4 py-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
                   placeholder="+34 600 000 000"
                 />
               </Field>
-              {phoneMessage && <p className="text-sm text-[var(--fg-muted)]">{phoneMessage}</p>}
+              {phoneMessage && <p className="text-sm text-slate-500">{phoneMessage}</p>}
               <div className="flex justify-end">
                 <Button className="px-5 py-3" disabled={savingPhone} onClick={submitPhone} type="button">
                   {savingPhone ? "Guardando..." : "Guardar contacto"}
@@ -318,7 +322,7 @@ export default function MiCuenta() {
           <Card className="h-full">
             <CardHeader>
               <CardTitle className="text-lg font-black">Seguridad</CardTitle>
-              <CardDescription className="text-sm text-[var(--fg-muted)]">Contrasena y mail de respaldo</CardDescription>
+              <CardDescription className="text-sm text-slate-500">Contrasena y mail de respaldo</CardDescription>
             </CardHeader>
             <CardContent className="pt-1 space-y-3">
               <Field label="Nueva contrasena">
@@ -326,7 +330,7 @@ export default function MiCuenta() {
                   type="password"
                   value={passwordForm.nueva}
                   onChange={(e) => handlePasswordChange("nueva", e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none"
+                  className="w-full px-4 py-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
                   placeholder="Min 8 caracteres"
                 />
               </Field>
@@ -335,7 +339,7 @@ export default function MiCuenta() {
                   type="password"
                   value={passwordForm.repetir}
                   onChange={(e) => handlePasswordChange("repetir", e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none"
+                  className="w-full px-4 py-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
                   placeholder="Repite la contrasena"
                 />
               </Field>
@@ -344,11 +348,11 @@ export default function MiCuenta() {
                   type="email"
                   value={mailBackup}
                   onChange={(e) => setMailBackup(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none"
+                  className="w-full px-4 py-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
                   placeholder="ejemplo@respaldo.com"
                 />
               </Field>
-              {passwordMessage && <p className="text-sm text-[var(--fg-muted)]">{passwordMessage}</p>}
+              {passwordMessage && <p className="text-sm text-slate-500">{passwordMessage}</p>}
               <div className="flex justify-end">
                 <Button className="px-5 py-3" disabled={savingPassword} onClick={submitSecurity} type="button">
                   {savingPassword ? "Guardando..." : "Guardar seguridad"}
@@ -360,7 +364,7 @@ export default function MiCuenta() {
           <Card className="h-full">
             <CardHeader>
               <CardTitle className="text-lg font-black">Configuracion sujeta a aprobacion</CardTitle>
-              <CardDescription className="text-sm text-[var(--fg-muted)]">Solicita cambios de sector, centros y responsables</CardDescription>
+              <CardDescription className="text-sm text-slate-500">Solicita cambios de sector, centros y responsables</CardDescription>
             </CardHeader>
             <CardContent className="pt-1 space-y-3">
               <Field label="Rol SPM">
@@ -368,7 +372,7 @@ export default function MiCuenta() {
               </Field>
               <Field label="Sector actual">
                 <input
-                  className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--bg-soft)] text-sm text-[var(--fg)]"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50/50 backdrop-blur-sm border border-white/50 text-sm text-slate-700"
                   value={profile.sector_actual || "-"}
                   readOnly
                 />
@@ -390,7 +394,7 @@ export default function MiCuenta() {
                   multiple
                   value={pendingChanges.centros_nuevos}
                   onChange={(e) => onMultiSelect(e, "centros_nuevos")}
-                  className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none h-28"
+                  className="w-full px-4 py-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none h-28 transition-all"
                 >
                   {(catalogos.centros || []).map((c) => (
                     <option key={c.id} value={c.id}>{`${c.id} - ${c.nombre || c.descripcion || ""}`}</option>
@@ -406,7 +410,7 @@ export default function MiCuenta() {
                   multiple
                   value={pendingChanges.almacenes_nuevos}
                   onChange={(e) => onMultiSelect(e, "almacenes_nuevos")}
-                  className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none h-28"
+                  className="w-full px-4 py-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none h-28 transition-all"
                 >
                   {(catalogos.almacenes || []).map((a) => (
                     <option key={a.id} value={a.id}>{`${a.id} - ${a.nombre || a.descripcion || ""}`}</option>
@@ -450,7 +454,7 @@ export default function MiCuenta() {
                 </Select>
               </Field>
 
-              {requestMessage && <p className="text-sm text-[var(--fg-muted)]">{requestMessage}</p>}
+              {requestMessage && <p className="text-sm text-slate-500">{requestMessage}</p>}
               <div className="flex justify-end">
                 <Button className="px-5 py-3" disabled={savingRequest} onClick={submitProfileRequest} type="button">
                   {savingRequest ? "Enviando..." : "Solicitar actualizacion de datos de perfil"}
@@ -464,36 +468,36 @@ export default function MiCuenta() {
           <Card className="h-full">
             <CardHeader>
               <CardTitle className="text-lg font-black">Solicitudes de actualizacion de perfil</CardTitle>
-              <CardDescription className="text-sm text-[var(--fg-muted)]">Historial de cambios solicitados</CardDescription>
+              <CardDescription className="text-sm text-slate-500">Historial de cambios solicitados</CardDescription>
             </CardHeader>
             <CardContent className="pt-1 space-y-3">
-              {solicitudes.length === 0 && <p className="text-sm text-[var(--fg-muted)]">Sin solicitudes pendientes.</p>}
+              {solicitudes.length === 0 && <p className="text-sm text-slate-500">Sin solicitudes pendientes.</p>}
               {solicitudes.length > 0 && (
-                <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
+                <div className="overflow-x-auto rounded-xl border border-white/50">
                   <table className="min-w-full text-sm">
-                    <thead className="bg-[var(--bg-soft)] text-[var(--fg)] border-b border-[var(--border)]">
+                    <thead className="bg-white/50 backdrop-blur-sm text-slate-700 border-b border-white/30">
                       <tr>
-                        <th className="px-3 py-2 text-left font-black uppercase tracking-[0.04em] text-[var(--fg-muted)]">Fecha</th>
-                        <th className="px-3 py-2 text-left font-black uppercase tracking-[0.04em] text-[var(--fg-muted)]">Campos</th>
-                        <th className="px-3 py-2 text-left font-black uppercase tracking-[0.04em] text-[var(--fg-muted)]">Estado</th>
-                        <th className="px-3 py-2 text-left font-black uppercase tracking-[0.04em] text-[var(--fg-muted)]">Comentario</th>
-                        <th className="px-3 py-2 text-center font-black uppercase tracking-[0.04em] text-[var(--fg-muted)]">Acciones</th>
+                        <th className="px-3 py-2 text-left font-black uppercase tracking-[0.04em] text-slate-500">Fecha</th>
+                        <th className="px-3 py-2 text-left font-black uppercase tracking-[0.04em] text-slate-500">Campos</th>
+                        <th className="px-3 py-2 text-left font-black uppercase tracking-[0.04em] text-slate-500">Estado</th>
+                        <th className="px-3 py-2 text-left font-black uppercase tracking-[0.04em] text-slate-500">Comentario</th>
+                        <th className="px-3 py-2 text-center font-black uppercase tracking-[0.04em] text-slate-500">Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
                       {solicitudes.map((s, idx) => (
-                        <tr key={s.id || s.fecha} className={idx % 2 ? "bg-[var(--bg-soft)]" : "bg-[var(--card)]"}>
-                          <td className="px-3 py-2 text-[var(--fg)] border-b border-[var(--border)]">{s.fecha || "-"}</td>
-                          <td className="px-3 py-2 text-[var(--fg)] border-b border-[var(--border)]">{(s.campos || []).join(", ") || "-"}</td>
-                          <td className="px-3 py-2 border-b border-[var(--border)]">{renderEstadoBadge(s.estado)}</td>
-                          <td className="px-3 py-2 text-[var(--fg)] border-b border-[var(--border)]">{s.comentario || "-"}</td>
-                          <td className="px-3 py-2 border-b border-[var(--border)]">
+                        <tr key={s.id || s.fecha} className={idx % 2 ? "bg-white/30" : "bg-white/50"}>
+                          <td className="px-3 py-2 text-slate-700 border-b border-white/30">{s.fecha || "-"}</td>
+                          <td className="px-3 py-2 text-slate-700 border-b border-white/30">{(s.campos || []).join(", ") || "-"}</td>
+                          <td className="px-3 py-2 border-b border-white/30">{renderEstadoBadge(s.estado)}</td>
+                          <td className="px-3 py-2 text-slate-700 border-b border-white/30">{s.comentario || "-"}</td>
+                          <td className="px-3 py-2 border-b border-white/30">
                             <div className="flex items-center justify-center gap-2">
                               {s.estado === "pendiente" && (
                                 <button
                                   onClick={() => handleCancelRequest(s)}
                                   disabled={cancelingRequest === s.id}
-                                  className="p-2 rounded-lg hover:bg-[var(--bg-elevated)] text-[var(--fg-muted)] hover:text-[var(--danger)] transition-colors disabled:opacity-50"
+                                  className="p-2 rounded-lg hover:bg-red-50/70 text-slate-400 hover:text-red-600 transition-colors disabled:opacity-50"
                                   title="Cancelar solicitud"
                                 >
                                   <X className="w-4 h-4" />
@@ -501,7 +505,7 @@ export default function MiCuenta() {
                               )}
                               <button
                                 onClick={() => handleOpenMessageModal(s)}
-                                className="p-2 rounded-lg hover:bg-[var(--bg-elevated)] text-[var(--fg-muted)] hover:text-[var(--primary)] transition-colors"
+                                className="p-2 rounded-lg hover:bg-blue-50/70 text-slate-400 hover:text-blue-600 transition-colors"
                                 title="Enviar mensaje al admin"
                               >
                                 <MessageSquare className="w-4 h-4" />
@@ -520,35 +524,35 @@ export default function MiCuenta() {
 
       {/* Modal para enviar mensaje al admin */}
       {messageModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--card)] rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/80 backdrop-blur-md border border-white/50 rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-black text-[var(--fg)]">Mensaje al Administrador</h3>
+              <h3 className="text-lg font-black text-slate-800">Mensaje al Administrador</h3>
               <button
                 onClick={() => setMessageModalOpen(false)}
-                className="p-2 rounded-lg hover:bg-[var(--bg-elevated)] text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+                className="p-2 rounded-xl hover:bg-white/50 text-slate-400 hover:text-slate-700 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm text-[var(--fg-muted)]">
+              <p className="text-sm text-slate-500">
                 Solicitud del {selectedSolicitud?.fecha || "-"}
               </p>
-              <p className="text-sm text-[var(--fg-muted)]">
+              <p className="text-sm text-slate-500">
                 Estado: <StatusBadge estado={selectedSolicitud?.estado || "pendiente"} className="px-2 py-1 ml-1" />
               </p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs uppercase font-bold tracking-[0.06em] text-[var(--fg-muted)]">
+              <label className="text-xs uppercase font-bold tracking-[0.06em] text-slate-500">
                 Tu mensaje
               </label>
               <textarea
                 value={messageToAdmin}
                 onChange={(e) => setMessageToAdmin(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none resize-none"
+                className="w-full px-4 py-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none resize-none transition-all"
                 rows={4}
                 placeholder="Escribe tu mensaje al administrador..."
               />
@@ -581,7 +585,7 @@ export default function MiCuenta() {
 function Field({ label, children }) {
   return (
     <div className="space-y-2">
-      {label && <p className="text-xs uppercase font-bold tracking-[0.06em] text-[var(--fg-muted)]">{label}</p>}
+      {label && <p className="text-xs uppercase font-bold tracking-[0.06em] text-slate-500">{label}</p>}
       {children}
     </div>
   );
@@ -590,8 +594,8 @@ function Field({ label, children }) {
 function ReadOnlyField({ label, value }) {
   return (
     <div className="flex flex-col gap-1">
-      {label && <p className="text-sm text-[var(--fg-muted)]">{label}</p>}
-      <input className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--bg-soft)] text-sm text-[var(--fg)]" value={value} readOnly />
+      {label && <p className="text-sm text-slate-500">{label}</p>}
+      <input className="w-full px-4 py-3 rounded-xl bg-slate-50/50 backdrop-blur-sm border border-white/50 text-sm text-slate-700" value={value} readOnly />
     </div>
   );
 }

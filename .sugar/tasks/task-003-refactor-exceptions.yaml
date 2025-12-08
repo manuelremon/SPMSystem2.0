@@ -8,12 +8,12 @@ created: 2025-11-28
 source: codebase_analysis
 
 description: |
-  El archivo backend_v2/agent/routes.py contiene 20 bloques
+  El archivo backend/agent/routes.py contiene 20 bloques
   'except Exception' que capturan errores de forma genérica.
   Esto dificulta el debugging y puede ocultar problemas reales.
 
 context:
-  file: "backend_v2/agent/routes.py"
+  file: "backend/agent/routes.py"
   occurrences: 20
   lines: [70, 90, 116, 135, 176, 196, 215, 235, 256, 276, 296, 316, 336, 356, 376, 407, 425, 451]
 

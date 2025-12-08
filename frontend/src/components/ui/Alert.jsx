@@ -1,29 +1,30 @@
 import React from "react";
+import clsx from "clsx";
 import { AlertCircle, CheckCircle, Info, XCircle, X } from "lucide-react";
 
+/**
+ * Alert Component - Glass Morphism Style
+ * Translucent alerts with blur effect and semantic colors
+ */
 const variants = {
   success: {
-    bg: "var(--status-success-bg)",
-    border: "var(--status-success-border)",
-    text: "var(--status-success-text)",
+    glass: "bg-emerald-50/70 dark:bg-emerald-900/30 backdrop-blur-sm border-emerald-200/50 dark:border-emerald-700/50",
+    text: "text-emerald-700 dark:text-emerald-300",
     icon: CheckCircle,
   },
   danger: {
-    bg: "var(--status-danger-bg)",
-    border: "var(--status-danger-border)",
-    text: "var(--status-danger-text)",
+    glass: "bg-red-50/70 dark:bg-red-900/30 backdrop-blur-sm border-red-200/50 dark:border-red-700/50",
+    text: "text-red-700 dark:text-red-300",
     icon: XCircle,
   },
   warning: {
-    bg: "var(--status-warning-bg)",
-    border: "var(--status-warning-border)",
-    text: "var(--status-warning-text)",
+    glass: "bg-amber-50/70 dark:bg-amber-900/30 backdrop-blur-sm border-amber-200/50 dark:border-amber-700/50",
+    text: "text-amber-700 dark:text-amber-300",
     icon: AlertCircle,
   },
   info: {
-    bg: "var(--status-info-bg)",
-    border: "var(--status-info-border)",
-    text: "var(--status-info-text)",
+    glass: "bg-blue-50/70 dark:bg-blue-900/30 backdrop-blur-sm border-blue-200/50 dark:border-blue-700/50",
+    text: "text-blue-700 dark:text-blue-300",
     icon: Info,
   },
 };
@@ -44,19 +45,19 @@ export function Alert({
 
   return (
     <div
-      className={`
-        flex items-start gap-3
-        px-4 py-3.5
-        rounded-[var(--radius-md)]
-        border
-        animate-slideDown
-        ${className}
-      `}
-      style={{
-        backgroundColor: config.bg,
-        borderColor: config.border,
-        color: config.text,
-      }}
+      className={clsx(
+        // Glass base
+        "flex items-start gap-3",
+        "px-4 py-3.5",
+        "rounded-[16px]",
+        "border",
+        // Glass effect per variant
+        config.glass,
+        config.text,
+        // Animation
+        "animate-slideDown",
+        className
+      )}
       {...props}
     >
       <Icon className="w-5 h-5 flex-shrink-0 mt-0.5" />
@@ -64,7 +65,7 @@ export function Alert({
       {canDismiss && handleClose && (
         <button
           onClick={handleClose}
-          className="flex-shrink-0 p-1 rounded hover:bg-black/10 transition-colors"
+          className="flex-shrink-0 p-1 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 transition-colors"
           type="button"
           aria-label="Cerrar"
         >

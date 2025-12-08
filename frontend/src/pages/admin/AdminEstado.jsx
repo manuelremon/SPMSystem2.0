@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
 import { admin } from '../../services/spm'
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { Alert } from '../../components/ui/Alert'
+import { Server, Database, Settings } from 'lucide-react'
 
 export default function AdminEstado() {
   const [data, setData] = useState(null)
@@ -11,30 +15,64 @@ export default function AdminEstado() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-[11px] uppercase tracking-[0.18em] font-black text-primary-700">Administración</p>
-        <h2 className="text-2xl font-black text-black uppercase tracking-[0.05em]">Estado del Sistema</h2>
-      </div>
-      {error && <div className="bg-danger-50 text-danger-500 px-4 py-3 border-2 border-black font-semibold">{error}</div>}
+      <PageHeader
+        title="Estado del Sistema"
+        subtitle="Información del servidor y entorno"
+      />
+
+      {error && <Alert variant="danger">{error}</Alert>}
+
       {data && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-[var(--bg)] border-4 border-black shadow-[8px_8px_0_0_#000] p-5">
-            <h3 className="font-black text-black uppercase tracking-[0.05em] mb-3 text-lg">Servidor</h3>
-            <ul className="text-sm text-black space-y-2">
-              <li><span className="font-bold">Versión SPM:</span> {data.version_spm}</li>
-              <li><span className="font-bold">Python:</span> {data.python_version}</li>
-              <li><span className="font-bold">DB Path:</span> {data.db_path}</li>
-              <li><span className="font-bold">DB existe:</span> {data.db_exists ? 'Sí' : 'No'}</li>
-            </ul>
-          </div>
-          <div className="bg-[var(--bg)] border-4 border-black shadow-[8px_8px_0_0_#000] p-5">
-            <h3 className="font-black text-black uppercase tracking-[0.05em] mb-3 text-lg">Entorno</h3>
-            <ul className="text-sm text-black space-y-2">
-              {data.env && Object.entries(data.env).map(([k,v]) => (
-                <li key={k}><span className="font-bold">{k}:</span> {String(v)}</li>
-              ))}
-            </ul>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Server className="w-5 h-5 text-blue-600" />
+                Servidor
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="text-sm text-slate-700 space-y-2">
+                <li className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-500">Versión SPM</span>
+                  <span className="font-medium">{data.version_spm}</span>
+                </li>
+                <li className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-500">Python</span>
+                  <span className="font-medium">{data.python_version}</span>
+                </li>
+                <li className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-500">DB Path</span>
+                  <span className="font-medium text-xs truncate max-w-[200px]">{data.db_path}</span>
+                </li>
+                <li className="flex justify-between py-1">
+                  <span className="text-slate-500">DB existe</span>
+                  <span className={`font-medium ${data.db_exists ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {data.db_exists ? 'Sí' : 'No'}
+                  </span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="w-5 h-5 text-blue-600" />
+                Entorno
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="text-sm text-slate-700 space-y-2">
+                {data.env && Object.entries(data.env).map(([k, v]) => (
+                  <li key={k} className="flex justify-between py-1 border-b border-slate-100 last:border-0">
+                    <span className="text-slate-500">{k}</span>
+                    <span className="font-medium">{String(v)}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

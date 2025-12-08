@@ -201,7 +201,7 @@ export default function CatalogoMateriales() {
           <div className="flex flex-col lg:flex-row gap-4">
             {/* Código SAP */}
             <div className="lg:w-40">
-              <label className="block text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wide mb-2">
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
                 {t('catalogo_codigo_sap', 'Código SAP')}
               </label>
               <Input
@@ -214,7 +214,7 @@ export default function CatalogoMateriales() {
 
             {/* Descripción */}
             <div className="flex-1 lg:max-w-md">
-              <label className="block text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wide mb-2">
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
                 {t('catalogo_descripcion', 'Descripción')}
               </label>
               <Input
@@ -226,7 +226,7 @@ export default function CatalogoMateriales() {
 
             {/* Palabra clave */}
             <div className="flex-1 lg:max-w-sm">
-              <label className="block text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wide mb-2">
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
                 {t('catalogo_palabra_clave', 'Palabra clave')}
               </label>
               <div className="relative">
@@ -239,9 +239,9 @@ export default function CatalogoMateriales() {
                   <button
                     type="button"
                     onClick={handleClearSearch}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-[var(--bg-elevated)] rounded transition-colors"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100/70 rounded transition-colors"
                   >
-                    <X className="h-4 w-4 text-[var(--fg-muted)]" />
+                    <X className="h-4 w-4 text-slate-500" />
                   </button>
                 )}
               </div>
@@ -250,7 +250,7 @@ export default function CatalogoMateriales() {
             {/* Search indicator */}
             <div className="flex items-end">
               {loading ? (
-                <div className="flex items-center gap-2 h-10 px-4 text-[var(--fg-muted)]">
+                <div className="flex items-center gap-2 h-10 px-4 text-slate-500">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span className="text-sm">{t('common_buscando', 'Buscando...')}</span>
                 </div>
@@ -279,7 +279,7 @@ export default function CatalogoMateriales() {
         <Card hover={false}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-[var(--primary)]" />
+              <Package className="h-5 w-5 text-blue-600" />
               {t('catalogo_resultados', 'Resultados de Búsqueda')}
             </CardTitle>
           </CardHeader>
@@ -288,36 +288,36 @@ export default function CatalogoMateriales() {
             <TableSkeleton rows={5} columns={5} />
           ) : !hasSearched ? (
             <div className="py-12 text-center">
-              <Search className="h-12 w-12 text-[var(--fg-muted)]/30 mx-auto mb-4" />
-              <p className="text-[var(--fg-muted)]">
+              <Search className="h-12 w-12 text-slate-500/30 mx-auto mb-4" />
+              <p className="text-slate-500">
                 {t('catalogo_instruccion', 'Ingresa un código SAP, descripción o palabra clave para buscar materiales')}
               </p>
             </div>
           ) : results.length === 0 ? (
             <div className="py-12 text-center">
-              <Package className="h-12 w-12 text-[var(--fg-muted)]/30 mx-auto mb-4" />
-              <p className="text-[var(--fg-muted)]">
+              <Package className="h-12 w-12 text-slate-500/30 mx-auto mb-4" />
+              <p className="text-slate-500">
                 {t('catalogo_sin_resultados', 'No se encontraron materiales con los criterios de búsqueda')}
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto border border-[var(--border)] rounded-lg">
+            <div className="overflow-x-auto border border-white/30 rounded-lg">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[var(--border)] bg-[var(--bg-soft)]">
-                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                  <tr className="border-b border-white/30 bg-slate-50/70">
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                       {t('catalogo_col_codigo', 'Código')}
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
                       {t('catalogo_col_descripcion', 'Descripción')}
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                    <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
                       {t('catalogo_col_unidad', 'Unidad')}
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                    <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-slate-500">
                       {t('catalogo_col_precio', 'Precio USD')}
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+                    <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
                       {t('catalogo_col_acciones', 'Acciones')}
                     </th>
                   </tr>
@@ -327,28 +327,28 @@ export default function CatalogoMateriales() {
                     <tr
                       key={mat.codigo}
                       className={`
-                        border-b border-[var(--border)] transition-colors cursor-pointer
-                        ${idx % 2 === 0 ? 'bg-transparent' : 'bg-[var(--bg-soft)]/30'}
-                        hover:bg-[var(--bg-elevated)]
-                        ${selectedMaterial?.codigo === mat.codigo ? 'ring-2 ring-inset ring-[var(--primary)]' : ''}
+                        border-b border-white/30 transition-colors cursor-pointer
+                        ${idx % 2 === 0 ? 'bg-transparent' : 'bg-slate-50/70/30'}
+                        hover:bg-slate-100/70
+                        ${selectedMaterial?.codigo === mat.codigo ? 'ring-2 ring-inset ring-blue-500' : ''}
                       `}
                       onClick={() => loadDetail(mat)}
                     >
-                      <td className="px-4 py-3 font-mono font-semibold text-[var(--primary)]">
+                      <td className="px-4 py-3 font-mono font-semibold text-blue-600">
                         {mat.codigo}
                       </td>
-                      <td className="px-4 py-3 text-[var(--fg)]">
+                      <td className="px-4 py-3 text-slate-800">
                         <p className="line-clamp-1">{mat.descripcion}</p>
                         {mat.descripcion_larga && mat.descripcion_larga !== mat.descripcion && (
-                          <p className="text-xs text-[var(--fg-muted)] line-clamp-1 mt-0.5">
+                          <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
                             {mat.descripcion_larga}
                           </p>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-center text-[var(--fg-muted)]">
+                      <td className="px-4 py-3 text-center text-slate-500">
                         {mat.unidad || '-'}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-[var(--fg)]">
+                      <td className="px-4 py-3 text-right font-mono text-slate-800">
                         {formatCurrency(mat.precio_usd || 0)}
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -387,21 +387,21 @@ export default function CatalogoMateriales() {
       >
         {loadingDetail ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
           </div>
         ) : selectedMaterial && (
           <div className="space-y-4">
             {/* Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-[var(--bg-soft)] border border-[var(--border)] rounded-lg">
-                <p className="text-xs uppercase font-semibold text-[var(--fg-muted)] mb-2">
+              <div className="p-4 bg-slate-50/70 border border-white/30 rounded-lg">
+                <p className="text-xs uppercase font-semibold text-slate-500 mb-2">
                   {t('catalogo_desc_larga', 'Descripción larga')}
                 </p>
-                <p className="text-[var(--fg)]">
+                <p className="text-slate-800">
                   {selectedMaterial.descripcion_larga || selectedMaterial.descripcion || 'N/D'}
                 </p>
               </div>
-              <div className="p-4 bg-[var(--bg-soft)] border border-[var(--border)] rounded-lg space-y-2">
+              <div className="p-4 bg-slate-50/70 border border-white/30 rounded-lg space-y-2">
                 <InfoRow label={t('catalogo_unidad', 'Unidad')} value={selectedMaterial.unidad || 'N/D'} />
                 <InfoRow label={t('catalogo_precio_usd', 'Precio USD')} value={formatCurrency(selectedMaterial.precio_usd || 0)} />
               </div>
@@ -426,16 +426,16 @@ export default function CatalogoMateriales() {
                 />
                 {(detail?.stock_detalle?.length > 0) && (
                   <div className="mt-3">
-                    <p className="text-xs uppercase font-semibold text-[var(--fg-muted)] mb-2">
+                    <p className="text-xs uppercase font-semibold text-slate-500 mb-2">
                       {t('catalogo_stock_por_centro', 'Desglose por Centro/Almacén')}
                     </p>
                     <div className="space-y-1 max-h-32 overflow-y-auto">
                       {detail.stock_detalle.map((row, idx) => (
-                        <div key={idx} className="text-xs p-2 bg-[var(--bg)] rounded border border-[var(--border)]">
+                        <div key={idx} className="text-xs p-2 bg-white rounded border border-white/30">
                           <span className="font-medium">Centro {row.centro}</span> /
                           <span className="ml-1">Almacén {formatAlmacen(row.almacen_consultado || row.almacen)}</span>
                           {row.lote && <span className="ml-1">/ Lote {row.lote}</span>}
-                          <span className="ml-2 font-mono font-semibold text-[var(--primary)]">
+                          <span className="ml-2 font-mono font-semibold text-blue-600">
                             Stock: {row.stock}
                           </span>
                         </div>
@@ -501,7 +501,7 @@ export default function CatalogoMateriales() {
                 />
                 {(detail?.consumo?.registros?.length > 0) && (
                   <div className="mt-3">
-                    <p className="text-xs uppercase font-semibold text-[var(--fg-muted)] mb-2">
+                    <p className="text-xs uppercase font-semibold text-slate-500 mb-2">
                       {t('catalogo_ultimos_consumos', 'Últimos Consumos')}
                     </p>
                     <div className="space-y-1">
@@ -527,12 +527,12 @@ export default function CatalogoMateriales() {
               badge={solicitudesData.length > 0 ? solicitudesData.length : undefined}
             >
               {loadingSolicitudes ? (
-                <div className="flex items-center gap-2 text-[var(--fg-muted)]">
+                <div className="flex items-center gap-2 text-slate-500">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span className="text-sm">{t('common_cargando', 'Cargando...')}</span>
                 </div>
               ) : solicitudesData.length === 0 ? (
-                <p className="text-sm text-[var(--fg-muted)]">
+                <p className="text-sm text-slate-500">
                   {t('catalogo_sin_solicitudes', 'No hay solicitudes SPM activas para este material')}
                 </p>
               ) : (
@@ -540,17 +540,17 @@ export default function CatalogoMateriales() {
                   {solicitudesData.map((sol) => (
                     <div
                       key={sol.id}
-                      className="p-3 bg-[var(--bg)] border border-[var(--border)] rounded-lg"
+                      className="p-3 bg-white border border-white/30 rounded-lg"
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold text-[var(--primary)]">
+                        <span className="font-semibold text-blue-600">
                           SPM #{sol.id}
                         </span>
                         <Badge variant={getStatusVariant(sol.estado)}>
                           {sol.estado}
                         </Badge>
                       </div>
-                      <div className="text-xs text-[var(--fg-muted)] space-y-0.5">
+                      <div className="text-xs text-slate-500 space-y-0.5">
                         <p><span className="font-medium">Solicitante:</span> {sol.solicitante}</p>
                         <p><span className="font-medium">Cantidad:</span> {sol.cantidad_solicitada}</p>
                         <p><span className="font-medium">Fecha:</span> {new Date(sol.fecha).toLocaleDateString()}</p>
@@ -572,12 +572,12 @@ export default function CatalogoMateriales() {
               badge={equivalenciasData.length > 0 ? equivalenciasData.length : undefined}
             >
               {loadingEquivalencias ? (
-                <div className="flex items-center gap-2 text-[var(--fg-muted)]">
+                <div className="flex items-center gap-2 text-slate-500">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span className="text-sm">{t('common_cargando', 'Cargando...')}</span>
                 </div>
               ) : equivalenciasData.length === 0 ? (
-                <p className="text-sm text-[var(--fg-muted)]">
+                <p className="text-sm text-slate-500">
                   {t('catalogo_sin_equivalencias', 'No hay materiales equivalentes registrados')}
                 </p>
               ) : (
@@ -585,20 +585,20 @@ export default function CatalogoMateriales() {
                   {equivalenciasData.map((eq) => (
                     <div
                       key={eq.id || eq.codigo_equivalente}
-                      className="p-3 bg-[var(--bg)] border border-[var(--border)] rounded-lg"
+                      className="p-3 bg-white border border-white/30 rounded-lg"
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-mono font-semibold text-[var(--accent)]">
+                        <span className="font-mono font-semibold text-cyan-600">
                           {eq.codigo_equivalente}
                         </span>
                         <CompatibilityBadge percent={eq.compatibilidad_pct} />
                       </div>
-                      <p className="text-sm text-[var(--fg)]">{eq.descripcion_equivalente}</p>
+                      <p className="text-sm text-slate-800">{eq.descripcion_equivalente}</p>
                       {eq.descripcion && (
-                        <p className="text-xs text-[var(--fg-muted)] mt-1">{eq.descripcion}</p>
+                        <p className="text-xs text-slate-500 mt-1">{eq.descripcion}</p>
                       )}
                       {eq.precio_usd && (
-                        <p className="text-xs font-mono text-[var(--fg-muted)] mt-1">
+                        <p className="text-xs font-mono text-slate-500 mt-1">
                           {formatCurrency(eq.precio_usd)}
                         </p>
                       )}
@@ -619,20 +619,20 @@ export default function CatalogoMateriales() {
 function InfoRow({ label, value }) {
   return (
     <div className="flex items-center justify-between text-sm">
-      <span className="text-[var(--fg-muted)]">{label}</span>
-      <span className="font-semibold text-[var(--fg-strong)]">{value}</span>
+      <span className="text-slate-500">{label}</span>
+      <span className="font-semibold text-slate-900">{value}</span>
     </div>
   )
 }
 
 function CollapsibleSection({ title, icon, expanded, onToggle, variant = 'default', badge, children }) {
   const variantStyles = {
-    default: 'border-[var(--border)]',
-    primary: 'border-[var(--primary)]/30 bg-[var(--primary)]/5',
-    info: 'border-[var(--info)]/30 bg-[var(--info)]/5',
-    warning: 'border-[var(--warning)]/30 bg-[var(--warning)]/5',
-    success: 'border-[var(--success)]/30 bg-[var(--success)]/5',
-    accent: 'border-[var(--accent)]/30 bg-[var(--accent)]/5',
+    default: 'border-white/30',
+    primary: 'border-blue-500/30 bg-blue-500/5',
+    info: 'border-blue-500/30 bg-blue-500/5',
+    warning: 'border-amber-500/30 bg-amber-500/5',
+    success: 'border-emerald-500/30 bg-emerald-500/5',
+    accent: 'border-cyan-500/30 bg-cyan-500/5',
   }
 
   return (
@@ -640,19 +640,19 @@ function CollapsibleSection({ title, icon, expanded, onToggle, variant = 'defaul
       <button
         type="button"
         onClick={onToggle}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-[var(--bg-elevated)] transition-colors"
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-100/70 transition-colors"
       >
         <div className="flex items-center gap-2">
           {icon}
-          <span className="font-medium text-[var(--fg-strong)]">{title}</span>
+          <span className="font-medium text-slate-900">{title}</span>
           {badge !== undefined && (
             <Badge variant="primary" size="sm">{badge}</Badge>
           )}
         </div>
-        <ChevronRight className={`h-4 w-4 text-[var(--fg-muted)] transition-transform ${expanded ? 'rotate-90' : ''}`} />
+        <ChevronRight className={`h-4 w-4 text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`} />
       </button>
       {expanded && (
-        <div className="px-4 pb-4 pt-2 border-t border-[var(--border)]">
+        <div className="px-4 pb-4 pt-2 border-t border-white/30">
           {children}
         </div>
       )}

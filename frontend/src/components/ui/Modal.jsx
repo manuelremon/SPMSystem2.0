@@ -4,7 +4,8 @@ import { X } from "lucide-react";
 import { Button } from "./Button";
 
 /**
- * Modal Component - Professional modal dialog system
+ * Modal Component - Glass Morphism Style
+ * Translucent modal with blur overlay
  *
  * @param {boolean} isOpen - Controls modal visibility
  * @param {function} onClose - Callback when modal should close
@@ -129,7 +130,12 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-strong animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+      style={{
+        backgroundColor: 'var(--overlay)',
+        backdropFilter: 'blur(var(--blur-sm))',
+        WebkitBackdropFilter: 'blur(var(--blur-sm))',
+      }}
       onClick={handleOverlayClick}
       role="presentation"
     >
@@ -138,19 +144,30 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
+        style={{
+          background: 'var(--card-glass-strong)',
+          backdropFilter: 'blur(var(--blur-lg))',
+          WebkitBackdropFilter: 'blur(var(--blur-lg))',
+          boxShadow: 'var(--shadow-elevated), 0 0 0 1px var(--border-glass-strong)',
+        }}
         className={clsx(
-          "relative w-full bg-[var(--card)] rounded-2xl border border-[var(--border)] animate-scale-in",  /* Bento Grid: rounded-2xl, sin shadow */
+          // Glass modal container
+          "relative w-full",
+          "border border-white/50 dark:border-white/10",
+          "rounded-[var(--radius-xl)]",
+          "shadow-glass",
+          "animate-scale-in",
           sizeClasses[size],
           className
         )}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[var(--border)]">
-          <h2 id="modal-title" className="text-xl font-semibold text-[var(--fg-strong)]">{title}</h2>
+        {/* Header - Glass style */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-white/30 dark:border-white/10">
+          <h2 id="modal-title" className="text-xl font-semibold text-slate-800 dark:text-slate-100">{title}</h2>
           {showCloseButton && (
             <button
               onClick={onClose}
-              className="p-2 rounded-lg transition-all duration-150 text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--bg-soft)]"
+              className="p-2 rounded-xl transition-all duration-200 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50"
               aria-label="Close modal"
             >
               <X className="w-5 h-5" />
@@ -163,9 +180,9 @@ export function Modal({
           {children}
         </div>
 
-        {/* Footer */}
+        {/* Footer - Glass style */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 px-6 pb-6 pt-4 border-t border-[var(--border)]">
+          <div className="flex items-center justify-end gap-3 px-6 pb-6 pt-4 border-t border-white/30 dark:border-white/10">
             {footer}
           </div>
         )}
@@ -209,7 +226,7 @@ export function ConfirmModal({
         </>
       }
     >
-      <p className="text-[var(--fg)]">{message}</p>
+      <p className="text-sm text-slate-700 dark:text-slate-300">{message}</p>
     </Modal>
   );
 }
@@ -237,7 +254,7 @@ export function AlertModal({
         </Button>
       }
     >
-      <p className="text-[var(--fg)]">{message}</p>
+      <p className="text-sm text-slate-700 dark:text-slate-300">{message}</p>
     </Modal>
   );
 }

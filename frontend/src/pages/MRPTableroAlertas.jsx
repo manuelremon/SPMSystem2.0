@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card"
 import { useI18n } from "../context/i18n";
 import { formatCurrency } from "../utils/formatters";
 import api from "../services/api";
+import { Button } from "../components/ui/Button";
 import clsx from "clsx";
 import {
   AlertTriangle,
@@ -22,44 +23,46 @@ import {
   XCircle,
 } from "lucide-react";
 
-// Estado badge component
+// Estado badge component - Glass style
 function EstadoBadge({ estado, clase }) {
   const config = {
-    danger: { bg: "bg-red-500/20", text: "text-red-400", icon: XCircle },
-    warning: { bg: "bg-yellow-500/20", text: "text-yellow-400", icon: AlertTriangle },
-    success: { bg: "bg-green-500/20", text: "text-green-400", icon: CheckCircle2 },
-    info: { bg: "bg-blue-500/20", text: "text-blue-400", icon: Info },
+    danger: { bg: "bg-red-50/70 backdrop-blur-sm border-red-200/50", text: "text-red-700", icon: XCircle },
+    warning: { bg: "bg-amber-50/70 backdrop-blur-sm border-amber-200/50", text: "text-amber-700", icon: AlertTriangle },
+    success: { bg: "bg-emerald-50/70 backdrop-blur-sm border-emerald-200/50", text: "text-emerald-700", icon: CheckCircle2 },
+    info: { bg: "bg-blue-50/70 backdrop-blur-sm border-blue-200/50", text: "text-blue-700", icon: Info },
   };
 
   const { bg, text, icon: Icon } = config[clase] || config.info;
 
   return (
-    <span className={clsx("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium", bg, text)}>
-      <Icon className="w-3.5 h-3.5" />
+    <span className={clsx("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border", bg, text)}>
+      <Icon className="w-4 h-4" />
       {estado}
     </span>
   );
 }
 
-// Resumen card
+// Resumen card - Glass style
 function ResumenCard({ titulo, valor, icon: Icon, color }) {
   const colorClasses = {
-    danger: "text-red-400 bg-red-500/10 border-red-500/30",
-    warning: "text-yellow-400 bg-yellow-500/10 border-yellow-500/30",
-    success: "text-green-400 bg-green-500/10 border-green-500/30",
-    info: "text-blue-400 bg-blue-500/10 border-blue-500/30",
-    primary: "text-[var(--primary)] bg-[var(--primary)]/10 border-[var(--primary)]/30",
+    danger: { card: "bg-red-50/70 backdrop-blur-sm border-red-200/50", text: "text-red-700", iconBg: "bg-red-500/10" },
+    warning: { card: "bg-amber-50/70 backdrop-blur-sm border-amber-200/50", text: "text-amber-700", iconBg: "bg-amber-500/10" },
+    success: { card: "bg-emerald-50/70 backdrop-blur-sm border-emerald-200/50", text: "text-emerald-700", iconBg: "bg-emerald-500/10" },
+    info: { card: "bg-blue-50/70 backdrop-blur-sm border-blue-200/50", text: "text-blue-700", iconBg: "bg-blue-500/10" },
+    primary: { card: "bg-white/60 backdrop-blur-md border-white/40", text: "text-blue-600", iconBg: "bg-blue-500/10" },
   };
 
+  const styles = colorClasses[color] || colorClasses.primary;
+
   return (
-    <div className={clsx("rounded-xl border p-4", colorClasses[color] || colorClasses.primary)}>
+    <div className={clsx("rounded-[16px] border p-4 shadow-glass-sm", styles.card)}>
       <div className="flex items-center gap-3">
-        <div className={clsx("p-2 rounded-lg", colorClasses[color] || colorClasses.primary)}>
-          <Icon className="w-5 h-5" />
+        <div className={clsx("p-2 rounded-xl", styles.iconBg)}>
+          <Icon className={clsx("w-5 h-5", styles.text)} />
         </div>
         <div>
-          <p className="text-2xl font-bold">{valor}</p>
-          <p className="text-sm text-[var(--fg-muted)]">{titulo}</p>
+          <p className={clsx("text-2xl font-bold", styles.text)}>{valor}</p>
+          <p className="text-sm text-slate-500">{titulo}</p>
         </div>
       </div>
     </div>
@@ -238,7 +241,7 @@ export default function MRPTableroAlertas() {
         <CardHeader className="cursor-pointer" onClick={() => setShowFiltros(!showFiltros)}>
           <CardTitle className="flex items-center justify-between">
             <span className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-[var(--primary)]" />
+              <Filter className="w-5 h-5 text-blue-600" />
               {t("mrp_filtros", "Filtros")}
             </span>
             {showFiltros ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -249,13 +252,13 @@ export default function MRPTableroAlertas() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Centro */}
               <div>
-                <label className="block text-sm font-medium text-[var(--fg-muted)] mb-1">
+                <label className="block text-sm font-medium text-slate-500 mb-1">
                   {t("mrp_centro", "Centro")} *
                 </label>
                 <select
                   value={filtros.centro}
                   onChange={(e) => setFiltros(prev => ({ ...prev, centro: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
+                  className="w-full px-3 py-2 bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 transition-all"
                 >
                   <option value="">Seleccionar...</option>
                   {catalogos.centros?.map(c => (
@@ -266,13 +269,13 @@ export default function MRPTableroAlertas() {
 
               {/* Almacén */}
               <div>
-                <label className="block text-sm font-medium text-[var(--fg-muted)] mb-1">
+                <label className="block text-sm font-medium text-slate-500 mb-1">
                   {t("mrp_almacen", "Almacén")}
                 </label>
                 <select
                   value={filtros.almacen}
                   onChange={(e) => setFiltros(prev => ({ ...prev, almacen: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
+                  className="w-full px-3 py-2 bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 transition-all"
                 >
                   <option value="">Todos</option>
                   {catalogos.almacenes?.map(a => (
@@ -283,13 +286,13 @@ export default function MRPTableroAlertas() {
 
               {/* Sector */}
               <div>
-                <label className="block text-sm font-medium text-[var(--fg-muted)] mb-1">
+                <label className="block text-sm font-medium text-slate-500 mb-1">
                   {t("mrp_sector", "Sector")}
                 </label>
                 <select
                   value={filtros.sector}
                   onChange={(e) => setFiltros(prev => ({ ...prev, sector: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
+                  className="w-full px-3 py-2 bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 transition-all"
                 >
                   <option value="">Todos</option>
                   {catalogos.sectores?.map(s => (
@@ -300,13 +303,13 @@ export default function MRPTableroAlertas() {
 
               {/* Estado */}
               <div>
-                <label className="block text-sm font-medium text-[var(--fg-muted)] mb-1">
+                <label className="block text-sm font-medium text-slate-500 mb-1">
                   {t("mrp_estado", "Estado")}
                 </label>
                 <select
                   value={filtros.estado}
                   onChange={(e) => setFiltros(prev => ({ ...prev, estado: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
+                  className="w-full px-3 py-2 bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 transition-all"
                 >
                   {estados.map(e => (
                     <option key={e.value} value={e.value}>{e.label}</option>
@@ -316,30 +319,27 @@ export default function MRPTableroAlertas() {
 
               {/* Búsqueda */}
               <div>
-                <label className="block text-sm font-medium text-[var(--fg-muted)] mb-1">
+                <label className="block text-sm font-medium text-slate-500 mb-1">
                   {t("mrp_buscar", "Buscar")}
                 </label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--fg-muted)]" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Código o descripción..."
-                    className="w-full pl-10 pr-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-[var(--fg)] focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
+                    className="w-full pl-10 pr-3 py-2 bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 transition-all"
                   />
                 </div>
               </div>
             </div>
 
             <div className="flex justify-end mt-4">
-              <button
-                onClick={fetchAlertas}
-                className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-[var(--on-primary)] rounded-lg hover:bg-[var(--primary-bright)] transition-colors"
-              >
+              <Button onClick={fetchAlertas}>
                 <RefreshCw className="w-4 h-4" />
                 {t("mrp_actualizar", "Actualizar")}
-              </button>
+              </Button>
             </div>
           </CardContent>
         )}
@@ -349,9 +349,9 @@ export default function MRPTableroAlertas() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-[var(--primary)]" />
+            <AlertTriangle className="w-5 h-5 text-blue-600" />
             {t("mrp_lista_alertas", "Lista de Alertas")}
-            <span className="ml-2 text-sm font-normal text-[var(--fg-muted)]">
+            <span className="ml-2 text-sm font-normal text-slate-500">
               ({filteredAlertas.length} materiales)
             </span>
           </CardTitle>
@@ -359,15 +359,15 @@ export default function MRPTableroAlertas() {
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" />
+              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
             </div>
           ) : error ? (
-            <div className="flex items-center justify-center py-12 text-red-400">
+            <div className="flex items-center justify-center py-12 text-red-500">
               <AlertCircle className="w-6 h-6 mr-2" />
               {error}
             </div>
           ) : filteredAlertas.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-[var(--fg-muted)]">
+            <div className="flex flex-col items-center justify-center py-12 text-slate-500">
               <Package className="w-12 h-12 mb-4 opacity-50" />
               <p>{t("mrp_sin_alertas", "No hay alertas para mostrar")}</p>
               <p className="text-sm">{t("mrp_seleccionar_centro", "Seleccione un centro para ver alertas")}</p>
@@ -376,9 +376,9 @@ export default function MRPTableroAlertas() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[var(--border)]">
+                  <tr className="border-b border-white/30">
                     <th
-                      className="px-4 py-3 text-left cursor-pointer hover:bg-[var(--surface)] transition-colors"
+                      className="px-4 py-3 text-left cursor-pointer hover:bg-white/50 transition-colors"
                       onClick={() => handleSort("codigo")}
                     >
                       <span className="flex items-center gap-1">
@@ -392,7 +392,7 @@ export default function MRPTableroAlertas() {
                     <th className="px-4 py-3 text-center">{t("mrp_col_pp", "Pto. Pedido")}</th>
                     <th className="px-4 py-3 text-center">{t("mrp_col_smax", "Stock Máx.")}</th>
                     <th
-                      className="px-4 py-3 text-center cursor-pointer hover:bg-[var(--surface)] transition-colors"
+                      className="px-4 py-3 text-center cursor-pointer hover:bg-white/50 transition-colors"
                       onClick={() => handleSort("stock_actual")}
                     >
                       <span className="flex items-center justify-center gap-1">
@@ -402,7 +402,7 @@ export default function MRPTableroAlertas() {
                     </th>
                     <th className="px-4 py-3 text-center">{t("mrp_col_pedidos", "Pedidos Curso")}</th>
                     <th
-                      className="px-4 py-3 text-center cursor-pointer hover:bg-[var(--surface)] transition-colors"
+                      className="px-4 py-3 text-center cursor-pointer hover:bg-white/50 transition-colors"
                       onClick={() => handleSort("rotacion_pct")}
                     >
                       <span className="flex items-center justify-center gap-1">
@@ -419,11 +419,11 @@ export default function MRPTableroAlertas() {
                     <tr
                       key={alerta.codigo}
                       className={clsx(
-                        "border-b border-[var(--border)] hover:bg-[var(--surface)] transition-colors",
-                        idx % 2 === 0 ? "bg-[var(--bg)]" : "bg-[var(--surface)]"
+                        "border-b border-white/20 hover:bg-white/50 transition-colors",
+                        idx % 2 === 0 ? "bg-transparent" : "bg-white/20"
                       )}
                     >
-                      <td className="px-4 py-3 font-mono text-[var(--primary)]">{alerta.codigo}</td>
+                      <td className="px-4 py-3 font-mono text-blue-600">{alerta.codigo}</td>
                       <td className="px-4 py-3 max-w-xs truncate" title={alerta.descripcion}>
                         {alerta.descripcion}
                       </td>
@@ -451,7 +451,7 @@ export default function MRPTableroAlertas() {
                       <td className="px-4 py-3 text-center">
                         <EstadoBadge estado={alerta.estado} clase={alerta.estado_clase} />
                       </td>
-                      <td className="px-4 py-3 text-sm text-[var(--fg-muted)] max-w-xs truncate" title={alerta.sugerencia}>
+                      <td className="px-4 py-3 text-sm text-slate-500 max-w-xs truncate" title={alerta.sugerencia}>
                         {alerta.sugerencia || "-"}
                       </td>
                     </tr>
@@ -461,24 +461,24 @@ export default function MRPTableroAlertas() {
             </div>
           )}
 
-          {/* Paginación */}
+          {/* Paginación - Glass style */}
           {pagination.total > pagination.limit && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t border-[var(--border)]">
-              <span className="text-sm text-[var(--fg-muted)]">
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/30">
+              <span className="text-sm text-slate-500">
                 Mostrando {pagination.offset + 1} - {Math.min(pagination.offset + pagination.limit, pagination.total)} de {pagination.total}
               </span>
               <div className="flex gap-2">
                 <button
                   onClick={() => setPagination(prev => ({ ...prev, offset: Math.max(0, prev.offset - prev.limit) }))}
                   disabled={pagination.offset === 0}
-                  className="px-3 py-1 rounded-lg border border-[var(--border)] text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--surface)]"
+                  className="px-3 py-1 rounded-xl border border-white/50 bg-white/50 backdrop-blur-sm text-sm text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/70 transition-all"
                 >
                   Anterior
                 </button>
                 <button
                   onClick={() => setPagination(prev => ({ ...prev, offset: prev.offset + prev.limit }))}
                   disabled={!pagination.has_more}
-                  className="px-3 py-1 rounded-lg border border-[var(--border)] text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--surface)]"
+                  className="px-3 py-1 rounded-xl border border-white/50 bg-white/50 backdrop-blur-sm text-sm text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/70 transition-all"
                 >
                   Siguiente
                 </button>

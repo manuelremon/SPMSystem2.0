@@ -19,7 +19,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
-# Agregar backend_v2 al path
+# Agregar backend al path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 try:
@@ -36,9 +36,9 @@ def get_db_path():
     if db_path and os.path.exists(db_path):
         return db_path
 
-    # Ruta por defecto para backend_v2
+    # Ruta por defecto para backend
     base_dir = Path(__file__).parent.parent.parent
-    default_path = base_dir / "backend_v2" / "spm.db"
+    default_path = base_dir / "backend" / "spm.db"
     if default_path.exists():
         return str(default_path)
 
@@ -54,7 +54,7 @@ def get_db_path():
 
     raise FileNotFoundError(
         "No se encontró la base de datos. "
-        "Establece SPM_DB_PATH o verifica que existe backend_v2/spm.db"
+        "Establece SPM_DB_PATH o verifica que existe backend/spm.db"
     )
 
 

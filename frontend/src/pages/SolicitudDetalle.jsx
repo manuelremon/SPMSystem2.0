@@ -27,14 +27,14 @@ import {
 function DetailRow({ icon: Icon, label, value, className = "" }) {
   return (
     <div className={`flex items-start gap-3 ${className}`}>
-      <div className="h-9 w-9 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border)] grid place-items-center flex-shrink-0">
-        <Icon className="w-4 h-4 text-[var(--fg-muted)]" />
+      <div className="h-9 w-9 rounded-lg bg-white/50 border border-white/30 grid place-items-center flex-shrink-0">
+        <Icon className="w-4 h-4 text-slate-500" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wider">
+        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
           {label}
         </p>
-        <p className="text-sm text-[var(--fg)] mt-0.5 break-words">{value || "-"}</p>
+        <p className="text-sm text-slate-800 mt-0.5 break-words">{value || "-"}</p>
       </div>
     </div>
   );
@@ -43,12 +43,12 @@ function DetailRow({ icon: Icon, label, value, className = "" }) {
 function LoadingSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
-      <div className="h-8 bg-[var(--bg-soft)] rounded w-1/3"></div>
+      <div className="h-8 bg-slate-100/70 rounded w-1/3"></div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="h-48 bg-[var(--bg-soft)] rounded-xl"></div>
-        <div className="h-48 bg-[var(--bg-soft)] rounded-xl"></div>
+        <div className="h-48 bg-slate-100/70 rounded-xl"></div>
+        <div className="h-48 bg-slate-100/70 rounded-xl"></div>
       </div>
-      <div className="h-64 bg-[var(--bg-soft)] rounded-xl"></div>
+      <div className="h-64 bg-slate-100/70 rounded-xl"></div>
     </div>
   );
 }
@@ -94,7 +94,7 @@ export default function SolicitudDetalle() {
           title={t("detalle_loading", "Cargando solicitud...")}
           actions={
             <Button variant="ghost" onClick={() => navigate(-1)}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeft className="w-4 h-4" />
               {t("common_back", "Volver")}
             </Button>
           }
@@ -111,7 +111,7 @@ export default function SolicitudDetalle() {
           title={t("detalle_error_title", "Error")}
           actions={
             <Button variant="ghost" onClick={() => navigate(-1)}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeft className="w-4 h-4" />
               {t("common_back", "Volver")}
             </Button>
           }
@@ -128,7 +128,7 @@ export default function SolicitudDetalle() {
           title={t("detalle_not_found", "Solicitud no encontrada")}
           actions={
             <Button variant="ghost" onClick={() => navigate(-1)}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeft className="w-4 h-4" />
               {t("common_back", "Volver")}
             </Button>
           }
@@ -153,7 +153,7 @@ export default function SolicitudDetalle() {
             <div className="flex items-center gap-3">
               <StatusBadge estado={estado} />
               <Button variant="ghost" onClick={() => navigate(-1)}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowLeft className="w-4 h-4" />
                 {t("common_back", "Volver")}
               </Button>
             </div>
@@ -191,11 +191,11 @@ export default function SolicitudDetalle() {
               value={formatDate(solicitud.fecha_necesidad)}
             />
             <div className="flex items-start gap-3">
-              <div className="h-9 w-9 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border)] grid place-items-center flex-shrink-0">
-                <AlertTriangle className={`w-4 h-4 ${isAltaCriticidad ? "text-[var(--danger)]" : "text-[var(--fg-muted)]"}`} />
+              <div className="h-9 w-9 rounded-lg bg-white/50 border border-white/30 grid place-items-center flex-shrink-0">
+                <AlertTriangle className={`w-4 h-4 ${isAltaCriticidad ? "text-red-600" : "text-slate-500"}`} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wider">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
                   {t("detalle_criticidad", "Criticidad")}
                 </p>
                 <Badge
@@ -236,14 +236,14 @@ export default function SolicitudDetalle() {
               value={solicitud.centro_costos}
             />
             <div className="flex items-start gap-3">
-              <div className="h-9 w-9 rounded-lg bg-[var(--primary-muted)]/20 border border-[var(--primary)]/30 grid place-items-center flex-shrink-0">
-                <DollarSign className="w-4 h-4 text-[var(--primary)]" />
+              <div className="h-9 w-9 rounded-lg bg-blue-50/70 border border-blue-200/50 grid place-items-center flex-shrink-0">
+                <DollarSign className="w-4 h-4 text-blue-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wider">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
                   {t("detalle_monto_total", "Monto Total")}
                 </p>
-                <p className="text-lg font-bold text-[var(--primary)] mt-0.5">
+                <p className="text-lg font-bold text-blue-600 mt-0.5">
                   {formatCurrency(solicitud.total_monto || 0)}
                 </p>
               </div>
@@ -261,10 +261,10 @@ export default function SolicitudDetalle() {
         </CardHeader>
         <CardContent>
           <div className="flex items-start gap-3">
-            <div className="h-9 w-9 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border)] grid place-items-center flex-shrink-0">
-              <FileText className="w-4 h-4 text-[var(--fg-muted)]" />
+            <div className="h-9 w-9 rounded-lg bg-white/50 border border-white/30 grid place-items-center flex-shrink-0">
+              <FileText className="w-4 h-4 text-slate-500" />
             </div>
-            <p className="text-sm text-[var(--fg)] leading-relaxed flex-1">
+            <p className="text-sm text-slate-800 leading-relaxed flex-1">
               {solicitud.justificacion || t("detalle_sin_justificacion", "Sin justificación proporcionada")}
             </p>
           </div>
@@ -282,7 +282,7 @@ export default function SolicitudDetalle() {
         </CardHeader>
         <CardContent>
           {items.length === 0 ? (
-            <div className="text-center py-8 text-[var(--fg-muted)]">
+            <div className="text-center py-8 text-slate-500">
               <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>{t("detalle_sin_items", "No hay materiales en esta solicitud")}</p>
             </div>
@@ -290,20 +290,20 @@ export default function SolicitudDetalle() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[var(--border)]">
-                    <th className="text-left py-3 px-4 font-medium text-[var(--fg-muted)]">
+                  <tr className="border-b border-white/30">
+                    <th className="text-left py-3 px-4 font-medium text-slate-500">
                       {t("detalle_item_codigo", "Código")}
                     </th>
-                    <th className="text-left py-3 px-4 font-medium text-[var(--fg-muted)]">
+                    <th className="text-left py-3 px-4 font-medium text-slate-500">
                       {t("detalle_item_descripcion", "Descripción")}
                     </th>
-                    <th className="text-right py-3 px-4 font-medium text-[var(--fg-muted)]">
+                    <th className="text-right py-3 px-4 font-medium text-slate-500">
                       {t("detalle_item_cantidad", "Cantidad")}
                     </th>
-                    <th className="text-right py-3 px-4 font-medium text-[var(--fg-muted)]">
+                    <th className="text-right py-3 px-4 font-medium text-slate-500">
                       {t("detalle_item_precio", "Precio Unit.")}
                     </th>
-                    <th className="text-right py-3 px-4 font-medium text-[var(--fg-muted)]">
+                    <th className="text-right py-3 px-4 font-medium text-slate-500">
                       {t("detalle_item_subtotal", "Subtotal")}
                     </th>
                   </tr>
@@ -316,30 +316,30 @@ export default function SolicitudDetalle() {
                     return (
                       <tr
                         key={idx}
-                        className="border-b border-[var(--border)] last:border-b-0 hover:bg-[var(--bg-elevated)] transition-colors"
+                        className="border-b border-white/30 last:border-b-0 hover:bg-white/50 transition-colors"
                       >
-                        <td className="py-3 px-4 font-mono text-[var(--fg)]">
+                        <td className="py-3 px-4 font-mono text-slate-800">
                           {item.codigo || item.material_codigo || "-"}
                         </td>
-                        <td className="py-3 px-4 text-[var(--fg)]">
+                        <td className="py-3 px-4 text-slate-800">
                           <div className="max-w-xs">
                             <p className="truncate" title={item.descripcion || item.material_descripcion}>
                               {item.descripcion || item.material_descripcion || "-"}
                             </p>
                             {item.comentario && (
-                              <p className="text-xs text-[var(--fg-muted)] mt-1 truncate" title={item.comentario}>
+                              <p className="text-xs text-slate-500 mt-1 truncate" title={item.comentario}>
                                 {item.comentario}
                               </p>
                             )}
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-right font-medium text-[var(--fg)]">
+                        <td className="py-3 px-4 text-right font-medium text-slate-800">
                           {cantidad} {item.unidad || ""}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono text-[var(--fg-muted)]">
+                        <td className="py-3 px-4 text-right font-mono text-slate-500">
                           {formatCurrency(precio)}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-medium text-[var(--fg)]">
+                        <td className="py-3 px-4 text-right font-mono font-medium text-slate-800">
                           {formatCurrency(subtotal)}
                         </td>
                       </tr>
@@ -347,11 +347,11 @@ export default function SolicitudDetalle() {
                   })}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-[var(--bg-elevated)]">
-                    <td colSpan={4} className="py-3 px-4 text-right font-semibold text-[var(--fg)]">
+                  <tr className="bg-white/50">
+                    <td colSpan={4} className="py-3 px-4 text-right font-semibold text-slate-800">
                       {t("detalle_total", "Total")}:
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-lg text-[var(--primary)]">
+                    <td className="py-3 px-4 text-right font-mono font-bold text-lg text-blue-600">
                       {formatCurrency(solicitud.total_monto || 0)}
                     </td>
                   </tr>

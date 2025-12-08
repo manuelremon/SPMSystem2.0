@@ -7,11 +7,13 @@ import { useI18n } from '../context/i18n'
 import { Button } from '../components/ui/Button'
 import { CustomSelect } from '../components/ui/CustomSelect'
 import { Input } from '../components/ui/Input'
+import { Textarea } from '../components/ui/Textarea'
 import { Alert } from '../components/ui/Alert'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card'
+import { Card, CardContent } from '../components/ui/Card'
 import { PageHeader } from '../components/ui/PageHeader'
 import { FormSkeleton } from '../components/ui/Skeleton'
-import { FileUploader } from '../components/ui/FileUploader'
+import { Paperclip, X, Upload } from 'lucide-react'
+import clsx from 'clsx'
 
 function getDefaultNeedDate() {
   const d = new Date()
@@ -189,30 +191,26 @@ export default function CreateSolicitud() {
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      <PageHeader title={t('create_title', 'NUEVA SOLICITUD')} />
+      <PageHeader title={t('create_title', 'CREAR NUEVA SOLICITUD')} />
 
       {error && <Alert variant="danger">{error}</Alert>}
 
       <Card>
-        <CardHeader className="pb-4">
-          <CardTitle>{t('create_header', 'Crear Nueva Solicitud')}</CardTitle>
-          <CardDescription>
-            {t('create_desc', 'Completa los datos básicos para crear una nueva solicitud de materiales')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-2">
+        <CardContent className="pt-6">
           {loadingCatalogos ? (
             <FormSkeleton rows={6} />
           ) : (
-            <form onSubmit={onSubmit} className="space-y-5">
-              {/* Fila 1: Centro y Sector */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <form onSubmit={onSubmit} className="space-y-6">
+              {/* ═══════════════════════════════════════════════════════════════
+                  FILA 1: Datos Logísticos - Grid 3 columnas (Centro, Sector, Almacén)
+                  ═══════════════════════════════════════════════════════════════ */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <label
                     htmlFor="centro"
-                    className="text-xs uppercase font-semibold tracking-wide text-[var(--fg-muted)]"
+                    className="text-xs uppercase font-semibold tracking-wide text-slate-500"
                   >
-                    {t('create_centro', 'Centro')} <span className="text-[var(--danger)]">*</span>
+                    {t('create_centro', 'Centro')} <span className="text-red-500">*</span>
                   </label>
                   <CustomSelect
                     id="centro"
@@ -220,21 +218,22 @@ export default function CreateSolicitud() {
                     value={form.centro}
                     onChange={onChange}
                     required
-                    placeholder={t('create_select_centro', 'Selecciona centro')}
+                    placeholder={t('create_select_centro', 'Selecciona')}
                     options={catalogos.centros.map((c) => ({
                       value: c.id,
                       label: `${c.id} - ${c.nombre || c.descripcion || ''}`,
                     }))}
                     aria-label={t('create_centro', 'Centro')}
+                    className="h-[42px]"
                   />
                 </div>
 
                 <div className="space-y-1.5">
                   <label
                     htmlFor="sector"
-                    className="text-xs uppercase font-semibold tracking-wide text-[var(--fg-muted)]"
+                    className="text-xs uppercase font-semibold tracking-wide text-slate-500"
                   >
-                    {t('create_sector', 'Sector')} <span className="text-[var(--danger)]">*</span>
+                    {t('create_sector', 'Sector')} <span className="text-red-500">*</span>
                   </label>
                   <CustomSelect
                     id="sector"
@@ -242,24 +241,51 @@ export default function CreateSolicitud() {
                     value={form.sector}
                     onChange={onChange}
                     required
-                    placeholder={t('create_select_sector', 'Selecciona sector')}
+                    placeholder={t('create_select_sector', 'Selecciona')}
                     options={catalogos.sectores.map((s) => ({
                       value: s.nombre,
                       label: s.nombre || s.descripcion || '',
                     }))}
                     aria-label={t('create_sector', 'Sector')}
+                    className="h-[42px]"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="almacen"
+                    className="text-xs uppercase font-semibold tracking-wide text-slate-500"
+                  >
+                    {t('create_almacen', 'Almacén')} <span className="text-red-500">*</span>
+                  </label>
+                  <CustomSelect
+                    id="almacen"
+                    name="almacen_virtual"
+                    value={form.almacen_virtual}
+                    onChange={onChange}
+                    required
+                    placeholder={t('create_select_almacen', 'Selecciona')}
+                    options={catalogos.almacenes.map((a) => ({
+                      value: a.id,
+                      label: `${a.id} - ${a.nombre || a.descripcion || ''}`,
+                    }))}
+                    aria-label={t('create_almacen', 'Almacén')}
+                    className="h-[42px]"
                   />
                 </div>
               </div>
 
-              {/* Fila 2: Centro de Costos y Almacén */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* ═══════════════════════════════════════════════════════════════
+                  FILA 2: Datos Financieros/Temporales - Grid 3 columnas
+                  (Centro Costos, Criticidad, Fecha)
+                  ═══════════════════════════════════════════════════════════════ */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <label
                     htmlFor="centro_costos"
-                    className="text-xs uppercase font-semibold tracking-wide text-[var(--fg-muted)]"
+                    className="text-xs uppercase font-semibold tracking-wide text-slate-500"
                   >
-                    {t('create_centro_costos', 'Centro de costos')} <span className="text-[var(--danger)]">*</span>
+                    {t('create_centro_costos', 'Centro de Costos')} <span className="text-red-500">*</span>
                   </label>
                   <Input
                     id="centro_costos"
@@ -269,38 +295,14 @@ export default function CreateSolicitud() {
                     required
                     placeholder="Ej: CC001"
                     aria-label={t('create_centro_costos', 'Centro de costos')}
+                    className="h-[42px]"
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="almacen"
-                    className="text-xs uppercase font-semibold tracking-wide text-[var(--fg-muted)]"
-                  >
-                    {t('create_almacen', 'Almacén')} <span className="text-[var(--danger)]">*</span>
-                  </label>
-                  <CustomSelect
-                    id="almacen"
-                    name="almacen_virtual"
-                    value={form.almacen_virtual}
-                    onChange={onChange}
-                    required
-                    placeholder={t('create_select_almacen', 'Selecciona almacén')}
-                    options={catalogos.almacenes.map((a) => ({
-                      value: a.id,
-                      label: `${a.id} - ${a.nombre || a.descripcion || ''}`,
-                    }))}
-                    aria-label={t('create_almacen', 'Almacén')}
-                  />
-                </div>
-              </div>
-
-              {/* Fila 3: Criticidad y Fecha */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label
                     htmlFor="criticidad"
-                    className="text-xs uppercase font-semibold tracking-wide text-[var(--fg-muted)]"
+                    className="text-xs uppercase font-semibold tracking-wide text-slate-500"
                   >
                     {t('create_criticidad', 'Criticidad')}
                   </label>
@@ -315,15 +317,21 @@ export default function CreateSolicitud() {
                       { value: 'Critica', label: t('create_critica', 'Crítica') },
                     ]}
                     aria-label={t('create_criticidad', 'Criticidad')}
+                    className={clsx(
+                      "h-[42px]",
+                      form.criticidad === 'Normal' && "[&_.selected-text]:text-blue-600",
+                      form.criticidad === 'Alta' && "[&_.selected-text]:text-amber-500",
+                      form.criticidad === 'Critica' && "[&_.selected-text]:text-red-600"
+                    )}
                   />
                 </div>
 
                 <div className="space-y-1.5">
                   <label
                     htmlFor="fecha_necesidad"
-                    className="text-xs uppercase font-semibold tracking-wide text-[var(--fg-muted)]"
+                    className="text-xs uppercase font-semibold tracking-wide text-slate-500"
                   >
-                    {t('create_fecha', 'Fecha de Necesidad')} <span className="text-[var(--danger)]">*</span>
+                    {t('create_fecha', 'Fecha de Necesidad')} <span className="text-red-500">*</span>
                   </label>
                   <Input
                     type="date"
@@ -333,50 +341,115 @@ export default function CreateSolicitud() {
                     onChange={onChange}
                     required
                     aria-label={t('create_fecha', 'Fecha de Necesidad')}
+                    className="h-[42px]"
                   />
                 </div>
               </div>
 
-              {/* Justificación */}
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="justificacion"
-                  className="text-xs uppercase font-semibold tracking-wide text-[var(--fg-muted)]"
-                >
-                  {t('create_justificacion', 'Justificación')} <span className="text-[var(--danger)]">*</span>
-                </label>
-                <textarea
-                  id="justificacion"
-                  name="justificacion"
-                  value={form.justificacion}
-                  onChange={onChange}
-                  className="w-full px-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--input-border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] placeholder:text-[var(--fg-subtle)] focus:ring-2 focus:ring-[var(--input-focus)] focus:border-[var(--primary)] outline-none transition-all resize-none"
-                  rows={3}
-                  required
-                  placeholder={t('create_justificacion_placeholder', 'Describe brevemente el motivo de la solicitud...')}
-                  aria-label={t('create_justificacion', 'Justificación')}
-                />
+              {/* ═══════════════════════════════════════════════════════════════
+                  FILA 3: Justificación + Adjuntos - Grid Asimétrico 2:1
+                  ═══════════════════════════════════════════════════════════════ */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Justificación - 2/3 del espacio */}
+                <div className="md:col-span-2 space-y-1.5">
+                  <label
+                    htmlFor="justificacion"
+                    className="text-xs uppercase font-semibold tracking-wide text-slate-500"
+                  >
+                    {t('create_justificacion', 'Justificación')} <span className="text-red-500">*</span>
+                  </label>
+                  <Textarea
+                    id="justificacion"
+                    name="justificacion"
+                    value={form.justificacion}
+                    onChange={onChange}
+                    className="h-[130px] min-h-[130px] resize-none"
+                    required
+                    placeholder={t('create_justificacion_placeholder', 'Describe brevemente el motivo de la solicitud...')}
+                    aria-label={t('create_justificacion', 'Justificación')}
+                  />
+                </div>
+
+                {/* Adjuntos Compactos - 1/3 del espacio */}
+                <div className="space-y-1.5">
+                  <label className="text-xs uppercase font-semibold tracking-wide text-slate-500">
+                    {t('create_adjuntos', 'Adjuntos')}
+                    <span className="text-slate-400 normal-case font-normal ml-1">(opcional)</span>
+                  </label>
+
+                  {/* Drop Zone Compacta */}
+                  <label
+                    htmlFor="file-upload"
+                    className={clsx(
+                      "flex flex-col items-center justify-center cursor-pointer",
+                      "h-[130px] rounded-xl transition-all duration-200",
+                      "border-2 border-dashed",
+                      form.archivos.length > 0
+                        ? "border-blue-300 bg-blue-50/50"
+                        : "border-slate-300 bg-white/30 hover:border-blue-400 hover:bg-blue-50/30"
+                    )}
+                  >
+                    <input
+                      id="file-upload"
+                      type="file"
+                      multiple
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []).slice(0, 5 - form.archivos.length)
+                        if (files.length > 0) {
+                          setForm(prev => ({ ...prev, archivos: [...prev.archivos, ...files].slice(0, 5) }))
+                        }
+                        e.target.value = ''
+                      }}
+                    />
+
+                    {form.archivos.length === 0 ? (
+                      <>
+                        <Paperclip className="w-6 h-6 text-slate-400 mb-2" />
+                        <span className="text-sm font-medium text-slate-600">Arrastra o Clic</span>
+                        <span className="text-[10px] text-slate-400 mt-1">Máx 5 archivos</span>
+                      </>
+                    ) : (
+                      <div className="w-full px-3 space-y-1.5 overflow-auto max-h-[110px]">
+                        {form.archivos.map((file, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between gap-2 px-2 py-1.5 bg-white/70 rounded-lg text-xs"
+                          >
+                            <span className="truncate flex-1 text-slate-700">{file.name}</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                setForm(prev => ({
+                                  ...prev,
+                                  archivos: prev.archivos.filter((_, i) => i !== idx)
+                                }))
+                              }}
+                              className="p-0.5 hover:bg-red-100 rounded text-slate-400 hover:text-red-500 transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                        {form.archivos.length < 5 && (
+                          <div className="flex items-center justify-center gap-1 py-1 text-[10px] text-blue-500">
+                            <Upload className="w-3 h-3" />
+                            <span>Agregar más</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </label>
+                </div>
               </div>
 
-              {/* Archivos Adjuntos */}
-              <div className="space-y-1.5">
-                <label className="block text-xs uppercase font-semibold tracking-wide text-[var(--fg-muted)]">
-                  {t('create_adjuntos', 'Archivos Adjuntos')}
-                  <span className="text-[var(--fg-subtle)] normal-case font-normal ml-1">
-                    {t('common_optional', '(opcional)')}
-                  </span>
-                </label>
-                <FileUploader
-                  files={form.archivos}
-                  onChange={(archivos) => setForm((prev) => ({ ...prev, archivos }))}
-                  maxFiles={5}
-                  maxSize={10 * 1024 * 1024}
-                  placeholder={t('create_adjuntos_placeholder', 'Arrastra archivos aquí o haz clic para seleccionar')}
-                />
-              </div>
-
-              {/* Acciones */}
-              <div className="flex justify-end gap-3 pt-3 border-t border-[var(--border)]">
+              {/* ═══════════════════════════════════════════════════════════════
+                  ACCIONES
+                  ═══════════════════════════════════════════════════════════════ */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-white/30">
                 <Button
                   variant="ghost"
                   type="button"

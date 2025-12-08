@@ -1,6 +1,6 @@
 """
 Tests unitarios para el módulo Security Headers
-backend_v2/core/security_headers.py
+backend/core/security_headers.py
 
 Generado por Sugar Autonomous System
 """
@@ -13,7 +13,7 @@ from flask import Flask
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from backend_v2.core.security_headers import init_security_headers
+from backend.core.security_headers import init_security_headers
 
 
 class TestSecurityHeadersInitialization:

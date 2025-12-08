@@ -14,10 +14,10 @@ from pathlib import Path
 
 import pytest
 
-# Agregar backend_v2 al path
+# Agregar backend al path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from backend_v2.app import create_app
+from backend.app import create_app
 
 
 @pytest.fixture

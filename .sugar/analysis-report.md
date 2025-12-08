@@ -21,15 +21,15 @@
 
 ### 1. Manejo de Excepciones Genéricas
 
-**Ubicación:** Principalmente en `backend_v2/`
+**Ubicación:** Principalmente en `backend/`
 
 Se encontraron **68 bloques `except Exception`** que capturan errores genéricos sin manejo específico.
 
 **Archivos más afectados:**
-- `backend_v2/agent/routes.py` - 20 ocurrencias
-- `backend_v2/routes/planner.py` - 10 ocurrencias
-- `backend_v2/agent/pipelines/*.py` - 15 ocurrencias
-- `backend_v2/agent/tools/*.py` - 12 ocurrencias
+- `backend/agent/routes.py` - 20 ocurrencias
+- `backend/routes/planner.py` - 10 ocurrencias
+- `backend/agent/pipelines/*.py` - 15 ocurrencias
+- `backend/agent/tools/*.py` - 12 ocurrencias
 
 **Impacto:** Dificulta debugging y puede ocultar errores reales.
 
@@ -43,18 +43,18 @@ Se encontraron **68 bloques `except Exception`** que capturan errores genéricos
 
 | Archivo | Criticidad | Recomendación |
 |---------|------------|---------------|
-| `backend_v2/core/csrf.py` | Alta | Crear tests de seguridad |
-| `backend_v2/core/security_headers.py` | Alta | Crear tests de headers |
-| `backend_v2/routes/mi_cuenta.py` | Media | Crear tests de perfil |
-| `backend_v2/routes/catalogos.py` | Baja | Crear tests CRUD |
-| `backend_v2/routes/materiales.py` | Media | Crear tests búsqueda |
-| `backend_v2/routes/materiales_detalle.py` | Baja | Crear tests detalle |
-| `backend_v2/agent/core/memory.py` | Media | Crear tests memoria |
-| `backend_v2/agent/core/reasoner.py` | Media | Crear tests razonador |
-| `backend_v2/agent/pipelines/demand_forecast.py` | Alta | Crear tests ML |
-| `backend_v2/agent/pipelines/clustering.py` | Alta | Crear tests clustering |
-| `backend_v2/agent/pipelines/scoring.py` | Alta | Crear tests scoring |
-| `backend_v2/core/cache_loader.py` | Media | Crear tests cache |
+| `backend/core/csrf.py` | Alta | Crear tests de seguridad |
+| `backend/core/security_headers.py` | Alta | Crear tests de headers |
+| `backend/routes/mi_cuenta.py` | Media | Crear tests de perfil |
+| `backend/routes/catalogos.py` | Baja | Crear tests CRUD |
+| `backend/routes/materiales.py` | Media | Crear tests búsqueda |
+| `backend/routes/materiales_detalle.py` | Baja | Crear tests detalle |
+| `backend/agent/core/memory.py` | Media | Crear tests memoria |
+| `backend/agent/core/reasoner.py` | Media | Crear tests razonador |
+| `backend/agent/pipelines/demand_forecast.py` | Alta | Crear tests ML |
+| `backend/agent/pipelines/clustering.py` | Alta | Crear tests clustering |
+| `backend/agent/pipelines/scoring.py` | Alta | Crear tests scoring |
+| `backend/core/cache_loader.py` | Media | Crear tests cache |
 
 **Cobertura estimada:** ~60% (basado en archivos)
 
@@ -81,7 +81,7 @@ Se encontraron **68 bloques `except Exception`** que capturan errores genéricos
 
 **Estado actual:**
 ```
-backend_v2/         38 archivos Python
+backend/         38 archivos Python
 ├── routes/         8 módulos de rutas
 ├── core/           8 módulos core
 └── agent/          22 archivos (ML/AI)

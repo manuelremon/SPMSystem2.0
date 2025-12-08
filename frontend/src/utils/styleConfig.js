@@ -44,12 +44,12 @@ export const estadoConfig = {
     label: "Enviada"
   },
   "Pendiente": {
-    color: "var(--warning)",
+    color: "var(--fg-muted)",
     icon: Clock,
     label: "Pendiente"
   },
   "Pending": {
-    color: "var(--warning)",
+    color: "var(--fg-muted)",
     icon: Clock,
     label: "Pendiente"
   },
@@ -124,12 +124,12 @@ export const estadoConfig = {
     label: "Cancelada"
   },
   "En Pausa": {
-    color: "var(--warning)",
+    color: "var(--fg-muted)",
     icon: Pause,
     label: "En Pausa"
   },
   "On Hold": {
-    color: "var(--warning)",
+    color: "var(--fg-muted)",
     icon: Pause,
     label: "En Pausa"
   },
@@ -182,12 +182,12 @@ export const criticidadConfig = {
     label: "Urgente"
   },
   "Alta": {
-    color: "var(--warning)",
+    color: "var(--primary)",
     icon: AlertCircle,
     label: "Alta"
   },
   "High": {
-    color: "var(--warning)",
+    color: "var(--primary)",
     icon: AlertCircle,
     label: "Alta"
   },

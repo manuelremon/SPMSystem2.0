@@ -28,8 +28,8 @@ export default function AdminProveedores() {
       <ScrollReveal>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-black text-[var(--fg)]">Proveedores</h1>
-            <p className="text-sm text-[var(--fg-muted)]">
+            <h1 className="text-2xl font-black text-slate-800">Proveedores</h1>
+            <p className="text-sm text-slate-500">
               Gestiona proveedores internos (almacenes) y externos
             </p>
           </div>
@@ -38,13 +38,13 @@ export default function AdminProveedores() {
 
       {/* Tabs */}
       <ScrollReveal delay={100}>
-        <div className="flex gap-2 border-b border-[var(--border)] pb-2">
+        <div className="flex gap-2 border-b border-white/30 pb-2">
         <button
           onClick={() => setTab("internos")}
           className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-semibold text-sm transition ${
             tab === "internos"
-              ? "bg-[var(--primary)] text-white"
-              : "text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--bg-soft)]"
+              ? "bg-blue-600 text-white"
+              : "text-slate-500 hover:text-slate-800 hover:bg-slate-100/70"
           }`}
         >
           <Warehouse className="w-4 h-4" />
@@ -54,8 +54,8 @@ export default function AdminProveedores() {
           onClick={() => setTab("externos")}
           className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-semibold text-sm transition ${
             tab === "externos"
-              ? "bg-[var(--primary)] text-white"
-              : "text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--bg-soft)]"
+              ? "bg-blue-600 text-white"
+              : "text-slate-500 hover:text-slate-800 hover:bg-slate-100/70"
           }`}
         >
           <Truck className="w-4 h-4" />
@@ -147,7 +147,7 @@ function ProveedoresInternos({ token }) {
     fetchData();
   };
 
-  if (loading) return <div className="text-[var(--fg-muted)]">Cargando...</div>;
+  if (loading) return <div className="text-slate-500">Cargando...</div>;
 
   return (
     <Card>
@@ -157,36 +157,36 @@ function ProveedoresInternos({ token }) {
           <CardDescription>Define politicas de disponibilidad por almacen</CardDescription>
         </div>
         <Button onClick={() => setShowAdd(!showAdd)}>
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-4 h-4" />
           Agregar
         </Button>
       </CardHeader>
       <CardContent>
         {showAdd && (
-          <div className="mb-4 p-4 rounded-lg border border-[var(--border)] bg-[var(--bg-soft)] space-y-3">
+          <div className="mb-4 p-4 rounded-lg border border-white/30 bg-slate-100/70 space-y-3">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <input
                 placeholder="Centro"
                 value={newForm.centro}
                 onChange={(e) => setNewForm({ ...newForm, centro: e.target.value })}
-                className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--fg)] text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
               />
               <input
                 placeholder="Almacen"
                 value={newForm.almacen}
                 onChange={(e) => setNewForm({ ...newForm, almacen: e.target.value })}
-                className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--fg)] text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
               />
               <input
                 placeholder="Nombre"
                 value={newForm.nombre}
                 onChange={(e) => setNewForm({ ...newForm, nombre: e.target.value })}
-                className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--fg)] text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
               />
               <select
                 value={newForm.responsable_id}
                 onChange={(e) => setNewForm({ ...newForm, responsable_id: e.target.value })}
-                className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--fg)] text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
               >
                 <option value="">Sin responsable</option>
                 {usuarios.map((u) => (
@@ -197,7 +197,7 @@ function ProveedoresInternos({ token }) {
               </select>
             </div>
             <div className="flex items-center gap-6">
-              <label className="flex items-center gap-2 text-sm text-[var(--fg)]">
+              <label className="flex items-center gap-2 text-sm text-slate-800">
                 <input
                   type="checkbox"
                   checked={newForm.libre_disponibilidad}
@@ -206,7 +206,7 @@ function ProveedoresInternos({ token }) {
                 />
                 Libre disponibilidad
               </label>
-              <label className="flex items-center gap-2 text-sm text-[var(--fg)]">
+              <label className="flex items-center gap-2 text-sm text-slate-800">
                 <input
                   type="checkbox"
                   checked={newForm.excluido}
@@ -224,14 +224,14 @@ function ProveedoresInternos({ token }) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[var(--border)] text-left">
-                <th className="px-4 py-3 font-semibold text-[var(--fg)]">Centro</th>
-                <th className="px-4 py-3 font-semibold text-[var(--fg)]">Almacen</th>
-                <th className="px-4 py-3 font-semibold text-[var(--fg)]">Nombre</th>
-                <th className="px-4 py-3 font-semibold text-[var(--fg)] text-center">Libre Disp.</th>
-                <th className="px-4 py-3 font-semibold text-[var(--fg)]">Responsable</th>
-                <th className="px-4 py-3 font-semibold text-[var(--fg)] text-center">Excluido</th>
-                <th className="px-4 py-3 font-semibold text-[var(--fg)]">Acciones</th>
+              <tr className="border-b border-white/30 text-left">
+                <th className="px-4 py-3 font-semibold text-slate-800">Centro</th>
+                <th className="px-4 py-3 font-semibold text-slate-800">Almacen</th>
+                <th className="px-4 py-3 font-semibold text-slate-800">Nombre</th>
+                <th className="px-4 py-3 font-semibold text-slate-800 text-center">Libre Disp.</th>
+                <th className="px-4 py-3 font-semibold text-slate-800">Responsable</th>
+                <th className="px-4 py-3 font-semibold text-slate-800 text-center">Excluido</th>
+                <th className="px-4 py-3 font-semibold text-slate-800">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -240,18 +240,18 @@ function ProveedoresInternos({ token }) {
                 const isEditing = editingId === key;
 
                 return (
-                  <tr key={key} className="border-b border-[var(--border)] hover:bg-[var(--bg-hover)]">
-                    <td className="px-4 py-3 text-[var(--fg)]">{alm.centro}</td>
-                    <td className="px-4 py-3 text-[var(--fg)] font-mono">{formatAlmacen(alm.almacen)}</td>
+                  <tr key={key} className="border-b border-white/30 hover:bg-white/50">
+                    <td className="px-4 py-3 text-slate-800">{alm.centro}</td>
+                    <td className="px-4 py-3 text-slate-800 font-mono">{formatAlmacen(alm.almacen)}</td>
                     <td className="px-4 py-3">
                       {isEditing ? (
                         <input
                           value={editForm.nombre || ""}
                           onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })}
-                          className="px-2 py-1 rounded border border-[var(--border)] bg-[var(--card)] text-[var(--fg)] text-sm w-full"
+                          className="px-2 py-1 rounded border border-white/30 bg-white/50 text-slate-800 text-sm w-full"
                         />
                       ) : (
-                        <span className="text-[var(--fg)]">{alm.nombre || "-"}</span>
+                        <span className="text-slate-800">{alm.nombre || "-"}</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -263,11 +263,11 @@ function ProveedoresInternos({ token }) {
                           className="w-4 h-4"
                         />
                       ) : alm.libre_disponibilidad ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(16,185,129,0.15)] text-[var(--success)] text-xs font-semibold">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(16,185,129,0.15)] text-emerald-600 text-xs font-semibold">
                           <Check className="w-3 h-3" /> Si
                         </span>
                       ) : (
-                        <span className="text-[var(--fg-muted)]">No</span>
+                        <span className="text-slate-500">No</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -275,7 +275,7 @@ function ProveedoresInternos({ token }) {
                         <select
                           value={editForm.responsable_id || ""}
                           onChange={(e) => setEditForm({ ...editForm, responsable_id: e.target.value })}
-                          className="px-2 py-1 rounded border border-[var(--border)] bg-[var(--card)] text-[var(--fg)] text-sm"
+                          className="px-2 py-1 rounded border border-white/30 bg-white/50 text-slate-800 text-sm"
                         >
                           <option value="">Sin responsable</option>
                           {usuarios.map((u) => (
@@ -285,7 +285,7 @@ function ProveedoresInternos({ token }) {
                           ))}
                         </select>
                       ) : (
-                        <span className="text-[var(--fg)]">{alm.responsable_display || "-"}</span>
+                        <span className="text-slate-800">{alm.responsable_display || "-"}</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -297,11 +297,11 @@ function ProveedoresInternos({ token }) {
                           className="w-4 h-4"
                         />
                       ) : alm.excluido ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(239,68,68,0.15)] text-[var(--danger)] text-xs font-semibold">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(239,68,68,0.15)] text-red-600 text-xs font-semibold">
                           <X className="w-3 h-3" /> Si
                         </span>
                       ) : (
-                        <span className="text-[var(--fg-muted)]">No</span>
+                        <span className="text-slate-500">No</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -309,13 +309,13 @@ function ProveedoresInternos({ token }) {
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleSave(alm.centro, alm.almacen, editForm)}
-                            className="p-1.5 rounded-lg bg-[var(--success)] text-white hover:opacity-80"
+                            className="p-1.5 rounded-lg bg-emerald-600 text-white hover:opacity-80"
                           >
                             <Check className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setEditingId(null)}
-                            className="p-1.5 rounded-lg bg-[var(--bg-soft)] text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]"
+                            className="p-1.5 rounded-lg bg-slate-100/70 text-slate-500 hover:bg-white/50"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -332,13 +332,13 @@ function ProveedoresInternos({ token }) {
                                 excluido: !!alm.excluido,
                               });
                             }}
-                            className="p-1.5 rounded-lg bg-[var(--bg-soft)] text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]"
+                            className="p-1.5 rounded-lg bg-slate-100/70 text-slate-500 hover:bg-white/50 hover:text-slate-800"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(alm.centro, alm.almacen)}
-                            className="p-1.5 rounded-lg bg-[var(--bg-soft)] text-[var(--danger)] hover:bg-[rgba(239,68,68,0.15)]"
+                            className="p-1.5 rounded-lg bg-slate-100/70 text-red-600 hover:bg-[rgba(239,68,68,0.15)]"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -420,7 +420,7 @@ function ProveedoresExternos({ token }) {
     fetchData();
   };
 
-  if (loading) return <div className="text-[var(--fg-muted)]">Cargando...</div>;
+  if (loading) return <div className="text-slate-500">Cargando...</div>;
 
   return (
     <Card>
@@ -430,26 +430,26 @@ function ProveedoresExternos({ token }) {
           <CardDescription>Gestiona proveedores de compra externa</CardDescription>
         </div>
         <Button onClick={() => setShowAdd(!showAdd)}>
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-4 h-4" />
           Agregar
         </Button>
       </CardHeader>
       <CardContent>
         {showAdd && (
-          <div className="mb-4 p-4 rounded-lg border border-[var(--border)] bg-[var(--bg-soft)] space-y-3">
+          <div className="mb-4 p-4 rounded-lg border border-white/30 bg-slate-100/70 space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <input
                 placeholder="Nombre del proveedor"
                 value={newForm.nombre}
                 onChange={(e) => setNewForm({ ...newForm, nombre: e.target.value })}
-                className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--fg)] text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
               />
               <input
                 type="number"
                 placeholder="Plazo (dias)"
                 value={newForm.plazo_entrega_dias}
                 onChange={(e) => setNewForm({ ...newForm, plazo_entrega_dias: Number(e.target.value) })}
-                className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--fg)] text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
               />
               <input
                 type="number"
@@ -459,7 +459,7 @@ function ProveedoresExternos({ token }) {
                 step="0.5"
                 value={newForm.rating}
                 onChange={(e) => setNewForm({ ...newForm, rating: Number(e.target.value) })}
-                className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--fg)] text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
               />
             </div>
             <div className="flex gap-2">
@@ -472,13 +472,13 @@ function ProveedoresExternos({ token }) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[var(--border)] text-left">
-                <th className="px-4 py-3 font-semibold text-[var(--fg)]">ID</th>
-                <th className="px-4 py-3 font-semibold text-[var(--fg)]">Nombre</th>
-                <th className="px-4 py-3 font-semibold text-[var(--fg)] text-center">Plazo (dias)</th>
-                <th className="px-4 py-3 font-semibold text-[var(--fg)] text-center">Rating</th>
-                <th className="px-4 py-3 font-semibold text-[var(--fg)] text-center">Activo</th>
-                <th className="px-4 py-3 font-semibold text-[var(--fg)]">Acciones</th>
+              <tr className="border-b border-white/30 text-left">
+                <th className="px-4 py-3 font-semibold text-slate-800">ID</th>
+                <th className="px-4 py-3 font-semibold text-slate-800">Nombre</th>
+                <th className="px-4 py-3 font-semibold text-slate-800 text-center">Plazo (dias)</th>
+                <th className="px-4 py-3 font-semibold text-slate-800 text-center">Rating</th>
+                <th className="px-4 py-3 font-semibold text-slate-800 text-center">Activo</th>
+                <th className="px-4 py-3 font-semibold text-slate-800">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -486,17 +486,17 @@ function ProveedoresExternos({ token }) {
                 const isEditing = editingId === prov.id_proveedor;
 
                 return (
-                  <tr key={prov.id_proveedor} className="border-b border-[var(--border)] hover:bg-[var(--bg-hover)]">
-                    <td className="px-4 py-3 text-[var(--fg)] font-mono">{prov.id_proveedor}</td>
+                  <tr key={prov.id_proveedor} className="border-b border-white/30 hover:bg-white/50">
+                    <td className="px-4 py-3 text-slate-800 font-mono">{prov.id_proveedor}</td>
                     <td className="px-4 py-3">
                       {isEditing ? (
                         <input
                           value={editForm.nombre || ""}
                           onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })}
-                          className="px-2 py-1 rounded border border-[var(--border)] bg-[var(--card)] text-[var(--fg)] text-sm w-full"
+                          className="px-2 py-1 rounded border border-white/30 bg-white/50 text-slate-800 text-sm w-full"
                         />
                       ) : (
-                        <span className="text-[var(--fg)]">{prov.nombre}</span>
+                        <span className="text-slate-800">{prov.nombre}</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -505,10 +505,10 @@ function ProveedoresExternos({ token }) {
                           type="number"
                           value={editForm.plazo_entrega_dias}
                           onChange={(e) => setEditForm({ ...editForm, plazo_entrega_dias: Number(e.target.value) })}
-                          className="px-2 py-1 rounded border border-[var(--border)] bg-[var(--card)] text-[var(--fg)] text-sm w-20 text-center"
+                          className="px-2 py-1 rounded border border-white/30 bg-white/50 text-slate-800 text-sm w-20 text-center"
                         />
                       ) : (
-                        <span className="text-[var(--fg)]">{prov.plazo_entrega_dias}</span>
+                        <span className="text-slate-800">{prov.plazo_entrega_dias}</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -520,19 +520,19 @@ function ProveedoresExternos({ token }) {
                           step="0.5"
                           value={editForm.rating}
                           onChange={(e) => setEditForm({ ...editForm, rating: Number(e.target.value) })}
-                          className="px-2 py-1 rounded border border-[var(--border)] bg-[var(--card)] text-[var(--fg)] text-sm w-16 text-center"
+                          className="px-2 py-1 rounded border border-white/30 bg-white/50 text-slate-800 text-sm w-16 text-center"
                         />
                       ) : (
-                        <span className="text-[var(--fg)]">{prov.rating}/5</span>
+                        <span className="text-slate-800">{prov.rating}/5</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {prov.activo ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(16,185,129,0.15)] text-[var(--success)] text-xs font-semibold">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(16,185,129,0.15)] text-emerald-600 text-xs font-semibold">
                           <Check className="w-3 h-3" /> Si
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(239,68,68,0.15)] text-[var(--danger)] text-xs font-semibold">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(239,68,68,0.15)] text-red-600 text-xs font-semibold">
                           <X className="w-3 h-3" /> No
                         </span>
                       )}
@@ -542,13 +542,13 @@ function ProveedoresExternos({ token }) {
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleSave(prov.id_proveedor, editForm)}
-                            className="p-1.5 rounded-lg bg-[var(--success)] text-white hover:opacity-80"
+                            className="p-1.5 rounded-lg bg-emerald-600 text-white hover:opacity-80"
                           >
                             <Check className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setEditingId(null)}
-                            className="p-1.5 rounded-lg bg-[var(--bg-soft)] text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]"
+                            className="p-1.5 rounded-lg bg-slate-100/70 text-slate-500 hover:bg-white/50"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -565,13 +565,13 @@ function ProveedoresExternos({ token }) {
                                 activo: prov.activo,
                               });
                             }}
-                            className="p-1.5 rounded-lg bg-[var(--bg-soft)] text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]"
+                            className="p-1.5 rounded-lg bg-slate-100/70 text-slate-500 hover:bg-white/50 hover:text-slate-800"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(prov.id_proveedor)}
-                            className="p-1.5 rounded-lg bg-[var(--bg-soft)] text-[var(--danger)] hover:bg-[rgba(239,68,68,0.15)]"
+                            className="p-1.5 rounded-lg bg-slate-100/70 text-red-600 hover:bg-[rgba(239,68,68,0.15)]"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -583,7 +583,7 @@ function ProveedoresExternos({ token }) {
               })}
               {proveedores.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-[var(--fg-muted)]">
+                  <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                     No hay proveedores externos registrados
                   </td>
                 </tr>

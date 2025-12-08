@@ -1,12 +1,12 @@
 {
   "task_type": "refactor",
-  "title": "Refactor large functions in app.py",
-  "description": "**Code Quality Issue in C:\\Users\\MANUE\\SPMv2.0\\backend_v2\\app.py**\nIssue Type: long_function\nSeverity: medium\nLine: 31\n\n**Description:** Function 'create_app' is 82 lines long\n**Suggested Action:** Consider breaking down create_app into smaller functions",
+  "title": "Refactor large functions in demand_forecast.py",
+  "description": "**Code Quality Issue in C:\\Users\\MANUE\\SPMv2.0\\backend\\agent\\pipelines\\demand_forecast.py**\nIssue Type: long_function\nSeverity: medium\nLine: 43\n\n**Description:** Function 'fit' is 53 lines long\n**Suggested Action:** Consider breaking down fit into smaller functions",
   "execution_mode": "ExecutionMode.AGENT",
   "agent_type": "AgentType.CODE_REVIEWER",
   "agent_fallback": true,
   "context": {
-    "work_item_id": "0b4a4531-9fd7-498c-9566-73c164367d00",
+    "work_item_id": "90dbb400-c782-4e95-ad07-cbee5a7ba4dd",
     "source_type": "code_quality",
     "priority": 3,
     "attempts": 1,
@@ -17,15 +17,15 @@
       "quality_issue": {
         "type": "long_function",
         "severity": "medium",
-        "line": 31,
-        "description": "Function 'create_app' is 82 lines long",
-        "suggestion": "Consider breaking down create_app into smaller functions"
+        "line": 43,
+        "description": "Function 'fit' is 53 lines long",
+        "suggestion": "Consider breaking down fit into smaller functions"
       },
-      "discovered_at": "2025-11-29T03:54:58.650592",
+      "discovered_at": "2025-11-29T03:54:58.667592",
       "source_type": "code_quality"
     }
   },
-  "timestamp": "2025-11-29T13:09:12.759164",
+  "timestamp": "2025-12-05T22:48:29.294279",
   "sugar_version": "2.1.0",
   "continue_session": false,
   "timeout_seconds": 1800,

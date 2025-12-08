@@ -3,10 +3,10 @@
 ## ✅ Phase 1: Backend Foundation (COMPLETADO)
 
 ### Archivos Creados
-- ✅ `backend_v2/core/notification_schemas.py` - Schemas dataclass
-- ✅ `backend_v2/services/notification_service.py` - Lógica de negocio
-- ✅ `backend_v2/routes/notificaciones.py` - Endpoints API
-- ✅ `backend_v2/create_notifications_table.py` - Script de migración
+- ✅ `backend/core/notification_schemas.py` - Schemas dataclass
+- ✅ `backend/services/notification_service.py` - Lógica de negocio
+- ✅ `backend/routes/notificaciones.py` - Endpoints API
+- ✅ `backend/create_notifications_table.py` - Script de migración
 
 ### Tabla Base de Datos
 - ✅ Tabla `notificaciones` creada con indices

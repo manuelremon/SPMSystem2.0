@@ -8,15 +8,15 @@ created: 2025-11-28
 source: codebase_analysis
 
 description: |
-  El módulo backend_v2/core/csrf.py no tiene tests unitarios.
+  El módulo backend/core/csrf.py no tiene tests unitarios.
   CSRF es crítico para la seguridad de la aplicación.
 
 context:
-  file: "backend_v2/core/csrf.py"
+  file: "backend/core/csrf.py"
   test_dir: "tests/unit/"
   related_files:
-    - "backend_v2/app.py"
-    - "backend_v2/routes/auth.py"
+    - "backend/app.py"
+    - "backend/routes/auth.py"
 
 technical_requirements:
   - Crear tests/unit/test_csrf.py

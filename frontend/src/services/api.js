@@ -1,19 +1,22 @@
 import axios from 'axios'
+import { logger } from '../utils/logger'
 
 /**
  * API Configuration
  *
- * Estrategia de autenticación: COOKIES ONLY (httpOnly)
+ * Estrategia de autenticacion: COOKIES ONLY (httpOnly)
  * - NO usamos Bearer token en headers
  * - Tokens se manejan via cookies httpOnly (spm_token, spm_token_refresh)
- * - CSRF token se envía en header X-CSRF-Token
+ * - CSRF token se envia en header X-CSRF-Token
  *
- * Esto es más seguro porque:
+ * Esto es mas seguro porque:
  * 1. Cookies httpOnly no son accesibles desde JS (protege contra XSS)
  * 2. CSRF token protege contra ataques CSRF
  */
 
-// En producción usa URL relativa, en desarrollo usa localhost
+const log = logger.withContext('API')
+
+// En produccion usa URL relativa, en desarrollo usa localhost
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 // URL de refresh usa la misma base que la API
@@ -41,8 +44,11 @@ const api = axios.create({
   }
 })
 
-// Request interceptor - add CSRF token and Bearer token
+// Request interceptor - add CSRF token, Bearer token, and logging
 api.interceptors.request.use((config) => {
+  // Track request timing
+  config._startTime = performance.now()
+
   // Add CSRF token
   const csrfToken = localStorage.getItem('csrf_token')
   if (csrfToken) {
@@ -55,12 +61,21 @@ api.interceptors.request.use((config) => {
     config.headers['Authorization'] = `Bearer ${accessToken}`
   }
 
+  // Log request
+  log.debug(`${config.method?.toUpperCase()} ${config.url}`, config.data ? { data: config.data } : '')
+
   return config
 })
 
-// Response interceptor - handle errors uniformemente
+// Response interceptor - handle errors and logging
 api.interceptors.response.use(
   response => {
+    // Log successful response with timing
+    const duration = response.config._startTime
+      ? (performance.now() - response.config._startTime).toFixed(0)
+      : '?'
+    log.debug(`${response.config.method?.toUpperCase()} ${response.config.url} -> ${response.status} (${duration}ms)`)
+
     // Capturar token CSRF del header si viene
     const csrfHeader = response.headers['x-csrf-token']
     if (csrfHeader) {
@@ -69,12 +84,20 @@ api.interceptors.response.use(
     return response
   },
   async error => {
+    // Log error response
+    const config = error.config || {}
+    const status = error.response?.status || 'NETWORK'
+    const duration = config._startTime
+      ? (performance.now() - config._startTime).toFixed(0)
+      : '?'
+    log.error(`${config.method?.toUpperCase()} ${config.url} -> ${status} (${duration}ms)`, error.response?.data || error.message)
+
     const originalRequest = error.config
-    const status = error.response?.status
+    const responseStatus = error.response?.status
     const errorCode = error.response?.data?.error?.code
 
     // CSRF error (403) - intentar renovar token
-    if (status === 403 && errorCode === 'csrf_error' && !originalRequest._csrf_retry) {
+    if (responseStatus === 403 && errorCode === 'csrf_error' && !originalRequest._csrf_retry) {
       originalRequest._csrf_retry = true
       try {
         const csrfResponse = await axios.get(`${API_BASE_URL}/auth/csrf`, {
@@ -92,7 +115,7 @@ api.interceptors.response.use(
     }
 
     // 401 Unauthorized - intentar refresh o redirigir a login
-    if (status === 401) {
+    if (responseStatus === 401) {
       // Evitar loop: si /auth/me o /auth/refresh fallan, ir directo a login
       const isAuthEndpoint = originalRequest?.url?.includes('/auth/me') ||
                              originalRequest?.url?.includes('/auth/refresh')

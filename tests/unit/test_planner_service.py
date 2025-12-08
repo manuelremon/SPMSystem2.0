@@ -10,12 +10,12 @@ from pathlib import Path
 
 import pytest
 
-# Agregar backend_v2 al path para imports
+# Agregar backend al path para imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from backend_v2.core.cache_loader import clear_cache
-from backend_v2.core.repository import SolicitudRepository
-from backend_v2.core.services.planner_service import (
+from backend.core.cache_loader import clear_cache
+from backend.core.repository import SolicitudRepository
+from backend.core.services.planner_service import (
     paso_1_analizar_solicitud, paso_2_opciones_abastecimiento,
     paso_3_guardar_tratamiento)
 
@@ -256,7 +256,7 @@ class TestPaso3GuardarTratamiento:
         }
 
         # Importar schema
-        from backend_v2.core.schemas import DecisionItem
+        from backend.core.schemas import DecisionItem
 
         # Construir desde dict (validar)
         try:
@@ -270,7 +270,7 @@ class TestPaso3GuardarTratamiento:
 
     def test_paso_3_decision_missing_field(self):
         """Test que DecisionItem falla si faltan campos requeridos"""
-        from backend_v2.core.schemas import DecisionItem
+        from backend.core.schemas import DecisionItem
 
         # Falta item_idx
         decision_raw = {"decision_tipo": "stock", "cantidad_aprobada": 10.0}
@@ -308,7 +308,7 @@ class TestCache:
         """Test que get_stock_cache retorna Pandas DataFrame"""
         import pandas as pd
 
-        from backend_v2.core.cache_loader import get_stock_cache
+        from backend.core.cache_loader import get_stock_cache
 
         stock_df = get_stock_cache()
         assert isinstance(stock_df, pd.DataFrame), "get_stock_cache debe retornar DataFrame"
@@ -328,7 +328,7 @@ class TestSchemas:
 
     def test_conflicto_to_dict(self):
         """Test que Conflicto.to_dict() retorna dict"""
-        from backend_v2.core.schemas import Conflicto
+        from backend.core.schemas import Conflicto
 
         conflicto = Conflicto(
             tipo="stock_insuficiente", item_idx=0, codigo="MAT001", cantidad=10, stock_disponible=5
@@ -342,7 +342,7 @@ class TestSchemas:
 
     def test_opcion_to_dict(self):
         """Test que Opcion.to_dict() retorna dict"""
-        from backend_v2.core.schemas import Opcion
+        from backend.core.schemas import Opcion
 
         opcion = Opcion(
             opcion_id="stock",
@@ -363,7 +363,7 @@ class TestSchemas:
 
     def test_resultado_paso_1_to_dict(self):
         """Test que ResultadoPaso1.to_dict() retorna dict serializable"""
-        from backend_v2.core.schemas import ResultadoPaso1, ResumenPresupuesto
+        from backend.core.schemas import ResultadoPaso1, ResumenPresupuesto
 
         resumen = ResumenPresupuesto(
             presupuesto_total=10000,

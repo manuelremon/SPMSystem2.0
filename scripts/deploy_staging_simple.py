@@ -26,7 +26,7 @@ def setup_environment():
 
     root_dir = Path(__file__).resolve().parent.parent
     sys.path.insert(0, str(root_dir))
-    sys.path.insert(0, str(root_dir / "backend_v2"))
+    sys.path.insert(0, str(root_dir / "backend"))
     os.chdir(str(root_dir))
 
     # Cargar .env.staging
@@ -53,9 +53,9 @@ def verify_structure(root_dir):
     log("INFO", "Verifying directory structure...")
 
     paths = [
-        "backend_v2/app.py",
-        "backend_v2/core",
-        "backend_v2/routes",
+        "backend/app.py",
+        "backend/core",
+        "backend/routes",
         "tests",
         "scripts/run_backend.py",
     ]
@@ -100,7 +100,7 @@ def verify_app(root_dir):
     log("INFO", "Verifying Flask app...")
 
     try:
-        from backend_v2.app import create_app
+        from backend.app import create_app
 
         app = create_app()
         log("OK  ", "Flask app created")
@@ -122,8 +122,8 @@ def setup_database(root_dir):
     log("INFO", "Initializing database...")
 
     try:
-        from backend_v2.app import create_app
-        from backend_v2.core.db import init_db
+        from backend.app import create_app
+        from backend.core.db import init_db
 
         app = create_app()
         with app.app_context():

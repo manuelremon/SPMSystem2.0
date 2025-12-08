@@ -30,18 +30,18 @@ export function ConfirmModal({
 
   const variantStyles = {
     danger: {
-      iconBg: "bg-[var(--danger-bg)]",
-      iconColor: "text-[var(--danger)]",
-      buttonVariant: "danger",
+      iconBg: "bg-red-100",
+      iconColor: "text-red-600",
+      buttonVariant: "primary",
     },
     warning: {
-      iconBg: "bg-[var(--warning-bg)]",
-      iconColor: "text-[var(--warning)]",
-      buttonVariant: "warning",
+      iconBg: "bg-blue-100",
+      iconColor: "text-blue-600",
+      buttonVariant: "primary",
     },
     info: {
-      iconBg: "bg-[var(--info-bg)]",
-      iconColor: "text-[var(--info)]",
+      iconBg: "bg-blue-100",
+      iconColor: "text-blue-600",
       buttonVariant: "primary",
     },
   };
@@ -50,25 +50,40 @@ export function ConfirmModal({
   const IconComponent = icon || AlertTriangle;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-[var(--card)] border border-[var(--border)] shadow-[var(--shadow-strong)] rounded-2xl p-6 animate-in zoom-in-95 duration-200">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center px-4 animate-in fade-in duration-200"
+      style={{
+        backgroundColor: 'rgba(15, 23, 42, 0.4)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
+      }}
+    >
+      <div
+        className="w-full max-w-md border border-white/50 rounded-2xl p-6 animate-in zoom-in-95 duration-200"
+        style={{
+          background: 'rgba(255, 255, 255, 0.92)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.6)',
+        }}
+      >
         {/* Header */}
         <div className="flex items-start gap-4">
           <div className={`h-12 w-12 rounded-full ${styles.iconBg} grid place-items-center flex-shrink-0`}>
             <IconComponent className={`w-6 h-6 ${styles.iconColor}`} />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-[var(--fg)]">
+            <h3 className="text-lg font-semibold text-slate-800">
               {title}
             </h3>
-            <p className="text-sm text-[var(--fg-muted)] mt-1">
+            <p className="text-sm text-slate-500 mt-1">
               {description}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="h-8 w-8 grid place-items-center rounded-lg text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--bg-elevated)] transition-all flex-shrink-0"
+            className="h-8 w-8 grid place-items-center rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all flex-shrink-0"
           >
             <X className="w-4 h-4" />
           </button>

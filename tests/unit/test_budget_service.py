@@ -1,5 +1,5 @@
 """
-Tests para el servicio de presupuesto (backend_v2/services/budget_service.py)
+Tests para el servicio de presupuesto (backend/services/budget_service.py)
 
 Verifica:
 - PresupuestoService.validar_saldo
@@ -13,8 +13,8 @@ from pathlib import Path
 
 import pytest
 
-# Agregar backend_v2 al path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "backend_v2"))
+# Agregar backend al path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "backend"))
 
 from core.budget_schemas import UMBRAL_L1_CENTS, UMBRAL_L2_CENTS
 from services.budget_service import BURService

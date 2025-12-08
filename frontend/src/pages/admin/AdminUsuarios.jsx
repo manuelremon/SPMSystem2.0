@@ -56,12 +56,12 @@ export default function AdminUsuarios() {
           label: 'Roles',
           render: (row) => {
             const rolMap = {
-              'administrador': { bg: 'var(--danger)', text: 'var(--on-danger)' },
-              'admin': { bg: 'var(--danger)', text: 'var(--on-danger)' },
-              'planificador': { bg: 'var(--primary)', text: 'var(--on-primary)' },
-              'solicitante': { bg: 'var(--success)', text: 'var(--on-success)' },
-              'aprobador_solicitudes': { bg: 'var(--warning)', text: 'var(--on-warning)' },
-              'aprobador_presupuestos': { bg: 'var(--info)', text: 'var(--on-info)' },
+              'administrador': { bg: '#dc2626', text: '#ffffff' },
+              'admin': { bg: '#dc2626', text: '#ffffff' },
+              'planificador': { bg: '#2563eb', text: '#ffffff' },
+              'solicitante': { bg: '#16a34a', text: '#ffffff' },
+              'aprobador_solicitudes': { bg: '#d97706', text: '#ffffff' },
+              'aprobador_presupuestos': { bg: '#0891b2', text: '#ffffff' },
             };
 
             // Convertir roles a array si es string JSON
@@ -81,7 +81,7 @@ export default function AdminUsuarios() {
               <div className="flex flex-wrap gap-1">
                 {roles.length > 0 ? (
                   roles.map((rol, idx) => {
-                    const config = rolMap[rol?.toLowerCase()] || { bg: 'var(--fg-muted)', text: 'var(--bg)' };
+                    const config = rolMap[rol?.toLowerCase()] || { bg: '#64748b', text: '#ffffff' };
                     return (
                       <Badge
                         key={idx}
@@ -93,7 +93,7 @@ export default function AdminUsuarios() {
                     );
                   })
                 ) : (
-                  <span className="text-xs text-[var(--fg-muted)]">Sin roles</span>
+                  <span className="text-xs text-slate-500">Sin roles</span>
                 )}
               </div>
             );

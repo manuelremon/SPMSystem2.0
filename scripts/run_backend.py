@@ -8,12 +8,12 @@ from pathlib import Path
 # Configurar PYTHONPATH
 root_dir = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(root_dir))
-sys.path.insert(0, str(root_dir / "backend_v2"))
+sys.path.insert(0, str(root_dir / "backend"))
 
 os.chdir(str(root_dir))
 
 # Importar y ejecutar
-from backend_v2.app import create_app
+from backend.app import create_app
 
 app = create_app()
 

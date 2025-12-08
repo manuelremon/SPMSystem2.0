@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-Script para corregir todos los imports relativos en backend_v2
-Convierte: from core.X import Y -> try/except para backend_v2.core.X y core.X
+Script para corregir todos los imports relativos en backend
+Convierte: from core.X import Y -> try/except para backend.core.X y core.X
 """
 
 import re
@@ -62,12 +62,12 @@ def _convert_imports(import_block, new_lines):
     relative_imports = []
 
     for line in import_block:
-        # from core.X import Y -> backend_v2.core.X y core.X
+        # from core.X import Y -> backend.core.X y core.X
         match = re.match(r"from (core\..+?) import (.+)$", line.strip())
         if match:
             module = match.group(1)
             items = match.group(2)
-            absolute_imports.append(f"from backend_v2.{module} import {items}")
+            absolute_imports.append(f"from backend.{module} import {items}")
             relative_imports.append(f"from {module} import {items}")
         else:
             # Otros imports
@@ -84,8 +84,8 @@ def _convert_imports(import_block, new_lines):
 
 
 def main():
-    """Corregir todos los archivos Python en backend_v2"""
-    backend_path = Path("../backend_v2")
+    """Corregir todos los archivos Python en backend"""
+    backend_path = Path("../backend")
     py_files = list(backend_path.glob("**/*.py"))
 
     fixed = 0

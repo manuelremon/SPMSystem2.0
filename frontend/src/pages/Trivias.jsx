@@ -401,10 +401,10 @@ export default function Trivias() {
     if (gameOver) {
       return (
         <div className="text-center py-8">
-          <Trophy className="w-16 h-16 mx-auto mb-4 text-[var(--warning)]" />
-          <h2 className="text-2xl font-bold text-[var(--fg)] mb-2">Juego Terminado!</h2>
-          <p className="text-4xl font-bold text-[var(--primary)] mb-4">{score} puntos</p>
-          <p className="text-[var(--fg-muted)] mb-6">
+          <Trophy className="w-16 h-16 mx-auto mb-4 text-amber-500" />
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">Juego Terminado!</h2>
+          <p className="text-4xl font-bold text-blue-600 mb-4">{score} puntos</p>
+          <p className="text-slate-500 mb-6">
             Respuestas correctas: {correctAnswers} / {totalQuestions}
           </p>
           <div className="flex justify-center gap-3">
@@ -414,11 +414,11 @@ export default function Trivias() {
               else if (activeGame === "price") startPriceGame();
               else if (activeGame === "category") startCategoryGame();
             }}>
-              <RefreshCw className="w-4 h-4 mr-2" />
+              <RefreshCw className="w-4 h-4" />
               Jugar de nuevo
             </Button>
             <Button variant="outline" onClick={exitGame}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeft className="w-4 h-4" />
               Volver
             </Button>
           </div>
@@ -434,18 +434,18 @@ export default function Trivias() {
           <div className="flex items-center justify-between mb-6">
             <Badge variant="info">Pregunta {questionIndex + 1} / {quizQuestions.length}</Badge>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1 text-[var(--warning)]">
+              <div className="flex items-center gap-1 text-amber-500">
                 <Zap className="w-4 h-4" />
                 <span className="font-bold">{streak}</span>
               </div>
-              <div className={`flex items-center gap-1 ${timeLeft <= 5 ? 'text-[var(--danger)] animate-pulse' : 'text-[var(--fg-muted)]'}`}>
+              <div className={`flex items-center gap-1 ${timeLeft <= 5 ? 'text-red-600 animate-pulse' : 'text-slate-500'}`}>
                 <Timer className="w-4 h-4" />
                 <span className="font-mono font-bold">{timeLeft}s</span>
               </div>
             </div>
           </div>
 
-          <h3 className="text-lg font-semibold text-[var(--fg)] mb-6">{q.question}</h3>
+          <h3 className="text-lg font-semibold text-slate-800 mb-6">{q.question}</h3>
 
           <div className="grid gap-3">
             {q.options.map((opt, idx) => (
@@ -457,11 +457,11 @@ export default function Trivias() {
                   w-full p-4 rounded-lg border text-left transition-all
                   ${answered
                     ? idx === q.correct
-                      ? 'bg-[var(--success-bg)] border-[var(--success)] text-[var(--success)]'
+                      ? 'bg-emerald-100/70 border-emerald-500 text-emerald-600'
                       : idx === selectedAnswer
-                        ? 'bg-[var(--danger-bg)] border-[var(--danger)] text-[var(--danger)]'
-                        : 'bg-[var(--bg-soft)] border-[var(--border)] text-[var(--fg-muted)]'
-                    : 'bg-[var(--bg-soft)] border-[var(--border)] text-[var(--fg)] hover:border-[var(--primary)] hover:bg-[var(--primary)]/10'
+                        ? 'bg-red-100/70 border-red-500 text-red-600'
+                        : 'bg-slate-50/70 border-white/30 text-slate-500'
+                    : 'bg-slate-50/70 border-white/30 text-slate-800 hover:border-blue-500 hover:bg-blue-600/10'
                   }
                 `}
               >
@@ -471,9 +471,9 @@ export default function Trivias() {
           </div>
 
           {answered && (
-            <div className="mt-4 p-3 rounded-lg bg-[var(--bg-soft)] border border-[var(--border)]">
-              <p className="text-sm text-[var(--fg-muted)]">
-                <strong className="text-[var(--fg)]">Explicacion:</strong> {q.explanation}
+            <div className="mt-4 p-3 rounded-lg bg-slate-50/70 border border-white/30">
+              <p className="text-sm text-slate-500">
+                <strong className="text-slate-800">Explicacion:</strong> {q.explanation}
               </p>
             </div>
           )}
@@ -489,22 +489,22 @@ export default function Trivias() {
           <div className="flex items-center justify-between mb-6">
             <Badge variant="success">Material {questionIndex + 1} / {guessMaterials.length}</Badge>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1 text-[var(--warning)]">
+              <div className="flex items-center gap-1 text-amber-500">
                 <Zap className="w-4 h-4" />
                 <span className="font-bold">{streak}</span>
               </div>
-              <div className={`flex items-center gap-1 ${timeLeft <= 5 ? 'text-[var(--danger)] animate-pulse' : 'text-[var(--fg-muted)]'}`}>
+              <div className={`flex items-center gap-1 ${timeLeft <= 5 ? 'text-red-600 animate-pulse' : 'text-slate-500'}`}>
                 <Timer className="w-4 h-4" />
                 <span className="font-mono font-bold">{timeLeft}s</span>
               </div>
             </div>
           </div>
 
-          <div className="p-4 rounded-lg bg-[var(--primary)]/10 border border-[var(--primary)]/30 mb-6">
-            <p className="text-[var(--fg)] italic">"{m.description}"</p>
+          <div className="p-4 rounded-lg bg-blue-600/10 border border-blue-500/30 mb-6">
+            <p className="text-slate-800 italic">"{m.description}"</p>
           </div>
 
-          <h3 className="text-lg font-semibold text-[var(--fg)] mb-4">¿Que material es?</h3>
+          <h3 className="text-lg font-semibold text-slate-800 mb-4">¿Que material es?</h3>
 
           <div className="grid gap-3">
             {m.options.map((opt, idx) => (
@@ -516,11 +516,11 @@ export default function Trivias() {
                   w-full p-4 rounded-lg border text-left transition-all
                   ${answered
                     ? idx === m.correct
-                      ? 'bg-[var(--success-bg)] border-[var(--success)] text-[var(--success)]'
+                      ? 'bg-emerald-100/70 border-emerald-500 text-emerald-600'
                       : idx === selectedAnswer
-                        ? 'bg-[var(--danger-bg)] border-[var(--danger)] text-[var(--danger)]'
-                        : 'bg-[var(--bg-soft)] border-[var(--border)] text-[var(--fg-muted)]'
-                    : 'bg-[var(--bg-soft)] border-[var(--border)] text-[var(--fg)] hover:border-[var(--primary)] hover:bg-[var(--primary)]/10'
+                        ? 'bg-red-100/70 border-red-500 text-red-600'
+                        : 'bg-slate-50/70 border-white/30 text-slate-500'
+                    : 'bg-slate-50/70 border-white/30 text-slate-800 hover:border-blue-500 hover:bg-blue-600/10'
                   }
                 `}
               >
@@ -540,11 +540,11 @@ export default function Trivias() {
           <div className="flex items-center justify-between mb-6">
             <Badge variant="warning">Precio {questionIndex + 1} / {priceMaterials.length}</Badge>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1 text-[var(--warning)]">
+              <div className="flex items-center gap-1 text-amber-500">
                 <Zap className="w-4 h-4" />
                 <span className="font-bold">{streak}</span>
               </div>
-              <div className={`flex items-center gap-1 ${timeLeft <= 5 ? 'text-[var(--danger)] animate-pulse' : 'text-[var(--fg-muted)]'}`}>
+              <div className={`flex items-center gap-1 ${timeLeft <= 5 ? 'text-red-600 animate-pulse' : 'text-slate-500'}`}>
                 <Timer className="w-4 h-4" />
                 <span className="font-mono font-bold">{timeLeft}s</span>
               </div>
@@ -552,9 +552,9 @@ export default function Trivias() {
           </div>
 
           <div className="text-center mb-6">
-            <DollarSign className="w-12 h-12 mx-auto mb-3 text-[var(--warning)]" />
-            <h3 className="text-xl font-bold text-[var(--fg)]">{m.name}</h3>
-            <p className="text-[var(--fg-muted)] mt-2">¿Cual es el precio aproximado?</p>
+            <DollarSign className="w-12 h-12 mx-auto mb-3 text-amber-500" />
+            <h3 className="text-xl font-bold text-slate-800">{m.name}</h3>
+            <p className="text-slate-500 mt-2">¿Cual es el precio aproximado?</p>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
@@ -567,26 +567,26 @@ export default function Trivias() {
                   p-4 rounded-lg border text-center transition-all
                   ${answered
                     ? price === m.correctPrice
-                      ? 'bg-[var(--success-bg)] border-[var(--success)]'
+                      ? 'bg-emerald-100/70 border-emerald-500'
                       : idx === selectedAnswer
-                        ? 'bg-[var(--danger-bg)] border-[var(--danger)]'
-                        : 'bg-[var(--bg-soft)] border-[var(--border)]'
-                    : 'bg-[var(--bg-soft)] border-[var(--border)] hover:border-[var(--warning)] hover:bg-[var(--warning)]/10'
+                        ? 'bg-red-100/70 border-red-500'
+                        : 'bg-slate-50/70 border-white/30'
+                    : 'bg-slate-50/70 border-white/30 hover:border-amber-500 hover:bg-amber-500/10'
                   }
                 `}
               >
-                <span className={`text-2xl font-bold ${answered && price === m.correctPrice ? 'text-[var(--success)]' : answered && idx === selectedAnswer ? 'text-[var(--danger)]' : 'text-[var(--fg)]'}`}>
+                <span className={`text-2xl font-bold ${answered && price === m.correctPrice ? 'text-emerald-600' : answered && idx === selectedAnswer ? 'text-red-600' : 'text-slate-800'}`}>
                   ${price.toLocaleString()}
                 </span>
-                <p className="text-xs text-[var(--fg-muted)] mt-1">USD</p>
+                <p className="text-xs text-slate-500 mt-1">USD</p>
               </button>
             ))}
           </div>
 
           {answered && (
             <div className="mt-4 text-center">
-              <p className="text-sm text-[var(--fg-muted)]">
-                Precio correcto: <strong className="text-[var(--success)]">${m.correctPrice.toLocaleString()} USD</strong>
+              <p className="text-sm text-slate-500">
+                Precio correcto: <strong className="text-emerald-600">${m.correctPrice.toLocaleString()} USD</strong>
               </p>
             </div>
           )}
@@ -603,30 +603,30 @@ export default function Trivias() {
         <div>
           <div className="flex items-center justify-between mb-6">
             <Badge variant="info">Ronda {categoryRound + 1} / {categoryGame.rounds.length}</Badge>
-            <div className="text-[var(--fg-muted)]">
-              Puntaje: <span className="font-bold text-[var(--primary)]">{score}</span>
+            <div className="text-slate-500">
+              Puntaje: <span className="font-bold text-blue-600">{score}</span>
             </div>
           </div>
 
-          <h3 className="text-lg font-semibold text-[var(--fg)] mb-2">Arrastra cada material a su categoria</h3>
-          <p className="text-sm text-[var(--fg-muted)] mb-6">Clasifica los 3 materiales correctamente</p>
+          <h3 className="text-lg font-semibold text-slate-800 mb-2">Arrastra cada material a su categoria</h3>
+          <p className="text-sm text-slate-500 mb-6">Clasifica los 3 materiales correctamente</p>
 
           {/* Materiales sin asignar */}
-          <div className="mb-6 p-4 rounded-lg bg-[var(--bg-soft)] border border-dashed border-[var(--border)] min-h-[80px]">
-            <p className="text-xs text-[var(--fg-muted)] uppercase tracking-wider mb-3">Materiales:</p>
+          <div className="mb-6 p-4 rounded-lg bg-slate-50/70 border border-dashed border-white/30 min-h-[80px]">
+            <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Materiales:</p>
             <div className="flex flex-wrap gap-2">
               {unassigned.map(m => (
                 <div
                   key={m.id}
                   draggable
                   onDragStart={() => handleDragStart(m)}
-                  className="px-4 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] cursor-grab active:cursor-grabbing hover:border-[var(--primary)] transition-all"
+                  className="px-4 py-2 rounded-lg bg-white border border-white/30 cursor-grab active:cursor-grabbing hover:border-blue-500 transition-all"
                 >
-                  <span className="text-sm font-medium text-[var(--fg)]">{m.name}</span>
+                  <span className="text-sm font-medium text-slate-800">{m.name}</span>
                 </div>
               ))}
               {unassigned.length === 0 && (
-                <p className="text-sm text-[var(--fg-subtle)] italic">Todos los materiales asignados</p>
+                <p className="text-sm text-slate-400 italic">Todos los materiales asignados</p>
               )}
             </div>
           </div>
@@ -648,7 +648,7 @@ export default function Trivias() {
                     {assigned.map(m => (
                       <div
                         key={m.id}
-                        className="px-3 py-2 rounded bg-[var(--card)] border text-sm"
+                        className="px-3 py-2 rounded bg-white border text-sm"
                         style={{ borderColor: cat.color }}
                       >
                         {m.name}
@@ -665,7 +665,7 @@ export default function Trivias() {
               onClick={checkCategoryAnswers}
               disabled={unassigned.length > 0}
             >
-              <CheckCircle className="w-4 h-4 mr-2" />
+              <CheckCircle className="w-4 h-4" />
               Verificar Respuestas
             </Button>
           </div>
@@ -683,96 +683,96 @@ export default function Trivias() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-[var(--fg)] flex items-center gap-2">
-              <Trophy className="w-7 h-7 text-[var(--warning)]" />
+            <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+              <Trophy className="w-6 h-6 text-amber-500" />
               Trivias SPM
             </h1>
-            <p className="text-sm text-[var(--fg-muted)] mt-1">Aprende y compite, tienes una oportunidad al mes!! Suerte!! <span className="text-[var(--success)]">🍀</span></p>
+            <p className="text-sm text-slate-500 mt-1">Aprende y compite, tienes una oportunidad al mes!! Suerte!! <span className="text-emerald-600">🍀</span></p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-[var(--fg-muted)]">Tu puntaje total</p>
-            <p className="text-2xl font-bold text-[var(--primary)]">{myStats.total_score.toLocaleString()}</p>
+            <p className="text-sm text-slate-500">Tu puntaje total</p>
+            <p className="text-2xl font-bold text-blue-600">{myStats.total_score.toLocaleString()}</p>
           </div>
         </div>
 
         {/* Grid de juegos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Quiz SPM */}
-          <Card className="hover:border-[var(--primary)] transition-all cursor-pointer group" onClick={startQuiz}>
+          <Card className="hover:border-blue-500 transition-all cursor-pointer group" onClick={startQuiz}>
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-xl bg-[var(--primary)]/20 grid place-items-center flex-shrink-0 group-hover:bg-[var(--primary)]/30 transition-all">
-                  <BookOpen className="w-7 h-7 text-[var(--primary)]" />
+                <div className="w-14 h-14 rounded-xl bg-blue-600/20 grid place-items-center flex-shrink-0 group-hover:bg-blue-600/30 transition-all">
+                  <BookOpen className="w-6 h-6 text-blue-600" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-[var(--fg)] text-lg">Quiz SPM</h3>
-                  <p className="text-sm text-[var(--fg-muted)] mt-1">Responde preguntas sobre el sistema y sus procesos</p>
+                  <h3 className="font-semibold text-slate-800 text-lg">Quiz SPM</h3>
+                  <p className="text-sm text-slate-500 mt-1">Responde preguntas sobre el sistema y sus procesos</p>
                   <div className="flex items-center gap-2 mt-3">
                     <Badge variant="neutral">{quizQuestions.length} preguntas</Badge>
                     <Badge variant="info">15s por pregunta</Badge>
                   </div>
                 </div>
-                <ArrowRight className="w-5 h-5 text-[var(--fg-muted)] group-hover:text-[var(--primary)] transition-all" />
+                <ArrowRight className="w-5 h-5 text-slate-500 group-hover:text-blue-600 transition-all" />
               </div>
             </CardContent>
           </Card>
 
           {/* Adivina el Material */}
-          <Card className="hover:border-[var(--success)] transition-all cursor-pointer group" onClick={startGuessMaterial}>
+          <Card className="hover:border-emerald-500 transition-all cursor-pointer group" onClick={startGuessMaterial}>
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-xl bg-[var(--success)]/20 grid place-items-center flex-shrink-0 group-hover:bg-[var(--success)]/30 transition-all">
-                  <HelpCircle className="w-7 h-7 text-[var(--success)]" />
+                <div className="w-14 h-14 rounded-xl bg-emerald-500/20 grid place-items-center flex-shrink-0 group-hover:bg-emerald-500/30 transition-all">
+                  <HelpCircle className="w-6 h-6 text-emerald-600" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-[var(--fg)] text-lg">Adivina el Material</h3>
-                  <p className="text-sm text-[var(--fg-muted)] mt-1">Lee la descripcion y elige el material correcto</p>
+                  <h3 className="font-semibold text-slate-800 text-lg">Adivina el Material</h3>
+                  <p className="text-sm text-slate-500 mt-1">Lee la descripcion y elige el material correcto</p>
                   <div className="flex items-center gap-2 mt-3">
                     <Badge variant="neutral">{guessMaterials.length} materiales</Badge>
                     <Badge variant="success">20s por pregunta</Badge>
                   </div>
                 </div>
-                <ArrowRight className="w-5 h-5 text-[var(--fg-muted)] group-hover:text-[var(--success)] transition-all" />
+                <ArrowRight className="w-5 h-5 text-slate-500 group-hover:text-emerald-600 transition-all" />
               </div>
             </CardContent>
           </Card>
 
           {/* Cuanto Cuesta */}
-          <Card className="hover:border-[var(--warning)] transition-all cursor-pointer group" onClick={startPriceGame}>
+          <Card className="hover:border-amber-500 transition-all cursor-pointer group" onClick={startPriceGame}>
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-xl bg-[var(--warning)]/20 grid place-items-center flex-shrink-0 group-hover:bg-[var(--warning)]/30 transition-all">
-                  <DollarSign className="w-7 h-7 text-[var(--warning)]" />
+                <div className="w-14 h-14 rounded-xl bg-amber-500/20 grid place-items-center flex-shrink-0 group-hover:bg-amber-500/30 transition-all">
+                  <DollarSign className="w-6 h-6 text-amber-500" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-[var(--fg)] text-lg">¿Cuanto Cuesta?</h3>
-                  <p className="text-sm text-[var(--fg-muted)] mt-1">Adivina el precio correcto del material</p>
+                  <h3 className="font-semibold text-slate-800 text-lg">¿Cuanto Cuesta?</h3>
+                  <p className="text-sm text-slate-500 mt-1">Adivina el precio correcto del material</p>
                   <div className="flex items-center gap-2 mt-3">
                     <Badge variant="neutral">{priceMaterials.length} materiales</Badge>
                     <Badge variant="warning">12s por pregunta</Badge>
                   </div>
                 </div>
-                <ArrowRight className="w-5 h-5 text-[var(--fg-muted)] group-hover:text-[var(--warning)] transition-all" />
+                <ArrowRight className="w-5 h-5 text-slate-500 group-hover:text-amber-500 transition-all" />
               </div>
             </CardContent>
           </Card>
 
           {/* Categorias */}
-          <Card className="hover:border-[var(--accent)] transition-all cursor-pointer group" onClick={startCategoryGame}>
+          <Card className="hover:border-cyan-500 transition-all cursor-pointer group" onClick={startCategoryGame}>
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-xl bg-[var(--accent)]/20 grid place-items-center flex-shrink-0 group-hover:bg-[var(--accent)]/30 transition-all">
-                  <Layers className="w-7 h-7 text-[var(--accent)]" />
+                <div className="w-14 h-14 rounded-xl bg-cyan-500/20 grid place-items-center flex-shrink-0 group-hover:bg-cyan-500/30 transition-all">
+                  <Layers className="w-6 h-6 text-cyan-600" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-[var(--fg)] text-lg">Categorias</h3>
-                  <p className="text-sm text-[var(--fg-muted)] mt-1">Arrastra cada material a su grupo correcto</p>
+                  <h3 className="font-semibold text-slate-800 text-lg">Categorias</h3>
+                  <p className="text-sm text-slate-500 mt-1">Arrastra cada material a su grupo correcto</p>
                   <div className="flex items-center gap-2 mt-3">
                     <Badge variant="neutral">{categoryGame.rounds.length} rondas</Badge>
                     <Badge variant="info">Drag & Drop</Badge>
                   </div>
                 </div>
-                <ArrowRight className="w-5 h-5 text-[var(--fg-muted)] group-hover:text-[var(--accent)] transition-all" />
+                <ArrowRight className="w-5 h-5 text-slate-500 group-hover:text-cyan-600 transition-all" />
               </div>
             </CardContent>
           </Card>
@@ -782,17 +782,17 @@ export default function Trivias() {
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
-              <Medal className="w-5 h-5 text-[var(--warning)]" />
+              <Medal className="w-5 h-5 text-amber-500" />
               <CardTitle className="text-base">Ranking de Jugadores</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
             {loadingRankings ? (
               <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)] mx-auto"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
               </div>
             ) : rankings.length === 0 ? (
-              <div className="text-center py-8 text-[var(--fg-muted)]">
+              <div className="text-center py-8 text-slate-500">
                 <Trophy className="w-12 h-12 mx-auto mb-3 opacity-30" />
                 <p>Aun no hay puntuaciones. Se el primero en jugar!</p>
               </div>
@@ -803,28 +803,28 @@ export default function Trivias() {
                     key={r.user_id}
                     className={`flex items-center gap-3 p-3 rounded-lg ${
                       r.user_id === user?.id
-                        ? 'bg-[var(--primary)]/10 border border-[var(--primary)]/30'
-                        : 'bg-[var(--bg-soft)]'
+                        ? 'bg-blue-600/10 border border-blue-500/30'
+                        : 'bg-slate-50/70'
                     }`}
                   >
                     <div className="w-8 h-8 rounded-full grid place-items-center flex-shrink-0">
                       {idx === 0 ? (
-                        <Crown className="w-5 h-5 text-[var(--warning)]" />
+                        <Crown className="w-5 h-5 text-amber-500" />
                       ) : idx === 1 ? (
-                        <Medal className="w-5 h-5 text-[var(--fg-muted)]" />
+                        <Medal className="w-5 h-5 text-slate-500" />
                       ) : idx === 2 ? (
                         <Medal className="w-5 h-5 text-amber-600" />
                       ) : (
-                        <span className="text-sm font-bold text-[var(--fg-muted)]">{idx + 1}</span>
+                        <span className="text-sm font-bold text-slate-500">{idx + 1}</span>
                       )}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium text-[var(--fg)]">{r.user_name}</p>
-                      <p className="text-xs text-[var(--fg-muted)]">{r.games_played} partidas</p>
+                      <p className="font-medium text-slate-800">{r.user_name}</p>
+                      <p className="text-xs text-slate-500">{r.games_played} partidas</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-[var(--primary)]">{r.total_score.toLocaleString()}</p>
-                      <p className="text-xs text-[var(--fg-muted)]">puntos</p>
+                      <p className="font-bold text-blue-600">{r.total_score.toLocaleString()}</p>
+                      <p className="text-xs text-slate-500">puntos</p>
                     </div>
                   </div>
                 ))}
@@ -843,14 +843,14 @@ export default function Trivias() {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
-              {activeGame === "quiz" && <><BookOpen className="w-5 h-5 text-[var(--primary)]" /> Quiz SPM</>}
-              {activeGame === "guess" && <><HelpCircle className="w-5 h-5 text-[var(--success)]" /> Adivina el Material</>}
-              {activeGame === "price" && <><DollarSign className="w-5 h-5 text-[var(--warning)]" /> ¿Cuanto Cuesta?</>}
-              {activeGame === "category" && <><Layers className="w-5 h-5 text-[var(--accent)]" /> Categorias</>}
+              {activeGame === "quiz" && <><BookOpen className="w-5 h-5 text-blue-600" /> Quiz SPM</>}
+              {activeGame === "guess" && <><HelpCircle className="w-5 h-5 text-emerald-600" /> Adivina el Material</>}
+              {activeGame === "price" && <><DollarSign className="w-5 h-5 text-amber-500" /> ¿Cuanto Cuesta?</>}
+              {activeGame === "category" && <><Layers className="w-5 h-5 text-cyan-600" /> Categorias</>}
             </CardTitle>
             <div className="flex items-center gap-2">
-              <Star className="w-4 h-4 text-[var(--warning)]" />
-              <span className="font-bold text-[var(--fg)]">{score}</span>
+              <Star className="w-4 h-4 text-amber-500" />
+              <span className="font-bold text-slate-800">{score}</span>
             </div>
           </div>
         </CardHeader>
@@ -862,7 +862,7 @@ export default function Trivias() {
       {!gameOver && (
         <div className="mt-4 text-center">
           <Button variant="ghost" onClick={exitGame}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-4 h-4" />
             Salir del juego
           </Button>
         </div>

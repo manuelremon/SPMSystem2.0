@@ -4,15 +4,15 @@ import { useAuthStore } from "../store/authStore";
 import { fetchCsrfToken } from "../services/csrf";
 import { Button } from "../components/ui/Button";
 import { Modal } from "../components/ui/Modal";
-import logo from "../assets/spm-logo.png";
 import { useI18n } from "../context/i18n";
-import { ArrowRight, Mail, Lock, User, X, Linkedin, Twitter, Phone, MapPin, MessageCircle } from "lucide-react";
+import { Mail, Lock, User, AlertCircle } from "lucide-react";
+import logo from "../assets/spm-logo.png";
 
 export default function Login() {
   const navigate = useNavigate();
   const { login, isLoading, error, clearError, user } = useAuthStore();
   const { t } = useI18n();
-  const [username, setUsername] = useState("admin@spm.com");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState("");
   const [showRecover, setShowRecover] = useState(false);
@@ -69,221 +69,138 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--bg)] text-[var(--fg)] px-4 relative overflow-hidden">
-      {/* Background effects */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,_rgba(255,107,53,0.08)_0%,_transparent_70%)]" />
-        <div className="grid-lines opacity-20" />
-      </div>
-
-      {/* Logo Section */}
-      <div className="relative flex flex-col items-center gap-3 mb-8 animate-fadeIn">
-        <div className="h-16 w-16 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)] grid place-items-center overflow-hidden">
-          <img src={logo} alt="SPM" className="h-12 w-12 object-contain" />
-        </div>
-        <div className="text-center">
-          <h1 className="text-3xl font-black uppercase tracking-[0.3em] text-[var(--primary)] drop-shadow-[0_0_15px_rgba(255,107,53,0.6)] [text-shadow:_2px_2px_0_rgba(255,107,53,0.3)]">
-            SPM
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 px-4">
+      <div className="w-full max-w-[400px]">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <img src={logo} alt="SPM" className="h-16 w-auto mx-auto mb-4 drop-shadow-lg" />
+          <h1 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">
+            SPM <span className="text-sm font-normal text-slate-500 dark:text-slate-400">v2.0</span>
           </h1>
-          <p className="text-sm font-bold text-amber-400 mt-1 tracking-wide">
-            v2.0
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Sistema de Planificación de Materiales
           </p>
         </div>
-      </div>
 
-      {/* Login Card */}
-      <div className="relative w-full max-w-sm animate-slideUp">
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6">
-          <div className="text-center mb-6">
-            <h2 className="text-xl text-[var(--fg-strong)]">
-              {t("login_title", "Bienvenido")}
-            </h2>
-          </div>
+        {/* Login Card - Glass Morphism */}
+        <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border border-white/50 dark:border-white/10 rounded-2xl shadow-glass p-6">
+          <h2 className="text-lg font-medium text-slate-800 dark:text-slate-100 mb-6">
+            {t("login_title", "Iniciar sesión")}
+          </h2>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Error Message - Glass style */}
             {(localError || error) && (
-              <div className="flex items-center gap-3 bg-[var(--status-danger-bg)] text-[var(--status-danger-text)] px-4 py-3 border border-[var(--status-danger-border)] rounded-xl animate-scaleIn">
-                <X className="w-4 h-4 flex-shrink-0" />
-                <span className="text-sm font-medium">{localError || error}</span>
+              <div className="flex items-center gap-2 p-3 bg-red-50/70 dark:bg-red-900/30 backdrop-blur-sm border border-red-200/50 dark:border-red-500/30 rounded-xl text-red-700 dark:text-red-400 text-sm">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{localError || error}</span>
               </div>
             )}
 
-            {/* Username Input */}
-            <div className="space-y-2">
-              <label className="text-xs font-mono uppercase tracking-wider text-[var(--fg-muted)]">
-                {t("login_user_label", "Mail o ID SPM")}
+            {/* Email Field - Glass style */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1.5">
+                {t("login_user_label", "Correo electrónico")}
               </label>
               <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--fg-subtle)]">
-                  <Mail className="w-4 h-4" />
-                </div>
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3.5 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--fg)] placeholder:text-[var(--fg-subtle)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--input-focus)] outline-none transition-all duration-200"
-                  placeholder="usuario@email.com"
+                  className="w-full pl-10 pr-3 py-2.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/50 dark:border-white/10 rounded-xl text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 transition-all"
+                  placeholder="usuario@empresa.com"
                 />
               </div>
             </div>
 
-            {/* Password Input */}
-            <div className="space-y-2">
-              <label className="text-xs font-mono uppercase tracking-wider text-[var(--fg-muted)]">
+            {/* Password Field - Glass style */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1.5">
                 {t("login_pass_label", "Contraseña")}
               </label>
               <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--fg-subtle)]">
-                  <Lock className="w-4 h-4" />
-                </div>
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3.5 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--fg)] placeholder:text-[var(--fg-subtle)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--input-focus)] outline-none transition-all duration-200"
+                  className="w-full pl-10 pr-3 py-2.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/50 dark:border-white/10 rounded-xl text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 transition-all"
                   placeholder="••••••••"
                 />
               </div>
             </div>
 
             {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 py-4 px-6 bg-gradient-to-r from-[var(--primary)] to-[var(--primary-strong)] text-[var(--on-primary)] font-medium rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group"
-            >
-              <span>{isLoading ? t("login_loading", "Ingresando...") : t("login_submit", "Ingresar")}</span>
-              {!isLoading && (
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-              )}
-            </button>
+            <Button type="submit" disabled={isLoading} className="w-full">
+              {isLoading ? t("login_loading", "Ingresando...") : t("login_submit", "Ingresar")}
+            </Button>
 
             {/* Links */}
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between pt-2 text-sm">
               <button
                 type="button"
-                className="text-[var(--fg-muted)] hover:text-[var(--primary)] transition-colors duration-200"
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors"
                 onClick={() => setShowRecover(true)}
               >
-                {t("login_recover", "Recuperar Contraseña")}
+                {t("login_recover", "¿Olvidaste tu contraseña?")}
               </button>
               <button
                 type="button"
-                className="text-[var(--fg-muted)] hover:text-[var(--primary)] transition-colors duration-200"
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors"
                 onClick={() => setShowRegister(true)}
               >
-                {t("login_register", "Registrarme")}
+                {t("login_register", "Crear cuenta")}
               </button>
             </div>
 
             {feedback && (
-              <div className="text-sm text-[var(--fg)] bg-[var(--bg-elevated)] border border-[var(--border)] rounded-xl px-4 py-3 animate-scaleIn">
+              <div className="text-sm text-blue-700 dark:text-blue-300 bg-blue-50/70 dark:bg-blue-900/30 backdrop-blur-sm border border-blue-200/50 dark:border-blue-500/30 rounded-xl px-3 py-2">
                 {feedback}
               </div>
             )}
           </form>
         </div>
-      </div>
 
-      {/* Social Links */}
-      <div className="relative mt-8 text-center animate-fadeIn">
-        <div className="flex items-center justify-center gap-4">
-          <a
-            href="https://linkedin.com"
-            className="h-9 w-9 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border)] grid place-items-center text-[var(--fg-muted)] hover:text-[var(--primary)] hover:border-[var(--primary)] transition-all duration-200"
-            target="_blank"
-            rel="noreferrer"
-            title="LinkedIn"
-          >
-            <Linkedin className="w-4 h-4" />
-          </a>
-          <a
-            href="https://twitter.com"
-            className="h-9 w-9 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border)] grid place-items-center text-[var(--fg-muted)] hover:text-[var(--primary)] hover:border-[var(--primary)] transition-all duration-200"
-            target="_blank"
-            rel="noreferrer"
-            title="Twitter"
-          >
-            <Twitter className="w-4 h-4" />
-          </a>
-          <a
-            href="https://wa.me/5492994673102"
-            className="h-9 w-9 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border)] grid place-items-center text-[var(--fg-muted)] hover:text-green-500 hover:border-green-500 transition-all duration-200"
-            target="_blank"
-            rel="noreferrer"
-            title="WhatsApp"
-          >
-            <MessageCircle className="w-4 h-4" />
-          </a>
-        </div>
-      </div>
-
-      {/* Footer - Developer Info */}
-      <div className="absolute bottom-0 left-0 right-0 py-3 px-4 bg-[var(--bg)]/80 backdrop-blur-sm border-t border-[var(--border)]/30">
-        <div className="flex items-center justify-center gap-3 text-[10px] text-[var(--fg-subtle)] font-mono flex-wrap">
-          <span>&copy; 2025 SPM v2.0</span>
-          <span className="text-[var(--border)]">|</span>
-          <span>Desarrollado por Manuel Remón</span>
-          <span className="text-[var(--border)]">|</span>
-          <span className="flex items-center gap-1">
-            <MapPin className="w-2.5 h-2.5" />
-            Neuquén, Patagonia, Argentina
-          </span>
-          <span className="text-[var(--border)]">|</span>
-          <a href="tel:+5492994673102" className="flex items-center gap-1 hover:text-[var(--primary)] transition-colors">
-            <Phone className="w-2.5 h-2.5" />
-            +54 9 299 467 3102
-          </a>
-          <span className="text-[var(--border)]">|</span>
-          <a href="mailto:solicitudespuntualesmateriales@gmail.com" className="flex items-center gap-1 hover:text-[var(--primary)] transition-colors">
-            <Mail className="w-2.5 h-2.5" />
-            solicitudespuntualesmateriales@gmail.com
-          </a>
-        </div>
+        {/* Footer */}
+        <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-6">
+          © 2025 SPM System. Todos los derechos reservados.
+        </p>
       </div>
 
       {/* Recover Modal */}
       <Modal
         isOpen={showRecover}
         onClose={() => setShowRecover(false)}
-        title={t("login_recover", "Recuperar Contraseña")}
+        title={t("login_recover_title", "Recuperar contraseña")}
         size="sm"
       >
-        <p className="text-sm text-[var(--fg-muted)] mb-4">
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
           {t(
             "login_recover_desc",
-            "Ingresa el correo con el que te registraste. Te enviaremos un enlace para generar una nueva contraseña."
+            "Ingresa tu correo electrónico y te enviaremos instrucciones para restablecer tu contraseña."
           )}
         </p>
         <form onSubmit={handleRecover} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-xs font-mono uppercase tracking-wider text-[var(--fg-muted)]">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1.5">
               {t("login_email_label", "Correo electrónico")}
             </label>
-            <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--fg-subtle)]">
-                <Mail className="w-4 h-4" />
-              </div>
-              <input
-                type="email"
-                value={recoverEmail}
-                onChange={(e) => setRecoverEmail(e.target.value)}
-                required
-                className="w-full pl-11 pr-4 py-3 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--fg)] placeholder:text-[var(--fg-subtle)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--input-focus)] outline-none transition-all duration-200"
-                placeholder="correo@ejemplo.com"
-              />
-            </div>
+            <input
+              type="email"
+              value={recoverEmail}
+              onChange={(e) => setRecoverEmail(e.target.value)}
+              required
+              className="w-full px-3 py-2.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/50 dark:border-white/10 rounded-xl text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 transition-all"
+              placeholder="correo@empresa.com"
+            />
           </div>
           <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setShowRecover(false)}
-            >
+            <Button type="button" variant="ghost" onClick={() => setShowRecover(false)}>
               {t("login_cancel", "Cancelar")}
             </Button>
             <Button type="submit">
-              {t("login_send_link", "Enviar enlace")}
+              {t("login_send_link", "Enviar")}
             </Button>
           </div>
         </form>
@@ -293,74 +210,55 @@ export default function Login() {
       <Modal
         isOpen={showRegister}
         onClose={() => setShowRegister(false)}
-        title={t("login_register_fast", "Registro")}
+        title={t("login_register_title", "Crear cuenta")}
         size="sm"
       >
         <form onSubmit={handleRegister} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-xs font-mono uppercase tracking-wider text-[var(--fg-muted)]">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1.5">
               {t("login_email_label", "Correo electrónico")}
             </label>
-            <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--fg-subtle)]">
-                <Mail className="w-4 h-4" />
-              </div>
-              <input
-                type="email"
-                value={registerData.email}
-                onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
-                required
-                className="w-full pl-11 pr-4 py-3 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--fg)] placeholder:text-[var(--fg-subtle)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--input-focus)] outline-none transition-all duration-200"
-                placeholder="correo@ejemplo.com"
-              />
-            </div>
+            <input
+              type="email"
+              value={registerData.email}
+              onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
+              required
+              className="w-full px-3 py-2.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/50 dark:border-white/10 rounded-xl text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 transition-all"
+              placeholder="correo@empresa.com"
+            />
           </div>
-          <div className="space-y-2">
-            <label className="text-xs font-mono uppercase tracking-wider text-[var(--fg-muted)]">
-              {t("login_name", "Nombre")}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1.5">
+              {t("login_name", "Nombre completo")}
             </label>
-            <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--fg-subtle)]">
-                <User className="w-4 h-4" />
-              </div>
-              <input
-                type="text"
-                value={registerData.nombre}
-                onChange={(e) => setRegisterData({ ...registerData, nombre: e.target.value })}
-                required
-                className="w-full pl-11 pr-4 py-3 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--fg)] placeholder:text-[var(--fg-subtle)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--input-focus)] outline-none transition-all duration-200"
-                placeholder="Tu nombre"
-              />
-            </div>
+            <input
+              type="text"
+              value={registerData.nombre}
+              onChange={(e) => setRegisterData({ ...registerData, nombre: e.target.value })}
+              required
+              className="w-full px-3 py-2.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/50 dark:border-white/10 rounded-xl text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 transition-all"
+              placeholder="Juan Pérez"
+            />
           </div>
-          <div className="space-y-2">
-            <label className="text-xs font-mono uppercase tracking-wider text-[var(--fg-muted)]">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1.5">
               {t("login_pass_label", "Contraseña")}
             </label>
-            <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--fg-subtle)]">
-                <Lock className="w-4 h-4" />
-              </div>
-              <input
-                type="password"
-                value={registerData.password}
-                onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
-                required
-                className="w-full pl-11 pr-4 py-3 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl text-[var(--fg)] placeholder:text-[var(--fg-subtle)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--input-focus)] outline-none transition-all duration-200"
-                placeholder="••••••••"
-              />
-            </div>
+            <input
+              type="password"
+              value={registerData.password}
+              onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
+              required
+              className="w-full px-3 py-2.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/50 dark:border-white/10 rounded-xl text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 transition-all"
+              placeholder="••••••••"
+            />
           </div>
           <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setShowRegister(false)}
-            >
+            <Button type="button" variant="ghost" onClick={() => setShowRegister(false)}>
               {t("login_cancel", "Cancelar")}
             </Button>
             <Button type="submit">
-              {t("login_register", "Registrarme")}
+              {t("login_register", "Crear cuenta")}
             </Button>
           </div>
         </form>

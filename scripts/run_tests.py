@@ -65,7 +65,7 @@ def main():
         cmd = [c for c in cmd if c]  # Eliminar strings vacíos
 
         if args.coverage:
-            cmd.extend(["--cov=backend_v2/core/services", "--cov=backend_v2/core/repository"])
+            cmd.extend(["--cov=backend/core/services", "--cov=backend/core/repository"])
 
         success = run_command(cmd, "UNIT TESTS - Servicios, Repositorio, Cache, Schemas")
         results["unit"] = success
@@ -85,7 +85,7 @@ def main():
         cmd = [c for c in cmd if c]
 
         if args.coverage:
-            cmd.extend(["--cov=backend_v2/routes/planner"])
+            cmd.extend(["--cov=backend/routes/planner"])
 
         success = run_command(cmd, "INTEGRATION TESTS - Endpoints HTTP")
         results["integration"] = success

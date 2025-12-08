@@ -1,102 +1,247 @@
 import React, { useMemo } from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../ui/Card";
-import { Button } from "../ui/Button";
-import StatusBadge from "../ui/StatusBadge";
+import { Package, ShoppingCart } from "lucide-react";
 
-export default function Paso3RevisionFinal({ solicitud, items = [], decisiones = {}, totalItems = 0, onBack, onConfirm, loading }) {
-  const rows = useMemo(() => {
-    return Object.entries(decisiones).map(([idx, op]) => {
+export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
+  // Agrupar fuentes por tipo: stock vs compra
+  const { stockRows, compraRows } = useMemo(() => {
+    const stock = [];
+    const compra = [];
+
+    Object.entries(decisiones).forEach(([idx, decision]) => {
       const item = items.find((it) => Number(it.idx) === Number(idx)) || {};
-      const cantidad = op?.cantidad_solicitada ?? item.cantidad ?? 0;
-      const costo = cantidad * (op?.precio_unitario || item.precio_unitario || 0);
-      return { idx: Number(idx), op, item, cantidad, costo };
+
+      decision.fuentes?.forEach((fuente) => {
+        const tipo = fuente.opcion?.tipo;
+
+        const cantidadSolicitada = Number(item.cantidad || 0);
+        const cantidadAsignada = Number(fuente.cantidad_asignada || 0);
+        const porcentaje = cantidadSolicitada > 0
+          ? Math.round((cantidadAsignada / cantidadSolicitada) * 100)
+          : 0;
+
+        if (tipo === "stock" || tipo === "transferencia") {
+          stock.push({
+            codigo: item.codigo,
+            descripcion: item.descripcion,
+            cantidadSolicitada,
+            cantidadAsignada,
+            porcentaje,
+            centro: fuente.opcion?.centro,
+            almacen: fuente.opcion?.almacen,
+            nombre_almacen: fuente.opcion?.nombre_almacen,
+            plazo: fuente.opcion?.plazo_dias,
+          });
+        } else if (tipo === "proveedor" || tipo === "equivalencia") {
+          compra.push({
+            codigo: item.codigo,
+            descripcion: item.descripcion,
+            cantidadSolicitada,
+            cantidadAsignada,
+            porcentaje,
+            proveedor: fuente.opcion?.nombre_proveedor || fuente.opcion?.nombre,
+            plazo: fuente.opcion?.plazo_dias,
+          });
+        }
+      });
     });
+
+    return { stockRows: stock, compraRows: compra };
   }, [decisiones, items]);
 
-  const total = rows.reduce((acc, r) => acc + r.costo, 0);
-  const maxPlazo = Math.max(...rows.map((r) => Number(r.op?.plazo_dias ?? 0)), 0);
-  const proveedores = Array.from(new Set(rows.map((r) => r.op?.id_proveedor).filter(Boolean)));
-
   return (
-    <Card>
-      <CardHeader className="px-5 pt-5 pb-3">
-        <CardTitle>Revision final</CardTitle>
-        <CardDescription className="text-sm text-[var(--fg-muted)]">
-          Confirma antes de guardar el tratamiento
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="px-5 pb-5 pt-1 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Info label="Estado" value={<StatusBadge estado={solicitud?.estado || solicitud?.status || "En progreso"} />} />
-          <Info label="Items decididos" value={`${rows.length}/${totalItems}`} />
-          <Info label="Costo total" value={formatMonto(total)} />
+    <div className="space-y-6">
+      {/* Sección Stock */}
+      {stockRows.length > 0 && (
+        <div className="space-y-3">
+          <SectionHeader
+            icon={Package}
+            title="DESDE STOCK"
+            variant="success"
+          />
+          <StockTable rows={stockRows} />
         </div>
+      )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Info label="Plazo maximo" value={`${maxPlazo || "N/D"} dias`} />
-          <Info label="Proveedores" value={proveedores.join(", ") || "N/D"} />
-          <Info label="Centro / Sector" value={`${solicitud?.centro || "N/D"} / ${solicitud?.sector || "N/D"}`} />
+      {/* Sección Compra */}
+      {compraRows.length > 0 && (
+        <div className="space-y-3">
+          <SectionHeader
+            icon={ShoppingCart}
+            title="POR COMPRA"
+            variant="info"
+          />
+          <CompraTable rows={compraRows} />
         </div>
+      )}
 
-        <div className="overflow-auto border border-[var(--border)] rounded-xl">
-          <table className="min-w-full text-sm">
-            <thead className="bg-[var(--bg-soft)] text-[var(--fg-muted)] uppercase text-xs tracking-[0.08em]">
-              <tr>
-                <th className="text-left px-3 py-2">Item</th>
-                <th className="text-left px-3 py-2">Codigo</th>
-                <th className="text-left px-3 py-2">Opcion</th>
-                <th className="text-left px-3 py-2">Cantidad</th>
-                <th className="text-left px-3 py-2">P.U.</th>
-                <th className="text-left px-3 py-2">Subtotal</th>
-                <th className="text-left px-3 py-2">Plazo</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 && (
-                <tr>
-                  <td className="px-3 py-3 text-[var(--fg-muted)]" colSpan={7}>
-                    Sin decisiones cargadas.
-                  </td>
-                </tr>
-              )}
-              {rows.map((r) => (
-                <tr key={r.idx} className="border-t border-[var(--border)]">
-                  <td className="px-3 py-2 font-semibold text-[var(--fg)]">#{r.idx + 1}</td>
-                  <td className="px-3 py-2 text-[var(--fg)]">{r.item.codigo}</td>
-                  <td className="px-3 py-2 text-[var(--fg)]">{r.op?.nombre || r.op?.tipo}</td>
-                  <td className="px-3 py-2 text-[var(--fg)]">{r.cantidad}</td>
-                  <td className="px-3 py-2 text-[var(--fg)]">{formatMonto(r.op?.precio_unitario || 0)}</td>
-                  <td className="px-3 py-2 text-[var(--fg)]">{formatMonto(r.costo)}</td>
-                  <td className="px-3 py-2 text-[var(--fg)]">{r.op?.plazo_dias ?? "N/D"} d</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Estado vacío */}
+      {stockRows.length === 0 && compraRows.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-[var(--fg-muted)]">
+            No hay decisiones de abastecimiento registradas.
+          </p>
         </div>
-
-        <div className="flex justify-between">
-          <Button variant="ghost" type="button" onClick={onBack}>
-            Volver
-          </Button>
-          <Button variant="primary" type="button" onClick={onConfirm} disabled={loading || rows.length < totalItems}>
-            {loading ? "Guardando..." : "Confirmar y guardar"}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function Info({ label, value }) {
-  return (
-    <div className="p-3 rounded-lg border border-[var(--border)] bg-[var(--bg-soft)]">
-      <p className="text-xs uppercase font-bold tracking-[0.06em] text-[var(--fg-muted)]">{label}</p>
-      <div className="text-sm font-semibold text-[var(--fg)] mt-1">{value}</div>
+      )}
     </div>
   );
 }
 
-function formatMonto(val) {
-  const num = Number(val || 0);
-  return `USD ${num.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+function SectionHeader({ icon: Icon, title, variant }) {
+  const variantStyles = {
+    success: {
+      bg: "rgba(16, 185, 129, 0.12)",
+      text: "var(--success)",
+    },
+    info: {
+      bg: "rgba(59, 130, 246, 0.12)",
+      text: "var(--info)",
+    },
+  };
+
+  const style = variantStyles[variant] || variantStyles.info;
+
+  return (
+    <div className="flex items-center gap-3">
+      <div
+        className="p-2 rounded-lg"
+        style={{ backgroundColor: style.bg, color: style.text }}
+      >
+        <Icon className="w-5 h-5" />
+      </div>
+      <h3 className="text-sm font-bold uppercase tracking-wide text-[var(--fg)]">
+        {title}
+      </h3>
+    </div>
+  );
+}
+
+function StockTable({ rows }) {
+  return (
+    <div
+      className="overflow-hidden rounded-2xl"
+      style={{
+        backgroundColor: "var(--card)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
+      }}
+    >
+      <table className="w-full text-sm">
+        <thead>
+          <tr
+            style={{
+              backgroundColor: "var(--bg-soft)",
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
+            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Código SAP</th>
+            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Descripción</th>
+            <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Solicitado</th>
+            <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Asignado</th>
+            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Ubicación</th>
+            <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Plazo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr
+              key={i}
+              style={{
+                borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none",
+              }}
+            >
+              <td className="px-4 py-3.5 font-mono text-[var(--fg)]">{row.codigo}</td>
+              <td className="px-4 py-3.5 text-[var(--fg)]">{row.descripcion}</td>
+              <td className="px-4 py-3.5 text-right text-[var(--fg-muted)]">
+                {row.cantidadSolicitada}
+              </td>
+              <td className="px-4 py-3.5 text-right">
+                <span className="font-semibold text-[var(--fg)]">{row.cantidadAsignada}</span>
+                <span
+                  className="ml-2 text-xs px-2 py-0.5 rounded-full font-medium"
+                  style={{
+                    backgroundColor: "rgba(16, 185, 129, 0.12)",
+                    color: "var(--success)",
+                  }}
+                >
+                  {row.porcentaje}%
+                </span>
+              </td>
+              <td className="px-4 py-3.5 text-[var(--fg-muted)]">
+                {row.centro} / Alm {String(row.almacen || "").padStart(4, "0")}
+                {row.nombre_almacen && (
+                  <span className="block text-xs text-[var(--fg-muted)] opacity-70">
+                    {row.nombre_almacen}
+                  </span>
+                )}
+              </td>
+              <td className="px-4 py-3.5 text-right text-[var(--fg-muted)]">
+                {row.plazo ? `${row.plazo} días` : "Inmediato"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function CompraTable({ rows }) {
+  return (
+    <div
+      className="overflow-hidden rounded-2xl"
+      style={{
+        backgroundColor: "var(--card)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
+      }}
+    >
+      <table className="w-full text-sm">
+        <thead>
+          <tr
+            style={{
+              backgroundColor: "var(--bg-soft)",
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
+            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Código SAP</th>
+            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Descripción</th>
+            <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Solicitado</th>
+            <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Asignado</th>
+            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Proveedor</th>
+            <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Plazo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr
+              key={i}
+              style={{
+                borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none",
+              }}
+            >
+              <td className="px-4 py-3.5 font-mono text-[var(--fg)]">{row.codigo}</td>
+              <td className="px-4 py-3.5 text-[var(--fg)]">{row.descripcion}</td>
+              <td className="px-4 py-3.5 text-right text-[var(--fg-muted)]">
+                {row.cantidadSolicitada}
+              </td>
+              <td className="px-4 py-3.5 text-right">
+                <span className="font-semibold text-[var(--fg)]">{row.cantidadAsignada}</span>
+                <span
+                  className="ml-2 text-xs px-2 py-0.5 rounded-full font-medium"
+                  style={{
+                    backgroundColor: "rgba(59, 130, 246, 0.12)",
+                    color: "var(--info)",
+                  }}
+                >
+                  {row.porcentaje}%
+                </span>
+              </td>
+              <td className="px-4 py-3.5 text-[var(--fg)]">{row.proveedor || "N/D"}</td>
+              <td className="px-4 py-3.5 text-right text-[var(--fg-muted)]">
+                {row.plazo ? `${row.plazo} días` : "N/D"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }

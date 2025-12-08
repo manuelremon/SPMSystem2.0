@@ -134,9 +134,9 @@ export default function Mensajes() {
         icon={Mail}
       >
         {unreadCount > 0 && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-[var(--primary-muted)] border border-[var(--primary)] rounded-lg">
-            <Circle className="w-2 h-2 fill-[var(--primary)] text-[var(--primary)] animate-pulse-dot" />
-            <span className="text-sm font-medium text-[var(--primary)]">
+          <div className="flex items-center gap-2 px-4 py-2 bg-blue-100/70 border border-blue-500 rounded-lg">
+            <Circle className="w-2 h-2 fill-blue-600 text-blue-600 animate-pulse-dot" />
+            <span className="text-sm font-medium text-blue-600">
               {unreadCount} {unreadCount === 1 ? "mensaje nuevo" : "mensajes nuevos"}
             </span>
           </div>
@@ -151,7 +151,7 @@ export default function Mensajes() {
 
       <Card>
         {/* Tabs */}
-        <div className="border-b border-[var(--border)]">
+        <div className="border-b border-white/30">
           <div className="flex gap-1 p-2">
             <button
               onClick={() => setActiveTab("inbox")}
@@ -159,15 +159,15 @@ export default function Mensajes() {
                 flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium
                 transition-all duration-200
                 ${activeTab === "inbox"
-                  ? "bg-[var(--primary-muted)] text-[var(--primary)] border border-[var(--primary)]"
-                  : "text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--bg-elevated)]"
+                  ? "bg-blue-100/70 text-blue-600 border border-blue-500"
+                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-100/70"
                 }
               `}
             >
               <Inbox className="w-4 h-4" />
               <span>Recibidos</span>
               {unreadCount > 0 && (
-                <span className="ml-1 px-2 py-0.5 bg-[var(--primary)] text-[var(--on-primary)] text-xs font-bold rounded-full">
+                <span className="ml-1 px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded-full">
                   {unreadCount}
                 </span>
               )}
@@ -179,8 +179,8 @@ export default function Mensajes() {
                 flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium
                 transition-all duration-200
                 ${activeTab === "outbox"
-                  ? "bg-[var(--primary-muted)] text-[var(--primary)] border border-[var(--primary)]"
-                  : "text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--bg-elevated)]"
+                  ? "bg-blue-100/70 text-blue-600 border border-blue-500"
+                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-100/70"
                 }
               `}
             >
@@ -194,19 +194,19 @@ export default function Mensajes() {
         <div className="p-6">
           {loading ? (
             <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)]"></div>
-              <p className="mt-3 text-sm text-[var(--fg-muted)]">Cargando mensajes...</p>
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              <p className="mt-3 text-sm text-slate-500">Cargando mensajes...</p>
             </div>
           ) : messages.length === 0 ? (
             <div className="text-center py-12">
-              <div className="w-16 h-16 mx-auto rounded-full bg-[var(--bg-elevated)] flex items-center justify-center mb-4">
+              <div className="w-16 h-16 mx-auto rounded-full bg-slate-100/70 flex items-center justify-center mb-4">
                 {activeTab === "inbox" ? (
-                  <Inbox className="w-8 h-8 text-[var(--fg-muted)]" />
+                  <Inbox className="w-8 h-8 text-slate-500" />
                 ) : (
-                  <Send className="w-8 h-8 text-[var(--fg-muted)]" />
+                  <Send className="w-8 h-8 text-slate-500" />
                 )}
               </div>
-              <p className="text-[var(--fg-muted)]">
+              <p className="text-slate-500">
                 {activeTab === "inbox"
                   ? "No tienes mensajes recibidos"
                   : "No has enviado mensajes"}
@@ -259,10 +259,10 @@ function MessageRow({ message, isInbox, onOpen, onDelete }) {
       className={`
         group relative
         flex items-center gap-4 p-4
-        border border-[var(--border)] rounded-lg
-        hover:border-[var(--border-hover)] hover:bg-[var(--bg-elevated)]
+        border border-white/30 rounded-lg
+        hover:border-slate-300 hover:bg-slate-100/70
         transition-all duration-200 cursor-pointer
-        ${isUnread ? "bg-[var(--primary-muted)]/20 border-[var(--primary)]/30" : ""}
+        ${isUnread ? "bg-blue-100/70/20 border-blue-500/30" : ""}
       `}
       onClick={onOpen}
     >
@@ -271,8 +271,8 @@ function MessageRow({ message, isInbox, onOpen, onDelete }) {
         flex-shrink-0 w-10 h-10 rounded-full
         flex items-center justify-center
         ${isUnread
-          ? "bg-[var(--primary)] text-[var(--on-primary)]"
-          : "bg-[var(--bg-elevated)] text-[var(--fg-muted)]"
+          ? "bg-blue-600 text-white"
+          : "bg-slate-100/70 text-slate-500"
         }
       `}>
         {isUnread ? (
@@ -285,26 +285,26 @@ function MessageRow({ message, isInbox, onOpen, onDelete }) {
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 mb-1">
-          <h3 className={`text-sm font-medium truncate ${isUnread ? "text-[var(--fg-strong)]" : "text-[var(--fg)]"}`}>
+          <h3 className={`text-sm font-medium truncate ${isUnread ? "text-slate-900" : "text-slate-800"}`}>
             {displayName}
           </h3>
           {displayRole && (
-            <span className="text-xs text-[var(--fg-subtle)] uppercase tracking-wider font-mono">
+            <span className="text-xs text-slate-400 uppercase tracking-wider font-mono">
               {displayRole}
             </span>
           )}
         </div>
 
-        <p className={`text-sm mb-1 truncate ${isUnread ? "font-medium text-[var(--fg)]" : "text-[var(--fg-muted)]"}`}>
+        <p className={`text-sm mb-1 truncate ${isUnread ? "font-medium text-slate-800" : "text-slate-500"}`}>
           {message.asunto}
         </p>
 
-        <p className="text-xs text-[var(--fg-subtle)] line-clamp-1">
+        <p className="text-xs text-slate-400 line-clamp-1">
           {message.mensaje}
         </p>
 
         {message.solicitud_id && (
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-[var(--accent)]">
+          <div className="mt-2 flex items-center gap-1.5 text-xs text-cyan-600">
             <FileText className="w-3 h-3" />
             <span>Solicitud #{message.solicitud_id}</span>
           </div>
@@ -313,7 +313,7 @@ function MessageRow({ message, isInbox, onOpen, onDelete }) {
 
       {/* Metadata */}
       <div className="flex-shrink-0 flex flex-col items-end gap-2">
-        <div className="flex items-center gap-1.5 text-xs text-[var(--fg-subtle)]">
+        <div className="flex items-center gap-1.5 text-xs text-slate-400">
           <Clock className="w-3 h-3" />
           <span>
             {new Date(message.created_at).toLocaleDateString("es-AR", {
@@ -346,7 +346,7 @@ function MessageRow({ message, isInbox, onOpen, onDelete }) {
               onDelete();
             }}
             title="Eliminar"
-            className="text-[var(--danger)] hover:bg-[var(--status-danger-bg)]"
+            className="text-red-600 hover:bg-red-100/70"
           >
             <Trash2 className="w-4 h-4" />
           </Button>

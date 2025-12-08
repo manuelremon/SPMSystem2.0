@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
+    "@tanstack/react-table": "^8.21.3",
     "axios": "^1.6.2",
     "clsx": "^2.1.1",
     "lucide-react": "^0.292.0",
