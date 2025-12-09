@@ -12,78 +12,50 @@ from pathlib import Path
 from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 
-try:
-    from backend.agent import agent_bp
-    from backend.core.auth_middleware import init_auth_middleware
-    from backend.core.config import settings
-    from backend.core.csrf import init_csrf_protection
-    from backend.core.db import db, init_db
-    from backend.core.errors import register_spm_error_handler
-    from backend.core.rate_limit import init_rate_limiting
-    from backend.core.request_validation import init_request_validation
-    from backend.core.security_headers import init_security_headers
-    from backend.routes import (
-        admin,
-        ai,
-        assistant,
-        auth,
-        budget,
-        catalogos,
-        docs,
-        equivalencias,
-        export,
-        foro,
-        health,
-        kpis,
-        materiales,
-        materiales_detalle,
-        mensajes,
-        metrics,
-        mi_cuenta,
-        mrp,
-        notificaciones,
-        push,
-        sla,
-        solicitudes,
-        trivias,
-    )
-    from backend.routes import planner as planner_new
-except ImportError:
-    from agent import agent_bp
-    from core.auth_middleware import init_auth_middleware
-    from core.config import settings
-    from core.csrf import init_csrf_protection
-    from core.db import db, init_db
-    from core.errors import register_spm_error_handler
-    from core.rate_limit import init_rate_limiting
-    from core.request_validation import init_request_validation
-    from core.security_headers import init_security_headers
-    from routes import (
-        admin,
-        ai,
-        assistant,
-        auth,
-        budget,
-        catalogos,
-        docs,
-        equivalencias,
-        export,
-        foro,
-        health,
-        kpis,
-        materiales,
-        materiales_detalle,
-        mensajes,
-        metrics,
-        mi_cuenta,
-        mrp,
-        notificaciones,
-        push,
-        sla,
-        solicitudes,
-        trivias,
-    )
-    from routes import planner as planner_new
+# Imports unificados - usar siempre backend.* para compatibilidad con gunicorn
+import sys
+from pathlib import Path
+
+# Asegurar que el directorio raiz este en sys.path para imports relativos
+_project_root = Path(__file__).parent.parent
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+
+from backend.agent import agent_bp
+from backend.core.auth_middleware import init_auth_middleware
+from backend.core.config import settings
+from backend.core.csrf import init_csrf_protection
+from backend.core.db import db, init_db
+from backend.core.errors import register_spm_error_handler
+from backend.core.rate_limit import init_rate_limiting
+from backend.core.request_validation import init_request_validation
+from backend.core.security_headers import init_security_headers
+from backend.routes import (
+    admin,
+    ai,
+    assistant,
+    auth,
+    budget,
+    catalogos,
+    docs,
+    equivalencias,
+    export,
+    foro,
+    health,
+    kpis,
+    materiales,
+    materiales_detalle,
+    mensajes,
+    metrics,
+    mi_cuenta,
+    mrp,
+    notificaciones,
+    push,
+    sla,
+    solicitudes,
+    trivias,
+)
+from backend.routes import planner as planner_new
 
 
 def create_app(config_override: dict | None = None) -> Flask:
