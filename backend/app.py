@@ -7,20 +7,20 @@ from __future__ import annotations
 
 import logging
 import os
-from pathlib import Path
-
-from flask import Flask, jsonify, send_from_directory
-from flask_cors import CORS
 
 # Imports unificados - usar siempre backend.* para compatibilidad con gunicorn
 import sys
 from pathlib import Path
+
+from flask import Flask, jsonify, send_from_directory
+from flask_cors import CORS
 
 # Asegurar que el directorio raiz este en sys.path para imports relativos
 _project_root = Path(__file__).parent.parent
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
+# ruff: noqa: E402
 from backend.agent import agent_bp
 from backend.core.auth_middleware import init_auth_middleware
 from backend.core.config import settings
@@ -119,10 +119,44 @@ def create_app(config_override: dict | None = None) -> Flask:
     # Request validation (sanitizacion de inputs)
     init_request_validation(app, max_content_length=10 * 1024 * 1024)  # 10MB max
 
-    # CORS
+    # CORS - Usar función callable para validar orígenes dinámicamente
+    # Esto es necesario porque supports_credentials=True requiere origen exacto,
+    # no patrones wildcard como *.trycloudflare.com
+    def cors_origin_check(origin):
+        """Valida orígenes permitidos dinámicamente."""
+        if not origin:
+            return False
+
+        allowed_exact = [
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "http://localhost:5175",
+            "http://localhost:5176",
+            "http://localhost:4173",
+            "http://localhost:3000",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:5174",
+            "http://127.0.0.1:5175",
+            "http://127.0.0.1:4173",
+            "https://manuelremon.github.io",
+        ]
+
+        if origin in allowed_exact:
+            return True
+
+        # Permitir cualquier subdominio de trycloudflare.com
+        if origin.endswith(".trycloudflare.com"):
+            return True
+
+        # Permitir cualquier subdominio de loca.lt
+        if origin.endswith(".loca.lt"):
+            return True
+
+        return False
+
     CORS(
         app,
-        origins=settings.get_cors_origins(),
+        origins=cors_origin_check,
         supports_credentials=True,
         allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
