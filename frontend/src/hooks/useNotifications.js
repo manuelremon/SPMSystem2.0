@@ -253,14 +253,10 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
     // Polling periódico
     pollingIntervalRef.current = setInterval(() => {
       if (isMountedRef.current) {
-        fetchNotifications().then(() => {
-          if (isMountedRef.current && !isConnected) {
-            setIsConnected(true)
-          }
-        })
+        fetchNotifications()
       }
     }, POLLING_INTERVAL)
-  }, [fetchNotifications, isConnected])
+  }, [fetchNotifications])
 
   /**
    * Desconectar SSE

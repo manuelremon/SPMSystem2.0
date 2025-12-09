@@ -13,7 +13,6 @@ import sys
 from pathlib import Path
 
 from flask import Flask, jsonify, send_from_directory
-from flask_cors import CORS
 
 # Asegurar que el directorio raiz este en sys.path para imports relativos
 _project_root = Path(__file__).parent.parent
@@ -119,48 +118,71 @@ def create_app(config_override: dict | None = None) -> Flask:
     # Request validation (sanitizacion de inputs)
     init_request_validation(app, max_content_length=10 * 1024 * 1024)  # 10MB max
 
-    # CORS - Usar función callable para validar orígenes dinámicamente
-    # Esto es necesario porque supports_credentials=True requiere origen exacto,
-    # no patrones wildcard como *.trycloudflare.com
-    def cors_origin_check(origin):
-        """Valida orígenes permitidos dinámicamente."""
+    # CORS - Manejar manualmente para soportar wildcards con credentials
+    # Flask-CORS no soporta funciones callable, así que usamos @after_request
+    ALLOWED_ORIGINS_EXACT = {
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175",
+        "http://localhost:5176",
+        "http://localhost:4173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://127.0.0.1:5175",
+        "http://127.0.0.1:4173",
+        "https://manuelremon.github.io",
+    }
+
+    def is_origin_allowed(origin):
+        """Valida si el origen está permitido."""
         if not origin:
             return False
-
-        allowed_exact = [
-            "http://localhost:5173",
-            "http://localhost:5174",
-            "http://localhost:5175",
-            "http://localhost:5176",
-            "http://localhost:4173",
-            "http://localhost:3000",
-            "http://127.0.0.1:5173",
-            "http://127.0.0.1:5174",
-            "http://127.0.0.1:5175",
-            "http://127.0.0.1:4173",
-            "https://manuelremon.github.io",
-        ]
-
-        if origin in allowed_exact:
+        if origin in ALLOWED_ORIGINS_EXACT:
             return True
-
-        # Permitir cualquier subdominio de trycloudflare.com
         if origin.endswith(".trycloudflare.com"):
             return True
-
-        # Permitir cualquier subdominio de loca.lt
         if origin.endswith(".loca.lt"):
             return True
-
         return False
 
-    CORS(
-        app,
-        origins=cors_origin_check,
-        supports_credentials=True,
-        allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
-        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    )
+    @app.after_request
+    def add_cors_headers(response):
+        """Agrega headers CORS dinámicamente basado en el origen."""
+        from flask import request
+
+        origin = request.headers.get("Origin")
+        if origin and is_origin_allowed(origin):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Headers"] = (
+                "Content-Type, Authorization, X-CSRF-Token, bypass-tunnel-reminder"
+            )
+            response.headers["Access-Control-Allow-Methods"] = (
+                "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+            )
+            response.headers["Access-Control-Max-Age"] = "86400"
+        return response
+
+    @app.before_request
+    def handle_preflight():
+        """Responde a preflight OPTIONS requests."""
+        from flask import make_response, request
+
+        if request.method == "OPTIONS":
+            origin = request.headers.get("Origin")
+            if origin and is_origin_allowed(origin):
+                response = make_response()
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+                response.headers["Access-Control-Allow-Headers"] = (
+                    "Content-Type, Authorization, X-CSRF-Token, bypass-tunnel-reminder"
+                )
+                response.headers["Access-Control-Allow-Methods"] = (
+                    "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+                )
+                response.headers["Access-Control-Max-Age"] = "86400"
+                return response
 
     # Inicializar DB (siempre, init_db verifica si ya existe)
     # En Render/producción también necesitamos inicializar la BD
