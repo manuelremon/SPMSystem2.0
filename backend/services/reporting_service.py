@@ -22,9 +22,11 @@ def get_db_connection():
     """Obtiene conexion a base de datos."""
     try:
         from backend.core.db import get_db_connection as db_conn
+
         return db_conn()
     except ImportError:
         from core.db import get_db_connection as db_conn
+
         return db_conn()
 
 
@@ -51,12 +53,14 @@ class ReportingService:
 
         try:
             import openpyxl
+
             self._has_openpyxl = True
         except ImportError:
             logger.warning("openpyxl no disponible, Excel export limitado")
 
         try:
             import reportlab
+
             self._has_reportlab = True
         except ImportError:
             logger.warning("reportlab no disponible, PDF export no disponible")
@@ -75,7 +79,7 @@ class ReportingService:
         formato: str = "xlsx",
         filtros: Optional[Dict[str, Any]] = None,
         columnas: Optional[List[str]] = None,
-        incluir_metadatos: bool = False
+        incluir_metadatos: bool = False,
     ) -> Dict[str, Any]:
         """
         Exporta lista de solicitudes al formato especificado.
@@ -93,16 +97,13 @@ class ReportingService:
         if formato not in self.SUPPORTED_FORMATS:
             return {
                 "success": False,
-                "error": f"Formato no soportado: {formato}. Use: {self.SUPPORTED_FORMATS}"
+                "error": f"Formato no soportado: {formato}. Use: {self.SUPPORTED_FORMATS}",
             }
 
         try:
             # Filtrar columnas si se especifican
             if columnas and solicitudes:
-                solicitudes = [
-                    {k: v for k, v in s.items() if k in columnas}
-                    for s in solicitudes
-                ]
+                solicitudes = [{k: v for k, v in s.items() if k in columnas} for s in solicitudes]
 
             # Generar contenido segun formato
             if formato == "xlsx":
@@ -121,7 +122,7 @@ class ReportingService:
                 "contenido": contenido,
                 "filename": filename,
                 "total_registros": len(solicitudes),
-                "generado_en": datetime.now(timezone.utc).isoformat()
+                "generado_en": datetime.now(timezone.utc).isoformat(),
             }
 
             if filtros:
@@ -131,7 +132,7 @@ class ReportingService:
                 result["metadatos"] = {
                     "generado_en": result["generado_en"],
                     "total_registros": len(solicitudes),
-                    "formato": formato
+                    "formato": formato,
                 }
                 result["generado_por"] = "ReportingService"
 
@@ -142,9 +143,7 @@ class ReportingService:
             return {"success": False, "error": str(e)}
 
     def export_solicitudes_from_db(
-        self,
-        formato: str = "xlsx",
-        filtros: Optional[Dict[str, Any]] = None
+        self, formato: str = "xlsx", filtros: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Exporta solicitudes directamente desde BD.
@@ -188,9 +187,7 @@ class ReportingService:
                 solicitudes = [dict(row) for row in cursor.fetchall()]
 
             return self.export_solicitudes(
-                solicitudes=solicitudes,
-                formato=formato,
-                filtros=filtros
+                solicitudes=solicitudes, formato=formato, filtros=filtros
             )
 
         except Exception as e:
@@ -202,10 +199,7 @@ class ReportingService:
     # ========================================================================
 
     def export_inventario(
-        self,
-        materiales: List[Dict[str, Any]],
-        formato: str = "xlsx",
-        incluir_alertas: bool = False
+        self, materiales: List[Dict[str, Any]], formato: str = "xlsx", incluir_alertas: bool = False
     ) -> Dict[str, Any]:
         """
         Exporta inventario de materiales.
@@ -219,10 +213,7 @@ class ReportingService:
             Dict con contenido exportado
         """
         if formato not in self.SUPPORTED_FORMATS:
-            return {
-                "success": False,
-                "error": f"Formato no soportado: {formato}"
-            }
+            return {"success": False, "error": f"Formato no soportado: {formato}"}
 
         try:
             materiales_criticos = 0
@@ -259,7 +250,7 @@ class ReportingService:
                 "filename": f"inventario_{timestamp}.{formato}",
                 "total_registros": len(materiales),
                 "materiales_criticos": materiales_criticos if incluir_alertas else None,
-                "generado_en": datetime.now(timezone.utc).isoformat()
+                "generado_en": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
@@ -267,9 +258,7 @@ class ReportingService:
             return {"success": False, "error": str(e)}
 
     def export_inventario_from_db(
-        self,
-        formato: str = "xlsx",
-        centro: Optional[str] = None
+        self, formato: str = "xlsx", centro: Optional[str] = None
     ) -> Dict[str, Any]:
         """Exporta inventario desde BD."""
         try:
@@ -292,9 +281,7 @@ class ReportingService:
                 materiales = [dict(row) for row in cursor.fetchall()]
 
             return self.export_inventario(
-                materiales=materiales,
-                formato=formato,
-                incluir_alertas=True
+                materiales=materiales, formato=formato, incluir_alertas=True
             )
 
         except Exception as e:
@@ -306,9 +293,7 @@ class ReportingService:
     # ========================================================================
 
     def export_alertas_mrp(
-        self,
-        alertas: List[Dict[str, Any]],
-        formato: str = "xlsx"
+        self, alertas: List[Dict[str, Any]], formato: str = "xlsx"
     ) -> Dict[str, Any]:
         """
         Exporta alertas MRP.
@@ -339,7 +324,7 @@ class ReportingService:
                 "contenido": contenido,
                 "filename": f"alertas_mrp_{timestamp}.{formato}",
                 "total_alertas": len(alertas),
-                "generado_en": datetime.now(timezone.utc).isoformat()
+                "generado_en": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
@@ -355,7 +340,7 @@ class ReportingService:
         kpis: Dict[str, Any],
         formato: str = "xlsx",
         periodo_inicio: Optional[str] = None,
-        periodo_fin: Optional[str] = None
+        periodo_fin: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Genera reporte de KPIs.
@@ -390,14 +375,11 @@ class ReportingService:
                 "formato": formato,
                 "contenido": contenido,
                 "filename": f"kpis_{timestamp}.{formato}",
-                "generado_en": datetime.now(timezone.utc).isoformat()
+                "generado_en": datetime.now(timezone.utc).isoformat(),
             }
 
             if periodo_inicio or periodo_fin:
-                result["periodo"] = {
-                    "inicio": periodo_inicio,
-                    "fin": periodo_fin
-                }
+                result["periodo"] = {"inicio": periodo_inicio, "fin": periodo_fin}
 
             return result
 
@@ -415,7 +397,7 @@ class ReportingService:
         datos: List[Dict[str, Any]],
         columnas: List[str],
         formato: str = "xlsx",
-        agrupar_por: Optional[str] = None
+        agrupar_por: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Genera reporte personalizado.
@@ -435,17 +417,11 @@ class ReportingService:
 
         try:
             # Filtrar columnas
-            datos_filtrados = [
-                {k: v for k, v in d.items() if k in columnas}
-                for d in datos
-            ]
+            datos_filtrados = [{k: v for k, v in d.items() if k in columnas} for d in datos]
 
             # Agrupar si se solicita
             if agrupar_por and agrupar_por in columnas:
-                datos_filtrados = sorted(
-                    datos_filtrados,
-                    key=lambda x: x.get(agrupar_por, "")
-                )
+                datos_filtrados = sorted(datos_filtrados, key=lambda x: x.get(agrupar_por, ""))
 
             if formato == "xlsx":
                 contenido = self._generate_excel(datos_filtrados, titulo)
@@ -464,7 +440,7 @@ class ReportingService:
                 "contenido": contenido,
                 "filename": f"{safe_titulo}_{timestamp}.{formato}",
                 "total_registros": len(datos),
-                "generado_en": datetime.now(timezone.utc).isoformat()
+                "generado_en": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
@@ -475,11 +451,7 @@ class ReportingService:
     # GENERADORES DE FORMATO
     # ========================================================================
 
-    def _generate_excel(
-        self,
-        datos: List[Dict[str, Any]],
-        sheet_name: str = "Datos"
-    ) -> bytes:
+    def _generate_excel(self, datos: List[Dict[str, Any]], sheet_name: str = "Datos") -> bytes:
         """
         Genera archivo Excel.
 
@@ -492,7 +464,7 @@ class ReportingService:
         """
         try:
             from openpyxl import Workbook
-            from openpyxl.styles import Font, PatternFill, Alignment
+            from openpyxl.styles import Alignment, Font, PatternFill
 
             wb = Workbook()
             ws = wb.active
@@ -508,9 +480,7 @@ class ReportingService:
                 # Estilo headers
                 header_font = Font(bold=True)
                 header_fill = PatternFill(
-                    start_color="366092",
-                    end_color="366092",
-                    fill_type="solid"
+                    start_color="366092", end_color="366092", fill_type="solid"
                 )
                 for col, _ in enumerate(headers, 1):
                     cell = ws.cell(row=1, column=col)
@@ -568,11 +538,7 @@ class ReportingService:
 
         return output.getvalue().encode("utf-8")
 
-    def _generate_pdf_simple(
-        self,
-        datos: List[Dict[str, Any]],
-        titulo: str
-    ) -> bytes:
+    def _generate_pdf_simple(self, datos: List[Dict[str, Any]], titulo: str) -> bytes:
         """
         Genera PDF simple (texto).
 

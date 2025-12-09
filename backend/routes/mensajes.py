@@ -15,12 +15,30 @@ Endpoints:
 from flask import Blueprint, jsonify, request
 
 try:
+    from backend.core.db import get_db_connection
     from backend.routes.auth import _decode_token
     from backend.services.message_service import MessageService
+    from backend.services.notification_service import NotificationService
 except ImportError:
+    from core.db import get_db_connection
     from services.message_service import MessageService
+    from services.notification_service import NotificationService
 
     from routes.auth import _decode_token
+
+
+def _get_user_name(user_id: str) -> str:
+    """Obtiene el nombre completo de un usuario"""
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT nombre, apellido FROM usuarios WHERE id_spm=?", (user_id,))
+            row = cur.fetchone()
+            if row:
+                return f"{row['nombre']} {row['apellido']}".strip()
+    except Exception:
+        pass
+    return user_id
 
 
 bp = Blueprint("mensajes", __name__, url_prefix="/api/mensajes")
@@ -176,6 +194,16 @@ def send_message():
     )
 
     if message_id:
+        # Crear notificación para el destinatario
+        remitente_nombre = _get_user_name(user_id)
+        notif_mensaje = f"Nuevo mensaje de {remitente_nombre}: {data['asunto']}"
+        NotificationService.create_notification(
+            destinatario_id=data["destinatario_id"],
+            mensaje=notif_mensaje,
+            tipo="mensaje_nuevo",
+            solicitud_id=data.get("solicitud_id"),
+        )
+
         return (
             jsonify(
                 {"ok": True, "message_id": message_id, "message": "Mensaje enviado correctamente"}
@@ -237,6 +265,16 @@ def reply_message(message_id):
     )
 
     if reply_id:
+        # Crear notificación para el destinatario
+        remitente_nombre = _get_user_name(user_id)
+        notif_mensaje = f"Nueva respuesta de {remitente_nombre}: Re: {original_message['asunto']}"
+        NotificationService.create_notification(
+            destinatario_id=destinatario_id,
+            mensaje=notif_mensaje,
+            tipo="mensaje_nuevo",
+            solicitud_id=original_message.get("solicitud_id"),
+        )
+
         return (
             jsonify(
                 {"ok": True, "reply_id": reply_id, "message": "Respuesta enviada correctamente"}

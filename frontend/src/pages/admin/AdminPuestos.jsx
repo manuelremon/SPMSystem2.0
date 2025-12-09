@@ -6,11 +6,9 @@ export default function AdminPuestos() {
     <AdminCrudTemplate
       title="Puestos"
       resource="puestos"
-      idKey="id"
+      idKey="nombre"
       columns={[
-        { key: 'id', label: 'ID' },
         { key: 'nombre', label: 'Nombre del Puesto' },
-        { key: 'nivel_jerarquico', label: 'Nivel Jerárquico' },
         {
           key: 'activo',
           label: 'Estado',
@@ -22,37 +20,26 @@ export default function AdminPuestos() {
               </Badge>
             );
           }
-        }
+        },
+        { key: 'created_at', label: 'Creado' }
       ]}
       fields={[
         {
           name: 'nombre',
           label: 'Nombre del Puesto',
           required: true,
-          placeholder: 'Ej: Jefe de Sector, Gerente Regional, etc.',
-          fullWidth: true
-        },
-        {
-          name: 'nivel_jerarquico',
-          label: 'Nivel Jerárquico',
-          required: true,
           type: 'select',
           options: [
-            { value: '1', label: '1 - Empleado/Operario' },
-            { value: '2', label: '2 - Jefe/Supervisor' },
-            { value: '3', label: '3 - Gerente Nivel 1' },
-            { value: '4', label: '4 - Gerente Nivel 2' },
-            { value: '5', label: '5 - Director' },
-            { value: '6', label: '6 - Ejecutivo' },
+            { value: 'Planificador', label: 'Planificador' },
+            { value: 'Jefe', label: 'Jefe' },
+            { value: 'Gerente1', label: 'Gerente Nivel 1' },
+            { value: 'Gerente2', label: 'Gerente Nivel 2' },
+            { value: 'Director', label: 'Director' },
+            { value: 'Supervisor', label: 'Supervisor' },
+            { value: 'Analista', label: 'Analista' },
+            { value: 'Coordinador', label: 'Coordinador' },
           ],
-          defaultValue: '1',
-          placeholder: 'Selecciona el nivel jerárquico'
-        },
-        {
-          name: 'descripcion',
-          label: 'Descripción',
-          type: 'textarea',
-          placeholder: 'Descripción de las responsabilidades del puesto (opcional)',
+          placeholder: 'Selecciona el puesto',
           fullWidth: true
         },
         {

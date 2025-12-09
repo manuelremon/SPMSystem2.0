@@ -16,14 +16,14 @@ import time
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from queue import Queue, Empty
-from typing import Any, Dict, Generator, List, Optional
+from queue import Empty, Queue
+from typing import Any, Dict, Generator, List
 
 try:
-    from backend.core.cache import query_cache, catalog_cache, cached
+    from backend.core.cache import cached, catalog_cache, query_cache
     from backend.core.config import settings
 except ImportError:
-    from core.cache import query_cache, catalog_cache, cached
+    from core.cache import cached, catalog_cache, query_cache
     from core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -33,9 +33,11 @@ logger = logging.getLogger(__name__)
 # Connection Pool para SQLite
 # =============================================================================
 
+
 @dataclass
 class PooledConnection:
     """Wrapper para conexiones del pool."""
+
     conn: sqlite3.Connection
     created_at: float
     last_used: float
@@ -61,7 +63,7 @@ class SQLiteConnectionPool:
         db_path: Path,
         max_size: int = 5,
         max_age: int = 300,  # 5 minutos
-        check_same_thread: bool = False
+        check_same_thread: bool = False,
     ):
         """
         Inicializa el pool.
@@ -79,19 +81,12 @@ class SQLiteConnectionPool:
         self._pool: Queue = Queue(maxsize=max_size)
         self._active_connections = 0
         self._lock = threading.RLock()
-        self._stats = {
-            "created": 0,
-            "reused": 0,
-            "expired": 0,
-            "errors": 0
-        }
+        self._stats = {"created": 0, "reused": 0, "expired": 0, "errors": 0}
 
     def _create_connection(self) -> sqlite3.Connection:
         """Crea una nueva conexion optimizada."""
         conn = sqlite3.connect(
-            str(self._db_path),
-            check_same_thread=self._check_same_thread,
-            timeout=30.0
+            str(self._db_path), check_same_thread=self._check_same_thread, timeout=30.0
         )
         conn.row_factory = sqlite3.Row
 
@@ -165,11 +160,7 @@ class SQLiteConnectionPool:
             # Verificar que la conexion esta OK
             conn.execute("SELECT 1")
 
-            pooled = PooledConnection(
-                conn=conn,
-                created_at=time.time(),
-                last_used=time.time()
-            )
+            pooled = PooledConnection(conn=conn, created_at=time.time(), last_used=time.time())
 
             try:
                 self._pool.put_nowait(pooled)
@@ -206,7 +197,7 @@ class SQLiteConnectionPool:
             **self._stats,
             "pool_size": self._pool.qsize(),
             "active": self._active_connections,
-            "max_size": self._max_size
+            "max_size": self._max_size,
         }
 
 
@@ -280,15 +271,12 @@ RECOMMENDED_INDEXES = {
         ("idx_solicitudes_fecha", "solicitudes", "created_at"),
         ("idx_solicitudes_usuario", "solicitudes", "usuario_id"),
         ("idx_solicitudes_estado_fecha", "solicitudes", "estado, created_at"),
-
         # Usuarios
         ("idx_usuarios_email", "usuarios", "email"),
         ("idx_usuarios_rol", "usuarios", "rol"),
-
         # Notificaciones
         ("idx_notificaciones_usuario", "notificaciones", "usuario_id"),
         ("idx_notificaciones_leida", "notificaciones", "leida"),
-
         # Mensajes
         ("idx_mensajes_solicitud", "mensajes", "solicitud_id"),
         ("idx_mensajes_remitente", "mensajes", "remitente_id"),
@@ -298,11 +286,9 @@ RECOMMENDED_INDEXES = {
         ("idx_stock_material", "stock_materiales", "material_codigo"),
         ("idx_stock_centro", "stock_materiales", "centro"),
         ("idx_stock_material_centro", "stock_materiales", "material_codigo, centro"),
-
         # Consumo
         ("idx_consumo_material", "consumo_historico", "material_codigo"),
         ("idx_consumo_fecha", "consumo_historico", "fecha"),
-
         # Pedidos
         ("idx_pedidos_material", "pedidos_pendientes", "material_codigo"),
         ("idx_pedidos_estado", "pedidos_pendientes", "estado"),
@@ -311,7 +297,7 @@ RECOMMENDED_INDEXES = {
         # Equivalencias
         ("idx_equiv_material", "equivalencias", "material_original"),
         ("idx_equiv_equivalente", "equivalencias", "material_equivalente"),
-    ]
+    ],
 }
 
 
@@ -345,11 +331,7 @@ def create_indexes(db_name: str = "spm") -> Dict[str, Any]:
 
         conn.commit()
 
-    return {
-        "ok": len(errors) == 0,
-        "created": created,
-        "errors": errors
-    }
+    return {"ok": len(errors) == 0, "created": created, "errors": errors}
 
 
 def analyze_tables(db_name: str = "spm") -> Dict[str, Any]:
@@ -375,16 +357,13 @@ def analyze_tables(db_name: str = "spm") -> Dict[str, Any]:
 
         conn.commit()
 
-    return {
-        "ok": True,
-        "tables_analyzed": len(tables),
-        "tables": tables
-    }
+    return {"ok": True, "tables_analyzed": len(tables), "tables": tables}
 
 
 # =============================================================================
 # Queries Cacheadas
 # =============================================================================
+
 
 @cached(catalog_cache, "centros", ttl=600)
 def get_centros_cached() -> List[Dict]:
@@ -418,11 +397,13 @@ def get_solicitudes_count_by_estado() -> Dict[str, int]:
     """Cuenta solicitudes por estado (cacheada 30 seg)."""
     with get_pooled_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT estado, COUNT(*) as count
             FROM solicitudes
             GROUP BY estado
-        """)
+        """
+        )
         return {row["estado"]: row["count"] for row in cursor.fetchall()}
 
 
@@ -439,7 +420,8 @@ def get_materiales_criticos(centro: str) -> List[Dict]:
     """
     with get_pooled_connection("sap_data") as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 material_codigo,
                 descripcion,
@@ -452,13 +434,16 @@ def get_materiales_criticos(centro: str) -> List[Dict]:
             AND stock_actual < stock_seguridad
             ORDER BY diferencia ASC
             LIMIT 50
-        """, (centro,))
+        """,
+            (centro,),
+        )
         return [dict(row) for row in cursor.fetchall()]
 
 
 # =============================================================================
 # Diagnostico y Monitoreo
 # =============================================================================
+
 
 def get_db_stats(db_name: str = "spm") -> Dict[str, Any]:
     """
@@ -499,17 +484,14 @@ def get_db_stats(db_name: str = "spm") -> Dict[str, Any]:
             "page_size": page_size,
             "table_count": table_count,
             "index_count": index_count,
-            "wal_pages": wal_info[1] if wal_info else 0
+            "wal_pages": wal_info[1] if wal_info else 0,
         }
 
 
 def get_all_pool_stats() -> Dict[str, Any]:
     """Obtiene estadisticas de todos los pools."""
     with _pools_lock:
-        return {
-            name: pool.stats()
-            for name, pool in _pools.items()
-        }
+        return {name: pool.stats() for name, pool in _pools.items()}
 
 
 def explain_query(db_name: str, query: str) -> List[Dict]:

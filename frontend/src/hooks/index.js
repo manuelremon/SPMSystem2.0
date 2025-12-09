@@ -4,3 +4,9 @@
 
 export { useDebounced } from './useDebounced'
 export { useNotifications } from './useNotifications'
+export {
+  useRealtime,
+  useRealtimeEvent,
+  useRealtimeConnection,
+  useRealtimeAlerts
+} from './useRealtime'

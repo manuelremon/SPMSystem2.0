@@ -26,16 +26,19 @@ except ImportError:
 
 class ApprovalError(Exception):
     """Excepcion base para errores de aprobacion."""
+
     pass
 
 
 class ApprovalValidationError(ApprovalError):
     """Error de validacion en datos de aprobacion."""
+
     pass
 
 
 class AprobadorNoEncontradoError(ApprovalError):
     """No se encontro aprobador disponible."""
+
     pass
 
 
@@ -45,12 +48,12 @@ class AprobadorNoEncontradoError(ApprovalError):
 
 
 JERARQUIA_ROLES: Dict[str, int] = {
-    'usuario': 0,
-    'aprobador': 1,
-    'coordinador': 2,
-    'jefe': 3,
-    'gerente': 4,
-    'admin': 5,
+    "usuario": 0,
+    "aprobador": 1,
+    "coordinador": 2,
+    "jefe": 3,
+    "gerente": 4,
+    "admin": 5,
 }
 
 
@@ -99,10 +102,10 @@ def validar_regla(regla: Dict[str, Any]) -> None:
     Raises:
         ApprovalValidationError si la regla es invalida
     """
-    if not regla.get('nombre'):
+    if not regla.get("nombre"):
         raise ApprovalValidationError("El nombre de la regla es requerido")
 
-    if not regla.get('rol_requerido'):
+    if not regla.get("rol_requerido"):
         raise ApprovalValidationError("El rol requerido es obligatorio")
 
 
@@ -118,8 +121,8 @@ def validar_fechas_delegacion(fecha_inicio: str, fecha_fin: str) -> None:
         ApprovalValidationError si las fechas son invalidas
     """
     try:
-        inicio = datetime.fromisoformat(fecha_inicio.replace('Z', '+00:00'))
-        fin = datetime.fromisoformat(fecha_fin.replace('Z', '+00:00'))
+        inicio = datetime.fromisoformat(fecha_inicio.replace("Z", "+00:00"))
+        fin = datetime.fromisoformat(fecha_fin.replace("Z", "+00:00"))
 
         if fin <= inicio:
             raise ApprovalValidationError("La fecha de fin debe ser posterior a la de inicio")
@@ -137,7 +140,7 @@ def obtener_regla_aprobacion(
     monto_usd: float,
     centro: Optional[str] = None,
     sector: Optional[str] = None,
-    criticidad: Optional[str] = None
+    criticidad: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """
     Obtiene la regla de aprobacion aplicable segun los parametros.
@@ -162,7 +165,8 @@ def obtener_regla_aprobacion(
 
         # Buscar regla especifica por criticidad primero
         if criticidad:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT * FROM reglas_aprobacion
                 WHERE activo = 1
                     AND criticidad = ?
@@ -170,14 +174,17 @@ def obtener_regla_aprobacion(
                     AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)
                 ORDER BY nivel_aprobacion DESC
                 LIMIT 1
-            """, (criticidad, monto_usd, monto_usd))
+            """,
+                (criticidad, monto_usd, monto_usd),
+            )
             row = cursor.fetchone()
             if row:
                 return dict(row)
 
         # Buscar regla por centro
         if centro:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT * FROM reglas_aprobacion
                 WHERE activo = 1
                     AND centro = ?
@@ -185,13 +192,16 @@ def obtener_regla_aprobacion(
                     AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)
                 ORDER BY nivel_aprobacion DESC
                 LIMIT 1
-            """, (centro, monto_usd, monto_usd))
+            """,
+                (centro, monto_usd, monto_usd),
+            )
             row = cursor.fetchone()
             if row:
                 return dict(row)
 
         # Buscar regla general por monto
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT * FROM reglas_aprobacion
             WHERE activo = 1
                 AND centro IS NULL
@@ -201,7 +211,9 @@ def obtener_regla_aprobacion(
                 AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)
             ORDER BY monto_minimo_usd DESC
             LIMIT 1
-        """, (monto_usd, monto_usd))
+        """,
+            (monto_usd, monto_usd),
+        )
 
         row = cursor.fetchone()
         return dict(row) if row else None
@@ -213,7 +225,7 @@ def puede_aprobar(
     centro: Optional[str] = None,
     sector: Optional[str] = None,
     criticidad: Optional[str] = None,
-    verificar_delegacion: bool = False
+    verificar_delegacion: bool = False,
 ) -> Dict[str, Any]:
     """
     Verifica si un usuario puede aprobar una solicitud.
@@ -242,27 +254,21 @@ def puede_aprobar(
         cursor = conn.cursor()
 
         # Obtener rol del usuario
-        cursor.execute(
-            "SELECT rol FROM usuarios WHERE id_spm = ?",
-            (usuario_id,)
-        )
+        cursor.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (usuario_id,))
         user_row = cursor.fetchone()
         if not user_row:
-            return {
-                "puede_aprobar": False,
-                "razon": "Usuario no encontrado"
-            }
+            return {"puede_aprobar": False, "razon": "Usuario no encontrado"}
 
-        rol_usuario = (user_row['rol'] or '').lower()
+        rol_usuario = (user_row["rol"] or "").lower()
 
         # Admin siempre puede aprobar
-        if 'admin' in rol_usuario:
+        if "admin" in rol_usuario:
             return {
                 "puede_aprobar": True,
                 "rol_usuario": rol_usuario,
                 "rol_requerido": "cualquiera",
                 "nivel_aprobacion": 0,
-                "es_admin": True
+                "es_admin": True,
             }
 
     # Obtener regla aplicable
@@ -272,10 +278,10 @@ def puede_aprobar(
         return {
             "puede_aprobar": False,
             "rol_usuario": rol_usuario,
-            "razon": "No hay regla de aprobacion definida para este monto"
+            "razon": "No hay regla de aprobacion definida para este monto",
         }
 
-    rol_requerido = regla['rol_requerido']
+    rol_requerido = regla["rol_requerido"]
 
     # Verificar jerarquia de roles
     if rol_tiene_nivel(rol_usuario, rol_requerido):
@@ -283,7 +289,7 @@ def puede_aprobar(
             "puede_aprobar": True,
             "rol_usuario": rol_usuario,
             "rol_requerido": rol_requerido,
-            "nivel_aprobacion": regla['nivel_aprobacion']
+            "nivel_aprobacion": regla["nivel_aprobacion"],
         }
 
     # Verificar delegacion activa si se solicito
@@ -297,8 +303,8 @@ def puede_aprobar(
         "puede_aprobar": False,
         "rol_usuario": rol_usuario,
         "rol_requerido": rol_requerido,
-        "nivel_aprobacion": regla['nivel_aprobacion'],
-        "razon": f"Se requiere rol '{rol_requerido}' o superior"
+        "nivel_aprobacion": regla["nivel_aprobacion"],
+        "razon": f"Se requiere rol '{rol_requerido}' o superior",
     }
 
 
@@ -306,7 +312,7 @@ def buscar_aprobador(
     monto_usd: float,
     centro: Optional[str] = None,
     sector: Optional[str] = None,
-    criticidad: Optional[str] = None
+    criticidad: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """
     Busca un aprobador disponible para el monto dado.
@@ -326,14 +332,15 @@ def buscar_aprobador(
     if not regla:
         return None
 
-    rol_requerido = regla['rol_requerido']
+    rol_requerido = regla["rol_requerido"]
 
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
         # Buscar aprobador priorizando mismo centro
         if centro:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT id_spm, nombre, apellido, rol, centro
                 FROM usuarios
                 WHERE LOWER(rol) LIKE ?
@@ -343,16 +350,21 @@ def buscar_aprobador(
                     CASE WHEN centro = ? THEN 0 ELSE 1 END,
                     nombre
                 LIMIT 1
-            """, (f'%{rol_requerido}%', centro, centro))
+            """,
+                (f"%{rol_requerido}%", centro, centro),
+            )
         else:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT id_spm, nombre, apellido, rol, centro
                 FROM usuarios
                 WHERE LOWER(rol) LIKE ?
                     AND activo = 1
                 ORDER BY nombre
                 LIMIT 1
-            """, (f'%{rol_requerido}%',))
+            """,
+                (f"%{rol_requerido}%",),
+            )
 
         row = cursor.fetchone()
         return dict(row) if row else None
@@ -369,7 +381,7 @@ def crear_delegacion(
     fecha_inicio: str,
     fecha_fin: str,
     motivo: Optional[str] = None,
-    created_by: Optional[str] = None
+    created_by: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Crea una delegacion temporal de aprobaciones.
@@ -390,15 +402,14 @@ def crear_delegacion(
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO aprobadores_delegados
                 (aprobador_original_id, delegado_id, fecha_inicio, fecha_fin, motivo, created_by)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (
-            aprobador_original_id, delegado_id,
-            fecha_inicio, fecha_fin,
-            motivo, created_by
-        ))
+        """,
+            (aprobador_original_id, delegado_id, fecha_inicio, fecha_fin, motivo, created_by),
+        )
 
         return {"id": cursor.lastrowid}
 
@@ -416,9 +427,10 @@ def obtener_delegacion_activa(aprobador_id: str) -> Optional[Dict[str, Any]]:
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
-        now = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT * FROM aprobadores_delegados
             WHERE aprobador_original_id = ?
                 AND activo = 1
@@ -426,7 +438,9 @@ def obtener_delegacion_activa(aprobador_id: str) -> Optional[Dict[str, Any]]:
                 AND fecha_fin >= ?
             ORDER BY fecha_fin DESC
             LIMIT 1
-        """, (aprobador_id, now, now))
+        """,
+            (aprobador_id, now, now),
+        )
 
         row = cursor.fetchone()
         return dict(row) if row else None
@@ -451,16 +465,20 @@ def listar_reglas(solo_activas: bool = True) -> List[Dict[str, Any]]:
         cursor = conn.cursor()
 
         if solo_activas:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT * FROM reglas_aprobacion
                 WHERE activo = 1
                 ORDER BY nivel_aprobacion, monto_minimo_usd
-            """)
+            """
+            )
         else:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT * FROM reglas_aprobacion
                 ORDER BY nivel_aprobacion, monto_minimo_usd
-            """)
+            """
+            )
 
         return [dict(row) for row in cursor.fetchall()]
 
@@ -477,7 +495,7 @@ def crear_regla(
     requiere_justificacion: bool = False,
     requiere_documentacion: bool = False,
     descripcion: Optional[str] = None,
-    created_by: Optional[str] = None
+    created_by: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Crea una nueva regla de aprobacion.
@@ -499,32 +517,39 @@ def crear_regla(
     Returns:
         Diccionario con ID de la regla creada
     """
-    validar_regla({'nombre': nombre, 'rol_requerido': rol_requerido})
+    validar_regla({"nombre": nombre, "rol_requerido": rol_requerido})
 
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO reglas_aprobacion (
                 nombre, descripcion, monto_minimo_usd, monto_maximo_usd,
                 centro, sector, criticidad, rol_requerido, nivel_aprobacion,
                 requiere_justificacion, requiere_documentacion, created_by
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            nombre, descripcion, monto_minimo_usd, monto_maximo_usd,
-            centro, sector, criticidad, rol_requerido, nivel_aprobacion,
-            1 if requiere_justificacion else 0,
-            1 if requiere_documentacion else 0,
-            created_by
-        ))
+        """,
+            (
+                nombre,
+                descripcion,
+                monto_minimo_usd,
+                monto_maximo_usd,
+                centro,
+                sector,
+                criticidad,
+                rol_requerido,
+                nivel_aprobacion,
+                1 if requiere_justificacion else 0,
+                1 if requiere_documentacion else 0,
+                created_by,
+            ),
+        )
 
         return {"id": cursor.lastrowid}
 
 
-def actualizar_regla(
-    regla_id: int,
-    **campos
-) -> Dict[str, Any]:
+def actualizar_regla(regla_id: int, **campos) -> Dict[str, Any]:
     """
     Actualiza una regla existente.
 
@@ -551,11 +576,14 @@ def actualizar_regla(
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        cursor.execute(f"""
+        cursor.execute(
+            f"""
             UPDATE reglas_aprobacion
-            SET {', '.join(set_parts)}
+            SET {", ".join(set_parts)}
             WHERE id = ?
-        """, values)
+        """,
+            values,
+        )
 
         return {"actualizado": cursor.rowcount > 0}
 
@@ -573,11 +601,14 @@ def desactivar_regla(regla_id: int) -> Dict[str, Any]:
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE reglas_aprobacion
             SET activo = 0, updated_at = datetime('now')
             WHERE id = ?
-        """, (regla_id,))
+        """,
+            (regla_id,),
+        )
 
         return {"desactivado": cursor.rowcount > 0}
 
@@ -602,23 +633,25 @@ def obtener_aprobador_por_monto(monto: float, centro: Optional[str] = None) -> s
     aprobador = buscar_aprobador(monto_usd=monto, centro=centro)
 
     if aprobador:
-        return str(aprobador['id_spm'])
+        return str(aprobador["id_spm"])
 
     # Fallback: buscar cualquier aprobador
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT id_spm FROM usuarios
             WHERE LOWER(rol) LIKE '%aprobador%'
                 OR LOWER(rol) LIKE '%jefe%'
                 OR LOWER(rol) LIKE '%coordinador%'
                 OR LOWER(rol) LIKE '%admin%'
             LIMIT 1
-        """)
+        """
+        )
         row = cursor.fetchone()
 
     if row:
-        return str(row['id_spm'])
+        return str(row["id_spm"])
 
     # Fallback final
     return "1"

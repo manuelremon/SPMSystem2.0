@@ -24,6 +24,7 @@ except ImportError:
 
 class FSMError(Exception):
     """Excepcion base para errores del FSM."""
+
     pass
 
 
@@ -57,6 +58,7 @@ class EstadoSolicitud(str, Enum):
 
     Hereda de str para permitir comparaciones directas con strings.
     """
+
     DRAFT = "draft"
     SUBMITTED = "submitted"
     APPROVED = "approved"
@@ -85,34 +87,18 @@ class EstadoSolicitud(str, Enum):
 
 
 TRANSICIONES_VALIDAS: Dict[EstadoSolicitud, List[EstadoSolicitud]] = {
-    EstadoSolicitud.DRAFT: [
-        EstadoSolicitud.SUBMITTED,
-        EstadoSolicitud.CANCELLED
-    ],
-    EstadoSolicitud.SUBMITTED: [
-        EstadoSolicitud.APPROVED,
-        EstadoSolicitud.REJECTED
-    ],
-    EstadoSolicitud.APPROVED: [
-        EstadoSolicitud.IN_PLANNING,
-        EstadoSolicitud.CANCELLED
-    ],
-    EstadoSolicitud.IN_PLANNING: [
-        EstadoSolicitud.IN_TREATMENT,
-        EstadoSolicitud.REJECTED
-    ],
+    EstadoSolicitud.DRAFT: [EstadoSolicitud.SUBMITTED, EstadoSolicitud.CANCELLED],
+    EstadoSolicitud.SUBMITTED: [EstadoSolicitud.APPROVED, EstadoSolicitud.REJECTED],
+    EstadoSolicitud.APPROVED: [EstadoSolicitud.IN_PLANNING, EstadoSolicitud.CANCELLED],
+    EstadoSolicitud.IN_PLANNING: [EstadoSolicitud.IN_TREATMENT, EstadoSolicitud.REJECTED],
     EstadoSolicitud.IN_TREATMENT: [
         EstadoSolicitud.TREATED,
-        EstadoSolicitud.IN_PLANNING  # Permite volver atras
+        EstadoSolicitud.IN_PLANNING,  # Permite volver atras
     ],
-    EstadoSolicitud.TREATED: [
-        EstadoSolicitud.COMPLETED
-    ],
-    EstadoSolicitud.REJECTED: [
-        EstadoSolicitud.DRAFT  # Permite reenviar
-    ],
+    EstadoSolicitud.TREATED: [EstadoSolicitud.COMPLETED],
+    EstadoSolicitud.REJECTED: [EstadoSolicitud.DRAFT],  # Permite reenviar
     EstadoSolicitud.COMPLETED: [],  # Estado terminal
-    EstadoSolicitud.CANCELLED: []   # Estado terminal
+    EstadoSolicitud.CANCELLED: [],  # Estado terminal
 }
 
 
@@ -222,8 +208,9 @@ def get_estado_enum(estado: str) -> EstadoSolicitud:
 # =============================================================================
 
 
-def validar_transicion(estado_actual: EstadoSolicitud | str,
-                       estado_nuevo: EstadoSolicitud | str) -> bool:
+def validar_transicion(
+    estado_actual: EstadoSolicitud | str, estado_nuevo: EstadoSolicitud | str
+) -> bool:
     """
     Valida si una transicion de estado es permitida.
 
@@ -286,7 +273,7 @@ def cambiar_estado(
     nuevo_estado: EstadoSolicitud | str,
     actor_id: str,
     razon: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Cambia el estado de una solicitud validando la transicion.
@@ -328,16 +315,15 @@ def cambiar_estado(
 
         # 1. Obtener solicitud actual
         cursor.execute(
-            "SELECT id, status, id_usuario, aprobador_id, planner_id "
-            "FROM solicitudes WHERE id = ?",
-            (solicitud_id,)
+            "SELECT id, status, id_usuario, aprobador_id, planner_id FROM solicitudes WHERE id = ?",
+            (solicitud_id,),
         )
         solicitud = cursor.fetchone()
 
         if solicitud is None:
             raise SolicitudNoEncontradaError(solicitud_id)
 
-        estado_actual = normalizar_estado(solicitud['status'])
+        estado_actual = normalizar_estado(solicitud["status"])
 
         # 2. Validar transicion
         if not validar_transicion(estado_actual, nuevo_estado_str):
@@ -345,9 +331,8 @@ def cambiar_estado(
 
         # 3. Actualizar estado de solicitud
         cursor.execute(
-            "UPDATE solicitudes SET status = ?, updated_at = datetime('now') "
-            "WHERE id = ?",
-            (nuevo_estado_str, solicitud_id)
+            "UPDATE solicitudes SET status = ?, updated_at = datetime('now') WHERE id = ?",
+            (nuevo_estado_str, solicitud_id),
         )
 
         # 4. Registrar en historial
@@ -358,7 +343,7 @@ def cambiar_estado(
             (solicitud_id, estado_anterior, estado_nuevo, actor_id, razon, metadata_json)
             VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (solicitud_id, estado_actual, nuevo_estado_str, actor_id, razon, metadata_json)
+            (solicitud_id, estado_actual, nuevo_estado_str, actor_id, razon, metadata_json),
         )
 
         # 5. Disparar side-effects (notificaciones)
@@ -369,14 +354,14 @@ def cambiar_estado(
             estado_nuevo=nuevo_estado_str,
             actor_id=actor_id,
             razon=razon,
-            solicitud_data=dict(solicitud)
+            solicitud_data=dict(solicitud),
         )
 
     return {
         "success": True,
         "estado_anterior": estado_actual,
         "estado_nuevo": nuevo_estado_str,
-        "solicitud_id": solicitud_id
+        "solicitud_id": solicitud_id,
     }
 
 
@@ -407,7 +392,7 @@ def obtener_historial_estados(solicitud_id: int) -> List[Dict[str, Any]]:
             WHERE solicitud_id = ?
             ORDER BY created_at ASC
             """,
-            (solicitud_id,)
+            (solicitud_id,),
         )
         rows = cursor.fetchall()
 
@@ -426,16 +411,13 @@ def obtener_estado_actual(solicitud_id: int) -> Optional[str]:
     """
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute(
-            "SELECT status FROM solicitudes WHERE id = ?",
-            (solicitud_id,)
-        )
+        cursor.execute("SELECT status FROM solicitudes WHERE id = ?", (solicitud_id,))
         row = cursor.fetchone()
 
     if row is None:
         return None
 
-    return normalizar_estado(row['status'])
+    return normalizar_estado(row["status"])
 
 
 # =============================================================================
@@ -450,7 +432,7 @@ def _disparar_notificaciones(
     estado_nuevo: str,
     actor_id: str,
     razon: Optional[str],
-    solicitud_data: Dict[str, Any]
+    solicitud_data: Dict[str, Any],
 ) -> None:
     """
     Dispara notificaciones segun la transicion de estado.
@@ -463,23 +445,23 @@ def _disparar_notificaciones(
     # Determinar destinatario y mensaje segun transicion
     if estado_nuevo == "approved":
         # Notificar al planificador asignado
-        destinatario = solicitud_data.get('planner_id')
+        destinatario = solicitud_data.get("planner_id")
         mensaje = f"Solicitud #{solicitud_id} aprobada y asignada para planificacion"
 
     elif estado_nuevo == "rejected":
         # Notificar al solicitante
-        destinatario = solicitud_data.get('id_usuario')
+        destinatario = solicitud_data.get("id_usuario")
         motivo = f": {razon}" if razon else ""
         mensaje = f"Solicitud #{solicitud_id} rechazada{motivo}"
 
     elif estado_nuevo == "in_planning":
         # Notificar al solicitante que esta en proceso
-        destinatario = solicitud_data.get('id_usuario')
+        destinatario = solicitud_data.get("id_usuario")
         mensaje = f"Solicitud #{solicitud_id} en proceso de planificacion"
 
     elif estado_nuevo == "completed":
         # Notificar al solicitante que esta completada
-        destinatario = solicitud_data.get('id_usuario')
+        destinatario = solicitud_data.get("id_usuario")
         mensaje = f"Solicitud #{solicitud_id} completada exitosamente"
 
     # Crear notificacion si hay destinatario
@@ -488,11 +470,7 @@ def _disparar_notificaciones(
 
 
 def crear_notificacion(
-    cursor,
-    destinatario_id: str,
-    solicitud_id: int,
-    mensaje: str,
-    tipo: str = "info"
+    cursor, destinatario_id: str, solicitud_id: int, mensaje: str, tipo: str = "info"
 ) -> None:
     """
     Crea una notificacion para un usuario.
@@ -509,7 +487,7 @@ def crear_notificacion(
         INSERT INTO notificaciones (destinatario_id, solicitud_id, mensaje, tipo)
         VALUES (?, ?, ?, ?)
         """,
-        (destinatario_id, solicitud_id, mensaje, tipo)
+        (destinatario_id, solicitud_id, mensaje, tipo),
     )
 
 

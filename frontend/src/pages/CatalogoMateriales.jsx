@@ -113,7 +113,9 @@ export default function CatalogoMateriales() {
         limit: MAX_RESULTS
       })
       .then((res) => {
-        setResults(res.data || [])
+        // Backend devuelve {ok, data: [...], total}, necesitamos res.data.data
+        const data = res.data?.data || res.data || []
+        setResults(Array.isArray(data) ? data : [])
       })
       .catch((err) => {
         console.error('search materiales', err)
@@ -190,7 +192,6 @@ export default function CatalogoMateriales() {
       <ScrollReveal>
         <PageHeader
           title={t('catalogo_materiales_titulo', 'Catálogo de Materiales')}
-          subtitle={t('catalogo_materiales_subtitulo', 'Busca materiales por código SAP, descripción o palabra clave')}
         />
       </ScrollReveal>
 
@@ -346,7 +347,7 @@ export default function CatalogoMateriales() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-center text-slate-500">
-                        {mat.unidad || '-'}
+                        {mat.unidad_medida || mat.unidad || '-'}
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-slate-800">
                         {formatCurrency(mat.precio_usd || 0)}
@@ -453,29 +454,54 @@ export default function CatalogoMateriales() {
               expanded={expandedSections.mrp}
               onToggle={() => toggleSection('mrp')}
               variant="warning"
+              badge={detail?.mrp_list?.length > 0 ? detail.mrp_list.length : undefined}
             >
-              <div className="space-y-2">
-                <InfoRow
-                  label={t('catalogo_planificado_mrp', 'Planificado MRP')}
-                  value={detail?.mrp?.planificado_mrp ? 'Sí' : 'No'}
-                />
-                <InfoRow
-                  label={t('catalogo_sector', 'Sector')}
-                  value={detail?.mrp?.sector || 'N/D'}
-                />
-                <InfoRow
-                  label={t('catalogo_stock_seguridad', 'Stock Seguridad')}
-                  value={detail?.mrp?.stock_seguridad ?? 'N/D'}
-                />
-                <InfoRow
-                  label={t('catalogo_punto_pedido', 'Punto de Pedido')}
-                  value={detail?.mrp?.punto_pedido ?? 'N/D'}
-                />
-                <InfoRow
-                  label={t('catalogo_stock_maximo', 'Stock Máximo')}
-                  value={detail?.mrp?.stock_maximo ?? 'N/D'}
-                />
-              </div>
+              {detail?.mrp_list?.length > 0 ? (
+                <div className="space-y-3">
+                  {detail.mrp_list.map((mrp, idx) => (
+                    <div
+                      key={`${mrp.centro}-${mrp.almacen}-${idx}`}
+                      className="p-3 bg-white border border-white/30 rounded-lg"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-semibold text-amber-700">
+                          {t('catalogo_centro', 'Centro')}: {mrp.centro}
+                        </span>
+                        <span className="text-slate-400">|</span>
+                        <span className="text-sm text-slate-600">
+                          {t('catalogo_almacen', 'Almacén')}: {mrp.almacen}
+                        </span>
+                        {mrp.sector && (
+                          <>
+                            <span className="text-slate-400">|</span>
+                            <span className="text-xs px-2 py-0.5 bg-amber-50 text-amber-700 rounded">
+                              {mrp.sector}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-sm">
+                        <div className="text-center p-2 bg-slate-50/50 rounded">
+                          <div className="text-xs text-slate-500">{t('catalogo_stock_seguridad', 'Stock Seg.')}</div>
+                          <div className="font-semibold text-slate-800">{mrp.stock_seguridad ?? 0}</div>
+                        </div>
+                        <div className="text-center p-2 bg-slate-50/50 rounded">
+                          <div className="text-xs text-slate-500">{t('catalogo_punto_pedido', 'Pto. Pedido')}</div>
+                          <div className="font-semibold text-slate-800">{mrp.punto_pedido ?? 0}</div>
+                        </div>
+                        <div className="text-center p-2 bg-slate-50/50 rounded">
+                          <div className="text-xs text-slate-500">{t('catalogo_stock_maximo', 'Stock Máx.')}</div>
+                          <div className="font-semibold text-slate-800">{mrp.stock_maximo ?? 0}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">
+                  {t('catalogo_sin_mrp', 'Este material no está planificado en MRP')}
+                </p>
+              )}
             </CollapsibleSection>
 
             {/* Consumo Histórico */}
@@ -485,36 +511,46 @@ export default function CatalogoMateriales() {
               expanded={expandedSections.consumo}
               onToggle={() => toggleSection('consumo')}
               variant="success"
+              badge={detail?.consumo_list?.length > 0 ? detail.consumo_list.length : undefined}
             >
-              <div className="space-y-2">
-                <InfoRow
-                  label={t('catalogo_total_consumo', 'Total Consumido')}
-                  value={detail?.consumo?.total?.toFixed ? detail.consumo.total.toFixed(0) : 'N/D'}
-                />
-                <InfoRow
-                  label={t('catalogo_promedio_anual', 'Promedio Anual')}
-                  value={detail?.consumo?.promedio_anual?.toFixed ? detail.consumo.promedio_anual.toFixed(0) : 'N/D'}
-                />
-                <InfoRow
-                  label={t('catalogo_rango_anios', 'Rango de Años')}
-                  value={detail?.consumo?.anio_desde ? `${detail.consumo.anio_desde} - ${detail.consumo.anio_hasta}` : 'N/D'}
-                />
-                {(detail?.consumo?.registros?.length > 0) && (
-                  <div className="mt-3">
-                    <p className="text-xs uppercase font-semibold text-slate-500 mb-2">
-                      {t('catalogo_ultimos_consumos', 'Últimos Consumos')}
-                    </p>
-                    <div className="space-y-1">
-                      {detail.consumo.registros.map((r, idx) => (
-                        <div key={idx} className="flex justify-between text-xs">
-                          <span>{r.fecha}</span>
-                          <span className="font-mono font-semibold">{r.cantidad}</span>
+              {detail?.consumo_list?.length > 0 ? (
+                <div className="space-y-3">
+                  {detail.consumo_list.map((c, idx) => (
+                    <div
+                      key={`${c.centro}-${c.almacen}-${idx}`}
+                      className="p-3 bg-white border border-white/30 rounded-lg"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-semibold text-emerald-700">
+                          {t('catalogo_centro', 'Centro')}: {c.centro}
+                        </span>
+                        <span className="text-slate-400">|</span>
+                        <span className="text-sm text-slate-600">
+                          {t('catalogo_almacen', 'Almacén')}: {c.almacen}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-sm">
+                        <div className="text-center p-2 bg-slate-50/50 rounded">
+                          <div className="text-xs text-slate-500">{t('catalogo_promedio_anual', 'Prom. Anual')}</div>
+                          <div className="font-semibold text-emerald-700">{c.promedio_anual}</div>
                         </div>
-                      ))}
+                        <div className="text-center p-2 bg-slate-50/50 rounded">
+                          <div className="text-xs text-slate-500">{t('catalogo_total_consumo', 'Total')}</div>
+                          <div className="font-semibold text-slate-800">{c.total}</div>
+                        </div>
+                        <div className="text-center p-2 bg-slate-50/50 rounded">
+                          <div className="text-xs text-slate-500">{t('catalogo_rango_anios', 'Años')}</div>
+                          <div className="font-semibold text-slate-800">{c.anio_desde}-{c.anio_hasta}</div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">
+                  {t('catalogo_sin_consumo', 'No hay consumo histórico registrado')}
+                </p>
+              )}
             </CollapsibleSection>
 
             {/* Solicitudes SPM Activas */}
@@ -582,24 +618,30 @@ export default function CatalogoMateriales() {
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {equivalenciasData.map((eq) => (
+                  {equivalenciasData.map((eq, idx) => (
                     <div
-                      key={eq.id || eq.codigo_equivalente}
+                      key={eq.codigo_equivalente || idx}
                       className="p-3 bg-white border border-white/30 rounded-lg"
                     >
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-mono font-semibold text-cyan-600">
                           {eq.codigo_equivalente}
                         </span>
-                        <CompatibilityBadge percent={eq.compatibilidad_pct} />
+                        {eq.tipo_equivalencia && (
+                          <span className="text-xs px-2 py-0.5 bg-cyan-50 text-cyan-700 rounded">
+                            {eq.tipo_equivalencia}
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-slate-800">{eq.descripcion_equivalente}</p>
-                      {eq.descripcion && (
-                        <p className="text-xs text-slate-500 mt-1">{eq.descripcion}</p>
+                      {eq.criterio && (
+                        <p className="text-xs text-slate-500 mt-1">
+                          <span className="font-medium">{t('catalogo_criterio', 'Criterio')}:</span> {eq.criterio}
+                        </p>
                       )}
-                      {eq.precio_usd && (
-                        <p className="text-xs font-mono text-slate-500 mt-1">
-                          {formatCurrency(eq.precio_usd)}
+                      {eq.motivo && (
+                        <p className="text-xs text-slate-500 mt-1">
+                          <span className="font-medium">{t('catalogo_motivo', 'Motivo')}:</span> {eq.motivo}
                         </p>
                       )}
                     </div>

@@ -9,25 +9,26 @@ from flask import Blueprint, jsonify, request
 try:
     from backend.routes.auth import _decode_token
     from backend.services.sla_service import (
-        obtener_metricas_sla,
-        obtener_alertas_activas,
-        listar_configuraciones_sla,
-        crear_configuracion_sla,
         actualizar_configuracion_sla,
+        crear_configuracion_sla,
         eliminar_configuracion_sla,
+        listar_configuraciones_sla,
+        obtener_alertas_activas,
+        obtener_metricas_sla,
         resolver_alerta_sla,
     )
 except ImportError:
-    from routes.auth import _decode_token
     from services.sla_service import (
-        obtener_metricas_sla,
-        obtener_alertas_activas,
-        listar_configuraciones_sla,
-        crear_configuracion_sla,
         actualizar_configuracion_sla,
+        crear_configuracion_sla,
         eliminar_configuracion_sla,
+        listar_configuraciones_sla,
+        obtener_alertas_activas,
+        obtener_metricas_sla,
         resolver_alerta_sla,
     )
+
+    from routes.auth import _decode_token
 
 
 bp = Blueprint("sla", __name__, url_prefix="/api/sla")
@@ -62,15 +63,9 @@ def get_metricas_sla():
     periodo_dias = request.args.get("periodo_dias", 30, type=int)
     por_criticidad = request.args.get("por_criticidad", "false").lower() == "true"
 
-    metricas = obtener_metricas_sla(
-        periodo_dias=periodo_dias,
-        por_criticidad=por_criticidad
-    )
+    metricas = obtener_metricas_sla(periodo_dias=periodo_dias, por_criticidad=por_criticidad)
 
-    return jsonify({
-        "ok": True,
-        "data": metricas
-    })
+    return jsonify({"ok": True, "data": metricas})
 
 
 @bp.route("/alertas", methods=["GET"])
@@ -92,16 +87,9 @@ def get_alertas_activas():
     solicitud_id = request.args.get("solicitud_id", type=int)
     tipo = request.args.get("tipo")
 
-    alertas = obtener_alertas_activas(
-        solicitud_id=solicitud_id,
-        tipo=tipo
-    )
+    alertas = obtener_alertas_activas(solicitud_id=solicitud_id, tipo=tipo)
 
-    return jsonify({
-        "ok": True,
-        "data": alertas,
-        "total": len(alertas)
-    })
+    return jsonify({"ok": True, "data": alertas, "total": len(alertas)})
 
 
 @bp.route("/alertas/<int:alerta_id>/resolver", methods=["PUT", "POST"])
@@ -121,24 +109,20 @@ def resolver_alerta(alerta_id):
 
     user_id = str(user_payload.get("user_id", "system"))
 
-    resultado = resolver_alerta_sla(
-        alerta_id=alerta_id,
-        resuelto_por=user_id
-    )
+    resultado = resolver_alerta_sla(alerta_id=alerta_id, resuelto_por=user_id)
 
     if resultado.get("resuelto"):
-        return jsonify({
-            "ok": True,
-            "message": "Alerta resuelta correctamente"
-        })
+        return jsonify({"ok": True, "message": "Alerta resuelta correctamente"})
     else:
-        return jsonify({
-            "ok": False,
-            "error": {
-                "code": "not_found",
-                "message": "Alerta no encontrada o ya resuelta"
-            }
-        }), 404
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {"code": "not_found", "message": "Alerta no encontrada o ya resuelta"},
+                }
+            ),
+            404,
+        )
 
 
 # =============================================================================
@@ -168,11 +152,7 @@ def get_configuraciones():
 
     configs = listar_configuraciones_sla(activo=activo)
 
-    return jsonify({
-        "ok": True,
-        "data": configs,
-        "total": len(configs)
-    })
+    return jsonify({"ok": True, "data": configs, "total": len(configs)})
 
 
 @bp.route("/configuraciones", methods=["POST"])
@@ -202,13 +182,18 @@ def create_configuracion():
     # Verificar rol admin
     rol = user_payload.get("rol", "")
     if rol not in ("admin", "gerente"):
-        return jsonify({
-            "ok": False,
-            "error": {
-                "code": "forbidden",
-                "message": "Solo administradores pueden crear configuraciones SLA"
-            }
-        }), 403
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "forbidden",
+                        "message": "Solo administradores pueden crear configuraciones SLA",
+                    },
+                }
+            ),
+            403,
+        )
 
     data = request.get_json(silent=True) or {}
 
@@ -216,13 +201,18 @@ def create_configuracion():
     required = ["nombre", "estado_desde", "estado_hasta", "tiempo_objetivo_horas"]
     missing = [f for f in required if not data.get(f)]
     if missing:
-        return jsonify({
-            "ok": False,
-            "error": {
-                "code": "validation_error",
-                "message": f"Campos requeridos faltantes: {', '.join(missing)}"
-            }
-        }), 400
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "validation_error",
+                        "message": f"Campos requeridos faltantes: {', '.join(missing)}",
+                    },
+                }
+            ),
+            400,
+        )
 
     user_id = str(user_payload.get("user_id", "system"))
 
@@ -233,18 +223,21 @@ def create_configuracion():
         tiempo_objetivo_horas=int(data["tiempo_objetivo_horas"]),
         criticidad=data.get("criticidad"),
         descripcion=data.get("descripcion"),
-        tiempo_alerta_horas=int(data["tiempo_alerta_horas"]) if data.get("tiempo_alerta_horas") else None,
+        tiempo_alerta_horas=(
+            int(data["tiempo_alerta_horas"]) if data.get("tiempo_alerta_horas") else None
+        ),
         notificar_al_vencer=data.get("notificar_al_vencer", True),
         escalar_al_vencer=data.get("escalar_al_vencer", False),
         escalar_a_rol=data.get("escalar_a_rol"),
-        created_by=user_id
+        created_by=user_id,
     )
 
-    return jsonify({
-        "ok": True,
-        "data": resultado,
-        "message": "Configuracion SLA creada correctamente"
-    }), 201
+    return (
+        jsonify(
+            {"ok": True, "data": resultado, "message": "Configuracion SLA creada correctamente"}
+        ),
+        201,
+    )
 
 
 @bp.route("/configuraciones/<int:config_id>", methods=["PUT"])
@@ -268,40 +261,52 @@ def update_configuracion(config_id):
     # Verificar rol admin
     rol = user_payload.get("rol", "")
     if rol not in ("admin", "gerente"):
-        return jsonify({
-            "ok": False,
-            "error": {
-                "code": "forbidden",
-                "message": "Solo administradores pueden modificar configuraciones SLA"
-            }
-        }), 403
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "forbidden",
+                        "message": "Solo administradores pueden modificar configuraciones SLA",
+                    },
+                }
+            ),
+            403,
+        )
 
     data = request.get_json(silent=True) or {}
 
     if not data:
-        return jsonify({
-            "ok": False,
-            "error": {
-                "code": "validation_error",
-                "message": "No hay campos para actualizar"
-            }
-        }), 400
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "validation_error",
+                        "message": "No hay campos para actualizar",
+                    },
+                }
+            ),
+            400,
+        )
 
     resultado = actualizar_configuracion_sla(config_id, **data)
 
     if resultado.get("actualizado"):
-        return jsonify({
-            "ok": True,
-            "message": "Configuracion SLA actualizada correctamente"
-        })
+        return jsonify({"ok": True, "message": "Configuracion SLA actualizada correctamente"})
     else:
-        return jsonify({
-            "ok": False,
-            "error": {
-                "code": "not_found",
-                "message": resultado.get("mensaje", "Configuracion no encontrada")
-            }
-        }), 404
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "not_found",
+                        "message": resultado.get("mensaje", "Configuracion no encontrada"),
+                    },
+                }
+            ),
+            404,
+        )
 
 
 @bp.route("/configuraciones/<int:config_id>", methods=["DELETE"])
@@ -322,26 +327,30 @@ def delete_configuracion(config_id):
     # Verificar rol admin
     rol = user_payload.get("rol", "")
     if rol not in ("admin", "gerente"):
-        return jsonify({
-            "ok": False,
-            "error": {
-                "code": "forbidden",
-                "message": "Solo administradores pueden eliminar configuraciones SLA"
-            }
-        }), 403
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "forbidden",
+                        "message": "Solo administradores pueden eliminar configuraciones SLA",
+                    },
+                }
+            ),
+            403,
+        )
 
     resultado = eliminar_configuracion_sla(config_id)
 
     if resultado.get("eliminado"):
-        return jsonify({
-            "ok": True,
-            "message": "Configuracion SLA eliminada correctamente"
-        })
+        return jsonify({"ok": True, "message": "Configuracion SLA eliminada correctamente"})
     else:
-        return jsonify({
-            "ok": False,
-            "error": {
-                "code": "not_found",
-                "message": "Configuracion no encontrada"
-            }
-        }), 404
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {"code": "not_found", "message": "Configuracion no encontrada"},
+                }
+            ),
+            404,
+        )

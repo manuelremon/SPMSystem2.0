@@ -46,6 +46,7 @@ export const admin = {
   remove: (resource, id) => api.delete(`/admin/${resource}/${id}`),
   updatePresupuesto: (centro, sector, payload) => api.put(`/admin/presupuestos/${centro}/${sector}`, payload),
   deletePresupuesto: (centro, sector) => api.delete(`/admin/presupuestos/${centro}/${sector}`),
+  historialPresupuestos: (params = {}) => api.get('/admin/presupuestos/historial', { params }),
   estado: () => api.get('/admin/estado'),
   metricas: () => api.get('/admin/metricas'),
 }
@@ -61,4 +62,18 @@ export const budget = {
   // Budget info
   getInfo: (centro, sector) => api.get(`/presupuesto/${centro}/${sector}`),
   getLedger: (params = {}) => api.get('/presupuesto-ledger', { params }),
+}
+
+export const system = {
+  // Health endpoints
+  health: () => api.get('/health'),
+  dependencies: () => api.get('/health/dependencies'),
+  // Metrics endpoints
+  metrics: () => api.get('/metrics'),
+  metricsRequests: () => api.get('/metrics/requests'),
+  metricsCache: () => api.get('/metrics/cache'),
+  metricsDb: () => api.get('/metrics/db'),
+  metricsDbStats: () => api.get('/metrics/db-stats'),
+  metricsSystem: () => api.get('/metrics/system'),
+  resetMetrics: () => api.post('/metrics/reset'),
 }

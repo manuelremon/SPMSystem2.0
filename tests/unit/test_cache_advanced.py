@@ -4,7 +4,6 @@ Sprint 14 - Verifica cache en memoria, Redis y hibrido.
 """
 
 import time
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -45,7 +44,7 @@ class TestCacheEntry:
 
         entry = CacheEntry(
             value="test",
-            expires_at=time.time() - 1  # Ya expiro
+            expires_at=time.time() - 1,  # Ya expiro
         )
 
         assert entry.is_expired() is True
@@ -59,7 +58,7 @@ class TestCacheEntry:
 
         entry = CacheEntry(
             value="test",
-            expires_at=time.time() + 3600  # Expira en 1 hora
+            expires_at=time.time() + 3600,  # Expira en 1 hora
         )
 
         assert entry.is_expired() is False
@@ -196,10 +195,12 @@ class TestMemoryCache:
 
     def test_set_many(self, cache):
         """Set many guarda multiples valores."""
-        cache.set_many({
-            "key1": "value1",
-            "key2": "value2",
-        })
+        cache.set_many(
+            {
+                "key1": "value1",
+                "key2": "value2",
+            }
+        )
 
         assert cache.get("key1") == "value1"
         assert cache.get("key2") == "value2"
@@ -353,7 +354,8 @@ class TestCachedDecorator:
     def test_invalidate(self):
         """Metodo invalidate elimina cache."""
         try:
-            from backend.core.cache_advanced import cached, reset_cache, get_cache
+            from backend.core.cache_advanced import (cached, get_cache,
+                                                     reset_cache)
         except ImportError:
             pytest.skip("Module not available")
 
@@ -387,10 +389,7 @@ class TestCacheKeyBuilder:
 
         reset_cache()
 
-        @cached(
-            ttl=60,
-            key_builder=lambda user_id: f"user:{user_id}"
-        )
+        @cached(ttl=60, key_builder=lambda user_id: f"user:{user_id}")
         def get_user(user_id):
             return {"id": user_id, "name": f"User {user_id}"}
 

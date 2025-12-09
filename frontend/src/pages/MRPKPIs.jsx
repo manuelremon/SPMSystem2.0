@@ -280,7 +280,6 @@ export default function MRPKPIs() {
     <div className="space-y-6">
       <PageHeader
         title={t("mrp_kpis_titulo", "KPI's MRP")}
-        subtitle={t("mrp_kpis_subtitulo", "Métricas inteligentes sobre el comportamiento del MRP")}
       />
 
       {/* Período selector - Glass Morphism */}

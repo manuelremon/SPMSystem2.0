@@ -6,15 +6,14 @@ Estos tests validan el comportamiento de los pipelines ML que se integran
 con el servicio unificado de IA en Sprint 6.2.
 """
 
-import pytest
-import numpy as np
-from unittest.mock import MagicMock, patch
 from datetime import datetime, timedelta
 
+import pytest
 
 # ============================================================================
 # Tests para ClusteringPipeline
 # ============================================================================
+
 
 class TestClusteringPipelineInit:
     """Tests de inicializacion del pipeline de clustering."""
@@ -48,12 +47,48 @@ class TestClusteringMaterialClusters:
     def sample_materials(self):
         """Datos de materiales de prueba."""
         return [
-            {"codigo": "MAT001", "descripcion": "Valvula control", "precio_usd": 100, "unidad": "PZ", "activo": True},
-            {"codigo": "MAT002", "descripcion": "Valvula seguridad", "precio_usd": 150, "unidad": "PZ", "activo": True},
-            {"codigo": "MAT003", "descripcion": "Bomba centrifuga", "precio_usd": 5000, "unidad": "UN", "activo": True},
-            {"codigo": "MAT004", "descripcion": "Bomba sumergible", "precio_usd": 4500, "unidad": "UN", "activo": True},
-            {"codigo": "MAT005", "descripcion": "Tornillo M8", "precio_usd": 0.5, "unidad": "PZ", "activo": True},
-            {"codigo": "MAT006", "descripcion": "Tornillo M10", "precio_usd": 0.8, "unidad": "PZ", "activo": True},
+            {
+                "codigo": "MAT001",
+                "descripcion": "Valvula control",
+                "precio_usd": 100,
+                "unidad": "PZ",
+                "activo": True,
+            },
+            {
+                "codigo": "MAT002",
+                "descripcion": "Valvula seguridad",
+                "precio_usd": 150,
+                "unidad": "PZ",
+                "activo": True,
+            },
+            {
+                "codigo": "MAT003",
+                "descripcion": "Bomba centrifuga",
+                "precio_usd": 5000,
+                "unidad": "UN",
+                "activo": True,
+            },
+            {
+                "codigo": "MAT004",
+                "descripcion": "Bomba sumergible",
+                "precio_usd": 4500,
+                "unidad": "UN",
+                "activo": True,
+            },
+            {
+                "codigo": "MAT005",
+                "descripcion": "Tornillo M8",
+                "precio_usd": 0.5,
+                "unidad": "PZ",
+                "activo": True,
+            },
+            {
+                "codigo": "MAT006",
+                "descripcion": "Tornillo M10",
+                "precio_usd": 0.8,
+                "unidad": "PZ",
+                "activo": True,
+            },
         ]
 
     def test_fit_material_clusters_success(self, sample_materials):
@@ -129,11 +164,41 @@ class TestClusteringSolicitudClusters:
     def sample_solicitudes(self):
         """Datos de solicitudes de prueba."""
         return [
-            {"id": 1, "sector": "Produccion", "criticidad": "Alta", "total_monto": 5000, "data_json": {"items": [1, 2, 3]}},
-            {"id": 2, "sector": "Produccion", "criticidad": "Alta", "total_monto": 4500, "data_json": {"items": [1, 2]}},
-            {"id": 3, "sector": "Mantenimiento", "criticidad": "Normal", "total_monto": 500, "data_json": {"items": [1]}},
-            {"id": 4, "sector": "Mantenimiento", "criticidad": "Normal", "total_monto": 600, "data_json": {"items": [1]}},
-            {"id": 5, "sector": "Logistica", "criticidad": "Alta", "total_monto": 10000, "data_json": {"items": [1, 2, 3, 4, 5]}},
+            {
+                "id": 1,
+                "sector": "Produccion",
+                "criticidad": "Alta",
+                "total_monto": 5000,
+                "data_json": {"items": [1, 2, 3]},
+            },
+            {
+                "id": 2,
+                "sector": "Produccion",
+                "criticidad": "Alta",
+                "total_monto": 4500,
+                "data_json": {"items": [1, 2]},
+            },
+            {
+                "id": 3,
+                "sector": "Mantenimiento",
+                "criticidad": "Normal",
+                "total_monto": 500,
+                "data_json": {"items": [1]},
+            },
+            {
+                "id": 4,
+                "sector": "Mantenimiento",
+                "criticidad": "Normal",
+                "total_monto": 600,
+                "data_json": {"items": [1]},
+            },
+            {
+                "id": 5,
+                "sector": "Logistica",
+                "criticidad": "Alta",
+                "total_monto": 10000,
+                "data_json": {"items": [1, 2, 3, 4, 5]},
+            },
         ]
 
     def test_fit_solicitud_clusters_success(self, sample_solicitudes):
@@ -210,6 +275,7 @@ class TestClusteringUtilities:
 # Tests para ScoringPipeline
 # ============================================================================
 
+
 class TestScoringPipelineInit:
     """Tests de inicializacion del pipeline de scoring."""
 
@@ -238,7 +304,7 @@ class TestScoringScoreSolicitud:
             "criticidad": "Alta",
             "fecha_necesidad": (datetime.now() + timedelta(days=1)).isoformat(),
             "total_monto": 50000,
-            "data_json": {"items": [1, 2, 3, 4, 5]}
+            "data_json": {"items": [1, 2, 3, 4, 5]},
         }
 
         result = pipeline.score_solicitud(solicitud)
@@ -258,7 +324,7 @@ class TestScoringScoreSolicitud:
             "criticidad": "Normal",
             "fecha_necesidad": (datetime.now() + timedelta(days=30)).isoformat(),
             "total_monto": 1000,
-            "data_json": {"items": [1]}
+            "data_json": {"items": [1]},
         }
 
         result = pipeline.score_solicitud(solicitud)
@@ -276,7 +342,7 @@ class TestScoringScoreSolicitud:
             "criticidad": "Normal",
             "fecha_necesidad": (datetime.now() - timedelta(days=5)).isoformat(),
             "total_monto": 1000,
-            "data_json": {"items": [1]}
+            "data_json": {"items": [1]},
         }
 
         result = pipeline.score_solicitud(solicitud)
@@ -292,7 +358,7 @@ class TestScoringScoreSolicitud:
             "id": 4,
             "criticidad": "Alta",
             "total_monto": 50000,
-            "data_json": {"items": [1]}
+            "data_json": {"items": [1]},
         }
 
         result = pipeline.score_solicitud(solicitud, presupuesto_disponible=10000)
@@ -309,7 +375,7 @@ class TestScoringScoreSolicitud:
             "id": 5,
             "criticidad": "Normal",
             "total_monto": 5000,
-            "data_json": {"items": [1]}
+            "data_json": {"items": [1]},
         }
 
         result = pipeline.score_solicitud(solicitud, presupuesto_disponible=10000)
@@ -326,17 +392,10 @@ class TestScoringScoreMaterial:
         from backend.agent.pipelines.scoring import ScoringPipeline
 
         pipeline = ScoringPipeline()
-        material = {
-            "codigo": "MAT001",
-            "descripcion": "Valvula critica",
-            "precio_usd": 500
-        }
+        material = {"codigo": "MAT001", "descripcion": "Valvula critica", "precio_usd": 500}
 
         result = pipeline.score_material(
-            material,
-            demanda_historica=800,
-            disponibilidad=1.0,
-            tiempo_entrega_dias=3
+            material, demanda_historica=800, disponibilidad=1.0, tiempo_entrega_dias=3
         )
 
         assert result["material_codigo"] == "MAT001"
@@ -351,10 +410,7 @@ class TestScoringScoreMaterial:
         material = {"codigo": "MAT002", "descripcion": "Test", "precio_usd": 100}
 
         result = pipeline.score_material(
-            material,
-            demanda_historica=100,
-            disponibilidad=0.2,
-            tiempo_entrega_dias=20
+            material, demanda_historica=100, disponibilidad=0.2, tiempo_entrega_dias=20
         )
 
         assert result["scores"]["disponibilidad"] == 0.2
@@ -367,10 +423,7 @@ class TestScoringScoreMaterial:
         material = {"codigo": "MAT003", "descripcion": "Test", "precio_usd": 50}
 
         result = pipeline.score_material(
-            material,
-            demanda_historica=900,
-            disponibilidad=0.9,
-            tiempo_entrega_dias=2
+            material, demanda_historica=900, disponibilidad=0.9, tiempo_entrega_dias=2
         )
 
         assert "recomendacion" in result
@@ -385,7 +438,12 @@ class TestScoringRanking:
         """Solicitudes de prueba para ranking."""
         return [
             {"id": 1, "criticidad": "Normal", "total_monto": 1000, "data_json": {"items": [1]}},
-            {"id": 2, "criticidad": "Alta", "total_monto": 50000, "data_json": {"items": [1, 2, 3]}},
+            {
+                "id": 2,
+                "criticidad": "Alta",
+                "total_monto": 50000,
+                "data_json": {"items": [1, 2, 3]},
+            },
             {"id": 3, "criticidad": "Normal", "total_monto": 500, "data_json": {"items": [1]}},
         ]
 
@@ -452,7 +510,7 @@ class TestScoringConfiguration:
             "fecha_urgencia": 0.3,
             "monto": 0.15,
             "complejidad": 0.1,
-            "impacto": 0.05
+            "impacto": 0.05,
         }
 
         result = pipeline.configure_weights(new_weights)
@@ -475,12 +533,14 @@ class TestScoringConfiguration:
 # Tests para DemandForecastPipeline
 # ============================================================================
 
+
 class TestDemandForecastInit:
     """Tests de inicializacion del pipeline de forecast."""
 
     def test_init_default_window(self):
         """Verifica ventana historica por defecto."""
-        from backend.agent.pipelines.demand_forecast import DemandForecastPipeline
+        from backend.agent.pipelines.demand_forecast import \
+            DemandForecastPipeline
 
         pipeline = DemandForecastPipeline()
 
@@ -490,7 +550,8 @@ class TestDemandForecastInit:
 
     def test_init_custom_window(self):
         """Permite ventana historica personalizada."""
-        from backend.agent.pipelines.demand_forecast import DemandForecastPipeline
+        from backend.agent.pipelines.demand_forecast import \
+            DemandForecastPipeline
 
         pipeline = DemandForecastPipeline(historical_window_days=180)
 
@@ -510,17 +571,20 @@ class TestDemandForecastFit:
         # Luego valida que haya al menos 5 features (grupos) despues del preprocesamiento
         for material in ["MAT001", "MAT002", "MAT003", "MAT004", "MAT005", "MAT006"]:
             for i in range(5):  # 5 registros por material
-                data.append({
-                    "created_at": (base_date + timedelta(days=i * 3)).isoformat(),
-                    "material_codigo": material,
-                    "centro": "1000",
-                    "total_monto": 1000 + (i * 100)
-                })
+                data.append(
+                    {
+                        "created_at": (base_date + timedelta(days=i * 3)).isoformat(),
+                        "material_codigo": material,
+                        "centro": "1000",
+                        "total_monto": 1000 + (i * 100),
+                    }
+                )
         return data
 
     def test_fit_success(self, sample_historical_data):
         """Entrena modelo con datos suficientes."""
-        from backend.agent.pipelines.demand_forecast import DemandForecastPipeline
+        from backend.agent.pipelines.demand_forecast import \
+            DemandForecastPipeline
 
         pipeline = DemandForecastPipeline()
         result = pipeline.fit(sample_historical_data)
@@ -533,11 +597,17 @@ class TestDemandForecastFit:
 
     def test_fit_insufficient_data(self):
         """Falla con menos de 10 registros."""
-        from backend.agent.pipelines.demand_forecast import DemandForecastPipeline
+        from backend.agent.pipelines.demand_forecast import \
+            DemandForecastPipeline
 
         pipeline = DemandForecastPipeline()
         few_records = [
-            {"created_at": datetime.now().isoformat(), "material_codigo": "MAT001", "centro": "1000", "total_monto": 100}
+            {
+                "created_at": datetime.now().isoformat(),
+                "material_codigo": "MAT001",
+                "centro": "1000",
+                "total_monto": 100,
+            }
             for _ in range(5)
         ]
 
@@ -551,7 +621,8 @@ class TestDemandForecastPredict:
     @pytest.fixture
     def trained_pipeline(self):
         """Pipeline entrenado para tests."""
-        from backend.agent.pipelines.demand_forecast import DemandForecastPipeline
+        from backend.agent.pipelines.demand_forecast import \
+            DemandForecastPipeline
 
         pipeline = DemandForecastPipeline()
 
@@ -560,23 +631,21 @@ class TestDemandForecastPredict:
         data = []
         for material in ["MAT001", "MAT002", "MAT003", "MAT004", "MAT005", "MAT006"]:
             for i in range(5):
-                data.append({
-                    "created_at": (base_date + timedelta(days=i * 3)).isoformat(),
-                    "material_codigo": material,
-                    "centro": "1000",
-                    "total_monto": 1000 + (i * 100)
-                })
+                data.append(
+                    {
+                        "created_at": (base_date + timedelta(days=i * 3)).isoformat(),
+                        "material_codigo": material,
+                        "centro": "1000",
+                        "total_monto": 1000 + (i * 100),
+                    }
+                )
 
         pipeline.fit(data)
         return pipeline
 
     def test_predict_single_material(self, trained_pipeline):
         """Predice demanda para un material."""
-        result = trained_pipeline.predict(
-            material_codigo="MAT001",
-            centro="1000",
-            days_ahead=30
-        )
+        result = trained_pipeline.predict(material_codigo="MAT001", centro="1000", days_ahead=30)
 
         assert result["material_codigo"] == "MAT001"
         assert result["centro"] == "1000"
@@ -584,11 +653,14 @@ class TestDemandForecastPredict:
         assert "predicted_demand" in result
         assert "confidence_lower" in result
         assert "confidence_upper" in result
-        assert result["confidence_lower"] <= result["predicted_demand"] <= result["confidence_upper"]
+        assert (
+            result["confidence_lower"] <= result["predicted_demand"] <= result["confidence_upper"]
+        )
 
     def test_predict_without_fit_fails(self):
         """Falla si modelo no esta entrenado."""
-        from backend.agent.pipelines.demand_forecast import DemandForecastPipeline
+        from backend.agent.pipelines.demand_forecast import \
+            DemandForecastPipeline
 
         pipeline = DemandForecastPipeline()
 
@@ -613,19 +685,22 @@ class TestDemandForecastMultiple:
     @pytest.fixture
     def trained_pipeline(self):
         """Pipeline entrenado para tests."""
-        from backend.agent.pipelines.demand_forecast import DemandForecastPipeline
+        from backend.agent.pipelines.demand_forecast import \
+            DemandForecastPipeline
 
         pipeline = DemandForecastPipeline()
         base_date = datetime.now() - timedelta(days=60)
         data = []
         for material in ["MAT001", "MAT002", "MAT003", "MAT004", "MAT005", "MAT006"]:
             for i in range(5):
-                data.append({
-                    "created_at": (base_date + timedelta(days=i * 3)).isoformat(),
-                    "material_codigo": material,
-                    "centro": "1000",
-                    "total_monto": 1000 + (i * 100)
-                })
+                data.append(
+                    {
+                        "created_at": (base_date + timedelta(days=i * 3)).isoformat(),
+                        "material_codigo": material,
+                        "centro": "1000",
+                        "total_monto": 1000 + (i * 100),
+                    }
+                )
         pipeline.fit(data)
         return pipeline
 
@@ -650,7 +725,8 @@ class TestDemandForecastStatus:
 
     def test_get_status_unfitted(self):
         """Status de pipeline no entrenado."""
-        from backend.agent.pipelines.demand_forecast import DemandForecastPipeline
+        from backend.agent.pipelines.demand_forecast import \
+            DemandForecastPipeline
 
         pipeline = DemandForecastPipeline()
         status = pipeline.get_status()
@@ -661,19 +737,22 @@ class TestDemandForecastStatus:
 
     def test_get_status_fitted(self):
         """Status de pipeline entrenado."""
-        from backend.agent.pipelines.demand_forecast import DemandForecastPipeline
+        from backend.agent.pipelines.demand_forecast import \
+            DemandForecastPipeline
 
         pipeline = DemandForecastPipeline()
         base_date = datetime.now() - timedelta(days=60)
         data = []
         for material in ["MAT001", "MAT002", "MAT003", "MAT004", "MAT005", "MAT006"]:
             for i in range(5):
-                data.append({
-                    "created_at": (base_date + timedelta(days=i * 3)).isoformat(),
-                    "material_codigo": material,
-                    "centro": "1000",
-                    "total_monto": 1000 + (i * 100)
-                })
+                data.append(
+                    {
+                        "created_at": (base_date + timedelta(days=i * 3)).isoformat(),
+                        "material_codigo": material,
+                        "centro": "1000",
+                        "total_monto": 1000 + (i * 100),
+                    }
+                )
         pipeline.fit(data)
 
         status = pipeline.get_status()
@@ -686,6 +765,7 @@ class TestDemandForecastStatus:
 # ============================================================================
 # Tests de Integracion entre Pipelines
 # ============================================================================
+
 
 class TestPipelineIntegration:
     """Tests de integracion entre los tres pipelines."""
@@ -716,7 +796,8 @@ class TestPipelineIntegration:
 
     def test_forecast_informs_scoring(self):
         """Forecast alimenta scoring de materiales."""
-        from backend.agent.pipelines.demand_forecast import DemandForecastPipeline
+        from backend.agent.pipelines.demand_forecast import \
+            DemandForecastPipeline
         from backend.agent.pipelines.scoring import ScoringPipeline
 
         # Entrenar forecast con al menos 5 grupos de 3+ registros
@@ -725,12 +806,14 @@ class TestPipelineIntegration:
         historical_data = []
         for material in ["MAT001", "MAT002", "MAT003", "MAT004", "MAT005", "MAT006"]:
             for i in range(5):
-                historical_data.append({
-                    "created_at": (base_date + timedelta(days=i * 3)).isoformat(),
-                    "material_codigo": material,
-                    "centro": "1000",
-                    "total_monto": 1000 + (i * 50)
-                })
+                historical_data.append(
+                    {
+                        "created_at": (base_date + timedelta(days=i * 3)).isoformat(),
+                        "material_codigo": material,
+                        "centro": "1000",
+                        "total_monto": 1000 + (i * 50),
+                    }
+                )
         forecast_pipeline.fit(historical_data)
 
         # Obtener forecast
@@ -741,9 +824,7 @@ class TestPipelineIntegration:
         material = {"codigo": "MAT001", "descripcion": "Test", "precio_usd": 500}
 
         score_result = scoring_pipeline.score_material(
-            material,
-            demanda_historica=forecast["predicted_demand"],
-            disponibilidad=0.8
+            material, demanda_historica=forecast["predicted_demand"], disponibilidad=0.8
         )
 
         assert score_result["scores"]["demanda"] >= 0
@@ -751,8 +832,9 @@ class TestPipelineIntegration:
     def test_all_pipelines_status(self):
         """Verifica status de todos los pipelines."""
         from backend.agent.pipelines.clustering import ClusteringPipeline
+        from backend.agent.pipelines.demand_forecast import \
+            DemandForecastPipeline
         from backend.agent.pipelines.scoring import ScoringPipeline
-        from backend.agent.pipelines.demand_forecast import DemandForecastPipeline
 
         clustering = ClusteringPipeline()
         scoring = ScoringPipeline()

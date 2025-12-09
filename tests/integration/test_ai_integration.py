@@ -3,8 +3,9 @@ Tests de integracion para el servicio de IA.
 Sprint 8.1 - Verifica servicio IA end-to-end.
 """
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 
 
 @pytest.fixture
@@ -28,10 +29,9 @@ def client(app):
 @pytest.fixture
 def auth_headers(client):
     """Headers con autenticacion."""
-    response = client.post("/api/auth/login", json={
-        "email": "admin@spm.com",
-        "password": "admin123"
-    })
+    response = client.post(
+        "/api/auth/login", json={"email": "admin@spm.com", "password": "admin123"}
+    )
 
     if response.status_code == 200:
         data = response.get_json()
@@ -68,10 +68,10 @@ class TestAIEndpointsIntegration:
                     "id": 1,
                     "criticidad": "Alta",
                     "total_monto": 50000,
-                    "data_json": {"items": [1, 2, 3]}
+                    "data_json": {"items": [1, 2, 3]},
                 }
             },
-            headers=auth_headers
+            headers=auth_headers,
         )
 
         assert response.status_code in [200, 401, 500]
@@ -83,10 +83,7 @@ class TestAIEndpointsIntegration:
 
     def test_get_ai_alertas(self, client, auth_headers):
         """GET /api/ai/alertas genera alertas."""
-        response = client.get(
-            "/api/ai/alertas?centro=1000",
-            headers=auth_headers
-        )
+        response = client.get("/api/ai/alertas?centro=1000", headers=auth_headers)
 
         assert response.status_code in [200, 401, 500]
 
@@ -132,7 +129,12 @@ class TestAIServiceIntegration:
         service = AIService()
         solicitudes = [
             {"id": 1, "criticidad": "Normal", "total_monto": 1000, "data_json": {"items": [1]}},
-            {"id": 2, "criticidad": "Alta", "total_monto": 50000, "data_json": {"items": [1, 2, 3]}},
+            {
+                "id": 2,
+                "criticidad": "Alta",
+                "total_monto": 50000,
+                "data_json": {"items": [1, 2, 3]},
+            },
         ]
 
         result = service.priorizar_solicitudes(solicitudes)
@@ -155,7 +157,7 @@ class TestAIServiceIntegration:
             "criticidad": "Alta",
             "fecha_necesidad": (datetime.now() + timedelta(days=1)).isoformat(),
             "total_monto": 80000,
-            "data_json": {"items": [1, 2, 3, 4, 5]}
+            "data_json": {"items": [1, 2, 3, 4, 5]},
         }
 
         result = service.sugerir_accion(solicitud)
@@ -173,9 +175,7 @@ class TestAIServiceIntegration:
 
         service = AIService()
         result = service.sugerir_cantidad_optima(
-            material_codigo="MAT001",
-            centro="1000",
-            demanda_anual=1200
+            material_codigo="MAT001", centro="1000", demanda_anual=1200
         )
 
         assert "cantidad_sugerida" in result

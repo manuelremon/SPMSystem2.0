@@ -66,6 +66,7 @@ COMMAND_INJECTION_PATTERNS: List[Pattern] = [
 # Funciones de sanitizacion
 # =============================================================================
 
+
 def sanitize_string(value: str, max_length: int = 10000) -> str:
     """
     Sanitiza un string eliminando caracteres peligrosos.
@@ -87,7 +88,7 @@ def sanitize_string(value: str, max_length: int = 10000) -> str:
     value = html.escape(value)
 
     # Remover caracteres de control (excepto newlines y tabs)
-    value = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', value)
+    value = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", value)
 
     return value
 
@@ -198,16 +199,17 @@ def is_safe_string(value: str) -> bool:
         return True
 
     return not (
-        check_sql_injection(value) or
-        check_xss(value) or
-        check_path_traversal(value) or
-        check_command_injection(value)
+        check_sql_injection(value)
+        or check_xss(value)
+        or check_path_traversal(value)
+        or check_command_injection(value)
     )
 
 
 # =============================================================================
 # Validadores de tipo
 # =============================================================================
+
 
 def validate_email(email: str) -> bool:
     """
@@ -219,7 +221,7 @@ def validate_email(email: str) -> bool:
     Returns:
         True si es valido
     """
-    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     return bool(re.match(pattern, email))
 
 
@@ -234,13 +236,15 @@ def validate_phone(phone: str) -> bool:
         True si es valido
     """
     # Remover espacios y guiones
-    cleaned = re.sub(r'[\s\-\(\)]', '', phone)
+    cleaned = re.sub(r"[\s\-\(\)]", "", phone)
     # Debe ser solo numeros y opcionalmente empezar con +
-    pattern = r'^\+?\d{7,15}$'
+    pattern = r"^\+?\d{7,15}$"
     return bool(re.match(pattern, cleaned))
 
 
-def validate_integer(value: Any, min_val: Optional[int] = None, max_val: Optional[int] = None) -> bool:
+def validate_integer(
+    value: Any, min_val: Optional[int] = None, max_val: Optional[int] = None
+) -> bool:
     """
     Valida que un valor sea entero dentro de un rango.
 
@@ -263,7 +267,9 @@ def validate_integer(value: Any, min_val: Optional[int] = None, max_val: Optiona
         return False
 
 
-def validate_float(value: Any, min_val: Optional[float] = None, max_val: Optional[float] = None) -> bool:
+def validate_float(
+    value: Any, min_val: Optional[float] = None, max_val: Optional[float] = None
+) -> bool:
     """
     Valida que un valor sea float dentro de un rango.
 
@@ -296,7 +302,7 @@ def validate_uuid(value: str) -> bool:
     Returns:
         True si es valido
     """
-    pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    pattern = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
     return bool(re.match(pattern, str(value).lower()))
 
 
@@ -312,6 +318,7 @@ def validate_date(value: str, format: str = "%Y-%m-%d") -> bool:
         True si es valido
     """
     from datetime import datetime
+
     try:
         datetime.strptime(value, format)
         return True
@@ -322,6 +329,7 @@ def validate_date(value: str, format: str = "%Y-%m-%d") -> bool:
 # =============================================================================
 # Validador de request body
 # =============================================================================
+
 
 class RequestValidator:
     """
@@ -343,7 +351,7 @@ class RequestValidator:
         pattern: Optional[str] = None,
         choices: Optional[List[Any]] = None,
         sanitize: bool = True,
-        custom_validator: Optional[Callable[[Any], bool]] = None
+        custom_validator: Optional[Callable[[Any], bool]] = None,
     ) -> "RequestValidator":
         """
         Agrega una regla de validacion.
@@ -374,7 +382,7 @@ class RequestValidator:
             "pattern": re.compile(pattern) if pattern else None,
             "choices": choices,
             "sanitize": sanitize,
-            "custom_validator": custom_validator
+            "custom_validator": custom_validator,
         }
         return self
 
@@ -444,12 +452,16 @@ class RequestValidator:
             # Verificar longitud
             if rules["min_length"] is not None:
                 if isinstance(value, (str, list)) and len(value) < rules["min_length"]:
-                    errors.append(f"Campo '{field}' debe tener al menos {rules['min_length']} caracteres")
+                    errors.append(
+                        f"Campo '{field}' debe tener al menos {rules['min_length']} caracteres"
+                    )
                     continue
 
             if rules["max_length"] is not None:
                 if isinstance(value, (str, list)) and len(value) > rules["max_length"]:
-                    errors.append(f"Campo '{field}' debe tener maximo {rules['max_length']} caracteres")
+                    errors.append(
+                        f"Campo '{field}' debe tener maximo {rules['max_length']} caracteres"
+                    )
                     continue
 
             # Verificar rango numerico
@@ -490,6 +502,7 @@ class RequestValidator:
 # Middleware de validacion
 # =============================================================================
 
+
 def init_request_validation(app, max_content_length: int = 10 * 1024 * 1024) -> None:
     """
     Inicializa validacion de requests para Flask.
@@ -510,17 +523,21 @@ def init_request_validation(app, max_content_length: int = 10 * 1024 * 1024) -> 
         # Para requests POST/PUT/PATCH, verificar Content-Type
         if request.method in ["POST", "PUT", "PATCH"]:
             content_type = request.content_type or ""
-            if request.data and not any(ct in content_type for ct in [
-                "application/json",
-                "application/x-www-form-urlencoded",
-                "multipart/form-data"
-            ]):
+            if request.data and not any(
+                ct in content_type
+                for ct in [
+                    "application/json",
+                    "application/x-www-form-urlencoded",
+                    "multipart/form-data",
+                ]
+            ):
                 logger.warning(f"Content-Type invalido: {content_type}")
 
 
 # =============================================================================
 # Decorador de validacion
 # =============================================================================
+
 
 def validate_json(validator: RequestValidator):
     """
@@ -538,6 +555,7 @@ def validate_json(validator: RequestValidator):
             data = g.validated_data
             ...
     """
+
     def decorator(func: Callable):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -545,26 +563,36 @@ def validate_json(validator: RequestValidator):
             try:
                 data = request.get_json(force=True, silent=True) or {}
             except Exception:
-                return jsonify({
-                    "ok": False,
-                    "error": {
-                        "code": "invalid_json",
-                        "message": "Request body must be valid JSON"
-                    }
-                }), 400
+                return (
+                    jsonify(
+                        {
+                            "ok": False,
+                            "error": {
+                                "code": "invalid_json",
+                                "message": "Request body must be valid JSON",
+                            },
+                        }
+                    ),
+                    400,
+                )
 
             # Validar
             valid, errors, sanitized = validator.validate(data)
 
             if not valid:
-                return jsonify({
-                    "ok": False,
-                    "error": {
-                        "code": "validation_error",
-                        "message": "Validation failed",
-                        "details": errors
-                    }
-                }), 400
+                return (
+                    jsonify(
+                        {
+                            "ok": False,
+                            "error": {
+                                "code": "validation_error",
+                                "message": "Validation failed",
+                                "details": errors,
+                            },
+                        }
+                    ),
+                    400,
+                )
 
             # Guardar datos validados en g
             g.validated_data = sanitized
@@ -572,6 +600,7 @@ def validate_json(validator: RequestValidator):
             return func(*args, **kwargs)
 
         return wrapper
+
     return decorator
 
 
@@ -592,6 +621,7 @@ def validate_query_params(**rules):
             limit = g.query_params["limit"]
             ...
     """
+
     def decorator(func: Callable):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -653,17 +683,23 @@ def validate_query_params(**rules):
                 params[param] = value
 
             if errors:
-                return jsonify({
-                    "ok": False,
-                    "error": {
-                        "code": "validation_error",
-                        "message": "Query parameters validation failed",
-                        "details": errors
-                    }
-                }), 400
+                return (
+                    jsonify(
+                        {
+                            "ok": False,
+                            "error": {
+                                "code": "validation_error",
+                                "message": "Query parameters validation failed",
+                                "details": errors,
+                            },
+                        }
+                    ),
+                    400,
+                )
 
             g.query_params = params
             return func(*args, **kwargs)
 
         return wrapper
+
     return decorator

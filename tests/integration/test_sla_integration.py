@@ -3,8 +3,9 @@ Tests de integracion para el servicio SLA.
 Sprint 8.1 - Verifica funcionamiento end-to-end con BD real.
 """
 
-import pytest
 from datetime import datetime, timedelta, timezone
+
+import pytest
 
 
 @pytest.fixture
@@ -29,10 +30,9 @@ def client(app):
 def auth_headers(client):
     """Headers con autenticacion."""
     # Login para obtener token
-    response = client.post("/api/auth/login", json={
-        "email": "admin@spm.com",
-        "password": "admin123"
-    })
+    response = client.post(
+        "/api/auth/login", json={"email": "admin@spm.com", "password": "admin123"}
+    )
 
     if response.status_code == 200:
         data = response.get_json()

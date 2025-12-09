@@ -10,9 +10,11 @@ from typing import Dict
 from flask import Blueprint, g, jsonify, request
 
 try:
-    from backend.core.db import get_db_connection
+    from backend.core.db import get_db_connection, get_db_path
 except ImportError:
-    from core.db import get_db_connection
+    from core.db import get_db_connection, get_db_path
+
+import sqlite3
 
 bp = Blueprint("mrp", __name__, url_prefix="/api/mrp")
 
@@ -151,15 +153,15 @@ def calcular_rotacion(consumo_anual: float, stock_promedio: float) -> float:
 @require_planner_or_admin
 def get_alertas():
     """
-    Obtiene el tablero de alertas MRP.
+    Obtiene el tablero de alertas MRP usando datos reales de sap_data.db.
 
     Query params:
-        centro: Filtro por centro (requerido)
-        almacen: Filtro por almacén (opcional)
-        sector: Filtro por sector (opcional)
+        centro: Filtro por centro (opcional)
+        almacen: Filtro por almacen (opcional)
+        sector: Filtro por sector/grupo_de_articulos (opcional)
         estado: Filtro por estado de alerta (opcional)
-        limit: Límite de resultados (default 50)
-        offset: Offset para paginación (default 0)
+        limit: Limite de resultados (default 50)
+        offset: Offset para paginacion (default 0)
     """
     centro = request.args.get("centro", "").strip()
     almacen = request.args.get("almacen", "").strip()
@@ -169,47 +171,71 @@ def get_alertas():
     offset = int(request.args.get("offset", 0))
 
     try:
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
+        # Conectar a sap_data.db para obtener datos reales de stock
+        sap_db_path = get_db_path("sap_data")
+        conn = sqlite3.connect(str(sap_db_path))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
 
-            # Obtener materiales MRP con datos reales de la tabla materiales_mrp
-            base_query = """
+        # Query para obtener stock agregado por material/centro/almacen
+        # Agrupa stocks del mismo material
+        base_query = """
             SELECT
-                codigo_material as codigo,
-                descripcion,
-                sector,
-                almacen,
+                material as codigo,
+                material_descripcion as descripcion,
                 centro,
-                stock_seguridad,
-                punto_pedido,
-                stock_maximo,
-                stock_actual,
-                pedidos_en_curso,
-                consumo_promedio_mensual,
-                lead_time_dias,
+                almacen,
+                grupo_de_articulos as sector,
+                gpo_articulos_descripcion as sector_nombre,
+                SUM(stock) as stock_actual,
+                um as unidad,
+                AVG(precio) as precio_unitario,
+                ubicacion,
                 critico,
-                ubicacion
-            FROM materiales_mrp
-            WHERE 1=1
+                MAX(dia) as ultima_actualizacion
+            FROM stock
+            WHERE stock > 0
         """
         params = []
 
         if centro:
             base_query += " AND centro = ?"
-            params.append(int(centro))
+            params.append(centro)
 
         if almacen:
             base_query += " AND almacen = ?"
-            params.append(int(almacen))
+            params.append(almacen)
 
         if sector:
-            base_query += " AND sector = ?"
-            params.append(sector)
+            base_query += " AND (grupo_de_articulos = ? OR gpo_articulos_descripcion LIKE ?)"
+            params.extend([sector, f"%{sector}%"])
 
-        base_query += " ORDER BY codigo_material"
+        base_query += " GROUP BY material, centro, almacen ORDER BY material LIMIT 500"
 
         cursor.execute(base_query, params)
-        materiales = cursor.fetchall()
+        materiales = [dict(row) for row in cursor.fetchall()]
+
+        # Obtener consumo historico promedio por material
+        consumo_query = (
+            """
+            SELECT material, AVG(cantidad) as consumo_mensual
+            FROM consumo_historico
+            WHERE material IN ({})
+            GROUP BY material
+        """.format(
+                ",".join("?" * len(materiales))
+            )
+            if materiales
+            else "SELECT 1 WHERE 0"
+        )
+
+        consumos = {}
+        if materiales:
+            cursor.execute(consumo_query, [m["codigo"] for m in materiales])
+            for row in cursor.fetchall():
+                consumos[row[0]] = row[1] or 0
+
+        conn.close()
 
         # Calcular alertas para cada material
         alertas = []
@@ -217,16 +243,26 @@ def get_alertas():
         for mat in materiales:
             codigo = mat["codigo"]
             stock_actual = mat["stock_actual"] or 0
-            stock_seguridad = mat["stock_seguridad"] or 0
-            punto_pedido = mat["punto_pedido"] or 0
-            stock_maximo = mat["stock_maximo"] or 0
-            pedidos_en_curso = mat["pedidos_en_curso"] or 0
-            consumo_mensual = mat["consumo_promedio_mensual"] or 0
+            consumo_mensual = consumos.get(codigo, 0)
+
+            # Calcular parametros MRP basados en consumo
+            # Stock de seguridad = 2 meses de consumo
+            stock_seguridad = consumo_mensual * 2
+            # Punto de pedido = 3 meses de consumo
+            punto_pedido = consumo_mensual * 3
+            # Stock maximo = 6 meses de consumo
+            stock_maximo = consumo_mensual * 6
+
+            # Si no hay consumo, usar valores por defecto basados en stock actual
+            if consumo_mensual == 0:
+                stock_seguridad = stock_actual * 0.2
+                punto_pedido = stock_actual * 0.3
+                stock_maximo = stock_actual * 1.5
 
             # Calcular demanda anual desde consumo mensual
             demanda_anual = consumo_mensual * 12
 
-            # Calcular rotación
+            # Calcular rotacion
             rotacion = calcular_rotacion(demanda_anual, stock_actual) if stock_actual > 0 else 0
 
             # Calcular estado y sugerencia
@@ -236,10 +272,10 @@ def get_alertas():
                 punto_pedido=punto_pedido,
                 stock_maximo=stock_maximo,
                 consumo_promedio=consumo_mensual,
-                pedidos_en_curso=pedidos_en_curso,
+                pedidos_en_curso=0,
             )
 
-            # Filtrar por estado si se especificó
+            # Filtrar por estado si se especifico
             if estado_filtro and estado_filtro.lower() != "todos":
                 if estado_filtro.lower() not in estado_info["estado"].lower():
                     continue
@@ -247,18 +283,18 @@ def get_alertas():
             alertas.append(
                 {
                     "codigo": codigo,
-                    "descripcion": mat["descripcion"],
-                    "unidad": "UNI",
-                    "precio_usd": 0,
+                    "descripcion": mat["descripcion"] or codigo,
+                    "unidad": mat["unidad"] or "UNI",
+                    "precio_usd": round(mat["precio_unitario"] or 0, 2),
                     "centro": mat["centro"] or centro,
-                    "sector": mat["sector"] or sector,
-                    "almacen": mat["almacen"] or almacen or "1",
+                    "sector": mat["sector_nombre"] or mat["sector"] or sector,
+                    "almacen": mat["almacen"] or almacen or "0001",
                     "demanda_estimada_anual": round(demanda_anual, 0),
-                    "stock_seguridad": stock_seguridad,
-                    "punto_pedido": punto_pedido,
-                    "stock_maximo": stock_maximo,
-                    "stock_actual": stock_actual,
-                    "pedidos_en_curso": pedidos_en_curso,
+                    "stock_seguridad": round(stock_seguridad, 0),
+                    "punto_pedido": round(punto_pedido, 0),
+                    "stock_maximo": round(stock_maximo, 0),
+                    "stock_actual": round(stock_actual, 0),
+                    "pedidos_en_curso": 0,
                     "solpeds_en_curso": 0,
                     "ventas_ute_en_curso": 0,
                     "consumo_promedio_anual": round(demanda_anual, 2),
@@ -266,12 +302,12 @@ def get_alertas():
                     "estado": estado_info["estado"],
                     "estado_clase": estado_info["estado_clase"],
                     "sugerencia": estado_info["sugerencia"],
-                    "critico": mat["critico"],
+                    "critico": mat["critico"] == "SI" if mat["critico"] else False,
                     "ubicacion": mat["ubicacion"],
                 }
             )
 
-        # Aplicar paginación
+        # Aplicar paginacion
         total = len(alertas)
         alertas_paginadas = alertas[offset : offset + limit]
 
@@ -286,6 +322,7 @@ def get_alertas():
                 for a in alertas
                 if "exceso" in a["estado"].lower() or "sobrestock" in a["estado"].lower()
             ),
+            "bajo_consumo": sum(1 for a in alertas if "bajo consumo" in a["estado"].lower()),
             "normal": sum(1 for a in alertas if a["estado"].lower() == "normal"),
         }
 
@@ -314,16 +351,16 @@ def get_alertas():
 @require_planner_or_admin
 def get_kpis():
     """
-    Obtiene los KPIs MRP.
+    Obtiene los KPIs MRP usando datos reales de sap_data.db.
 
     Query params:
-        centro: Filtro por centro (opcional, reservado para futuro uso)
-        periodo: Período de análisis ('mes', 'trimestre', 'anio') - default 'mes'
+        centro: Filtro por centro (opcional)
+        periodo: Periodo de analisis ('mes', 'trimestre', 'anio') - default 'mes'
     """
-    _ = request.args.get("centro", "").strip()  # Reservado para filtro por centro
+    centro = request.args.get("centro", "").strip()
     periodo = request.args.get("periodo", "mes").strip()
 
-    # Calcular fechas según período
+    # Calcular fechas segun periodo
     hoy = datetime.now()
     if periodo == "anio":
         fecha_inicio = hoy - timedelta(days=365)
@@ -335,49 +372,159 @@ def get_kpis():
     fecha_inicio_str = fecha_inicio.strftime("%Y-%m-%d")
 
     try:
+        # Conectar a sap_data.db para estadisticas reales
+        sap_db_path = get_db_path("sap_data")
+        conn_sap = sqlite3.connect(str(sap_db_path))
+        conn_sap.row_factory = sqlite3.Row
+        cursor_sap = conn_sap.cursor()
+
+        # Total de materiales unicos en stock
+        query_materiales = "SELECT COUNT(DISTINCT material) as total FROM stock"
+        params_mat = []
+        if centro:
+            query_materiales += " WHERE centro = ?"
+            params_mat.append(centro)
+        cursor_sap.execute(query_materiales, params_mat)
+        total_materiales = cursor_sap.fetchone()["total"]
+
+        # Valor total del inventario
+        query_valor = "SELECT SUM(stock_valorizado) as total FROM stock"
+        if centro:
+            query_valor += " WHERE centro = ?"
+        cursor_sap.execute(query_valor, params_mat)
+        valor_total_inventario = cursor_sap.fetchone()["total"] or 0
+
+        # Materiales con stock bajo (stock < 10 unidades)
+        query_bajo = (
+            "SELECT COUNT(DISTINCT material) as total FROM stock WHERE stock < 10 AND stock > 0"
+        )
+        if centro:
+            query_bajo += " AND centro = ?"
+        cursor_sap.execute(query_bajo, params_mat)
+        materiales_stock_bajo = cursor_sap.fetchone()["total"]
+
+        # Materiales criticos
+        query_criticos = "SELECT COUNT(DISTINCT material) as total FROM stock WHERE critico = 'SI'"
+        if centro:
+            query_criticos += " AND centro = ?"
+        cursor_sap.execute(query_criticos, params_mat)
+        materiales_criticos = cursor_sap.fetchone()["total"]
+
+        # Materiales inmovilizados
+        query_inmov = "SELECT COUNT(DISTINCT material) as total FROM stock WHERE inmovilizado = 'INMOVILIZADO'"
+        if centro:
+            query_inmov += " AND centro = ?"
+        cursor_sap.execute(query_inmov, params_mat)
+        materiales_inmovilizados = cursor_sap.fetchone()["total"]
+
+        # Top materiales en riesgo (stock bajo comparado con punto de pedido)
+        # JOIN entre stock actual y parametros MRP de materiales_bbdd
+        query_riesgo = """
+            SELECT
+                s.material as codigo,
+                s.material_descripcion as descripcion,
+                SUM(s.stock) as stock_actual,
+                m.punto_de_pedido,
+                m.stock_de_seguridad,
+                CASE
+                    WHEN SUM(s.stock) = 0 THEN 999
+                    WHEN m.punto_de_pedido > 0 THEN ROUND((m.punto_de_pedido - SUM(s.stock)) / m.punto_de_pedido * 100, 0)
+                    ELSE 0
+                END as nivel_riesgo
+            FROM stock s
+            LEFT JOIN materiales_bbdd m ON s.material = m.codigo_material
+                AND s.centro = m.centro AND s.almacen = m.almacen
+            WHERE s.stock <= COALESCE(m.punto_de_pedido, 10)
+        """
+        params_riesgo = []
+        if centro:
+            query_riesgo += " AND s.centro = ?"
+            params_riesgo.append(centro)
+        query_riesgo += """
+            GROUP BY s.material, s.material_descripcion
+            ORDER BY nivel_riesgo DESC, stock_actual ASC
+            LIMIT 5
+        """
+        cursor_sap.execute(query_riesgo, params_riesgo)
+        materiales_riesgo_raw = cursor_sap.fetchall()
+
+        # Formatear resultados
+        top_materiales_riesgo = []
+        for mat in materiales_riesgo_raw:
+            stock_actual = mat["stock_actual"] or 0
+            punto_pedido = mat["punto_de_pedido"] or 10
+            # Calcular "dias sin stock" como indicador de criticidad
+            dias_riesgo = max(0, int((punto_pedido - stock_actual) / max(punto_pedido, 1) * 10))
+            top_materiales_riesgo.append(
+                {
+                    "codigo": mat["codigo"],
+                    "descripcion": mat["descripcion"] or "Sin descripción",
+                    "dias_sin_stock": dias_riesgo,
+                    "stock_actual": stock_actual,
+                    "punto_pedido": punto_pedido,
+                }
+            )
+
+        # Si no hay resultados con JOIN, buscar materiales con stock bajo directamente
+        if not top_materiales_riesgo:
+            query_fallback = """
+                SELECT material as codigo, material_descripcion as descripcion,
+                       SUM(stock) as stock_actual
+                FROM stock
+                WHERE stock < 5
+            """
+            if centro:
+                query_fallback += " AND centro = ?"
+            query_fallback += " GROUP BY material ORDER BY stock_actual ASC LIMIT 5"
+            cursor_sap.execute(query_fallback, params_riesgo)
+            for mat in cursor_sap.fetchall():
+                top_materiales_riesgo.append(
+                    {
+                        "codigo": mat["codigo"],
+                        "descripcion": mat["descripcion"] or "Sin descripción",
+                        "dias_sin_stock": 5 if mat["stock_actual"] == 0 else 2,
+                        "stock_actual": mat["stock_actual"],
+                        "punto_pedido": 10,
+                    }
+                )
+
+        conn_sap.close()
+
+        # Datos de spm.db para solpeds y pedidos
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
-            # Total de materiales MRP
-            cursor.execute("SELECT COUNT(*) as total FROM materiales_mrp")
-            total_materiales = cursor.fetchone()["total"]
-
-            # Materiales con solicitudes en el período (reservado para uso futuro)
-            cursor.execute(
-                """
-                SELECT COUNT(DISTINCT json_extract(value, '$.codigo')) as total
-                FROM solicitudes, json_each(data_json)
-                WHERE created_at >= ?
-            """,
-                (fecha_inicio_str,),
-            )
-            _ = cursor.fetchone()["total"]  # materiales_con_demanda - para KPI futuro
-
             # Solpeds creadas vs completadas
-            cursor.execute(
-                """
-                SELECT
-                    COUNT(*) as total,
-                    SUM(CASE WHEN status = 'creada' THEN 1 ELSE 0 END) as pendientes,
-                    SUM(CASE WHEN status = 'enviada' THEN 1 ELSE 0 END) as enviadas,
-                    SUM(CASE WHEN status = 'completada' THEN 1 ELSE 0 END) as completadas
-                FROM solpeds
-                WHERE created_at >= ?
-            """,
-                (fecha_inicio_str,),
-            )
-            solpeds_stats = cursor.fetchone()
+            try:
+                cursor.execute(
+                    """
+                    SELECT
+                        COUNT(*) as total,
+                        SUM(CASE WHEN status = 'creada' THEN 1 ELSE 0 END) as pendientes,
+                        SUM(CASE WHEN status = 'enviada' THEN 1 ELSE 0 END) as enviadas,
+                        SUM(CASE WHEN status = 'completada' THEN 1 ELSE 0 END) as completadas
+                    FROM solpeds
+                    WHERE created_at >= ?
+                """,
+                    (fecha_inicio_str,),
+                )
+                solpeds_stats = cursor.fetchone()
+            except Exception:
+                solpeds_stats = {"total": 0, "pendientes": 0, "enviadas": 0, "completadas": 0}
 
-            # Pedidos vencidos (simulado)
-            cursor.execute(
+            # Pedidos vencidos
+            try:
+                cursor.execute(
+                    """
+                    SELECT COUNT(*) as total
+                    FROM purchase_orders
+                    WHERE status = 'emitida'
+                    AND created_at < date('now', '-30 days')
                 """
-                SELECT COUNT(*) as total
-                FROM purchase_orders
-                WHERE status = 'emitida'
-                AND created_at < date('now', '-30 days')
-            """
-            )
-            pedidos_vencidos = cursor.fetchone()["total"]
+                )
+                pedidos_vencidos = cursor.fetchone()["total"]
+            except Exception:
+                pedidos_vencidos = 0
 
     except Exception as e:
         import traceback
@@ -502,11 +649,7 @@ def get_kpis():
             },
             {"fecha": hoy.strftime("%Y-%m-%d"), "alertas": 11, "resueltas": 6},
         ],
-        "top_materiales_riesgo": [
-            {"codigo": "MAT001", "descripcion": "Válvula de control", "dias_sin_stock": 5},
-            {"codigo": "MAT002", "descripcion": "Bomba centrífuga", "dias_sin_stock": 3},
-            {"codigo": "MAT003", "descripcion": "Motor eléctrico", "dias_sin_stock": 2},
-        ],
+        "top_materiales_riesgo": top_materiales_riesgo,
     }
 
     return jsonify(
@@ -564,22 +707,20 @@ def get_catalogos():
 
 try:
     from backend.services.mrp_service import (
-        analizar_material,
         analizar_centro,
-        obtener_demanda_proyectada,
+        analizar_material,
+        crear_alerta_mrp,
         generar_recomendacion,
         obtener_alertas_mrp,
-        crear_alerta_mrp,
+        obtener_demanda_proyectada,
         resolver_alerta_mrp,
     )
 except ImportError:
     from services.mrp_service import (
-        analizar_material,
         analizar_centro,
-        obtener_demanda_proyectada,
-        generar_recomendacion,
+        analizar_material,
         obtener_alertas_mrp,
-        crear_alerta_mrp,
+        obtener_demanda_proyectada,
         resolver_alerta_mrp,
     )
 
@@ -601,30 +742,31 @@ def get_analisis_material(material_codigo):
     """
     centro = request.args.get("centro", "").strip()
     if not centro:
-        return jsonify({
-            "ok": False,
-            "error": {"code": "validation_error", "message": "Centro es requerido"}
-        }), 400
-
-    try:
-        resultado = analizar_material(
-            material_codigo=material_codigo,
-            centro=centro
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {"code": "validation_error", "message": "Centro es requerido"},
+                }
+            ),
+            400,
         )
 
+    try:
+        resultado = analizar_material(material_codigo=material_codigo, centro=centro)
+
         if "error" in resultado:
-            return jsonify({
-                "ok": False,
-                "error": {"code": "not_found", "message": resultado["error"]}
-            }), 404
+            return (
+                jsonify(
+                    {"ok": False, "error": {"code": "not_found", "message": resultado["error"]}}
+                ),
+                404,
+            )
 
         return jsonify({"ok": True, "data": resultado})
 
     except Exception as e:
-        return jsonify({
-            "ok": False,
-            "error": {"code": "server_error", "message": str(e)}
-        }), 500
+        return jsonify({"ok": False, "error": {"code": "server_error", "message": str(e)}}), 500
 
 
 @bp.route("/analisis/centro/<centro>", methods=["GET"])
@@ -645,18 +787,12 @@ def get_analisis_centro(centro):
     incluir_normales = request.args.get("incluir_normales", "false").lower() == "true"
 
     try:
-        resultado = analizar_centro(
-            centro=centro,
-            incluir_normales=incluir_normales
-        )
+        resultado = analizar_centro(centro=centro, incluir_normales=incluir_normales)
 
         return jsonify({"ok": True, "data": resultado})
 
     except Exception as e:
-        return jsonify({
-            "ok": False,
-            "error": {"code": "server_error", "message": str(e)}
-        }), 500
+        return jsonify({"ok": False, "error": {"code": "server_error", "message": str(e)}}), 500
 
 
 @bp.route("/forecast/<material_codigo>", methods=["GET"])
@@ -679,25 +815,25 @@ def get_forecast_demanda(material_codigo):
     dias = request.args.get("dias", 30, type=int)
 
     if not centro:
-        return jsonify({
-            "ok": False,
-            "error": {"code": "validation_error", "message": "Centro es requerido"}
-        }), 400
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {"code": "validation_error", "message": "Centro es requerido"},
+                }
+            ),
+            400,
+        )
 
     try:
         resultado = obtener_demanda_proyectada(
-            material_codigo=material_codigo,
-            centro=centro,
-            dias=dias
+            material_codigo=material_codigo, centro=centro, dias=dias
         )
 
         return jsonify({"ok": True, "data": resultado})
 
     except Exception as e:
-        return jsonify({
-            "ok": False,
-            "error": {"code": "server_error", "message": str(e)}
-        }), 500
+        return jsonify({"ok": False, "error": {"code": "server_error", "message": str(e)}}), 500
 
 
 @bp.route("/alertas-mrp", methods=["GET"])
@@ -717,23 +853,12 @@ def get_alertas_mrp_activas():
     tipo = request.args.get("tipo", "").strip() or None
 
     try:
-        alertas = obtener_alertas_mrp(
-            centro=centro,
-            tipo=tipo,
-            solo_activas=True
-        )
+        alertas = obtener_alertas_mrp(centro=centro, tipo=tipo, solo_activas=True)
 
-        return jsonify({
-            "ok": True,
-            "data": alertas,
-            "total": len(alertas)
-        })
+        return jsonify({"ok": True, "data": alertas, "total": len(alertas)})
 
     except Exception as e:
-        return jsonify({
-            "ok": False,
-            "error": {"code": "server_error", "message": str(e)}
-        }), 500
+        return jsonify({"ok": False, "error": {"code": "server_error", "message": str(e)}}), 500
 
 
 @bp.route("/alertas-mrp/<int:alerta_id>/resolver", methods=["PUT", "POST"])
@@ -761,24 +886,24 @@ def resolver_alerta_mrp_endpoint(alerta_id):
 
     try:
         resultado = resolver_alerta_mrp(
-            alerta_id=alerta_id,
-            resuelto_por=user_id,
-            accion_tomada=accion_tomada
+            alerta_id=alerta_id, resuelto_por=user_id, accion_tomada=accion_tomada
         )
 
         if resultado.get("resuelta"):
-            return jsonify({
-                "ok": True,
-                "message": "Alerta resuelta correctamente"
-            })
+            return jsonify({"ok": True, "message": "Alerta resuelta correctamente"})
         else:
-            return jsonify({
-                "ok": False,
-                "error": {"code": "not_found", "message": "Alerta no encontrada o ya resuelta"}
-            }), 404
+            return (
+                jsonify(
+                    {
+                        "ok": False,
+                        "error": {
+                            "code": "not_found",
+                            "message": "Alerta no encontrada o ya resuelta",
+                        },
+                    }
+                ),
+                404,
+            )
 
     except Exception as e:
-        return jsonify({
-            "ok": False,
-            "error": {"code": "server_error", "message": str(e)}
-        }), 500
+        return jsonify({"ok": False, "error": {"code": "server_error", "message": str(e)}}), 500

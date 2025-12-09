@@ -8,9 +8,9 @@ El servicio de aprobacion gestiona:
 - Delegacion temporal de aprobaciones
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
-from datetime import datetime, timedelta
+
+import pytest
 
 
 class TestObtenerAprobadorRequerido:
@@ -19,7 +19,7 @@ class TestObtenerAprobadorRequerido:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos con reglas default."""
-        with patch('backend.services.approval_service.get_db_connection') as mock_conn:
+        with patch("backend.services.approval_service.get_db_connection") as mock_conn:
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -36,17 +36,23 @@ class TestObtenerAprobadorRequerido:
 
         # fetchone retorna la regla aplicable (nivel 1)
         cursor.fetchone.return_value = {
-            'id': 1, 'nombre': 'Nivel 1', 'monto_minimo_usd': 0,
-            'monto_maximo_usd': 4999.99, 'rol_requerido': 'aprobador',
-            'nivel_aprobacion': 1, 'centro': None, 'sector': None,
-            'criticidad': None, 'activo': 1
+            "id": 1,
+            "nombre": "Nivel 1",
+            "monto_minimo_usd": 0,
+            "monto_maximo_usd": 4999.99,
+            "rol_requerido": "aprobador",
+            "nivel_aprobacion": 1,
+            "centro": None,
+            "sector": None,
+            "criticidad": None,
+            "activo": 1,
         }
 
         regla = obtener_regla_aprobacion(monto_usd=1000)
 
         assert regla is not None
-        assert regla['rol_requerido'] == 'aprobador'
-        assert regla['nivel_aprobacion'] == 1
+        assert regla["rol_requerido"] == "aprobador"
+        assert regla["nivel_aprobacion"] == 1
 
     def test_monto_medio_requiere_jefe(self, mock_db):
         """Montos de $5,000 a $20,000 requieren rol jefe."""
@@ -56,17 +62,23 @@ class TestObtenerAprobadorRequerido:
 
         # fetchone retorna la regla aplicable (nivel 2)
         cursor.fetchone.return_value = {
-            'id': 2, 'nombre': 'Nivel 2', 'monto_minimo_usd': 5000,
-            'monto_maximo_usd': 19999.99, 'rol_requerido': 'jefe',
-            'nivel_aprobacion': 2, 'centro': None, 'sector': None,
-            'criticidad': None, 'activo': 1
+            "id": 2,
+            "nombre": "Nivel 2",
+            "monto_minimo_usd": 5000,
+            "monto_maximo_usd": 19999.99,
+            "rol_requerido": "jefe",
+            "nivel_aprobacion": 2,
+            "centro": None,
+            "sector": None,
+            "criticidad": None,
+            "activo": 1,
         }
 
         regla = obtener_regla_aprobacion(monto_usd=10000)
 
         assert regla is not None
-        assert regla['rol_requerido'] == 'jefe'
-        assert regla['nivel_aprobacion'] == 2
+        assert regla["rol_requerido"] == "jefe"
+        assert regla["nivel_aprobacion"] == 2
 
     def test_monto_alto_requiere_gerente(self, mock_db):
         """Montos de $20,000 a $50,000 requieren rol gerente."""
@@ -76,17 +88,23 @@ class TestObtenerAprobadorRequerido:
 
         # fetchone retorna la regla aplicable (nivel 3)
         cursor.fetchone.return_value = {
-            'id': 3, 'nombre': 'Nivel 3', 'monto_minimo_usd': 20000,
-            'monto_maximo_usd': 49999.99, 'rol_requerido': 'gerente',
-            'nivel_aprobacion': 3, 'centro': None, 'sector': None,
-            'criticidad': None, 'activo': 1
+            "id": 3,
+            "nombre": "Nivel 3",
+            "monto_minimo_usd": 20000,
+            "monto_maximo_usd": 49999.99,
+            "rol_requerido": "gerente",
+            "nivel_aprobacion": 3,
+            "centro": None,
+            "sector": None,
+            "criticidad": None,
+            "activo": 1,
         }
 
         regla = obtener_regla_aprobacion(monto_usd=35000)
 
         assert regla is not None
-        assert regla['rol_requerido'] == 'gerente'
-        assert regla['nivel_aprobacion'] == 3
+        assert regla["rol_requerido"] == "gerente"
+        assert regla["nivel_aprobacion"] == 3
 
     def test_monto_muy_alto_requiere_gerente_nivel4(self, mock_db):
         """Montos mayores a $50,000 requieren gerente nivel 4."""
@@ -96,17 +114,23 @@ class TestObtenerAprobadorRequerido:
 
         # fetchone retorna la regla aplicable (nivel 4)
         cursor.fetchone.return_value = {
-            'id': 4, 'nombre': 'Nivel 4', 'monto_minimo_usd': 50000,
-            'monto_maximo_usd': None, 'rol_requerido': 'gerente',
-            'nivel_aprobacion': 4, 'centro': None, 'sector': None,
-            'criticidad': None, 'activo': 1
+            "id": 4,
+            "nombre": "Nivel 4",
+            "monto_minimo_usd": 50000,
+            "monto_maximo_usd": None,
+            "rol_requerido": "gerente",
+            "nivel_aprobacion": 4,
+            "centro": None,
+            "sector": None,
+            "criticidad": None,
+            "activo": 1,
         }
 
         regla = obtener_regla_aprobacion(monto_usd=100000)
 
         assert regla is not None
-        assert regla['rol_requerido'] == 'gerente'
-        assert regla['nivel_aprobacion'] == 4
+        assert regla["rol_requerido"] == "gerente"
+        assert regla["nivel_aprobacion"] == 4
 
 
 class TestValidarPermisoAprobacion:
@@ -115,7 +139,7 @@ class TestValidarPermisoAprobacion:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos."""
-        with patch('backend.services.approval_service.get_db_connection') as mock_conn:
+        with patch("backend.services.approval_service.get_db_connection") as mock_conn:
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -131,13 +155,13 @@ class TestValidarPermisoAprobacion:
 
         # Mock: usuario es aprobador
         cursor.fetchone.side_effect = [
-            {'rol': 'aprobador'},  # Usuario
-            {'rol_requerido': 'aprobador', 'nivel_aprobacion': 1}  # Regla
+            {"rol": "aprobador"},  # Usuario
+            {"rol_requerido": "aprobador", "nivel_aprobacion": 1},  # Regla
         ]
 
-        resultado = puede_aprobar(usuario_id='aprobador_1', monto_usd=1000)
+        resultado = puede_aprobar(usuario_id="aprobador_1", monto_usd=1000)
 
-        assert resultado['puede_aprobar'] is True
+        assert resultado["puede_aprobar"] is True
 
     def test_aprobador_no_puede_aprobar_monto_alto(self, mock_db):
         """Un aprobador no puede aprobar montos que requieren jefe."""
@@ -146,14 +170,14 @@ class TestValidarPermisoAprobacion:
         _, conn, cursor = mock_db
 
         cursor.fetchone.side_effect = [
-            {'rol': 'aprobador'},  # Usuario
-            {'rol_requerido': 'jefe', 'nivel_aprobacion': 2}  # Regla
+            {"rol": "aprobador"},  # Usuario
+            {"rol_requerido": "jefe", "nivel_aprobacion": 2},  # Regla
         ]
 
-        resultado = puede_aprobar(usuario_id='aprobador_1', monto_usd=10000)
+        resultado = puede_aprobar(usuario_id="aprobador_1", monto_usd=10000)
 
-        assert resultado['puede_aprobar'] is False
-        assert 'rol_requerido' in resultado
+        assert resultado["puede_aprobar"] is False
+        assert "rol_requerido" in resultado
 
     def test_admin_puede_aprobar_cualquier_monto(self, mock_db):
         """Un admin puede aprobar cualquier monto."""
@@ -162,13 +186,13 @@ class TestValidarPermisoAprobacion:
         _, conn, cursor = mock_db
 
         cursor.fetchone.side_effect = [
-            {'rol': 'admin'},  # Usuario es admin
-            {'rol_requerido': 'gerente', 'nivel_aprobacion': 4}  # Regla
+            {"rol": "admin"},  # Usuario es admin
+            {"rol_requerido": "gerente", "nivel_aprobacion": 4},  # Regla
         ]
 
-        resultado = puede_aprobar(usuario_id='admin_1', monto_usd=100000)
+        resultado = puede_aprobar(usuario_id="admin_1", monto_usd=100000)
 
-        assert resultado['puede_aprobar'] is True
+        assert resultado["puede_aprobar"] is True
 
     def test_jefe_puede_aprobar_su_nivel_y_menores(self, mock_db):
         """Un jefe puede aprobar montos de su nivel y menores."""
@@ -177,13 +201,13 @@ class TestValidarPermisoAprobacion:
         _, conn, cursor = mock_db
 
         cursor.fetchone.side_effect = [
-            {'rol': 'jefe'},
-            {'rol_requerido': 'aprobador', 'nivel_aprobacion': 1}
+            {"rol": "jefe"},
+            {"rol_requerido": "aprobador", "nivel_aprobacion": 1},
         ]
 
-        resultado = puede_aprobar(usuario_id='jefe_1', monto_usd=1000)
+        resultado = puede_aprobar(usuario_id="jefe_1", monto_usd=1000)
 
-        assert resultado['puede_aprobar'] is True
+        assert resultado["puede_aprobar"] is True
 
 
 class TestBuscarAprobadorDisponible:
@@ -192,7 +216,7 @@ class TestBuscarAprobadorDisponible:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos."""
-        with patch('backend.services.approval_service.get_db_connection') as mock_conn:
+        with patch("backend.services.approval_service.get_db_connection") as mock_conn:
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -212,24 +236,25 @@ class TestBuscarAprobadorDisponible:
         cursor.fetchone.side_effect = [
             # Regla aplicable (nivel 1)
             {
-                'id': 1, 'nombre': 'Nivel 1', 'monto_minimo_usd': 0,
-                'monto_maximo_usd': 4999.99, 'rol_requerido': 'aprobador',
-                'nivel_aprobacion': 1, 'centro': None, 'sector': None,
-                'criticidad': None, 'activo': 1
+                "id": 1,
+                "nombre": "Nivel 1",
+                "monto_minimo_usd": 0,
+                "monto_maximo_usd": 4999.99,
+                "rol_requerido": "aprobador",
+                "nivel_aprobacion": 1,
+                "centro": None,
+                "sector": None,
+                "criticidad": None,
+                "activo": 1,
             },
             # Aprobador encontrado
-            {
-                'id_spm': 'aprobador_1',
-                'nombre': 'Juan',
-                'apellido': 'Perez',
-                'rol': 'aprobador'
-            }
+            {"id_spm": "aprobador_1", "nombre": "Juan", "apellido": "Perez", "rol": "aprobador"},
         ]
 
         aprobador = buscar_aprobador(monto_usd=1000)
 
         assert aprobador is not None
-        assert aprobador['id_spm'] == 'aprobador_1'
+        assert aprobador["id_spm"] == "aprobador_1"
 
     def test_buscar_aprobador_prioriza_centro(self, mock_db):
         """Debe priorizar aprobadores del mismo centro."""
@@ -241,22 +266,28 @@ class TestBuscarAprobadorDisponible:
         cursor.fetchone.side_effect = [
             # Regla especifica por centro (prioridad)
             {
-                'id': 10, 'nombre': 'Centro 1008', 'monto_minimo_usd': 0,
-                'monto_maximo_usd': None, 'rol_requerido': 'aprobador',
-                'nivel_aprobacion': 1, 'centro': '1008', 'sector': None,
-                'criticidad': None, 'activo': 1
+                "id": 10,
+                "nombre": "Centro 1008",
+                "monto_minimo_usd": 0,
+                "monto_maximo_usd": None,
+                "rol_requerido": "aprobador",
+                "nivel_aprobacion": 1,
+                "centro": "1008",
+                "sector": None,
+                "criticidad": None,
+                "activo": 1,
             },
             # Aprobador del centro
             {
-                'id_spm': 'aprobador_centro',
-                'nombre': 'Maria',
-                'apellido': 'Lopez',
-                'rol': 'aprobador',
-                'centro': '1008'
-            }
+                "id_spm": "aprobador_centro",
+                "nombre": "Maria",
+                "apellido": "Lopez",
+                "rol": "aprobador",
+                "centro": "1008",
+            },
         ]
 
-        aprobador = buscar_aprobador(monto_usd=1000, centro='1008')
+        aprobador = buscar_aprobador(monto_usd=1000, centro="1008")
 
         assert aprobador is not None
         assert cursor.execute.called
@@ -269,12 +300,18 @@ class TestBuscarAprobadorDisponible:
         # Regla existe pero no hay aprobadores
         cursor.fetchone.side_effect = [
             {
-                'id': 1, 'nombre': 'Nivel 1', 'monto_minimo_usd': 0,
-                'monto_maximo_usd': 4999.99, 'rol_requerido': 'aprobador',
-                'nivel_aprobacion': 1, 'centro': None, 'sector': None,
-                'criticidad': None, 'activo': 1
+                "id": 1,
+                "nombre": "Nivel 1",
+                "monto_minimo_usd": 0,
+                "monto_maximo_usd": 4999.99,
+                "rol_requerido": "aprobador",
+                "nivel_aprobacion": 1,
+                "centro": None,
+                "sector": None,
+                "criticidad": None,
+                "activo": 1,
             },
-            None  # No hay aprobador
+            None,  # No hay aprobador
         ]
 
         aprobador = buscar_aprobador(monto_usd=1000)
@@ -288,8 +325,10 @@ class TestDelegacionAprobaciones:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos."""
-        with patch('backend.services.approval_service.get_db_connection') as mock_conn, \
-             patch('backend.services.approval_service.get_db_transaction') as mock_trans:
+        with (
+            patch("backend.services.approval_service.get_db_connection") as mock_conn,
+            patch("backend.services.approval_service.get_db_transaction") as mock_trans,
+        ):
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -307,14 +346,14 @@ class TestDelegacionAprobaciones:
         cursor.lastrowid = 1
 
         resultado = crear_delegacion(
-            aprobador_original_id='aprobador_1',
-            delegado_id='aprobador_2',
-            fecha_inicio='2025-01-01',
-            fecha_fin='2025-01-15',
-            motivo='Vacaciones'
+            aprobador_original_id="aprobador_1",
+            delegado_id="aprobador_2",
+            fecha_inicio="2025-01-01",
+            fecha_fin="2025-01-15",
+            motivo="Vacaciones",
         )
 
-        assert resultado['id'] == 1
+        assert resultado["id"] == 1
         assert cursor.execute.called
 
     def test_verificar_delegacion_activa(self, mock_db):
@@ -324,18 +363,18 @@ class TestDelegacionAprobaciones:
         mock_conn, _, conn, cursor = mock_db
 
         cursor.fetchone.return_value = {
-            'id': 1,
-            'aprobador_original_id': 'aprobador_1',
-            'delegado_id': 'aprobador_2',
-            'fecha_inicio': '2025-01-01',
-            'fecha_fin': '2025-01-15',
-            'activo': 1
+            "id": 1,
+            "aprobador_original_id": "aprobador_1",
+            "delegado_id": "aprobador_2",
+            "fecha_inicio": "2025-01-01",
+            "fecha_fin": "2025-01-15",
+            "activo": 1,
         }
 
-        delegacion = obtener_delegacion_activa(aprobador_id='aprobador_1')
+        delegacion = obtener_delegacion_activa(aprobador_id="aprobador_1")
 
         assert delegacion is not None
-        assert delegacion['delegado_id'] == 'aprobador_2'
+        assert delegacion["delegado_id"] == "aprobador_2"
 
     def test_delegado_puede_aprobar(self, mock_db):
         """Un delegado activo puede aprobar en nombre del original."""
@@ -345,16 +384,14 @@ class TestDelegacionAprobaciones:
 
         # Mock: usuario es delegado activo
         cursor.fetchone.side_effect = [
-            {'rol': 'aprobador'},  # Rol del delegado
-            {'rol_requerido': 'jefe', 'nivel_aprobacion': 2},  # Regla requiere jefe
-            {'delegado_id': 'aprobador_2', 'activo': 1}  # Delegacion activa de un jefe
+            {"rol": "aprobador"},  # Rol del delegado
+            {"rol_requerido": "jefe", "nivel_aprobacion": 2},  # Regla requiere jefe
+            {"delegado_id": "aprobador_2", "activo": 1},  # Delegacion activa de un jefe
         ]
 
         # El aprobador_2 tiene delegacion de un jefe
         resultado = puede_aprobar(
-            usuario_id='aprobador_2',
-            monto_usd=10000,
-            verificar_delegacion=True
+            usuario_id="aprobador_2", monto_usd=10000, verificar_delegacion=True
         )
 
         # Depende de implementacion: si delegacion le da permisos del original
@@ -366,7 +403,7 @@ class TestReglasEspecificas:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos."""
-        with patch('backend.services.approval_service.get_db_connection') as mock_conn:
+        with patch("backend.services.approval_service.get_db_connection") as mock_conn:
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -382,19 +419,19 @@ class TestReglasEspecificas:
 
         # Mock: regla especifica para centro 1008
         cursor.fetchone.return_value = {
-            'id': 10,
-            'nombre': 'Centro 1008 Especial',
-            'monto_minimo_usd': 0,
-            'monto_maximo_usd': None,
-            'rol_requerido': 'coordinador',
-            'nivel_aprobacion': 1,
-            'centro': '1008'
+            "id": 10,
+            "nombre": "Centro 1008 Especial",
+            "monto_minimo_usd": 0,
+            "monto_maximo_usd": None,
+            "rol_requerido": "coordinador",
+            "nivel_aprobacion": 1,
+            "centro": "1008",
         }
 
-        regla = obtener_regla_aprobacion(monto_usd=1000, centro='1008')
+        regla = obtener_regla_aprobacion(monto_usd=1000, centro="1008")
 
         assert regla is not None
-        assert regla['centro'] == '1008'
+        assert regla["centro"] == "1008"
 
     def test_criticidad_alta_eleva_nivel(self, mock_db):
         """Criticidad alta puede elevar el nivel de aprobacion."""
@@ -403,19 +440,19 @@ class TestReglasEspecificas:
         _, conn, cursor = mock_db
 
         cursor.fetchone.return_value = {
-            'id': 5,
-            'nombre': 'Criticidad Alta',
-            'monto_minimo_usd': 0,
-            'monto_maximo_usd': None,
-            'rol_requerido': 'jefe',
-            'nivel_aprobacion': 2,
-            'criticidad': 'Alta'
+            "id": 5,
+            "nombre": "Criticidad Alta",
+            "monto_minimo_usd": 0,
+            "monto_maximo_usd": None,
+            "rol_requerido": "jefe",
+            "nivel_aprobacion": 2,
+            "criticidad": "Alta",
         }
 
-        regla = obtener_regla_aprobacion(monto_usd=1000, criticidad='Alta')
+        regla = obtener_regla_aprobacion(monto_usd=1000, criticidad="Alta")
 
         assert regla is not None
-        assert regla['rol_requerido'] == 'jefe'  # Elevado de aprobador a jefe
+        assert regla["rol_requerido"] == "jefe"  # Elevado de aprobador a jefe
 
 
 class TestCRUDReglas:
@@ -424,8 +461,10 @@ class TestCRUDReglas:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos."""
-        with patch('backend.services.approval_service.get_db_connection') as mock_conn, \
-             patch('backend.services.approval_service.get_db_transaction') as mock_trans:
+        with (
+            patch("backend.services.approval_service.get_db_connection") as mock_conn,
+            patch("backend.services.approval_service.get_db_transaction") as mock_trans,
+        ):
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -442,8 +481,8 @@ class TestCRUDReglas:
         mock_conn, _, conn, cursor = mock_db
 
         cursor.fetchall.return_value = [
-            {'id': 1, 'nombre': 'Nivel 1', 'activo': 1},
-            {'id': 2, 'nombre': 'Nivel 2', 'activo': 1},
+            {"id": 1, "nombre": "Nivel 1", "activo": 1},
+            {"id": 2, "nombre": "Nivel 2", "activo": 1},
         ]
 
         reglas = listar_reglas()
@@ -458,15 +497,15 @@ class TestCRUDReglas:
         cursor.lastrowid = 10
 
         resultado = crear_regla(
-            nombre='Nueva Regla',
+            nombre="Nueva Regla",
             monto_minimo_usd=0,
             monto_maximo_usd=1000,
-            rol_requerido='aprobador',
+            rol_requerido="aprobador",
             nivel_aprobacion=1,
-            created_by='admin_1'
+            created_by="admin_1",
         )
 
-        assert resultado['id'] == 10
+        assert resultado["id"] == 10
         assert cursor.execute.called
 
     def test_actualizar_regla(self, mock_db):
@@ -476,12 +515,9 @@ class TestCRUDReglas:
         _, mock_trans, conn, cursor = mock_db
         cursor.rowcount = 1
 
-        resultado = actualizar_regla(
-            regla_id=1,
-            monto_maximo_usd=10000
-        )
+        resultado = actualizar_regla(regla_id=1, monto_maximo_usd=10000)
 
-        assert resultado['actualizado'] is True
+        assert resultado["actualizado"] is True
 
     def test_desactivar_regla(self, mock_db):
         """Debe poder desactivar una regla."""
@@ -492,7 +528,7 @@ class TestCRUDReglas:
 
         resultado = desactivar_regla(regla_id=1)
 
-        assert resultado['desactivado'] is True
+        assert resultado["desactivado"] is True
 
 
 class TestValidaciones:
@@ -500,24 +536,27 @@ class TestValidaciones:
 
     def test_monto_negativo_error(self):
         """Monto negativo debe lanzar error."""
-        from backend.services.approval_service import ApprovalValidationError, validar_monto
+        from backend.services.approval_service import (ApprovalValidationError,
+                                                       validar_monto)
 
         with pytest.raises(ApprovalValidationError):
             validar_monto(-100)
 
     def test_regla_sin_rol_error(self):
         """Regla sin rol requerido debe lanzar error."""
-        from backend.services.approval_service import ApprovalValidationError, validar_regla
+        from backend.services.approval_service import (ApprovalValidationError,
+                                                       validar_regla)
 
         with pytest.raises(ApprovalValidationError):
-            validar_regla({'nombre': 'Test', 'rol_requerido': ''})
+            validar_regla({"nombre": "Test", "rol_requerido": ""})
 
     def test_fechas_delegacion_invalidas(self):
         """Fechas de delegacion invalidas deben lanzar error."""
-        from backend.services.approval_service import ApprovalValidationError, validar_fechas_delegacion
+        from backend.services.approval_service import (
+            ApprovalValidationError, validar_fechas_delegacion)
 
         with pytest.raises(ApprovalValidationError):
-            validar_fechas_delegacion('2025-01-15', '2025-01-01')  # fin antes de inicio
+            validar_fechas_delegacion("2025-01-15", "2025-01-01")  # fin antes de inicio
 
 
 class TestJerarquiaRoles:
@@ -525,19 +564,19 @@ class TestJerarquiaRoles:
 
     def test_jerarquia_roles(self):
         """Verifica la jerarquia de roles."""
-        from backend.services.approval_service import JERARQUIA_ROLES, rol_tiene_nivel
+        from backend.services.approval_service import JERARQUIA_ROLES
 
         # Admin tiene nivel mas alto
-        assert JERARQUIA_ROLES['admin'] > JERARQUIA_ROLES['gerente']
-        assert JERARQUIA_ROLES['gerente'] > JERARQUIA_ROLES['jefe']
-        assert JERARQUIA_ROLES['jefe'] > JERARQUIA_ROLES['coordinador']
-        assert JERARQUIA_ROLES['coordinador'] > JERARQUIA_ROLES['aprobador']
+        assert JERARQUIA_ROLES["admin"] > JERARQUIA_ROLES["gerente"]
+        assert JERARQUIA_ROLES["gerente"] > JERARQUIA_ROLES["jefe"]
+        assert JERARQUIA_ROLES["jefe"] > JERARQUIA_ROLES["coordinador"]
+        assert JERARQUIA_ROLES["coordinador"] > JERARQUIA_ROLES["aprobador"]
 
     def test_rol_superior_puede_aprobar_inferior(self):
         """Rol superior puede aprobar lo que aprueba rol inferior."""
         from backend.services.approval_service import rol_tiene_nivel
 
         # Gerente puede aprobar lo de jefe
-        assert rol_tiene_nivel('gerente', 'jefe') is True
+        assert rol_tiene_nivel("gerente", "jefe") is True
         # Jefe no puede aprobar lo de gerente
-        assert rol_tiene_nivel('jefe', 'gerente') is False
+        assert rol_tiene_nivel("jefe", "gerente") is False

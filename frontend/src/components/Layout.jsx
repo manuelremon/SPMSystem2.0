@@ -2,13 +2,16 @@
  * Layout Component - Sidebar-based navigation
  * Glass Morphism Design (Apple/iOS Style)
  * Gradient background with glass effects
+ *
+ * Inicializa conexion de tiempo real (SSE) para notificaciones
  */
 
 import React, { useEffect, useState } from "react";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Wifi, WifiOff } from "lucide-react";
 import clsx from "clsx";
 import { useAuthStore } from "../store/authStore";
 import { useChatStore } from "../store/chatStore";
+import { useRealtime } from "../hooks/useRealtime";
 import ChatAssistant from "./ChatAssistant";
 import Sidebar from "./Sidebar";
 import { useI18n } from "../context/i18n";
@@ -18,6 +21,12 @@ export default function Layout({ children }) {
   const { t } = useI18n();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { toggleChat } = useChatStore();
+
+  // Inicializar conexion de tiempo real (SSE)
+  // Solo se conecta si hay usuario autenticado
+  const { isConnected, connectionError, unreadCount } = useRealtime({
+    enabled: !!user
+  });
 
   // Theme is managed by useTheme hook - no need to set here
 
@@ -38,8 +47,13 @@ export default function Layout({ children }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-slate-100 to-pink-100 text-slate-800">
-      {/* Sidebar */}
-      <Sidebar collapsed={sidebarCollapsed} onToggle={handleSidebarToggle} />
+      {/* Sidebar - Pass real-time state */}
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggle={handleSidebarToggle}
+        unreadCount={unreadCount}
+        isConnected={isConnected}
+      />
 
       {/* Main content area */}
       <div

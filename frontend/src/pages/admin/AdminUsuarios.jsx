@@ -30,10 +30,10 @@ export default function AdminUsuarios() {
     posicion: u.posicion
   }))
 
-  // Filtrar por posicion
+  // Filtrar por posicion (usando valores del catalog_puestos)
   const jefesOptions = usuariosOptions.filter(u => u.posicion?.toLowerCase() === 'jefe')
-  const gerentes1Options = usuariosOptions.filter(u => u.posicion?.toLowerCase() === 'gerente nivel 1')
-  const gerentes2Options = usuariosOptions.filter(u => u.posicion?.toLowerCase() === 'gerente nivel 2')
+  const gerentes1Options = usuariosOptions.filter(u => u.posicion?.toLowerCase() === 'gerente1')
+  const gerentes2Options = usuariosOptions.filter(u => u.posicion?.toLowerCase() === 'gerente2')
 
   if (loading) {
     return <div className="p-6">Cargando...</div>
@@ -101,7 +101,23 @@ export default function AdminUsuarios() {
         },
         { key: 'mail', label: 'Email' },
         { key: 'posicion', label: 'Puesto' },
-        { key: 'sector', label: 'Sector' },
+        {
+          key: 'sector',
+          label: 'Sector',
+          render: (row) => {
+            const sectorMap = {
+              '1': 'Almacenes',
+              '2': 'Compras',
+              '3': 'Mantenimiento',
+              '4': 'Planificación',
+              '5': 'Operaciones',
+              '6': 'Logística',
+              '7': 'Producción',
+              '8': 'Calidad',
+            };
+            return sectorMap[row.sector] || row.sector || '-';
+          }
+        },
         { key: 'id_ypf', label: 'ID YPF' },
         {
           key: 'estado_registro',
@@ -184,13 +200,16 @@ export default function AdminUsuarios() {
           required: true,
           type: 'select',
           options: [
-            { value: 'Empleado', label: 'Empleado' },
+            { value: 'Planificador', label: 'Planificador' },
             { value: 'Jefe', label: 'Jefe' },
-            { value: 'Gerente Nivel 1', label: 'Gerente Nivel 1' },
-            { value: 'Gerente Nivel 2', label: 'Gerente Nivel 2' },
+            { value: 'Gerente1', label: 'Gerente Nivel 1' },
+            { value: 'Gerente2', label: 'Gerente Nivel 2' },
             { value: 'Director', label: 'Director' },
+            { value: 'Supervisor', label: 'Supervisor' },
+            { value: 'Analista', label: 'Analista' },
+            { value: 'Coordinador', label: 'Coordinador' },
           ],
-          defaultValue: 'Empleado',
+          defaultValue: 'Analista',
           placeholder: 'Selecciona el puesto'
         },
         {

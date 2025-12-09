@@ -17,7 +17,6 @@ Uso:
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import threading
@@ -25,7 +24,6 @@ import time
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set
 
@@ -34,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 class MessageType(str, Enum):
     """Tipos de mensajes WebSocket."""
+
     EVENT = "event"
     NOTIFICATION = "notification"
     BROADCAST = "broadcast"
@@ -48,6 +47,7 @@ class MessageType(str, Enum):
 @dataclass
 class WSMessage:
     """Mensaje WebSocket."""
+
     type: MessageType
     event: str
     data: Any
@@ -58,15 +58,17 @@ class WSMessage:
 
     def to_json(self) -> str:
         """Serializa a JSON."""
-        return json.dumps({
-            "type": self.type.value,
-            "event": self.event,
-            "data": self.data,
-            "timestamp": self.timestamp,
-            "id": self.id,
-            "sender_id": self.sender_id,
-            "room": self.room,
-        })
+        return json.dumps(
+            {
+                "type": self.type.value,
+                "event": self.event,
+                "data": self.data,
+                "timestamp": self.timestamp,
+                "id": self.id,
+                "sender_id": self.sender_id,
+                "room": self.room,
+            }
+        )
 
     @classmethod
     def from_json(cls, json_str: str) -> "WSMessage":
@@ -86,6 +88,7 @@ class WSMessage:
 @dataclass
 class WSClient:
     """Representa un cliente WebSocket conectado."""
+
     id: str
     user_id: Optional[int] = None
     rooms: Set[str] = field(default_factory=set)
@@ -316,7 +319,9 @@ class WebSocketManager:
 
         return sent
 
-    def send_to_room(self, room: str, event: str, data: Any, exclude: Optional[Set[str]] = None) -> int:
+    def send_to_room(
+        self, room: str, event: str, data: Any, exclude: Optional[Set[str]] = None
+    ) -> int:
         """Envia un mensaje a todos los clientes en una sala."""
         clients = self.get_room_clients(room)
         exclude = exclude or set()
@@ -374,10 +379,13 @@ class WebSocketManager:
                 self._stats["total_messages_received"] += 1
 
             # Publicar al event bus
-            self._event_bus.publish(f"ws:{message.event}", {
-                "client_id": client_id,
-                "message": message,
-            })
+            self._event_bus.publish(
+                f"ws:{message.event}",
+                {
+                    "client_id": client_id,
+                    "message": message,
+                },
+            )
 
             # Handle ping/pong
             if message.type == MessageType.PING:
@@ -413,10 +421,7 @@ class WebSocketManager:
         removed = 0
 
         with self._lock:
-            stale_ids = [
-                cid for cid, client in self._clients.items()
-                if client.last_ping < cutoff
-            ]
+            stale_ids = [cid for cid, client in self._clients.items() if client.last_ping < cutoff]
 
         for client_id in stale_ids:
             if self.unregister_client(client_id):
@@ -446,6 +451,7 @@ def get_ws_manager() -> WebSocketManager:
 
 # ==================== Helper Functions ====================
 
+
 def broadcast(event: str, data: Any) -> int:
     """Helper para broadcast."""
     return get_ws_manager().broadcast(event, data)
@@ -472,6 +478,7 @@ def publish(event: str, data: Any = None) -> int:
 
 
 # ==================== Flask Integration ====================
+
 
 def init_websocket(app) -> None:
     """

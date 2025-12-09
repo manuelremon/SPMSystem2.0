@@ -1,45 +1,20 @@
 import AdminCrudTemplate from '../../components/AdminCrudTemplate'
 import { Badge } from '../../components/ui/Badge'
+import { useI18n } from '../../context/i18n'
 
 export default function AdminRoles() {
+  const { t } = useI18n();
+
   return (
     <AdminCrudTemplate
-      title="Roles"
+      title={t("admin_roles", "Roles")}
       resource="roles"
-      idKey="id"
+      idKey="nombre"
       columns={[
-        { key: 'id', label: 'ID' },
-        { key: 'nombre', label: 'Nombre del Rol' },
-        { key: 'codigo', label: 'Código' },
-        {
-          key: 'permisos',
-          label: 'Permisos',
-          render: (row) => {
-            const permisos = row.permisos || [];
-            const permisosArray = typeof permisos === 'string' ? JSON.parse(permisos) : permisos;
-            return (
-              <div className="flex flex-wrap gap-1">
-                {permisosArray.length > 0 ? (
-                  permisosArray.slice(0, 3).map((permiso, idx) => (
-                    <Badge key={idx} variant="neutral" className="text-xs">
-                      {permiso}
-                    </Badge>
-                  ))
-                ) : (
-                  <span className="text-xs text-slate-500">Sin permisos</span>
-                )}
-                {permisosArray.length > 3 && (
-                  <Badge variant="neutral" className="text-xs">
-                    +{permisosArray.length - 3}
-                  </Badge>
-                )}
-              </div>
-            );
-          }
-        },
+        { key: 'nombre', label: t("admin_nombre_rol", "Nombre del Rol") },
         {
           key: 'activo',
-          label: 'Estado',
+          label: t("admin_estado", "Estado"),
           render: (row) => {
             const isActivo = row.activo === 1 || row.activo === true;
             return (
@@ -48,49 +23,31 @@ export default function AdminRoles() {
               </Badge>
             );
           }
-        }
+        },
+        { key: 'created_at', label: t("admin_creado", "Creado") }
       ]}
       fields={[
         {
           name: 'nombre',
-          label: 'Nombre del Rol',
+          label: t("admin_nombre_rol", "Nombre del Rol"),
           required: true,
-          placeholder: 'Ej: Aprobador de Solicitudes, Aprobador de Presupuestos',
-          fullWidth: true
-        },
-        {
-          name: 'codigo',
-          label: 'Código',
-          required: true,
-          placeholder: 'Ej: aprobador_solicitudes, aprobador_presupuestos (minúsculas, sin espacios)',
-          fullWidth: false
-        },
-        {
-          name: 'descripcion',
-          label: 'Descripción',
-          type: 'textarea',
-          placeholder: 'Descripción de las responsabilidades del rol',
-          fullWidth: true
-        },
-        {
-          name: 'nivel_autorizacion',
-          label: 'Nivel de Autorización',
           type: 'select',
           options: [
-            { value: '1', label: '1 - Básico (Solicitante)' },
-            { value: '2', label: '2 - Intermedio (Aprobador)' },
-            { value: '3', label: '3 - Avanzado (Planificador)' },
-            { value: '4', label: '4 - Administrador' },
+            { value: 'solicitante', label: 'Solicitante' },
+            { value: 'aprobador_solicitudes', label: 'Aprobador de Solicitudes' },
+            { value: 'aprobador_presupuestos', label: 'Aprobador de Presupuestos' },
+            { value: 'planificador', label: 'Planificador' },
+            { value: 'administrador', label: 'Administrador' },
           ],
-          defaultValue: '1',
-          placeholder: 'Selecciona el nivel de autorización'
+          placeholder: t("admin_selecciona_rol", "Selecciona el rol"),
+          fullWidth: true
         },
         {
           name: 'activo',
-          label: 'Activo',
+          label: t("admin_activo", "Activo"),
           type: 'checkbox',
           defaultValue: 1,
-          placeholder: 'Rol disponible para asignación'
+          placeholder: t("admin_rol_disponible", "Rol disponible para asignacion")
         }
       ]}
     />

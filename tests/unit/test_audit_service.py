@@ -6,10 +6,11 @@ El servicio de auditoria proporciona trazabilidad completa
 de todas las acciones en el sistema.
 """
 
-import pytest
-from unittest.mock import MagicMock, patch
-from datetime import datetime
 import json
+from datetime import datetime
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 class TestRegistrarAccion:
@@ -18,7 +19,7 @@ class TestRegistrarAccion:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos."""
-        with patch('backend.services.audit_service.get_db_transaction') as mock_transaction:
+        with patch("backend.services.audit_service.get_db_transaction") as mock_transaction:
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -32,12 +33,7 @@ class TestRegistrarAccion:
 
         _, conn, cursor = mock_db
 
-        registrar_accion(
-            entidad="solicitud",
-            entidad_id="123",
-            accion="crear",
-            actor_id="user_1"
-        )
+        registrar_accion(entidad="solicitud", entidad_id="123", accion="crear", actor_id="user_1")
 
         # Verificar que se ejecuto un INSERT
         assert cursor.execute.called
@@ -57,7 +53,7 @@ class TestRegistrarAccion:
             actor_id="user_1",
             campo_modificado="status",
             valor_anterior="draft",
-            valor_nuevo="submitted"
+            valor_nuevo="submitted",
         )
 
         # Verificar que los parametros incluyen los valores
@@ -78,7 +74,7 @@ class TestRegistrarAccion:
             actor_id="aprobador_1",
             actor_rol="aprobador",
             ip_address="192.168.1.100",
-            user_agent="Mozilla/5.0..."
+            user_agent="Mozilla/5.0...",
         )
 
         assert cursor.execute.called
@@ -91,10 +87,7 @@ class TestRegistrarAccion:
         cursor.lastrowid = 42
 
         resultado = registrar_accion(
-            entidad="solicitud",
-            entidad_id="123",
-            accion="crear",
-            actor_id="user_1"
+            entidad="solicitud", entidad_id="123", accion="crear", actor_id="user_1"
         )
 
         assert resultado == 42
@@ -106,7 +99,7 @@ class TestObtenerAuditoria:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos."""
-        with patch('backend.services.audit_service.get_db_connection') as mock_conn:
+        with patch("backend.services.audit_service.get_db_connection") as mock_conn:
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -121,28 +114,28 @@ class TestObtenerAuditoria:
         _, conn, cursor = mock_db
         cursor.fetchall.return_value = [
             {
-                'id': 1,
-                'entidad': 'solicitud',
-                'entidad_id': '123',
-                'accion': 'crear',
-                'actor_id': 'user_1',
-                'created_at': '2025-12-08T10:00:00Z'
+                "id": 1,
+                "entidad": "solicitud",
+                "entidad_id": "123",
+                "accion": "crear",
+                "actor_id": "user_1",
+                "created_at": "2025-12-08T10:00:00Z",
             },
             {
-                'id': 2,
-                'entidad': 'solicitud',
-                'entidad_id': '123',
-                'accion': 'aprobar',
-                'actor_id': 'aprobador_1',
-                'created_at': '2025-12-08T11:00:00Z'
-            }
+                "id": 2,
+                "entidad": "solicitud",
+                "entidad_id": "123",
+                "accion": "aprobar",
+                "actor_id": "aprobador_1",
+                "created_at": "2025-12-08T11:00:00Z",
+            },
         ]
 
         resultado = obtener_auditoria(entidad="solicitud", entidad_id="123")
 
         assert len(resultado) == 2
-        assert resultado[0]['accion'] == 'crear'
-        assert resultado[1]['accion'] == 'aprobar'
+        assert resultado[0]["accion"] == "crear"
+        assert resultado[1]["accion"] == "aprobar"
 
     def test_obtener_auditoria_vacia(self, mock_db):
         """Debe retornar lista vacia si no hay registros."""
@@ -174,7 +167,7 @@ class TestObtenerAuditoriaPorActor:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos."""
-        with patch('backend.services.audit_service.get_db_connection') as mock_conn:
+        with patch("backend.services.audit_service.get_db_connection") as mock_conn:
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -189,27 +182,27 @@ class TestObtenerAuditoriaPorActor:
         _, conn, cursor = mock_db
         cursor.fetchall.return_value = [
             {
-                'id': 1,
-                'entidad': 'solicitud',
-                'entidad_id': '100',
-                'accion': 'crear',
-                'actor_id': 'user_1',
-                'created_at': '2025-12-08T10:00:00Z'
+                "id": 1,
+                "entidad": "solicitud",
+                "entidad_id": "100",
+                "accion": "crear",
+                "actor_id": "user_1",
+                "created_at": "2025-12-08T10:00:00Z",
             },
             {
-                'id': 3,
-                'entidad': 'solicitud',
-                'entidad_id': '101',
-                'accion': 'crear',
-                'actor_id': 'user_1',
-                'created_at': '2025-12-08T12:00:00Z'
-            }
+                "id": 3,
+                "entidad": "solicitud",
+                "entidad_id": "101",
+                "accion": "crear",
+                "actor_id": "user_1",
+                "created_at": "2025-12-08T12:00:00Z",
+            },
         ]
 
         resultado = obtener_auditoria_por_actor(actor_id="user_1")
 
         assert len(resultado) == 2
-        assert all(r['actor_id'] == 'user_1' for r in resultado)
+        assert all(r["actor_id"] == "user_1" for r in resultado)
 
 
 class TestObtenerAuditoriaPorFecha:
@@ -218,7 +211,7 @@ class TestObtenerAuditoriaPorFecha:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos."""
-        with patch('backend.services.audit_service.get_db_connection') as mock_conn:
+        with patch("backend.services.audit_service.get_db_connection") as mock_conn:
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -233,11 +226,7 @@ class TestObtenerAuditoriaPorFecha:
         _, conn, cursor = mock_db
         cursor.fetchall.return_value = []
 
-        obtener_auditoria(
-            entidad="solicitud",
-            entidad_id="123",
-            fecha_desde="2025-12-01"
-        )
+        obtener_auditoria(entidad="solicitud", entidad_id="123", fecha_desde="2025-12-01")
 
         # Verificar que el query incluye filtro de fecha
         query = cursor.execute.call_args[0][0]
@@ -254,7 +243,7 @@ class TestObtenerAuditoriaPorFecha:
             entidad="solicitud",
             entidad_id="123",
             fecha_desde="2025-12-01",
-            fecha_hasta="2025-12-31"
+            fecha_hasta="2025-12-31",
         )
 
         query = cursor.execute.call_args[0][0]
@@ -268,7 +257,7 @@ class TestAccionesConvenientes:
     @pytest.fixture
     def mock_registrar(self):
         """Mock de la funcion registrar_accion."""
-        with patch('backend.services.audit_service.registrar_accion') as mock:
+        with patch("backend.services.audit_service.registrar_accion") as mock:
             mock.return_value = 1
             yield mock
 
@@ -279,41 +268,33 @@ class TestAccionesConvenientes:
         auditar_creacion_solicitud(
             solicitud_id=123,
             actor_id="user_1",
-            datos_solicitud={"centro": "1008", "sector": "Mantenimiento"}
+            datos_solicitud={"centro": "1008", "sector": "Mantenimiento"},
         )
 
         mock_registrar.assert_called_once()
         call_kwargs = mock_registrar.call_args[1]
-        assert call_kwargs['entidad'] == 'solicitud'
-        assert call_kwargs['accion'] == 'crear'
+        assert call_kwargs["entidad"] == "solicitud"
+        assert call_kwargs["accion"] == "crear"
 
     def test_auditar_aprobacion_solicitud(self, mock_registrar):
         """Funcion conveniente para auditar aprobacion."""
         from backend.services.audit_service import auditar_aprobacion
 
-        auditar_aprobacion(
-            solicitud_id=123,
-            actor_id="aprobador_1",
-            actor_rol="coordinador"
-        )
+        auditar_aprobacion(solicitud_id=123, actor_id="aprobador_1", actor_rol="coordinador")
 
         mock_registrar.assert_called_once()
         call_kwargs = mock_registrar.call_args[1]
-        assert call_kwargs['accion'] == 'aprobar'
+        assert call_kwargs["accion"] == "aprobar"
 
     def test_auditar_rechazo_solicitud(self, mock_registrar):
         """Funcion conveniente para auditar rechazo."""
         from backend.services.audit_service import auditar_rechazo
 
-        auditar_rechazo(
-            solicitud_id=123,
-            actor_id="aprobador_1",
-            motivo="Presupuesto insuficiente"
-        )
+        auditar_rechazo(solicitud_id=123, actor_id="aprobador_1", motivo="Presupuesto insuficiente")
 
         mock_registrar.assert_called_once()
         call_kwargs = mock_registrar.call_args[1]
-        assert call_kwargs['accion'] == 'rechazar'
+        assert call_kwargs["accion"] == "rechazar"
 
     def test_auditar_modificacion_campo(self, mock_registrar):
         """Funcion conveniente para auditar cambio de campo."""
@@ -325,14 +306,14 @@ class TestAccionesConvenientes:
             actor_id="user_1",
             campo="centro",
             valor_anterior="1008",
-            valor_nuevo="1050"
+            valor_nuevo="1050",
         )
 
         mock_registrar.assert_called_once()
         call_kwargs = mock_registrar.call_args[1]
-        assert call_kwargs['campo_modificado'] == 'centro'
-        assert call_kwargs['valor_anterior'] == '1008'
-        assert call_kwargs['valor_nuevo'] == '1050'
+        assert call_kwargs["campo_modificado"] == "centro"
+        assert call_kwargs["valor_anterior"] == "1008"
+        assert call_kwargs["valor_nuevo"] == "1050"
 
 
 class TestAuditoriaPresupuesto:
@@ -341,7 +322,7 @@ class TestAuditoriaPresupuesto:
     @pytest.fixture
     def mock_registrar(self):
         """Mock de la funcion registrar_accion."""
-        with patch('backend.services.audit_service.registrar_accion') as mock:
+        with patch("backend.services.audit_service.registrar_accion") as mock:
             mock.return_value = 1
             yield mock
 
@@ -354,17 +335,18 @@ class TestAuditoriaPresupuesto:
             sector="Mantenimiento",
             monto_cents=500000,
             solicitud_id=123,
-            actor_id="sistema"
+            actor_id="sistema",
         )
 
         mock_registrar.assert_called_once()
         call_kwargs = mock_registrar.call_args[1]
-        assert call_kwargs['entidad'] == 'presupuesto'
-        assert call_kwargs['accion'] == 'consumo'
+        assert call_kwargs["entidad"] == "presupuesto"
+        assert call_kwargs["accion"] == "consumo"
 
     def test_auditar_reversion_presupuesto(self, mock_registrar):
         """Debe auditar cuando se revierte presupuesto."""
-        from backend.services.audit_service import auditar_reversion_presupuesto
+        from backend.services.audit_service import \
+            auditar_reversion_presupuesto
 
         auditar_reversion_presupuesto(
             centro="1008",
@@ -372,12 +354,12 @@ class TestAuditoriaPresupuesto:
             monto_cents=500000,
             solicitud_id=123,
             motivo="Solicitud rechazada",
-            actor_id="sistema"
+            actor_id="sistema",
         )
 
         mock_registrar.assert_called_once()
         call_kwargs = mock_registrar.call_args[1]
-        assert call_kwargs['accion'] == 'reversion'
+        assert call_kwargs["accion"] == "reversion"
 
 
 class TestFormatoRegistroAuditoria:
@@ -393,7 +375,7 @@ class TestFormatoRegistroAuditoria:
         assert isinstance(timestamp, str)
         assert "T" in timestamp
         # Debe poder parsearse como datetime
-        datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+        datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
 
     def test_serializar_datos_a_json(self):
         """Datos adicionales deben serializarse como JSON."""
@@ -419,24 +401,33 @@ class TestValidacionesAuditoria:
 
     def test_entidad_no_puede_ser_vacia(self):
         """La entidad es obligatoria."""
-        from backend.services.audit_service import validar_entrada_auditoria, AuditoriaValidationError
+        from backend.services.audit_service import (AuditoriaValidationError,
+                                                    validar_entrada_auditoria)
 
         with pytest.raises(AuditoriaValidationError):
-            validar_entrada_auditoria(entidad="", entidad_id="123", accion="crear", actor_id="user_1")
+            validar_entrada_auditoria(
+                entidad="", entidad_id="123", accion="crear", actor_id="user_1"
+            )
 
     def test_accion_no_puede_ser_vacia(self):
         """La accion es obligatoria."""
-        from backend.services.audit_service import validar_entrada_auditoria, AuditoriaValidationError
+        from backend.services.audit_service import (AuditoriaValidationError,
+                                                    validar_entrada_auditoria)
 
         with pytest.raises(AuditoriaValidationError):
-            validar_entrada_auditoria(entidad="solicitud", entidad_id="123", accion="", actor_id="user_1")
+            validar_entrada_auditoria(
+                entidad="solicitud", entidad_id="123", accion="", actor_id="user_1"
+            )
 
     def test_actor_id_no_puede_ser_vacio(self):
         """El actor_id es obligatorio."""
-        from backend.services.audit_service import validar_entrada_auditoria, AuditoriaValidationError
+        from backend.services.audit_service import (AuditoriaValidationError,
+                                                    validar_entrada_auditoria)
 
         with pytest.raises(AuditoriaValidationError):
-            validar_entrada_auditoria(entidad="solicitud", entidad_id="123", accion="crear", actor_id="")
+            validar_entrada_auditoria(
+                entidad="solicitud", entidad_id="123", accion="crear", actor_id=""
+            )
 
     def test_entrada_valida_no_lanza_excepcion(self):
         """Una entrada valida no debe lanzar excepcion."""
@@ -444,10 +435,7 @@ class TestValidacionesAuditoria:
 
         # No debe lanzar excepcion
         validar_entrada_auditoria(
-            entidad="solicitud",
-            entidad_id="123",
-            accion="crear",
-            actor_id="user_1"
+            entidad="solicitud", entidad_id="123", accion="crear", actor_id="user_1"
         )
 
 

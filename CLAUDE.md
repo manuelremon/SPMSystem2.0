@@ -2,7 +2,7 @@
 
 Guia para Claude Code (claude.ai/code) cuando trabaja con este repositorio.
 
-> **Ultima actualizacion**: 2025-12-08 (Code Review Completo)
+> **Ultima actualizacion**: 2025-12-08 (Security Review)
 
 ## Resumen del Proyecto
 
@@ -298,6 +298,52 @@ frontend/src/
 | Imports no usados | Varios routes | Limpieza |
 | `useMaterials` muy grande | 400+ lineas | Podria dividirse |
 
+## Security Review (2025-12-08)
+
+### Resumen de Hallazgos
+
+| Severidad | Cantidad | Estado |
+|-----------|----------|--------|
+| **CRITICAL** | 3 | Pendiente |
+| **HIGH** | 7 | Pendiente |
+| **MEDIUM** | 10 | Pendiente |
+
+### Issues Criticos (Accion Inmediata)
+
+| # | Issue | Ubicacion | Riesgo |
+|---|-------|-----------|--------|
+| 1 | Privilege Escalation - Sin validacion ownership | `routes/solicitudes.py:204-229` | Usuario puede ver solicitudes de otros |
+| 2 | Tokens JWT en localStorage | `services/auth.js:5-13` | Vulnerable a XSS |
+| 3 | SQL Injection pattern (f-string tables) | `routes/admin.py:735` | Inyeccion SQL potencial |
+
+### Issues de Alta Prioridad
+
+| # | Issue | Ubicacion |
+|---|-------|-----------|
+| 4 | Sin check autorizacion en aprobaciones | `routes/solicitudes.py:608-794` |
+| 5 | CSRF token no es httpOnly | `core/csrf.py:103-110` |
+| 6 | Sin rate limiting en admin endpoints | `routes/admin.py` |
+| 7 | Bare exception handlers | `routes/admin.py`, `routes/mi_cuenta.py` |
+| 8 | CSRF bypass para Bearer tokens | `core/csrf.py:71-94` |
+| 9 | Sin ownership check en DELETE solicitud | `routes/solicitudes.py:374-441` |
+| 10 | Sin validacion en campos criticos | `routes/solicitudes.py:260-272` |
+
+### Acciones Recomendadas (Prioridad)
+
+1. **Agregar validacion de ownership** en todos los endpoints de datos
+2. **Remover tokens de localStorage** - usar solo httpOnly cookies
+3. **Agregar rate limiting** a endpoints admin
+4. **Habilitar CSRF para logout**
+5. **Implementar validacion consistente** con decorador `@validate_json()`
+
+### Buenas Practicas Existentes
+
+- Password hashing con bcrypt
+- Rate limiting en login (10 intentos/5min)
+- Security headers configurados
+- SQL parametrizado (mayoria de queries)
+- JWT con expiracion (1h access, 7d refresh)
+
 ## Convenciones de Codigo
 
 ### Python (backend)
@@ -449,3 +495,12 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 7. Verificar que el build compile sin errores
 8. **Priorizar tests para frontend** (cobertura critica baja)
 9. **Considerar refactorizar repository.py** si se agregan mas entidades
+
+### Seguridad (Obligatorio)
+
+- **Siempre validar ownership** antes de acceder/modificar datos de usuario
+- **Usar SQL parametrizado** - nunca f-strings para queries
+- **Validar inputs** con `@validate_json()` o schemas Pydantic
+- **No exponer errores internos** - usar mensajes genericos al cliente
+- **Agregar rate limiting** a endpoints sensibles
+- **Revisar permisos por rol** antes de operaciones criticas

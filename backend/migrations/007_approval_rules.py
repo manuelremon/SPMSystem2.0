@@ -162,14 +162,16 @@ def run_migration(db_path: Path = DB_PATH) -> bool:
                 print("Insertando reglas de aprobacion por defecto...")
                 cursor.executescript(REGLAS_DEFAULT)
             else:
-                print(f"Tabla reglas_aprobacion ya tiene {count} registros, no se insertan defaults")
+                print(
+                    f"Tabla reglas_aprobacion ya tiene {count} registros, no se insertan defaults"
+                )
 
             conn.commit()
 
             # Verificar creacion
             cursor.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name IN (?, ?)",
-                ('reglas_aprobacion', 'aprobadores_delegados')
+                ("reglas_aprobacion", "aprobadores_delegados"),
             )
             tables = cursor.fetchall()
             if len(tables) == 2:
@@ -221,7 +223,7 @@ def check_status(db_path: Path = DB_PATH) -> dict:
             # Verificar tablas
             cursor.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name IN (?, ?)",
-                ('reglas_aprobacion', 'aprobadores_delegados')
+                ("reglas_aprobacion", "aprobadores_delegados"),
             )
             tables = [row[0] for row in cursor.fetchall()]
 
@@ -234,10 +236,9 @@ def check_status(db_path: Path = DB_PATH) -> dict:
             return {
                 "tablas_creadas": tables,
                 "tablas_faltantes": [
-                    t for t in ['reglas_aprobacion', 'aprobadores_delegados']
-                    if t not in tables
+                    t for t in ["reglas_aprobacion", "aprobadores_delegados"] if t not in tables
                 ],
-                "registros": counts
+                "registros": counts,
             }
 
     except Exception as e:

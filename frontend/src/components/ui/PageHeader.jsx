@@ -25,7 +25,7 @@ export function PageHeader({
               {displayBadge}
             </span>
           )}
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">
             {title}
           </h1>
           {subtitle && (

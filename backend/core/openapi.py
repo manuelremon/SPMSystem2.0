@@ -68,27 +68,18 @@ def generate_openapi_spec() -> Dict[str, Any]:
             "version": API_VERSION,
             "contact": {
                 "name": "SPM Support",
-                "url": "https://github.com/manuelremon/SPMSystem2.0"
+                "url": "https://github.com/manuelremon/SPMSystem2.0",
             },
-            "license": {
-                "name": "MIT",
-                "url": "https://opensource.org/licenses/MIT"
-            }
+            "license": {"name": "MIT", "url": "https://opensource.org/licenses/MIT"},
         },
         "servers": [
-            {
-                "url": "http://localhost:5000",
-                "description": "Servidor de desarrollo"
-            },
-            {
-                "url": "https://spm-api.onrender.com",
-                "description": "Servidor de produccion"
-            }
+            {"url": "http://localhost:5000", "description": "Servidor de desarrollo"},
+            {"url": "https://spm-api.onrender.com", "description": "Servidor de produccion"},
         ],
         "tags": _get_tags(),
         "paths": _get_paths(),
         "components": _get_components(),
-        "security": [{"bearerAuth": []}]
+        "security": [{"bearerAuth": []}],
     }
 
 
@@ -104,7 +95,7 @@ def _get_tags() -> List[Dict[str, str]]:
         {"name": "sla", "description": "Metricas y alertas de SLA"},
         {"name": "export", "description": "Exportacion de reportes"},
         {"name": "admin", "description": "Administracion del sistema"},
-        {"name": "health", "description": "Estado del sistema"}
+        {"name": "health", "description": "Estado del sistema"},
     ]
 
 
@@ -125,7 +116,7 @@ def _get_paths() -> Dict[str, Any]:
                         "application/json": {
                             "schema": {"$ref": "#/components/schemas/LoginRequest"}
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -134,10 +125,10 @@ def _get_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/LoginResponse"}
                             }
-                        }
+                        },
                     },
-                    "401": {"$ref": "#/components/responses/Unauthorized"}
-                }
+                    "401": {"$ref": "#/components/responses/Unauthorized"},
+                },
             }
         },
         "/api/auth/refresh": {
@@ -152,7 +143,7 @@ def _get_paths() -> Dict[str, Any]:
                         "application/json": {
                             "schema": {"$ref": "#/components/schemas/RefreshRequest"}
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -161,10 +152,10 @@ def _get_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/TokenResponse"}
                             }
-                        }
+                        },
                     },
-                    "401": {"$ref": "#/components/responses/Unauthorized"}
-                }
+                    "401": {"$ref": "#/components/responses/Unauthorized"},
+                },
             }
         },
         "/api/auth/me": {
@@ -180,13 +171,12 @@ def _get_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/UserResponse"}
                             }
-                        }
+                        },
                     },
-                    "401": {"$ref": "#/components/responses/Unauthorized"}
-                }
+                    "401": {"$ref": "#/components/responses/Unauthorized"},
+                },
             }
         },
-
         # ==================== SOLICITUDES ====================
         "/api/solicitudes": {
             "get": {
@@ -201,14 +191,14 @@ def _get_paths() -> Dict[str, Any]:
                         "name": "estado",
                         "in": "query",
                         "schema": {"type": "string"},
-                        "description": "Filtrar por estado"
+                        "description": "Filtrar por estado",
                     },
                     {
                         "name": "centro",
                         "in": "query",
                         "schema": {"type": "string"},
-                        "description": "Filtrar por centro"
-                    }
+                        "description": "Filtrar por centro",
+                    },
                 ],
                 "responses": {
                     "200": {
@@ -217,10 +207,10 @@ def _get_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/SolicitudesListResponse"}
                             }
-                        }
+                        },
                     },
-                    "401": {"$ref": "#/components/responses/Unauthorized"}
-                }
+                    "401": {"$ref": "#/components/responses/Unauthorized"},
+                },
             },
             "post": {
                 "tags": ["solicitudes"],
@@ -233,7 +223,7 @@ def _get_paths() -> Dict[str, Any]:
                         "application/json": {
                             "schema": {"$ref": "#/components/schemas/SolicitudCreate"}
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "201": {
@@ -242,12 +232,12 @@ def _get_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/SolicitudResponse"}
                             }
-                        }
+                        },
                     },
                     "400": {"$ref": "#/components/responses/BadRequest"},
-                    "401": {"$ref": "#/components/responses/Unauthorized"}
-                }
-            }
+                    "401": {"$ref": "#/components/responses/Unauthorized"},
+                },
+            },
         },
         "/api/solicitudes/{id}": {
             "get": {
@@ -263,10 +253,10 @@ def _get_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/SolicitudResponse"}
                             }
-                        }
+                        },
                     },
-                    "404": {"$ref": "#/components/responses/NotFound"}
-                }
+                    "404": {"$ref": "#/components/responses/NotFound"},
+                },
             },
             "put": {
                 "tags": ["solicitudes"],
@@ -280,7 +270,7 @@ def _get_paths() -> Dict[str, Any]:
                         "application/json": {
                             "schema": {"$ref": "#/components/schemas/SolicitudUpdate"}
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -289,12 +279,12 @@ def _get_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/SolicitudResponse"}
                             }
-                        }
+                        },
                     },
                     "400": {"$ref": "#/components/responses/BadRequest"},
-                    "404": {"$ref": "#/components/responses/NotFound"}
-                }
-            }
+                    "404": {"$ref": "#/components/responses/NotFound"},
+                },
+            },
         },
         "/api/solicitudes/{id}/aprobar": {
             "post": {
@@ -308,9 +298,7 @@ def _get_paths() -> Dict[str, Any]:
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "properties": {
-                                    "comentario": {"type": "string"}
-                                }
+                                "properties": {"comentario": {"type": "string"}},
                             }
                         }
                     }
@@ -318,8 +306,8 @@ def _get_paths() -> Dict[str, Any]:
                 "responses": {
                     "200": {"description": "Solicitud aprobada"},
                     "400": {"$ref": "#/components/responses/BadRequest"},
-                    "403": {"$ref": "#/components/responses/Forbidden"}
-                }
+                    "403": {"$ref": "#/components/responses/Forbidden"},
+                },
             }
         },
         "/api/solicitudes/{id}/rechazar": {
@@ -336,21 +324,18 @@ def _get_paths() -> Dict[str, Any]:
                             "schema": {
                                 "type": "object",
                                 "required": ["motivo"],
-                                "properties": {
-                                    "motivo": {"type": "string"}
-                                }
+                                "properties": {"motivo": {"type": "string"}},
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {"description": "Solicitud rechazada"},
                     "400": {"$ref": "#/components/responses/BadRequest"},
-                    "403": {"$ref": "#/components/responses/Forbidden"}
-                }
+                    "403": {"$ref": "#/components/responses/Forbidden"},
+                },
             }
         },
-
         # ==================== MRP ====================
         "/api/mrp/alertas": {
             "get": {
@@ -363,14 +348,14 @@ def _get_paths() -> Dict[str, Any]:
                         "name": "centro",
                         "in": "query",
                         "schema": {"type": "string"},
-                        "description": "Filtrar por centro"
+                        "description": "Filtrar por centro",
                     },
                     {
                         "name": "criticidad",
                         "in": "query",
                         "schema": {"type": "string", "enum": ["critico", "bajo", "normal"]},
-                        "description": "Filtrar por nivel de criticidad"
-                    }
+                        "description": "Filtrar por nivel de criticidad",
+                    },
                 ],
                 "responses": {
                     "200": {
@@ -379,9 +364,9 @@ def _get_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/MRPAlertasResponse"}
                             }
-                        }
+                        },
                     }
-                }
+                },
             }
         },
         "/api/mrp/kpis": {
@@ -397,12 +382,11 @@ def _get_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/MRPKPIsResponse"}
                             }
-                        }
+                        },
                     }
-                }
+                },
             }
         },
-
         # ==================== AI ====================
         "/api/ai/status": {
             "get": {
@@ -417,9 +401,9 @@ def _get_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/AIStatusResponse"}
                             }
-                        }
+                        },
                     }
-                }
+                },
             }
         },
         "/api/ai/train": {
@@ -435,9 +419,9 @@ def _get_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/AITrainResponse"}
                             }
-                        }
+                        },
                     }
-                }
+                },
             }
         },
         "/api/ai/solicitudes/priorizar": {
@@ -450,13 +434,9 @@ def _get_paths() -> Dict[str, Any]:
                     {
                         "name": "estado",
                         "in": "query",
-                        "schema": {"type": "string", "default": "submitted"}
+                        "schema": {"type": "string", "default": "submitted"},
                     },
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "schema": {"type": "integer", "default": 20}
-                    }
+                    {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 20}},
                 ],
                 "responses": {
                     "200": {
@@ -465,9 +445,9 @@ def _get_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/AIPrioritizeResponse"}
                             }
-                        }
+                        },
                     }
-                }
+                },
             }
         },
         "/api/ai/sugerir-accion": {
@@ -484,11 +464,11 @@ def _get_paths() -> Dict[str, Any]:
                                 "type": "object",
                                 "properties": {
                                     "solicitud_id": {"type": "integer"},
-                                    "solicitud": {"type": "object"}
-                                }
+                                    "solicitud": {"type": "object"},
+                                },
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -497,12 +477,11 @@ def _get_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/AISuggestResponse"}
                             }
-                        }
+                        },
                     }
-                }
+                },
             }
         },
-
         # ==================== SLA ====================
         "/api/sla/metricas": {
             "get": {
@@ -517,9 +496,9 @@ def _get_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/SLAMetricsResponse"}
                             }
-                        }
+                        },
                     }
-                }
+                },
             }
         },
         "/api/sla/alertas": {
@@ -535,12 +514,11 @@ def _get_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/SLAAlertsResponse"}
                             }
-                        }
+                        },
                     }
-                }
+                },
             }
         },
-
         # ==================== EXPORT ====================
         "/api/export/solicitudes": {
             "get": {
@@ -552,23 +530,19 @@ def _get_paths() -> Dict[str, Any]:
                     {
                         "name": "formato",
                         "in": "query",
-                        "schema": {"type": "string", "enum": ["xlsx", "csv"], "default": "xlsx"}
+                        "schema": {"type": "string", "enum": ["xlsx", "csv"], "default": "xlsx"},
                     },
-                    {
-                        "name": "estado",
-                        "in": "query",
-                        "schema": {"type": "string"}
-                    }
+                    {"name": "estado", "in": "query", "schema": {"type": "string"}},
                 ],
                 "responses": {
                     "200": {
                         "description": "Archivo descargable",
                         "content": {
                             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {},
-                            "text/csv": {}
-                        }
+                            "text/csv": {},
+                        },
                     }
-                }
+                },
             }
         },
         "/api/export/formatos": {
@@ -592,19 +566,18 @@ def _get_paths() -> Dict[str, Any]:
                                             "properties": {
                                                 "formatos": {
                                                     "type": "array",
-                                                    "items": {"type": "string"}
+                                                    "items": {"type": "string"},
                                                 }
-                                            }
-                                        }
-                                    }
+                                            },
+                                        },
+                                    },
                                 }
                             }
-                        }
+                        },
                     }
-                }
+                },
             }
         },
-
         # ==================== HEALTH ====================
         "/api/health": {
             "get": {
@@ -620,11 +593,11 @@ def _get_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/HealthResponse"}
                             }
-                        }
+                        },
                     }
-                }
+                },
             }
-        }
+        },
     }
 
 
@@ -636,7 +609,7 @@ def _get_components() -> Dict[str, Any]:
                 "type": "http",
                 "scheme": "bearer",
                 "bearerFormat": "JWT",
-                "description": "JWT token obtenido de /api/auth/login"
+                "description": "JWT token obtenido de /api/auth/login",
             }
         },
         "parameters": {
@@ -645,54 +618,46 @@ def _get_components() -> Dict[str, Any]:
                 "in": "path",
                 "required": True,
                 "schema": {"type": "integer"},
-                "description": "ID del recurso"
+                "description": "ID del recurso",
             },
             "pageParam": {
                 "name": "page",
                 "in": "query",
                 "schema": {"type": "integer", "default": 1},
-                "description": "Numero de pagina"
+                "description": "Numero de pagina",
             },
             "limitParam": {
                 "name": "limit",
                 "in": "query",
                 "schema": {"type": "integer", "default": 20, "maximum": 100},
-                "description": "Items por pagina"
-            }
+                "description": "Items por pagina",
+            },
         },
         "responses": {
             "Unauthorized": {
                 "description": "No autenticado",
                 "content": {
-                    "application/json": {
-                        "schema": {"$ref": "#/components/schemas/ErrorResponse"}
-                    }
-                }
+                    "application/json": {"schema": {"$ref": "#/components/schemas/ErrorResponse"}}
+                },
             },
             "Forbidden": {
                 "description": "Sin permisos",
                 "content": {
-                    "application/json": {
-                        "schema": {"$ref": "#/components/schemas/ErrorResponse"}
-                    }
-                }
+                    "application/json": {"schema": {"$ref": "#/components/schemas/ErrorResponse"}}
+                },
             },
             "NotFound": {
                 "description": "Recurso no encontrado",
                 "content": {
-                    "application/json": {
-                        "schema": {"$ref": "#/components/schemas/ErrorResponse"}
-                    }
-                }
+                    "application/json": {"schema": {"$ref": "#/components/schemas/ErrorResponse"}}
+                },
             },
             "BadRequest": {
                 "description": "Request invalido",
                 "content": {
-                    "application/json": {
-                        "schema": {"$ref": "#/components/schemas/ErrorResponse"}
-                    }
-                }
-            }
+                    "application/json": {"schema": {"$ref": "#/components/schemas/ErrorResponse"}}
+                },
+            },
         },
         "schemas": {
             # ==================== BASE ====================
@@ -702,22 +667,18 @@ def _get_components() -> Dict[str, Any]:
                     "ok": {"type": "boolean", "example": False},
                     "error": {
                         "type": "object",
-                        "properties": {
-                            "code": {"type": "string"},
-                            "message": {"type": "string"}
-                        }
-                    }
-                }
+                        "properties": {"code": {"type": "string"}, "message": {"type": "string"}},
+                    },
+                },
             },
-
             # ==================== AUTH ====================
             "LoginRequest": {
                 "type": "object",
                 "required": ["email", "password"],
                 "properties": {
                     "email": {"type": "string", "format": "email", "example": "usuario@spm.com"},
-                    "password": {"type": "string", "format": "password", "example": "password123"}
-                }
+                    "password": {"type": "string", "format": "password", "example": "password123"},
+                },
             },
             "LoginResponse": {
                 "type": "object",
@@ -728,29 +689,22 @@ def _get_components() -> Dict[str, Any]:
                         "properties": {
                             "access_token": {"type": "string"},
                             "refresh_token": {"type": "string"},
-                            "user": {"$ref": "#/components/schemas/User"}
-                        }
-                    }
-                }
+                            "user": {"$ref": "#/components/schemas/User"},
+                        },
+                    },
+                },
             },
             "RefreshRequest": {
                 "type": "object",
                 "required": ["refresh_token"],
-                "properties": {
-                    "refresh_token": {"type": "string"}
-                }
+                "properties": {"refresh_token": {"type": "string"}},
             },
             "TokenResponse": {
                 "type": "object",
                 "properties": {
                     "ok": {"type": "boolean"},
-                    "data": {
-                        "type": "object",
-                        "properties": {
-                            "access_token": {"type": "string"}
-                        }
-                    }
-                }
+                    "data": {"type": "object", "properties": {"access_token": {"type": "string"}}},
+                },
             },
             "User": {
                 "type": "object",
@@ -760,17 +714,16 @@ def _get_components() -> Dict[str, Any]:
                     "email": {"type": "string"},
                     "rol": {"type": "string"},
                     "centro": {"type": "string"},
-                    "sector": {"type": "string"}
-                }
+                    "sector": {"type": "string"},
+                },
             },
             "UserResponse": {
                 "type": "object",
                 "properties": {
                     "ok": {"type": "boolean"},
-                    "data": {"$ref": "#/components/schemas/User"}
-                }
+                    "data": {"$ref": "#/components/schemas/User"},
+                },
             },
-
             # ==================== SOLICITUDES ====================
             "SolicitudCreate": {
                 "type": "object",
@@ -784,9 +737,9 @@ def _get_components() -> Dict[str, Any]:
                     "items": {
                         "type": "array",
                         "items": {"$ref": "#/components/schemas/SolicitudItem"},
-                        "minItems": 1
-                    }
-                }
+                        "minItems": 1,
+                    },
+                },
             },
             "SolicitudUpdate": {
                 "type": "object",
@@ -796,9 +749,9 @@ def _get_components() -> Dict[str, Any]:
                     "comentarios": {"type": "string"},
                     "items": {
                         "type": "array",
-                        "items": {"$ref": "#/components/schemas/SolicitudItem"}
-                    }
-                }
+                        "items": {"$ref": "#/components/schemas/SolicitudItem"},
+                    },
+                },
             },
             "SolicitudItem": {
                 "type": "object",
@@ -808,8 +761,8 @@ def _get_components() -> Dict[str, Any]:
                     "descripcion": {"type": "string"},
                     "cantidad": {"type": "number", "minimum": 1},
                     "unidad": {"type": "string"},
-                    "precio_unitario": {"type": "number"}
-                }
+                    "precio_unitario": {"type": "number"},
+                },
             },
             "Solicitud": {
                 "type": "object",
@@ -826,27 +779,24 @@ def _get_components() -> Dict[str, Any]:
                     "updated_at": {"type": "string", "format": "date-time"},
                     "items": {
                         "type": "array",
-                        "items": {"$ref": "#/components/schemas/SolicitudItem"}
-                    }
-                }
+                        "items": {"$ref": "#/components/schemas/SolicitudItem"},
+                    },
+                },
             },
             "SolicitudResponse": {
                 "type": "object",
                 "properties": {
                     "ok": {"type": "boolean"},
-                    "data": {"$ref": "#/components/schemas/Solicitud"}
-                }
+                    "data": {"$ref": "#/components/schemas/Solicitud"},
+                },
             },
             "SolicitudesListResponse": {
                 "type": "object",
                 "properties": {
                     "ok": {"type": "boolean"},
-                    "data": {
-                        "type": "array",
-                        "items": {"$ref": "#/components/schemas/Solicitud"}
-                    },
-                    "pagination": {"$ref": "#/components/schemas/Pagination"}
-                }
+                    "data": {"type": "array", "items": {"$ref": "#/components/schemas/Solicitud"}},
+                    "pagination": {"$ref": "#/components/schemas/Pagination"},
+                },
             },
             "Pagination": {
                 "type": "object",
@@ -854,10 +804,9 @@ def _get_components() -> Dict[str, Any]:
                     "page": {"type": "integer"},
                     "limit": {"type": "integer"},
                     "total": {"type": "integer"},
-                    "pages": {"type": "integer"}
-                }
+                    "pages": {"type": "integer"},
+                },
             },
-
             # ==================== MRP ====================
             "MRPAlertasResponse": {
                 "type": "object",
@@ -873,11 +822,11 @@ def _get_components() -> Dict[str, Any]:
                                 "stock_actual": {"type": "number"},
                                 "stock_seguridad": {"type": "number"},
                                 "nivel_alerta": {"type": "string"},
-                                "dias_cobertura": {"type": "number"}
-                            }
-                        }
-                    }
-                }
+                                "dias_cobertura": {"type": "number"},
+                            },
+                        },
+                    },
+                },
             },
             "MRPKPIsResponse": {
                 "type": "object",
@@ -889,12 +838,11 @@ def _get_components() -> Dict[str, Any]:
                             "materiales_criticos": {"type": "integer"},
                             "materiales_bajo_minimo": {"type": "integer"},
                             "cobertura_promedio": {"type": "number"},
-                            "rotacion_inventario": {"type": "number"}
-                        }
-                    }
-                }
+                            "rotacion_inventario": {"type": "number"},
+                        },
+                    },
+                },
             },
-
             # ==================== AI ====================
             "AIStatusResponse": {
                 "type": "object",
@@ -906,10 +854,10 @@ def _get_components() -> Dict[str, Any]:
                             "clustering": {"type": "object"},
                             "scoring": {"type": "object"},
                             "forecast": {"type": "object"},
-                            "pipelines_trained": {"type": "boolean"}
-                        }
-                    }
-                }
+                            "pipelines_trained": {"type": "boolean"},
+                        },
+                    },
+                },
             },
             "AITrainResponse": {
                 "type": "object",
@@ -921,10 +869,10 @@ def _get_components() -> Dict[str, Any]:
                             "status": {"type": "string"},
                             "clustering": {"type": "object"},
                             "forecast": {"type": "object"},
-                            "errors": {"type": "array", "items": {"type": "string"}}
-                        }
-                    }
-                }
+                            "errors": {"type": "array", "items": {"type": "string"}},
+                        },
+                    },
+                },
             },
             "AIPrioritizeResponse": {
                 "type": "object",
@@ -941,13 +889,13 @@ def _get_components() -> Dict[str, Any]:
                                     "properties": {
                                         "solicitud_id": {"type": "integer"},
                                         "score": {"type": "number"},
-                                        "rank": {"type": "integer"}
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                                        "rank": {"type": "integer"},
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
             },
             "AISuggestResponse": {
                 "type": "object",
@@ -956,14 +904,16 @@ def _get_components() -> Dict[str, Any]:
                     "data": {
                         "type": "object",
                         "properties": {
-                            "accion_sugerida": {"type": "string", "enum": ["aprobar", "revisar", "escalar", "rechazar"]},
+                            "accion_sugerida": {
+                                "type": "string",
+                                "enum": ["aprobar", "revisar", "escalar", "rechazar"],
+                            },
                             "confianza": {"type": "number"},
-                            "razones": {"type": "array", "items": {"type": "string"}}
-                        }
-                    }
-                }
+                            "razones": {"type": "array", "items": {"type": "string"}},
+                        },
+                    },
+                },
             },
-
             # ==================== SLA ====================
             "SLAMetricsResponse": {
                 "type": "object",
@@ -975,10 +925,10 @@ def _get_components() -> Dict[str, Any]:
                             "cumplimiento_general": {"type": "number"},
                             "tiempo_promedio_respuesta": {"type": "number"},
                             "solicitudes_en_tiempo": {"type": "integer"},
-                            "solicitudes_vencidas": {"type": "integer"}
-                        }
-                    }
-                }
+                            "solicitudes_vencidas": {"type": "integer"},
+                        },
+                    },
+                },
             },
             "SLAAlertsResponse": {
                 "type": "object",
@@ -992,13 +942,12 @@ def _get_components() -> Dict[str, Any]:
                                 "solicitud_id": {"type": "integer"},
                                 "tipo_alerta": {"type": "string"},
                                 "horas_restantes": {"type": "number"},
-                                "severidad": {"type": "string"}
-                            }
-                        }
-                    }
-                }
+                                "severidad": {"type": "string"},
+                            },
+                        },
+                    },
+                },
             },
-
             # ==================== HEALTH ====================
             "HealthResponse": {
                 "type": "object",
@@ -1010,10 +959,10 @@ def _get_components() -> Dict[str, Any]:
                             "status": {"type": "string"},
                             "version": {"type": "string"},
                             "database": {"type": "string"},
-                            "uptime": {"type": "number"}
-                        }
-                    }
-                }
-            }
-        }
+                            "uptime": {"type": "number"},
+                        },
+                    },
+                },
+            },
+        },
     }

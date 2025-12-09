@@ -101,7 +101,7 @@ def run_migration(db_path: Path = DB_PATH) -> bool:
             # Verificar creacion
             cursor.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name IN (?, ?)",
-                ('ordenes_planificadas', 'alertas_mrp')
+                ("ordenes_planificadas", "alertas_mrp"),
             )
             tables = cursor.fetchall()
             if len(tables) == 2:

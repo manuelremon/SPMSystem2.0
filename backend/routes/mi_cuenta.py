@@ -16,9 +16,11 @@ try:
     from backend.core.db import get_db_connection, get_db_transaction
     from backend.core.roles import is_admin, normalize_roles
     from backend.routes.auth import _decode_token
+    from backend.services.notification_service import NotificationService
 except ImportError:
     from core.db import get_db_connection, get_db_transaction
     from core.roles import is_admin, normalize_roles
+    from services.notification_service import NotificationService
 
     from routes.auth import _decode_token
 
@@ -615,6 +617,19 @@ def enviar_mensaje_solicitud(request_id: int):
                 (user_id, destinatario_id, asunto, mensaje, now),
             )
             mensaje_id = cur.lastrowid
+
+            # Obtener nombre del remitente para la notificación
+            cur.execute("SELECT nombre, apellido FROM usuarios WHERE id_spm=?", (user_id,))
+            remitente = cur.fetchone()
+            nombre_remitente = f"{remitente[0]} {remitente[1]}" if remitente else user_id
+
+        # Crear notificación para el admin
+        NotificationService.create_notification(
+            destinatario_id=destinatario_id,
+            mensaje=f"Nuevo mensaje de {nombre_remitente}: {asunto}",
+            tipo="mensaje_nuevo",
+            solicitud_id=request_id,
+        )
 
         logger.info(f"Usuario {user_id} envió mensaje al admin sobre solicitud {request_id}")
 

@@ -11,8 +11,6 @@ Valida:
 
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
-from decimal import Decimal
-
 
 # =============================================================================
 # Excepciones
@@ -114,7 +112,9 @@ class ItemSolicitud:
                 raise ItemValidationError("precio_unitario debe ser un numero", "precio_unitario")
 
             if self.precio_unitario < 0:
-                raise ItemValidationError("precio_unitario no puede ser negativo", "precio_unitario")
+                raise ItemValidationError(
+                    "precio_unitario no puede ser negativo", "precio_unitario"
+                )
 
     @property
     def subtotal(self) -> float:
@@ -207,8 +207,7 @@ class SolicitudCreate:
         # Validar criticidad
         if self.criticidad not in CRITICIDADES_VALIDAS:
             raise SolicitudValidationError(
-                f"criticidad debe ser una de: {', '.join(CRITICIDADES_VALIDAS)}",
-                "criticidad"
+                f"criticidad debe ser una de: {', '.join(CRITICIDADES_VALIDAS)}", "criticidad"
             )
 
         # Convertir items de dict a ItemSolicitud si es necesario
@@ -219,7 +218,9 @@ class SolicitudCreate:
             elif isinstance(item, ItemSolicitud):
                 items_procesados.append(item)
             else:
-                raise SolicitudValidationError("items debe ser una lista de diccionarios o ItemSolicitud")
+                raise SolicitudValidationError(
+                    "items debe ser una lista de diccionarios o ItemSolicitud"
+                )
 
         self.items = items_procesados
 
@@ -290,8 +291,7 @@ class SolicitudUpdate:
             self.criticidad = self.criticidad.strip()
             if self.criticidad and self.criticidad not in CRITICIDADES_VALIDAS:
                 raise SolicitudValidationError(
-                    f"criticidad debe ser una de: {', '.join(CRITICIDADES_VALIDAS)}",
-                    "criticidad"
+                    f"criticidad debe ser una de: {', '.join(CRITICIDADES_VALIDAS)}", "criticidad"
                 )
         if self.almacen_virtual is not None:
             self.almacen_virtual = self.almacen_virtual.strip()
@@ -303,7 +303,9 @@ class SolicitudUpdate:
         # Procesar items si se proporcionan
         if self.items is not None:
             if isinstance(self.items, list) and len(self.items) == 0:
-                raise SolicitudValidationError("items no puede estar vacio si se proporciona", "items")
+                raise SolicitudValidationError(
+                    "items no puede estar vacio si se proporciona", "items"
+                )
 
             items_procesados = []
             for item in self.items:
@@ -312,7 +314,9 @@ class SolicitudUpdate:
                 elif isinstance(item, ItemSolicitud):
                     items_procesados.append(item)
                 else:
-                    raise SolicitudValidationError("items debe ser una lista de diccionarios o ItemSolicitud")
+                    raise SolicitudValidationError(
+                        "items debe ser una lista de diccionarios o ItemSolicitud"
+                    )
 
             self.items = items_procesados
 
@@ -364,7 +368,7 @@ def validar_items(items: List[Dict[str, Any]]) -> Dict[str, Any]:
             "errores": [],
             "items_validos": 0,
             "total": 0,
-            "mensaje": "La lista de items esta vacia"
+            "mensaje": "La lista de items esta vacia",
         }
 
     items_validos = []
@@ -375,12 +379,9 @@ def validar_items(items: List[Dict[str, Any]]) -> Dict[str, Any]:
             item = ItemSolicitud.from_dict(item_data)
             items_validos.append(item)
         except ItemValidationError as e:
-            errores.append({
-                "indice": idx,
-                "campo": e.field,
-                "mensaje": e.message,
-                "datos": item_data
-            })
+            errores.append(
+                {"indice": idx, "campo": e.field, "mensaje": e.message, "datos": item_data}
+            )
 
     total = round(sum(item.subtotal for item in items_validos), 2)
 
@@ -390,7 +391,9 @@ def validar_items(items: List[Dict[str, Any]]) -> Dict[str, Any]:
         "errores": errores,
         "items_validos": len(items_validos),
         "total": total,
-        "mensaje": None if len(errores) == 0 else f"Se encontraron {len(errores)} errores de validacion"
+        "mensaje": (
+            None if len(errores) == 0 else f"Se encontraron {len(errores)} errores de validacion"
+        ),
     }
 
 
@@ -413,23 +416,17 @@ def validar_solicitud_create(data: Dict[str, Any]) -> Dict[str, Any]:
 
     try:
         solicitud = SolicitudCreate.from_dict(data)
-        return {
-            "ok": True,
-            "solicitud": solicitud,
-            "errores": []
-        }
+        return {"ok": True, "solicitud": solicitud, "errores": []}
     except SolicitudValidationError as e:
         errores.append(f"{e.field}: {e.message}" if e.field else e.message)
     except ItemValidationError as e:
-        errores.append(f"Item error - {e.field}: {e.message}" if e.field else f"Item error: {e.message}")
+        errores.append(
+            f"Item error - {e.field}: {e.message}" if e.field else f"Item error: {e.message}"
+        )
     except Exception as e:
         errores.append(f"Error inesperado: {str(e)}")
 
-    return {
-        "ok": False,
-        "solicitud": None,
-        "errores": errores
-    }
+    return {"ok": False, "solicitud": None, "errores": errores}
 
 
 def validar_solicitud_update(data: Dict[str, Any]) -> Dict[str, Any]:
@@ -451,20 +448,14 @@ def validar_solicitud_update(data: Dict[str, Any]) -> Dict[str, Any]:
 
     try:
         update = SolicitudUpdate(**data)
-        return {
-            "ok": True,
-            "update": update,
-            "errores": []
-        }
+        return {"ok": True, "update": update, "errores": []}
     except SolicitudValidationError as e:
         errores.append(f"{e.field}: {e.message}" if e.field else e.message)
     except ItemValidationError as e:
-        errores.append(f"Item error - {e.field}: {e.message}" if e.field else f"Item error: {e.message}")
+        errores.append(
+            f"Item error - {e.field}: {e.message}" if e.field else f"Item error: {e.message}"
+        )
     except Exception as e:
         errores.append(f"Error inesperado: {str(e)}")
 
-    return {
-        "ok": False,
-        "update": None,
-        "errores": errores
-    }
+    return {"ok": False, "update": None, "errores": errores}

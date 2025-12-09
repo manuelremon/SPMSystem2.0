@@ -5,8 +5,7 @@ Sprint 9.3 - Verifica funciones de salud avanzadas.
 
 import time
 from datetime import datetime
-from pathlib import Path
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -24,6 +23,7 @@ class TestCheckDatabase:
         # Crear BD de prueba
         db_file = tmp_path / "test.db"
         import sqlite3
+
         conn = sqlite3.connect(str(db_file))
         conn.execute("CREATE TABLE test (id INTEGER)")
         conn.close()
@@ -132,7 +132,7 @@ class TestCheckMetrics:
         mock_collector = MagicMock()
         mock_collector.get_request_stats.return_value = {
             "total_requests": 100,
-            "error_rate_percent": 5.0
+            "error_rate_percent": 5.0,
         }
 
         # Patch en el modulo origen
@@ -286,6 +286,7 @@ class TestDatabaseLatency:
         # Crear BD de prueba
         db_file = tmp_path / "test.db"
         import sqlite3
+
         conn = sqlite3.connect(str(db_file))
         conn.execute("CREATE TABLE test (id INTEGER)")
         conn.close()
@@ -312,6 +313,7 @@ class TestDatabaseSize:
         # Crear BD de prueba con datos
         db_file = tmp_path / "test.db"
         import sqlite3
+
         conn = sqlite3.connect(str(db_file))
         conn.execute("CREATE TABLE test (id INTEGER, data TEXT)")
         for i in range(100):
@@ -336,11 +338,7 @@ class TestCacheStatsIntegration:
         except ImportError:
             pytest.skip("Module not available")
 
-        mock_stats = {
-            "hits": 10,
-            "misses": 5,
-            "size": 100
-        }
+        mock_stats = {"hits": 10, "misses": 5, "size": 100}
 
         with patch("backend.core.cache.get_cache_stats", return_value=mock_stats):
             result = _check_cache()
@@ -363,7 +361,7 @@ class TestMetricsIntegration:
         mock_collector = MagicMock()
         mock_collector.get_request_stats.return_value = {
             "total_requests": 50,
-            "error_rate_percent": 2.5
+            "error_rate_percent": 2.5,
         }
 
         with patch("backend.core.metrics.get_metrics_collector", return_value=mock_collector):
@@ -421,7 +419,8 @@ class TestHealthStatusValues:
     def test_valid_status_values(self, tmp_path):
         """Status solo toma valores validos."""
         try:
-            from backend.routes.health import _check_database, _check_cache, _check_metrics
+            from backend.routes.health import (_check_cache, _check_database,
+                                               _check_metrics)
         except ImportError:
             pytest.skip("Module not available")
 

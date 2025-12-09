@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import sys
 import threading
 import time
@@ -34,8 +33,10 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 # ==================== Log Levels ====================
 
+
 class LogLevel(str, Enum):
     """Niveles de log."""
+
     DEBUG = "DEBUG"
     INFO = "INFO"
     WARNING = "WARNING"
@@ -45,9 +46,11 @@ class LogLevel(str, Enum):
 
 # ==================== Structured Log Entry ====================
 
+
 @dataclass
 class LogEntry:
     """Entrada de log estructurada."""
+
     timestamp: str
     level: str
     message: str
@@ -102,6 +105,7 @@ class LogEntry:
 
 # ==================== JSON Formatter ====================
 
+
 class StructuredFormatter(logging.Formatter):
     """Formatter que produce JSON estructurado."""
 
@@ -143,10 +147,10 @@ class HumanReadableFormatter(logging.Formatter):
     """Formatter legible para desarrollo."""
 
     COLORS = {
-        "DEBUG": "\033[36m",     # Cyan
-        "INFO": "\033[32m",      # Green
-        "WARNING": "\033[33m",   # Yellow
-        "ERROR": "\033[31m",     # Red
+        "DEBUG": "\033[36m",  # Cyan
+        "INFO": "\033[32m",  # Green
+        "WARNING": "\033[33m",  # Yellow
+        "ERROR": "\033[31m",  # Red
         "CRITICAL": "\033[35m",  # Magenta
         "RESET": "\033[0m",
     }
@@ -217,6 +221,7 @@ def clear_trace_context() -> None:
 @dataclass
 class Span:
     """Representa un span de tracing."""
+
     trace_id: str
     span_id: str
     parent_span_id: Optional[str] = None
@@ -241,11 +246,13 @@ class Span:
 
     def add_log(self, message: str, **kwargs) -> None:
         """Agrega un log al span."""
-        self.logs.append({
-            "timestamp": time.time(),
-            "message": message,
-            **kwargs,
-        })
+        self.logs.append(
+            {
+                "timestamp": time.time(),
+                "message": message,
+                **kwargs,
+            }
+        )
 
     def set_error(self, error: str) -> None:
         """Marca el span como error."""
@@ -307,11 +314,13 @@ class Tracer:
             self._spans[trace_id].append(span)
 
         # Establecer contexto
-        set_trace_context({
-            "trace_id": trace_id,
-            "span_id": span_id,
-            "parent_span_id": parent_span_id,
-        })
+        set_trace_context(
+            {
+                "trace_id": trace_id,
+                "span_id": span_id,
+                "parent_span_id": parent_span_id,
+            }
+        )
 
         return span
 
@@ -342,7 +351,8 @@ class Tracer:
 
         with self._lock:
             old_traces = [
-                tid for tid, spans in self._spans.items()
+                tid
+                for tid, spans in self._spans.items()
                 if spans and spans[-1].end_time and spans[-1].end_time < cutoff
             ]
             for tid in old_traces:
@@ -444,6 +454,7 @@ def get_logger(name: str) -> logging.Logger:
 
 # ==================== Context Managers ====================
 
+
 @contextmanager
 def trace_request(
     operation_name: str = "request",
@@ -477,6 +488,7 @@ def trace_request(
 
 # ==================== Decorators ====================
 
+
 def traced(operation_name: Optional[str] = None, **default_tags):
     """
     Decorador para trazar funciones automaticamente.
@@ -486,6 +498,7 @@ def traced(operation_name: Optional[str] = None, **default_tags):
         def get_user(user_id: int):
             ...
     """
+
     def decorator(func: Callable) -> Callable:
         op_name = operation_name or f"{func.__module__}.{func.__name__}"
 
@@ -515,6 +528,7 @@ def log_calls(level: int = logging.DEBUG):
         def process_data(data):
             ...
     """
+
     def decorator(func: Callable) -> Callable:
         logger = get_logger(func.__module__)
 
@@ -522,33 +536,44 @@ def log_calls(level: int = logging.DEBUG):
         def wrapper(*args, **kwargs):
             start = time.time()
 
-            logger.log(level, f"Calling {func.__name__}", extra={
-                "function": func.__name__,
-                "args_count": len(args),
-                "kwargs_keys": list(kwargs.keys()),
-            })
+            logger.log(
+                level,
+                f"Calling {func.__name__}",
+                extra={
+                    "function": func.__name__,
+                    "args_count": len(args),
+                    "kwargs_keys": list(kwargs.keys()),
+                },
+            )
 
             try:
                 result = func(*args, **kwargs)
                 duration = (time.time() - start) * 1000
 
-                logger.log(level, f"Completed {func.__name__}", extra={
-                    "function": func.__name__,
-                    "duration_ms": round(duration, 2),
-                    "success": True,
-                })
+                logger.log(
+                    level,
+                    f"Completed {func.__name__}",
+                    extra={
+                        "function": func.__name__,
+                        "duration_ms": round(duration, 2),
+                        "success": True,
+                    },
+                )
 
                 return result
 
             except Exception as e:
                 duration = (time.time() - start) * 1000
 
-                logger.error(f"Failed {func.__name__}: {e}", extra={
-                    "function": func.__name__,
-                    "duration_ms": round(duration, 2),
-                    "success": False,
-                    "error": str(e),
-                })
+                logger.error(
+                    f"Failed {func.__name__}: {e}",
+                    extra={
+                        "function": func.__name__,
+                        "duration_ms": round(duration, 2),
+                        "success": False,
+                        "error": str(e),
+                    },
+                )
 
                 raise
 
@@ -558,6 +583,7 @@ def log_calls(level: int = logging.DEBUG):
 
 
 # ==================== Event Logging ====================
+
 
 def log_event(
     event_type: str,
@@ -572,13 +598,18 @@ def log_event(
         log_event("solicitud_created", {"id": 456, "items": 5})
     """
     logger = get_logger("events")
-    logger.log(level, f"Event: {event_type}", extra={
-        "event_type": event_type,
-        "event_data": data,
-    })
+    logger.log(
+        level,
+        f"Event: {event_type}",
+        extra={
+            "event_type": event_type,
+            "event_data": data,
+        },
+    )
 
 
 # ==================== Flask Integration ====================
+
 
 def init_observability(app) -> None:
     """
@@ -609,11 +640,13 @@ def init_observability(app) -> None:
         # Obtener user_id si esta autenticado
         user_id = getattr(g, "user_id", None) if hasattr(g, "user_id") else None
 
-        set_trace_context({
-            "trace_id": trace_id,
-            "request_id": request_id,
-            "user_id": user_id,
-        })
+        set_trace_context(
+            {
+                "trace_id": trace_id,
+                "request_id": request_id,
+                "user_id": user_id,
+            }
+        )
 
         g.trace_start_time = time.time()
         g.trace_id = trace_id
@@ -632,7 +665,7 @@ def init_observability(app) -> None:
                 "status_code": response.status_code,
                 "duration_ms": round(duration, 2),
                 "remote_addr": request.remote_addr,
-            }
+            },
         )
 
         # Agregar trace ID al response
@@ -646,10 +679,13 @@ def init_observability(app) -> None:
         """Limpia contexto de trace."""
         if exception:
             logger = get_logger("http")
-            logger.error(f"Request failed: {exception}", extra={
-                "error": str(exception),
-                "traceback": traceback.format_exc(),
-            })
+            logger.error(
+                f"Request failed: {exception}",
+                extra={
+                    "error": str(exception),
+                    "traceback": traceback.format_exc(),
+                },
+            )
 
         clear_trace_context()
 

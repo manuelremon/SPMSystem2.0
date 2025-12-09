@@ -25,8 +25,7 @@ import time
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Any, Callable, Dict, Generic, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Generic, Optional, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +35,7 @@ T = TypeVar("T")
 @dataclass
 class CacheEntry(Generic[T]):
     """Entrada de cache con metadata."""
+
     value: T
     created_at: float = field(default_factory=time.time)
     expires_at: Optional[float] = None
@@ -179,10 +179,7 @@ class MemoryCache(CacheBackend):
     def cleanup_expired(self) -> int:
         """Limpia entradas expiradas."""
         with self._lock:
-            expired_keys = [
-                k for k, v in self._cache.items()
-                if v.is_expired()
-            ]
+            expired_keys = [k for k, v in self._cache.items() if v.is_expired()]
             for key in expired_keys:
                 del self._cache[key]
             return len(expired_keys)
@@ -231,6 +228,7 @@ class RedisCache(CacheBackend):
         """Conecta a Redis."""
         try:
             import redis
+
             self._client = redis.Redis(
                 host=self._host,
                 port=self._port,
@@ -509,6 +507,7 @@ def reset_cache() -> None:
 
 # ==================== Decorador ====================
 
+
 def cached(
     ttl: int = 300,
     prefix: str = "",
@@ -529,6 +528,7 @@ def cached(
         def get_user(user_id: int):
             return db.query(User).get(user_id)
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -602,6 +602,7 @@ def _build_cache_key(
 
 
 # ==================== Flask Integration ====================
+
 
 def init_cache(app, backend: str = "auto") -> None:
     """

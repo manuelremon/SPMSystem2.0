@@ -123,14 +123,9 @@ class TestRequestValidationIntegration:
         """Funciones de sanitizacion existen."""
         try:
             from backend.core.request_validation import (
-                sanitize_string,
-                sanitize_html,
-                is_safe_string,
-                check_sql_injection,
-                check_xss,
-                check_path_traversal,
-                check_command_injection
-            )
+                check_command_injection, check_path_traversal,
+                check_sql_injection, check_xss, is_safe_string, sanitize_html,
+                sanitize_string)
         except ImportError:
             pytest.skip("Module not available")
 
@@ -145,14 +140,12 @@ class TestRequestValidationIntegration:
     def test_validation_functions_exist(self):
         """Funciones de validacion existen."""
         try:
-            from backend.core.request_validation import (
-                validate_email,
-                validate_phone,
-                validate_integer,
-                validate_float,
-                validate_uuid,
-                validate_date
-            )
+            from backend.core.request_validation import (validate_date,
+                                                         validate_email,
+                                                         validate_float,
+                                                         validate_integer,
+                                                         validate_phone,
+                                                         validate_uuid)
         except ImportError:
             pytest.skip("Module not available")
 
@@ -226,6 +219,7 @@ class TestMiddlewareOrder:
 
         # init_request_validation acepta un app Flask
         import inspect
+
         sig = inspect.signature(init_request_validation)
         params = list(sig.parameters.keys())
         assert "app" in params

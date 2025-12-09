@@ -380,9 +380,9 @@ export default function DashboardAprobador() {
             </div>
           </ScrollReveal>
 
-          {/* Materiales | Grupos | Presupuesto */}
+          {/* Materiales | Presupuesto */}
           <ScrollReveal delay={250}>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
                 <CardHeader className="px-5 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Materiales Más Solicitados</CardTitle><Package className="w-5 h-5 text-blue-600" /></div></CardHeader>
                 <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
@@ -396,26 +396,6 @@ export default function DashboardAprobador() {
                             <span className="text-xs font-semibold text-slate-800 tabular-nums flex-shrink-0 ml-2">{(m.cantidad || 0).toLocaleString()}</span>
                           </div>
                           <div className="h-2.5 bg-slate-100/70 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-500 group-hover:from-blue-600 group-hover:to-blue-500" style={{ width: `${(m.cantidad / maxC) * 100}%` }} /></div>
-                        </div>
-                      );
-                    }) : <p className="text-sm text-slate-500 text-center py-4">No hay datos disponibles</p>}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
-                <CardHeader className="px-5 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Grupos de Artículos</CardTitle><Layers className="w-5 h-5 text-cyan-600" /></div></CardHeader>
-                <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
-                  <div className="space-y-3">
-                    {(kpiData.gruposArticulosMasSolicitados || []).length > 0 ? kpiData.gruposArticulosMasSolicitados.map((g, idx) => {
-                      const maxC = Math.max(...kpiData.gruposArticulosMasSolicitados.map(x => x.cantidad), 1);
-                      return (
-                        <div key={idx} className="group">
-                          <div className="flex items-center justify-between mb-1.5">
-                            <div className="flex items-center gap-2 min-w-0 flex-1"><div className="flex-shrink-0 w-5 h-5 rounded-full bg-cyan-500/10 grid place-items-center text-xs font-bold text-cyan-600">{idx + 1}</div><span className="text-sm text-slate-700 font-medium truncate" title={g.nombre}>{g.nombre}</span></div>
-                            <span className="text-xs font-semibold text-slate-800 tabular-nums flex-shrink-0 ml-2">{(g.cantidad || 0).toLocaleString()}</span>
-                          </div>
-                          <div className="h-2.5 bg-slate-100/70 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-full transition-all duration-500 group-hover:from-cyan-600 group-hover:to-cyan-500" style={{ width: `${(g.cantidad / maxC) * 100}%` }} /></div>
                         </div>
                       );
                     }) : <p className="text-sm text-slate-500 text-center py-4">No hay datos disponibles</p>}

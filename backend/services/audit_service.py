@@ -22,11 +22,13 @@ except ImportError:
 
 class AuditoriaError(Exception):
     """Excepcion base para errores de auditoria."""
+
     pass
 
 
 class AuditoriaValidationError(AuditoriaError):
     """Error de validacion en datos de auditoria."""
+
     pass
 
 
@@ -42,7 +44,7 @@ def formatear_timestamp() -> str:
     Returns:
         String en formato "2025-12-08T10:30:00Z"
     """
-    return datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def serializar_datos(datos: Optional[Dict[str, Any]]) -> Optional[str]:
@@ -60,12 +62,7 @@ def serializar_datos(datos: Optional[Dict[str, Any]]) -> Optional[str]:
     return json.dumps(datos, ensure_ascii=False, default=str)
 
 
-def validar_entrada_auditoria(
-    entidad: str,
-    entidad_id: str,
-    accion: str,
-    actor_id: str
-) -> None:
+def validar_entrada_auditoria(entidad: str, entidad_id: str, accion: str, actor_id: str) -> None:
     """
     Valida los campos requeridos para un registro de auditoria.
 
@@ -104,7 +101,7 @@ def registrar_accion(
     actor_rol: Optional[str] = None,
     ip_address: Optional[str] = None,
     user_agent: Optional[str] = None,
-    datos_adicionales: Optional[Dict[str, Any]] = None
+    datos_adicionales: Optional[Dict[str, Any]] = None,
 ) -> int:
     """
     Registra una accion en el trail de auditoria.
@@ -143,10 +140,17 @@ def registrar_accion(
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                entidad, str(entidad_id), accion, actor_id,
-                campo_modificado, valor_anterior, valor_nuevo,
-                actor_rol, ip_address, user_agent
-            )
+                entidad,
+                str(entidad_id),
+                accion,
+                actor_id,
+                campo_modificado,
+                valor_anterior,
+                valor_nuevo,
+                actor_rol,
+                ip_address,
+                user_agent,
+            ),
         )
         return cursor.lastrowid
 
@@ -156,7 +160,7 @@ def obtener_auditoria(
     entidad_id: str,
     fecha_desde: Optional[str] = None,
     fecha_hasta: Optional[str] = None,
-    limite: int = 100
+    limite: int = 100,
 ) -> List[Dict[str, Any]]:
     """
     Obtiene el historial de auditoria de una entidad.
@@ -204,7 +208,7 @@ def obtener_auditoria_por_actor(
     actor_id: str,
     fecha_desde: Optional[str] = None,
     fecha_hasta: Optional[str] = None,
-    limite: int = 100
+    limite: int = 100,
 ) -> List[Dict[str, Any]]:
     """
     Obtiene todas las acciones realizadas por un actor.
@@ -256,7 +260,7 @@ def auditar_creacion_solicitud(
     solicitud_id: int,
     actor_id: str,
     datos_solicitud: Optional[Dict[str, Any]] = None,
-    ip_address: Optional[str] = None
+    ip_address: Optional[str] = None,
 ) -> int:
     """
     Registra la creacion de una solicitud.
@@ -276,7 +280,7 @@ def auditar_creacion_solicitud(
         accion="crear",
         actor_id=actor_id,
         ip_address=ip_address,
-        datos_adicionales=datos_solicitud
+        datos_adicionales=datos_solicitud,
     )
 
 
@@ -285,7 +289,7 @@ def auditar_aprobacion(
     actor_id: str,
     actor_rol: Optional[str] = None,
     comentario: Optional[str] = None,
-    ip_address: Optional[str] = None
+    ip_address: Optional[str] = None,
 ) -> int:
     """
     Registra la aprobacion de una solicitud.
@@ -309,7 +313,7 @@ def auditar_aprobacion(
         actor_id=actor_id,
         actor_rol=actor_rol,
         ip_address=ip_address,
-        datos_adicionales=datos
+        datos_adicionales=datos,
     )
 
 
@@ -318,7 +322,7 @@ def auditar_rechazo(
     actor_id: str,
     motivo: Optional[str] = None,
     actor_rol: Optional[str] = None,
-    ip_address: Optional[str] = None
+    ip_address: Optional[str] = None,
 ) -> int:
     """
     Registra el rechazo de una solicitud.
@@ -342,7 +346,7 @@ def auditar_rechazo(
         actor_id=actor_id,
         actor_rol=actor_rol,
         ip_address=ip_address,
-        datos_adicionales=datos
+        datos_adicionales=datos,
     )
 
 
@@ -354,7 +358,7 @@ def auditar_modificacion(
     valor_anterior: Any,
     valor_nuevo: Any,
     actor_rol: Optional[str] = None,
-    ip_address: Optional[str] = None
+    ip_address: Optional[str] = None,
 ) -> int:
     """
     Registra la modificacion de un campo.
@@ -381,7 +385,7 @@ def auditar_modificacion(
         valor_anterior=str(valor_anterior) if valor_anterior is not None else None,
         valor_nuevo=str(valor_nuevo) if valor_nuevo is not None else None,
         actor_rol=actor_rol,
-        ip_address=ip_address
+        ip_address=ip_address,
     )
 
 
@@ -396,7 +400,7 @@ def auditar_consumo_presupuesto(
     monto_cents: int,
     solicitud_id: int,
     actor_id: str,
-    ip_address: Optional[str] = None
+    ip_address: Optional[str] = None,
 ) -> int:
     """
     Registra el consumo de presupuesto.
@@ -422,8 +426,8 @@ def auditar_consumo_presupuesto(
             "centro": centro,
             "sector": sector,
             "monto_cents": monto_cents,
-            "solicitud_id": solicitud_id
-        }
+            "solicitud_id": solicitud_id,
+        },
     )
 
 
@@ -434,7 +438,7 @@ def auditar_reversion_presupuesto(
     solicitud_id: int,
     motivo: str,
     actor_id: str,
-    ip_address: Optional[str] = None
+    ip_address: Optional[str] = None,
 ) -> int:
     """
     Registra la reversion de presupuesto (devolucion).
@@ -462,8 +466,8 @@ def auditar_reversion_presupuesto(
             "sector": sector,
             "monto_cents": monto_cents,
             "solicitud_id": solicitud_id,
-            "motivo": motivo
-        }
+            "motivo": motivo,
+        },
     )
 
 
@@ -472,10 +476,7 @@ def auditar_reversion_presupuesto(
 # =============================================================================
 
 
-def obtener_resumen_auditoria(
-    fecha_desde: str,
-    fecha_hasta: str
-) -> Dict[str, Any]:
+def obtener_resumen_auditoria(fecha_desde: str, fecha_hasta: str) -> Dict[str, Any]:
     """
     Genera un resumen de actividad de auditoria.
 
@@ -498,7 +499,7 @@ def obtener_resumen_auditoria(
             FROM audit_trail
             WHERE created_at BETWEEN ? AND ?
             """,
-            (fecha_desde, fecha_hasta)
+            (fecha_desde, fecha_hasta),
         )
         totales = dict(cursor.fetchone())
 
@@ -511,9 +512,9 @@ def obtener_resumen_auditoria(
             GROUP BY accion
             ORDER BY cantidad DESC
             """,
-            (fecha_desde, fecha_hasta)
+            (fecha_desde, fecha_hasta),
         )
-        por_accion = {row['accion']: row['cantidad'] for row in cursor.fetchall()}
+        por_accion = {row["accion"]: row["cantidad"] for row in cursor.fetchall()}
 
         # Top actores
         cursor.execute(
@@ -525,7 +526,7 @@ def obtener_resumen_auditoria(
             ORDER BY cantidad DESC
             LIMIT 10
             """,
-            (fecha_desde, fecha_hasta)
+            (fecha_desde, fecha_hasta),
         )
         top_actores = [dict(row) for row in cursor.fetchall()]
 
@@ -533,5 +534,5 @@ def obtener_resumen_auditoria(
         "periodo": {"desde": fecha_desde, "hasta": fecha_hasta},
         "totales": totales,
         "por_accion": por_accion,
-        "top_actores": top_actores
+        "top_actores": top_actores,
     }

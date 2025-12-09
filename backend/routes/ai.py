@@ -21,7 +21,7 @@ from flask import Blueprint, g, jsonify, request
 try:
     from backend.services.ai_service import AIService, get_ai_service
 except ImportError:
-    from services.ai_service import AIService, get_ai_service
+    from services.ai_service import get_ai_service
 
 
 def require_auth(f):
@@ -50,7 +50,10 @@ def require_role(roles):
             if not hasattr(g, "user") or not g.user:
                 return (
                     jsonify(
-                        {"ok": False, "error": {"code": "unauthorized", "message": "No autenticado"}}
+                        {
+                            "ok": False,
+                            "error": {"code": "unauthorized", "message": "No autenticado"},
+                        }
                     ),
                     401,
                 )
@@ -82,6 +85,7 @@ def require_role(roles):
 
     return decorator
 
+
 logger = logging.getLogger(__name__)
 
 bp = Blueprint("ai", __name__, url_prefix="/api/ai")
@@ -100,17 +104,11 @@ def get_status():
         service = get_ai_service()
         status = service.get_status()
 
-        return jsonify({
-            "ok": True,
-            "data": status
-        })
+        return jsonify({"ok": True, "data": status})
 
     except Exception as e:
         logger.error(f"Error obteniendo status IA: {e}")
-        return jsonify({
-            "ok": False,
-            "error": {"code": "ai_status_error", "message": str(e)}
-        }), 500
+        return jsonify({"ok": False, "error": {"code": "ai_status_error", "message": str(e)}}), 500
 
 
 @bp.route("/train", methods=["POST"])
@@ -141,36 +139,34 @@ def train_models():
             cursor = conn.cursor()
 
             # Solicitudes historicas
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT id, created_at, material_codigo, centro, sector,
                        criticidad, total_monto, data_json
                 FROM solicitudes
                 WHERE created_at > datetime('now', '-90 days')
-            """)
+            """
+            )
             solicitudes = [dict(row) for row in cursor.fetchall()]
 
             # Materiales
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT codigo, descripcion, precio_usd, unidad, activo
                 FROM catalogo_materiales
                 WHERE activo = 1
-            """)
+            """
+            )
             materiales = [dict(row) for row in cursor.fetchall()]
 
         # Entrenar
         result = service.train_pipelines(solicitudes, materiales)
 
-        return jsonify({
-            "ok": True,
-            "data": result
-        })
+        return jsonify({"ok": True, "data": result})
 
     except Exception as e:
         logger.error(f"Error entrenando modelos: {e}")
-        return jsonify({
-            "ok": False,
-            "error": {"code": "train_error", "message": str(e)}
-        }), 500
+        return jsonify({"ok": False, "error": {"code": "train_error", "message": str(e)}}), 500
 
 
 @bp.route("/solicitudes/priorizar", methods=["GET"])
@@ -222,17 +218,11 @@ def priorizar_solicitudes():
 
         result = service.priorizar_solicitudes(solicitudes)
 
-        return jsonify({
-            "ok": True,
-            "data": result
-        })
+        return jsonify({"ok": True, "data": result})
 
     except Exception as e:
         logger.error(f"Error priorizando solicitudes: {e}")
-        return jsonify({
-            "ok": False,
-            "error": {"code": "prioritize_error", "message": str(e)}
-        }), 500
+        return jsonify({"ok": False, "error": {"code": "prioritize_error", "message": str(e)}}), 500
 
 
 @bp.route("/materiales/similares/<material_codigo>", methods=["GET"])
@@ -257,22 +247,14 @@ def materiales_similares(material_codigo):
     try:
         service = get_ai_service()
         result = service.recomendar_materiales_similares(
-            material_codigo=material_codigo,
-            centro=centro,
-            max_resultados=max_resultados
+            material_codigo=material_codigo, centro=centro, max_resultados=max_resultados
         )
 
-        return jsonify({
-            "ok": True,
-            "data": result
-        })
+        return jsonify({"ok": True, "data": result})
 
     except Exception as e:
         logger.error(f"Error buscando similares: {e}")
-        return jsonify({
-            "ok": False,
-            "error": {"code": "similares_error", "message": str(e)}
-        }), 500
+        return jsonify({"ok": False, "error": {"code": "similares_error", "message": str(e)}}), 500
 
 
 @bp.route("/materiales/forecast/<material_codigo>", methods=["GET"])
@@ -297,22 +279,14 @@ def forecast_demanda(material_codigo):
     try:
         service = get_ai_service()
         result = service.proyectar_demanda(
-            material_codigo=material_codigo,
-            centro=centro,
-            dias=dias
+            material_codigo=material_codigo, centro=centro, dias=dias
         )
 
-        return jsonify({
-            "ok": True,
-            "data": result
-        })
+        return jsonify({"ok": True, "data": result})
 
     except Exception as e:
         logger.error(f"Error proyectando demanda: {e}")
-        return jsonify({
-            "ok": False,
-            "error": {"code": "forecast_error", "message": str(e)}
-        }), 500
+        return jsonify({"ok": False, "error": {"code": "forecast_error", "message": str(e)}}), 500
 
 
 @bp.route("/materiales/analisis/<material_codigo>", methods=["GET"])
@@ -334,22 +308,13 @@ def analisis_material(material_codigo):
 
     try:
         service = get_ai_service()
-        result = service.analisis_completo_material(
-            material_codigo=material_codigo,
-            centro=centro
-        )
+        result = service.analisis_completo_material(material_codigo=material_codigo, centro=centro)
 
-        return jsonify({
-            "ok": True,
-            "data": result
-        })
+        return jsonify({"ok": True, "data": result})
 
     except Exception as e:
         logger.error(f"Error en analisis: {e}")
-        return jsonify({
-            "ok": False,
-            "error": {"code": "analisis_error", "message": str(e)}
-        }), 500
+        return jsonify({"ok": False, "error": {"code": "analisis_error", "message": str(e)}}), 500
 
 
 @bp.route("/sugerir-accion", methods=["POST"])
@@ -389,36 +354,49 @@ def sugerir_accion():
         elif "solicitud_id" in data:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT id, criticidad, fecha_necesidad, total_monto, data_json
                     FROM solicitudes WHERE id = ?
-                """, (data["solicitud_id"],))
+                """,
+                    (data["solicitud_id"],),
+                )
                 row = cursor.fetchone()
                 if not row:
-                    return jsonify({
-                        "ok": False,
-                        "error": {"code": "not_found", "message": "Solicitud no encontrada"}
-                    }), 404
+                    return (
+                        jsonify(
+                            {
+                                "ok": False,
+                                "error": {
+                                    "code": "not_found",
+                                    "message": "Solicitud no encontrada",
+                                },
+                            }
+                        ),
+                        404,
+                    )
                 solicitud = dict(row)
         else:
-            return jsonify({
-                "ok": False,
-                "error": {"code": "bad_request", "message": "Falta solicitud_id o solicitud"}
-            }), 400
+            return (
+                jsonify(
+                    {
+                        "ok": False,
+                        "error": {
+                            "code": "bad_request",
+                            "message": "Falta solicitud_id o solicitud",
+                        },
+                    }
+                ),
+                400,
+            )
 
         result = service.sugerir_accion(solicitud)
 
-        return jsonify({
-            "ok": True,
-            "data": result
-        })
+        return jsonify({"ok": True, "data": result})
 
     except Exception as e:
         logger.error(f"Error sugiriendo accion: {e}")
-        return jsonify({
-            "ok": False,
-            "error": {"code": "suggest_error", "message": str(e)}
-        }), 500
+        return jsonify({"ok": False, "error": {"code": "suggest_error", "message": str(e)}}), 500
 
 
 @bp.route("/alertas", methods=["GET"])
@@ -436,26 +414,22 @@ def alertas_inteligentes():
     centro = request.args.get("centro")
 
     if not centro:
-        return jsonify({
-            "ok": False,
-            "error": {"code": "bad_request", "message": "centro es requerido"}
-        }), 400
+        return (
+            jsonify(
+                {"ok": False, "error": {"code": "bad_request", "message": "centro es requerido"}}
+            ),
+            400,
+        )
 
     try:
         service = get_ai_service()
         result = service.generar_alertas_inteligentes(centro=centro)
 
-        return jsonify({
-            "ok": True,
-            "data": result
-        })
+        return jsonify({"ok": True, "data": result})
 
     except Exception as e:
         logger.error(f"Error generando alertas: {e}")
-        return jsonify({
-            "ok": False,
-            "error": {"code": "alertas_error", "message": str(e)}
-        }), 500
+        return jsonify({"ok": False, "error": {"code": "alertas_error", "message": str(e)}}), 500
 
 
 @bp.route("/cantidad-optima", methods=["POST"])
@@ -482,10 +456,15 @@ def cantidad_optima():
     centro = data.get("centro", "1000")
 
     if not material_codigo:
-        return jsonify({
-            "ok": False,
-            "error": {"code": "bad_request", "message": "material_codigo es requerido"}
-        }), 400
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {"code": "bad_request", "message": "material_codigo es requerido"},
+                }
+            ),
+            400,
+        )
 
     try:
         service = get_ai_service()
@@ -494,17 +473,11 @@ def cantidad_optima():
             centro=centro,
             demanda_anual=data.get("demanda_anual"),
             costo_orden=data.get("costo_orden", 50.0),
-            costo_mantenimiento=data.get("costo_mantenimiento", 2.0)
+            costo_mantenimiento=data.get("costo_mantenimiento", 2.0),
         )
 
-        return jsonify({
-            "ok": True,
-            "data": result
-        })
+        return jsonify({"ok": True, "data": result})
 
     except Exception as e:
         logger.error(f"Error calculando cantidad optima: {e}")
-        return jsonify({
-            "ok": False,
-            "error": {"code": "eoq_error", "message": str(e)}
-        }), 500
+        return jsonify({"ok": False, "error": {"code": "eoq_error", "message": str(e)}}), 500

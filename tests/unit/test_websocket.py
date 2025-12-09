@@ -5,7 +5,6 @@ Sprint 15 - Verifica comunicacion en tiempo real.
 
 import json
 import time
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -35,7 +34,7 @@ class TestWSMessage:
     def test_message_creation(self):
         """Crear mensaje."""
         try:
-            from backend.core.websocket import WSMessage, MessageType
+            from backend.core.websocket import MessageType, WSMessage
         except ImportError:
             pytest.skip("Module not available")
 
@@ -53,7 +52,7 @@ class TestWSMessage:
     def test_message_to_json(self):
         """Serializar mensaje a JSON."""
         try:
-            from backend.core.websocket import WSMessage, MessageType
+            from backend.core.websocket import MessageType, WSMessage
         except ImportError:
             pytest.skip("Module not available")
 
@@ -73,15 +72,17 @@ class TestWSMessage:
     def test_message_from_json(self):
         """Deserializar mensaje desde JSON."""
         try:
-            from backend.core.websocket import WSMessage, MessageType
+            from backend.core.websocket import MessageType, WSMessage
         except ImportError:
             pytest.skip("Module not available")
 
-        json_str = json.dumps({
-            "type": "broadcast",
-            "event": "alert",
-            "data": {"level": "high"},
-        })
+        json_str = json.dumps(
+            {
+                "type": "broadcast",
+                "event": "alert",
+                "data": {"level": "high"},
+            }
+        )
 
         msg = WSMessage.from_json(json_str)
 
@@ -134,7 +135,7 @@ class TestWSClient:
     def test_client_send_with_callback(self):
         """Cliente envia mensaje via callback."""
         try:
-            from backend.core.websocket import WSClient, WSMessage, MessageType
+            from backend.core.websocket import MessageType, WSClient, WSMessage
         except ImportError:
             pytest.skip("Module not available")
 
@@ -393,11 +394,13 @@ class TestWebSocketManager:
 
         manager.register_client("client-1", send_callback=callback)
 
-        ping_msg = json.dumps({
-            "type": "ping",
-            "event": "ping",
-            "data": {},
-        })
+        ping_msg = json.dumps(
+            {
+                "type": "ping",
+                "event": "ping",
+                "data": {},
+            }
+        )
 
         manager.handle_message("client-1", ping_msg)
 
@@ -439,7 +442,8 @@ class TestHelperFunctions:
     def test_subscribe_helper(self):
         """Helper subscribe funciona."""
         try:
-            from backend.core.websocket import subscribe, publish, get_ws_manager
+            from backend.core.websocket import (get_ws_manager, publish,
+                                                subscribe)
         except ImportError:
             pytest.skip("Module not available")
 
@@ -468,8 +472,7 @@ class TestClientMetadata:
         manager = WebSocketManager()
 
         client = manager.register_client(
-            "client-1",
-            metadata={"role": "admin", "browser": "chrome"}
+            "client-1", metadata={"role": "admin", "browser": "chrome"}
         )
 
         assert client.metadata["role"] == "admin"

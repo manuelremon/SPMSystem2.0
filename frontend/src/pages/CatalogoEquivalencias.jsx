@@ -14,6 +14,7 @@ import { Modal } from '../components/ui/Modal'
 import { ConfirmModal } from '../components/ui/ConfirmModal'
 import { Badge } from '../components/ui/Badge'
 import { TableSkeleton } from '../components/ui/Skeleton'
+import { MaterialDetailModal } from '../components/materials/MaterialDetailModal'
 import {
   Search,
   Loader2,
@@ -23,7 +24,8 @@ import {
   Trash2,
   X,
   ArrowRight,
-  Check
+  Check,
+  ExternalLink
 } from 'lucide-react'
 
 const DEBOUNCE_MS = 300
@@ -64,6 +66,59 @@ export default function CatalogoEquivalencias() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [selectedEquivalencia, setSelectedEquivalencia] = useState(null)
+
+  // Material detail modal state
+  const [showMaterialDetail, setShowMaterialDetail] = useState(false)
+  const [selectedMaterialForDetail, setSelectedMaterialForDetail] = useState(null)
+  const [materialDetail, setMaterialDetail] = useState(null)
+  const [loadingMaterialDetail, setLoadingMaterialDetail] = useState(false)
+
+  // Open material detail - load material data
+  const openMaterialDetail = async (codigo) => {
+    setShowMaterialDetail(true)
+    setLoadingMaterialDetail(true)
+    setMaterialDetail(null)
+
+    try {
+      // Get basic material info - search by codigo exactly
+      const res = await materiales.buscar({ codigo: codigo, limit: 10 })
+      // Find exact match by codigo
+      const mat = res.data?.find(m => String(m.codigo) === String(codigo)) || res.data?.[0]
+
+      if (mat) {
+        setSelectedMaterialForDetail(mat)
+
+        // Get full detail including stock, mrp, consumo
+        const detailRes = await materiales.detalle(codigo)
+        // axios response has data in .data property
+        const detailData = detailRes.data || {}
+        setMaterialDetail(detailData)
+      } else {
+        // Material not found in catalog, create minimal object
+        setSelectedMaterialForDetail({
+          codigo: codigo,
+          descripcion: 'Material no encontrado en catálogo',
+          descripcion_larga: ''
+        })
+      }
+    } catch (err) {
+      console.error('Error loading material detail:', err)
+      setSelectedMaterialForDetail({
+        codigo: codigo,
+        descripcion: 'Error al cargar material',
+        descripcion_larga: ''
+      })
+    } finally {
+      setLoadingMaterialDetail(false)
+    }
+  }
+
+  // Close material detail modal
+  const closeMaterialDetail = () => {
+    setShowMaterialDetail(false)
+    setSelectedMaterialForDetail(null)
+    setMaterialDetail(null)
+  }
 
   // Form state
   const [formData, setFormData] = useState({
@@ -300,7 +355,6 @@ export default function CatalogoEquivalencias() {
       {/* Header */}
       <PageHeader
         title={t('equivalencias_titulo', 'Catálogo de Materiales Alternativos')}
-        subtitle={t('equivalencias_subtitulo', 'Gestiona las equivalencias entre materiales')}
         actions={
           canManage && (
             <Button onClick={() => { resetForm(); setShowCreateModal(true) }}>
@@ -402,10 +456,10 @@ export default function CatalogoEquivalencias() {
                         {t('equivalencias_col_equivalente', 'Material Equivalente')}
                       </th>
                       <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
-                        {t('equivalencias_col_compatibilidad', 'Compatibilidad')}
+                        {t('equivalencias_col_tipo', 'Tipo')}
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
-                        {t('equivalencias_col_descripcion', 'Descripción')}
+                        {t('equivalencias_col_motivo', 'Motivo')}
                       </th>
                       {canManage && (
                         <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -426,9 +480,15 @@ export default function CatalogoEquivalencias() {
                       >
                         <td className="px-4 py-3">
                           <div>
-                            <span className="font-mono font-semibold text-blue-600">
+                            <button
+                              type="button"
+                              onClick={() => openMaterialDetail(eq.codigo_original)}
+                              className="font-mono font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer inline-flex items-center gap-1 group"
+                              title={t('equivalencias_ver_detalle', 'Ver detalle del material')}
+                            >
                               {eq.codigo_original}
-                            </span>
+                              <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </button>
                             <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
                               {eq.descripcion_original}
                             </p>
@@ -439,24 +499,30 @@ export default function CatalogoEquivalencias() {
                         </td>
                         <td className="px-4 py-3">
                           <div>
-                            <span className="font-mono font-semibold text-cyan-600">
+                            <button
+                              type="button"
+                              onClick={() => openMaterialDetail(eq.codigo_equivalente)}
+                              className="font-mono font-semibold text-cyan-600 hover:text-cyan-800 hover:underline cursor-pointer inline-flex items-center gap-1 group"
+                              title={t('equivalencias_ver_detalle', 'Ver detalle del material')}
+                            >
                               {eq.codigo_equivalente}
-                            </span>
+                              <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </button>
                             <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
                               {eq.descripcion_equivalente}
                             </p>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <CompatibilityBar percent={eq.compatibilidad_pct} />
+                          <Badge variant={eq.tipo_equivalencia === 'SUSTITUTO' ? 'success' : 'secondary'}>
+                            {eq.tipo_equivalencia || '-'}
+                          </Badge>
+                          {eq.criterio && (
+                            <p className="text-xs text-slate-500 mt-0.5">{eq.criterio}</p>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-slate-800">
-                          <p className="line-clamp-2">{eq.descripcion || '-'}</p>
-                          {eq.notas && (
-                            <p className="text-xs text-slate-500 line-clamp-1 mt-0.5 italic">
-                              {eq.notas}
-                            </p>
-                          )}
+                          <p className="line-clamp-2">{eq.motivo || '-'}</p>
                         </td>
                         {canManage && (
                           <td className="px-4 py-3 text-center">
@@ -809,6 +875,15 @@ export default function CatalogoEquivalencias() {
         cancelText={t('common_cancelar', 'Cancelar')}
         variant="danger"
         loading={formLoading}
+      />
+
+      {/* Material Detail Modal */}
+      <MaterialDetailModal
+        isOpen={showMaterialDetail}
+        onClose={closeMaterialDetail}
+        selectedMaterial={selectedMaterialForDetail}
+        detail={materialDetail}
+        loadingDetail={loadingMaterialDetail}
       />
     </div>
   )

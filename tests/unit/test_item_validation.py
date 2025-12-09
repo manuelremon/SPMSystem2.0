@@ -9,7 +9,6 @@ Valida:
 """
 
 import pytest
-from decimal import Decimal
 
 
 class TestItemSchema:
@@ -19,11 +18,7 @@ class TestItemSchema:
         """Un item con campos minimos debe ser valido."""
         from backend.core.item_schemas import ItemSolicitud
 
-        item = ItemSolicitud(
-            material_id="MAT001",
-            cantidad=10,
-            unidad="UN"
-        )
+        item = ItemSolicitud(material_id="MAT001", cantidad=10, unidad="UN")
 
         assert item.material_id == "MAT001"
         assert item.cantidad == 10
@@ -41,7 +36,7 @@ class TestItemSchema:
             precio_unitario=100.50,
             almacen="1000",
             centro="1008",
-            observaciones="Urgente"
+            observaciones="Urgente",
         )
 
         assert item.material_id == "MAT001"
@@ -51,72 +46,51 @@ class TestItemSchema:
 
     def test_item_cantidad_cero_invalido(self):
         """Cantidad cero debe ser invalida."""
-        from backend.core.item_schemas import ItemSolicitud, ItemValidationError
+        from backend.core.item_schemas import (ItemSolicitud,
+                                               ItemValidationError)
 
         with pytest.raises(ItemValidationError) as exc:
-            ItemSolicitud(
-                material_id="MAT001",
-                cantidad=0,
-                unidad="UN"
-            )
+            ItemSolicitud(material_id="MAT001", cantidad=0, unidad="UN")
 
         assert "cantidad" in str(exc.value).lower()
 
     def test_item_cantidad_negativa_invalido(self):
         """Cantidad negativa debe ser invalida."""
-        from backend.core.item_schemas import ItemSolicitud, ItemValidationError
+        from backend.core.item_schemas import (ItemSolicitud,
+                                               ItemValidationError)
 
         with pytest.raises(ItemValidationError):
-            ItemSolicitud(
-                material_id="MAT001",
-                cantidad=-5,
-                unidad="UN"
-            )
+            ItemSolicitud(material_id="MAT001", cantidad=-5, unidad="UN")
 
     def test_item_precio_negativo_invalido(self):
         """Precio negativo debe ser invalido."""
-        from backend.core.item_schemas import ItemSolicitud, ItemValidationError
+        from backend.core.item_schemas import (ItemSolicitud,
+                                               ItemValidationError)
 
         with pytest.raises(ItemValidationError):
-            ItemSolicitud(
-                material_id="MAT001",
-                cantidad=10,
-                unidad="UN",
-                precio_unitario=-100
-            )
+            ItemSolicitud(material_id="MAT001", cantidad=10, unidad="UN", precio_unitario=-100)
 
     def test_item_sin_material_id_invalido(self):
         """Item sin material_id debe ser invalido."""
-        from backend.core.item_schemas import ItemSolicitud, ItemValidationError
+        from backend.core.item_schemas import (ItemSolicitud,
+                                               ItemValidationError)
 
         with pytest.raises(ItemValidationError):
-            ItemSolicitud(
-                material_id="",
-                cantidad=10,
-                unidad="UN"
-            )
+            ItemSolicitud(material_id="", cantidad=10, unidad="UN")
 
     def test_item_sin_unidad_invalido(self):
         """Item sin unidad debe ser invalido."""
-        from backend.core.item_schemas import ItemSolicitud, ItemValidationError
+        from backend.core.item_schemas import (ItemSolicitud,
+                                               ItemValidationError)
 
         with pytest.raises(ItemValidationError):
-            ItemSolicitud(
-                material_id="MAT001",
-                cantidad=10,
-                unidad=""
-            )
+            ItemSolicitud(material_id="MAT001", cantidad=10, unidad="")
 
     def test_item_calcula_subtotal(self):
         """El item debe calcular el subtotal correctamente."""
         from backend.core.item_schemas import ItemSolicitud
 
-        item = ItemSolicitud(
-            material_id="MAT001",
-            cantidad=5,
-            unidad="UN",
-            precio_unitario=100.00
-        )
+        item = ItemSolicitud(material_id="MAT001", cantidad=5, unidad="UN", precio_unitario=100.00)
 
         assert item.subtotal == 500.00
 
@@ -124,11 +98,7 @@ class TestItemSchema:
         """Sin precio unitario, el subtotal debe ser cero."""
         from backend.core.item_schemas import ItemSolicitud
 
-        item = ItemSolicitud(
-            material_id="MAT001",
-            cantidad=5,
-            unidad="UN"
-        )
+        item = ItemSolicitud(material_id="MAT001", cantidad=5, unidad="UN")
 
         assert item.subtotal == 0
 
@@ -140,7 +110,7 @@ class TestItemSchema:
             material_id="  MAT001  ",
             descripcion="  Descripcion con espacios  ",
             cantidad=10,
-            unidad="  UN  "
+            unidad="  UN  ",
         )
 
         assert item.material_id == "MAT001"
@@ -161,8 +131,8 @@ class TestSolicitudCreate:
             justificacion="Reposicion de stock",
             items=[
                 {"material_id": "MAT001", "cantidad": 10, "unidad": "UN"},
-                {"material_id": "MAT002", "cantidad": 5, "unidad": "KG"}
-            ]
+                {"material_id": "MAT002", "cantidad": 5, "unidad": "KG"},
+            ],
         )
 
         assert solicitud.centro == "1008"
@@ -170,40 +140,38 @@ class TestSolicitudCreate:
 
     def test_solicitud_sin_items_invalida(self):
         """Una solicitud sin items debe ser invalida."""
-        from backend.core.item_schemas import SolicitudCreate, SolicitudValidationError
+        from backend.core.item_schemas import (SolicitudCreate,
+                                               SolicitudValidationError)
 
         with pytest.raises(SolicitudValidationError) as exc:
-            SolicitudCreate(
-                centro="1008",
-                sector="Operaciones",
-                justificacion="Test",
-                items=[]
-            )
+            SolicitudCreate(centro="1008", sector="Operaciones", justificacion="Test", items=[])
 
         assert "item" in str(exc.value).lower()
 
     def test_solicitud_sin_centro_invalida(self):
         """Una solicitud sin centro debe ser invalida."""
-        from backend.core.item_schemas import SolicitudCreate, SolicitudValidationError
+        from backend.core.item_schemas import (SolicitudCreate,
+                                               SolicitudValidationError)
 
         with pytest.raises(SolicitudValidationError):
             SolicitudCreate(
                 centro="",
                 sector="Operaciones",
                 justificacion="Test",
-                items=[{"material_id": "MAT001", "cantidad": 10, "unidad": "UN"}]
+                items=[{"material_id": "MAT001", "cantidad": 10, "unidad": "UN"}],
             )
 
     def test_solicitud_sin_sector_invalida(self):
         """Una solicitud sin sector debe ser invalida."""
-        from backend.core.item_schemas import SolicitudCreate, SolicitudValidationError
+        from backend.core.item_schemas import (SolicitudCreate,
+                                               SolicitudValidationError)
 
         with pytest.raises(SolicitudValidationError):
             SolicitudCreate(
                 centro="1008",
                 sector="",
                 justificacion="Test",
-                items=[{"material_id": "MAT001", "cantidad": 10, "unidad": "UN"}]
+                items=[{"material_id": "MAT001", "cantidad": 10, "unidad": "UN"}],
             )
 
     def test_solicitud_calcula_total(self):
@@ -216,8 +184,8 @@ class TestSolicitudCreate:
             justificacion="Test",
             items=[
                 {"material_id": "MAT001", "cantidad": 10, "unidad": "UN", "precio_unitario": 100},
-                {"material_id": "MAT002", "cantidad": 5, "unidad": "KG", "precio_unitario": 50}
-            ]
+                {"material_id": "MAT002", "cantidad": 5, "unidad": "KG", "precio_unitario": 50},
+            ],
         )
 
         assert solicitud.total_monto == 1250.00  # (10*100) + (5*50)
@@ -230,14 +198,14 @@ class TestSolicitudCreate:
             centro="1008",
             sector="Operaciones",
             justificacion="Test",
-            items=[{"material_id": "MAT001", "cantidad": 10, "unidad": "UN"}]
+            items=[{"material_id": "MAT001", "cantidad": 10, "unidad": "UN"}],
         )
 
         assert solicitud.criticidad == "Normal"
 
     def test_solicitud_criticidad_valores_validos(self):
         """Solo valores validos de criticidad deben aceptarse."""
-        from backend.core.item_schemas import SolicitudCreate, SolicitudValidationError
+        from backend.core.item_schemas import SolicitudCreate
 
         # Valores validos
         for criticidad in ["Baja", "Normal", "Alta", "Urgente"]:
@@ -246,13 +214,14 @@ class TestSolicitudCreate:
                 sector="Operaciones",
                 justificacion="Test",
                 criticidad=criticidad,
-                items=[{"material_id": "MAT001", "cantidad": 10, "unidad": "UN"}]
+                items=[{"material_id": "MAT001", "cantidad": 10, "unidad": "UN"}],
             )
             assert solicitud.criticidad == criticidad
 
     def test_solicitud_criticidad_invalida(self):
         """Criticidad invalida debe rechazarse."""
-        from backend.core.item_schemas import SolicitudCreate, SolicitudValidationError
+        from backend.core.item_schemas import (SolicitudCreate,
+                                               SolicitudValidationError)
 
         with pytest.raises(SolicitudValidationError):
             SolicitudCreate(
@@ -260,7 +229,7 @@ class TestSolicitudCreate:
                 sector="Operaciones",
                 justificacion="Test",
                 criticidad="SuperUrgente",  # No valido
-                items=[{"material_id": "MAT001", "cantidad": 10, "unidad": "UN"}]
+                items=[{"material_id": "MAT001", "cantidad": 10, "unidad": "UN"}],
             )
 
 
@@ -271,11 +240,7 @@ class TestSolicitudUpdate:
         """Debe poder actualizar solo los items."""
         from backend.core.item_schemas import SolicitudUpdate
 
-        update = SolicitudUpdate(
-            items=[
-                {"material_id": "MAT001", "cantidad": 20, "unidad": "UN"}
-            ]
-        )
+        update = SolicitudUpdate(items=[{"material_id": "MAT001", "cantidad": 20, "unidad": "UN"}])
 
         assert len(update.items) == 1
         assert update.items[0].cantidad == 20
@@ -293,17 +258,15 @@ class TestSolicitudUpdate:
         """Actualizaciones parciales deben ser validas."""
         from backend.core.item_schemas import SolicitudUpdate
 
-        update = SolicitudUpdate(
-            criticidad="Alta",
-            fecha_necesidad="2025-01-15"
-        )
+        update = SolicitudUpdate(criticidad="Alta", fecha_necesidad="2025-01-15")
 
         assert update.criticidad == "Alta"
         assert update.fecha_necesidad == "2025-01-15"
 
     def test_update_items_vacios_invalido(self):
         """Si se envian items, no pueden estar vacios."""
-        from backend.core.item_schemas import SolicitudUpdate, SolicitudValidationError
+        from backend.core.item_schemas import (SolicitudUpdate,
+                                               SolicitudValidationError)
 
         with pytest.raises(SolicitudValidationError):
             SolicitudUpdate(items=[])
@@ -318,7 +281,7 @@ class TestValidarItems:
 
         items = [
             {"material_id": "MAT001", "cantidad": 10, "unidad": "UN"},
-            {"material_id": "MAT002", "cantidad": 5, "unidad": "KG", "precio_unitario": 100}
+            {"material_id": "MAT002", "cantidad": 5, "unidad": "KG", "precio_unitario": 100},
         ]
 
         resultado = validar_items(items)
@@ -333,7 +296,7 @@ class TestValidarItems:
         items = [
             {"material_id": "MAT001", "cantidad": 10, "unidad": "UN"},
             {"material_id": "MAT002", "cantidad": -5, "unidad": "KG"},  # Error
-            {"material_id": "", "cantidad": 5, "unidad": "UN"}  # Error
+            {"material_id": "", "cantidad": 5, "unidad": "UN"},  # Error
         ]
 
         resultado = validar_items(items)
@@ -357,7 +320,7 @@ class TestValidarItems:
 
         items = [
             {"material_id": "MAT001", "cantidad": 10, "unidad": "UN", "precio_unitario": 100},
-            {"material_id": "MAT002", "cantidad": 5, "unidad": "KG", "precio_unitario": 50}
+            {"material_id": "MAT002", "cantidad": 5, "unidad": "KG", "precio_unitario": 50},
         ]
 
         resultado = validar_items(items)
@@ -377,7 +340,7 @@ class TestFromDict:
             "descripcion": "Test",
             "cantidad": 10,
             "unidad": "UN",
-            "precio_unitario": 100
+            "precio_unitario": 100,
         }
 
         item = ItemSolicitud.from_dict(data)
@@ -389,12 +352,7 @@ class TestFromDict:
         """Debe poder convertir item a diccionario."""
         from backend.core.item_schemas import ItemSolicitud
 
-        item = ItemSolicitud(
-            material_id="MAT001",
-            cantidad=10,
-            unidad="UN",
-            precio_unitario=100
-        )
+        item = ItemSolicitud(material_id="MAT001", cantidad=10, unidad="UN", precio_unitario=100)
 
         data = item.to_dict()
 
@@ -410,9 +368,7 @@ class TestFromDict:
             "centro": "1008",
             "sector": "Operaciones",
             "justificacion": "Test",
-            "items": [
-                {"material_id": "MAT001", "cantidad": 10, "unidad": "UN"}
-            ]
+            "items": [{"material_id": "MAT001", "cantidad": 10, "unidad": "UN"}],
         }
 
         solicitud = SolicitudCreate.from_dict(data)

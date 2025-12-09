@@ -25,9 +25,10 @@ logger = logging.getLogger(__name__)
 @dataclass
 class RateLimitConfig:
     """Configuracion de rate limit."""
-    requests: int = 100  # Numero de requests permitidos
+
+    requests: int = 500  # Numero de requests permitidos (aumentado para dev)
     window_seconds: int = 60  # Ventana de tiempo en segundos
-    burst: int = 10  # Requests adicionales permitidos en rafaga
+    burst: int = 50  # Requests adicionales permitidos en rafaga (aumentado)
     by_user: bool = True  # Limitar por usuario autenticado
     by_ip: bool = True  # Limitar por IP
 
@@ -35,6 +36,7 @@ class RateLimitConfig:
 @dataclass
 class RateLimitState:
     """Estado del rate limit para un cliente."""
+
     tokens: float = 0.0
     last_update: float = field(default_factory=time.time)
     request_count: int = 0
@@ -69,7 +71,7 @@ class RateLimiter:
         window_seconds: int = 60,
         burst: int = 10,
         by_user: bool = True,
-        by_ip: bool = True
+        by_ip: bool = True,
     ) -> None:
         """
         Configura rate limit para un patron de endpoint.
@@ -87,7 +89,7 @@ class RateLimiter:
             window_seconds=window_seconds,
             burst=burst,
             by_user=by_user,
-            by_ip=by_ip
+            by_ip=by_ip,
         )
 
     def _get_config(self, path: str) -> RateLimitConfig:
@@ -146,7 +148,7 @@ class RateLimiter:
         # Agregar tokens
         state.tokens = min(
             config.requests + config.burst,  # Maximo con burst
-            state.tokens + elapsed * rate
+            state.tokens + elapsed * rate,
         )
         state.last_update = now
 
@@ -176,7 +178,7 @@ class RateLimiter:
                         "X-RateLimit-Limit": config.requests,
                         "X-RateLimit-Remaining": 0,
                         "X-RateLimit-Reset": int(self._blocked_ips[ip]),
-                        "Retry-After": retry_after
+                        "Retry-After": retry_after,
                     }
                 else:
                     del self._blocked_ips[ip]
@@ -199,7 +201,7 @@ class RateLimiter:
                 return True, {
                     "X-RateLimit-Limit": config.requests,
                     "X-RateLimit-Remaining": remaining,
-                    "X-RateLimit-Reset": reset_time
+                    "X-RateLimit-Reset": reset_time,
                 }
             else:
                 # Rate limit excedido
@@ -213,7 +215,7 @@ class RateLimiter:
                     "X-RateLimit-Limit": config.requests,
                     "X-RateLimit-Remaining": 0,
                     "X-RateLimit-Reset": reset_time,
-                    "Retry-After": retry_after
+                    "Retry-After": retry_after,
                 }
 
     def block_ip(self, ip: str, duration_seconds: int = 3600) -> None:
@@ -249,6 +251,7 @@ class RateLimiter:
         """Registra hit de rate limit en metricas."""
         try:
             from backend.core.metrics import get_metrics_collector
+
             collector = get_metrics_collector()
             collector.increment_counter("rate_limit_hits")
         except ImportError:
@@ -266,7 +269,7 @@ class RateLimiter:
                 "active_clients": len(self._client_states),
                 "blocked_ips": len(self._blocked_ips),
                 "endpoint_configs": len(self._endpoint_configs),
-                "blocked_ip_list": list(self._blocked_ips.keys())
+                "blocked_ip_list": list(self._blocked_ips.keys()),
             }
 
     def cleanup_expired(self) -> int:
@@ -282,8 +285,7 @@ class RateLimiter:
         with self._lock:
             # Limpiar estados inactivos (mas de 1 hora)
             expired_clients = [
-                key for key, state in self._client_states.items()
-                if now - state.last_update > 3600
+                key for key, state in self._client_states.items() if now - state.last_update > 3600
             ]
             for key in expired_clients:
                 del self._client_states[key]
@@ -291,8 +293,7 @@ class RateLimiter:
 
             # Limpiar IPs desbloqueadas
             expired_ips = [
-                ip for ip, unblock_time in self._blocked_ips.items()
-                if now > unblock_time
+                ip for ip, unblock_time in self._blocked_ips.items() if now > unblock_time
             ]
             for ip in expired_ips:
                 del self._blocked_ips[ip]
@@ -334,68 +335,31 @@ def _configure_default_limits(limiter: RateLimiter) -> None:
     """Configura limites por defecto para endpoints comunes."""
     # Endpoints de autenticacion (mas restrictivos)
     limiter.configure_endpoint(
-        "/api/auth/login",
-        requests=10,
-        window_seconds=60,
-        burst=3,
-        by_user=False,
-        by_ip=True
+        "/api/auth/login", requests=50, window_seconds=60, burst=10, by_user=False, by_ip=True
     )
     limiter.configure_endpoint(
-        "/api/auth/register",
-        requests=5,
-        window_seconds=60,
-        burst=2,
-        by_user=False,
-        by_ip=True
+        "/api/auth/register", requests=20, window_seconds=60, burst=5, by_user=False, by_ip=True
     )
-    limiter.configure_endpoint(
-        "/api/auth/refresh",
-        requests=30,
-        window_seconds=60,
-        burst=5
-    )
+    limiter.configure_endpoint("/api/auth/refresh", requests=100, window_seconds=60, burst=20)
 
     # Endpoints de escritura (moderados)
-    limiter.configure_endpoint(
-        "/api/solicitudes",
-        requests=50,
-        window_seconds=60,
-        burst=10
-    )
+    limiter.configure_endpoint("/api/solicitudes", requests=200, window_seconds=60, burst=50)
 
     # Endpoints de lectura (mas permisivos)
-    limiter.configure_endpoint(
-        "/api/catalogos",
-        requests=200,
-        window_seconds=60,
-        burst=50
-    )
-    limiter.configure_endpoint(
-        "/api/materiales",
-        requests=200,
-        window_seconds=60,
-        burst=50
-    )
+    limiter.configure_endpoint("/api/catalogos", requests=500, window_seconds=60, burst=100)
+    limiter.configure_endpoint("/api/materiales", requests=500, window_seconds=60, burst=100)
+    limiter.configure_endpoint("/api/notificaciones", requests=500, window_seconds=60, burst=100)
+    limiter.configure_endpoint("/api/admin", requests=500, window_seconds=60, burst=100)
 
     # Health checks (sin limite)
-    limiter.configure_endpoint(
-        "/health",
-        requests=1000,
-        window_seconds=60,
-        burst=100
-    )
-    limiter.configure_endpoint(
-        "/api/health",
-        requests=1000,
-        window_seconds=60,
-        burst=100
-    )
+    limiter.configure_endpoint("/health", requests=1000, window_seconds=60, burst=100)
+    limiter.configure_endpoint("/api/health", requests=1000, window_seconds=60, burst=100)
 
 
 # =============================================================================
 # Middleware para Flask
 # =============================================================================
+
 
 def init_rate_limiting(app) -> None:
     """
@@ -418,14 +382,16 @@ def init_rate_limiting(app) -> None:
         g.rate_limit_headers = headers
 
         if not allowed:
-            response = jsonify({
-                "ok": False,
-                "error": {
-                    "code": "rate_limit_exceeded",
-                    "message": "Too many requests. Please try again later.",
-                    "retry_after": headers.get("Retry-After", 60)
+            response = jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "rate_limit_exceeded",
+                        "message": "Too many requests. Please try again later.",
+                        "retry_after": headers.get("Retry-After", 60),
+                    },
                 }
-            })
+            )
             response.status_code = 429
 
             # Agregar headers
@@ -449,12 +415,13 @@ def init_rate_limiting(app) -> None:
 # Decorador para rate limiting personalizado
 # =============================================================================
 
+
 def rate_limit(
     requests: int = 100,
     window_seconds: int = 60,
     burst: int = 10,
     by_user: bool = True,
-    by_ip: bool = True
+    by_ip: bool = True,
 ):
     """
     Decorador para aplicar rate limiting personalizado a una funcion.
@@ -471,6 +438,7 @@ def rate_limit(
         def sensitive_endpoint():
             ...
     """
+
     def decorator(func: Callable):
         # Crear configuracion especifica
         config = RateLimitConfig(
@@ -478,7 +446,7 @@ def rate_limit(
             window_seconds=window_seconds,
             burst=burst,
             by_user=by_user,
-            by_ip=by_ip
+            by_ip=by_ip,
         )
 
         @wraps(func)
@@ -495,16 +463,22 @@ def rate_limit(
             g.rate_limit_headers = headers
 
             if not allowed:
-                return jsonify({
-                    "ok": False,
-                    "error": {
-                        "code": "rate_limit_exceeded",
-                        "message": "Too many requests",
-                        "retry_after": headers.get("Retry-After", 60)
-                    }
-                }), 429
+                return (
+                    jsonify(
+                        {
+                            "ok": False,
+                            "error": {
+                                "code": "rate_limit_exceeded",
+                                "message": "Too many requests",
+                                "retry_after": headers.get("Retry-After", 60),
+                            },
+                        }
+                    ),
+                    429,
+                )
 
             return func(*args, **kwargs)
 
         return wrapper
+
     return decorator

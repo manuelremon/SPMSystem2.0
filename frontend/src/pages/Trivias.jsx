@@ -683,11 +683,10 @@ export default function Trivias() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2 uppercase">
               <Trophy className="w-6 h-6 text-amber-500" />
               Trivias SPM
             </h1>
-            <p className="text-sm text-slate-500 mt-1">Aprende y compite, tienes una oportunidad al mes!! Suerte!! <span className="text-emerald-600">🍀</span></p>
           </div>
           <div className="text-right">
             <p className="text-sm text-slate-500">Tu puntaje total</p>

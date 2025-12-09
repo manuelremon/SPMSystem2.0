@@ -5,7 +5,6 @@ Sprint 8.2 - Verifica pool de conexiones, indices y queries cacheadas.
 
 import sqlite3
 import tempfile
-import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -126,7 +125,7 @@ class TestPooledConnection:
     def test_get_pool_creates_new(self, mock_pool):
         """get_pool crea nuevo pool si no existe."""
         try:
-            from backend.core.db_optimization import get_pool, _pools
+            from backend.core.db_optimization import _pools, get_pool
         except ImportError:
             pytest.skip("Module not available")
 
@@ -176,9 +175,7 @@ class TestCachedQueries:
         # Mockear conexion
         with patch("backend.core.db_optimization.get_pooled_connection") as mock_conn:
             mock_cursor = MagicMock()
-            mock_cursor.fetchall.return_value = [
-                {"id": 1, "codigo": "1000", "nombre": "Centro 1"}
-            ]
+            mock_cursor.fetchall.return_value = [{"id": 1, "codigo": "1000", "nombre": "Centro 1"}]
             mock_conn.return_value.__enter__.return_value.cursor.return_value = mock_cursor
 
             # Limpiar cache
@@ -190,7 +187,8 @@ class TestCachedQueries:
     def test_get_solicitudes_count_returns_dict(self):
         """get_solicitudes_count_by_estado retorna dict."""
         try:
-            from backend.core.db_optimization import get_solicitudes_count_by_estado
+            from backend.core.db_optimization import \
+                get_solicitudes_count_by_estado
         except ImportError:
             pytest.skip("Module not available")
 
@@ -198,7 +196,7 @@ class TestCachedQueries:
             mock_cursor = MagicMock()
             mock_cursor.fetchall.return_value = [
                 {"estado": "submitted", "count": 10},
-                {"estado": "approved", "count": 5}
+                {"estado": "approved", "count": 5},
             ]
             mock_conn.return_value.__enter__.return_value.cursor.return_value = mock_cursor
 
@@ -235,7 +233,7 @@ class TestDatabaseStats:
                 (4096,),  # page_size
                 (5,),  # table_count
                 (10,),  # index_count
-                (0, 0, 0)  # wal_checkpoint
+                (0, 0, 0),  # wal_checkpoint
             ]
             mock_conn.return_value.__enter__.return_value.cursor.return_value = mock_cursor
 

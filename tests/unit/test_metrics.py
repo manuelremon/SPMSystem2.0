@@ -4,7 +4,6 @@ Sprint 9.2 - Verifica recoleccion y exposicion de metricas.
 """
 
 import time
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -158,7 +157,7 @@ class TestTimedDecorator:
     def test_timed_measures_duration(self):
         """Decorador timed mide duracion."""
         try:
-            from backend.core.metrics import timed, get_metrics_collector
+            from backend.core.metrics import get_metrics_collector, timed
         except ImportError:
             pytest.skip("Module not available")
 

@@ -190,6 +190,106 @@ def admin_sectores_mod(sector_nombre):
     return jsonify({"ok": True}), 200
 
 
+# ======================== ROLES ========================
+@bp.route("/roles", methods=["GET", "POST"])
+def admin_roles():
+    guard = _admin_guard()
+    if guard:
+        return guard
+
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        if not data.get("nombre"):
+            return jsonify({"ok": False, "error": "nombre requerido"}), 400
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO catalog_roles (nombre, activo, created_at) VALUES (?, ?, datetime('now'))",
+                (data["nombre"], data.get("activo", 1)),
+            )
+        invalidate_catalog_cache()
+
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM catalog_roles ORDER BY nombre")
+        rows = [dict(r) for r in cur.fetchall()]
+    return jsonify(rows), 200
+
+
+@bp.route("/roles/<rol_nombre>", methods=["PUT", "DELETE"])
+def admin_roles_mod(rol_nombre):
+    guard = _admin_guard()
+    if guard:
+        return guard
+
+    with get_db_transaction() as conn:
+        cur = conn.cursor()
+        if request.method == "PUT":
+            data = request.get_json(silent=True) or {}
+            cur.execute(
+                "UPDATE catalog_roles SET activo=?, updated_at=datetime('now') WHERE nombre=?",
+                (data.get("activo", 1), rol_nombre),
+            )
+        else:
+            cur.execute(
+                "UPDATE catalog_roles SET activo=0, updated_at=datetime('now') WHERE nombre=?",
+                (rol_nombre,),
+            )
+
+    invalidate_catalog_cache()
+    return jsonify({"ok": True}), 200
+
+
+# ======================== PUESTOS ========================
+@bp.route("/puestos", methods=["GET", "POST"])
+def admin_puestos():
+    guard = _admin_guard()
+    if guard:
+        return guard
+
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        if not data.get("nombre"):
+            return jsonify({"ok": False, "error": "nombre requerido"}), 400
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO catalog_puestos (nombre, activo, created_at) VALUES (?, ?, datetime('now'))",
+                (data["nombre"], data.get("activo", 1)),
+            )
+        invalidate_catalog_cache()
+
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM catalog_puestos ORDER BY nombre")
+        rows = [dict(r) for r in cur.fetchall()]
+    return jsonify(rows), 200
+
+
+@bp.route("/puestos/<puesto_nombre>", methods=["PUT", "DELETE"])
+def admin_puestos_mod(puesto_nombre):
+    guard = _admin_guard()
+    if guard:
+        return guard
+
+    with get_db_transaction() as conn:
+        cur = conn.cursor()
+        if request.method == "PUT":
+            data = request.get_json(silent=True) or {}
+            cur.execute(
+                "UPDATE catalog_puestos SET activo=?, updated_at=datetime('now') WHERE nombre=?",
+                (data.get("activo", 1), puesto_nombre),
+            )
+        else:
+            cur.execute(
+                "UPDATE catalog_puestos SET activo=0, updated_at=datetime('now') WHERE nombre=?",
+                (puesto_nombre,),
+            )
+
+    invalidate_catalog_cache()
+    return jsonify({"ok": True}), 200
+
+
 @bp.route("/usuarios", methods=["GET", "POST"])
 def admin_usuarios():
     guard = _admin_guard()
@@ -419,6 +519,67 @@ def admin_planificadores_mod(usuario_id):
     return jsonify({"ok": True}), 200
 
 
+def _get_current_user_info():
+    """Obtiene info del usuario actual desde el token JWT."""
+    from flask import g
+
+    user_id = getattr(g, "user_id", None)
+    if not user_id:
+        return None, None
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id, nombre FROM usuarios WHERE id = ?", (user_id,))
+        row = cur.fetchone()
+        if row:
+            return row["id"], row["nombre"]
+    return user_id, "Sistema"
+
+
+def _registrar_historial_presupuesto(
+    conn,
+    centro,
+    sector,
+    tipo_cambio,
+    monto_ant,
+    monto_new,
+    saldo_ant,
+    saldo_new,
+    justificacion=None,
+    bur_id=None,
+):
+    """Registra un cambio en el historial de presupuestos."""
+    user_id, user_nombre = _get_current_user_info()
+    diferencia = (monto_new or 0) - (monto_ant or 0)
+
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO budget_history
+        (centro, sector, tipo_cambio, monto_anterior_usd, monto_nuevo_usd,
+         saldo_anterior_usd, saldo_nuevo_usd, diferencia_usd,
+         solicitante_id, solicitante_nombre, aprobador_id, aprobador_nombre,
+         justificacion, bur_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """,
+        (
+            centro,
+            sector,
+            tipo_cambio,
+            monto_ant,
+            monto_new,
+            saldo_ant,
+            saldo_new,
+            diferencia,
+            user_id,
+            user_nombre,
+            user_id,
+            user_nombre,
+            justificacion,
+            bur_id,
+        ),
+    )
+
+
 @bp.route("/presupuestos", methods=["GET", "POST"])
 def admin_presupuestos():
     guard = _admin_guard()
@@ -429,21 +590,95 @@ def admin_presupuestos():
         data = request.get_json(silent=True) or {}
         if not data.get("centro") or not data.get("sector"):
             return jsonify({"ok": False, "error": "centro y sector son requeridos"}), 400
+
+        centro = data["centro"]
+        sector = data["sector"]
+        monto_new = data.get("monto_usd", 0)
+        saldo_new = data.get("saldo_usd", monto_new)
+        justificacion = data.get("justificacion", "Creación inicial de presupuesto")
+
         with get_db_transaction() as conn:
             cur = conn.cursor()
+            # Verificar si existe
+            cur.execute(
+                "SELECT monto_usd, saldo_usd FROM presupuestos WHERE centro=? AND sector=?",
+                (centro, sector),
+            )
+            existing = cur.fetchone()
+
             cur.execute(
                 "INSERT OR REPLACE INTO presupuestos (centro, sector, monto_usd, saldo_usd) VALUES (?,?,?,?)",
-                (
-                    data["centro"],
-                    data["sector"],
-                    data.get("monto_usd", 0),
-                    data.get("saldo_usd", data.get("monto_usd", 0)),
-                ),
+                (centro, sector, monto_new, saldo_new),
             )
+
+            # Registrar en historial
+            if existing:
+                _registrar_historial_presupuesto(
+                    conn,
+                    centro,
+                    sector,
+                    "ajuste",
+                    existing["monto_usd"],
+                    monto_new,
+                    existing["saldo_usd"],
+                    saldo_new,
+                    justificacion,
+                )
+            else:
+                _registrar_historial_presupuesto(
+                    conn,
+                    centro,
+                    sector,
+                    "creacion",
+                    None,
+                    monto_new,
+                    None,
+                    saldo_new,
+                    justificacion,
+                )
 
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute("SELECT * FROM presupuestos")
+        rows = [dict(r) for r in cur.fetchall()]
+
+    return jsonify(rows), 200
+
+
+@bp.route("/presupuestos/historial", methods=["GET"])
+def admin_presupuestos_historial():
+    """Obtiene el historial de cambios en presupuestos."""
+    guard = _admin_guard()
+    if guard:
+        return guard
+
+    centro = request.args.get("centro")
+    sector = request.args.get("sector")
+    limit = request.args.get("limit", 50, type=int)
+
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+
+        if centro and sector:
+            cur.execute(
+                """
+                SELECT * FROM budget_history
+                WHERE centro = ? AND sector = ?
+                ORDER BY created_at DESC
+                LIMIT ?
+            """,
+                (centro, sector, limit),
+            )
+        else:
+            cur.execute(
+                """
+                SELECT * FROM budget_history
+                ORDER BY created_at DESC
+                LIMIT ?
+            """,
+                (limit,),
+            )
+
         rows = [dict(r) for r in cur.fetchall()]
 
     return jsonify(rows), 200
@@ -457,14 +692,59 @@ def admin_presupuestos_mod(centro, sector):
 
     with get_db_transaction() as conn:
         cur = conn.cursor()
+
+        # Obtener valores actuales para el historial
+        cur.execute(
+            "SELECT monto_usd, saldo_usd FROM presupuestos WHERE centro=? AND sector=?",
+            (centro, sector),
+        )
+        existing = cur.fetchone()
+        monto_ant = existing["monto_usd"] if existing else None
+        saldo_ant = existing["saldo_usd"] if existing else None
+
         if request.method == "PUT":
             data = request.get_json(silent=True) or {}
+            monto_new = data.get("monto_usd", 0)
+            saldo_new = data.get("saldo_usd", 0)
+            justificacion = data.get("justificacion", "Actualización manual")
+
             cur.execute(
                 "UPDATE presupuestos SET monto_usd=?, saldo_usd=? WHERE centro=? AND sector=?",
-                (data.get("monto_usd", 0), data.get("saldo_usd", 0), centro, sector),
+                (monto_new, saldo_new, centro, sector),
+            )
+
+            # Determinar tipo de cambio
+            if monto_new > (monto_ant or 0):
+                tipo = "aumento"
+            elif monto_new < (monto_ant or 0):
+                tipo = "reduccion"
+            else:
+                tipo = "ajuste"
+
+            _registrar_historial_presupuesto(
+                conn,
+                centro,
+                sector,
+                tipo,
+                monto_ant,
+                monto_new,
+                saldo_ant,
+                saldo_new,
+                justificacion,
             )
         else:
             cur.execute("DELETE FROM presupuestos WHERE centro=? AND sector=?", (centro, sector))
+            _registrar_historial_presupuesto(
+                conn,
+                centro,
+                sector,
+                "eliminacion",
+                monto_ant,
+                0,
+                saldo_ant,
+                0,
+                "Eliminación de presupuesto",
+            )
 
     return jsonify({"ok": True}), 200
 
@@ -962,23 +1242,22 @@ def admin_cache_clear():
 
 try:
     from backend.services.approval_service import (
-        listar_reglas,
-        crear_regla,
-        actualizar_regla,
-        desactivar_regla,
-        crear_delegacion,
-        obtener_delegacion_activa,
         ApprovalValidationError,
+        actualizar_regla,
+        crear_delegacion,
+        crear_regla,
+        desactivar_regla,
+        listar_reglas,
+        obtener_delegacion_activa,
     )
 except ImportError:
     from services.approval_service import (
-        listar_reglas,
-        crear_regla,
-        actualizar_regla,
-        desactivar_regla,
-        crear_delegacion,
-        obtener_delegacion_activa,
         ApprovalValidationError,
+        actualizar_regla,
+        crear_delegacion,
+        crear_regla,
+        desactivar_regla,
+        listar_reglas,
     )
 
 
@@ -1060,9 +1339,18 @@ def admin_reglas_aprobacion_mod(regla_id):
 
         # Campos permitidos para actualizar
         campos_permitidos = {
-            "nombre", "descripcion", "monto_minimo_usd", "monto_maximo_usd",
-            "centro", "sector", "criticidad", "rol_requerido", "nivel_aprobacion",
-            "requiere_justificacion", "requiere_documentacion", "activo"
+            "nombre",
+            "descripcion",
+            "monto_minimo_usd",
+            "monto_maximo_usd",
+            "centro",
+            "sector",
+            "criticidad",
+            "rol_requerido",
+            "nivel_aprobacion",
+            "requiere_justificacion",
+            "requiere_documentacion",
+            "activo",
         }
 
         campos = {k: v for k, v in data.items() if k in campos_permitidos}
@@ -1127,7 +1415,8 @@ def admin_delegaciones_aprobacion():
     # GET: Listar delegaciones activas
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("""
+        cur.execute(
+            """
             SELECT
                 d.*,
                 u1.nombre || ' ' || u1.apellido as aprobador_nombre,
@@ -1137,7 +1426,8 @@ def admin_delegaciones_aprobacion():
             LEFT JOIN usuarios u2 ON d.delegado_id = u2.id_spm
             WHERE d.activo = 1
             ORDER BY d.fecha_fin DESC
-        """)
+        """
+        )
         rows = [dict(r) for r in cur.fetchall()]
 
     return jsonify(rows), 200
@@ -1176,14 +1466,12 @@ def admin_delegaciones_aprobacion_mod(delegacion_id):
 
             valores.append(delegacion_id)
             cur.execute(
-                f"UPDATE aprobadores_delegados SET {', '.join(campos)} WHERE id = ?",
-                valores
+                f"UPDATE aprobadores_delegados SET {', '.join(campos)} WHERE id = ?", valores
             )
 
         else:  # DELETE
             cur.execute(
-                "UPDATE aprobadores_delegados SET activo = 0 WHERE id = ?",
-                (delegacion_id,)
+                "UPDATE aprobadores_delegados SET activo = 0 WHERE id = ?", (delegacion_id,)
             )
 
         if cur.rowcount == 0:

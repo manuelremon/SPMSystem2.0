@@ -9,9 +9,9 @@ El servicio MRP gestiona:
 - Integracion con forecast de demanda
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
-from datetime import datetime, timedelta
+
+import pytest
 
 
 class TestCalculoRequerimientosNetos:
@@ -22,10 +22,7 @@ class TestCalculoRequerimientosNetos:
         from backend.services.mrp_service import calcular_requerimiento_neto
 
         resultado = calcular_requerimiento_neto(
-            demanda=100,
-            stock_actual=30,
-            pedidos_en_curso=20,
-            stock_seguridad=10
+            demanda=100, stock_actual=30, pedidos_en_curso=20, stock_seguridad=10
         )
 
         # Necesidad = 100 - 30 - 20 + 10 (seguridad) = 60
@@ -37,10 +34,7 @@ class TestCalculoRequerimientosNetos:
         from backend.services.mrp_service import calcular_requerimiento_neto
 
         resultado = calcular_requerimiento_neto(
-            demanda=50,
-            stock_actual=100,
-            pedidos_en_curso=20,
-            stock_seguridad=10
+            demanda=50, stock_actual=100, pedidos_en_curso=20, stock_seguridad=10
         )
 
         assert resultado["requerimiento_neto"] == 0
@@ -51,11 +45,7 @@ class TestCalculoRequerimientosNetos:
         from backend.services.mrp_service import calcular_requerimiento_neto
 
         resultado = calcular_requerimiento_neto(
-            demanda=100,
-            stock_actual=50,
-            pedidos_en_curso=0,
-            stock_seguridad=20,
-            consumo_diario=5
+            demanda=100, stock_actual=50, pedidos_en_curso=0, stock_seguridad=20, consumo_diario=5
         )
 
         # Cobertura actual = 50 / 5 = 10 dias
@@ -69,11 +59,7 @@ class TestCalculoPuntoReorden:
         """Punto reorden = (Lead time * Consumo diario) + Stock seguridad."""
         from backend.services.mrp_service import calcular_punto_reorden
 
-        resultado = calcular_punto_reorden(
-            consumo_diario=10,
-            lead_time_dias=15,
-            stock_seguridad=50
-        )
+        resultado = calcular_punto_reorden(consumo_diario=10, lead_time_dias=15, stock_seguridad=50)
 
         # Punto reorden = (15 * 10) + 50 = 200
         assert resultado["punto_reorden"] == 200
@@ -87,7 +73,7 @@ class TestCalculoPuntoReorden:
             lead_time_dias=15,
             stock_seguridad=50,
             variabilidad_demanda=0.2,  # 20% de variacion
-            variabilidad_lead_time=0.1  # 10% de variacion
+            variabilidad_lead_time=0.1,  # 10% de variacion
         )
 
         # Debe ser mayor que el basico por la variabilidad
@@ -103,9 +89,7 @@ class TestCantidadOptimaPedido:
         from backend.services.mrp_service import calcular_cantidad_optima
 
         resultado = calcular_cantidad_optima(
-            demanda_anual=1200,
-            costo_orden=50,
-            costo_mantenimiento_unitario=2
+            demanda_anual=1200, costo_orden=50, costo_mantenimiento_unitario=2
         )
 
         # EOQ = sqrt(2 * 1200 * 50 / 2) = sqrt(60000) = ~245
@@ -120,7 +104,7 @@ class TestCantidadOptimaPedido:
             costo_orden=50,
             costo_mantenimiento_unitario=2,
             cantidad_minima=300,
-            cantidad_maxima=500
+            cantidad_maxima=500,
         )
 
         # Debe respetar el minimo
@@ -134,8 +118,10 @@ class TestGeneracionOrdenesPlanificadas:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos."""
-        with patch('backend.services.mrp_service.get_db_connection') as mock_conn, \
-             patch('backend.services.mrp_service.get_db_transaction') as mock_trans:
+        with (
+            patch("backend.services.mrp_service.get_db_connection") as mock_conn,
+            patch("backend.services.mrp_service.get_db_transaction") as mock_trans,
+        ):
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -157,7 +143,7 @@ class TestGeneracionOrdenesPlanificadas:
             centro="1000",
             cantidad=100,
             fecha_necesidad="2025-01-15",
-            tipo="compra"
+            tipo="compra",
         )
 
         assert resultado["id"] == 1
@@ -178,7 +164,7 @@ class TestGeneracionOrdenesPlanificadas:
                 "punto_pedido": 50,
                 "stock_seguridad": 10,
                 "consumo_promedio_mensual": 60,
-                "lead_time_dias": 15
+                "lead_time_dias": 15,
             },
             {
                 "codigo": "MAT002",
@@ -187,8 +173,8 @@ class TestGeneracionOrdenesPlanificadas:
                 "punto_pedido": 30,
                 "stock_seguridad": 5,
                 "consumo_promedio_mensual": 40,
-                "lead_time_dias": 10
-            }
+                "lead_time_dias": 10,
+            },
         ]
 
         resultado = generar_ordenes_mrp(centro="1000")
@@ -202,12 +188,12 @@ class TestIntegracionForecast:
     @pytest.fixture
     def mock_forecast(self):
         """Mock del pipeline de forecast."""
-        with patch('backend.services.mrp_service.DemandForecastPipeline') as mock:
+        with patch("backend.services.mrp_service.DemandForecastPipeline") as mock:
             pipeline = MagicMock()
             pipeline.predict.return_value = {
                 "predicted_demand": 150,
                 "confidence_lower": 120,
-                "confidence_upper": 180
+                "confidence_upper": 180,
             }
             mock.return_value = pipeline
             yield mock, pipeline
@@ -218,11 +204,7 @@ class TestIntegracionForecast:
 
         _, pipeline = mock_forecast
 
-        resultado = obtener_demanda_proyectada(
-            material_codigo="MAT001",
-            centro="1000",
-            dias=30
-        )
+        resultado = obtener_demanda_proyectada(material_codigo="MAT001", centro="1000", dias=30)
 
         assert resultado["demanda_proyectada"] == 150
         assert resultado["metodo"] == "ml_forecast"
@@ -234,7 +216,7 @@ class TestIntegracionForecast:
         _, pipeline = mock_forecast
         pipeline.predict.side_effect = Exception("Modelo no disponible")
 
-        with patch('backend.services.mrp_service.get_db_connection') as mock_conn:
+        with patch("backend.services.mrp_service.get_db_connection") as mock_conn:
             conn = MagicMock()
             cursor = MagicMock()
             cursor.fetchone.return_value = {"consumo_promedio": 100}
@@ -242,11 +224,7 @@ class TestIntegracionForecast:
             mock_conn.return_value.__enter__ = MagicMock(return_value=conn)
             mock_conn.return_value.__exit__ = MagicMock(return_value=False)
 
-            resultado = obtener_demanda_proyectada(
-                material_codigo="MAT001",
-                centro="1000",
-                dias=30
-            )
+            resultado = obtener_demanda_proyectada(material_codigo="MAT001", centro="1000", dias=30)
 
             assert resultado["metodo"] == "promedio_historico"
 
@@ -257,7 +235,7 @@ class TestAnalisisMRP:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos."""
-        with patch('backend.services.mrp_service.get_db_connection') as mock_conn:
+        with patch("backend.services.mrp_service.get_db_connection") as mock_conn:
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -280,13 +258,10 @@ class TestAnalisisMRP:
             "stock_maximo": 200,
             "pedidos_en_curso": 30,
             "consumo_promedio_mensual": 60,
-            "lead_time_dias": 15
+            "lead_time_dias": 15,
         }
 
-        resultado = analizar_material(
-            material_codigo="MAT001",
-            centro="1000"
-        )
+        resultado = analizar_material(material_codigo="MAT001", centro="1000")
 
         assert "estado" in resultado
         assert "requerimiento_neto" in resultado
@@ -304,20 +279,20 @@ class TestAnalisisMRP:
                 "codigo_material": "MAT001",
                 "stock_actual": 20,
                 "punto_pedido": 50,
-                "stock_seguridad": 10
+                "stock_seguridad": 10,
             },
             {
                 "codigo_material": "MAT002",
                 "stock_actual": 100,
                 "punto_pedido": 30,
-                "stock_seguridad": 10
+                "stock_seguridad": 10,
             },
             {
                 "codigo_material": "MAT003",
                 "stock_actual": 5,
                 "punto_pedido": 40,
-                "stock_seguridad": 15
-            }
+                "stock_seguridad": 15,
+            },
         ]
 
         resultado = analizar_centro(centro="1000")
@@ -335,10 +310,7 @@ class TestRecomendacionesMRP:
         from backend.services.mrp_service import generar_recomendacion
 
         resultado = generar_recomendacion(
-            stock_actual=5,
-            stock_seguridad=20,
-            punto_pedido=50,
-            pedidos_en_curso=0
+            stock_actual=5, stock_seguridad=20, punto_pedido=50, pedidos_en_curso=0
         )
 
         assert resultado["accion"] == "compra_urgente"
@@ -349,10 +321,7 @@ class TestRecomendacionesMRP:
         from backend.services.mrp_service import generar_recomendacion
 
         resultado = generar_recomendacion(
-            stock_actual=30,
-            stock_seguridad=10,
-            punto_pedido=50,
-            pedidos_en_curso=0
+            stock_actual=30, stock_seguridad=10, punto_pedido=50, pedidos_en_curso=0
         )
 
         assert resultado["accion"] == "generar_solped"
@@ -363,10 +332,7 @@ class TestRecomendacionesMRP:
         from backend.services.mrp_service import generar_recomendacion
 
         resultado = generar_recomendacion(
-            stock_actual=15,
-            stock_seguridad=20,
-            punto_pedido=50,
-            pedidos_en_curso=100
+            stock_actual=15, stock_seguridad=20, punto_pedido=50, pedidos_en_curso=100
         )
 
         assert resultado["accion"] == "acelerar_pedido"
@@ -376,10 +342,7 @@ class TestRecomendacionesMRP:
         from backend.services.mrp_service import generar_recomendacion
 
         resultado = generar_recomendacion(
-            stock_actual=100,
-            stock_seguridad=20,
-            punto_pedido=50,
-            pedidos_en_curso=0
+            stock_actual=100, stock_seguridad=20, punto_pedido=50, pedidos_en_curso=0
         )
 
         assert resultado["accion"] == "ninguna"
@@ -392,7 +355,7 @@ class TestAlertasAutomaticas:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos."""
-        with patch('backend.services.mrp_service.get_db_transaction') as mock_trans:
+        with patch("backend.services.mrp_service.get_db_transaction") as mock_trans:
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -412,7 +375,7 @@ class TestAlertasAutomaticas:
             centro="1000",
             tipo="bajo_punto_pedido",
             severidad="warning",
-            mensaje="Stock por debajo del punto de pedido"
+            mensaje="Stock por debajo del punto de pedido",
         )
 
         assert resultado["id"] == 1
@@ -422,12 +385,12 @@ class TestAlertasAutomaticas:
         """Obtiene alertas MRP activas."""
         from backend.services.mrp_service import obtener_alertas_mrp
 
-        with patch('backend.services.mrp_service.get_db_connection') as mock_conn:
+        with patch("backend.services.mrp_service.get_db_connection") as mock_conn:
             conn = MagicMock()
             cursor = MagicMock()
             cursor.fetchall.return_value = [
                 {"id": 1, "material": "MAT001", "tipo": "quiebre"},
-                {"id": 2, "material": "MAT002", "tipo": "bajo_punto_pedido"}
+                {"id": 2, "material": "MAT002", "tipo": "bajo_punto_pedido"},
             ]
             conn.cursor.return_value = cursor
             mock_conn.return_value.__enter__ = MagicMock(return_value=conn)
@@ -445,9 +408,7 @@ class TestAlertasAutomaticas:
         cursor.rowcount = 1
 
         resultado = resolver_alerta_mrp(
-            alerta_id=1,
-            resuelto_por="user_1",
-            accion_tomada="Generada SolPed 12345"
+            alerta_id=1, resuelto_por="user_1", accion_tomada="Generada SolPed 12345"
         )
 
         assert resultado["resuelta"] is True

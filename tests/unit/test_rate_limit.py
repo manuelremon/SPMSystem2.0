@@ -4,9 +4,10 @@ Sprint 10.1 - Verifica proteccion contra abuso de API.
 """
 
 import time
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock
 
 import pytest
+
 
 # Helper para crear mock de request
 def create_mock_request(ip="1.2.3.4", forwarded_ip=None, user=None):
@@ -45,11 +46,7 @@ class TestRateLimitConfig:
             pytest.skip("Module not available")
 
         config = RateLimitConfig(
-            requests=50,
-            window_seconds=120,
-            burst=5,
-            by_user=False,
-            by_ip=True
+            requests=50, window_seconds=120, burst=5, by_user=False, by_ip=True
         )
 
         assert config.requests == 50
@@ -83,7 +80,7 @@ class TestRateLimiter:
     def limiter(self):
         """Crea un rate limiter nuevo."""
         try:
-            from backend.core.rate_limit import RateLimiter, RateLimitConfig
+            from backend.core.rate_limit import RateLimitConfig, RateLimiter
         except ImportError:
             pytest.skip("Module not available")
 
@@ -92,11 +89,7 @@ class TestRateLimiter:
 
     def test_configure_endpoint(self, limiter):
         """configure_endpoint registra configuracion."""
-        limiter.configure_endpoint(
-            "/api/test",
-            requests=5,
-            window_seconds=30
-        )
+        limiter.configure_endpoint("/api/test", requests=5, window_seconds=30)
 
         assert "/api/test" in limiter._endpoint_configs
         assert limiter._endpoint_configs["/api/test"].requests == 5
@@ -144,7 +137,7 @@ class TestRateLimiter:
     def test_tokens_refill_over_time(self, limiter):
         """Tokens se recargan con el tiempo."""
         try:
-            from backend.core.rate_limit import RateLimitState, RateLimitConfig
+            from backend.core.rate_limit import RateLimitConfig, RateLimitState
         except ImportError:
             pytest.skip("Module not available")
 
@@ -253,7 +246,7 @@ class TestRateLimitDecorator:
     def test_decorator_applies_limit(self):
         """Decorador aplica limite."""
         try:
-            from backend.core.rate_limit import rate_limit, get_rate_limiter
+            from backend.core.rate_limit import get_rate_limiter, rate_limit
         except ImportError:
             pytest.skip("Module not available")
 
@@ -315,7 +308,7 @@ class TestRateLimitHeaders:
     def test_default_config_has_limit(self):
         """Configuracion por defecto tiene limite."""
         try:
-            from backend.core.rate_limit import RateLimiter, RateLimitConfig
+            from backend.core.rate_limit import RateLimitConfig, RateLimiter
         except ImportError:
             pytest.skip("Module not available")
 
@@ -357,7 +350,7 @@ class TestBurstHandling:
     def test_tokens_can_exceed_base(self):
         """Tokens pueden exceder base con burst."""
         try:
-            from backend.core.rate_limit import RateLimiter, RateLimitConfig
+            from backend.core.rate_limit import RateLimitConfig, RateLimiter
         except ImportError:
             pytest.skip("Module not available")
 

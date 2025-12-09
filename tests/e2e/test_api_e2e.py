@@ -6,12 +6,9 @@ Nota: En Windows, estos tests pueden fallar por bloqueo de SQLite.
 En CI (Linux), funcionan correctamente.
 """
 
-import json
 import os
-import sys
 
 import pytest
-
 
 # Configurar entorno de test
 os.environ["ENV"] = "test"
@@ -22,10 +19,13 @@ def _create_test_app():
     """Intenta crear la app de test, retorna None si falla."""
     try:
         from backend.app import create_app
-        app = create_app({
-            "TESTING": True,
-            "RATE_LIMIT_ENABLED": False,
-        })
+
+        app = create_app(
+            {
+                "TESTING": True,
+                "RATE_LIMIT_ENABLED": False,
+            }
+        )
         return app
     except PermissionError:
         return None
@@ -97,11 +97,7 @@ class TestAuthEndpoints:
 
     def test_login_missing_credentials(self, client):
         """POST /api/auth/login sin credenciales retorna error."""
-        response = client.post(
-            "/api/auth/login",
-            json={},
-            content_type="application/json"
-        )
+        response = client.post("/api/auth/login", json={}, content_type="application/json")
         assert response.status_code in (400, 401, 422)
 
     def test_login_invalid_credentials(self, client):
@@ -109,7 +105,7 @@ class TestAuthEndpoints:
         response = client.post(
             "/api/auth/login",
             json={"email": "fake@example.com", "password": "wrongpass"},
-            content_type="application/json"
+            content_type="application/json",
         )
         assert response.status_code in (401, 403)
 
@@ -182,7 +178,7 @@ class TestContentNegotiation:
         response = client.post(
             "/api/auth/login",
             json={"email": "test@test.com", "password": "test"},
-            content_type="application/json"
+            content_type="application/json",
         )
         assert response.status_code != 415
 

@@ -5,6 +5,8 @@ import { useI18n } from "../context/i18n";
 import { formatCurrency } from "../utils/formatters";
 import api from "../services/api";
 import { Button } from "../components/ui/Button";
+import { ExportButton } from "../components/export/ExportButton";
+import exportService from "../services/export";
 import clsx from "clsx";
 import {
   AlertTriangle,
@@ -114,8 +116,7 @@ export default function MRPTableroAlertas() {
 
   // Cargar alertas
   const fetchAlertas = useCallback(async () => {
-    if (!filtros.centro) return;
-
+    // No requiere centro obligatorio - permite cargar todos los datos
     setLoading(true);
     setError(null);
 
@@ -194,6 +195,21 @@ export default function MRPTableroAlertas() {
       <PageHeader
         title={t("mrp_alertas_titulo", "Tablero de Alertas MRP")}
         subtitle={t("mrp_alertas_subtitulo", "Estado general de materiales planificados")}
+        actions={
+          <div className="flex items-center gap-2">
+            <ExportButton
+              onExport={(formato) => exportService.exportAlertasMRP({ formato })}
+              label={t("common_export", "Exportar")}
+            />
+            <Button
+              variant="ghost"
+              onClick={fetchAlertas}
+              disabled={loading}
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        }
       />
 
       {/* Resumen Cards */}
@@ -253,7 +269,7 @@ export default function MRPTableroAlertas() {
               {/* Centro */}
               <div>
                 <label className="block text-sm font-medium text-slate-500 mb-1">
-                  {t("mrp_centro", "Centro")} *
+                  {t("mrp_centro", "Centro")}
                 </label>
                 <select
                   value={filtros.centro}
@@ -370,7 +386,7 @@ export default function MRPTableroAlertas() {
             <div className="flex flex-col items-center justify-center py-12 text-slate-500">
               <Package className="w-12 h-12 mb-4 opacity-50" />
               <p>{t("mrp_sin_alertas", "No hay alertas para mostrar")}</p>
-              <p className="text-sm">{t("mrp_seleccionar_centro", "Seleccione un centro para ver alertas")}</p>
+              <p className="text-sm">{t("mrp_ajustar_filtros", "Ajuste los filtros o intente de nuevo")}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">

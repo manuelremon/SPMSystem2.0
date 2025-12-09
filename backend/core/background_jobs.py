@@ -20,7 +20,6 @@ Uso:
 
 from __future__ import annotations
 
-import json
 import logging
 import threading
 import time
@@ -37,6 +36,7 @@ logger = logging.getLogger(__name__)
 
 class JobStatus(str, Enum):
     """Estados posibles de un job."""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -47,6 +47,7 @@ class JobStatus(str, Enum):
 
 class JobPriority(int, Enum):
     """Prioridades de jobs (menor = mas prioritario)."""
+
     CRITICAL = 0
     HIGH = 1
     NORMAL = 2
@@ -56,6 +57,7 @@ class JobPriority(int, Enum):
 @dataclass
 class Job:
     """Representa una tarea en la cola."""
+
     id: str
     name: str
     args: Dict[str, Any]
@@ -97,9 +99,17 @@ class Job:
             args=data.get("args", {}),
             status=JobStatus(data.get("status", "pending")),
             priority=JobPriority(data.get("priority", 2)),
-            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else datetime.utcnow(),
-            started_at=datetime.fromisoformat(data["started_at"]) if data.get("started_at") else None,
-            completed_at=datetime.fromisoformat(data["completed_at"]) if data.get("completed_at") else None,
+            created_at=(
+                datetime.fromisoformat(data["created_at"])
+                if data.get("created_at")
+                else datetime.utcnow()
+            ),
+            started_at=(
+                datetime.fromisoformat(data["started_at"]) if data.get("started_at") else None
+            ),
+            completed_at=(
+                datetime.fromisoformat(data["completed_at"]) if data.get("completed_at") else None
+            ),
             result=data.get("result"),
             error=data.get("error"),
             retries=data.get("retries", 0),
@@ -232,7 +242,8 @@ class JobQueue:
 
         with self._lock:
             pending_jobs = [
-                j for j in self._jobs.values()
+                j
+                for j in self._jobs.values()
                 if j.status in (JobStatus.PENDING, JobStatus.RETRYING)
                 and (j.scheduled_at is None or j.scheduled_at <= now)
             ]
@@ -290,9 +301,11 @@ class JobQueue:
 
         with self._lock:
             to_remove = [
-                job_id for job_id, job in self._jobs.items()
+                job_id
+                for job_id, job in self._jobs.items()
                 if job.status in (JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED)
-                and job.completed_at and job.completed_at < cutoff
+                and job.completed_at
+                and job.completed_at < cutoff
             ]
 
             for job_id in to_remove:
@@ -398,6 +411,7 @@ def get_job_queue() -> JobQueue:
 
 # ==================== Decorador ====================
 
+
 def task(
     name: Optional[str] = None,
     retries: int = 3,
@@ -412,6 +426,7 @@ def task(
         def send_email(to: str, subject: str):
             pass
     """
+
     def decorator(func: Callable) -> Callable:
         task_name = name or func.__name__
 
@@ -471,6 +486,7 @@ def enqueue(
 
 # ==================== Flask Integration ====================
 
+
 def init_background_jobs(app, start_worker: bool = True) -> None:
     """
     Inicializa el sistema de background jobs en Flask.
@@ -509,6 +525,7 @@ def _register_default_tasks(queue: JobQueue) -> None:
         """Envia una notificacion a un usuario."""
         try:
             from backend.services.notification_service import NotificationService
+
             service = NotificationService()
             return service.create_notification(
                 user_id=user_id,
@@ -533,6 +550,7 @@ def _register_default_tasks(queue: JobQueue) -> None:
         logger.info(f"Generating report: {report_type} for user {user_id}")
         try:
             from backend.core.reporting import ReportGenerator
+
             generator = ReportGenerator()
 
             if report_type == "solicitudes":
@@ -551,6 +569,7 @@ def _register_default_tasks(queue: JobQueue) -> None:
         logger.info("Processing MRP alerts")
         try:
             from backend.core.mrp_engine import MRPEngine
+
             engine = MRPEngine()
             alerts = engine.check_all_alerts()
             return {"alerts_generated": len(alerts)}
@@ -564,6 +583,7 @@ def _register_default_tasks(queue: JobQueue) -> None:
         logger.info("Updating AI models")
         try:
             from backend.core.ai_service import AIService
+
             service = AIService()
             # Reentrenar modelos con datos recientes
             return {"updated": True}

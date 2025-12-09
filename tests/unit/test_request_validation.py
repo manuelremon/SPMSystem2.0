@@ -417,7 +417,7 @@ class TestRequestValidator:
         v = RequestValidator()
         v.add_rule("name", required=True, field_type=str, max_length=100)
         v.add_rule("age", field_type=int, min_value=0, max_value=150)
-        v.add_rule("email", pattern=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+        v.add_rule("email", pattern=r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
         return v
 
     def test_valid_data_passes(self, validator):
@@ -513,10 +513,12 @@ class TestValidatorChaining:
         except ImportError:
             pytest.skip("Module not available")
 
-        v = (RequestValidator()
-             .add_rule("field1", required=True)
-             .add_rule("field2", field_type=int)
-             .add_rule("field3", max_length=10))
+        v = (
+            RequestValidator()
+            .add_rule("field1", required=True)
+            .add_rule("field2", field_type=int)
+            .add_rule("field3", max_length=10)
+        )
 
         assert len(v._rules) == 3
 

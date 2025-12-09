@@ -23,6 +23,8 @@ import { TableSkeleton } from "../components/ui/Skeleton";
 import { ScrollReveal } from "../components/ui/ScrollReveal";
 import { useI18n } from "../context/i18n";
 import { formatDate, formatDateTime, formatCurrency, exportToExcel, getSectorNombre, formatAlmacen } from "../utils/formatters";
+import { ExportButton } from "../components/export/ExportButton";
+import exportService from "../services/export";
 import { getCriticidadConfig } from "../utils/styleConfig";
 import { InfoTooltip } from "../components/ui/Tooltip";
 import {
@@ -588,6 +590,10 @@ export default function MisSolicitudes() {
           title={t("mis_page_title", "MIS SOLICITUDES")}
           actions={
             <div className="flex items-center gap-2">
+              <ExportButton
+                onExport={(formato) => exportService.exportSolicitudes({ formato })}
+                label={t("common_export", "Exportar")}
+              />
               <Button
                 variant="ghost"
                 onClick={handleRefresh}

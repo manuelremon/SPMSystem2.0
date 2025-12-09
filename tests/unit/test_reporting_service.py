@@ -9,10 +9,9 @@ El servicio de reportes permite:
 - Reportes personalizados con filtros
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
-from datetime import datetime, timedelta
-from io import BytesIO
+
+import pytest
 
 
 class TestReportingServiceInit:
@@ -55,7 +54,7 @@ class TestExportSolicitudes:
                 "total_monto": 5000.00,
                 "created_at": "2025-01-15T10:00:00Z",
                 "solicitante": "Usuario 1",
-                "centro": "1000"
+                "centro": "1000",
             },
             {
                 "id": 2,
@@ -65,7 +64,7 @@ class TestExportSolicitudes:
                 "total_monto": 1500.50,
                 "created_at": "2025-01-16T14:30:00Z",
                 "solicitante": "Usuario 2",
-                "centro": "2000"
+                "centro": "2000",
             },
             {
                 "id": 3,
@@ -75,8 +74,8 @@ class TestExportSolicitudes:
                 "total_monto": 800.00,
                 "created_at": "2025-01-17T09:15:00Z",
                 "solicitante": "Usuario 1",
-                "centro": "1000"
-            }
+                "centro": "1000",
+            },
         ]
 
     def test_export_solicitudes_excel(self, sample_solicitudes):
@@ -84,10 +83,7 @@ class TestExportSolicitudes:
         from backend.services.reporting_service import ReportingService
 
         service = ReportingService()
-        result = service.export_solicitudes(
-            solicitudes=sample_solicitudes,
-            formato="xlsx"
-        )
+        result = service.export_solicitudes(solicitudes=sample_solicitudes, formato="xlsx")
 
         assert result["success"] is True
         assert result["formato"] == "xlsx"
@@ -100,10 +96,7 @@ class TestExportSolicitudes:
         from backend.services.reporting_service import ReportingService
 
         service = ReportingService()
-        result = service.export_solicitudes(
-            solicitudes=sample_solicitudes,
-            formato="csv"
-        )
+        result = service.export_solicitudes(solicitudes=sample_solicitudes, formato="csv")
 
         assert result["success"] is True
         assert result["formato"] == "csv"
@@ -120,7 +113,7 @@ class TestExportSolicitudes:
         result = service.export_solicitudes(
             solicitudes=sample_solicitudes,
             formato="xlsx",
-            filtros={"estado": "approved", "centro": "1000"}
+            filtros={"estado": "approved", "centro": "1000"},
         )
 
         assert result["success"] is True
@@ -134,14 +127,18 @@ class TestExportSolicitudes:
         result = service.export_solicitudes(
             solicitudes=sample_solicitudes,
             formato="csv",
-            columnas=["codigo", "estado", "total_monto"]
+            columnas=["codigo", "estado", "total_monto"],
         )
 
         assert result["success"] is True
         content = result["contenido"].decode("utf-8")
         assert "codigo" in content.lower()
         # No debe incluir columnas no especificadas
-        assert "solicitante" not in content.lower() or "solicitante" in ["codigo", "estado", "total_monto"]
+        assert "solicitante" not in content.lower() or "solicitante" in [
+            "codigo",
+            "estado",
+            "total_monto",
+        ]
 
 
 class TestExportMateriales:
@@ -158,7 +155,7 @@ class TestExportMateriales:
                 "stock_seguridad": 20,
                 "punto_pedido": 80,
                 "precio_usd": 500.00,
-                "centro": "1000"
+                "centro": "1000",
             },
             {
                 "codigo": "MAT002",
@@ -167,8 +164,8 @@ class TestExportMateriales:
                 "stock_seguridad": 10,
                 "punto_pedido": 30,
                 "precio_usd": 2500.00,
-                "centro": "1000"
-            }
+                "centro": "1000",
+            },
         ]
 
     def test_export_inventario_excel(self, sample_materiales):
@@ -176,10 +173,7 @@ class TestExportMateriales:
         from backend.services.reporting_service import ReportingService
 
         service = ReportingService()
-        result = service.export_inventario(
-            materiales=sample_materiales,
-            formato="xlsx"
-        )
+        result = service.export_inventario(materiales=sample_materiales, formato="xlsx")
 
         assert result["success"] is True
         assert result["formato"] == "xlsx"
@@ -191,9 +185,7 @@ class TestExportMateriales:
 
         service = ReportingService()
         result = service.export_inventario(
-            materiales=sample_materiales,
-            formato="xlsx",
-            incluir_alertas=True
+            materiales=sample_materiales, formato="xlsx", incluir_alertas=True
         )
 
         assert result["success"] is True
@@ -214,7 +206,7 @@ class TestExportAlertasMRP:
                 "tipo": "quiebre_stock",
                 "severidad": "critical",
                 "mensaje": "Stock critico",
-                "created_at": "2025-01-15T08:00:00Z"
+                "created_at": "2025-01-15T08:00:00Z",
             },
             {
                 "id": 2,
@@ -222,8 +214,8 @@ class TestExportAlertasMRP:
                 "tipo": "bajo_punto_pedido",
                 "severidad": "warning",
                 "mensaje": "Bajo punto de pedido",
-                "created_at": "2025-01-15T09:00:00Z"
-            }
+                "created_at": "2025-01-15T09:00:00Z",
+            },
         ]
 
     def test_export_alertas_mrp(self, sample_alertas):
@@ -231,10 +223,7 @@ class TestExportAlertasMRP:
         from backend.services.reporting_service import ReportingService
 
         service = ReportingService()
-        result = service.export_alertas_mrp(
-            alertas=sample_alertas,
-            formato="xlsx"
-        )
+        result = service.export_alertas_mrp(alertas=sample_alertas, formato="xlsx")
 
         assert result["success"] is True
         assert result["total_alertas"] == 2
@@ -254,7 +243,7 @@ class TestGenerarReporteKPIs:
             "tasa_aprobacion": 0.8,
             "tiempo_promedio_aprobacion_horas": 24.5,
             "monto_total_aprobado": 250000.00,
-            "periodo": "2025-01"
+            "periodo": "2025-01",
         }
 
     def test_generar_reporte_kpis(self, sample_kpis):
@@ -262,10 +251,7 @@ class TestGenerarReporteKPIs:
         from backend.services.reporting_service import ReportingService
 
         service = ReportingService()
-        result = service.generate_kpi_report(
-            kpis=sample_kpis,
-            formato="xlsx"
-        )
+        result = service.generate_kpi_report(kpis=sample_kpis, formato="xlsx")
 
         assert result["success"] is True
         assert "contenido" in result
@@ -276,10 +262,7 @@ class TestGenerarReporteKPIs:
 
         service = ReportingService()
         result = service.generate_kpi_report(
-            kpis=sample_kpis,
-            formato="xlsx",
-            periodo_inicio="2025-01-01",
-            periodo_fin="2025-01-31"
+            kpis=sample_kpis, formato="xlsx", periodo_inicio="2025-01-01", periodo_fin="2025-01-31"
         )
 
         assert result["success"] is True
@@ -295,16 +278,13 @@ class TestReportePersonalizado:
         from backend.services.reporting_service import ReportingService
 
         service = ReportingService()
-        datos = [
-            {"campo1": "valor1", "campo2": 100},
-            {"campo1": "valor2", "campo2": 200}
-        ]
+        datos = [{"campo1": "valor1", "campo2": 100}, {"campo1": "valor2", "campo2": 200}]
 
         result = service.generate_custom_report(
             titulo="Reporte Personalizado",
             datos=datos,
             columnas=["campo1", "campo2"],
-            formato="xlsx"
+            formato="xlsx",
         )
 
         assert result["success"] is True
@@ -326,7 +306,7 @@ class TestReportePersonalizado:
             datos=datos,
             columnas=["categoria", "valor"],
             formato="xlsx",
-            agrupar_por="categoria"
+            agrupar_por="categoria",
         )
 
         assert result["success"] is True
@@ -338,7 +318,7 @@ class TestExportFromDB:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a BD."""
-        with patch('backend.services.reporting_service.get_db_connection') as mock_conn:
+        with patch("backend.services.reporting_service.get_db_connection") as mock_conn:
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -353,14 +333,11 @@ class TestExportFromDB:
         _, conn, cursor = mock_db
         cursor.fetchall.return_value = [
             {"id": 1, "codigo": "SOL-001", "estado": "approved"},
-            {"id": 2, "codigo": "SOL-002", "estado": "submitted"}
+            {"id": 2, "codigo": "SOL-002", "estado": "submitted"},
         ]
 
         service = ReportingService()
-        result = service.export_solicitudes_from_db(
-            formato="xlsx",
-            filtros={"estado": "approved"}
-        )
+        result = service.export_solicitudes_from_db(formato="xlsx", filtros={"estado": "approved"})
 
         assert result["success"] is True
         assert cursor.execute.called
@@ -370,15 +347,10 @@ class TestExportFromDB:
         from backend.services.reporting_service import ReportingService
 
         _, conn, cursor = mock_db
-        cursor.fetchall.return_value = [
-            {"codigo": "MAT001", "stock_actual": 50, "centro": "1000"}
-        ]
+        cursor.fetchall.return_value = [{"codigo": "MAT001", "stock_actual": 50, "centro": "1000"}]
 
         service = ReportingService()
-        result = service.export_inventario_from_db(
-            formato="xlsx",
-            centro="1000"
-        )
+        result = service.export_inventario_from_db(formato="xlsx", centro="1000")
 
         assert result["success"] is True
 
@@ -393,7 +365,7 @@ class TestValidaciones:
         service = ReportingService()
         result = service.export_solicitudes(
             solicitudes=[{"id": 1}],
-            formato="docx"  # No soportado
+            formato="docx",  # No soportado
         )
 
         assert result["success"] is False
@@ -404,10 +376,7 @@ class TestValidaciones:
         from backend.services.reporting_service import ReportingService
 
         service = ReportingService()
-        result = service.export_solicitudes(
-            solicitudes=[],
-            formato="xlsx"
-        )
+        result = service.export_solicitudes(solicitudes=[], formato="xlsx")
 
         assert result["success"] is True
         assert result["total_registros"] == 0
@@ -422,9 +391,7 @@ class TestMetadatos:
 
         service = ReportingService()
         result = service.export_solicitudes(
-            solicitudes=[{"id": 1, "codigo": "SOL-001"}],
-            formato="xlsx",
-            incluir_metadatos=True
+            solicitudes=[{"id": 1, "codigo": "SOL-001"}], formato="xlsx", incluir_metadatos=True
         )
 
         assert result["success"] is True
@@ -436,10 +403,7 @@ class TestMetadatos:
         from backend.services.reporting_service import ReportingService
 
         service = ReportingService()
-        result = service.export_solicitudes(
-            solicitudes=[{"id": 1}],
-            formato="xlsx"
-        )
+        result = service.export_solicitudes(solicitudes=[{"id": 1}], formato="xlsx")
 
         assert result["success"] is True
         # Filename debe incluir fecha

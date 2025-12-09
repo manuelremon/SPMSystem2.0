@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { planner, solicitudes } from "../services/spm";
 import { useAuthStore } from "../store/authStore";
+import { useRealtimeEvent } from "../hooks/useRealtime";
 import { Button } from "../components/ui/Button";
 import { Card, CardHeader, CardDescription, CardContent } from "../components/ui/Card";
 import { ModernDataTable as DataTable } from "../components/features/DataTable";
@@ -104,6 +105,15 @@ export default function Planner() {
   }, [user?.rol, user?.id]);
 
   useEffect(() => {
+    load();
+  }, [load]);
+
+  // Auto-refresh cuando llegan notificaciones de solicitudes nuevas o aprobadas
+  useRealtimeEvent('notification:solicitud_to_plan', () => {
+    load();
+  }, [load]);
+
+  useRealtimeEvent('notification:solicitud_approved', () => {
     load();
   }, [load]);
 

@@ -6,10 +6,11 @@ Sprint 1.8 - TDD Integration Tests
 """
 
 import json
-import pytest
-from unittest.mock import MagicMock, patch
 import sqlite3
 from contextlib import contextmanager
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 @pytest.fixture
@@ -22,7 +23,8 @@ def mock_db_with_tables():
     cursor = conn.cursor()
 
     # Crear tablas necesarias
-    cursor.executescript("""
+    cursor.executescript(
+        """
         CREATE TABLE usuarios (
             id INTEGER PRIMARY KEY,
             id_spm TEXT UNIQUE,
@@ -114,7 +116,8 @@ def mock_db_with_tables():
 
         INSERT INTO planificador_asignaciones (planificador_id, centro, sector) VALUES
             ('planner_1', '1008', 'Mantenimiento');
-    """)
+    """
+    )
 
     conn.commit()
     yield conn
@@ -124,6 +127,7 @@ def mock_db_with_tables():
 @pytest.fixture
 def app_client(mock_db_with_tables):
     """Crea un cliente de test de Flask con la BD mockeada."""
+
     # Mock de conexion que retorna nuestra BD en memoria
     @contextmanager
     def mock_get_db_connection(db_name=None):
@@ -133,17 +137,19 @@ def app_client(mock_db_with_tables):
     def mock_get_db_transaction(db_name=None):
         yield mock_db_with_tables
 
-    with patch('backend.core.db.get_db_connection', mock_get_db_connection), \
-         patch('backend.core.db.get_db_transaction', mock_get_db_transaction), \
-         patch('backend.core.fsm.get_db_connection', mock_get_db_connection), \
-         patch('backend.core.fsm.get_db_transaction', mock_get_db_transaction), \
-         patch('backend.services.audit_service.get_db_connection', mock_get_db_connection), \
-         patch('backend.services.audit_service.get_db_transaction', mock_get_db_transaction):
-
+    with (
+        patch("backend.core.db.get_db_connection", mock_get_db_connection),
+        patch("backend.core.db.get_db_transaction", mock_get_db_transaction),
+        patch("backend.core.fsm.get_db_connection", mock_get_db_connection),
+        patch("backend.core.fsm.get_db_transaction", mock_get_db_transaction),
+        patch("backend.services.audit_service.get_db_connection", mock_get_db_connection),
+        patch("backend.services.audit_service.get_db_transaction", mock_get_db_transaction),
+    ):
         try:
             from backend.app import create_app
+
             app = create_app()
-            app.config['TESTING'] = True
+            app.config["TESTING"] = True
             with app.test_client() as client:
                 yield client, mock_db_with_tables
         except ImportError:
@@ -158,35 +164,41 @@ class TestFSMIntegration:
         from backend.core.fsm import normalizar_estado
 
         cursor = mock_db_with_tables.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO solicitudes (id_usuario, centro, sector, status, data_json)
             VALUES ('user_1', '1008', 'Mantenimiento', 'draft', '{"items": []}')
-        """)
+        """
+        )
         mock_db_with_tables.commit()
         solicitud_id = cursor.lastrowid
 
         cursor.execute("SELECT status FROM solicitudes WHERE id = ?", (solicitud_id,))
         row = cursor.fetchone()
 
-        assert normalizar_estado(row['status']) == 'draft'
+        assert normalizar_estado(row["status"]) == "draft"
 
     def test_flujo_completo_draft_to_completed(self, mock_db_with_tables):
         """Test del flujo completo: draft -> submitted -> approved -> in_planning -> in_treatment -> treated -> completed."""
-        from backend.core.fsm import cambiar_estado, EstadoSolicitud, obtener_historial_estados
+        from backend.core.fsm import (EstadoSolicitud, cambiar_estado,
+                                      obtener_historial_estados)
 
         # Crear solicitud
         cursor = mock_db_with_tables.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO solicitudes (id_usuario, centro, sector, status, data_json, planner_id)
             VALUES ('user_1', '1008', 'Mantenimiento', 'draft', '{"items": []}', 'planner_1')
-        """)
+        """
+        )
         mock_db_with_tables.commit()
         solicitud_id = cursor.lastrowid
 
         # Transicion 1: draft -> submitted
-        with patch('backend.core.fsm.get_db_transaction') as mock_trans, \
-             patch('backend.core.fsm.get_db_connection') as mock_conn:
-
+        with (
+            patch("backend.core.fsm.get_db_transaction") as mock_trans,
+            patch("backend.core.fsm.get_db_connection") as mock_conn,
+        ):
             mock_trans.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
             mock_trans.return_value.__exit__ = MagicMock(return_value=False)
             mock_conn.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
@@ -196,19 +208,20 @@ class TestFSMIntegration:
                 solicitud_id=solicitud_id,
                 nuevo_estado=EstadoSolicitud.SUBMITTED,
                 actor_id="user_1",
-                razon="Envio para aprobacion"
+                razon="Envio para aprobacion",
             )
-            assert resultado['success'] is True
-            assert resultado['estado_nuevo'] == 'submitted'
+            assert resultado["success"] is True
+            assert resultado["estado_nuevo"] == "submitted"
 
         # Verificar estado en BD
         cursor.execute("SELECT status FROM solicitudes WHERE id = ?", (solicitud_id,))
-        assert cursor.fetchone()['status'] == 'submitted'
+        assert cursor.fetchone()["status"] == "submitted"
 
         # Transicion 2: submitted -> approved
-        with patch('backend.core.fsm.get_db_transaction') as mock_trans, \
-             patch('backend.core.fsm.get_db_connection') as mock_conn:
-
+        with (
+            patch("backend.core.fsm.get_db_transaction") as mock_trans,
+            patch("backend.core.fsm.get_db_connection") as mock_conn,
+        ):
             mock_trans.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
             mock_trans.return_value.__exit__ = MagicMock(return_value=False)
             mock_conn.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
@@ -218,15 +231,16 @@ class TestFSMIntegration:
                 solicitud_id=solicitud_id,
                 nuevo_estado=EstadoSolicitud.APPROVED,
                 actor_id="aprobador_1",
-                razon="Aprobado"
+                razon="Aprobado",
             )
-            assert resultado['success'] is True
-            assert resultado['estado_nuevo'] == 'approved'
+            assert resultado["success"] is True
+            assert resultado["estado_nuevo"] == "approved"
 
         # Transicion 3: approved -> in_planning
-        with patch('backend.core.fsm.get_db_transaction') as mock_trans, \
-             patch('backend.core.fsm.get_db_connection') as mock_conn:
-
+        with (
+            patch("backend.core.fsm.get_db_transaction") as mock_trans,
+            patch("backend.core.fsm.get_db_connection") as mock_conn,
+        ):
             mock_trans.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
             mock_trans.return_value.__exit__ = MagicMock(return_value=False)
             mock_conn.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
@@ -236,14 +250,15 @@ class TestFSMIntegration:
                 solicitud_id=solicitud_id,
                 nuevo_estado=EstadoSolicitud.IN_PLANNING,
                 actor_id="planner_1",
-                razon="En planificacion"
+                razon="En planificacion",
             )
-            assert resultado['success'] is True
+            assert resultado["success"] is True
 
         # Transicion 4: in_planning -> in_treatment
-        with patch('backend.core.fsm.get_db_transaction') as mock_trans, \
-             patch('backend.core.fsm.get_db_connection') as mock_conn:
-
+        with (
+            patch("backend.core.fsm.get_db_transaction") as mock_trans,
+            patch("backend.core.fsm.get_db_connection") as mock_conn,
+        ):
             mock_trans.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
             mock_trans.return_value.__exit__ = MagicMock(return_value=False)
             mock_conn.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
@@ -253,14 +268,15 @@ class TestFSMIntegration:
                 solicitud_id=solicitud_id,
                 nuevo_estado=EstadoSolicitud.IN_TREATMENT,
                 actor_id="planner_1",
-                razon="Tratando"
+                razon="Tratando",
             )
-            assert resultado['success'] is True
+            assert resultado["success"] is True
 
         # Transicion 5: in_treatment -> treated
-        with patch('backend.core.fsm.get_db_transaction') as mock_trans, \
-             patch('backend.core.fsm.get_db_connection') as mock_conn:
-
+        with (
+            patch("backend.core.fsm.get_db_transaction") as mock_trans,
+            patch("backend.core.fsm.get_db_connection") as mock_conn,
+        ):
             mock_trans.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
             mock_trans.return_value.__exit__ = MagicMock(return_value=False)
             mock_conn.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
@@ -270,14 +286,15 @@ class TestFSMIntegration:
                 solicitud_id=solicitud_id,
                 nuevo_estado=EstadoSolicitud.TREATED,
                 actor_id="planner_1",
-                razon="Tratado"
+                razon="Tratado",
             )
-            assert resultado['success'] is True
+            assert resultado["success"] is True
 
         # Transicion 6: treated -> completed
-        with patch('backend.core.fsm.get_db_transaction') as mock_trans, \
-             patch('backend.core.fsm.get_db_connection') as mock_conn:
-
+        with (
+            patch("backend.core.fsm.get_db_transaction") as mock_trans,
+            patch("backend.core.fsm.get_db_connection") as mock_conn,
+        ):
             mock_trans.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
             mock_trans.return_value.__exit__ = MagicMock(return_value=False)
             mock_conn.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
@@ -287,13 +304,13 @@ class TestFSMIntegration:
                 solicitud_id=solicitud_id,
                 nuevo_estado=EstadoSolicitud.COMPLETED,
                 actor_id="planner_1",
-                razon="Completado"
+                razon="Completado",
             )
-            assert resultado['success'] is True
-            assert resultado['estado_nuevo'] == 'completed'
+            assert resultado["success"] is True
+            assert resultado["estado_nuevo"] == "completed"
 
         # Verificar historial completo
-        with patch('backend.core.fsm.get_db_connection') as mock_conn:
+        with patch("backend.core.fsm.get_db_connection") as mock_conn:
             mock_conn.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
             mock_conn.return_value.__exit__ = MagicMock(return_value=False)
 
@@ -302,21 +319,25 @@ class TestFSMIntegration:
 
     def test_transicion_invalida_rechazada(self, mock_db_with_tables):
         """Transiciones invalidas deben fallar con TransicionInvalidaError."""
-        from backend.core.fsm import cambiar_estado, EstadoSolicitud, TransicionInvalidaError
+        from backend.core.fsm import (EstadoSolicitud, TransicionInvalidaError,
+                                      cambiar_estado)
 
         # Crear solicitud en draft
         cursor = mock_db_with_tables.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO solicitudes (id_usuario, centro, sector, status, data_json)
             VALUES ('user_1', '1008', 'Mantenimiento', 'draft', '{"items": []}')
-        """)
+        """
+        )
         mock_db_with_tables.commit()
         solicitud_id = cursor.lastrowid
 
         # Intentar transicion invalida: draft -> approved (debe pasar por submitted)
-        with patch('backend.core.fsm.get_db_transaction') as mock_trans, \
-             patch('backend.core.fsm.get_db_connection') as mock_conn:
-
+        with (
+            patch("backend.core.fsm.get_db_transaction") as mock_trans,
+            patch("backend.core.fsm.get_db_connection") as mock_conn,
+        ):
             mock_trans.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
             mock_trans.return_value.__exit__ = MagicMock(return_value=False)
             mock_conn.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
@@ -327,7 +348,7 @@ class TestFSMIntegration:
                     solicitud_id=solicitud_id,
                     nuevo_estado=EstadoSolicitud.APPROVED,
                     actor_id="aprobador_1",
-                    razon="Intento invalido"
+                    razon="Intento invalido",
                 )
 
             assert "draft" in str(exc_info.value).lower()
@@ -335,21 +356,25 @@ class TestFSMIntegration:
 
     def test_estado_completed_es_terminal(self, mock_db_with_tables):
         """Un estado completed no debe permitir mas transiciones."""
-        from backend.core.fsm import cambiar_estado, EstadoSolicitud, TransicionInvalidaError
+        from backend.core.fsm import (EstadoSolicitud, TransicionInvalidaError,
+                                      cambiar_estado)
 
         # Crear solicitud en completed
         cursor = mock_db_with_tables.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO solicitudes (id_usuario, centro, sector, status, data_json)
             VALUES ('user_1', '1008', 'Mantenimiento', 'completed', '{"items": []}')
-        """)
+        """
+        )
         mock_db_with_tables.commit()
         solicitud_id = cursor.lastrowid
 
         # Intentar cualquier transicion desde completed
-        with patch('backend.core.fsm.get_db_transaction') as mock_trans, \
-             patch('backend.core.fsm.get_db_connection') as mock_conn:
-
+        with (
+            patch("backend.core.fsm.get_db_transaction") as mock_trans,
+            patch("backend.core.fsm.get_db_connection") as mock_conn,
+        ):
             mock_trans.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
             mock_trans.return_value.__exit__ = MagicMock(return_value=False)
             mock_conn.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
@@ -360,7 +385,7 @@ class TestFSMIntegration:
                     solicitud_id=solicitud_id,
                     nuevo_estado=EstadoSolicitud.DRAFT,
                     actor_id="user_1",
-                    razon="Volver a draft"
+                    razon="Volver a draft",
                 )
 
 
@@ -369,21 +394,25 @@ class TestHistorialEstados:
 
     def test_historial_registra_todas_transiciones(self, mock_db_with_tables):
         """Cada transicion debe quedar registrada en el historial."""
-        from backend.core.fsm import cambiar_estado, EstadoSolicitud, obtener_historial_estados
+        from backend.core.fsm import (EstadoSolicitud, cambiar_estado,
+                                      obtener_historial_estados)
 
         # Crear solicitud
         cursor = mock_db_with_tables.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO solicitudes (id_usuario, centro, sector, status, data_json, planner_id)
             VALUES ('user_1', '1008', 'Mantenimiento', 'draft', '{"items": []}', 'planner_1')
-        """)
+        """
+        )
         mock_db_with_tables.commit()
         solicitud_id = cursor.lastrowid
 
         # Realizar 2 transiciones
-        with patch('backend.core.fsm.get_db_transaction') as mock_trans, \
-             patch('backend.core.fsm.get_db_connection') as mock_conn:
-
+        with (
+            patch("backend.core.fsm.get_db_transaction") as mock_trans,
+            patch("backend.core.fsm.get_db_connection") as mock_conn,
+        ):
             mock_trans.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
             mock_trans.return_value.__exit__ = MagicMock(return_value=False)
             mock_conn.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
@@ -394,9 +423,10 @@ class TestHistorialEstados:
         cursor.execute("UPDATE solicitudes SET status = 'submitted' WHERE id = ?", (solicitud_id,))
         mock_db_with_tables.commit()
 
-        with patch('backend.core.fsm.get_db_transaction') as mock_trans, \
-             patch('backend.core.fsm.get_db_connection') as mock_conn:
-
+        with (
+            patch("backend.core.fsm.get_db_transaction") as mock_trans,
+            patch("backend.core.fsm.get_db_connection") as mock_conn,
+        ):
             mock_trans.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
             mock_trans.return_value.__exit__ = MagicMock(return_value=False)
             mock_conn.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
@@ -405,33 +435,36 @@ class TestHistorialEstados:
             cambiar_estado(solicitud_id, EstadoSolicitud.APPROVED, "aprobador_1", "Aprobado")
 
         # Verificar historial
-        with patch('backend.core.fsm.get_db_connection') as mock_conn:
+        with patch("backend.core.fsm.get_db_connection") as mock_conn:
             mock_conn.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
             mock_conn.return_value.__exit__ = MagicMock(return_value=False)
 
             historial = obtener_historial_estados(solicitud_id)
 
         assert len(historial) == 2
-        assert historial[0]['estado_anterior'] == 'draft'
-        assert historial[0]['estado_nuevo'] == 'submitted'
-        assert historial[1]['estado_anterior'] == 'submitted'
-        assert historial[1]['estado_nuevo'] == 'approved'
+        assert historial[0]["estado_anterior"] == "draft"
+        assert historial[0]["estado_nuevo"] == "submitted"
+        assert historial[1]["estado_anterior"] == "submitted"
+        assert historial[1]["estado_nuevo"] == "approved"
 
     def test_historial_incluye_metadata(self, mock_db_with_tables):
         """El historial debe incluir metadata si se proporciona."""
-        from backend.core.fsm import cambiar_estado, EstadoSolicitud, obtener_historial_estados
+        from backend.core.fsm import EstadoSolicitud, cambiar_estado
 
         cursor = mock_db_with_tables.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO solicitudes (id_usuario, centro, sector, status, data_json, planner_id)
             VALUES ('user_1', '1008', 'Mantenimiento', 'draft', '{"items": []}', 'planner_1')
-        """)
+        """
+        )
         mock_db_with_tables.commit()
         solicitud_id = cursor.lastrowid
 
-        with patch('backend.core.fsm.get_db_transaction') as mock_trans, \
-             patch('backend.core.fsm.get_db_connection') as mock_conn:
-
+        with (
+            patch("backend.core.fsm.get_db_transaction") as mock_trans,
+            patch("backend.core.fsm.get_db_connection") as mock_conn,
+        ):
             mock_trans.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
             mock_trans.return_value.__exit__ = MagicMock(return_value=False)
             mock_conn.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
@@ -442,19 +475,19 @@ class TestHistorialEstados:
                 nuevo_estado=EstadoSolicitud.SUBMITTED,
                 actor_id="user_1",
                 razon="Envio con metadata",
-                metadata={"total_items": 5, "monto_total": 1000.50}
+                metadata={"total_items": 5, "monto_total": 1000.50},
             )
 
         # Verificar que metadata se guardo
         cursor.execute(
             "SELECT metadata_json FROM solicitudes_historial_estados WHERE solicitud_id = ?",
-            (solicitud_id,)
+            (solicitud_id,),
         )
         row = cursor.fetchone()
         assert row is not None
-        metadata = json.loads(row['metadata_json'])
-        assert metadata['total_items'] == 5
-        assert metadata['monto_total'] == 1000.50
+        metadata = json.loads(row["metadata_json"])
+        assert metadata["total_items"] == 5
+        assert metadata["monto_total"] == 1000.50
 
 
 class TestBackwardCompatibility:
@@ -488,20 +521,23 @@ class TestBackwardCompatibility:
 
     def test_transicion_funciona_con_estado_legacy(self, mock_db_with_tables):
         """Transiciones deben funcionar con solicitudes en estado legacy."""
-        from backend.core.fsm import cambiar_estado, EstadoSolicitud
+        from backend.core.fsm import EstadoSolicitud, cambiar_estado
 
         # Crear solicitud con estado legacy
         cursor = mock_db_with_tables.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO solicitudes (id_usuario, centro, sector, status, data_json, planner_id)
             VALUES ('user_1', '1008', 'Mantenimiento', 'Borrador', '{"items": []}', 'planner_1')
-        """)
+        """
+        )
         mock_db_with_tables.commit()
         solicitud_id = cursor.lastrowid
 
-        with patch('backend.core.fsm.get_db_transaction') as mock_trans, \
-             patch('backend.core.fsm.get_db_connection') as mock_conn:
-
+        with (
+            patch("backend.core.fsm.get_db_transaction") as mock_trans,
+            patch("backend.core.fsm.get_db_connection") as mock_conn,
+        ):
             mock_trans.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
             mock_trans.return_value.__exit__ = MagicMock(return_value=False)
             mock_conn.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
@@ -511,11 +547,11 @@ class TestBackwardCompatibility:
                 solicitud_id=solicitud_id,
                 nuevo_estado=EstadoSolicitud.SUBMITTED,
                 actor_id="user_1",
-                razon="Envio"
+                razon="Envio",
             )
 
-        assert resultado['success'] is True
-        assert resultado['estado_nuevo'] == 'submitted'
+        assert resultado["success"] is True
+        assert resultado["estado_nuevo"] == "submitted"
 
 
 class TestNotificaciones:
@@ -523,19 +559,22 @@ class TestNotificaciones:
 
     def test_aprobacion_crea_notificacion(self, mock_db_with_tables):
         """Aprobar una solicitud debe crear notificacion para el planificador."""
-        from backend.core.fsm import cambiar_estado, EstadoSolicitud
+        from backend.core.fsm import EstadoSolicitud, cambiar_estado
 
         cursor = mock_db_with_tables.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO solicitudes (id_usuario, centro, sector, status, data_json, planner_id)
             VALUES ('user_1', '1008', 'Mantenimiento', 'submitted', '{"items": []}', 'planner_1')
-        """)
+        """
+        )
         mock_db_with_tables.commit()
         solicitud_id = cursor.lastrowid
 
-        with patch('backend.core.fsm.get_db_transaction') as mock_trans, \
-             patch('backend.core.fsm.get_db_connection') as mock_conn:
-
+        with (
+            patch("backend.core.fsm.get_db_transaction") as mock_trans,
+            patch("backend.core.fsm.get_db_connection") as mock_conn,
+        ):
             mock_trans.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
             mock_trans.return_value.__exit__ = MagicMock(return_value=False)
             mock_conn.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
@@ -545,33 +584,36 @@ class TestNotificaciones:
                 solicitud_id=solicitud_id,
                 nuevo_estado=EstadoSolicitud.APPROVED,
                 actor_id="aprobador_1",
-                razon="Aprobado"
+                razon="Aprobado",
             )
 
         # Verificar que se creo notificacion
         cursor.execute(
             "SELECT * FROM notificaciones WHERE solicitud_id = ? AND destinatario_id = ?",
-            (solicitud_id, 'planner_1')
+            (solicitud_id, "planner_1"),
         )
         notif = cursor.fetchone()
         assert notif is not None
-        assert "aprobada" in notif['mensaje'].lower()
+        assert "aprobada" in notif["mensaje"].lower()
 
     def test_rechazo_crea_notificacion(self, mock_db_with_tables):
         """Rechazar una solicitud debe crear notificacion para el solicitante."""
-        from backend.core.fsm import cambiar_estado, EstadoSolicitud
+        from backend.core.fsm import EstadoSolicitud, cambiar_estado
 
         cursor = mock_db_with_tables.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO solicitudes (id_usuario, centro, sector, status, data_json, planner_id)
             VALUES ('user_1', '1008', 'Mantenimiento', 'submitted', '{"items": []}', 'planner_1')
-        """)
+        """
+        )
         mock_db_with_tables.commit()
         solicitud_id = cursor.lastrowid
 
-        with patch('backend.core.fsm.get_db_transaction') as mock_trans, \
-             patch('backend.core.fsm.get_db_connection') as mock_conn:
-
+        with (
+            patch("backend.core.fsm.get_db_transaction") as mock_trans,
+            patch("backend.core.fsm.get_db_connection") as mock_conn,
+        ):
             mock_trans.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
             mock_trans.return_value.__exit__ = MagicMock(return_value=False)
             mock_conn.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
@@ -581,14 +623,14 @@ class TestNotificaciones:
                 solicitud_id=solicitud_id,
                 nuevo_estado=EstadoSolicitud.REJECTED,
                 actor_id="aprobador_1",
-                razon="Presupuesto insuficiente"
+                razon="Presupuesto insuficiente",
             )
 
         # Verificar que se creo notificacion
         cursor.execute(
             "SELECT * FROM notificaciones WHERE solicitud_id = ? AND destinatario_id = ?",
-            (solicitud_id, 'user_1')
+            (solicitud_id, "user_1"),
         )
         notif = cursor.fetchone()
         assert notif is not None
-        assert "rechazada" in notif['mensaje'].lower()
+        assert "rechazada" in notif["mensaje"].lower()

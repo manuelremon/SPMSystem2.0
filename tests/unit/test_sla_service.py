@@ -9,9 +9,10 @@ El servicio SLA gestiona:
 - Metricas de cumplimiento
 """
 
-import pytest
+from datetime import datetime
 from unittest.mock import MagicMock, patch
-from datetime import datetime, timedelta
+
+import pytest
 
 
 class TestObtenerConfiguracionSLA:
@@ -20,7 +21,7 @@ class TestObtenerConfiguracionSLA:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos."""
-        with patch('backend.services.sla_service.get_db_connection') as mock_conn:
+        with patch("backend.services.sla_service.get_db_connection") as mock_conn:
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -35,23 +36,21 @@ class TestObtenerConfiguracionSLA:
         _, conn, cursor = mock_db
 
         cursor.fetchone.return_value = {
-            'id': 1,
-            'nombre': 'Aprobacion Urgente',
-            'criticidad': 'Urgente',
-            'estado_desde': 'submitted',
-            'estado_hasta': 'approved',
-            'tiempo_objetivo_horas': 4,
-            'tiempo_alerta_horas': 2
+            "id": 1,
+            "nombre": "Aprobacion Urgente",
+            "criticidad": "Urgente",
+            "estado_desde": "submitted",
+            "estado_hasta": "approved",
+            "tiempo_objetivo_horas": 4,
+            "tiempo_alerta_horas": 2,
         }
 
         config = obtener_configuracion_sla(
-            criticidad='Urgente',
-            estado_desde='submitted',
-            estado_hasta='approved'
+            criticidad="Urgente", estado_desde="submitted", estado_hasta="approved"
         )
 
         assert config is not None
-        assert config['tiempo_objetivo_horas'] == 4
+        assert config["tiempo_objetivo_horas"] == 4
 
     def test_obtener_sla_general_si_no_hay_especifico(self, mock_db):
         """Si no hay SLA especifico, debe buscar uno general."""
@@ -63,23 +62,23 @@ class TestObtenerConfiguracionSLA:
         cursor.fetchone.side_effect = [
             None,  # No hay especifico
             {
-                'id': 10,
-                'nombre': 'Aprobacion General',
-                'criticidad': None,
-                'estado_desde': 'submitted',
-                'estado_hasta': 'approved',
-                'tiempo_objetivo_horas': 24
-            }
+                "id": 10,
+                "nombre": "Aprobacion General",
+                "criticidad": None,
+                "estado_desde": "submitted",
+                "estado_hasta": "approved",
+                "tiempo_objetivo_horas": 24,
+            },
         ]
 
         config = obtener_configuracion_sla(
-            criticidad='Nueva',  # Criticidad sin config especifica
-            estado_desde='submitted',
-            estado_hasta='approved'
+            criticidad="Nueva",  # Criticidad sin config especifica
+            estado_desde="submitted",
+            estado_hasta="approved",
         )
 
         assert config is not None
-        assert config['tiempo_objetivo_horas'] == 24
+        assert config["tiempo_objetivo_horas"] == 24
 
     def test_retorna_none_si_no_hay_sla(self, mock_db):
         """Retorna None si no hay SLA configurado."""
@@ -89,9 +88,7 @@ class TestObtenerConfiguracionSLA:
         cursor.fetchone.return_value = None
 
         config = obtener_configuracion_sla(
-            criticidad='Test',
-            estado_desde='unknown',
-            estado_hasta='unknown'
+            criticidad="Test", estado_desde="unknown", estado_hasta="unknown"
         )
 
         assert config is None
@@ -148,8 +145,8 @@ class TestVerificarEstadoSLA:
 
         estado = verificar_estado_sla(fecha_limite, ahora)
 
-        assert estado['estado'] == 'on_time'
-        assert estado['horas_restantes'] > 0
+        assert estado["estado"] == "on_time"
+        assert estado["horas_restantes"] > 0
 
     def test_sla_warning(self):
         """Solicitud cerca de vencer es 'warning'."""
@@ -161,8 +158,8 @@ class TestVerificarEstadoSLA:
 
         estado = verificar_estado_sla(fecha_limite, ahora, umbral_alerta_horas)
 
-        assert estado['estado'] == 'warning'
-        assert estado['horas_restantes'] == 2
+        assert estado["estado"] == "warning"
+        assert estado["horas_restantes"] == 2
 
     def test_sla_breach(self):
         """Solicitud vencida es 'breach'."""
@@ -173,9 +170,9 @@ class TestVerificarEstadoSLA:
 
         estado = verificar_estado_sla(fecha_limite, ahora)
 
-        assert estado['estado'] == 'breach'
-        assert estado['horas_restantes'] < 0
-        assert estado['horas_excedidas'] == 2
+        assert estado["estado"] == "breach"
+        assert estado["horas_restantes"] < 0
+        assert estado["horas_excedidas"] == 2
 
 
 class TestRegistrarAlertaSLA:
@@ -184,8 +181,10 @@ class TestRegistrarAlertaSLA:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos."""
-        with patch('backend.services.sla_service.get_db_connection') as mock_conn, \
-             patch('backend.services.sla_service.get_db_transaction') as mock_trans:
+        with (
+            patch("backend.services.sla_service.get_db_connection") as mock_conn,
+            patch("backend.services.sla_service.get_db_transaction") as mock_trans,
+        ):
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -205,12 +204,12 @@ class TestRegistrarAlertaSLA:
         resultado = registrar_alerta_sla(
             solicitud_id=100,
             sla_config_id=1,
-            tipo='warning',
-            fecha_inicio='2025-01-01T10:00:00Z',
-            fecha_vencimiento='2025-01-01T18:00:00Z'
+            tipo="warning",
+            fecha_inicio="2025-01-01T10:00:00Z",
+            fecha_vencimiento="2025-01-01T18:00:00Z",
         )
 
-        assert resultado['id'] == 1
+        assert resultado["id"] == 1
         assert cursor.execute.called
 
     def test_registrar_alerta_breach(self, mock_db):
@@ -223,14 +222,14 @@ class TestRegistrarAlertaSLA:
         resultado = registrar_alerta_sla(
             solicitud_id=100,
             sla_config_id=1,
-            tipo='breach',
-            fecha_inicio='2025-01-01T10:00:00Z',
-            fecha_vencimiento='2025-01-01T18:00:00Z',
+            tipo="breach",
+            fecha_inicio="2025-01-01T10:00:00Z",
+            fecha_vencimiento="2025-01-01T18:00:00Z",
             tiempo_transcurrido_horas=10,
-            tiempo_objetivo_horas=8
+            tiempo_objetivo_horas=8,
         )
 
-        assert resultado['id'] == 2
+        assert resultado["id"] == 2
 
 
 class TestResolverAlertaSLA:
@@ -239,7 +238,7 @@ class TestResolverAlertaSLA:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos."""
-        with patch('backend.services.sla_service.get_db_transaction') as mock_trans:
+        with patch("backend.services.sla_service.get_db_transaction") as mock_trans:
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -254,12 +253,9 @@ class TestResolverAlertaSLA:
         _, conn, cursor = mock_db
         cursor.rowcount = 1
 
-        resultado = resolver_alerta_sla(
-            alerta_id=1,
-            resuelto_por='user_1'
-        )
+        resultado = resolver_alerta_sla(alerta_id=1, resuelto_por="user_1")
 
-        assert resultado['resuelto'] is True
+        assert resultado["resuelto"] is True
 
     def test_resolver_alertas_por_solicitud(self, mock_db):
         """Debe resolver todas las alertas de una solicitud."""
@@ -268,12 +264,9 @@ class TestResolverAlertaSLA:
         _, conn, cursor = mock_db
         cursor.rowcount = 3
 
-        resultado = resolver_alertas_solicitud(
-            solicitud_id=100,
-            resuelto_por='user_1'
-        )
+        resultado = resolver_alertas_solicitud(solicitud_id=100, resuelto_por="user_1")
 
-        assert resultado['alertas_resueltas'] == 3
+        assert resultado["alertas_resueltas"] == 3
 
 
 class TestMetricasSLA:
@@ -282,7 +275,7 @@ class TestMetricasSLA:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos."""
-        with patch('backend.services.sla_service.get_db_connection') as mock_conn:
+        with patch("backend.services.sla_service.get_db_connection") as mock_conn:
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -297,16 +290,16 @@ class TestMetricasSLA:
         _, conn, cursor = mock_db
 
         cursor.fetchone.side_effect = [
-            {'total': 100},  # Total solicitudes
-            {'on_time': 85},  # A tiempo
-            {'warning': 10},  # Con warning
-            {'breach': 5}  # Incumplidas
+            {"total": 100},  # Total solicitudes
+            {"on_time": 85},  # A tiempo
+            {"warning": 10},  # Con warning
+            {"breach": 5},  # Incumplidas
         ]
 
         metricas = obtener_metricas_sla(periodo_dias=30)
 
-        assert metricas['total_solicitudes'] == 100
-        assert metricas['porcentaje_cumplimiento'] == 85.0
+        assert metricas["total_solicitudes"] == 100
+        assert metricas["porcentaje_cumplimiento"] == 85.0
 
     def test_obtener_metricas_por_criticidad(self, mock_db):
         """Debe desglosar metricas por criticidad."""
@@ -316,23 +309,23 @@ class TestMetricasSLA:
 
         # La implementacion hace 4 fetchone() antes del fetchall()
         cursor.fetchone.side_effect = [
-            {'total': 100},  # Total solicitudes
-            {'on_time': 85},  # A tiempo
-            {'warning': 10},  # Con warning
-            {'breach': 5}  # Incumplidas
+            {"total": 100},  # Total solicitudes
+            {"on_time": 85},  # A tiempo
+            {"warning": 10},  # Con warning
+            {"breach": 5},  # Incumplidas
         ]
 
         cursor.fetchall.return_value = [
-            {'criticidad': 'Urgente', 'total': 10, 'on_time': 8, 'breach': 2},
-            {'criticidad': 'Alta', 'total': 20, 'on_time': 18, 'breach': 2},
-            {'criticidad': 'Normal', 'total': 50, 'on_time': 48, 'breach': 2},
-            {'criticidad': 'Baja', 'total': 20, 'on_time': 20, 'breach': 0},
+            {"criticidad": "Urgente", "total": 10, "on_time": 8, "breach": 2},
+            {"criticidad": "Alta", "total": 20, "on_time": 18, "breach": 2},
+            {"criticidad": "Normal", "total": 50, "on_time": 48, "breach": 2},
+            {"criticidad": "Baja", "total": 20, "on_time": 20, "breach": 0},
         ]
 
         metricas = obtener_metricas_sla(periodo_dias=30, por_criticidad=True)
 
-        assert 'por_criticidad' in metricas
-        assert len(metricas['por_criticidad']) == 4
+        assert "por_criticidad" in metricas
+        assert len(metricas["por_criticidad"]) == 4
 
     def test_obtener_alertas_activas(self, mock_db):
         """Debe listar alertas activas."""
@@ -341,8 +334,8 @@ class TestMetricasSLA:
         _, conn, cursor = mock_db
 
         cursor.fetchall.return_value = [
-            {'id': 1, 'solicitud_id': 100, 'tipo': 'warning'},
-            {'id': 2, 'solicitud_id': 101, 'tipo': 'breach'},
+            {"id": 1, "solicitud_id": 100, "tipo": "warning"},
+            {"id": 2, "solicitud_id": 101, "tipo": "breach"},
         ]
 
         alertas = obtener_alertas_activas()
@@ -356,8 +349,10 @@ class TestActualizarSLASolicitud:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos."""
-        with patch('backend.services.sla_service.get_db_connection') as mock_conn, \
-             patch('backend.services.sla_service.get_db_transaction') as mock_trans:
+        with (
+            patch("backend.services.sla_service.get_db_connection") as mock_conn,
+            patch("backend.services.sla_service.get_db_transaction") as mock_trans,
+        ):
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -375,12 +370,10 @@ class TestActualizarSLASolicitud:
         cursor.rowcount = 1
 
         resultado = actualizar_sla_solicitud(
-            solicitud_id=100,
-            fecha_limite='2025-01-02T10:00:00Z',
-            estado_sla='on_time'
+            solicitud_id=100, fecha_limite="2025-01-02T10:00:00Z", estado_sla="on_time"
         )
 
-        assert resultado['actualizado'] is True
+        assert resultado["actualizado"] is True
 
     def test_calcular_tiempo_respuesta(self, mock_db):
         """Debe calcular tiempo de respuesta al completar."""
@@ -400,8 +393,10 @@ class TestCRUDConfiguracionSLA:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos."""
-        with patch('backend.services.sla_service.get_db_connection') as mock_conn, \
-             patch('backend.services.sla_service.get_db_transaction') as mock_trans:
+        with (
+            patch("backend.services.sla_service.get_db_connection") as mock_conn,
+            patch("backend.services.sla_service.get_db_transaction") as mock_trans,
+        ):
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -418,8 +413,8 @@ class TestCRUDConfiguracionSLA:
         mock_conn, _, conn, cursor = mock_db
 
         cursor.fetchall.return_value = [
-            {'id': 1, 'nombre': 'Config 1', 'activo': 1},
-            {'id': 2, 'nombre': 'Config 2', 'activo': 1},
+            {"id": 1, "nombre": "Config 1", "activo": 1},
+            {"id": 2, "nombre": "Config 2", "activo": 1},
         ]
 
         configs = listar_configuraciones_sla()
@@ -434,14 +429,14 @@ class TestCRUDConfiguracionSLA:
         cursor.lastrowid = 10
 
         resultado = crear_configuracion_sla(
-            nombre='Nueva Config',
-            estado_desde='submitted',
-            estado_hasta='approved',
+            nombre="Nueva Config",
+            estado_desde="submitted",
+            estado_hasta="approved",
             tiempo_objetivo_horas=12,
-            criticidad='Alta'
+            criticidad="Alta",
         )
 
-        assert resultado['id'] == 10
+        assert resultado["id"] == 10
 
     def test_actualizar_configuracion_sla(self, mock_db):
         """Debe actualizar configuracion existente."""
@@ -450,9 +445,6 @@ class TestCRUDConfiguracionSLA:
         _, _, conn, cursor = mock_db
         cursor.rowcount = 1
 
-        resultado = actualizar_configuracion_sla(
-            config_id=1,
-            tiempo_objetivo_horas=8
-        )
+        resultado = actualizar_configuracion_sla(config_id=1, tiempo_objetivo_horas=8)
 
-        assert resultado['actualizado'] is True
+        assert resultado["actualizado"] is True

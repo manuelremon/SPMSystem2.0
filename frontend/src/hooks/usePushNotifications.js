@@ -121,7 +121,7 @@ export const usePushNotifications = () => {
     }
 
     try {
-      const response = await api.get('/api/push/vapid-key');
+      const response = await api.get('/push/vapid-key');
       if (response.data?.ok && response.data?.publicKey) {
         vapidKeyRef.current = response.data.publicKey;
         return vapidKeyRef.current;
@@ -195,7 +195,7 @@ export const usePushNotifications = () => {
 
       // Enviar suscripción al servidor
       const subscriptionData = subscription.toJSON();
-      const response = await api.post('/api/push/subscribe', {
+      const response = await api.post('/push/subscribe', {
         endpoint: subscriptionData.endpoint,
         keys: {
           p256dh: subscriptionData.keys.p256dh,
@@ -233,7 +233,7 @@ export const usePushNotifications = () => {
         await subscriptionRef.current.unsubscribe();
 
         // Notificar al servidor
-        await api.post('/api/push/unsubscribe', {
+        await api.post('/push/unsubscribe', {
           endpoint: subscriptionRef.current.endpoint
         });
 
@@ -257,7 +257,7 @@ export const usePushNotifications = () => {
    */
   const sendTestNotification = useCallback(async () => {
     try {
-      const response = await api.post('/api/push/test', {
+      const response = await api.post('/push/test', {
         title: 'Notificación de prueba',
         body: 'Si ves esto, las push notifications funcionan correctamente!'
       });
@@ -274,7 +274,7 @@ export const usePushNotifications = () => {
    */
   const checkServerStatus = useCallback(async () => {
     try {
-      const response = await api.get('/api/push/status');
+      const response = await api.get('/push/status');
       return response.data;
     } catch (err) {
       console.error('[Push] Error verificando estado:', err);

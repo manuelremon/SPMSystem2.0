@@ -37,6 +37,12 @@ const CatalogoEquivalencias = lazy(() => import('./pages/CatalogoEquivalencias')
 const MRPTableroAlertas = lazy(() => import('./pages/MRPTableroAlertas'))
 const MRPKPIs = lazy(() => import('./pages/MRPKPIs'))
 
+// SLA Dashboard (lazy-loaded)
+const SLADashboard = lazy(() => import('./pages/SLADashboard'))
+
+// AI Analytics (lazy-loaded)
+const AIAnalytics = lazy(() => import('./pages/AIAnalytics'))
+
 // Budget pages (lazy-loaded)
 const BudgetRequests = lazy(() => import('./pages/BudgetRequests'))
 const BudgetRequestCreate = lazy(() => import('./pages/BudgetRequestCreate'))
@@ -53,7 +59,6 @@ const AdminRoles = lazy(() => import('./pages/admin/AdminRoles'))
 const AdminPlanificadores = lazy(() => import('./pages/admin/AdminPlanificadores'))
 const AdminPresupuestos = lazy(() => import('./pages/admin/AdminPresupuestos'))
 const AdminEstado = lazy(() => import('./pages/admin/AdminEstado'))
-const AdminMetricas = lazy(() => import('./pages/admin/AdminMetricas'))
 const AdminMateriales = lazy(() => import('./pages/admin/AdminMateriales'))
 const AdminProveedores = lazy(() => import('./pages/AdminProveedores'))
 
@@ -99,6 +104,8 @@ function App() {
             <Route path="/planificador" element={<ProtectedRoute><Planner /></ProtectedRoute>} />
             <Route path="/planificador/mrp/alertas" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><MRPTableroAlertas /></ProtectedRoute>} />
             <Route path="/planificador/mrp/kpis" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><MRPKPIs /></ProtectedRoute>} />
+            <Route path="/planificador/sla" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador', 'coordinador']}><SLADashboard /></ProtectedRoute>} />
+            <Route path="/planificador/ai" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><AIAnalytics /></ProtectedRoute>} />
             <Route path="/presupuestos" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe', 'coordinador']}><BudgetRequests /></ProtectedRoute>} />
             <Route path="/presupuestos/nueva" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe']}><BudgetRequestCreate /></ProtectedRoute>} />
             <Route path="/presupuestos/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe', 'coordinador']}><BudgetRequestDetail /></ProtectedRoute>} />
@@ -122,7 +129,6 @@ function App() {
             <Route path="/admin/presupuestos" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminPresupuestos /></ProtectedRoute>} />
             <Route path="/admin/materiales" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminMateriales /></ProtectedRoute>} />
             <Route path="/admin/estado" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminEstado /></ProtectedRoute>} />
-            <Route path="/admin/metricas" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminMetricas /></ProtectedRoute>} />
             <Route path="/admin/proveedores" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminProveedores /></ProtectedRoute>} />
             <Route path="/registro/completar" element={<ProtectedRoute><CompleteRegistration /></ProtectedRoute>} />
             <Route path="/" element={<Navigate to="/dashboard" />} />

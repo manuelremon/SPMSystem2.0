@@ -14,7 +14,6 @@ import os
 import sqlite3
 import time
 from datetime import datetime
-from pathlib import Path
 
 from flask import Blueprint, jsonify, request
 
@@ -47,10 +46,7 @@ def _check_database(db_name: str = "spm") -> dict:
     try:
         db_path = get_db_path(db_name)
         if not db_path.exists():
-            return {
-                "status": "unavailable",
-                "error": f"Database file not found: {db_path}"
-            }
+            return {"status": "unavailable", "error": f"Database file not found: {db_path}"}
 
         start = time.time()
         conn = sqlite3.connect(str(db_path), timeout=5.0)
@@ -64,19 +60,13 @@ def _check_database(db_name: str = "spm") -> dict:
             "status": "healthy",
             "latency_ms": round(latency_ms, 2),
             "path": str(db_path),
-            "size_mb": round(db_path.stat().st_size / 1024 / 1024, 2)
+            "size_mb": round(db_path.stat().st_size / 1024 / 1024, 2),
         }
 
     except sqlite3.Error as e:
-        return {
-            "status": "unhealthy",
-            "error": str(e)
-        }
+        return {"status": "unhealthy", "error": str(e)}
     except Exception as e:
-        return {
-            "status": "error",
-            "error": str(e)
-        }
+        return {"status": "error", "error": str(e)}
 
 
 def _check_cache() -> dict:
@@ -96,15 +86,9 @@ def _check_cache() -> dict:
 
     try:
         stats = get_cache_stats()
-        return {
-            "status": "healthy",
-            "stats": stats
-        }
+        return {"status": "healthy", "stats": stats}
     except Exception as e:
-        return {
-            "status": "error",
-            "error": str(e)
-        }
+        return {"status": "error", "error": str(e)}
 
 
 def _check_metrics() -> dict:
@@ -128,13 +112,10 @@ def _check_metrics() -> dict:
         return {
             "status": "healthy",
             "total_requests": stats["total_requests"],
-            "error_rate": stats["error_rate_percent"]
+            "error_rate": stats["error_rate_percent"],
         }
     except Exception as e:
-        return {
-            "status": "error",
-            "error": str(e)
-        }
+        return {"status": "error", "error": str(e)}
 
 
 def _get_uptime() -> dict:
@@ -152,7 +133,7 @@ def _get_uptime() -> dict:
     return {
         "seconds": round(uptime_seconds, 0),
         "formatted": f"{hours}h {minutes}m {seconds}s",
-        "started_at": datetime.fromtimestamp(_start_time).isoformat()
+        "started_at": datetime.fromtimestamp(_start_time).isoformat(),
     }
 
 
@@ -167,11 +148,7 @@ def health_check_basic():
     Returns:
         JSON con estado basico
     """
-    return jsonify({
-        "ok": True,
-        "status": "healthy",
-        "version": API_VERSION
-    }), 200
+    return jsonify({"ok": True, "status": "healthy", "version": API_VERSION}), 200
 
 
 @bp.route("/api/health", methods=["GET"])
@@ -197,7 +174,8 @@ def health_check_detailed():
         checks["database"] = {
             "spm": _check_database("spm"),
             "sap_data": _check_database("sap_data"),
-            "equivalentes": _check_database("equivalentes")
+            "equivalentes": _check_database("equivalentes"),
+            "catalogo_materiales": _check_database("catalogo_materiales"),
         }
 
         # Verificar si alguna BD esta unhealthy
@@ -221,14 +199,14 @@ def health_check_detailed():
         "version": API_VERSION,
         "environment": settings.ENV,
         "uptime": _get_uptime(),
-        "checks": checks
+        "checks": checks,
     }
 
     if verbose:
         response["server"] = {
             "host": request.host,
             "python_version": f"{os.sys.version_info.major}.{os.sys.version_info.minor}.{os.sys.version_info.micro}",
-            "debug_mode": settings.DEBUG
+            "debug_mode": settings.DEBUG,
         }
 
     status_code = 200 if overall_status == "healthy" else 503
@@ -246,11 +224,10 @@ def liveness_probe():
     Returns:
         JSON con estado de liveness
     """
-    return jsonify({
-        "ok": True,
-        "status": "alive",
-        "timestamp": datetime.utcnow().isoformat() + "Z"
-    }), 200
+    return (
+        jsonify({"ok": True, "status": "alive", "timestamp": datetime.utcnow().isoformat() + "Z"}),
+        200,
+    )
 
 
 @bp.route("/api/health/ready", methods=["GET"])
@@ -268,17 +245,9 @@ def readiness_probe():
     db_check = _check_database("spm")
 
     if db_check.get("status") == "healthy":
-        return jsonify({
-            "ok": True,
-            "status": "ready",
-            "database": db_check
-        }), 200
+        return jsonify({"ok": True, "status": "ready", "database": db_check}), 200
     else:
-        return jsonify({
-            "ok": False,
-            "status": "not_ready",
-            "database": db_check
-        }), 503
+        return jsonify({"ok": False, "status": "not_ready", "database": db_check}), 503
 
 
 @bp.route("/api/health/dependencies", methods=["GET"])
@@ -293,10 +262,11 @@ def check_dependencies():
         "databases": {
             "spm": _check_database("spm"),
             "sap_data": _check_database("sap_data"),
-            "equivalentes": _check_database("equivalentes")
+            "equivalentes": _check_database("equivalentes"),
+            "catalogo_materiales": _check_database("catalogo_materiales"),
         },
         "cache": _check_cache(),
-        "metrics": _check_metrics()
+        "metrics": _check_metrics(),
     }
 
     # Determinar estado general
@@ -311,9 +281,11 @@ def check_dependencies():
                     if dep.get("status") not in ["healthy", "unavailable"]:
                         all_healthy = False
 
-    return jsonify({
-        "ok": all_healthy,
-        "status": "healthy" if all_healthy else "degraded",
-        "dependencies": dependencies,
-        "timestamp": datetime.utcnow().isoformat() + "Z"
-    }), 200 if all_healthy else 503
+    return jsonify(
+        {
+            "ok": all_healthy,
+            "status": "healthy" if all_healthy else "degraded",
+            "dependencies": dependencies,
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+        }
+    ), (200 if all_healthy else 503)

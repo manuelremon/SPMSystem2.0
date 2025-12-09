@@ -13,9 +13,9 @@ import json
 from flask import Blueprint, Response, jsonify, render_template_string
 
 try:
-    from backend.core.openapi import generate_openapi_spec, API_VERSION, API_TITLE
+    from backend.core.openapi import API_TITLE, API_VERSION, generate_openapi_spec
 except ImportError:
-    from core.openapi import generate_openapi_spec, API_VERSION, API_TITLE
+    from core.openapi import API_TITLE, API_VERSION, generate_openapi_spec
 
 bp = Blueprint("docs", __name__, url_prefix="/api/docs")
 
@@ -93,11 +93,7 @@ def swagger_ui():
     Returns:
         HTML con Swagger UI
     """
-    return render_template_string(
-        SWAGGER_UI_HTML,
-        title=API_TITLE,
-        spec_url="/api/docs/openapi"
-    )
+    return render_template_string(SWAGGER_UI_HTML, title=API_TITLE, spec_url="/api/docs/openapi")
 
 
 @bp.route("/openapi", methods=["GET"])
@@ -113,10 +109,7 @@ def openapi_spec():
     return Response(
         json.dumps(spec, indent=2, ensure_ascii=False),
         mimetype="application/json",
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Cache-Control": "public, max-age=3600"
-        }
+        headers={"Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=3600"},
     )
 
 
@@ -128,11 +121,7 @@ def redoc_ui():
     Returns:
         HTML con Redoc UI
     """
-    return render_template_string(
-        REDOC_HTML,
-        title=API_TITLE,
-        spec_url="/api/docs/openapi"
-    )
+    return render_template_string(REDOC_HTML, title=API_TITLE, spec_url="/api/docs/openapi")
 
 
 @bp.route("/info", methods=["GET"])
@@ -143,15 +132,17 @@ def api_info():
     Returns:
         Metadata de la API
     """
-    return jsonify({
-        "ok": True,
-        "data": {
-            "title": API_TITLE,
-            "version": API_VERSION,
-            "docs": {
-                "swagger": "/api/docs",
-                "redoc": "/api/docs/redoc",
-                "openapi": "/api/docs/openapi"
-            }
+    return jsonify(
+        {
+            "ok": True,
+            "data": {
+                "title": API_TITLE,
+                "version": API_VERSION,
+                "docs": {
+                    "swagger": "/api/docs",
+                    "redoc": "/api/docs/redoc",
+                    "openapi": "/api/docs/openapi",
+                },
+            },
         }
-    })
+    )

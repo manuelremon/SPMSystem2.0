@@ -48,7 +48,10 @@ def require_role(roles):
             if not hasattr(g, "user") or not g.user:
                 return (
                     jsonify(
-                        {"ok": False, "error": {"code": "unauthorized", "message": "No autenticado"}}
+                        {
+                            "ok": False,
+                            "error": {"code": "unauthorized", "message": "No autenticado"},
+                        }
                     ),
                     401,
                 )
@@ -91,7 +94,7 @@ def _get_content_type(formato: str) -> str:
     content_types = {
         "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "csv": "text/csv; charset=utf-8",
-        "pdf": "application/pdf"
+        "pdf": "application/pdf",
     }
     return content_types.get(formato, "application/octet-stream")
 
@@ -99,10 +102,18 @@ def _get_content_type(formato: str) -> str:
 def _make_download_response(result: dict) -> Response:
     """Crea respuesta de descarga desde resultado del servicio."""
     if not result.get("success"):
-        return jsonify({
-            "ok": False,
-            "error": {"code": "export_error", "message": result.get("error", "Error desconocido")}
-        }), 400
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "export_error",
+                        "message": result.get("error", "Error desconocido"),
+                    },
+                }
+            ),
+            400,
+        )
 
     contenido = result["contenido"]
     filename = result["filename"]
@@ -113,8 +124,8 @@ def _make_download_response(result: dict) -> Response:
         mimetype=_get_content_type(formato),
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-            "Content-Length": str(len(contenido))
-        }
+            "Content-Length": str(len(contenido)),
+        },
     )
     return response
 
@@ -151,18 +162,14 @@ def export_solicitudes():
     try:
         service = get_reporting_service()
         result = service.export_solicitudes_from_db(
-            formato=formato,
-            filtros=filtros if filtros else None
+            formato=formato, filtros=filtros if filtros else None
         )
 
         return _make_download_response(result)
 
     except Exception as e:
         logger.error(f"Error exportando solicitudes: {e}")
-        return jsonify({
-            "ok": False,
-            "error": {"code": "export_error", "message": str(e)}
-        }), 500
+        return jsonify({"ok": False, "error": {"code": "export_error", "message": str(e)}}), 500
 
 
 @bp.route("/inventario", methods=["GET"])
@@ -185,19 +192,13 @@ def export_inventario():
 
     try:
         service = get_reporting_service()
-        result = service.export_inventario_from_db(
-            formato=formato,
-            centro=centro
-        )
+        result = service.export_inventario_from_db(formato=formato, centro=centro)
 
         return _make_download_response(result)
 
     except Exception as e:
         logger.error(f"Error exportando inventario: {e}")
-        return jsonify({
-            "ok": False,
-            "error": {"code": "export_error", "message": str(e)}
-        }), 500
+        return jsonify({"ok": False, "error": {"code": "export_error", "message": str(e)}}), 500
 
 
 @bp.route("/alertas-mrp", methods=["GET"])
@@ -253,19 +254,13 @@ def export_alertas_mrp():
             alertas = [dict(row) for row in cursor.fetchall()]
 
         service = get_reporting_service()
-        result = service.export_alertas_mrp(
-            alertas=alertas,
-            formato=formato
-        )
+        result = service.export_alertas_mrp(alertas=alertas, formato=formato)
 
         return _make_download_response(result)
 
     except Exception as e:
         logger.error(f"Error exportando alertas MRP: {e}")
-        return jsonify({
-            "ok": False,
-            "error": {"code": "export_error", "message": str(e)}
-        }), 500
+        return jsonify({"ok": False, "error": {"code": "export_error", "message": str(e)}}), 500
 
 
 @bp.route("/kpis", methods=["GET"])
@@ -306,24 +301,33 @@ def export_kpis():
                 params.append(periodo_fin)
 
             # Total solicitudes
-            cursor.execute(f"""
+            cursor.execute(
+                f"""
                 SELECT COUNT(*) as total FROM solicitudes WHERE 1=1 {fecha_filtro}
-            """, params)
+            """,
+                params,
+            )
             total = cursor.fetchone()["total"] or 0
 
             # Por estado
-            cursor.execute(f"""
+            cursor.execute(
+                f"""
                 SELECT estado, COUNT(*) as cantidad
                 FROM solicitudes WHERE 1=1 {fecha_filtro}
                 GROUP BY estado
-            """, params)
+            """,
+                params,
+            )
             por_estado = {row["estado"]: row["cantidad"] for row in cursor.fetchall()}
 
             # Monto total aprobado
-            cursor.execute(f"""
+            cursor.execute(
+                f"""
                 SELECT SUM(total_monto) as monto
                 FROM solicitudes WHERE estado = 'approved' {fecha_filtro}
-            """, params)
+            """,
+                params,
+            )
             monto_aprobado = cursor.fetchone()["monto"] or 0
 
         kpis = {
@@ -333,28 +337,21 @@ def export_kpis():
             "pendientes": por_estado.get("submitted", 0),
             "en_proceso": por_estado.get("processing", 0),
             "tasa_aprobacion": (
-                round(por_estado.get("approved", 0) / total, 2)
-                if total > 0 else 0
+                round(por_estado.get("approved", 0) / total, 2) if total > 0 else 0
             ),
-            "monto_total_aprobado_usd": monto_aprobado
+            "monto_total_aprobado_usd": monto_aprobado,
         }
 
         service = get_reporting_service()
         result = service.generate_kpi_report(
-            kpis=kpis,
-            formato=formato,
-            periodo_inicio=periodo_inicio,
-            periodo_fin=periodo_fin
+            kpis=kpis, formato=formato, periodo_inicio=periodo_inicio, periodo_fin=periodo_fin
         )
 
         return _make_download_response(result)
 
     except Exception as e:
         logger.error(f"Error exportando KPIs: {e}")
-        return jsonify({
-            "ok": False,
-            "error": {"code": "export_error", "message": str(e)}
-        }), 500
+        return jsonify({"ok": False, "error": {"code": "export_error", "message": str(e)}}), 500
 
 
 @bp.route("/custom", methods=["POST"])
@@ -393,10 +390,18 @@ def export_custom():
         query = data["query"]
         # Solo SELECT permitido
         if not query.strip().upper().startswith("SELECT"):
-            return jsonify({
-                "ok": False,
-                "error": {"code": "forbidden", "message": "Solo consultas SELECT permitidas"}
-            }), 403
+            return (
+                jsonify(
+                    {
+                        "ok": False,
+                        "error": {
+                            "code": "forbidden",
+                            "message": "Solo consultas SELECT permitidas",
+                        },
+                    }
+                ),
+                403,
+            )
 
         try:
             with get_db_connection() as conn:
@@ -404,16 +409,15 @@ def export_custom():
                 cursor.execute(query)
                 datos = [dict(row) for row in cursor.fetchall()]
         except Exception as e:
-            return jsonify({
-                "ok": False,
-                "error": {"code": "query_error", "message": str(e)}
-            }), 400
+            return jsonify({"ok": False, "error": {"code": "query_error", "message": str(e)}}), 400
 
     if not datos:
-        return jsonify({
-            "ok": False,
-            "error": {"code": "no_data", "message": "No hay datos para exportar"}
-        }), 400
+        return (
+            jsonify(
+                {"ok": False, "error": {"code": "no_data", "message": "No hay datos para exportar"}}
+            ),
+            400,
+        )
 
     # Determinar columnas si no se especifican
     if not columnas and datos:
@@ -422,20 +426,14 @@ def export_custom():
     try:
         service = get_reporting_service()
         result = service.generate_custom_report(
-            titulo=titulo,
-            datos=datos,
-            columnas=columnas,
-            formato=formato
+            titulo=titulo, datos=datos, columnas=columnas, formato=formato
         )
 
         return _make_download_response(result)
 
     except Exception as e:
         logger.error(f"Error generando reporte custom: {e}")
-        return jsonify({
-            "ok": False,
-            "error": {"code": "export_error", "message": str(e)}
-        }), 500
+        return jsonify({"ok": False, "error": {"code": "export_error", "message": str(e)}}), 500
 
 
 @bp.route("/formatos", methods=["GET"])
@@ -447,10 +445,6 @@ def get_formatos():
         Lista de formatos disponibles
     """
     service = get_reporting_service()
-    return jsonify({
-        "ok": True,
-        "data": {
-            "formatos": service.get_supported_formats(),
-            "default": "xlsx"
-        }
-    })
+    return jsonify(
+        {"ok": True, "data": {"formatos": service.get_supported_formats(), "default": "xlsx"}}
+    )

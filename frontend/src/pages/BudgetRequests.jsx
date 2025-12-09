@@ -4,7 +4,7 @@ import { budget } from "../services/spm";
 import { useAuthStore } from "../store/authStore";
 import { Button } from "../components/ui/Button";
 import { SearchInput } from "../components/ui/SearchInput";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/Card";
+import { Card, CardContent } from "../components/ui/Card";
 import { ModernDataTable as DataTable } from "../components/features/DataTable";
 import { withSpmAlignments } from "../utils/tableAlignments";
 import StatusBadge from "../components/ui/StatusBadge";
@@ -252,13 +252,7 @@ export default function BudgetRequests() {
       {msg && <Alert variant="success" onDismiss={() => setMsg("")}>{msg}</Alert>}
 
       <Card>
-        <CardHeader>
-          <div>
-            <CardTitle>{t("bur_title", "Solicitudes de Presupuesto")}</CardTitle>
-            <CardDescription>{t("bur_subtitle", "Gestiona solicitudes de aumento de presupuesto")}</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-6">
           {/* Tabs */}
           <div className="flex gap-1 p-1 bg-slate-100/70 backdrop-blur-sm rounded-xl w-fit">
             {tabs.map((tabItem) => (

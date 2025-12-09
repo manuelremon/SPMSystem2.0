@@ -3,10 +3,9 @@
  * Translucent navigation with blur effect
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import clsx from "clsx";
-import api from "../services/api";
 import {
   FileText,
   FilePlus2,
@@ -40,6 +39,9 @@ import {
   User,
   LogOut,
   Bell,
+  Clock,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
@@ -106,6 +108,8 @@ const plannerNavItems = [
           { trKey: "nav_mrp_kpis", label: "KPIs", to: "/planificador/mrp/kpis", icon: TrendingUp },
         ],
       },
+      { trKey: "nav_sla", label: "SLA", to: "/planificador/sla", icon: Clock },
+      { trKey: "nav_ai", label: "IA Analytics", to: "/planificador/ai", icon: Activity },
     ],
   },
 ];
@@ -142,8 +146,7 @@ const adminNavHierarchy = [
     label: "Sistema",
     icon: Server,
     children: [
-      { trKey: "admin_metricas", label: "Métricas", to: "/admin/metricas", icon: Settings },
-      { trKey: "admin_estado", label: "Estado", to: "/admin/estado", icon: Activity },
+      { trKey: "admin_estado", label: "Estado del Sistema", to: "/admin/estado", icon: Activity },
     ],
   },
   {
@@ -158,38 +161,13 @@ const adminNavHierarchy = [
   },
 ];
 
-export default function Sidebar({ collapsed, onToggle }) {
+export default function Sidebar({ collapsed, onToggle, unreadCount = 0, isConnected = false }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useI18n();
   const { user, logout } = useAuthStore();
   const [expandedMenus, setExpandedMenus] = useState({});
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  // Fetch unread notifications count
-  const fetchUnreadCount = useCallback(async () => {
-    if (!user) return;
-    try {
-      const res = await api.get("/notificaciones?unread_only=true&limit=100");
-      // API returns unread_count directly, or we count from notifications array
-      if (res.data?.unread_count !== undefined) {
-        setUnreadCount(res.data.unread_count);
-      } else {
-        const notifs = res.data?.notifications || res.data?.notificaciones || res.data?.data || [];
-        setUnreadCount(notifs.length);
-      }
-    } catch {
-      // Silently ignore errors
-    }
-  }, [user]);
-
-  // Load notifications on mount and periodically
-  useEffect(() => {
-    fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000); // Every 30 seconds
-    return () => clearInterval(interval);
-  }, [fetchUnreadCount]);
 
   // Handle logout
   const handleLogout = () => {
@@ -541,8 +519,40 @@ export default function Sidebar({ collapsed, onToggle }) {
 
       </nav>
 
-      {/* Bottom fixed section: Foro + Logout */}
+      {/* Bottom fixed section: Connection indicator + Foro + Logout */}
       <div className="border-t border-white/30 px-2 py-2 space-y-1">
+        {/* Connection indicator */}
+        {collapsed ? (
+          <Tooltip
+            content={isConnected ? t("realtime_connected", "Conectado en tiempo real") : t("realtime_disconnected", "Sin conexion en tiempo real")}
+            position="right"
+            delay={0}
+            className="w-full flex justify-center py-0.5"
+          >
+            <div className="flex items-center justify-center w-8 h-8">
+              {isConnected ? (
+                <Wifi className="w-4 h-4 text-emerald-500" />
+              ) : (
+                <WifiOff className="w-4 h-4 text-slate-400" />
+              )}
+            </div>
+          </Tooltip>
+        ) : (
+          <div className="flex items-center gap-3 px-3 py-2 text-sm">
+            {isConnected ? (
+              <>
+                <Wifi className="w-4 h-4 text-emerald-500" />
+                <span className="text-emerald-600 text-xs">{t("realtime_live", "En vivo")}</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="w-4 h-4 text-slate-400" />
+                <span className="text-slate-400 text-xs">{t("realtime_offline", "Sin conexion")}</span>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Foro button */}
         {collapsed ? (
           <Tooltip content={t("nav_foro", "Foro")} position="right" delay={0} className="w-full flex justify-center py-0.5">

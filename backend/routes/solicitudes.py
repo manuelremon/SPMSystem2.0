@@ -15,71 +15,68 @@ from werkzeug.utils import secure_filename
 try:
     from backend.core.db import get_db_connection, get_db_transaction
     from backend.core.fsm import (
-        cambiar_estado,
-        normalizar_estado,
-        estado_para_display,
-        validar_transicion,
         EstadoSolicitud,
-        TransicionInvalidaError,
         SolicitudNoEncontradaError,
-    )
-    from backend.routes.auth import _decode_token
-    from backend.services.audit_service import (
-        auditar_creacion_solicitud,
-        auditar_aprobacion,
-        auditar_rechazo,
-    )
-    from backend.services.approval_service import (
-        obtener_aprobador_por_monto,
-        puede_aprobar,
-        obtener_regla_aprobacion,
+        TransicionInvalidaError,
+        cambiar_estado,
+        estado_para_display,
+        normalizar_estado,
+        validar_transicion,
     )
     from backend.core.item_schemas import (
-        validar_items,
-        validar_solicitud_create,
         ItemValidationError,
         SolicitudValidationError,
+        validar_items,
+        validar_solicitud_create,
+    )
+    from backend.routes.auth import _decode_token
+    from backend.services.approval_service import (
+        obtener_aprobador_por_monto,
+        obtener_regla_aprobacion,
+        puede_aprobar,
+    )
+    from backend.services.audit_service import (
+        auditar_aprobacion,
+        auditar_creacion_solicitud,
+        auditar_rechazo,
     )
     from backend.services.sla_service import (
-        obtener_configuracion_sla,
-        calcular_fecha_limite,
         actualizar_sla_solicitud,
+        calcular_fecha_limite,
+        obtener_configuracion_sla,
         resolver_alertas_solicitud,
     )
 except ImportError:
     from core.db import get_db_connection, get_db_transaction
     from core.fsm import (
-        cambiar_estado,
-        normalizar_estado,
-        estado_para_display,
-        validar_transicion,
         EstadoSolicitud,
-        TransicionInvalidaError,
         SolicitudNoEncontradaError,
+        TransicionInvalidaError,
+        cambiar_estado,
+        estado_para_display,
+        normalizar_estado,
+        validar_transicion,
     )
-    from routes.auth import _decode_token
-    from services.audit_service import (
-        auditar_creacion_solicitud,
-        auditar_aprobacion,
-        auditar_rechazo,
+    from core.item_schemas import (
+        validar_items,
     )
     from services.approval_service import (
         obtener_aprobador_por_monto,
         puede_aprobar,
-        obtener_regla_aprobacion,
     )
-    from core.item_schemas import (
-        validar_items,
-        validar_solicitud_create,
-        ItemValidationError,
-        SolicitudValidationError,
+    from services.audit_service import (
+        auditar_aprobacion,
+        auditar_creacion_solicitud,
+        auditar_rechazo,
     )
     from services.sla_service import (
-        obtener_configuracion_sla,
-        calcular_fecha_limite,
         actualizar_sla_solicitud,
+        calcular_fecha_limite,
+        obtener_configuracion_sla,
         resolver_alertas_solicitud,
     )
+
+    from routes.auth import _decode_token
 
 bp = Blueprint("solicitudes", __name__, url_prefix="/api/solicitudes")
 
@@ -285,15 +282,17 @@ def create_solicitud():
     validacion = validar_items(items)
     if not validacion["ok"]:
         return (
-            jsonify({
-                "ok": False,
-                "error": {
-                    "code": "validation_error",
-                    "message": validacion.get("mensaje", "Error de validacion en items"),
-                    "errores": validacion.get("errores", []),
-                    "items_validos": validacion.get("items_validos", 0),
-                },
-            }),
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "validation_error",
+                        "message": validacion.get("mensaje", "Error de validacion en items"),
+                        "errores": validacion.get("errores", []),
+                        "items_validos": validacion.get("items_validos", 0),
+                    },
+                }
+            ),
             400,
         )
 
@@ -361,9 +360,9 @@ def create_solicitud():
                 "centro": data.get("centro"),
                 "sector": data.get("sector"),
                 "items_count": len(items),
-                "total_monto": total
+                "total_monto": total,
             },
-            ip_address=request.remote_addr
+            ip_address=request.remote_addr,
         )
     except Exception:
         pass  # No fallar si auditoría falla
@@ -451,14 +450,16 @@ def guardar_borrador(solicitud_id):
         validacion = validar_items(items)
         if not validacion["ok"]:
             return (
-                jsonify({
-                    "ok": False,
-                    "error": {
-                        "code": "validation_error",
-                        "message": validacion.get("mensaje", "Error de validacion en items"),
-                        "errores": validacion.get("errores", []),
-                    },
-                }),
+                jsonify(
+                    {
+                        "ok": False,
+                        "error": {
+                            "code": "validation_error",
+                            "message": validacion.get("mensaje", "Error de validacion en items"),
+                            "errores": validacion.get("errores", []),
+                        },
+                    }
+                ),
                 400,
             )
         items_validos = [item.to_dict() for item in validacion["items"]]
@@ -506,27 +507,31 @@ def enviar_solicitud(solicitud_id):
         validacion = validar_items(items)
         if not validacion["ok"]:
             return (
-                jsonify({
-                    "ok": False,
-                    "error": {
-                        "code": "validation_error",
-                        "message": validacion.get("mensaje", "Error de validacion en items"),
-                        "errores": validacion.get("errores", []),
-                    },
-                }),
+                jsonify(
+                    {
+                        "ok": False,
+                        "error": {
+                            "code": "validation_error",
+                            "message": validacion.get("mensaje", "Error de validacion en items"),
+                            "errores": validacion.get("errores", []),
+                        },
+                    }
+                ),
                 400,
             )
         items_validos = [item.to_dict() for item in validacion["items"]]
         total = validacion["total"]
     else:
         return (
-            jsonify({
-                "ok": False,
-                "error": {
-                    "code": "validation_error",
-                    "message": "Se requiere al menos un item para enviar la solicitud",
-                },
-            }),
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "validation_error",
+                        "message": "Se requiere al menos un item para enviar la solicitud",
+                    },
+                }
+            ),
             400,
         )
 
@@ -549,24 +554,28 @@ def enviar_solicitud(solicitud_id):
             nuevo_estado=EstadoSolicitud.SUBMITTED,
             actor_id=user_id,
             razon="Solicitud enviada para aprobación",
-            metadata={"total_monto": total, "aprobador_asignado": aprobador}
+            metadata={"total_monto": total, "aprobador_asignado": aprobador},
         )
     except SolicitudNoEncontradaError:
         return (
-            jsonify({"ok": False, "error": {"code": "not_found", "message": "Solicitud no encontrada"}}),
+            jsonify(
+                {"ok": False, "error": {"code": "not_found", "message": "Solicitud no encontrada"}}
+            ),
             404,
         )
     except TransicionInvalidaError as e:
         return (
-            jsonify({
-                "ok": False,
-                "error": {
-                    "code": "invalid_transition",
-                    "message": str(e),
-                    "estado_actual": e.estado_actual,
-                    "estado_solicitado": e.estado_nuevo
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "invalid_transition",
+                        "message": str(e),
+                        "estado_actual": e.estado_actual,
+                        "estado_solicitado": e.estado_nuevo,
+                    },
                 }
-            }),
+            ),
             400,
         )
 
@@ -576,20 +585,17 @@ def enviar_solicitud(solicitud_id):
         criticidad = sol.get("criticidad") or "Normal" if sol else "Normal"
 
         sla_config = obtener_configuracion_sla(
-            criticidad=criticidad,
-            estado_desde="submitted",
-            estado_hasta="approved"
+            criticidad=criticidad, estado_desde="submitted", estado_hasta="approved"
         )
 
         if sla_config:
             fecha_limite = calcular_fecha_limite(
-                fecha_inicio=datetime.utcnow(),
-                horas=sla_config["tiempo_objetivo_horas"]
+                fecha_inicio=datetime.utcnow(), horas=sla_config["tiempo_objetivo_horas"]
             )
             actualizar_sla_solicitud(
                 solicitud_id=solicitud_id,
                 fecha_limite=fecha_limite.isoformat() + "Z",
-                estado_sla="on_time"
+                estado_sla="on_time",
             )
     except Exception:
         # SLA es informativo, no debe bloquear el flujo principal
@@ -609,10 +615,15 @@ def aprobar_solicitud(solicitud_id):
     aprobador_id = str(user_payload.get("user_id"))
     if not aprobador_id:
         return (
-            jsonify({
-                "ok": False,
-                "error": {"code": "unauthorized", "message": "Usuario no identificado en token"},
-            }),
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "unauthorized",
+                        "message": "Usuario no identificado en token",
+                    },
+                }
+            ),
             401,
         )
 
@@ -620,7 +631,9 @@ def aprobar_solicitud(solicitud_id):
     solicitud = _get_raw(solicitud_id)
     if not solicitud:
         return (
-            jsonify({"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}),
+            jsonify(
+                {"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}
+            ),
             404,
         )
 
@@ -628,14 +641,16 @@ def aprobar_solicitud(solicitud_id):
     estado_actual = normalizar_estado(solicitud.get("status") or "")
     if not validar_transicion(estado_actual, EstadoSolicitud.APPROVED):
         return (
-            jsonify({
-                "ok": False,
-                "error": {
-                    "code": "invalid_transition",
-                    "message": f"Solicitud no puede aprobarse desde estado '{estado_para_display(estado_actual)}'",
-                    "estado_actual": estado_actual,
-                },
-            }),
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "invalid_transition",
+                        "message": f"Solicitud no puede aprobarse desde estado '{estado_para_display(estado_actual)}'",
+                        "estado_actual": estado_actual,
+                    },
+                }
+            ),
             400,
         )
 
@@ -652,16 +667,20 @@ def aprobar_solicitud(solicitud_id):
     )
     if not permiso.get("puede_aprobar"):
         return (
-            jsonify({
-                "ok": False,
-                "error": {
-                    "code": "insufficient_permission",
-                    "message": permiso.get("razon", "No tiene permisos para aprobar este monto"),
-                    "rol_usuario": permiso.get("rol_usuario"),
-                    "rol_requerido": permiso.get("rol_requerido"),
-                    "nivel_aprobacion": permiso.get("nivel_aprobacion"),
-                },
-            }),
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "insufficient_permission",
+                        "message": permiso.get(
+                            "razon", "No tiene permisos para aprobar este monto"
+                        ),
+                        "rol_usuario": permiso.get("rol_usuario"),
+                        "rol_requerido": permiso.get("rol_requerido"),
+                        "nivel_aprobacion": permiso.get("nivel_aprobacion"),
+                    },
+                }
+            ),
             403,
         )
 
@@ -691,15 +710,17 @@ def aprobar_solicitud(solicitud_id):
         error_code = result.get("error_code", "budget_error")
         status_code = 422 if error_code == "saldo_insuficiente" else 400
         return (
-            jsonify({
-                "ok": False,
-                "error": {
-                    "code": error_code,
-                    "message": result.get("error_message", "Error de presupuesto"),
-                    "saldo_disponible": result.get("saldo_disponible_usd"),
-                    "monto_requerido": result.get("monto_requerido_usd"),
-                },
-            }),
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": error_code,
+                        "message": result.get("error_message", "Error de presupuesto"),
+                        "saldo_disponible": result.get("saldo_disponible_usd"),
+                        "monto_requerido": result.get("monto_requerido_usd"),
+                    },
+                }
+            ),
             status_code,
         )
 
@@ -721,7 +742,7 @@ def aprobar_solicitud(solicitud_id):
                 "total_monto": total,
                 "planificador_asignado": planificador,
                 "presupuesto_consumido": result.get("monto_consumido_cents"),
-            }
+            },
         )
 
         # Registrar en auditoria
@@ -729,43 +750,39 @@ def aprobar_solicitud(solicitud_id):
             solicitud_id=solicitud_id,
             actor_id=aprobador_id,
             actor_rol=aprobador_rol,
-            ip_address=request.remote_addr
+            ip_address=request.remote_addr,
         )
 
     except TransicionInvalidaError as e:
         return (
-            jsonify({
-                "ok": False,
-                "error": {"code": "invalid_transition", "message": str(e)},
-            }),
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {"code": "invalid_transition", "message": str(e)},
+                }
+            ),
             400,
         )
 
     # Sprint 4.4: Resolver alertas SLA y calcular nuevo SLA para siguiente etapa
     try:
         # Resolver alertas de la transicion submitted -> approved
-        resolver_alertas_solicitud(
-            solicitud_id=solicitud_id,
-            resuelto_por=aprobador_id
-        )
+        resolver_alertas_solicitud(solicitud_id=solicitud_id, resuelto_por=aprobador_id)
 
         # Calcular SLA para la siguiente transicion: approved -> in_treatment
         criticidad = solicitud.get("criticidad") or "Normal"
         sla_config = obtener_configuracion_sla(
-            criticidad=criticidad,
-            estado_desde="approved",
-            estado_hasta="in_treatment"
+            criticidad=criticidad, estado_desde="approved", estado_hasta="in_treatment"
         )
 
         if sla_config:
             fecha_limite = calcular_fecha_limite(
-                fecha_inicio=datetime.utcnow(),
-                horas=sla_config["tiempo_objetivo_horas"]
+                fecha_inicio=datetime.utcnow(), horas=sla_config["tiempo_objetivo_horas"]
             )
             actualizar_sla_solicitud(
                 solicitud_id=solicitud_id,
                 fecha_limite=fecha_limite.isoformat() + "Z",
-                estado_sla="on_time"
+                estado_sla="on_time",
             )
     except Exception:
         # SLA es informativo, no debe bloquear el flujo principal
@@ -788,7 +805,9 @@ def rechazar_solicitud(solicitud_id):
     solicitud = _get_raw(solicitud_id)
     if not solicitud:
         return (
-            jsonify({"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}),
+            jsonify(
+                {"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}
+            ),
             404,
         )
 
@@ -796,14 +815,16 @@ def rechazar_solicitud(solicitud_id):
     estado_actual = normalizar_estado(solicitud.get("status") or "")
     if not validar_transicion(estado_actual, EstadoSolicitud.REJECTED):
         return (
-            jsonify({
-                "ok": False,
-                "error": {
-                    "code": "invalid_transition",
-                    "message": f"Solicitud no puede rechazarse desde estado '{estado_para_display(estado_actual)}'",
-                    "estado_actual": estado_actual,
-                },
-            }),
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "invalid_transition",
+                        "message": f"Solicitud no puede rechazarse desde estado '{estado_para_display(estado_actual)}'",
+                        "estado_actual": estado_actual,
+                    },
+                }
+            ),
             400,
         )
 
@@ -824,7 +845,7 @@ def rechazar_solicitud(solicitud_id):
             nuevo_estado=EstadoSolicitud.REJECTED,
             actor_id=actor_id,
             razon=motivo or "Rechazada",
-            metadata={"motivo_rechazo": motivo}
+            metadata={"motivo_rechazo": motivo},
         )
 
         # Registrar en auditoria
@@ -833,30 +854,25 @@ def rechazar_solicitud(solicitud_id):
             actor_id=actor_id,
             motivo=motivo,
             actor_rol=actor_rol,
-            ip_address=request.remote_addr
+            ip_address=request.remote_addr,
         )
 
     except TransicionInvalidaError as e:
         return (
-            jsonify({
-                "ok": False,
-                "error": {"code": "invalid_transition", "message": str(e)},
-            }),
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {"code": "invalid_transition", "message": str(e)},
+                }
+            ),
             400,
         )
 
     # Sprint 4.4: Resolver todas las alertas SLA al rechazar
     try:
-        resolver_alertas_solicitud(
-            solicitud_id=solicitud_id,
-            resuelto_por=actor_id
-        )
+        resolver_alertas_solicitud(solicitud_id=solicitud_id, resuelto_por=actor_id)
         # Limpiar SLA de la solicitud
-        actualizar_sla_solicitud(
-            solicitud_id=solicitud_id,
-            fecha_limite=None,
-            estado_sla="closed"
-        )
+        actualizar_sla_solicitud(solicitud_id=solicitud_id, fecha_limite=None, estado_sla="closed")
     except Exception:
         # SLA es informativo, no debe bloquear el flujo principal
         pass
@@ -935,15 +951,17 @@ def get_historial_estados(solicitud_id):
 
     # Importar función del FSM
     try:
-        from backend.core.fsm import obtener_historial_estados, estado_para_display
+        from backend.core.fsm import estado_para_display, obtener_historial_estados
     except ImportError:
-        from core.fsm import obtener_historial_estados, estado_para_display
+        from core.fsm import estado_para_display, obtener_historial_estados
 
     # Verificar que la solicitud existe
     solicitud = _get_raw(solicitud_id)
     if not solicitud:
         return (
-            jsonify({"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}),
+            jsonify(
+                {"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}
+            ),
             404,
         )
 
@@ -955,14 +973,19 @@ def get_historial_estados(solicitud_id):
         item["estado_anterior_display"] = estado_para_display(item["estado_anterior"])
         item["estado_nuevo_display"] = estado_para_display(item["estado_nuevo"])
 
-    return jsonify({
-        "ok": True,
-        "solicitud_id": solicitud_id,
-        "estado_actual": normalizar_estado(solicitud.get("status") or ""),
-        "estado_actual_display": estado_para_display(solicitud.get("status") or ""),
-        "historial": historial,
-        "total_transiciones": len(historial)
-    }), 200
+    return (
+        jsonify(
+            {
+                "ok": True,
+                "solicitud_id": solicitud_id,
+                "estado_actual": normalizar_estado(solicitud.get("status") or ""),
+                "estado_actual_display": estado_para_display(solicitud.get("status") or ""),
+                "historial": historial,
+                "total_transiciones": len(historial),
+            }
+        ),
+        200,
+    )
 
 
 @bp.route("/<int:solicitud_id>/transiciones-posibles", methods=["GET"])
@@ -987,20 +1010,27 @@ def get_transiciones_posibles(solicitud_id):
     solicitud = _get_raw(solicitud_id)
     if not solicitud:
         return (
-            jsonify({"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}),
+            jsonify(
+                {"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}
+            ),
             404,
         )
 
     estado_actual = normalizar_estado(solicitud.get("status") or "")
     transiciones = fsm_transiciones(estado_actual)
 
-    return jsonify({
-        "ok": True,
-        "solicitud_id": solicitud_id,
-        "estado_actual": estado_actual,
-        "estado_actual_display": estado_para_display(estado_actual),
-        "transiciones_posibles": transiciones
-    }), 200
+    return (
+        jsonify(
+            {
+                "ok": True,
+                "solicitud_id": solicitud_id,
+                "estado_actual": estado_actual,
+                "estado_actual_display": estado_para_display(estado_actual),
+                "transiciones_posibles": transiciones,
+            }
+        ),
+        200,
+    )
 
 
 def _update_solicitud(solicitud_id: int, fields: dict):

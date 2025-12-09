@@ -17,7 +17,7 @@ import threading
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -27,9 +27,11 @@ logger = logging.getLogger(__name__)
 # Metricas de Aplicacion
 # =============================================================================
 
+
 @dataclass
 class RequestMetrics:
     """Metricas de una peticion HTTP."""
+
     method: str
     path: str
     status_code: int
@@ -79,13 +81,7 @@ class MetricsCollector:
         self._system_metrics: Dict[str, Any] = {}
         self._last_system_update = 0
 
-    def record_request(
-        self,
-        method: str,
-        path: str,
-        status_code: int,
-        duration_ms: float
-    ) -> None:
+    def record_request(self, method: str, path: str, status_code: int, duration_ms: float) -> None:
         """
         Registra una peticion HTTP.
 
@@ -106,8 +102,9 @@ class MetricsCollector:
 
             # Mantener solo ultimos N durations por endpoint
             if len(self._endpoint_durations[f"{method}:{normalized_path}"]) > 100:
-                self._endpoint_durations[f"{method}:{normalized_path}"] = \
-                    self._endpoint_durations[f"{method}:{normalized_path}"][-100:]
+                self._endpoint_durations[f"{method}:{normalized_path}"] = self._endpoint_durations[
+                    f"{method}:{normalized_path}"
+                ][-100:]
 
             # Contar errores
             if status_code >= 400:
@@ -119,13 +116,13 @@ class MetricsCollector:
                 method=method,
                 path=normalized_path,
                 status_code=status_code,
-                duration_ms=duration_ms
+                duration_ms=duration_ms,
             )
             self._request_history.append(metrics)
 
             # Mantener historial limitado
             if len(self._request_history) > self._max_history:
-                self._request_history = self._request_history[-self._max_history:]
+                self._request_history = self._request_history[-self._max_history :]
 
     def _normalize_path(self, path: str) -> str:
         """Normaliza path reemplazando IDs numericos con {id}."""
@@ -172,10 +169,7 @@ class MetricsCollector:
             uptime = now - self._start_time
 
             # Calcular RPM (requests por minuto)
-            recent_requests = [
-                r for r in self._request_history
-                if now - r.timestamp < 60
-            ]
+            recent_requests = [r for r in self._request_history if now - r.timestamp < 60]
             rpm = len(recent_requests)
 
             # Calcular latencia promedio
@@ -183,13 +177,23 @@ class MetricsCollector:
                 durations = [r.duration_ms for r in self._request_history[-100:]]
                 avg_latency = sum(durations) / len(durations)
                 p50_latency = sorted(durations)[len(durations) // 2]
-                p95_latency = sorted(durations)[int(len(durations) * 0.95)] if len(durations) > 1 else avg_latency
-                p99_latency = sorted(durations)[int(len(durations) * 0.99)] if len(durations) > 1 else avg_latency
+                p95_latency = (
+                    sorted(durations)[int(len(durations) * 0.95)]
+                    if len(durations) > 1
+                    else avg_latency
+                )
+                p99_latency = (
+                    sorted(durations)[int(len(durations) * 0.99)]
+                    if len(durations) > 1
+                    else avg_latency
+                )
             else:
                 avg_latency = p50_latency = p95_latency = p99_latency = 0
 
             # Error rate
-            error_rate = (self._error_count / self._request_count * 100) if self._request_count > 0 else 0
+            error_rate = (
+                (self._error_count / self._request_count * 100) if self._request_count > 0 else 0
+            )
 
             return {
                 "total_requests": self._request_count,
@@ -201,9 +205,9 @@ class MetricsCollector:
                     "avg_ms": round(avg_latency, 2),
                     "p50_ms": round(p50_latency, 2),
                     "p95_ms": round(p95_latency, 2),
-                    "p99_ms": round(p99_latency, 2)
+                    "p99_ms": round(p99_latency, 2),
                 },
-                "status_codes": dict(self._status_counts)
+                "status_codes": dict(self._status_counts),
             }
 
     def get_endpoint_stats(self, top_n: int = 10) -> Dict[str, Any]:
@@ -218,18 +222,14 @@ class MetricsCollector:
         """
         with self._lock:
             # Top endpoints por requests
-            top_endpoints = sorted(
-                self._endpoint_counts.items(),
-                key=lambda x: x[1],
-                reverse=True
-            )[:top_n]
+            top_endpoints = sorted(self._endpoint_counts.items(), key=lambda x: x[1], reverse=True)[
+                :top_n
+            ]
 
             # Top errores
-            top_errors = sorted(
-                self._endpoint_errors.items(),
-                key=lambda x: x[1],
-                reverse=True
-            )[:top_n]
+            top_errors = sorted(self._endpoint_errors.items(), key=lambda x: x[1], reverse=True)[
+                :top_n
+            ]
 
             # Latencia por endpoint
             endpoint_latencies = {}
@@ -237,13 +237,13 @@ class MetricsCollector:
                 if durations:
                     endpoint_latencies[endpoint] = {
                         "avg_ms": round(sum(durations) / len(durations), 2),
-                        "count": len(durations)
+                        "count": len(durations),
                     }
 
             return {
                 "top_endpoints": dict(top_endpoints),
                 "top_errors": dict(top_errors),
-                "endpoint_latencies": endpoint_latencies
+                "endpoint_latencies": endpoint_latencies,
             }
 
     def get_business_metrics(self) -> Dict[str, Any]:
@@ -256,7 +256,7 @@ class MetricsCollector:
         with self._lock:
             return {
                 "counters": dict(self._business_counters),
-                "gauges": dict(self._business_gauges)
+                "gauges": dict(self._business_gauges),
             }
 
     def get_system_metrics(self) -> Dict[str, Any]:
@@ -274,6 +274,7 @@ class MetricsCollector:
 
         try:
             import psutil
+
             process = psutil.Process(os.getpid())
 
             self._system_metrics = {
@@ -282,29 +283,25 @@ class MetricsCollector:
                     "memory_percent": round(process.memory_percent(), 2),
                     "cpu_percent": round(process.cpu_percent(), 2),
                     "threads": process.num_threads(),
-                    "open_files": len(process.open_files())
+                    "open_files": len(process.open_files()),
                 },
                 "system": {
                     "cpu_percent": round(psutil.cpu_percent(), 2),
                     "memory_percent": round(psutil.virtual_memory().percent, 2),
-                    "disk_percent": round(psutil.disk_usage("/").percent, 2)
-                }
+                    "disk_percent": round(psutil.disk_usage("/").percent, 2),
+                },
             }
         except ImportError:
             # psutil no disponible
             self._system_metrics = {
                 "process": {
                     "memory_mb": round(sys.getsizeof(gc.get_objects()) / 1024 / 1024, 2),
-                    "threads": threading.active_count()
+                    "threads": threading.active_count(),
                 },
-                "system": {
-                    "note": "psutil not installed for detailed metrics"
-                }
+                "system": {"note": "psutil not installed for detailed metrics"},
             }
         except Exception as e:
-            self._system_metrics = {
-                "error": str(e)
-            }
+            self._system_metrics = {"error": str(e)}
 
         self._last_system_update = now
         return self._system_metrics
@@ -321,7 +318,7 @@ class MetricsCollector:
             "requests": self.get_request_stats(),
             "endpoints": self.get_endpoint_stats(),
             "business": self.get_business_metrics(),
-            "system": self.get_system_metrics()
+            "system": self.get_system_metrics(),
         }
 
     def reset(self) -> None:
@@ -366,6 +363,7 @@ def get_metrics_collector() -> MetricsCollector:
 # Middleware para Flask
 # =============================================================================
 
+
 def init_metrics_middleware(app) -> None:
     """
     Inicializa middleware de metricas para Flask.
@@ -377,7 +375,8 @@ def init_metrics_middleware(app) -> None:
 
     @app.before_request
     def before_request():
-        from flask import g, request
+        from flask import g
+
         g.start_time = time.time()
 
     @app.after_request
@@ -395,7 +394,7 @@ def init_metrics_middleware(app) -> None:
             method=request.method,
             path=request.path,
             status_code=response.status_code,
-            duration_ms=duration_ms
+            duration_ms=duration_ms,
         )
 
         return response
@@ -404,6 +403,7 @@ def init_metrics_middleware(app) -> None:
 # =============================================================================
 # Decorador para medir funciones
 # =============================================================================
+
 
 def timed(name: Optional[str] = None):
     """
@@ -417,6 +417,7 @@ def timed(name: Optional[str] = None):
         def process_order(order_id):
             ...
     """
+
     def decorator(func: Callable):
         metric_name = name or func.__name__
 
@@ -441,6 +442,7 @@ def timed(name: Optional[str] = None):
 # Metricas de Cache
 # =============================================================================
 
+
 def get_cache_metrics() -> Dict[str, Any]:
     """
     Obtiene metricas de los caches.
@@ -450,10 +452,12 @@ def get_cache_metrics() -> Dict[str, Any]:
     """
     try:
         from backend.core.cache import get_cache_stats
+
         return get_cache_stats()
     except ImportError:
         try:
             from core.cache import get_cache_stats
+
             return get_cache_stats()
         except ImportError:
             return {"error": "Cache module not available"}
@@ -462,6 +466,7 @@ def get_cache_metrics() -> Dict[str, Any]:
 # =============================================================================
 # Metricas de Pool de BD
 # =============================================================================
+
 
 def get_db_pool_metrics() -> Dict[str, Any]:
     """
@@ -472,10 +477,12 @@ def get_db_pool_metrics() -> Dict[str, Any]:
     """
     try:
         from backend.core.db_optimization import get_all_pool_stats
+
         return get_all_pool_stats()
     except ImportError:
         try:
             from core.db_optimization import get_all_pool_stats
+
             return get_all_pool_stats()
         except ImportError:
             return {"error": "DB optimization module not available"}

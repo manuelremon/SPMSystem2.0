@@ -5,9 +5,9 @@ Sprint 1.1 - Crear tests antes de la implementacion.
 Estos tests definen el comportamiento esperado del sistema de estados.
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
-from datetime import datetime
+
+import pytest
 
 
 class TestEstadoSolicitudEnum:
@@ -18,9 +18,15 @@ class TestEstadoSolicitudEnum:
         from backend.core.fsm import EstadoSolicitud
 
         estados_requeridos = [
-            'DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED',
-            'IN_PLANNING', 'IN_TREATMENT', 'TREATED',
-            'COMPLETED', 'CANCELLED'
+            "DRAFT",
+            "SUBMITTED",
+            "APPROVED",
+            "REJECTED",
+            "IN_PLANNING",
+            "IN_TREATMENT",
+            "TREATED",
+            "COMPLETED",
+            "CANCELLED",
         ]
 
         for estado in estados_requeridos:
@@ -125,44 +131,44 @@ class TestValidarTransicion:
 
     def test_transicion_valida_draft_to_submitted(self):
         """Transicion de DRAFT a SUBMITTED debe ser valida."""
-        from backend.core.fsm import validar_transicion, EstadoSolicitud
+        from backend.core.fsm import EstadoSolicitud, validar_transicion
 
         assert validar_transicion(EstadoSolicitud.DRAFT, EstadoSolicitud.SUBMITTED) is True
 
     def test_transicion_invalida_draft_to_approved(self):
         """Transicion de DRAFT a APPROVED debe ser invalida."""
-        from backend.core.fsm import validar_transicion, EstadoSolicitud
+        from backend.core.fsm import EstadoSolicitud, validar_transicion
 
         assert validar_transicion(EstadoSolicitud.DRAFT, EstadoSolicitud.APPROVED) is False
 
     def test_transicion_invalida_draft_to_treated(self):
         """No se puede saltar directamente de DRAFT a TREATED."""
-        from backend.core.fsm import validar_transicion, EstadoSolicitud
+        from backend.core.fsm import EstadoSolicitud, validar_transicion
 
         assert validar_transicion(EstadoSolicitud.DRAFT, EstadoSolicitud.TREATED) is False
 
     def test_transicion_valida_submitted_to_approved(self):
         """Transicion de SUBMITTED a APPROVED debe ser valida."""
-        from backend.core.fsm import validar_transicion, EstadoSolicitud
+        from backend.core.fsm import EstadoSolicitud, validar_transicion
 
         assert validar_transicion(EstadoSolicitud.SUBMITTED, EstadoSolicitud.APPROVED) is True
 
     def test_transicion_valida_submitted_to_rejected(self):
         """Transicion de SUBMITTED a REJECTED debe ser valida."""
-        from backend.core.fsm import validar_transicion, EstadoSolicitud
+        from backend.core.fsm import EstadoSolicitud, validar_transicion
 
         assert validar_transicion(EstadoSolicitud.SUBMITTED, EstadoSolicitud.REJECTED) is True
 
     def test_transicion_invalida_desde_completed(self):
         """No se puede transicionar desde COMPLETED."""
-        from backend.core.fsm import validar_transicion, EstadoSolicitud
+        from backend.core.fsm import EstadoSolicitud, validar_transicion
 
         assert validar_transicion(EstadoSolicitud.COMPLETED, EstadoSolicitud.DRAFT) is False
         assert validar_transicion(EstadoSolicitud.COMPLETED, EstadoSolicitud.CANCELLED) is False
 
     def test_transicion_al_mismo_estado_invalida(self):
         """No se puede transicionar al mismo estado."""
-        from backend.core.fsm import validar_transicion, EstadoSolicitud
+        from backend.core.fsm import EstadoSolicitud, validar_transicion
 
         assert validar_transicion(EstadoSolicitud.DRAFT, EstadoSolicitud.DRAFT) is False
 
@@ -217,7 +223,7 @@ class TestCambiarEstado:
     @pytest.fixture
     def mock_db(self):
         """Mock de conexion a base de datos usando get_db_transaction."""
-        with patch('backend.core.fsm.get_db_transaction') as mock_transaction:
+        with patch("backend.core.fsm.get_db_transaction") as mock_transaction:
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -228,52 +234,56 @@ class TestCambiarEstado:
 
     def test_cambiar_estado_valido_registra_historial(self, mock_db):
         """Al cambiar estado valido, debe registrar en historial."""
-        from backend.core.fsm import cambiar_estado, EstadoSolicitud
+        from backend.core.fsm import EstadoSolicitud, cambiar_estado
 
         _, conn, cursor = mock_db
         # Simular solicitud en estado draft con datos necesarios
         cursor.fetchone.return_value = {
-            'status': 'draft',
-            'id': 1,
-            'id_usuario': 'solicitante_1',
-            'aprobador_id': None,
-            'planner_id': None
+            "status": "draft",
+            "id": 1,
+            "id_usuario": "solicitante_1",
+            "aprobador_id": None,
+            "planner_id": None,
         }
 
         resultado = cambiar_estado(
             solicitud_id=1,
             nuevo_estado=EstadoSolicitud.SUBMITTED,
             actor_id="user_1",
-            razon="Envio para aprobacion"
+            razon="Envio para aprobacion",
         )
 
-        assert resultado['success'] is True
-        assert resultado['estado_anterior'] == 'draft'
-        assert resultado['estado_nuevo'] == 'submitted'
+        assert resultado["success"] is True
+        assert resultado["estado_anterior"] == "draft"
+        assert resultado["estado_nuevo"] == "submitted"
 
         # Verificar que se inserto en historial
-        insert_calls = [call for call in cursor.execute.call_args_list
-                       if 'solicitudes_historial_estados' in str(call)]
+        insert_calls = [
+            call
+            for call in cursor.execute.call_args_list
+            if "solicitudes_historial_estados" in str(call)
+        ]
         assert len(insert_calls) > 0
 
     def test_cambiar_estado_invalido_falla(self, mock_db):
         """Al intentar transicion invalida, debe fallar."""
-        from backend.core.fsm import cambiar_estado, EstadoSolicitud, TransicionInvalidaError
+        from backend.core.fsm import (EstadoSolicitud, TransicionInvalidaError,
+                                      cambiar_estado)
 
         _, conn, cursor = mock_db
         cursor.fetchone.return_value = {
-            'status': 'draft',
-            'id': 1,
-            'id_usuario': 'solicitante_1',
-            'aprobador_id': None,
-            'planner_id': None
+            "status": "draft",
+            "id": 1,
+            "id_usuario": "solicitante_1",
+            "aprobador_id": None,
+            "planner_id": None,
         }
 
         with pytest.raises(TransicionInvalidaError) as exc_info:
             cambiar_estado(
                 solicitud_id=1,
                 nuevo_estado=EstadoSolicitud.APPROVED,  # No valido desde draft
-                actor_id="user_1"
+                actor_id="user_1",
             )
 
         assert "draft" in str(exc_info.value)
@@ -281,29 +291,29 @@ class TestCambiarEstado:
 
     def test_cambiar_estado_solicitud_no_existe(self, mock_db):
         """Si la solicitud no existe, debe fallar."""
-        from backend.core.fsm import cambiar_estado, EstadoSolicitud, SolicitudNoEncontradaError
+        from backend.core.fsm import (EstadoSolicitud,
+                                      SolicitudNoEncontradaError,
+                                      cambiar_estado)
 
         _, conn, cursor = mock_db
         cursor.fetchone.return_value = None
 
         with pytest.raises(SolicitudNoEncontradaError):
             cambiar_estado(
-                solicitud_id=999,
-                nuevo_estado=EstadoSolicitud.SUBMITTED,
-                actor_id="user_1"
+                solicitud_id=999, nuevo_estado=EstadoSolicitud.SUBMITTED, actor_id="user_1"
             )
 
     def test_cambiar_estado_incluye_metadata(self, mock_db):
         """El historial debe incluir metadata si se proporciona."""
-        from backend.core.fsm import cambiar_estado, EstadoSolicitud
+        from backend.core.fsm import EstadoSolicitud, cambiar_estado
 
         _, conn, cursor = mock_db
         cursor.fetchone.return_value = {
-            'status': 'draft',
-            'id': 1,
-            'id_usuario': 'solicitante_1',
-            'aprobador_id': None,
-            'planner_id': None
+            "status": "draft",
+            "id": 1,
+            "id_usuario": "solicitante_1",
+            "aprobador_id": None,
+            "planner_id": None,
         }
 
         metadata = {"ip": "192.168.1.1", "browser": "Chrome"}
@@ -312,10 +322,10 @@ class TestCambiarEstado:
             solicitud_id=1,
             nuevo_estado=EstadoSolicitud.SUBMITTED,
             actor_id="user_1",
-            metadata=metadata
+            metadata=metadata,
         )
 
-        assert resultado['success'] is True
+        assert resultado["success"] is True
         # Verificar que metadata se serializo en el INSERT
 
 
@@ -325,29 +335,29 @@ class TestObtenerHistorialEstados:
     @pytest.fixture
     def mock_db_historial(self):
         """Mock de conexion con historial de estados."""
-        with patch('backend.core.fsm.get_db_connection') as mock:
+        with patch("backend.core.fsm.get_db_connection") as mock:
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
             cursor.fetchall.return_value = [
                 {
-                    'id': 1,
-                    'solicitud_id': 1,
-                    'estado_anterior': 'draft',
-                    'estado_nuevo': 'submitted',
-                    'actor_id': 'user_1',
-                    'razon': 'Envio inicial',
-                    'created_at': '2025-12-08T10:00:00Z'
+                    "id": 1,
+                    "solicitud_id": 1,
+                    "estado_anterior": "draft",
+                    "estado_nuevo": "submitted",
+                    "actor_id": "user_1",
+                    "razon": "Envio inicial",
+                    "created_at": "2025-12-08T10:00:00Z",
                 },
                 {
-                    'id': 2,
-                    'solicitud_id': 1,
-                    'estado_anterior': 'submitted',
-                    'estado_nuevo': 'approved',
-                    'actor_id': 'aprobador_1',
-                    'razon': 'Aprobado',
-                    'created_at': '2025-12-08T11:00:00Z'
-                }
+                    "id": 2,
+                    "solicitud_id": 1,
+                    "estado_anterior": "submitted",
+                    "estado_nuevo": "approved",
+                    "actor_id": "aprobador_1",
+                    "razon": "Aprobado",
+                    "created_at": "2025-12-08T11:00:00Z",
+                },
             ]
             mock.return_value.__enter__ = MagicMock(return_value=conn)
             mock.return_value.__exit__ = MagicMock(return_value=False)
@@ -369,10 +379,10 @@ class TestObtenerHistorialEstados:
         historial = obtener_historial_estados(solicitud_id=1)
 
         for entrada in historial:
-            assert 'estado_anterior' in entrada
-            assert 'estado_nuevo' in entrada
-            assert 'actor_id' in entrada
-            assert 'created_at' in entrada
+            assert "estado_anterior" in entrada
+            assert "estado_nuevo" in entrada
+            assert "actor_id" in entrada
+            assert "created_at" in entrada
 
     def test_historial_solicitud_sin_transiciones(self, mock_db_historial):
         """Si no hay transiciones, retorna lista vacia."""
@@ -392,7 +402,7 @@ class TestIntegracionFSMConNotificaciones:
     @pytest.fixture
     def mock_db_notificaciones(self):
         """Mock de DB para tests de notificaciones."""
-        with patch('backend.core.fsm.get_db_transaction') as mock_transaction:
+        with patch("backend.core.fsm.get_db_transaction") as mock_transaction:
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
@@ -402,54 +412,54 @@ class TestIntegracionFSMConNotificaciones:
 
     def test_aprobacion_notifica_planificador(self, mock_db_notificaciones):
         """Al aprobar, debe notificar al planificador asignado."""
-        from backend.core.fsm import cambiar_estado, EstadoSolicitud
+        from backend.core.fsm import EstadoSolicitud, cambiar_estado
 
         _, conn, cursor = mock_db_notificaciones
         # Solicitud en estado submitted lista para aprobar
         cursor.fetchone.return_value = {
-            'status': 'submitted',
-            'id': 1,
-            'id_usuario': 'solicitante_1',
-            'aprobador_id': 'aprobador_1',
-            'planner_id': 'planner_1'
+            "status": "submitted",
+            "id": 1,
+            "id_usuario": "solicitante_1",
+            "aprobador_id": "aprobador_1",
+            "planner_id": "planner_1",
         }
 
         resultado = cambiar_estado(
-            solicitud_id=1,
-            nuevo_estado=EstadoSolicitud.APPROVED,
-            actor_id="aprobador_1"
+            solicitud_id=1, nuevo_estado=EstadoSolicitud.APPROVED, actor_id="aprobador_1"
         )
 
-        assert resultado['success'] is True
+        assert resultado["success"] is True
         # Verificar que se intento crear notificacion (via INSERT en cursor)
-        insert_calls = [call for call in cursor.execute.call_args_list
-                       if 'notificaciones' in str(call)]
+        insert_calls = [
+            call for call in cursor.execute.call_args_list if "notificaciones" in str(call)
+        ]
         assert len(insert_calls) > 0
 
     def test_rechazo_notifica_solicitante(self, mock_db_notificaciones):
         """Al rechazar, debe notificar al solicitante."""
-        from backend.core.fsm import cambiar_estado, EstadoSolicitud
+        from backend.core.fsm import EstadoSolicitud, cambiar_estado
 
         _, conn, cursor = mock_db_notificaciones
         cursor.fetchone.return_value = {
-            'status': 'submitted',
-            'id': 1,
-            'id_usuario': 'solicitante_1',
-            'aprobador_id': 'aprobador_1',
-            'planner_id': 'planner_1'
+            "status": "submitted",
+            "id": 1,
+            "id_usuario": "solicitante_1",
+            "aprobador_id": "aprobador_1",
+            "planner_id": "planner_1",
         }
 
         resultado = cambiar_estado(
             solicitud_id=1,
             nuevo_estado=EstadoSolicitud.REJECTED,
             actor_id="aprobador_1",
-            razon="Presupuesto insuficiente"
+            razon="Presupuesto insuficiente",
         )
 
-        assert resultado['success'] is True
+        assert resultado["success"] is True
         # Verificar que se intento crear notificacion
-        insert_calls = [call for call in cursor.execute.call_args_list
-                       if 'notificaciones' in str(call)]
+        insert_calls = [
+            call for call in cursor.execute.call_args_list if "notificaciones" in str(call)
+        ]
         assert len(insert_calls) > 0
 
 

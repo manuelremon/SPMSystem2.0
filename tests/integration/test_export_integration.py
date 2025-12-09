@@ -27,10 +27,9 @@ def client(app):
 @pytest.fixture
 def auth_headers(client):
     """Headers con autenticacion."""
-    response = client.post("/api/auth/login", json={
-        "email": "admin@spm.com",
-        "password": "admin123"
-    })
+    response = client.post(
+        "/api/auth/login", json={"email": "admin@spm.com", "password": "admin123"}
+    )
 
     if response.status_code == 200:
         data = response.get_json()
@@ -56,10 +55,7 @@ class TestExportEndpointsIntegration:
 
     def test_export_solicitudes_xlsx(self, client, auth_headers):
         """GET /api/export/solicitudes exporta a Excel."""
-        response = client.get(
-            "/api/export/solicitudes?formato=xlsx",
-            headers=auth_headers
-        )
+        response = client.get("/api/export/solicitudes?formato=xlsx", headers=auth_headers)
 
         # Puede fallar auth en test pero endpoint debe responder
         assert response.status_code in [200, 400, 401, 500]
@@ -68,15 +64,12 @@ class TestExportEndpointsIntegration:
             # Debe ser archivo Excel
             assert response.content_type in [
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "text/csv; charset=utf-8"  # Fallback si openpyxl no disponible
+                "text/csv; charset=utf-8",  # Fallback si openpyxl no disponible
             ]
 
     def test_export_solicitudes_csv(self, client, auth_headers):
         """GET /api/export/solicitudes?formato=csv exporta a CSV."""
-        response = client.get(
-            "/api/export/solicitudes?formato=csv",
-            headers=auth_headers
-        )
+        response = client.get("/api/export/solicitudes?formato=csv", headers=auth_headers)
 
         assert response.status_code in [200, 400, 401, 500]
 
@@ -86,18 +79,14 @@ class TestExportEndpointsIntegration:
     def test_export_inventario(self, client, auth_headers):
         """GET /api/export/inventario exporta inventario."""
         response = client.get(
-            "/api/export/inventario?formato=xlsx&centro=1000",
-            headers=auth_headers
+            "/api/export/inventario?formato=xlsx&centro=1000", headers=auth_headers
         )
 
         assert response.status_code in [200, 400, 401, 500]
 
     def test_export_kpis(self, client, auth_headers):
         """GET /api/export/kpis exporta KPIs."""
-        response = client.get(
-            "/api/export/kpis?formato=xlsx",
-            headers=auth_headers
-        )
+        response = client.get("/api/export/kpis?formato=xlsx", headers=auth_headers)
 
         assert response.status_code in [200, 400, 401, 500]
 
@@ -152,7 +141,7 @@ class TestReportingServiceIntegration:
         service = ReportingService()
         solicitudes = [
             {"id": 1, "codigo": "SOL-001", "estado": "approved"},
-            {"id": 2, "codigo": "SOL-002", "estado": "submitted"}
+            {"id": 2, "codigo": "SOL-002", "estado": "submitted"},
         ]
 
         result = service.export_solicitudes(solicitudes, formato="csv")
@@ -170,9 +159,7 @@ class TestReportingServiceIntegration:
             pytest.skip("Reporting service not available")
 
         service = ReportingService()
-        solicitudes = [
-            {"id": 1, "codigo": "SOL-001", "total_monto": 1000}
-        ]
+        solicitudes = [{"id": 1, "codigo": "SOL-001", "total_monto": 1000}]
 
         result = service.export_solicitudes(solicitudes, formato="xlsx")
 
@@ -203,14 +190,10 @@ class TestReportingServiceIntegration:
         service = ReportingService()
         materiales = [
             {"codigo": "MAT001", "stock_actual": 5, "stock_seguridad": 20},
-            {"codigo": "MAT002", "stock_actual": 100, "stock_seguridad": 10}
+            {"codigo": "MAT002", "stock_actual": 100, "stock_seguridad": 10},
         ]
 
-        result = service.export_inventario(
-            materiales,
-            formato="xlsx",
-            incluir_alertas=True
-        )
+        result = service.export_inventario(materiales, formato="xlsx", incluir_alertas=True)
 
         assert result["success"] is True
         assert result["materiales_criticos"] == 1  # MAT001 es critico
@@ -227,7 +210,7 @@ class TestReportingServiceIntegration:
             "solicitudes_totales": 100,
             "aprobadas": 80,
             "rechazadas": 10,
-            "tasa_aprobacion": 0.8
+            "tasa_aprobacion": 0.8,
         }
 
         result = service.generate_kpi_report(kpis, formato="xlsx")
@@ -243,16 +226,10 @@ class TestReportingServiceIntegration:
             pytest.skip("Reporting service not available")
 
         service = ReportingService()
-        datos = [
-            {"campo1": "A", "campo2": 100},
-            {"campo1": "B", "campo2": 200}
-        ]
+        datos = [{"campo1": "A", "campo2": 100}, {"campo1": "B", "campo2": 200}]
 
         result = service.generate_custom_report(
-            titulo="Mi Reporte",
-            datos=datos,
-            columnas=["campo1", "campo2"],
-            formato="csv"
+            titulo="Mi Reporte", datos=datos, columnas=["campo1", "campo2"], formato="csv"
         )
 
         assert result["success"] is True

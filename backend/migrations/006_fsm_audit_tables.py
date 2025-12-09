@@ -107,7 +107,7 @@ def run_migration(db_path: Path = DB_PATH) -> bool:
             # Verificar creacion
             cursor.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name IN (?, ?)",
-                ('solicitudes_historial_estados', 'audit_trail')
+                ("solicitudes_historial_estados", "audit_trail"),
             )
             tables = cursor.fetchall()
             if len(tables) == 2:
@@ -175,7 +175,7 @@ def check_status(db_path: Path = DB_PATH) -> dict:
             # Verificar tablas
             cursor.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name IN (?, ?)",
-                ('solicitudes_historial_estados', 'audit_trail')
+                ("solicitudes_historial_estados", "audit_trail"),
             )
             tables = [row[0] for row in cursor.fetchall()]
 
@@ -188,10 +188,9 @@ def check_status(db_path: Path = DB_PATH) -> dict:
             return {
                 "tablas_creadas": tables,
                 "tablas_faltantes": [
-                    t for t in ['solicitudes_historial_estados', 'audit_trail']
-                    if t not in tables
+                    t for t in ["solicitudes_historial_estados", "audit_trail"] if t not in tables
                 ],
-                "registros": counts
+                "registros": counts,
             }
 
     except Exception as e:

@@ -9,9 +9,10 @@ El servicio unificado integra:
 - MRP Service (integracion con stock y alertas)
 """
 
-import pytest
-from unittest.mock import MagicMock, patch
 from datetime import datetime, timedelta
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 class TestAIServiceInit:
@@ -50,23 +51,30 @@ class TestAIServiceTraining:
         solicitudes = []
         for material in ["MAT001", "MAT002", "MAT003", "MAT004", "MAT005", "MAT006"]:
             for i in range(5):
-                solicitudes.append({
-                    "id": len(solicitudes) + 1,
-                    "created_at": (base_date + timedelta(days=i * 3)).isoformat(),
-                    "material_codigo": material,
-                    "centro": "1000",
-                    "sector": "Produccion",
-                    "criticidad": "Alta" if i % 2 == 0 else "Normal",
-                    "total_monto": 1000 + (i * 100),
-                    "data_json": {"items": list(range(i + 1))}
-                })
+                solicitudes.append(
+                    {
+                        "id": len(solicitudes) + 1,
+                        "created_at": (base_date + timedelta(days=i * 3)).isoformat(),
+                        "material_codigo": material,
+                        "centro": "1000",
+                        "sector": "Produccion",
+                        "criticidad": "Alta" if i % 2 == 0 else "Normal",
+                        "total_monto": 1000 + (i * 100),
+                        "data_json": {"items": list(range(i + 1))},
+                    }
+                )
         return solicitudes
 
     @pytest.fixture
     def sample_materials(self):
         """Materiales de prueba."""
         return [
-            {"codigo": f"MAT00{i}", "descripcion": f"Material {i}", "precio_usd": i * 100, "unidad": "PZ"}
+            {
+                "codigo": f"MAT00{i}",
+                "descripcion": f"Material {i}",
+                "precio_usd": i * 100,
+                "unidad": "PZ",
+            }
             for i in range(1, 7)
         ]
 
@@ -76,8 +84,7 @@ class TestAIServiceTraining:
 
         service = AIService()
         result = service.train_pipelines(
-            solicitudes_data=sample_training_data,
-            materiales_data=sample_materials
+            solicitudes_data=sample_training_data, materiales_data=sample_materials
         )
 
         assert result["status"] == "trained"
@@ -92,7 +99,7 @@ class TestAIServiceTraining:
         service = AIService()
         result = service.train_pipelines(
             solicitudes_data=[{"id": 1}],  # Insuficiente
-            materiales_data=[{"codigo": "MAT001"}]
+            materiales_data=[{"codigo": "MAT001"}],
         )
 
         # Cuando datos son insuficientes, pipelines se saltan
@@ -116,18 +123,25 @@ class TestAIServiceRecommendations:
         solicitudes = []
         for material in ["MAT001", "MAT002", "MAT003", "MAT004", "MAT005", "MAT006"]:
             for i in range(5):
-                solicitudes.append({
-                    "id": len(solicitudes) + 1,
-                    "created_at": (base_date + timedelta(days=i * 3)).isoformat(),
-                    "material_codigo": material,
-                    "centro": "1000",
-                    "sector": "Produccion",
-                    "criticidad": "Alta" if i % 2 == 0 else "Normal",
-                    "total_monto": 1000 + (i * 100),
-                    "data_json": {"items": list(range(i + 1))}
-                })
+                solicitudes.append(
+                    {
+                        "id": len(solicitudes) + 1,
+                        "created_at": (base_date + timedelta(days=i * 3)).isoformat(),
+                        "material_codigo": material,
+                        "centro": "1000",
+                        "sector": "Produccion",
+                        "criticidad": "Alta" if i % 2 == 0 else "Normal",
+                        "total_monto": 1000 + (i * 100),
+                        "data_json": {"items": list(range(i + 1))},
+                    }
+                )
         materials = [
-            {"codigo": f"MAT00{i}", "descripcion": f"Material {i}", "precio_usd": i * 100, "unidad": "PZ"}
+            {
+                "codigo": f"MAT00{i}",
+                "descripcion": f"Material {i}",
+                "precio_usd": i * 100,
+                "unidad": "PZ",
+            }
             for i in range(1, 7)
         ]
         service.train_pipelines(solicitudes, materials)
@@ -136,9 +150,7 @@ class TestAIServiceRecommendations:
     def test_recomendar_materiales_similares(self, trained_service):
         """Recomienda materiales similares a uno dado."""
         result = trained_service.recomendar_materiales_similares(
-            material_codigo="MAT001",
-            centro="1000",
-            max_resultados=5
+            material_codigo="MAT001", centro="1000", max_resultados=5
         )
 
         assert "material_referencia" in result
@@ -149,7 +161,12 @@ class TestAIServiceRecommendations:
         """Prioriza lista de solicitudes."""
         solicitudes = [
             {"id": 1, "criticidad": "Normal", "total_monto": 1000, "data_json": {"items": [1]}},
-            {"id": 2, "criticidad": "Alta", "total_monto": 50000, "data_json": {"items": [1, 2, 3]}},
+            {
+                "id": 2,
+                "criticidad": "Alta",
+                "total_monto": 50000,
+                "data_json": {"items": [1, 2, 3]},
+            },
         ]
 
         result = trained_service.priorizar_solicitudes(solicitudes)
@@ -159,11 +176,7 @@ class TestAIServiceRecommendations:
 
     def test_proyectar_demanda(self, trained_service):
         """Proyecta demanda para material."""
-        result = trained_service.proyectar_demanda(
-            material_codigo="MAT001",
-            centro="1000",
-            dias=30
-        )
+        result = trained_service.proyectar_demanda(material_codigo="MAT001", centro="1000", dias=30)
 
         assert result["material_codigo"] == "MAT001"
         assert "predicted_demand" in result
@@ -184,18 +197,25 @@ class TestAIServiceSugerencias:
         solicitudes = []
         for material in ["MAT001", "MAT002", "MAT003", "MAT004", "MAT005", "MAT006"]:
             for i in range(5):
-                solicitudes.append({
-                    "id": len(solicitudes) + 1,
-                    "created_at": (base_date + timedelta(days=i * 3)).isoformat(),
-                    "material_codigo": material,
-                    "centro": "1000",
-                    "sector": "Produccion",
-                    "criticidad": "Alta" if i % 2 == 0 else "Normal",
-                    "total_monto": 1000 + (i * 100),
-                    "data_json": {"items": list(range(i + 1))}
-                })
+                solicitudes.append(
+                    {
+                        "id": len(solicitudes) + 1,
+                        "created_at": (base_date + timedelta(days=i * 3)).isoformat(),
+                        "material_codigo": material,
+                        "centro": "1000",
+                        "sector": "Produccion",
+                        "criticidad": "Alta" if i % 2 == 0 else "Normal",
+                        "total_monto": 1000 + (i * 100),
+                        "data_json": {"items": list(range(i + 1))},
+                    }
+                )
         materials = [
-            {"codigo": f"MAT00{i}", "descripcion": f"Material {i}", "precio_usd": i * 100, "unidad": "PZ"}
+            {
+                "codigo": f"MAT00{i}",
+                "descripcion": f"Material {i}",
+                "precio_usd": i * 100,
+                "unidad": "PZ",
+            }
             for i in range(1, 7)
         ]
         service.train_pipelines(solicitudes, materials)
@@ -208,7 +228,7 @@ class TestAIServiceSugerencias:
             "criticidad": "Alta",
             "fecha_necesidad": (datetime.now() + timedelta(days=2)).isoformat(),
             "total_monto": 50000,
-            "data_json": {"items": [{"material_codigo": "MAT001", "cantidad": 10}]}
+            "data_json": {"items": [{"material_codigo": "MAT001", "cantidad": 10}]},
         }
 
         result = trained_service.sugerir_accion(solicitud)
@@ -221,9 +241,7 @@ class TestAIServiceSugerencias:
     def test_sugerir_cantidad_optima(self, trained_service):
         """Sugiere cantidad optima de pedido."""
         result = trained_service.sugerir_cantidad_optima(
-            material_codigo="MAT001",
-            centro="1000",
-            demanda_anual=1200
+            material_codigo="MAT001", centro="1000", demanda_anual=1200
         )
 
         assert "cantidad_sugerida" in result
@@ -232,7 +250,7 @@ class TestAIServiceSugerencias:
 
     def test_alertas_inteligentes(self, trained_service):
         """Genera alertas basadas en patrones."""
-        with patch('backend.services.ai_service.get_db_connection') as mock_conn:
+        with patch("backend.services.ai_service.get_db_connection") as mock_conn:
             conn = MagicMock()
             cursor = MagicMock()
             cursor.fetchall.return_value = [
@@ -256,7 +274,7 @@ class TestAIServiceIntegracionMRP:
         """Analisis completo integrando MRP y ML."""
         from backend.services.ai_service import AIService
 
-        with patch('backend.services.ai_service.get_db_connection') as mock_conn:
+        with patch("backend.services.ai_service.get_db_connection") as mock_conn:
             conn = MagicMock()
             cursor = MagicMock()
             cursor.fetchone.return_value = {
@@ -266,17 +284,14 @@ class TestAIServiceIntegracionMRP:
                 "stock_seguridad": 20,
                 "punto_pedido": 80,
                 "consumo_promedio_mensual": 60,
-                "precio_usd": 500
+                "precio_usd": 500,
             }
             conn.cursor.return_value = cursor
             mock_conn.return_value.__enter__ = MagicMock(return_value=conn)
             mock_conn.return_value.__exit__ = MagicMock(return_value=False)
 
             service = AIService()
-            result = service.analisis_completo_material(
-                material_codigo="MAT001",
-                centro="1000"
-            )
+            result = service.analisis_completo_material(material_codigo="MAT001", centro="1000")
 
             assert "material" in result
             assert "stock_status" in result
@@ -295,7 +310,7 @@ class TestAIServiceFallbacks:
             "id": 1,
             "criticidad": "Alta",
             "total_monto": 50000,
-            "data_json": {"items": [1]}
+            "data_json": {"items": [1]},
         }
 
         result = service.sugerir_accion(solicitud)
@@ -309,7 +324,7 @@ class TestAIServiceFallbacks:
 
         service = AIService()  # Sin entrenar
 
-        with patch('backend.services.ai_service.get_db_connection') as mock_conn:
+        with patch("backend.services.ai_service.get_db_connection") as mock_conn:
             conn = MagicMock()
             cursor = MagicMock()
             cursor.fetchone.return_value = {"consumo_promedio": 100}

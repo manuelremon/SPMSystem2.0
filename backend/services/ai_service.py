@@ -13,9 +13,9 @@ funcionalidades de IA/ML del sistema SPM.
 """
 
 import logging
+import math
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
-import math
 
 logger = logging.getLogger(__name__)
 
@@ -24,9 +24,11 @@ def get_db_connection():
     """Obtiene conexion a base de datos."""
     try:
         from backend.core.db import get_db_connection as db_conn
+
         return db_conn()
     except ImportError:
         from core.db import get_db_connection as db_conn
+
         return db_conn()
 
 
@@ -48,12 +50,12 @@ class AIService:
         """Inicializa el servicio con todos los pipelines."""
         try:
             from backend.agent.pipelines.clustering import ClusteringPipeline
-            from backend.agent.pipelines.scoring import ScoringPipeline
             from backend.agent.pipelines.demand_forecast import DemandForecastPipeline
+            from backend.agent.pipelines.scoring import ScoringPipeline
         except ImportError:
             from agent.pipelines.clustering import ClusteringPipeline
-            from agent.pipelines.scoring import ScoringPipeline
             from agent.pipelines.demand_forecast import DemandForecastPipeline
+            from agent.pipelines.scoring import ScoringPipeline
 
         self.clustering = ClusteringPipeline()
         self.scoring = ScoringPipeline()
@@ -79,17 +81,13 @@ class AIService:
             "forecast": self.forecast.get_status(),
             "pipelines_trained": self._pipelines_trained,
             "last_training_date": (
-                self._last_training_date.isoformat()
-                if self._last_training_date
-                else None
+                self._last_training_date.isoformat() if self._last_training_date else None
             ),
             "cache_size": len(self._cache),
         }
 
     def train_pipelines(
-        self,
-        solicitudes_data: List[Dict[str, Any]],
-        materiales_data: List[Dict[str, Any]]
+        self, solicitudes_data: List[Dict[str, Any]], materiales_data: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """
         Entrena todos los pipelines ML con datos historicos.
@@ -105,7 +103,7 @@ class AIService:
             "status": "trained",
             "clustering": {"status": "skipped"},
             "forecast": {"status": "skipped"},
-            "errors": []
+            "errors": [],
         }
 
         # Entrenar clustering de materiales
@@ -155,10 +153,7 @@ class AIService:
     # ========================================================================
 
     def recomendar_materiales_similares(
-        self,
-        material_codigo: str,
-        centro: str,
-        max_resultados: int = 5
+        self, material_codigo: str, centro: str, max_resultados: int = 5
     ) -> Dict[str, Any]:
         """
         Recomienda materiales similares basado en clustering.
@@ -174,29 +169,20 @@ class AIService:
         try:
             if self.clustering.model is not None:
                 result = self.clustering.group_similar_materials(
-                    material_codigo,
-                    similitud_minima=0.5
+                    material_codigo, similitud_minima=0.5
                 )
                 result["centro"] = centro
                 result["max_resultados"] = max_resultados
                 return result
             else:
                 # Fallback: buscar por descripcion similar
-                return self._fallback_materiales_similares(
-                    material_codigo, centro, max_resultados
-                )
+                return self._fallback_materiales_similares(material_codigo, centro, max_resultados)
         except Exception as e:
             logger.error(f"Error recomendando materiales similares: {e}")
-            return {
-                "material_referencia": material_codigo,
-                "similares": [],
-                "error": str(e)
-            }
+            return {"material_referencia": material_codigo, "similares": [], "error": str(e)}
 
     def priorizar_solicitudes(
-        self,
-        solicitudes: List[Dict[str, Any]],
-        presupuesto_disponible: Optional[float] = None
+        self, solicitudes: List[Dict[str, Any]], presupuesto_disponible: Optional[float] = None
     ) -> Dict[str, Any]:
         """
         Prioriza lista de solicitudes usando scoring ML.
@@ -212,16 +198,13 @@ class AIService:
             return {
                 "total_solicitudes": 0,
                 "solicitudes_rankeadas": [],
-                "criterios": self.scoring.weights
+                "criterios": self.scoring.weights,
             }
 
         return self.scoring.rank_solicitudes(solicitudes)
 
     def proyectar_demanda(
-        self,
-        material_codigo: str,
-        centro: str,
-        dias: int = 30
+        self, material_codigo: str, centro: str, dias: int = 30
     ) -> Dict[str, Any]:
         """
         Proyecta demanda futura usando forecast ML.
@@ -292,7 +275,7 @@ class AIService:
                 "score": total_score,
                 "prioridad": priority,
                 "metodo": metodo,
-                "detalles_score": score_result["scores"]
+                "detalles_score": score_result["scores"],
             }
 
         except Exception as e:
@@ -302,7 +285,7 @@ class AIService:
                 "accion_sugerida": "revisar",
                 "confianza": 0.3,
                 "motivo": f"Error en analisis: {e}",
-                "metodo": "reglas_basicas"
+                "metodo": "reglas_basicas",
             }
 
     def sugerir_cantidad_optima(
@@ -311,7 +294,7 @@ class AIService:
         centro: str,
         demanda_anual: Optional[float] = None,
         costo_orden: float = 50.0,
-        costo_mantenimiento: float = 2.0
+        costo_mantenimiento: float = 2.0,
     ) -> Dict[str, Any]:
         """
         Sugiere cantidad optima de pedido (EOQ).
@@ -336,9 +319,7 @@ class AIService:
                     demanda_anual = 1000  # Default
 
             # Calcular EOQ: sqrt(2 * D * S / H)
-            eoq = math.sqrt(
-                (2 * demanda_anual * costo_orden) / costo_mantenimiento
-            )
+            eoq = math.sqrt((2 * demanda_anual * costo_orden) / costo_mantenimiento)
 
             return {
                 "material_codigo": material_codigo,
@@ -348,8 +329,8 @@ class AIService:
                 "metodo": "eoq_formula",
                 "parametros": {
                     "costo_orden": costo_orden,
-                    "costo_mantenimiento": costo_mantenimiento
-                }
+                    "costo_mantenimiento": costo_mantenimiento,
+                },
             }
 
         except Exception as e:
@@ -358,7 +339,7 @@ class AIService:
                 "material_codigo": material_codigo,
                 "cantidad_sugerida": 100,  # Default
                 "metodo": "default",
-                "error": str(e)
+                "error": str(e),
             }
 
     def generar_alertas_inteligentes(self, centro: str) -> Dict[str, Any]:
@@ -376,11 +357,14 @@ class AIService:
         try:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT codigo, stock_actual, punto_pedido, stock_seguridad
                     FROM catalogo_materiales
                     WHERE centro = ? AND activo = 1
-                """, (centro,))
+                """,
+                    (centro,),
+                )
                 materiales = cursor.fetchall()
 
                 for mat in materiales:
@@ -394,46 +378,48 @@ class AIService:
 
                     # Detectar anomalias
                     if stock < stock_seg:
-                        alertas.append({
-                            "tipo": "quiebre_stock",
-                            "severidad": "critical",
-                            "material": codigo,
-                            "mensaje": f"Stock ({stock}) bajo nivel de seguridad ({stock_seg})",
-                            "accion_sugerida": "Generar orden urgente"
-                        })
+                        alertas.append(
+                            {
+                                "tipo": "quiebre_stock",
+                                "severidad": "critical",
+                                "material": codigo,
+                                "mensaje": f"Stock ({stock}) bajo nivel de seguridad ({stock_seg})",
+                                "accion_sugerida": "Generar orden urgente",
+                            }
+                        )
                     elif stock < punto_pedido:
-                        alertas.append({
-                            "tipo": "bajo_punto_pedido",
-                            "severidad": "warning",
-                            "material": codigo,
-                            "mensaje": f"Stock ({stock}) bajo punto de pedido ({punto_pedido})",
-                            "accion_sugerida": "Programar reposicion"
-                        })
+                        alertas.append(
+                            {
+                                "tipo": "bajo_punto_pedido",
+                                "severidad": "warning",
+                                "material": codigo,
+                                "mensaje": f"Stock ({stock}) bajo punto de pedido ({punto_pedido})",
+                                "accion_sugerida": "Programar reposicion",
+                            }
+                        )
 
         except Exception as e:
             logger.error(f"Error generando alertas: {e}")
-            alertas.append({
-                "tipo": "error_sistema",
-                "severidad": "info",
-                "mensaje": f"No se pudieron analizar algunos materiales: {e}"
-            })
+            alertas.append(
+                {
+                    "tipo": "error_sistema",
+                    "severidad": "info",
+                    "mensaje": f"No se pudieron analizar algunos materiales: {e}",
+                }
+            )
 
         return {
             "centro": centro,
             "alertas": alertas,
             "total_alertas": len(alertas),
-            "generado_en": datetime.now(timezone.utc).isoformat()
+            "generado_en": datetime.now(timezone.utc).isoformat(),
         }
 
     # ========================================================================
     # ANALISIS COMPLETO
     # ========================================================================
 
-    def analisis_completo_material(
-        self,
-        material_codigo: str,
-        centro: str
-    ) -> Dict[str, Any]:
+    def analisis_completo_material(self, material_codigo: str, centro: str) -> Dict[str, Any]:
         """
         Analisis completo de material integrando MRP y ML.
 
@@ -449,18 +435,21 @@ class AIService:
             "centro": centro,
             "stock_status": {},
             "recomendacion_ia": {},
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         try:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT codigo_material, descripcion, stock_actual, stock_seguridad,
                            punto_pedido, consumo_promedio_mensual, precio_usd
                     FROM catalogo_materiales
                     WHERE codigo_material = ? AND centro = ?
-                """, (material_codigo, centro))
+                """,
+                    (material_codigo, centro),
+                )
                 material = cursor.fetchone()
 
                 if material:
@@ -481,34 +470,32 @@ class AIService:
                     result["material"] = {
                         "codigo": material_codigo,
                         "descripcion": material.get("descripcion"),
-                        "precio_usd": precio
+                        "precio_usd": precio,
                     }
                     result["stock_status"] = {
                         "actual": stock,
                         "seguridad": stock_seg,
                         "punto_pedido": punto_pedido,
                         "status": status,
-                        "dias_cobertura": (
-                            round(stock / (consumo / 30)) if consumo > 0 else None
-                        )
+                        "dias_cobertura": (round(stock / (consumo / 30)) if consumo > 0 else None),
                     }
 
                     # Recomendacion IA
                     material_data = {
                         "codigo": material_codigo,
                         "descripcion": material.get("descripcion"),
-                        "precio_usd": precio
+                        "precio_usd": precio,
                     }
                     score_result = self.scoring.score_material(
                         material_data,
                         demanda_historica=consumo,
-                        disponibilidad=1.0 if status == "normal" else 0.5
+                        disponibilidad=1.0 if status == "normal" else 0.5,
                     )
 
                     result["recomendacion_ia"] = {
                         "score": score_result["total_score"],
                         "prioridad": score_result["priority"],
-                        "accion": score_result["recomendacion"]
+                        "accion": score_result["recomendacion"],
                     }
 
         except Exception as e:
@@ -516,7 +503,7 @@ class AIService:
             result["error"] = str(e)
             result["recomendacion_ia"] = {
                 "accion": "revisar_manualmente",
-                "motivo": f"Error en analisis: {e}"
+                "motivo": f"Error en analisis: {e}",
             }
 
         return result
@@ -526,11 +513,7 @@ class AIService:
     # ========================================================================
 
     def cache_recommendation(
-        self,
-        key: str,
-        tipo: str,
-        data: Dict[str, Any],
-        ttl_seconds: int = 300
+        self, key: str, tipo: str, data: Dict[str, Any], ttl_seconds: int = 300
     ) -> None:
         """
         Cachea una recomendacion.
@@ -547,11 +530,7 @@ class AIService:
             seconds=ttl_seconds
         )
 
-    def get_cached_recommendation(
-        self,
-        key: str,
-        tipo: str
-    ) -> Optional[Dict[str, Any]]:
+    def get_cached_recommendation(self, key: str, tipo: str) -> Optional[Dict[str, Any]]:
         """
         Obtiene recomendacion cacheada si no ha expirado.
 
@@ -581,35 +560,30 @@ class AIService:
     # ========================================================================
 
     def _fallback_materiales_similares(
-        self,
-        material_codigo: str,
-        centro: str,
-        max_resultados: int
+        self, material_codigo: str, centro: str, max_resultados: int
     ) -> Dict[str, Any]:
         """Fallback para materiales similares sin ML."""
         return {
             "material_referencia": material_codigo,
             "similares": [],
             "metodo": "fallback",
-            "mensaje": "ML no entrenado, usar busqueda manual"
+            "mensaje": "ML no entrenado, usar busqueda manual",
         }
 
-    def _fallback_proyeccion(
-        self,
-        material_codigo: str,
-        centro: str,
-        dias: int
-    ) -> Dict[str, Any]:
+    def _fallback_proyeccion(self, material_codigo: str, centro: str, dias: int) -> Dict[str, Any]:
         """Fallback para proyeccion sin ML."""
         try:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT AVG(total_monto) as consumo_promedio
                     FROM solicitudes
                     WHERE material_codigo = ? AND centro = ?
                     AND created_at > datetime('now', '-90 days')
-                """, (material_codigo, centro))
+                """,
+                    (material_codigo, centro),
+                )
                 result = cursor.fetchone()
                 consumo = (result.get("consumo_promedio") or 0) if result else 0
         except Exception:
@@ -622,7 +596,7 @@ class AIService:
             "predicted_demand": consumo,
             "confidence_lower": consumo * 0.8,
             "confidence_upper": consumo * 1.2,
-            "metodo": "promedio_historico"
+            "metodo": "promedio_historico",
         }
 
 

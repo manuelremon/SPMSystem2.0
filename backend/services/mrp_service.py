@@ -34,7 +34,7 @@ def calcular_requerimiento_neto(
     stock_actual: float,
     pedidos_en_curso: float,
     stock_seguridad: float,
-    consumo_diario: Optional[float] = None
+    consumo_diario: Optional[float] = None,
 ) -> Dict[str, Any]:
     """
     Calcula el requerimiento neto de un material.
@@ -64,7 +64,7 @@ def calcular_requerimiento_neto(
         "stock_seguridad": stock_seguridad,
         "disponible": disponible,
         "requerimiento_neto": requerimiento_neto,
-        "necesita_reposicion": necesita_reposicion
+        "necesita_reposicion": necesita_reposicion,
     }
 
     # Calcular dias de cobertura si se proporciona consumo diario
@@ -87,7 +87,7 @@ def calcular_punto_reorden(
     lead_time_dias: int,
     stock_seguridad: float,
     variabilidad_demanda: float = 0.0,
-    variabilidad_lead_time: float = 0.0
+    variabilidad_lead_time: float = 0.0,
 ) -> Dict[str, Any]:
     """
     Calcula el punto de reorden de un material.
@@ -120,8 +120,7 @@ def calcular_punto_reorden(
 
         # Stock de seguridad adicional
         ss_adicional = z * math.sqrt(
-            lead_time_dias * (sigma_demanda ** 2) +
-            (consumo_diario ** 2) * (sigma_lead_time ** 2)
+            lead_time_dias * (sigma_demanda**2) + (consumo_diario**2) * (sigma_lead_time**2)
         )
         factor_seguridad = 1 + (ss_adicional / punto_basico) if punto_basico > 0 else 1
 
@@ -133,7 +132,7 @@ def calcular_punto_reorden(
         "stock_seguridad_base": stock_seguridad,
         "factor_seguridad": round(factor_seguridad, 3),
         "lead_time_dias": lead_time_dias,
-        "consumo_diario": consumo_diario
+        "consumo_diario": consumo_diario,
     }
 
 
@@ -147,7 +146,7 @@ def calcular_cantidad_optima(
     costo_orden: float,
     costo_mantenimiento_unitario: float,
     cantidad_minima: Optional[float] = None,
-    cantidad_maxima: Optional[float] = None
+    cantidad_maxima: Optional[float] = None,
 ) -> Dict[str, Any]:
     """
     Calcula la cantidad economica de pedido (EOQ).
@@ -198,7 +197,7 @@ def calcular_cantidad_optima(
         "ordenes_por_anio": round(ordenes_por_anio, 1),
         "costo_ordenar_anual": round(costo_ordenar, 2),
         "costo_mantener_anual": round(costo_mantener, 2),
-        "costo_total_anual": round(costo_total, 2)
+        "costo_total_anual": round(costo_total, 2),
     }
 
 
@@ -213,7 +212,7 @@ def generar_orden_planificada(
     cantidad: float,
     fecha_necesidad: str,
     tipo: str = "compra",
-    prioridad: str = "normal"
+    prioridad: str = "normal",
 ) -> Dict[str, Any]:
     """
     Genera una orden planificada para un material.
@@ -232,17 +231,24 @@ def generar_orden_planificada(
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO ordenes_planificadas (
                 material_codigo, centro, cantidad,
                 fecha_necesidad, tipo, prioridad,
                 estado, created_at
             ) VALUES (?, ?, ?, ?, ?, ?, 'planificada', ?)
-        """, (
-            material_codigo, centro, cantidad,
-            fecha_necesidad, tipo, prioridad,
-            datetime.now(timezone.utc).isoformat()
-        ))
+        """,
+            (
+                material_codigo,
+                centro,
+                cantidad,
+                fecha_necesidad,
+                tipo,
+                prioridad,
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
 
         return {
             "id": cursor.lastrowid,
@@ -250,14 +256,11 @@ def generar_orden_planificada(
             "centro": centro,
             "cantidad": cantidad,
             "estado": "planificada",
-            "tipo": tipo
+            "tipo": tipo,
         }
 
 
-def generar_ordenes_mrp(
-    centro: str,
-    solo_criticos: bool = False
-) -> Dict[str, Any]:
+def generar_ordenes_mrp(centro: str, solo_criticos: bool = False) -> Dict[str, Any]:
     """
     Genera ordenes planificadas para materiales con necesidad.
 
@@ -304,7 +307,7 @@ def generar_ordenes_mrp(
             eoq = calcular_cantidad_optima(
                 demanda_anual=demanda_anual,
                 costo_orden=100,  # Costo estimado
-                costo_mantenimiento_unitario=demanda_anual * 0.2 / 12  # 20% anual
+                costo_mantenimiento_unitario=demanda_anual * 0.2 / 12,  # 20% anual
             )
             cantidad = eoq["cantidad_optima"]
         else:
@@ -312,9 +315,9 @@ def generar_ordenes_mrp(
 
         if cantidad > 0:
             lead_time = mat["lead_time_dias"] or 15
-            fecha_necesidad = (
-                datetime.now(timezone.utc) + timedelta(days=lead_time)
-            ).strftime("%Y-%m-%d")
+            fecha_necesidad = (datetime.now(timezone.utc) + timedelta(days=lead_time)).strftime(
+                "%Y-%m-%d"
+            )
 
             try:
                 orden = generar_orden_planificada(
@@ -322,7 +325,7 @@ def generar_ordenes_mrp(
                     centro=centro,
                     cantidad=cantidad,
                     fecha_necesidad=fecha_necesidad,
-                    tipo="compra"
+                    tipo="compra",
                 )
                 ordenes.append(orden)
                 ordenes_generadas += 1
@@ -333,7 +336,7 @@ def generar_ordenes_mrp(
         "centro": centro,
         "materiales_analizados": len(materiales),
         "ordenes_generadas": ordenes_generadas,
-        "ordenes": ordenes
+        "ordenes": ordenes,
     }
 
 
@@ -342,11 +345,7 @@ def generar_ordenes_mrp(
 # =============================================================================
 
 
-def obtener_demanda_proyectada(
-    material_codigo: str,
-    centro: str,
-    dias: int = 30
-) -> Dict[str, Any]:
+def obtener_demanda_proyectada(material_codigo: str, centro: str, dias: int = 30) -> Dict[str, Any]:
     """
     Obtiene demanda proyectada usando ML o promedio historico.
 
@@ -363,9 +362,7 @@ def obtener_demanda_proyectada(
         try:
             pipeline = DemandForecastPipeline()
             forecast = pipeline.predict(
-                material_codigo=material_codigo,
-                centro=centro,
-                days_ahead=dias
+                material_codigo=material_codigo, centro=centro, days_ahead=dias
             )
 
             return {
@@ -375,7 +372,7 @@ def obtener_demanda_proyectada(
                 "demanda_proyectada": forecast.get("predicted_demand", 0),
                 "confianza_inferior": forecast.get("confidence_lower", 0),
                 "confianza_superior": forecast.get("confidence_upper", 0),
-                "metodo": "ml_forecast"
+                "metodo": "ml_forecast",
             }
         except Exception:
             pass
@@ -384,11 +381,14 @@ def obtener_demanda_proyectada(
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT consumo_promedio_mensual as consumo_promedio
             FROM materiales_mrp
             WHERE codigo_material = ? AND centro = ?
-        """, (material_codigo, centro))
+        """,
+            (material_codigo, centro),
+        )
 
         row = cursor.fetchone()
         consumo_mensual = row["consumo_promedio"] if row else 0
@@ -401,7 +401,7 @@ def obtener_demanda_proyectada(
         "centro": centro,
         "dias": dias,
         "demanda_proyectada": round(demanda_proyectada, 2),
-        "metodo": "promedio_historico"
+        "metodo": "promedio_historico",
     }
 
 
@@ -410,10 +410,7 @@ def obtener_demanda_proyectada(
 # =============================================================================
 
 
-def analizar_material(
-    material_codigo: str,
-    centro: str
-) -> Dict[str, Any]:
+def analizar_material(material_codigo: str, centro: str) -> Dict[str, Any]:
     """
     Analisis completo de un material.
 
@@ -427,7 +424,8 @@ def analizar_material(
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 codigo_material,
                 descripcion,
@@ -440,7 +438,9 @@ def analizar_material(
                 lead_time_dias
             FROM materiales_mrp
             WHERE codigo_material = ? AND centro = ?
-        """, (material_codigo, centro))
+        """,
+            (material_codigo, centro),
+        )
 
         mat = cursor.fetchone()
 
@@ -461,7 +461,7 @@ def analizar_material(
         stock_actual=stock_actual,
         pedidos_en_curso=pedidos_en_curso,
         stock_seguridad=stock_seguridad,
-        consumo_diario=consumo_diario
+        consumo_diario=consumo_diario,
     )
 
     # Generar recomendacion
@@ -469,7 +469,7 @@ def analizar_material(
         stock_actual=stock_actual,
         stock_seguridad=stock_seguridad,
         punto_pedido=punto_pedido,
-        pedidos_en_curso=pedidos_en_curso
+        pedidos_en_curso=pedidos_en_curso,
     )
 
     # Determinar estado
@@ -492,14 +492,11 @@ def analizar_material(
         "pedidos_en_curso": pedidos_en_curso,
         "requerimiento_neto": req["requerimiento_neto"],
         "dias_cobertura": req["dias_cobertura"],
-        "recomendacion": rec
+        "recomendacion": rec,
     }
 
 
-def analizar_centro(
-    centro: str,
-    incluir_normales: bool = False
-) -> Dict[str, Any]:
+def analizar_centro(centro: str, incluir_normales: bool = False) -> Dict[str, Any]:
     """
     Analisis MRP de todos los materiales de un centro.
 
@@ -513,7 +510,8 @@ def analizar_centro(
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 codigo_material,
                 stock_actual,
@@ -521,7 +519,9 @@ def analizar_centro(
                 stock_seguridad
             FROM materiales_mrp
             WHERE centro = ?
-        """, (centro,))
+        """,
+            (centro,),
+        )
 
         materiales = cursor.fetchall()
 
@@ -550,8 +550,8 @@ def analizar_centro(
             "total": len(materiales),
             "criticos": len(criticos),
             "bajo_pedido": len(bajo_pedido),
-            "normales": len(normales)
-        }
+            "normales": len(normales),
+        },
     }
 
     if incluir_normales:
@@ -566,10 +566,7 @@ def analizar_centro(
 
 
 def generar_recomendacion(
-    stock_actual: float,
-    stock_seguridad: float,
-    punto_pedido: float,
-    pedidos_en_curso: float
+    stock_actual: float, stock_seguridad: float, punto_pedido: float, pedidos_en_curso: float
 ) -> Dict[str, Any]:
     """
     Genera recomendacion de accion basada en niveles de stock.
@@ -591,13 +588,13 @@ def generar_recomendacion(
             return {
                 "accion": "acelerar_pedido",
                 "prioridad": "alta",
-                "mensaje": "Stock critico. Acelerar pedido en curso."
+                "mensaje": "Stock critico. Acelerar pedido en curso.",
             }
         else:
             return {
                 "accion": "compra_urgente",
                 "prioridad": "alta",
-                "mensaje": "Stock bajo seguridad. Generar compra urgente."
+                "mensaje": "Stock bajo seguridad. Generar compra urgente.",
             }
 
     # Bajo punto de pedido
@@ -606,21 +603,17 @@ def generar_recomendacion(
             return {
                 "accion": "monitorear",
                 "prioridad": "media",
-                "mensaje": "Pedido en curso. Monitorear entrega."
+                "mensaje": "Pedido en curso. Monitorear entrega.",
             }
         else:
             return {
                 "accion": "generar_solped",
                 "prioridad": "media",
-                "mensaje": "Stock bajo punto de pedido. Generar SolPed."
+                "mensaje": "Stock bajo punto de pedido. Generar SolPed.",
             }
 
     # Stock OK
-    return {
-        "accion": "ninguna",
-        "prioridad": "baja",
-        "mensaje": "Stock en niveles adecuados."
-    }
+    return {"accion": "ninguna", "prioridad": "baja", "mensaje": "Stock en niveles adecuados."}
 
 
 # =============================================================================
@@ -629,11 +622,7 @@ def generar_recomendacion(
 
 
 def crear_alerta_mrp(
-    material_codigo: str,
-    centro: str,
-    tipo: str,
-    severidad: str,
-    mensaje: str
+    material_codigo: str, centro: str, tipo: str, severidad: str, mensaje: str
 ) -> Dict[str, Any]:
     """
     Crea una alerta MRP automatica.
@@ -651,28 +640,33 @@ def crear_alerta_mrp(
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO alertas_mrp (
                 material_codigo, centro, tipo, severidad,
                 mensaje, estado, created_at
             ) VALUES (?, ?, ?, ?, ?, 'activa', ?)
-        """, (
-            material_codigo, centro, tipo, severidad,
-            mensaje, datetime.now(timezone.utc).isoformat()
-        ))
+        """,
+            (
+                material_codigo,
+                centro,
+                tipo,
+                severidad,
+                mensaje,
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
 
         return {
             "id": cursor.lastrowid,
             "material_codigo": material_codigo,
             "tipo": tipo,
-            "severidad": severidad
+            "severidad": severidad,
         }
 
 
 def obtener_alertas_mrp(
-    centro: Optional[str] = None,
-    tipo: Optional[str] = None,
-    solo_activas: bool = True
+    centro: Optional[str] = None, tipo: Optional[str] = None, solo_activas: bool = True
 ) -> List[Dict[str, Any]]:
     """
     Obtiene alertas MRP.
@@ -708,11 +702,7 @@ def obtener_alertas_mrp(
         return [dict(row) for row in cursor.fetchall()]
 
 
-def resolver_alerta_mrp(
-    alerta_id: int,
-    resuelto_por: str,
-    accion_tomada: str
-) -> Dict[str, Any]:
+def resolver_alerta_mrp(alerta_id: int, resuelto_por: str, accion_tomada: str) -> Dict[str, Any]:
     """
     Resuelve una alerta MRP.
 
@@ -727,7 +717,8 @@ def resolver_alerta_mrp(
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE alertas_mrp
             SET estado = 'resuelta',
                 resuelto_por = ?,
@@ -735,10 +726,8 @@ def resolver_alerta_mrp(
                 fecha_resolucion = ?
             WHERE id = ?
               AND estado = 'activa'
-        """, (
-            resuelto_por, accion_tomada,
-            datetime.now(timezone.utc).isoformat(),
-            alerta_id
-        ))
+        """,
+            (resuelto_por, accion_tomada, datetime.now(timezone.utc).isoformat(), alerta_id),
+        )
 
         return {"resuelta": cursor.rowcount > 0}

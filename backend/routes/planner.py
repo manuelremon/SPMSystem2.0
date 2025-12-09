@@ -22,13 +22,13 @@ try:
         error_validation,
     )
     from backend.core.fsm import (
-        cambiar_estado,
-        normalizar_estado,
-        estado_para_display,
-        validar_transicion,
         EstadoSolicitud,
-        TransicionInvalidaError,
         SolicitudNoEncontradaError,
+        TransicionInvalidaError,
+        cambiar_estado,
+        estado_para_display,
+        normalizar_estado,
+        validar_transicion,
     )
     from backend.core.repository import (
         DecisionAbastecimientoRepository,
@@ -50,13 +50,11 @@ except ImportError:
     from core.db import get_db_connection, get_db_transaction
     from core.errors import error_forbidden, error_internal, error_not_found, error_validation
     from core.fsm import (
+        EstadoSolicitud,
+        SolicitudNoEncontradaError,
+        TransicionInvalidaError,
         cambiar_estado,
         normalizar_estado,
-        estado_para_display,
-        validar_transicion,
-        EstadoSolicitud,
-        TransicionInvalidaError,
-        SolicitudNoEncontradaError,
     )
     from core.repository import (
         DecisionAbastecimientoRepository,
@@ -73,7 +71,6 @@ except ImportError:
     )
 
     from routes.auth import _decode_token
-    from services.audit_service import auditar_modificacion
 
 # Blueprint histórico (/api/planner) con dashboard simple
 # TODO: [Refactor] Replace generic "except Exception" with specific exceptions
@@ -736,17 +733,16 @@ def aceptar_solicitud(solicitud_id):
             nuevo_estado=EstadoSolicitud.IN_TREATMENT,
             actor_id=actor_id,
             razon="Planificador acepta tratamiento",
-            metadata={"paso": "aceptacion"}
+            metadata={"paso": "aceptacion"},
         )
-        _log_evento(solicitud_id, None, "planificador_acepta", resultado["estado_nuevo"], {}, actor=actor_id)
+        _log_evento(
+            solicitud_id, None, "planificador_acepta", resultado["estado_nuevo"], {}, actor=actor_id
+        )
         return jsonify({"ok": True, "estado": resultado["estado_nuevo"]}), 200
 
     except TransicionInvalidaError as e:
         return (
-            jsonify({
-                "ok": False,
-                "error": {"code": "invalid_transition", "message": str(e)}
-            }),
+            jsonify({"ok": False, "error": {"code": "invalid_transition", "message": str(e)}}),
             400,
         )
     except SolicitudNoEncontradaError:
@@ -769,17 +765,21 @@ def finalizar_solicitud(solicitud_id):
             nuevo_estado=EstadoSolicitud.TREATED,
             actor_id=actor_id,
             razon="Planificador finaliza tratamiento",
-            metadata={"paso": "finalizacion"}
+            metadata={"paso": "finalizacion"},
         )
-        _log_evento(solicitud_id, None, "planificador_finaliza", resultado["estado_nuevo"], {}, actor=actor_id)
+        _log_evento(
+            solicitud_id,
+            None,
+            "planificador_finaliza",
+            resultado["estado_nuevo"],
+            {},
+            actor=actor_id,
+        )
         return jsonify({"ok": True, "estado": resultado["estado_nuevo"]}), 200
 
     except TransicionInvalidaError as e:
         return (
-            jsonify({
-                "ok": False,
-                "error": {"code": "invalid_transition", "message": str(e)}
-            }),
+            jsonify({"ok": False, "error": {"code": "invalid_transition", "message": str(e)}}),
             400,
         )
     except SolicitudNoEncontradaError:
@@ -927,7 +927,7 @@ def tratar_items(solicitud_id):
                         nuevo_estado=EstadoSolicitud.IN_TREATMENT,
                         actor_id=actor,
                         razon="Items tratados",
-                        metadata={"items_count": len(items)}
+                        metadata={"items_count": len(items)},
                     )
     except TransicionInvalidaError:
         # Si la transición no es válida, solo actualizar el timestamp

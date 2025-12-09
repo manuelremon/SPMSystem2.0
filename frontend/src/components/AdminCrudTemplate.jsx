@@ -26,6 +26,8 @@ export default function AdminCrudTemplate({
   parseList,
   transformSubmit,
   customUpdate,
+  hideCardTitle = false,
+  hideDescription = false,
 }) {
   const { t } = useI18n();
   const initialForm = useMemo(() => {
@@ -61,7 +63,8 @@ export default function AdminCrudTemplate({
       const data = parseList ? parseList(res.data) : res.data;
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
-      setError(e.response?.data?.error || e.message);
+      const err = e.response?.data?.error;
+      setError(typeof err === 'object' ? (err.message || JSON.stringify(err)) : (err || e.message));
     } finally {
       setLoading(false);
     }
@@ -103,7 +106,8 @@ export default function AdminCrudTemplate({
       await loadData();
       setTimeout(() => setSuccess(""), 3000);
     } catch (e) {
-      setError(e.response?.data?.error || e.message);
+      const err = e.response?.data?.error;
+      setError(typeof err === 'object' ? (err.message || JSON.stringify(err)) : (err || e.message));
     } finally {
       setLoading(false);
     }
@@ -147,7 +151,8 @@ export default function AdminCrudTemplate({
       await loadData();
       setTimeout(() => setSuccess(""), 3000);
     } catch (e) {
-      setError(e.response?.data?.error || e.message);
+      const err = e.response?.data?.error;
+      setError(typeof err === 'object' ? (err.message || JSON.stringify(err)) : (err || e.message));
     } finally {
       setLoading(false);
       setDeleteModal({ open: false, row: null });
@@ -227,7 +232,7 @@ export default function AdminCrudTemplate({
       {/* Page Header */}
       <PageHeader
         title={title}
-        description={`${t("crud_manage_catalog", "Gestiona el catálogo de")} ${title.toLowerCase()} ${t("common_del_sistema", "del sistema")}`}
+        description={hideDescription ? undefined : `${t("crud_manage_catalog", "Gestiona el catálogo de")} ${title.toLowerCase()} ${t("common_del_sistema", "del sistema")}`}
         icon={Settings}
       >
         <Button onClick={handleNew} aria-label={`${t("crud_new", "Nuevo")} ${title}`}>
@@ -242,14 +247,16 @@ export default function AdminCrudTemplate({
 
       {/* Card principal */}
       <Card>
-        <CardHeader className="px-6 pt-6 pb-3">
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>
-            {t("crud_total_records", "Total de registros:")} {filtered.length}
-          </CardDescription>
-        </CardHeader>
+        {!hideCardTitle && (
+          <CardHeader className="px-6 pt-6 pb-3">
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>
+              {t("crud_total_records", "Total de registros:")} {filtered.length}
+            </CardDescription>
+          </CardHeader>
+        )}
 
-        <CardContent className="px-6 pb-6 pt-1 space-y-4">
+        <CardContent className={`px-6 pb-6 space-y-4 ${hideCardTitle ? 'pt-6' : 'pt-1'}`}>
           {/* Búsqueda */}
           <div className="flex gap-3">
             <SearchInput

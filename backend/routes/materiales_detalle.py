@@ -141,6 +141,62 @@ def _get_consumo_filtrado(codigo: str, centro: str = None, almacen: str = None) 
         return None
 
 
+def _get_consumo_por_ubicacion(codigo: str) -> List[Dict[str, Any]]:
+    """
+    Obtiene consumo histórico agrupado por Centro/Almacén con promedio anual.
+    Retorna lista de ubicaciones con sus consumos.
+    """
+    try:
+        with get_db_connection("sap_data") as conn:
+            cur = conn.cursor()
+
+            # Query agrupada por centro, almacen con promedio anual
+            cur.execute(
+                """
+                SELECT
+                    centro,
+                    almacen,
+                    COALESCE(SUM(cantidad), 0) as total,
+                    MIN(substr(fecha, 1, 4)) as anio_min,
+                    MAX(substr(fecha, 1, 4)) as anio_max,
+                    COUNT(DISTINCT substr(fecha, 1, 4)) as n_anios
+                FROM consumo_historico
+                WHERE material LIKE ?
+                AND fecha IS NOT NULL
+                GROUP BY centro, almacen
+                ORDER BY centro, almacen
+                """,
+                (f"%{_normalize_code(codigo)}%",),
+            )
+            rows = cur.fetchall()
+
+            result = []
+            for row in rows:
+                total = float(row["total"] or 0)
+                anio_min = int(row["anio_min"]) if row["anio_min"] else None
+                anio_max = int(row["anio_max"]) if row["anio_max"] else None
+                n_anios = int(row["n_anios"]) if row["n_anios"] else 1
+
+                # Calcular promedio anual
+                promedio_anual = total / max(1, n_anios) if total > 0 else 0
+
+                result.append(
+                    {
+                        "centro": row["centro"],
+                        "almacen": row["almacen"],
+                        "total": total,
+                        "promedio_anual": round(promedio_anual, 2),
+                        "anio_desde": anio_min,
+                        "anio_hasta": anio_max,
+                        "n_anios": n_anios,
+                    }
+                )
+
+            return result
+    except Exception:
+        return []
+
+
 def _load_stock() -> List[Dict[str, Any]]:
     """Carga stock desde sap_data.db tabla 'stock'"""
     global _STOCK_CACHE
@@ -265,6 +321,7 @@ def detalle_material(codigo):
     stock_detalle_full = []
     pedidos_total = 0.0
     mrp_data = None
+    mrp_list = []  # Lista completa de parámetros MRP por centro/almacén
     consumo_data = None
 
     codigo_norm = _normalize_code(codigo)
@@ -333,6 +390,19 @@ def detalle_material(codigo):
             if row_codigo_norm != codigo_norm:
                 continue
 
+            # Agregar a la lista completa de MRP
+            mrp_item = {
+                "planificado_mrp": True,
+                "sector": row.get("sector"),
+                "stock_seguridad": float(row.get("stock_seguridad") or 0),
+                "punto_pedido": float(row.get("punto_pedido") or 0),
+                "stock_maximo": float(row.get("stock_maximo") or 0),
+                "centro": row.get("centro"),
+                "almacen": row.get("almacen"),
+            }
+            mrp_list.append(mrp_item)
+
+            # Mantener mrp_data para compatibilidad (filtrado por centro/almacen)
             row_centro_norm = _normalize_code(row.get("centro", ""))
             row_almacen_norm = _normalize_code(row.get("almacen", ""))
 
@@ -342,19 +412,13 @@ def detalle_material(codigo):
             if almacen_norm and row_almacen_norm != almacen_norm:
                 matches = False
 
-            if matches:
-                mrp_data = {
-                    "planificado_mrp": True,
-                    "sector": row.get("sector"),
-                    "stock_seguridad": float(row.get("stock_seguridad") or 0),
-                    "punto_pedido": float(row.get("punto_pedido") or 0),
-                    "stock_maximo": float(row.get("stock_maximo") or 0),
-                    "centro": row.get("centro"),
-                    "almacen": row.get("almacen"),
-                }
-                break  # Solo necesitamos el primero que coincida
+            if matches and mrp_data is None:
+                mrp_data = mrp_item
 
     # === CONSUMO HISTÓRICO === (OPTIMIZADO PERF-004: consulta SQL directa)
+    # Obtener consumo por ubicación (centro/almacen) con promedio anual
+    consumo_list = _get_consumo_por_ubicacion(codigo)
+
     # Intentar con filtros completos primero
     if centro_param or almacen_param:
         consumo_data = _get_consumo_filtrado(codigo, centro_param or None, almacen_param or None)
@@ -384,6 +448,7 @@ def detalle_material(codigo):
                 "stock_maximo": None,
                 "sector": None,
             },
+            "mrp_list": mrp_list,  # Lista completa de parámetros MRP por centro/almacén
             "consumo": consumo_data
             or {
                 "total": 0,
@@ -392,6 +457,7 @@ def detalle_material(codigo):
                 "anio_hasta": None,
                 "registros": [],
             },
+            "consumo_list": consumo_list,  # Lista de consumo por centro/almacén con promedio anual
         }
     )
     return jsonify(detalle), 200
@@ -449,7 +515,7 @@ def solicitudes_por_material(codigo):
                     s.data_json,
                     u.nombre as solicitante_nombre
                 FROM solicitudes s
-                LEFT JOIN usuarios u ON s.solicitante_id = u.id
+                LEFT JOIN usuarios u ON s.id_usuario = u.id_spm
                 WHERE s.status IN (?, ?, ?)
                 ORDER BY s.created_at DESC
             """,

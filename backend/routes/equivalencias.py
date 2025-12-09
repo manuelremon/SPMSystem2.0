@@ -72,7 +72,7 @@ def require_admin_or_planner(f):
 @require_auth
 def listar_equivalencias():
     """
-    Lista equivalencias de materiales con búsqueda opcional.
+    Lista equivalencias de materiales SAP con búsqueda opcional.
 
     Query params:
         q: Búsqueda por código o descripción
@@ -84,26 +84,23 @@ def listar_equivalencias():
     offset = int(request.args.get("offset", 0))
 
     try:
-        with get_db_connection() as conn:
+        # Consultar equivalentes.db (datos SAP reales)
+        with get_db_connection("equivalentes") as conn:
             cursor = conn.cursor()
 
-            # Query base con JOIN a materiales para obtener descripciones
+            # Query base
             base_query = """
                 SELECT
-                    e.id_equivalencia,
-                    e.codigo_original,
-                    m1.descripcion as descripcion_original,
-                    e.codigo_equivalente,
-                    m2.descripcion as descripcion_equivalente,
-                    e.compatibilidad_pct,
-                    e.descripcion,
-                    e.notas,
-                    e.activo,
-                    e.created_at
-                FROM material_equivalencias e
-                LEFT JOIN materiales m1 ON e.codigo_original = m1.codigo
-                LEFT JOIN materiales m2 ON e.codigo_equivalente = m2.codigo
-                WHERE e.activo = 1
+                    rowid as id,
+                    material_base,
+                    texto_breve_base,
+                    material_equivalente,
+                    texto_breve_equivalente,
+                    tipo_equiv,
+                    criterio,
+                    motivo_equivalencia
+                FROM equivalencias
+                WHERE 1=1
             """
 
             params = []
@@ -111,10 +108,10 @@ def listar_equivalencias():
             if q:
                 base_query += """
                     AND (
-                        e.codigo_original LIKE ? OR
-                        e.codigo_equivalente LIKE ? OR
-                        m1.descripcion LIKE ? OR
-                        m2.descripcion LIKE ?
+                        CAST(material_base AS TEXT) LIKE ? OR
+                        CAST(material_equivalente AS TEXT) LIKE ? OR
+                        texto_breve_base LIKE ? OR
+                        texto_breve_equivalente LIKE ?
                     )
                 """
                 search_term = f"%{q}%"
@@ -126,7 +123,7 @@ def listar_equivalencias():
             total = cursor.fetchone()[0]
 
             # Obtener resultados con paginación
-            base_query += " ORDER BY e.codigo_original, e.compatibilidad_pct DESC LIMIT ? OFFSET ?"
+            base_query += " ORDER BY material_base LIMIT ? OFFSET ?"
             params.extend([limit, offset])
 
             cursor.execute(base_query, params)
@@ -136,16 +133,14 @@ def listar_equivalencias():
         for row in rows:
             equivalencias.append(
                 {
-                    "id": row["id_equivalencia"],
-                    "codigo_original": row["codigo_original"],
-                    "descripcion_original": row["descripcion_original"] or "Sin descripción",
-                    "codigo_equivalente": row["codigo_equivalente"],
-                    "descripcion_equivalente": row["descripcion_equivalente"] or "Sin descripción",
-                    "compatibilidad_pct": row["compatibilidad_pct"],
-                    "descripcion": row["descripcion"],
-                    "notas": row["notas"],
-                    "activo": bool(row["activo"]),
-                    "created_at": row["created_at"],
+                    "id": row["id"],
+                    "codigo_original": str(row["material_base"]),
+                    "descripcion_original": row["texto_breve_base"] or "Sin descripción",
+                    "codigo_equivalente": str(row["material_equivalente"]),
+                    "descripcion_equivalente": row["texto_breve_equivalente"] or "Sin descripción",
+                    "tipo_equivalencia": row["tipo_equiv"],
+                    "criterio": row["criterio"],
+                    "motivo": row["motivo_equivalencia"],
                 }
             )
 
@@ -173,46 +168,47 @@ def equivalencias_por_material(codigo):
     Obtiene todas las equivalencias de un material específico.
 
     Retorna materiales que pueden sustituir al código dado.
+    Busca en equivalentes.db tabla equivalencias.
     """
     try:
-        with get_db_connection() as conn:
+        # Buscar en equivalentes.db (tabla real con datos SAP)
+        with get_db_connection("equivalentes") as conn:
             cursor = conn.cursor()
+            # Buscar donde el material es base O es equivalente (bidireccional)
             cursor.execute(
                 """
                 SELECT
-                    e.id_equivalencia,
-                    e.codigo_original,
-                    m1.descripcion as descripcion_original,
-                    e.codigo_equivalente,
-                    m2.descripcion as descripcion_equivalente,
-                    m2.unidad,
-                    m2.precio_usd,
-                    e.compatibilidad_pct,
-                    e.descripcion,
-                    e.notas,
-                    e.activo
-                FROM material_equivalencias e
-                LEFT JOIN materiales m1 ON e.codigo_original = m1.codigo
-                LEFT JOIN materiales m2 ON e.codigo_equivalente = m2.codigo
-                WHERE e.activo = 1 AND e.codigo_original = ?
-                ORDER BY e.compatibilidad_pct DESC
+                    material_base,
+                    texto_breve_base,
+                    material_equivalente,
+                    texto_breve_equivalente,
+                    tipo_equiv,
+                    criterio,
+                    motivo_equivalencia
+                FROM equivalencias
+                WHERE material_base = ? OR material_equivalente = ?
             """,
-                (codigo,),
+                (codigo, codigo),
             )
             rows = cursor.fetchall()
 
         equivalencias = []
         for row in rows:
+            # Determinar cuál es el material equivalente (el que NO es el buscado)
+            if str(row["material_base"]) == str(codigo):
+                equiv_codigo = row["material_equivalente"]
+                equiv_desc = row["texto_breve_equivalente"]
+            else:
+                equiv_codigo = row["material_base"]
+                equiv_desc = row["texto_breve_base"]
+
             equivalencias.append(
                 {
-                    "id": row["id_equivalencia"],
-                    "codigo_equivalente": row["codigo_equivalente"],
-                    "descripcion_equivalente": row["descripcion_equivalente"] or "Sin descripción",
-                    "unidad": row["unidad"],
-                    "precio_usd": row["precio_usd"],
-                    "compatibilidad_pct": row["compatibilidad_pct"],
-                    "descripcion": row["descripcion"],
-                    "notas": row["notas"],
+                    "codigo_equivalente": str(equiv_codigo),
+                    "descripcion_equivalente": equiv_desc or "Sin descripción",
+                    "tipo_equivalencia": row["tipo_equiv"],
+                    "criterio": row["criterio"],
+                    "motivo": row["motivo_equivalencia"],
                 }
             )
 

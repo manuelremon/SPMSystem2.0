@@ -5,7 +5,6 @@ Sprint 13 - Verifica cola de tareas y workers.
 
 import time
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -49,7 +48,8 @@ class TestJob:
     def test_job_creation(self):
         """Crear job con valores por defecto."""
         try:
-            from backend.core.background_jobs import Job, JobStatus, JobPriority
+            from backend.core.background_jobs import (Job, JobPriority,
+                                                      JobStatus)
         except ImportError:
             pytest.skip("Module not available")
 
@@ -365,7 +365,7 @@ class TestTaskDecorator:
     def test_task_decorator_registers(self):
         """Decorador registra la tarea."""
         try:
-            from backend.core.background_jobs import task, get_job_queue
+            from backend.core.background_jobs import get_job_queue, task
         except ImportError:
             pytest.skip("Module not available")
 
@@ -412,7 +412,8 @@ class TestEnqueueHelper:
     def test_enqueue_helper(self):
         """Helper enqueue funciona."""
         try:
-            from backend.core.background_jobs import enqueue, task, get_job_queue
+            from backend.core.background_jobs import (enqueue, get_job_queue,
+                                                      task)
         except ImportError:
             pytest.skip("Module not available")
 
@@ -531,7 +532,8 @@ class TestDefaultTasks:
     def test_default_tasks_registered_after_init(self):
         """Tareas por defecto se registran en el singleton."""
         try:
-            from backend.core.background_jobs import get_job_queue, _register_default_tasks
+            from backend.core.background_jobs import (_register_default_tasks,
+                                                      get_job_queue)
         except ImportError:
             pytest.skip("Module not available")
 

@@ -15,16 +15,13 @@ from typing import Any, Dict, List, Optional
 
 from backend.core.db import get_db_connection, get_db_transaction
 
-
 # =============================================================================
 # Configuracion SLA
 # =============================================================================
 
 
 def obtener_configuracion_sla(
-    criticidad: str,
-    estado_desde: str,
-    estado_hasta: str
+    criticidad: str, estado_desde: str, estado_hasta: str
 ) -> Optional[Dict[str, Any]]:
     """
     Obtiene la configuracion SLA aplicable para una transicion de estado.
@@ -44,7 +41,8 @@ def obtener_configuracion_sla(
         cursor = conn.cursor()
 
         # Buscar configuracion especifica para criticidad
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT id, nombre, criticidad, estado_desde, estado_hasta,
                    tiempo_objetivo_horas, tiempo_alerta_horas,
                    activo, notificar_al_vencer, escalar_al_vencer, escalar_a_rol
@@ -54,14 +52,17 @@ def obtener_configuracion_sla(
               AND estado_hasta = ?
               AND activo = 1
             LIMIT 1
-        """, (criticidad, estado_desde, estado_hasta))
+        """,
+            (criticidad, estado_desde, estado_hasta),
+        )
 
         row = cursor.fetchone()
         if row:
             return dict(row)
 
         # Buscar configuracion general (sin criticidad especifica)
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT id, nombre, criticidad, estado_desde, estado_hasta,
                    tiempo_objetivo_horas, tiempo_alerta_horas,
                    activo, notificar_al_vencer, escalar_al_vencer, escalar_a_rol
@@ -71,7 +72,9 @@ def obtener_configuracion_sla(
               AND estado_hasta = ?
               AND activo = 1
             LIMIT 1
-        """, (estado_desde, estado_hasta))
+        """,
+            (estado_desde, estado_hasta),
+        )
 
         row = cursor.fetchone()
         return dict(row) if row else None
@@ -83,9 +86,7 @@ def obtener_configuracion_sla(
 
 
 def calcular_fecha_limite(
-    fecha_inicio: datetime,
-    horas: float,
-    solo_horas_laborales: bool = False
+    fecha_inicio: datetime, horas: float, solo_horas_laborales: bool = False
 ) -> datetime:
     """
     Calcula la fecha limite agregando horas a la fecha de inicio.
@@ -108,10 +109,7 @@ def calcular_fecha_limite(
     return fecha_inicio + timedelta(hours=horas)
 
 
-def calcular_tiempo_respuesta(
-    fecha_inicio: datetime,
-    fecha_fin: datetime
-) -> float:
+def calcular_tiempo_respuesta(fecha_inicio: datetime, fecha_fin: datetime) -> float:
     """
     Calcula el tiempo de respuesta en horas entre dos fechas.
 
@@ -132,9 +130,7 @@ def calcular_tiempo_respuesta(
 
 
 def verificar_estado_sla(
-    fecha_limite: datetime,
-    ahora: datetime,
-    umbral_alerta_horas: Optional[float] = None
+    fecha_limite: datetime, ahora: datetime, umbral_alerta_horas: Optional[float] = None
 ) -> Dict[str, Any]:
     """
     Verifica el estado de cumplimiento SLA.
@@ -158,21 +154,15 @@ def verificar_estado_sla(
         return {
             "estado": "breach",
             "horas_restantes": horas_restantes,
-            "horas_excedidas": abs(horas_restantes)
+            "horas_excedidas": abs(horas_restantes),
         }
 
     if umbral_alerta_horas and horas_restantes <= umbral_alerta_horas:
         # Cerca de vencer - warning
-        return {
-            "estado": "warning",
-            "horas_restantes": horas_restantes
-        }
+        return {"estado": "warning", "horas_restantes": horas_restantes}
 
     # A tiempo
-    return {
-        "estado": "on_time",
-        "horas_restantes": horas_restantes
-    }
+    return {"estado": "on_time", "horas_restantes": horas_restantes}
 
 
 # =============================================================================
@@ -188,7 +178,7 @@ def registrar_alerta_sla(
     fecha_vencimiento: str,
     tiempo_transcurrido_horas: Optional[float] = None,
     tiempo_objetivo_horas: Optional[int] = None,
-    mensaje: Optional[str] = None
+    mensaje: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Registra una nueva alerta de SLA.
@@ -212,31 +202,34 @@ def registrar_alerta_sla(
         # Calcular porcentaje de cumplimiento si tenemos los datos
         porcentaje = None
         if tiempo_transcurrido_horas and tiempo_objetivo_horas:
-            porcentaje = round(
-                (tiempo_transcurrido_horas / tiempo_objetivo_horas) * 100, 2
-            )
+            porcentaje = round((tiempo_transcurrido_horas / tiempo_objetivo_horas) * 100, 2)
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO sla_alertas (
                 solicitud_id, sla_config_id, tipo, estado,
                 fecha_inicio, fecha_vencimiento,
                 tiempo_transcurrido_horas, tiempo_objetivo_horas,
                 porcentaje_cumplimiento, mensaje
             ) VALUES (?, ?, ?, 'activa', ?, ?, ?, ?, ?, ?)
-        """, (
-            solicitud_id, sla_config_id, tipo,
-            fecha_inicio, fecha_vencimiento,
-            tiempo_transcurrido_horas, tiempo_objetivo_horas,
-            porcentaje, mensaje
-        ))
+        """,
+            (
+                solicitud_id,
+                sla_config_id,
+                tipo,
+                fecha_inicio,
+                fecha_vencimiento,
+                tiempo_transcurrido_horas,
+                tiempo_objetivo_horas,
+                porcentaje,
+                mensaje,
+            ),
+        )
 
         return {"id": cursor.lastrowid}
 
 
-def resolver_alerta_sla(
-    alerta_id: int,
-    resuelto_por: str
-) -> Dict[str, Any]:
+def resolver_alerta_sla(alerta_id: int, resuelto_por: str) -> Dict[str, Any]:
     """
     Marca una alerta como resuelta.
 
@@ -250,22 +243,22 @@ def resolver_alerta_sla(
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE sla_alertas
             SET estado = 'resuelta',
                 fecha_resolucion = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
                 resuelto_por = ?
             WHERE id = ?
               AND estado = 'activa'
-        """, (resuelto_por, alerta_id))
+        """,
+            (resuelto_por, alerta_id),
+        )
 
         return {"resuelto": cursor.rowcount > 0}
 
 
-def resolver_alertas_solicitud(
-    solicitud_id: int,
-    resuelto_por: str
-) -> Dict[str, Any]:
+def resolver_alertas_solicitud(solicitud_id: int, resuelto_por: str) -> Dict[str, Any]:
     """
     Resuelve todas las alertas activas de una solicitud.
 
@@ -279,21 +272,23 @@ def resolver_alertas_solicitud(
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE sla_alertas
             SET estado = 'resuelta',
                 fecha_resolucion = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
                 resuelto_por = ?
             WHERE solicitud_id = ?
               AND estado = 'activa'
-        """, (resuelto_por, solicitud_id))
+        """,
+            (resuelto_por, solicitud_id),
+        )
 
         return {"alertas_resueltas": cursor.rowcount}
 
 
 def obtener_alertas_activas(
-    solicitud_id: Optional[int] = None,
-    tipo: Optional[str] = None
+    solicitud_id: Optional[int] = None, tipo: Optional[str] = None
 ) -> List[Dict[str, Any]]:
     """
     Obtiene las alertas activas.
@@ -338,10 +333,7 @@ def obtener_alertas_activas(
 # =============================================================================
 
 
-def obtener_metricas_sla(
-    periodo_dias: int = 30,
-    por_criticidad: bool = False
-) -> Dict[str, Any]:
+def obtener_metricas_sla(periodo_dias: int = 30, por_criticidad: bool = False) -> Dict[str, Any]:
     """
     Calcula metricas de cumplimiento SLA.
 
@@ -356,58 +348,71 @@ def obtener_metricas_sla(
         cursor = conn.cursor()
 
         fecha_inicio = datetime.now(timezone.utc) - timedelta(days=periodo_dias)
-        fecha_str = fecha_inicio.strftime('%Y-%m-%dT%H:%M:%SZ')
+        fecha_str = fecha_inicio.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         # Total de solicitudes en el periodo
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT COUNT(*) as total
             FROM solicitudes
             WHERE created_at >= ?
-        """, (fecha_str,))
+        """,
+            (fecha_str,),
+        )
         total_row = cursor.fetchone()
-        total = total_row['total'] if total_row else 0
+        total = total_row["total"] if total_row else 0
 
         # Solicitudes a tiempo
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT COUNT(*) as on_time
             FROM solicitudes
             WHERE created_at >= ?
               AND (sla_estado = 'on_time' OR sla_estado IS NULL)
-        """, (fecha_str,))
+        """,
+            (fecha_str,),
+        )
         on_time_row = cursor.fetchone()
-        on_time = on_time_row['on_time'] if on_time_row else 0
+        on_time = on_time_row["on_time"] if on_time_row else 0
 
         # Solicitudes con warning
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT COUNT(*) as warning
             FROM solicitudes
             WHERE created_at >= ?
               AND sla_estado = 'warning'
-        """, (fecha_str,))
+        """,
+            (fecha_str,),
+        )
         warning_row = cursor.fetchone()
-        warning = warning_row['warning'] if warning_row else 0
+        warning = warning_row["warning"] if warning_row else 0
 
         # Solicitudes en breach
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT COUNT(*) as breach
             FROM solicitudes
             WHERE created_at >= ?
               AND sla_estado = 'breach'
-        """, (fecha_str,))
+        """,
+            (fecha_str,),
+        )
         breach_row = cursor.fetchone()
-        breach = breach_row['breach'] if breach_row else 0
+        breach = breach_row["breach"] if breach_row else 0
 
         resultado = {
             "total_solicitudes": total,
             "on_time": on_time,
             "warning": warning,
             "breach": breach,
-            "porcentaje_cumplimiento": round((on_time / total) * 100, 1) if total > 0 else 0
+            "porcentaje_cumplimiento": round((on_time / total) * 100, 1) if total > 0 else 0,
         }
 
         # Desglose por criticidad si se solicita
         if por_criticidad:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     criticidad,
                     COUNT(*) as total,
@@ -416,7 +421,9 @@ def obtener_metricas_sla(
                 FROM solicitudes
                 WHERE created_at >= ?
                 GROUP BY criticidad
-            """, (fecha_str,))
+            """,
+                (fecha_str,),
+            )
             resultado["por_criticidad"] = [dict(row) for row in cursor.fetchall()]
 
         return resultado
@@ -428,9 +435,7 @@ def obtener_metricas_sla(
 
 
 def actualizar_sla_solicitud(
-    solicitud_id: int,
-    fecha_limite: str,
-    estado_sla: str
+    solicitud_id: int, fecha_limite: str, estado_sla: str
 ) -> Dict[str, Any]:
     """
     Actualiza la informacion SLA de una solicitud.
@@ -446,13 +451,16 @@ def actualizar_sla_solicitud(
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE solicitudes
             SET sla_fecha_limite = ?,
                 sla_estado = ?,
                 updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
             WHERE id = ?
-        """, (fecha_limite, estado_sla, solicitud_id))
+        """,
+            (fecha_limite, estado_sla, solicitud_id),
+        )
 
         return {"actualizado": cursor.rowcount > 0}
 
@@ -462,9 +470,7 @@ def actualizar_sla_solicitud(
 # =============================================================================
 
 
-def listar_configuraciones_sla(
-    activo: Optional[bool] = None
-) -> List[Dict[str, Any]]:
+def listar_configuraciones_sla(activo: Optional[bool] = None) -> List[Dict[str, Any]]:
     """
     Lista todas las configuraciones SLA.
 
@@ -508,7 +514,7 @@ def crear_configuracion_sla(
     notificar_al_vencer: bool = True,
     escalar_al_vencer: bool = False,
     escalar_a_rol: Optional[str] = None,
-    created_by: Optional[str] = None
+    created_by: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Crea una nueva configuracion SLA.
@@ -532,7 +538,8 @@ def crear_configuracion_sla(
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO sla_configuracion (
                 nombre, descripcion, criticidad,
                 estado_desde, estado_hasta,
@@ -540,22 +547,26 @@ def crear_configuracion_sla(
                 notificar_al_vencer, escalar_al_vencer, escalar_a_rol,
                 created_by
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            nombre, descripcion, criticidad,
-            estado_desde, estado_hasta,
-            tiempo_objetivo_horas, tiempo_alerta_horas,
-            1 if notificar_al_vencer else 0,
-            1 if escalar_al_vencer else 0,
-            escalar_a_rol, created_by
-        ))
+        """,
+            (
+                nombre,
+                descripcion,
+                criticidad,
+                estado_desde,
+                estado_hasta,
+                tiempo_objetivo_horas,
+                tiempo_alerta_horas,
+                1 if notificar_al_vencer else 0,
+                1 if escalar_al_vencer else 0,
+                escalar_a_rol,
+                created_by,
+            ),
+        )
 
         return {"id": cursor.lastrowid}
 
 
-def actualizar_configuracion_sla(
-    config_id: int,
-    **campos
-) -> Dict[str, Any]:
+def actualizar_configuracion_sla(config_id: int, **campos) -> Dict[str, Any]:
     """
     Actualiza una configuracion SLA existente.
 
@@ -577,10 +588,17 @@ def actualizar_configuracion_sla(
         params = []
 
         campos_permitidos = {
-            'nombre', 'descripcion', 'criticidad',
-            'estado_desde', 'estado_hasta',
-            'tiempo_objetivo_horas', 'tiempo_alerta_horas',
-            'activo', 'notificar_al_vencer', 'escalar_al_vencer', 'escalar_a_rol'
+            "nombre",
+            "descripcion",
+            "criticidad",
+            "estado_desde",
+            "estado_hasta",
+            "tiempo_objetivo_horas",
+            "tiempo_alerta_horas",
+            "activo",
+            "notificar_al_vencer",
+            "escalar_al_vencer",
+            "escalar_a_rol",
         }
 
         for campo, valor in campos.items():
@@ -596,7 +614,7 @@ def actualizar_configuracion_sla(
 
         query = f"""
             UPDATE sla_configuracion
-            SET {', '.join(set_clauses)}
+            SET {", ".join(set_clauses)}
             WHERE id = ?
         """
         params.append(config_id)
@@ -619,11 +637,14 @@ def eliminar_configuracion_sla(config_id: int) -> Dict[str, Any]:
         cursor = conn.cursor()
 
         # Soft delete - solo desactivar
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE sla_configuracion
             SET activo = 0,
                 updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
             WHERE id = ?
-        """, (config_id,))
+        """,
+            (config_id,),
+        )
 
         return {"eliminado": cursor.rowcount > 0}

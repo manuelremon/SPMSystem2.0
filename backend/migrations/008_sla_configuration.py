@@ -195,7 +195,7 @@ def run_migration(db_path: Path = DB_PATH) -> bool:
                         cursor.execute(stmt)
                     except sqlite3.OperationalError as e:
                         if "duplicate column name" in str(e).lower():
-                            print(f"  Columna ya existe, continuando...")
+                            print("  Columna ya existe, continuando...")
                         else:
                             raise
 
@@ -206,14 +206,16 @@ def run_migration(db_path: Path = DB_PATH) -> bool:
                 print("Insertando configuracion SLA por defecto...")
                 cursor.executescript(SLA_DEFAULTS)
             else:
-                print(f"Tabla sla_configuracion ya tiene {count} registros, no se insertan defaults")
+                print(
+                    f"Tabla sla_configuracion ya tiene {count} registros, no se insertan defaults"
+                )
 
             conn.commit()
 
             # Verificar creacion
             cursor.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name IN (?, ?)",
-                ('sla_configuracion', 'sla_alertas')
+                ("sla_configuracion", "sla_alertas"),
             )
             tables = cursor.fetchall()
             if len(tables) == 2:
@@ -268,7 +270,7 @@ def check_status(db_path: Path = DB_PATH) -> dict:
             # Verificar tablas
             cursor.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name IN (?, ?)",
-                ('sla_configuracion', 'sla_alertas')
+                ("sla_configuracion", "sla_alertas"),
             )
             tables = [row[0] for row in cursor.fetchall()]
 
@@ -281,16 +283,15 @@ def check_status(db_path: Path = DB_PATH) -> dict:
             # Verificar columnas en solicitudes
             cursor.execute("PRAGMA table_info(solicitudes)")
             columns = [row[1] for row in cursor.fetchall()]
-            sla_columns = [c for c in columns if c.startswith('sla_')]
+            sla_columns = [c for c in columns if c.startswith("sla_")]
 
             return {
                 "tablas_creadas": tables,
                 "tablas_faltantes": [
-                    t for t in ['sla_configuracion', 'sla_alertas']
-                    if t not in tables
+                    t for t in ["sla_configuracion", "sla_alertas"] if t not in tables
                 ],
                 "registros": counts,
-                "columnas_sla_en_solicitudes": sla_columns
+                "columnas_sla_en_solicitudes": sla_columns,
             }
 
     except Exception as e:

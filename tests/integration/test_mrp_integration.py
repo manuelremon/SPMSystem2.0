@@ -3,8 +3,9 @@ Tests de integracion para el servicio MRP.
 Sprint 8.1 - Verifica motor MRP end-to-end.
 """
 
-import pytest
 import math
+
+import pytest
 
 
 @pytest.fixture
@@ -28,10 +29,9 @@ def client(app):
 @pytest.fixture
 def auth_headers(client):
     """Headers con autenticacion."""
-    response = client.post("/api/auth/login", json={
-        "email": "admin@spm.com",
-        "password": "admin123"
-    })
+    response = client.post(
+        "/api/auth/login", json={"email": "admin@spm.com", "password": "admin123"}
+    )
 
     if response.status_code == 200:
         data = response.get_json()
@@ -63,10 +63,7 @@ class TestMRPEndpointsIntegration:
 
     def test_get_mrp_analisis_material(self, client, auth_headers):
         """GET /api/mrp/analisis/<material> analiza material."""
-        response = client.get(
-            "/api/mrp/analisis/MAT001?centro=1000",
-            headers=auth_headers
-        )
+        response = client.get("/api/mrp/analisis/MAT001?centro=1000", headers=auth_headers)
 
         assert response.status_code in [200, 401, 404, 500]
 
@@ -77,15 +74,13 @@ class TestMRPServiceIntegration:
     def test_calcular_requerimiento_neto_basico(self):
         """Calcula requerimiento neto correctamente."""
         try:
-            from backend.services.mrp_service import calcular_requerimiento_neto
+            from backend.services.mrp_service import \
+                calcular_requerimiento_neto
         except ImportError:
             pytest.skip("MRP service not available")
 
         resultado = calcular_requerimiento_neto(
-            demanda=100,
-            stock_actual=30,
-            pedidos_en_curso=20,
-            stock_seguridad=10
+            demanda=100, stock_actual=30, pedidos_en_curso=20, stock_seguridad=10
         )
 
         # Requerimiento = 100 - 30 - 20 + 10 = 60
@@ -99,11 +94,7 @@ class TestMRPServiceIntegration:
         except ImportError:
             pytest.skip("MRP service not available")
 
-        resultado = calcular_punto_reorden(
-            consumo_diario=10,
-            lead_time_dias=15,
-            stock_seguridad=50
-        )
+        resultado = calcular_punto_reorden(consumo_diario=10, lead_time_dias=15, stock_seguridad=50)
 
         # Punto reorden = (15 * 10) + 50 = 200
         assert resultado["punto_reorden"] == 200
@@ -116,9 +107,7 @@ class TestMRPServiceIntegration:
             pytest.skip("MRP service not available")
 
         resultado = calcular_cantidad_optima(
-            demanda_anual=1200,
-            costo_orden=50,
-            costo_mantenimiento_unitario=2
+            demanda_anual=1200, costo_orden=50, costo_mantenimiento_unitario=2
         )
 
         # EOQ = sqrt(2 * 1200 * 50 / 2) = sqrt(60000) ≈ 245
@@ -133,10 +122,7 @@ class TestMRPServiceIntegration:
             pytest.skip("MRP service not available")
 
         resultado = generar_recomendacion(
-            stock_actual=5,
-            stock_seguridad=20,
-            punto_pedido=50,
-            pedidos_en_curso=0
+            stock_actual=5, stock_seguridad=20, punto_pedido=50, pedidos_en_curso=0
         )
 
         assert resultado["accion"] == "compra_urgente"
@@ -150,10 +136,7 @@ class TestMRPServiceIntegration:
             pytest.skip("MRP service not available")
 
         resultado = generar_recomendacion(
-            stock_actual=100,
-            stock_seguridad=20,
-            punto_pedido=50,
-            pedidos_en_curso=0
+            stock_actual=100, stock_seguridad=20, punto_pedido=50, pedidos_en_curso=0
         )
 
         assert resultado["accion"] == "ninguna"
@@ -166,16 +149,13 @@ class TestMRPCalculosAvanzados:
     def test_cobertura_dias(self):
         """Calcula dias de cobertura correctamente."""
         try:
-            from backend.services.mrp_service import calcular_requerimiento_neto
+            from backend.services.mrp_service import \
+                calcular_requerimiento_neto
         except ImportError:
             pytest.skip("MRP service not available")
 
         resultado = calcular_requerimiento_neto(
-            demanda=100,
-            stock_actual=50,
-            pedidos_en_curso=0,
-            stock_seguridad=20,
-            consumo_diario=5
+            demanda=100, stock_actual=50, pedidos_en_curso=0, stock_seguridad=20, consumo_diario=5
         )
 
         # Cobertura = 50 / 5 = 10 dias
@@ -193,7 +173,7 @@ class TestMRPCalculosAvanzados:
             costo_orden=50,
             costo_mantenimiento_unitario=2,
             cantidad_minima=300,  # Mayor que EOQ calculado
-            cantidad_maxima=500
+            cantidad_maxima=500,
         )
 
         assert resultado["cantidad_optima"] >= 300

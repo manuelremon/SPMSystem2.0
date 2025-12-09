@@ -6,7 +6,6 @@ Sprint 16 - Verifica logging estructurado y tracing.
 import json
 import logging
 import time
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -139,18 +138,18 @@ class TestTraceContext:
     def test_set_and_get_context(self):
         """Establecer y obtener contexto."""
         try:
-            from backend.core.observability import (
-                set_trace_context,
-                get_trace_context,
-                clear_trace_context,
-            )
+            from backend.core.observability import (clear_trace_context,
+                                                    get_trace_context,
+                                                    set_trace_context)
         except ImportError:
             pytest.skip("Module not available")
 
-        set_trace_context({
-            "trace_id": "trace-123",
-            "span_id": "span-456",
-        })
+        set_trace_context(
+            {
+                "trace_id": "trace-123",
+                "span_id": "span-456",
+            }
+        )
 
         ctx = get_trace_context()
 
@@ -348,7 +347,7 @@ class TestTraceRequestContextManager:
     def test_creates_span(self):
         """Crea span automaticamente."""
         try:
-            from backend.core.observability import trace_request, get_tracer
+            from backend.core.observability import get_tracer, trace_request
         except ImportError:
             pytest.skip("Module not available")
 
@@ -396,7 +395,7 @@ class TestTracedDecorator:
     def test_traces_function(self):
         """Traza funcion automaticamente."""
         try:
-            from backend.core.observability import traced, get_tracer
+            from backend.core.observability import get_tracer, traced
         except ImportError:
             pytest.skip("Module not available")
 
@@ -453,10 +452,13 @@ class TestLogEvent:
             pytest.skip("Module not available")
 
         # No deberia lanzar excepcion
-        log_event("user_login", {
-            "user_id": 123,
-            "ip": "1.2.3.4",
-        })
+        log_event(
+            "user_login",
+            {
+                "user_id": 123,
+                "ip": "1.2.3.4",
+            },
+        )
 
 
 class TestConfigureLogging:

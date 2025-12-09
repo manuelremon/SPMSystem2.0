@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Bell,
   Check,
   CheckCheck,
   Trash2,
@@ -13,7 +12,9 @@ import {
   CheckCircle,
   XCircle,
   RefreshCw,
-  Inbox
+  Inbox,
+  Wifi,
+  WifiOff
 } from "lucide-react";
 import { Card, CardContent } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
@@ -21,7 +22,10 @@ import { PageHeader } from "../components/ui/PageHeader";
 import { Alert } from "../components/ui/Alert";
 import { useAuthStore } from "../store/authStore";
 import { useI18n } from "../context/i18n";
-import { useNotifications } from "../hooks/useNotifications";
+import { useRealtime } from "../hooks/useRealtime";
+import { PushNotificationToggle } from "../components/ui/PushNotificationToggle";
+
+import { MessageSquare } from "lucide-react";
 
 // Mapeo de tipos de notificacion a iconos y colores - Glass style
 const notificationConfig = {
@@ -30,11 +34,14 @@ const notificationConfig = {
   warning: { icon: AlertCircle, color: "text-amber-600", bg: "bg-amber-50/70 backdrop-blur-sm" },
   error: { icon: XCircle, color: "text-red-600", bg: "bg-red-50/70 backdrop-blur-sm" },
   profile_request: { icon: User, color: "text-purple-600", bg: "bg-purple-50/70 backdrop-blur-sm" },
+  profile_approved: { icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50/70 backdrop-blur-sm" },
+  profile_rejected: { icon: XCircle, color: "text-red-600", bg: "bg-red-50/70 backdrop-blur-sm" },
   solicitud_created: { icon: FileText, color: "text-cyan-600", bg: "bg-cyan-50/70 backdrop-blur-sm" },
   solicitud_approved: { icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50/70 backdrop-blur-sm" },
   solicitud_rejected: { icon: XCircle, color: "text-red-600", bg: "bg-red-50/70 backdrop-blur-sm" },
   solicitud_planned: { icon: Clock, color: "text-amber-600", bg: "bg-amber-50/70 backdrop-blur-sm" },
   solicitud_to_plan: { icon: Clock, color: "text-orange-600", bg: "bg-orange-50/70 backdrop-blur-sm" },
+  mensaje_nuevo: { icon: MessageSquare, color: "text-indigo-600", bg: "bg-indigo-50/70 backdrop-blur-sm" },
 };
 
 function formatTimeAgo(dateStr) {
@@ -60,16 +67,21 @@ export default function Notificaciones() {
   const [msg, setMsg] = useState("");
   const [activeTab, setActiveTab] = useState("unread"); // "unread" or "read"
 
+  // Usar hook de tiempo real unificado
   const {
     notifications,
     unreadCount,
     isLoading,
-    error,
+    isConnected,
+    connectionError,
     markAsRead,
     markAllAsRead,
     deleteNotification,
     refresh
-  } = useNotifications({ enabled: !!user });
+  } = useRealtime({ enabled: !!user });
+
+  // Combinar errores
+  const error = connectionError;
 
   // Filtrar notificaciones segun la pestaña activa
   const filteredNotifications = useMemo(() => {
@@ -145,6 +157,10 @@ export default function Notificaciones() {
       case "budget_approved":
       case "budget_rejected":
         navigate("/presupuesto");
+        break;
+
+      case "mensaje_nuevo":
+        navigate("/mensajes");
         break;
 
       default:
@@ -260,7 +276,29 @@ export default function Notificaciones() {
       <PageHeader
         title={t("notif_title", "NOTIFICACIONES").toUpperCase()}
         actions={
-          <div className="flex gap-2">
+          <div className="flex items-center gap-3">
+            {/* Push notifications toggle */}
+            <PushNotificationToggle />
+
+            <div className="h-4 w-px bg-slate-300" />
+
+            {/* Connection status indicator */}
+            <div className="flex items-center gap-1.5 text-xs">
+              {isConnected ? (
+                <>
+                  <Wifi className="w-3.5 h-3.5 text-emerald-500" />
+                  <span className="text-emerald-600">{t("realtime_live", "En vivo")}</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-slate-400">{t("realtime_polling", "Actualizacion periodica")}</span>
+                </>
+              )}
+            </div>
+
+            <div className="h-4 w-px bg-slate-300" />
+
             <Button
               variant="ghost"
               onClick={refresh}
