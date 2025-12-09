@@ -140,8 +140,10 @@ class ItemSolicitud:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ItemSolicitud":
         """Crea un item desde un diccionario."""
+        # Accept both 'material_id' and 'codigo' for compatibility
+        material_id = data.get("material_id") or data.get("codigo", "")
         return cls(
-            material_id=data.get("material_id", ""),
+            material_id=material_id,
             cantidad=data.get("cantidad", 0),
             unidad=data.get("unidad", ""),
             descripcion=data.get("descripcion"),
@@ -361,14 +363,15 @@ def validar_items(items: List[Dict[str, Any]]) -> Dict[str, Any]:
             "mensaje": str  # Si hay error general
         }
     """
+    # Permitir lista vacía para borradores (los items se agregan después)
     if not items:
         return {
-            "ok": False,
+            "ok": True,
             "items": [],
             "errores": [],
             "items_validos": 0,
             "total": 0,
-            "mensaje": "La lista de items esta vacia",
+            "mensaje": "",
         }
 
     items_validos = []

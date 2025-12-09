@@ -40,7 +40,9 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true, // IMPORTANTE: Envía cookies en cada request
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    // Bypass localtunnel verification page
+    'bypass-tunnel-reminder': 'true'
   }
 })
 

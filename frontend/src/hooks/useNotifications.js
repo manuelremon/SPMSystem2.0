@@ -243,16 +243,24 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
   const startPolling = useCallback(() => {
     if (pollingIntervalRef.current) return
 
-    // Fetch inicial
-    fetchNotifications()
+    // Fetch inicial y marcar como conectado si funciona
+    fetchNotifications().then(() => {
+      if (isMountedRef.current) {
+        setIsConnected(true) // Polling funciona = conectado
+      }
+    })
 
     // Polling periódico
     pollingIntervalRef.current = setInterval(() => {
       if (isMountedRef.current) {
-        fetchNotifications()
+        fetchNotifications().then(() => {
+          if (isMountedRef.current && !isConnected) {
+            setIsConnected(true)
+          }
+        })
       }
     }, POLLING_INTERVAL)
-  }, [fetchNotifications])
+  }, [fetchNotifications, isConnected])
 
   /**
    * Desconectar SSE
@@ -284,13 +292,16 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
       // Cargar notificaciones iniciales
       fetchNotifications()
 
-      // Intentar conectar SSE
-      // Nota: SSE puede no funcionar si el navegador no lo soporta
-      // o si hay problemas de CORS
-      if (typeof EventSource !== 'undefined') {
+      // Detectar si estamos en cross-origin (SSE no funciona sin cookies)
+      const isCrossOrigin = API_BASE_URL.startsWith('http') &&
+        !API_BASE_URL.includes(window.location.host)
+
+      // Intentar conectar SSE solo si no es cross-origin
+      // En cross-origin, EventSource no puede enviar tokens de auth
+      if (typeof EventSource !== 'undefined' && !isCrossOrigin) {
         connectSSE()
       } else {
-        // Fallback a polling si EventSource no está disponible
+        // Usar polling para cross-origin o si EventSource no está disponible
         startPolling()
       }
     }

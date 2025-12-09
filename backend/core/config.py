@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     # Incluye: desarrollo local, GitHub Pages, y cualquier túnel de Cloudflare
     CORS_ORIGINS: str = os.getenv(
         "CORS_ORIGINS",
-        "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:4173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:5175,http://127.0.0.1:4173,https://manuelremon.github.io,https://*.trycloudflare.com",
+        "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:4173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:5175,http://127.0.0.1:4173,https://manuelremon.github.io,https://*.trycloudflare.com,https://*.loca.lt",
     )
 
     # JWT - Clave segura (requerida en producción)

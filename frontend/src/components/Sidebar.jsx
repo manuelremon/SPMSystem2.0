@@ -199,9 +199,11 @@ export default function Sidebar({ collapsed, onToggle, unreadCount = 0, isConnec
   const isPlanner = () => hasRole("planificador");
   const isJefe = () => hasRole("jefe");
   const isCoordinador = () => hasRole("coordinador");
+  const isBudgetApprover = () => hasRole("aprobador presupuestos") || hasRole("aprobador_presupuestos");
+  const isRequestApprover = () => hasRole("aprobador solicitudes") || hasRole("aprobador_solicitudes");
   const canSeePlanner = isPlanner() || isAdmin();
-  const canSeeBudget = isAdmin() || isJefe() || isCoordinador();
-  const canApprove = isAdmin() || isJefe() || isCoordinador();
+  const canSeeBudget = isAdmin() || isJefe() || isCoordinador() || isBudgetApprover();
+  const canApprove = isAdmin() || isJefe() || isCoordinador() || isRequestApprover();
 
   // Get main nav items with role-based filtering
   const mainNavItems = getMainNavItems(canApprove);
@@ -347,7 +349,7 @@ export default function Sidebar({ collapsed, onToggle, unreadCount = 0, isConnec
         {!collapsed && (
           <div className="flex items-center gap-2">
             <img
-              src="/images/Logo definitivo SPM.png"
+              src={`${import.meta.env.BASE_URL}images/spm-logo.png`}
               alt="SPM Logo"
               className="h-8 w-auto object-contain"
             />
