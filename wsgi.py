@@ -4,8 +4,17 @@
 import os
 import sys
 
-# Agregar el directorio raíz al path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Agregar directorios al path para compatibilidad de imports
+_project_root = os.path.dirname(os.path.abspath(__file__))
+_backend_dir = os.path.join(_project_root, "backend")
+
+# Agregar project root (para imports como backend.*)
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+
+# Agregar backend dir (para imports como core.*, routes.*, services.*)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
 
 from backend.app import create_app
 from backend.core.config import settings
