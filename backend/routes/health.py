@@ -19,10 +19,10 @@ from flask import Blueprint, jsonify, request
 
 try:
     from backend.core.config import settings
-    from backend.core.db import get_db_path
+    from backend.core.db import get_db_path, is_using_postgresql
 except ImportError:
     from core.config import settings
-    from core.db import get_db_path
+    from core.db import get_db_path, is_using_postgresql
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +44,11 @@ def _check_database(db_name: str = "spm") -> dict:
         Estado de la BD
     """
     try:
+        # BD principal (spm) puede usar PostgreSQL en produccion
+        if db_name == "spm" and is_using_postgresql():
+            return _check_postgresql()
+
+        # BDs secundarias siempre usan SQLite
         db_path = get_db_path(db_name)
         if not db_path.exists():
             return {"status": "unavailable", "error": f"Database file not found: {db_path}"}
@@ -67,6 +72,36 @@ def _check_database(db_name: str = "spm") -> dict:
         return {"status": "unhealthy", "error": str(e)}
     except Exception as e:
         return {"status": "error", "error": str(e)}
+
+
+def _check_postgresql() -> dict:
+    """
+    Verifica conectividad a PostgreSQL.
+
+    Returns:
+        Estado de la BD PostgreSQL
+    """
+    try:
+        import psycopg2
+
+        start = time.time()
+        conn = psycopg2.connect(settings.DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1")
+        cursor.fetchone()
+        conn.close()
+        latency_ms = (time.time() - start) * 1000
+
+        return {
+            "status": "healthy",
+            "latency_ms": round(latency_ms, 2),
+            "type": "postgresql",
+        }
+
+    except ImportError:
+        return {"status": "error", "error": "psycopg2 not installed"}
+    except Exception as e:
+        return {"status": "unhealthy", "error": str(e)}
 
 
 def _check_cache() -> dict:
