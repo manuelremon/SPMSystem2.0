@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useCallback } from "react";
+import PropTypes from "prop-types";
 import clsx from "clsx";
-import { X } from "lucide-react";
+import { X } from "./Icons";
 import { Button } from "./Button";
 
 /**
@@ -258,5 +259,56 @@ export function AlertModal({
     </Modal>
   );
 }
+
+Modal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  title: PropTypes.string,
+  children: PropTypes.node,
+  size: PropTypes.oneOf(["sm", "md", "lg", "xl", "full"]),
+  closeOnOverlayClick: PropTypes.bool,
+  showCloseButton: PropTypes.bool,
+  footer: PropTypes.node,
+  className: PropTypes.string,
+};
+
+Modal.defaultProps = {
+  size: "md",
+  closeOnOverlayClick: true,
+  showCloseButton: true,
+};
+
+ConfirmModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onConfirm: PropTypes.func.isRequired,
+  title: PropTypes.string,
+  message: PropTypes.node,
+  confirmText: PropTypes.string,
+  cancelText: PropTypes.string,
+  variant: PropTypes.string,
+};
+
+ConfirmModal.defaultProps = {
+  title: "Confirmar",
+  confirmText: "Confirmar",
+  cancelText: "Cancelar",
+  variant: "primary",
+};
+
+AlertModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  title: PropTypes.string,
+  message: PropTypes.node,
+  buttonText: PropTypes.string,
+  variant: PropTypes.string,
+};
+
+AlertModal.defaultProps = {
+  title: "Aviso",
+  buttonText: "Entendido",
+  variant: "primary",
+};
 
 export default Modal;

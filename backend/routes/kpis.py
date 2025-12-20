@@ -17,18 +17,16 @@ def _row_to_dict(row, cursor):
     """Convierte una fila de BD a diccionario"""
     if row is None:
         return None
-    if is_using_postgresql():
-        columns = [desc[0] for desc in cursor.description]
-        return dict(zip(columns, row))
+    # El wrapper ya retorna dict para PostgreSQL
+    if isinstance(row, dict):
+        return row
     return dict(row)
 
 
 def _rows_to_dicts(rows, cursor):
     """Convierte múltiples filas a diccionarios"""
-    if is_using_postgresql():
-        columns = [desc[0] for desc in cursor.description]
-        return [dict(zip(columns, row)) for row in rows]
-    return [dict(row) for row in rows]
+    # El wrapper ya retorna dicts para PostgreSQL
+    return [row if isinstance(row, dict) else dict(row) for row in rows]
 
 
 bp = Blueprint("kpis", __name__, url_prefix="/api/kpis")
@@ -128,7 +126,8 @@ def get_kpis():
                     AND created_at < DATE('now', '-7 days')
                 """
                 )
-            prev_week = cursor.fetchone()[0] or 1
+            row = cursor.fetchone()
+            prev_week = (list(row.values())[0] if isinstance(row, dict) else row[0]) or 1
             if using_pg:
                 cursor.execute(
                     """
@@ -143,7 +142,8 @@ def get_kpis():
                     WHERE created_at >= DATE('now', '-7 days')
                 """
                 )
-            this_week = cursor.fetchone()[0] or 0
+            row = cursor.fetchone()
+            this_week = (list(row.values())[0] if isinstance(row, dict) else row[0]) or 0
             trend_percentage = (
                 round(((this_week - prev_week) / prev_week) * 100, 1) if prev_week > 0 else 0
             )

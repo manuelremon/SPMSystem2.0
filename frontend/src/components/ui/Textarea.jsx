@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import clsx from "clsx";
 
 /**
@@ -47,3 +48,19 @@ export const Textarea = React.forwardRef(({
 });
 
 Textarea.displayName = "Textarea";
+
+Textarea.propTypes = {
+  className: PropTypes.string,
+  error: PropTypes.bool,
+  value: PropTypes.string,
+  onChange: PropTypes.func,
+  placeholder: PropTypes.string,
+  disabled: PropTypes.bool,
+  rows: PropTypes.number,
+  id: PropTypes.string,
+  name: PropTypes.string,
+};
+
+Textarea.defaultProps = {
+  error: false,
+};

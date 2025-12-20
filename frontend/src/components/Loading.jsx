@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react'
+import { Loader2 } from './ui/Icons'
 
 /**
  * Loading Component - Glass Morphism Style

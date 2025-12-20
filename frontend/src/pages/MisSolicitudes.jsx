@@ -49,7 +49,7 @@ import {
   AlertTriangle,
   User,
   Hash,
-} from "lucide-react";
+} from "../components/ui/Icons";
 
 const DEBOUNCE_MS = 300;
 const PAGE_SIZE = 20;
@@ -404,12 +404,14 @@ export default function MisSolicitudes() {
         const getTooltipInfo = () => {
           switch (estado) {
             case "borrador":
+            case "draft":
               return {
                 title: t("estado_borrador_title", "Borrador"),
                 lines: [t("estado_borrador_desc", "Solicitud en borrador. Completa los datos y envíala para su aprobación.")]
               };
             case "enviada":
             case "pendiente_de_aprobacion":
+            case "submitted":
               if (aprobadorNombre) {
                 return {
                   title: t("estado_enviada_title", "Pendiente de aprobación"),
@@ -424,6 +426,7 @@ export default function MisSolicitudes() {
                 lines: [t("estado_enviada_desc", "Esperando aprobación del coordinador o jefe de área.")]
               };
             case "aprobada":
+            case "approved":
               if (plannerNombre) {
                 return {
                   title: t("estado_aprobada_title", "Aprobada"),
@@ -442,6 +445,7 @@ export default function MisSolicitudes() {
                 ].filter(Boolean)
               };
             case "rechazada":
+            case "rejected":
               return {
                 title: t("estado_rechazada_title", "Rechazada"),
                 lines: [
@@ -545,37 +549,40 @@ export default function MisSolicitudes() {
         // Acciones contextuales por estado
         if (estado === "borrador") {
           return (
-            <div className="flex items-center justify-center gap-2">
-              <button
+            <div className="flex items-center justify-center gap-1">
+              <Button
+                variant="icon-warning"
+                size="icon-sm"
                 onClick={() => navigate(`/solicitudes/${row.id}/materiales`)}
                 title={t("mis_btn_editar", "Editar")}
                 aria-label={`${t("mis_btn_editar", "Editar")} solicitud ${row.id}`}
-                className="p-1.5 rounded-lg hover:bg-amber-50/70 transition-colors cursor-pointer"
               >
-                <Edit3 className="w-4 h-4 text-amber-500" aria-hidden="true" />
-              </button>
-              <button
+                <Edit3 className="w-4 h-4" aria-hidden="true" />
+              </Button>
+              <Button
+                variant="icon-danger"
+                size="icon-sm"
                 onClick={() => openDeleteModal(row.id)}
                 title={t("mis_btn_eliminar", "Eliminar")}
                 aria-label={`${t("mis_btn_eliminar", "Eliminar")} solicitud ${row.id}`}
-                className="p-1.5 rounded-lg hover:bg-red-50/70 transition-colors cursor-pointer"
               >
-                <Trash2 className="w-4 h-4 text-red-500" aria-hidden="true" />
-              </button>
+                <Trash2 className="w-4 h-4" aria-hidden="true" />
+              </Button>
             </div>
           );
         }
 
         return (
           <div className="flex items-center justify-center">
-            <button
+            <Button
+              variant="icon-primary"
+              size="icon-sm"
               onClick={() => setDetalleModal({ open: true, solicitud: row })}
               title={t("mis_btn_ver", "Ver")}
               aria-label={`${t("mis_btn_ver", "Ver")} solicitud ${row.id}`}
-              className="p-1.5 rounded-lg hover:bg-blue-50/70 transition-colors cursor-pointer"
             >
-              <Eye className="w-4 h-4 text-blue-500" aria-hidden="true" />
-            </button>
+              <Eye className="w-4 h-4" aria-hidden="true" />
+            </Button>
           </div>
         );
       },
@@ -602,7 +609,7 @@ export default function MisSolicitudes() {
                 title={t("mis_btn_refresh", "Actualizar")}
                 aria-label={t("mis_btn_refresh", "Actualizar datos")}
               >
-                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 text-slate-600 ${refreshing ? 'animate-spin' : ''}`} />
               </Button>
               <Button
                 onClick={() => navigate("/solicitudes/nueva")}
@@ -625,14 +632,14 @@ export default function MisSolicitudes() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full flex flex-wrap gap-1">
             <TabsTrigger value="todas" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
+              <FileText className="w-4 h-4 text-blue-500" />
               <span>{t("mis_stats_total", "Todas")}</span>
               <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
                 {stats.total}
               </span>
             </TabsTrigger>
             <TabsTrigger value="borradores" className="flex items-center gap-2">
-              <Edit3 className="w-4 h-4" />
+              <Edit3 className="w-4 h-4 text-blue-600" />
               <span>{t("mis_stats_borradores", "Borradores")}</span>
               {stats.borradores > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
@@ -641,7 +648,7 @@ export default function MisSolicitudes() {
               )}
             </TabsTrigger>
             <TabsTrigger value="enviadas" className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
+              <Clock className="w-4 h-4 text-cyan-500" />
               <span>{t("mis_stats_enviadas", "Enviadas")}</span>
               {stats.enviadas > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
@@ -650,7 +657,7 @@ export default function MisSolicitudes() {
               )}
             </TabsTrigger>
             <TabsTrigger value="aprobadas" className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
               <span>{t("mis_stats_aprobadas", "Aprobadas")}</span>
               {stats.aprobadas > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
@@ -659,7 +666,7 @@ export default function MisSolicitudes() {
               )}
             </TabsTrigger>
             <TabsTrigger value="rechazadas" className="flex items-center gap-2">
-              <XCircle className="w-4 h-4" />
+              <XCircle className="w-4 h-4 text-red-500" />
               <span>{t("mis_stats_rechazadas", "Rechazadas")}</span>
               {stats.rechazadas > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
@@ -690,7 +697,7 @@ export default function MisSolicitudes() {
               onClick={handleExport}
               disabled={filtered.length === 0}
             >
-              <FileSpreadsheet className="w-4 h-4" />
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
               {t("mis_btn_export", "Exportar XLS")}
             </Button>
           </div>
@@ -779,7 +786,7 @@ export default function MisSolicitudes() {
                 emptyMessage={
                   filtered.length === 0 && items.length > 0 ? (
                     <EmptyState
-                      icon={<Search className="w-8 h-8 text-slate-400" />}
+                      icon={<Search className="w-8 h-8 text-blue-500" />}
                       title={t("mis_no_results_title", "Sin resultados")}
                       description={t("mis_no_results", "No hay solicitudes que coincidan con los filtros aplicados")}
                       action={
@@ -799,7 +806,7 @@ export default function MisSolicitudes() {
                     />
                   ) : items.length === 0 ? (
                     <EmptyState
-                      icon={<Inbox className="w-8 h-8 text-slate-400" />}
+                      icon={<Inbox className="w-8 h-8 text-slate-500" />}
                       title={t("mis_empty_title", "No tienes solicitudes")}
                       description={t("mis_empty_desc", "Crea tu primera solicitud de materiales para comenzar")}
                       action={
@@ -911,22 +918,22 @@ export default function MisSolicitudes() {
                 </h4>
                 <div className="border border-white/30 rounded-xl overflow-hidden">
                   <table className="w-full text-sm">
-                    <thead className="bg-slate-50/70">
+                    <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
                       <tr>
-                        <th className="text-left px-4 py-2 font-semibold text-slate-600">{t("detalle_codigo", "Código")}</th>
-                        <th className="text-left px-4 py-2 font-semibold text-slate-600">{t("detalle_descripcion", "Descripción")}</th>
-                        <th className="text-right px-4 py-2 font-semibold text-slate-600">{t("detalle_cantidad", "Cant.")}</th>
-                        <th className="text-right px-4 py-2 font-semibold text-slate-600">{t("detalle_precio", "Precio")}</th>
-                        <th className="text-right px-4 py-2 font-semibold text-slate-600">{t("detalle_subtotal", "Subtotal")}</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">{t("detalle_codigo", "Código")}</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">{t("detalle_descripcion", "Descripción")}</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">{t("detalle_cantidad", "Cant.")}</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">{t("detalle_precio", "Precio")}</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">{t("detalle_subtotal", "Subtotal")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/30">
                       {detalleModal.solicitud.items.map((item, idx) => (
                         <tr key={idx} className="hover:bg-slate-50/50">
-                          <td className="px-4 py-2 font-mono text-xs text-slate-600">{item.codigo || item.codigo_sap}</td>
-                          <td className="px-4 py-2 text-slate-800">{item.descripcion}</td>
-                          <td className="px-4 py-2 text-right font-semibold">{item.cantidad}</td>
-                          <td className="px-4 py-2 text-right text-slate-600">{formatCurrency(item.precio_unitario || 0)}</td>
+                          <td className="px-4 py-2 font-mono text-xs text-slate-600 border-r border-b border-slate-200">{item.codigo || item.codigo_sap}</td>
+                          <td className="px-4 py-2 text-slate-800 border-r border-b border-slate-200">{item.descripcion}</td>
+                          <td className="px-4 py-2 text-right font-semibold border-r border-b border-slate-200">{item.cantidad}</td>
+                          <td className="px-4 py-2 text-right text-slate-600 border-r border-b border-slate-200">{formatCurrency(item.precio_unitario || 0)}</td>
                           <td className="px-4 py-2 text-right font-semibold text-slate-800">
                             {formatCurrency((item.cantidad || 0) * (item.precio_unitario || 0))}
                           </td>

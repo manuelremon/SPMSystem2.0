@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
+import PropTypes from "prop-types";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
 
@@ -175,5 +176,31 @@ export function InfoTooltip({ children, title, lines = [], position = "top" }) {
     </div>
   );
 }
+
+Tooltip.propTypes = {
+  children: PropTypes.node,
+  content: PropTypes.node,
+  position: PropTypes.oneOf(["top", "bottom", "left", "right"]),
+  delay: PropTypes.number,
+  className: PropTypes.string,
+};
+
+Tooltip.defaultProps = {
+  position: "top",
+  delay: 200,
+  className: "",
+};
+
+InfoTooltip.propTypes = {
+  children: PropTypes.node,
+  title: PropTypes.string,
+  lines: PropTypes.arrayOf(PropTypes.string),
+  position: PropTypes.oneOf(["top", "bottom", "left", "right"]),
+};
+
+InfoTooltip.defaultProps = {
+  lines: [],
+  position: "top",
+};
 
 export default Tooltip;

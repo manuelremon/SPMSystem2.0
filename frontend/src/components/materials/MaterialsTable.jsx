@@ -4,7 +4,8 @@
  */
 import { useI18n } from '../../context/i18n'
 import { formatCurrency } from '../../utils/formatters'
-import { MessageSquare, Trash2 } from 'lucide-react'
+import { MessageSquare, Trash2 } from '../ui/Icons'
+import { Button } from '../ui/Button'
 
 export function MaterialsTable({
   items,
@@ -17,30 +18,30 @@ export function MaterialsTable({
   return (
     <div className="overflow-x-auto border border-[var(--border)] rounded-lg">
       <table className="w-full text-sm" role="table">
-        <thead>
-          <tr className="border-b border-[var(--border)] bg-[var(--bg-soft)]">
-            <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+        <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
+          <tr>
+            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
               {t('materials_col_codigo', 'Codigo')}
             </th>
-            <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
               {t('materials_col_descripcion', 'Descripcion')}
             </th>
-            <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
               {t('materials_col_unidad', 'Unidad')}
             </th>
-            <th className="px-2 py-3 text-center text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)] w-20">
+            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 w-20">
               {t('materials_col_cantidad', 'Cant.')}
             </th>
-            <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
               {t('materials_col_precio', 'Precio USD')}
             </th>
-            <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)]">
+            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
               {t('materials_col_subtotal', 'Subtotal')}
             </th>
-            <th className="px-2 py-3 text-center text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)] w-12">
+            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 w-12">
               {t('materials_col_nota', 'Nota')}
             </th>
-            <th className="px-2 py-3 text-center text-xs font-bold uppercase tracking-wider text-[var(--fg-muted)] w-12">
+            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] w-12">
             </th>
           </tr>
         </thead>
@@ -94,32 +95,26 @@ export function MaterialsTable({
                   {formatCurrency(subtotal)}
                 </td>
                 <td className="px-4 py-3 text-center">
-                  <button
-                    type="button"
+                  <Button
+                    variant={it.comentario ? 'icon-primary' : 'icon'}
+                    size="icon-sm"
                     onClick={() => onOpenComment(it.codigo)}
-                    className={`
-                      p-2 rounded-lg transition-colors
-                      ${it.comentario
-                        ? 'text-[var(--primary)] bg-[var(--primary-muted)]'
-                        : 'text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--bg-elevated)]'
-                      }
-                    `}
                     title={it.comentario || t('materials_agregar_nota', 'Agregar nota')}
                     aria-label={`${t('materials_nota_label', 'Nota para')} ${it.codigo}`}
                   >
                     <MessageSquare className="w-4 h-4" />
-                  </button>
+                  </Button>
                 </td>
                 <td className="px-2 py-3 text-center">
-                  <button
-                    type="button"
+                  <Button
+                    variant="icon-danger"
+                    size="icon-sm"
                     onClick={() => onDelete(it.codigo)}
-                    className="p-2 rounded-lg text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-colors"
                     title={t('materials_eliminar', 'Eliminar')}
                     aria-label={`${t('materials_eliminar', 'Eliminar')} ${it.codigo}`}
                   >
                     <Trash2 className="w-4 h-4" />
-                  </button>
+                  </Button>
                 </td>
               </tr>
             )

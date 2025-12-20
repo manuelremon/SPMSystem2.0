@@ -9,8 +9,8 @@ import {
   ChevronRight,
   ArrowRight,
   Send
-} from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/Card";
+} from "../components/ui/Icons";
+import { Card, CardContent } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Alert } from "../components/ui/Alert";
@@ -169,47 +169,39 @@ export default function AdminSolicitudesPerfil() {
       {error && <Alert variant="danger" onDismiss={() => setError("")}>{error}</Alert>}
       {msg && <Alert variant="success" onDismiss={() => setMsg("")}>{msg}</Alert>}
 
+      {/* Tabs */}
+      <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30 w-fit">
+        {tabs.map((tabItem) => (
+          <button
+            key={tabItem.key}
+            onClick={() => setTab(tabItem.key)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+              tab === tabItem.key
+                ? "bg-white shadow-sm text-blue-600"
+                : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+            }`}
+          >
+            {tabItem.label}
+          </button>
+        ))}
+      </div>
+
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="w-5 h-5 text-blue-600" />
-            {t("profile_req_subtitle", "Gestionar solicitudes de actualización de perfil")}
-          </CardTitle>
-          <CardDescription>
-            {t("profile_req_desc", "Aprueba, rechaza o solicita más información sobre los cambios de perfil")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Tabs */}
-          <div className="flex gap-1 p-1 bg-slate-100/70 backdrop-blur-sm rounded-xl w-fit">
-            {tabs.map((tabItem) => (
-              <button
-                key={tabItem.key}
-                onClick={() => setTab(tabItem.key)}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  tab === tabItem.key
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-800 hover:bg-white/50"
-                }`}
-              >
-                {tabItem.label}
-              </button>
-            ))}
-          </div>
+        <CardContent className="p-0">
 
           {/* Lista */}
           {loading ? (
-            <div className="text-center py-12 text-slate-500">
-              <RefreshCw className="w-8 h-8 mx-auto mb-3 animate-spin" />
+            <div className="text-center py-16 text-slate-500">
+              <RefreshCw className="w-8 h-8 mx-auto mb-3 animate-spin text-blue-600" />
               <p>{t("common_cargando", "Cargando...")}</p>
             </div>
           ) : requests.length === 0 ? (
-            <div className="text-center py-12 text-slate-500">
-              <User className="w-12 h-12 mx-auto mb-4 opacity-30" />
-              <p className="text-lg font-medium">{t("profile_req_empty", "No hay solicitudes")}</p>
+            <div className="text-center py-16 text-slate-500">
+              <User className="w-12 h-12 mx-auto mb-4 opacity-30 text-slate-400" />
+              <p className="text-sm">{t("profile_req_empty", "No hay solicitudes")}</p>
             </div>
           ) : (
-            <div className="divide-y divide-white/30">
+            <div className="divide-y divide-slate-100">
               {requests.map((req) => (
                 <div
                   key={req.id}

@@ -4,17 +4,36 @@ import { logger } from '../utils/logger'
 /**
  * API Configuration
  *
- * Estrategia de autenticacion: COOKIES ONLY (httpOnly)
- * - NO usamos Bearer token en headers
+ * Estrategia de autenticacion:
+ *
+ * MISMO DOMINIO (produccion): COOKIES ONLY (httpOnly)
  * - Tokens se manejan via cookies httpOnly (spm_token, spm_token_refresh)
+ * - NO se usa localStorage (protege contra XSS)
  * - CSRF token se envia en header X-CSRF-Token
  *
- * Esto es mas seguro porque:
- * 1. Cookies httpOnly no son accesibles desde JS (protege contra XSS)
- * 2. CSRF token protege contra ataques CSRF
+ * CROSS-ORIGIN (GitHub Pages, desarrollo remoto):
+ * - Cookies no funcionan cross-domain con SameSite=Lax
+ * - Se usa Bearer token en header como fallback
+ * - Token almacenado en localStorage (menos seguro, pero necesario)
+ *
+ * La decision se toma automaticamente comparando origenes.
  */
 
 const log = logger.withContext('API')
+
+/**
+ * Detecta si estamos en modo cross-origin (frontend y API en dominios diferentes)
+ */
+const isCrossOrigin = () => {
+  const apiUrl = import.meta.env.VITE_API_URL || ''
+  if (!apiUrl) return false // No API URL = same origin
+  try {
+    const apiOrigin = new URL(apiUrl).origin
+    return apiOrigin !== window.location.origin
+  } catch {
+    return false
+  }
+}
 
 // En produccion usa URL relativa, en desarrollo usa localhost
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
@@ -46,21 +65,24 @@ const api = axios.create({
   }
 })
 
-// Request interceptor - add CSRF token, Bearer token, and logging
+// Request interceptor - add CSRF token, Bearer token (cross-origin only), and logging
 api.interceptors.request.use((config) => {
   // Track request timing
   config._startTime = performance.now()
 
-  // Add CSRF token
+  // Add CSRF token (always needed for state-changing requests)
   const csrfToken = localStorage.getItem('csrf_token')
   if (csrfToken) {
     config.headers['X-CSRF-Token'] = csrfToken
   }
 
-  // Add Bearer token for cross-domain auth (GitHub Pages + Cloudflare Tunnel)
-  const accessToken = localStorage.getItem('spm_access_token')
-  if (accessToken) {
-    config.headers['Authorization'] = `Bearer ${accessToken}`
+  // Add Bearer token ONLY for cross-domain auth (GitHub Pages + Cloudflare Tunnel)
+  // In same-origin mode, we rely on httpOnly cookies (more secure against XSS)
+  if (isCrossOrigin()) {
+    const accessToken = localStorage.getItem('spm_access_token')
+    if (accessToken) {
+      config.headers['Authorization'] = `Bearer ${accessToken}`
+    }
   }
 
   // Log request
@@ -172,7 +194,7 @@ api.interceptors.response.use(
 function clearAuthState() {
   localStorage.removeItem('csrf_token')
   localStorage.removeItem('csrf_expiry')
-  // Clear auth tokens for cross-domain auth
+  // Clear auth tokens (only used in cross-origin mode, but safe to always clear)
   localStorage.removeItem('spm_access_token')
   localStorage.removeItem('spm_refresh_token')
 }

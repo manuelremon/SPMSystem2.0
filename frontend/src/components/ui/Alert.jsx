@@ -1,6 +1,7 @@
 import React from "react";
+import PropTypes from "prop-types";
 import clsx from "clsx";
-import { AlertCircle, CheckCircle, Info, XCircle, X } from "lucide-react";
+import { AlertCircle, CheckCircle, Info, XCircle, X } from "./Icons";
 
 /**
  * Alert Component - Glass Morphism Style
@@ -75,3 +76,17 @@ export function Alert({
     </div>
   );
 }
+
+Alert.propTypes = {
+  variant: PropTypes.oneOf(["success", "danger", "warning", "info"]),
+  children: PropTypes.node,
+  className: PropTypes.string,
+  onClose: PropTypes.func,
+  dismissible: PropTypes.bool,
+  onDismiss: PropTypes.func,
+};
+
+Alert.defaultProps = {
+  variant: "info",
+  className: "",
+};

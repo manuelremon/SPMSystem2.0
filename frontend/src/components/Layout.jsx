@@ -7,7 +7,7 @@
  */
 
 import React, { useEffect, useState } from "react";
-import { MessageSquare, Wifi, WifiOff } from "lucide-react";
+import { MessageSquare, Wifi, WifiOff } from "./ui/Icons";
 import clsx from "clsx";
 import { useAuthStore } from "../store/authStore";
 import { useChatStore } from "../store/chatStore";
@@ -27,8 +27,6 @@ export default function Layout({ children }) {
   const { isConnected, connectionError, unreadCount } = useRealtime({
     enabled: !!user
   });
-
-  // Theme is managed by useTheme hook - no need to set here
 
   // Load sidebar state from localStorage
   useEffect(() => {

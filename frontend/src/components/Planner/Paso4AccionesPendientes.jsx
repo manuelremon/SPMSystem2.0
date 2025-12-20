@@ -12,7 +12,7 @@ import {
   Mail,
   FileText,
   UserCheck,
-} from "lucide-react";
+} from "../ui/Icons";
 
 const ESTADO_CONFIG = {
   pendiente: {
@@ -518,19 +518,19 @@ function PreviewTable({ acciones, tipo }) {
               borderBottom: "1px solid var(--border)",
             }}
           >
-            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
               Codigo SAP
             </th>
-            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
               Descripcion
             </th>
             <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
               Cantidad
             </th>
-            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
               {tipo === "solped" ? "Proveedor" : "Destinatario"}
             </th>
-            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
               Accion
             </th>
           </tr>
@@ -602,16 +602,16 @@ function AccionesTable({ acciones, tipo = "stock" }) {
               borderBottom: "1px solid var(--border)",
             }}
           >
-            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
               Codigo SAP
             </th>
-            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
               Descripcion
             </th>
             <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
               Cantidad
             </th>
-            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
               {tipo === "compra" ? "Proveedor" : "Destinatario"}
             </th>
             <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">

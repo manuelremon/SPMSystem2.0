@@ -23,7 +23,7 @@ import {
   GitCompare,
   ChevronRight,
   X
-} from 'lucide-react'
+} from '../components/ui/Icons'
 
 const DEBOUNCE_MS = 300
 const MAX_RESULTS = 100
@@ -242,7 +242,7 @@ export default function CatalogoMateriales() {
                     onClick={handleClearSearch}
                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100/70 rounded transition-colors"
                   >
-                    <X className="h-4 w-4 text-slate-500" />
+                    <X className="h-4 w-4 text-red-500" />
                   </button>
                 )}
               </div>
@@ -280,7 +280,7 @@ export default function CatalogoMateriales() {
         <Card hover={false}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-blue-600" />
+              <Package className="h-5 w-5 text-indigo-500" />
               {t('catalogo_resultados', 'Resultados de Búsqueda')}
             </CardTitle>
           </CardHeader>
@@ -289,14 +289,14 @@ export default function CatalogoMateriales() {
             <TableSkeleton rows={5} columns={5} />
           ) : !hasSearched ? (
             <div className="py-12 text-center">
-              <Search className="h-12 w-12 text-slate-500/30 mx-auto mb-4" />
+              <Search className="h-12 w-12 text-blue-500/30 mx-auto mb-4" />
               <p className="text-slate-500">
                 {t('catalogo_instruccion', 'Ingresa un código SAP, descripción o palabra clave para buscar materiales')}
               </p>
             </div>
           ) : results.length === 0 ? (
             <div className="py-12 text-center">
-              <Package className="h-12 w-12 text-slate-500/30 mx-auto mb-4" />
+              <Package className="h-12 w-12 text-indigo-500/30 mx-auto mb-4" />
               <p className="text-slate-500">
                 {t('catalogo_sin_resultados', 'No se encontraron materiales con los criterios de búsqueda')}
               </p>
@@ -304,21 +304,21 @@ export default function CatalogoMateriales() {
           ) : (
             <div className="overflow-x-auto border border-white/30 rounded-lg">
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-white/30 bg-slate-50/70">
-                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
+                  <tr>
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
                       {t('catalogo_col_codigo', 'Código')}
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
                       {t('catalogo_col_descripcion', 'Descripción')}
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
                       {t('catalogo_col_unidad', 'Unidad')}
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
                       {t('catalogo_col_precio', 'Precio USD')}
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">
                       {t('catalogo_col_acciones', 'Acciones')}
                     </th>
                   </tr>
@@ -335,10 +335,10 @@ export default function CatalogoMateriales() {
                       `}
                       onClick={() => loadDetail(mat)}
                     >
-                      <td className="px-4 py-3 font-mono font-semibold text-blue-600">
+                      <td className="px-4 py-3 font-mono font-semibold text-blue-600 border-r border-b border-slate-200">
                         {mat.codigo}
                       </td>
-                      <td className="px-4 py-3 text-slate-800">
+                      <td className="px-4 py-3 text-slate-800 border-r border-b border-slate-200">
                         <p className="line-clamp-1">{mat.descripcion}</p>
                         {mat.descripcion_larga && mat.descripcion_larga !== mat.descripcion && (
                           <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
@@ -346,10 +346,10 @@ export default function CatalogoMateriales() {
                           </p>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-center text-slate-500">
+                      <td className="px-4 py-3 text-center text-slate-500 border-r border-b border-slate-200">
                         {mat.unidad_medida || mat.unidad || '-'}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-slate-800">
+                      <td className="px-4 py-3 text-right font-mono text-slate-800 border-r border-b border-slate-200">
                         {formatCurrency(mat.precio_usd || 0)}
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -361,7 +361,7 @@ export default function CatalogoMateriales() {
                             loadDetail(mat)
                           }}
                         >
-                          <ChevronRight className="h-4 w-4" />
+                          <ChevronRight className="h-4 w-4 text-slate-600" />
                           {t('catalogo_ver_detalle', 'Ver detalle')}
                         </Button>
                       </td>

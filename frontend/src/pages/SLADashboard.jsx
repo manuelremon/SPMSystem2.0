@@ -17,7 +17,7 @@ import {
   RefreshCw,
   Filter,
   ChevronDown
-} from 'lucide-react'
+} from '../components/ui/Icons'
 import { useI18n } from '../context/i18n'
 import slaService from '../services/sla'
 import { MetricCard } from '../components/ui/MetricCard'
@@ -151,7 +151,7 @@ export default function SLADashboard() {
                 <option key={p.value} value={p.value}>{p.label}</option>
               ))}
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
           </div>
 
           {/* Boton refresh */}
@@ -161,7 +161,7 @@ export default function SLADashboard() {
             onClick={() => fetchData(true)}
             disabled={isRefreshing}
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 text-blue-600 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </div>
@@ -289,7 +289,7 @@ export default function SLADashboard() {
 
             {/* Filtro de tipo */}
             <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-slate-400" />
+              <Filter className="w-4 h-4 text-slate-500" />
               <select
                 value={tipoFiltro || ''}
                 onChange={(e) => setTipoFiltro(e.target.value || null)}
@@ -306,7 +306,7 @@ export default function SLADashboard() {
         <CardContent>
           {alertas.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
-              <CheckCircle className="w-12 h-12 mx-auto mb-3 text-emerald-400" />
+              <CheckCircle className="w-12 h-12 mx-auto mb-3 text-emerald-500" />
               <p>{t('sla_sin_alertas', 'No hay alertas activas')}</p>
             </div>
           ) : (

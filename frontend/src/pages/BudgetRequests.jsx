@@ -15,7 +15,7 @@ import { useI18n } from "../context/i18n";
 import { formatCurrency } from "../utils/formatters";
 import { useDebounced } from "../hooks/useDebounced";
 import { Modal } from "../components/ui/Modal";
-import { XCircle, CheckCircle, RefreshCw, Plus, Eye } from "lucide-react";
+import { XCircle, CheckCircle, RefreshCw, Plus, Eye } from "../components/ui/Icons";
 
 const DEBOUNCE_MS = 300;
 
@@ -192,7 +192,7 @@ export default function BudgetRequests() {
             className="px-3 py-1.5 text-xs"
             onClick={() => navigate(`/presupuestos/${row.id}`)}
           >
-            <Eye className="w-4 h-4 mr-1" />
+            <Eye className="w-4 h-4 mr-1 text-blue-500" />
             {t("bur_ver", "Ver")}
           </Button>
           {["pendiente", "aprobado_l1", "aprobado_l2"].includes(row.estado) && (
@@ -201,7 +201,7 @@ export default function BudgetRequests() {
                 className="px-3 py-1.5 text-xs"
                 onClick={() => openApproveModal(row.id)}
               >
-                <CheckCircle className="w-4 h-4 mr-1" />
+                <CheckCircle className="w-4 h-4 mr-1 text-emerald-500" />
                 {t("bur_aprobar", "Aprobar")}
               </Button>
               <Button
@@ -209,7 +209,7 @@ export default function BudgetRequests() {
                 className="px-3 py-1.5 text-xs"
                 onClick={() => openRejectModal(row.id)}
               >
-                <XCircle className="w-4 h-4 mr-1" />
+                <XCircle className="w-4 h-4 mr-1 text-red-500" />
                 {t("bur_rechazar", "Rechazar")}
               </Button>
             </>
@@ -237,11 +237,11 @@ export default function BudgetRequests() {
               onClick={handleRefresh}
               disabled={refreshing || loading}
             >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-4 h-4 text-slate-600 ${refreshing ? "animate-spin" : ""}`} />
               {t("common_refresh", "Actualizar")}
             </Button>
             <Button onClick={() => navigate("/presupuestos/nueva")}>
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 text-blue-600" />
               {t("bur_crear", "Incorporar Saldo")}
             </Button>
           </div>
@@ -254,15 +254,15 @@ export default function BudgetRequests() {
       <Card>
         <CardContent className="space-y-4 pt-6">
           {/* Tabs */}
-          <div className="flex gap-1 p-1 bg-slate-100/70 backdrop-blur-sm rounded-xl w-fit">
+          <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30 w-fit">
             {tabs.map((tabItem) => (
               <button
                 key={tabItem.key}
                 onClick={() => setTab(tabItem.key)}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   tab === tabItem.key
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-800 hover:bg-white/50"
+                    ? "bg-white shadow-sm text-blue-600"
+                    : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
                 }`}
               >
                 {tabItem.label}
@@ -313,7 +313,7 @@ export default function BudgetRequests() {
               {t("common_cancelar", "Cancelar")}
             </Button>
             <Button onClick={confirmAprobar}>
-              <CheckCircle className="w-4 h-4" />
+              <CheckCircle className="w-4 h-4 text-emerald-500" />
               {t("bur_aprobar", "Aprobar")}
             </Button>
           </>
@@ -348,7 +348,7 @@ export default function BudgetRequests() {
               {t("common_cancelar", "Cancelar")}
             </Button>
             <Button variant="danger" onClick={confirmRechazar}>
-              <XCircle className="w-4 h-4" />
+              <XCircle className="w-4 h-4 text-red-500" />
               {t("bur_rechazar", "Rechazar")}
             </Button>
           </>

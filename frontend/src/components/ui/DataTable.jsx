@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { ChevronUp, ChevronDown, ChevronsUpDown, Inbox } from "lucide-react";
+import { ChevronUp, ChevronDown, ChevronsUpDown, Inbox } from "./Icons";
 
 // Columnas que deben centrarse automáticamente
 const CENTERED_COLUMNS = [
@@ -100,10 +100,10 @@ export function DataTable({
   }
 
   return (
-    <div className={`overflow-x-auto ${className}`} role="region" aria-label="Tabla de datos">
-      <table className="w-full border-collapse border border-[var(--border)]" role="table">
-        <thead>
-          <tr className="border-b border-[var(--border)]">
+    <div className={`overflow-x-auto rounded-xl border border-white/30 ${className}`} role="region" aria-label="Tabla de datos">
+      <table className="w-full text-sm" role="table">
+        <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
+          <tr>
             {columns.map((col) => {
               const align = col.align || getColumnAlignment(col.key);
               const alignClass = align === 'center' ? 'text-center justify-center' : align === 'right' ? 'text-right justify-end' : 'text-left justify-start';
@@ -131,14 +131,12 @@ export function DataTable({
                       : undefined
                   }
                   className={`
-                    px-4 py-4
-                    text-center text-sm font-bold uppercase tracking-wide
-                    text-[var(--fg)]
-                    bg-[var(--bg-soft)]
-                    border-r border-[var(--border)] last:border-r-0
+                    px-4 py-3
+                    text-center text-xs font-semibold uppercase tracking-wider
+                    text-[var(--fg-muted)]
+                    border-r border-b border-slate-200 last:border-r-0
                     ${col.sortAccessor ? 'cursor-pointer hover:text-[var(--primary)] hover:bg-[var(--bg-elevated)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-inset' : ''}
                   `}
-                  style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
                 >
                   <div className={`flex items-center gap-2 ${alignClass}`}>
                     {col.header}

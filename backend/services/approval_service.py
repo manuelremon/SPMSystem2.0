@@ -49,11 +49,17 @@ class AprobadorNoEncontradoError(ApprovalError):
 
 JERARQUIA_ROLES: Dict[str, int] = {
     "usuario": 0,
+    "solicitante": 0,
     "aprobador": 1,
+    "aprobador_solicitudes": 1,
+    "aprobador_presupuestos": 1,
     "coordinador": 2,
     "jefe": 3,
     "gerente": 4,
+    "gerente1": 4,
+    "gerente2": 4,
     "admin": 5,
+    "administrador": 5,
 }
 
 
@@ -61,14 +67,24 @@ def rol_tiene_nivel(rol_usuario: str, rol_requerido: str) -> bool:
     """
     Verifica si un rol tiene nivel suficiente para otro.
 
+    Soporta roles multiples separados por coma (ej: "gerente2, aprobador_solicitudes").
+    Toma el nivel mas alto entre todos los roles del usuario.
+
     Args:
-        rol_usuario: Rol del usuario
+        rol_usuario: Rol(es) del usuario (puede ser lista separada por coma)
         rol_requerido: Rol requerido para la accion
 
     Returns:
-        True si rol_usuario >= rol_requerido en jerarquia
+        True si el nivel mas alto del usuario >= rol_requerido en jerarquia
     """
-    nivel_usuario = JERARQUIA_ROLES.get(rol_usuario.lower(), 0)
+    # Parsear roles multiples separados por coma
+    roles_usuario = [r.strip().lower() for r in rol_usuario.split(",")]
+
+    # Obtener el nivel mas alto entre todos los roles del usuario
+    nivel_usuario = max(
+        JERARQUIA_ROLES.get(rol, 0) for rol in roles_usuario
+    )
+
     nivel_requerido = JERARQUIA_ROLES.get(rol_requerido.lower(), 0)
     return nivel_usuario >= nivel_requerido
 
@@ -200,6 +216,8 @@ def obtener_regla_aprobacion(
                 return dict(row)
 
         # Buscar regla general por monto
+        # Prioriza reglas con monto_minimo_usd mas alto (mas especificas)
+        # Excluye la regla Admin (que cubre todo el rango) a menos que sea la unica
         cursor.execute(
             """
             SELECT * FROM reglas_aprobacion
@@ -209,6 +227,7 @@ def obtener_regla_aprobacion(
                 AND criticidad IS NULL
                 AND monto_minimo_usd <= ?
                 AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)
+                AND LOWER(posicion_requerida) != 'admin'
             ORDER BY monto_minimo_usd DESC
             LIMIT 1
         """,
@@ -216,7 +235,54 @@ def obtener_regla_aprobacion(
         )
 
         row = cursor.fetchone()
+
+        # Si no se encontro regla, buscar la regla Admin (fallback)
+        if not row:
+            cursor.execute(
+                """
+                SELECT * FROM reglas_aprobacion
+                WHERE activo = 1
+                    AND LOWER(posicion_requerida) = 'admin'
+                    AND monto_minimo_usd <= ?
+                    AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)
+                LIMIT 1
+            """,
+                (monto_usd, monto_usd),
+            )
+            row = cursor.fetchone()
+
         return dict(row) if row else None
+
+
+def posicion_tiene_nivel(posicion_usuario: str, posicion_requerida: str) -> bool:
+    """
+    Verifica si una posicion/puesto tiene nivel suficiente para otra.
+
+    Jerarquia de posiciones:
+    - jefe (nivel 1): puede aprobar hasta USD 100,000
+    - gerente1 (nivel 2): puede aprobar hasta USD 10,000,000
+    - gerente2 (nivel 3): puede aprobar hasta USD 100,000,000
+    - admin (nivel 4): puede aprobar cualquier monto
+
+    Args:
+        posicion_usuario: Posicion del usuario
+        posicion_requerida: Posicion requerida por la regla
+
+    Returns:
+        True si posicion_usuario >= posicion_requerida en jerarquia
+    """
+    jerarquia_posiciones = {
+        "jefe": 1,
+        "gerente1": 2,
+        "gerente2": 3,
+        "admin": 4,
+        "administrador": 4,
+    }
+
+    nivel_usuario = jerarquia_posiciones.get(posicion_usuario.lower(), 0)
+    nivel_requerido = jerarquia_posiciones.get(posicion_requerida.lower(), 0)
+
+    return nivel_usuario >= nivel_requerido
 
 
 def puede_aprobar(
@@ -230,6 +296,10 @@ def puede_aprobar(
     """
     Verifica si un usuario puede aprobar una solicitud.
 
+    La verificacion se basa en:
+    1. ROL del usuario debe contener "aprobador_solicitudes"
+    2. POSICION del usuario debe tener nivel suficiente segun el monto
+
     Args:
         usuario_id: ID del usuario
         monto_usd: Monto de la solicitud
@@ -242,8 +312,8 @@ def puede_aprobar(
         Dict con resultado de validacion:
         {
             "puede_aprobar": bool,
-            "rol_usuario": str,
-            "rol_requerido": str,
+            "posicion_usuario": str,
+            "posicion_requerida": str,
             "nivel_aprobacion": int,
             "razon": str (si no puede)
         }
@@ -253,20 +323,21 @@ def puede_aprobar(
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
-        # Obtener rol del usuario
-        cursor.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (usuario_id,))
+        # Obtener rol y posicion del usuario
+        cursor.execute("SELECT rol, posicion FROM usuarios WHERE id_spm = ?", (usuario_id,))
         user_row = cursor.fetchone()
         if not user_row:
             return {"puede_aprobar": False, "razon": "Usuario no encontrado"}
 
         rol_usuario = (user_row["rol"] or "").lower()
+        posicion_usuario = (user_row["posicion"] or "").lower()
 
-        # Admin siempre puede aprobar
-        if "admin" in rol_usuario:
+        # Admin siempre puede aprobar (por posicion)
+        if posicion_usuario in ["admin", "administrador"]:
             return {
                 "puede_aprobar": True,
-                "rol_usuario": rol_usuario,
-                "rol_requerido": "cualquiera",
+                "posicion_usuario": posicion_usuario,
+                "posicion_requerida": "cualquiera",
                 "nivel_aprobacion": 0,
                 "es_admin": True,
             }
@@ -277,19 +348,30 @@ def puede_aprobar(
     if not regla:
         return {
             "puede_aprobar": False,
-            "rol_usuario": rol_usuario,
+            "posicion_usuario": posicion_usuario,
             "razon": "No hay regla de aprobacion definida para este monto",
         }
 
-    rol_requerido = regla["rol_requerido"]
+    # Usar posicion_requerida si existe
+    posicion_requerida = regla.get("posicion_requerida") or regla.get("rol_requerido", "admin")
 
-    # Verificar jerarquia de roles
-    if rol_tiene_nivel(rol_usuario, rol_requerido):
+    # Verificar si el usuario tiene el ROL de aprobador
+    if "aprobador_solicitudes" not in rol_usuario:
+        return {
+            "puede_aprobar": False,
+            "posicion_usuario": posicion_usuario,
+            "posicion_requerida": posicion_requerida,
+            "nivel_aprobacion": regla.get("nivel_aprobacion", 0),
+            "razon": "Se requiere rol 'aprobador_solicitudes'",
+        }
+
+    # Verificar jerarquia de posiciones
+    if posicion_tiene_nivel(posicion_usuario, posicion_requerida):
         return {
             "puede_aprobar": True,
-            "rol_usuario": rol_usuario,
-            "rol_requerido": rol_requerido,
-            "nivel_aprobacion": regla["nivel_aprobacion"],
+            "posicion_usuario": posicion_usuario,
+            "posicion_requerida": posicion_requerida,
+            "nivel_aprobacion": regla.get("nivel_aprobacion", 0),
         }
 
     # Verificar delegacion activa si se solicito
@@ -301,10 +383,10 @@ def puede_aprobar(
 
     return {
         "puede_aprobar": False,
-        "rol_usuario": rol_usuario,
-        "rol_requerido": rol_requerido,
-        "nivel_aprobacion": regla["nivel_aprobacion"],
-        "razon": f"Se requiere rol '{rol_requerido}' o superior",
+        "posicion_usuario": posicion_usuario,
+        "posicion_requerida": posicion_requerida,
+        "nivel_aprobacion": regla.get("nivel_aprobacion", 0),
+        "razon": f"Se requiere posicion '{posicion_requerida}' o superior",
     }
 
 
@@ -316,6 +398,15 @@ def buscar_aprobador(
 ) -> Optional[Dict[str, Any]]:
     """
     Busca un aprobador disponible para el monto dado.
+
+    Logica de busqueda:
+    1. Usuarios con ROL "aprobador_solicitudes"
+    2. Con PUESTO (posicion) de nivel suficiente segun el monto:
+       - 0.01-100,000 USD: Jefe, Gerente1, Gerente2, Admin
+       - 100,000.01-10,000,000 USD: Gerente1, Gerente2, Admin
+       - 10,000,000.01-100,000,000 USD: Gerente2, Admin
+       - Admin puede aprobar cualquier monto
+    3. Prioriza aprobadores del mismo centro
 
     Args:
         monto_usd: Monto de la solicitud
@@ -332,39 +423,77 @@ def buscar_aprobador(
     if not regla:
         return None
 
-    rol_requerido = regla["rol_requerido"]
+    # Usar posicion_requerida si existe, sino rol_requerido para backward compat
+    posicion_requerida = regla.get("posicion_requerida") or regla.get("rol_requerido", "admin")
+
+    # Mapeo de POSICION requerida a puestos validos (jerarquia)
+    # Si se requiere jefe: jefe, gerente1, gerente2, admin pueden aprobar
+    # Si se requiere gerente1: gerente1, gerente2, admin pueden aprobar
+    # Si se requiere gerente2: gerente2, admin pueden aprobar
+    # Si se requiere admin: solo admin puede aprobar
+    puestos_por_nivel = {
+        "jefe": ["jefe", "gerente1", "gerente2", "admin", "administrador"],
+        "gerente1": ["gerente1", "gerente2", "admin", "administrador"],
+        "gerente2": ["gerente2", "admin", "administrador"],
+        "admin": ["admin", "administrador"],
+        "administrador": ["admin", "administrador"],
+        # Backward compat con valores antiguos
+        "aprobador": ["jefe", "gerente1", "gerente2", "admin", "administrador"],
+        "gerente": ["gerente1", "gerente2", "admin", "administrador"],
+    }
+
+    puestos_validos = puestos_por_nivel.get(posicion_requerida.lower(), ["admin", "administrador"])
 
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
-        # Buscar aprobador priorizando mismo centro
+        # Buscar aprobador con ROL "aprobador_solicitudes" y PUESTO adecuado
+        # Prioriza aprobadores del mismo centro
+        placeholders = ",".join(["?" for _ in puestos_validos])
+
         if centro:
-            cursor.execute(
-                """
-                SELECT id_spm, nombre, apellido, rol, centro
+            query = f"""
+                SELECT id_spm, nombre, apellido, rol, posicion, centros
                 FROM usuarios
-                WHERE LOWER(rol) LIKE ?
-                    AND centro = ?
-                    AND activo = 1
+                WHERE LOWER(rol) LIKE '%aprobador_solicitudes%'
+                    AND LOWER(posicion) IN ({placeholders})
+                    AND (',' || centros || ',') LIKE ?
+                    AND estado_registro = 'Activo'
                 ORDER BY
-                    CASE WHEN centro = ? THEN 0 ELSE 1 END,
+                    CASE WHEN (',' || centros || ',') LIKE ? THEN 0 ELSE 1 END,
+                    CASE LOWER(posicion)
+                        WHEN 'jefe' THEN 1
+                        WHEN 'gerente1' THEN 2
+                        WHEN 'gerente2' THEN 3
+                        WHEN 'admin' THEN 4
+                        WHEN 'administrador' THEN 4
+                        ELSE 5
+                    END,
                     nombre
                 LIMIT 1
-            """,
-                (f"%{rol_requerido}%", centro, centro),
-            )
+            """
+            params = (*puestos_validos, f"%,{centro},%", f"%,{centro},%")
+            cursor.execute(query, params)
         else:
-            cursor.execute(
-                """
-                SELECT id_spm, nombre, apellido, rol, centro
+            query = f"""
+                SELECT id_spm, nombre, apellido, rol, posicion, centros
                 FROM usuarios
-                WHERE LOWER(rol) LIKE ?
-                    AND activo = 1
-                ORDER BY nombre
+                WHERE LOWER(rol) LIKE '%aprobador_solicitudes%'
+                    AND LOWER(posicion) IN ({placeholders})
+                    AND estado_registro = 'Activo'
+                ORDER BY
+                    CASE LOWER(posicion)
+                        WHEN 'jefe' THEN 1
+                        WHEN 'gerente1' THEN 2
+                        WHEN 'gerente2' THEN 3
+                        WHEN 'admin' THEN 4
+                        WHEN 'administrador' THEN 4
+                        ELSE 5
+                    END,
+                    nombre
                 LIMIT 1
-            """,
-                (f"%{rol_requerido}%",),
-            )
+            """
+            cursor.execute(query, puestos_validos)
 
         row = cursor.fetchone()
         return dict(row) if row else None
@@ -635,16 +764,15 @@ def obtener_aprobador_por_monto(monto: float, centro: Optional[str] = None) -> s
     if aprobador:
         return str(aprobador["id_spm"])
 
-    # Fallback: buscar cualquier aprobador
+    # Fallback: buscar cualquier aprobador con rol y puesto adecuado
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
             """
             SELECT id_spm FROM usuarios
-            WHERE LOWER(rol) LIKE '%aprobador%'
-                OR LOWER(rol) LIKE '%jefe%'
-                OR LOWER(rol) LIKE '%coordinador%'
-                OR LOWER(rol) LIKE '%admin%'
+            WHERE LOWER(rol) LIKE '%aprobador_solicitudes%'
+                AND LOWER(posicion) IN ('jefe', 'gerente1', 'gerente2', 'admin', 'administrador')
+                AND estado_registro = 'Activo'
             LIMIT 1
         """
         )

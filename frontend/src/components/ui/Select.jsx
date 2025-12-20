@@ -1,6 +1,7 @@
 import React from "react";
+import PropTypes from "prop-types";
 import clsx from "clsx";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown } from "./Icons";
 
 /**
  * Select Component - Glass Morphism Style
@@ -60,3 +61,19 @@ export const Select = React.forwardRef(({
 });
 
 Select.displayName = "Select";
+
+Select.propTypes = {
+  className: PropTypes.string,
+  error: PropTypes.bool,
+  children: PropTypes.node,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onChange: PropTypes.func,
+  disabled: PropTypes.bool,
+  id: PropTypes.string,
+  name: PropTypes.string,
+};
+
+Select.defaultProps = {
+  className: "",
+  error: false,
+};

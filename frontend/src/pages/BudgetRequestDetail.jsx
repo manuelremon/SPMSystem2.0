@@ -21,7 +21,7 @@ import {
   Calendar,
   FileText,
   Shield,
-} from "lucide-react";
+} from "../components/ui/Icons";
 
 const estadoToBadge = {
   pendiente: "Pendiente",
@@ -198,7 +198,7 @@ export default function BudgetRequestDetail() {
                 {/* Centro */}
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <Building className="w-4 h-4" />
+                    <Building className="w-4 h-4 text-slate-600" />
                     {t("bur_campo_centro", "Centro")}
                   </div>
                   <div className="text-lg font-semibold text-slate-800">{bur.centro || "-"}</div>
@@ -207,7 +207,7 @@ export default function BudgetRequestDetail() {
                 {/* Sector */}
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <MapPin className="w-4 h-4" />
+                    <MapPin className="w-4 h-4 text-slate-600" />
                     {t("bur_campo_sector", "Sector")}
                   </div>
                   <div className="text-lg font-semibold text-slate-800">{bur.sector || "-"}</div>
@@ -216,7 +216,7 @@ export default function BudgetRequestDetail() {
                 {/* Monto */}
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <DollarSign className="w-4 h-4" />
+                    <DollarSign className="w-4 h-4 text-amber-700" />
                     {t("bur_col_monto", "Monto Solicitado")}
                   </div>
                   <div className="text-2xl font-bold font-mono text-blue-600">
@@ -227,7 +227,7 @@ export default function BudgetRequestDetail() {
                 {/* Nivel */}
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <Shield className="w-4 h-4" />
+                    <Shield className="w-4 h-4 text-slate-600" />
                     {t("bur_col_nivel", "Nivel de Aprobacion")}
                   </div>
                   <div className="text-lg font-semibold text-slate-800">
@@ -238,7 +238,7 @@ export default function BudgetRequestDetail() {
                 {/* Solicitante */}
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <User className="w-4 h-4" />
+                    <User className="w-4 h-4 text-teal-500" />
                     {t("bur_solicitante", "Solicitante")}
                   </div>
                   <div className="text-lg font-semibold text-slate-800">
@@ -254,7 +254,7 @@ export default function BudgetRequestDetail() {
                 {/* Fecha */}
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <Calendar className="w-4 h-4" />
+                    <Calendar className="w-4 h-4 text-cyan-500" />
                     {t("bur_fecha_creacion", "Fecha de creación")}
                   </div>
                   <div className="text-lg font-semibold text-slate-800">{formatDate(bur.created_at)}</div>
@@ -264,7 +264,7 @@ export default function BudgetRequestDetail() {
               {/* Justificacion */}
               <div className="mt-6 pt-6 border-t border-white/30">
                 <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
-                  <FileText className="w-4 h-4" />
+                  <FileText className="w-4 h-4 text-blue-500" />
                   {t("bur_campo_justificacion", "Justificación")}
                 </div>
                 <div className="p-4 rounded-lg bg-slate-50/70 text-slate-800">
@@ -276,7 +276,7 @@ export default function BudgetRequestDetail() {
               {bur.estado === "rechazado" && bur.motivo_rechazo && (
                 <div className="mt-6 pt-6 border-t border-white/30">
                   <div className="flex items-center gap-2 text-sm text-red-600 mb-2">
-                    <XCircle className="w-4 h-4" />
+                    <XCircle className="w-4 h-4 text-red-500" />
                     {t("bur_motivo_rechazo", "Motivo de rechazo")}
                   </div>
                   <div className="p-4 rounded-lg bg-red-50/70 border border-red-200/50 text-slate-800">
@@ -289,7 +289,7 @@ export default function BudgetRequestDetail() {
               {bur.aprobador_id && (
                 <div className="mt-6 pt-6 border-t border-white/30">
                   <div className="flex items-center gap-2 text-sm text-emerald-600 mb-2">
-                    <CheckCircle className="w-4 h-4" />
+                    <CheckCircle className="w-4 h-4 text-emerald-500" />
                     {t("common_aprobado_por", "Aprobado por")}
                   </div>
                   <div className="text-slate-800">

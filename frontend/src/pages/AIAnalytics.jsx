@@ -20,7 +20,7 @@ import {
   Zap,
   Target,
   BarChart3
-} from 'lucide-react'
+} from '../components/ui/Icons'
 import { useI18n } from '../context/i18n'
 import aiService from '../services/ai'
 import { useAuthStore } from '../store/authStore'
@@ -163,7 +163,7 @@ export default function AIAnalytics() {
                 </>
               ) : (
                 <>
-                  <Zap className="w-4 h-4 mr-2" />
+                  <Zap className="w-4 h-4 mr-2 text-amber-500" />
                   {t('ai_train', 'Entrenar Modelos')}
                 </>
               )}
@@ -177,7 +177,7 @@ export default function AIAnalytics() {
             onClick={() => fetchData(true)}
             disabled={isRefreshing}
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 text-blue-600 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </div>
@@ -212,7 +212,7 @@ export default function AIAnalytics() {
       {/* Info de entrenamiento */}
       {status?.pipelines_trained && status?.last_training_date && (
         <Alert variant="info" className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4" />
+          <Sparkles className="w-4 h-4 text-purple-500" />
           {t('ai_last_training', 'Ultimo entrenamiento')}:{' '}
           {new Date(status.last_training_date).toLocaleString()}
         </Alert>
@@ -224,14 +224,14 @@ export default function AIAnalytics() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-blue-500" />
+              <BarChart3 className="w-5 h-5 text-pink-500" />
               {t('ai_prioridad', 'Solicitudes Priorizadas')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {solicitudesPriorizadas.length === 0 ? (
               <div className="text-center py-8 text-slate-500">
-                <Brain className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                <Brain className="w-12 h-12 mx-auto mb-3 text-purple-500" />
                 <p>{t('ai_no_solicitudes', 'Sin solicitudes pendientes')}</p>
               </div>
             ) : (
@@ -309,7 +309,7 @@ export default function AIAnalytics() {
           <CardContent>
             {alertas.length === 0 ? (
               <div className="text-center py-8 text-slate-500">
-                <CheckCircle className="w-12 h-12 mx-auto mb-3 text-emerald-400" />
+                <CheckCircle className="w-12 h-12 mx-auto mb-3 text-emerald-500" />
                 <p>{t('ai_no_alertas', 'Sin alertas detectadas')}</p>
                 <p className="text-xs mt-1 text-slate-400">
                   {t('ai_alertas_hint', 'Los modelos ML analizan patrones automaticamente')}
@@ -371,7 +371,7 @@ export default function AIAnalytics() {
         <CardContent className="py-4">
           <div className="flex items-center justify-between text-sm text-slate-500">
             <div className="flex items-center gap-2">
-              <Brain className="w-4 h-4" />
+              <Brain className="w-4 h-4 text-purple-500" />
               <span>{t('ai_powered_by', 'Potenciado por ML')}</span>
             </div>
             <div>

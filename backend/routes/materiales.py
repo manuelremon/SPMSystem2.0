@@ -49,12 +49,17 @@ def search_materiales():
     filters = ["activo = 1"]
     params = []
 
+    # Use OR between codigo and descripcion (user may search by either)
+    search_conditions = []
     if q_codigo:
-        filters.append("codigo LIKE ?")
+        search_conditions.append("codigo LIKE ?")
         params.append(f"%{q_codigo}%")
     if q_desc:
-        filters.append("descripcion LIKE ?")
+        search_conditions.append("descripcion LIKE ?")
         params.append(f"%{q_desc}%")
+
+    if search_conditions:
+        filters.append("(" + " OR ".join(search_conditions) + ")")
 
     where = "WHERE " + " AND ".join(filters)
 

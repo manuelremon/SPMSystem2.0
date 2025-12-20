@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Check, MapPin } from "lucide-react";
+import { X, Check, MapPin } from "../ui/Icons";
 import { Button } from "../ui/Button";
 
 export default function StockDetalleModal({

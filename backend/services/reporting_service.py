@@ -160,8 +160,8 @@ class ReportingService:
                 cursor = conn.cursor()
 
                 query = """
-                    SELECT id, codigo, estado, criticidad, total_monto,
-                           created_at, solicitante_id, centro
+                    SELECT id, status as estado, criticidad, total_monto,
+                           created_at, id_usuario, centro, sector, justificacion
                     FROM solicitudes
                     WHERE 1=1
                 """
@@ -169,7 +169,7 @@ class ReportingService:
 
                 if filtros:
                     if "estado" in filtros:
-                        query += " AND estado = ?"
+                        query += " AND status = ?"
                         params.append(filtros["estado"])
                     if "centro" in filtros:
                         query += " AND centro = ?"

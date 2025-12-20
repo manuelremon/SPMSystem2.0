@@ -11,7 +11,7 @@ import {
   Trash2,
   CheckCircle2,
   Circle
-} from "lucide-react";
+} from "../components/ui/Icons";
 import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { PageHeader } from "../components/ui/PageHeader";
@@ -135,7 +135,7 @@ export default function Mensajes() {
       >
         {unreadCount > 0 && (
           <div className="flex items-center gap-2 px-4 py-2 bg-blue-100/70 border border-blue-500 rounded-lg">
-            <Circle className="w-2 h-2 fill-blue-600 text-blue-600 animate-pulse-dot" />
+            <Circle className="w-2 h-2 fill-blue-500 text-blue-500 animate-pulse-dot" />
             <span className="text-sm font-medium text-blue-600">
               {unreadCount} {unreadCount === 1 ? "mensaje nuevo" : "mensajes nuevos"}
             </span>
@@ -151,23 +151,20 @@ export default function Mensajes() {
 
       <Card>
         {/* Tabs */}
-        <div className="border-b border-white/30">
-          <div className="flex gap-1 p-2">
+        <div className="p-4 border-b border-white/30">
+          <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30 w-fit">
             <button
               onClick={() => setActiveTab("inbox")}
-              className={`
-                flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium
-                transition-all duration-200
-                ${activeTab === "inbox"
-                  ? "bg-blue-100/70 text-blue-600 border border-blue-500"
-                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-100/70"
-                }
-              `}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                activeTab === "inbox"
+                  ? "bg-white shadow-sm text-blue-600"
+                  : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+              }`}
             >
-              <Inbox className="w-4 h-4" />
+              <Inbox className="w-4 h-4 text-blue-500" />
               <span>Recibidos</span>
               {unreadCount > 0 && (
-                <span className="ml-1 px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded-full">
+                <span className="ml-1 px-2 py-0.5 bg-blue-100 text-blue-600 text-xs font-semibold rounded-full">
                   {unreadCount}
                 </span>
               )}
@@ -175,16 +172,13 @@ export default function Mensajes() {
 
             <button
               onClick={() => setActiveTab("outbox")}
-              className={`
-                flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium
-                transition-all duration-200
-                ${activeTab === "outbox"
-                  ? "bg-blue-100/70 text-blue-600 border border-blue-500"
-                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-100/70"
-                }
-              `}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                activeTab === "outbox"
+                  ? "bg-white shadow-sm text-blue-600"
+                  : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+              }`}
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-4 h-4 text-blue-600" />
               <span>Enviados</span>
             </button>
           </div>
@@ -201,9 +195,9 @@ export default function Mensajes() {
             <div className="text-center py-12">
               <div className="w-16 h-16 mx-auto rounded-full bg-slate-100/70 flex items-center justify-center mb-4">
                 {activeTab === "inbox" ? (
-                  <Inbox className="w-8 h-8 text-slate-500" />
+                  <Inbox className="w-8 h-8 text-blue-500" />
                 ) : (
-                  <Send className="w-8 h-8 text-slate-500" />
+                  <Send className="w-8 h-8 text-blue-600" />
                 )}
               </div>
               <p className="text-slate-500">
@@ -278,7 +272,7 @@ function MessageRow({ message, isInbox, onOpen, onDelete }) {
         {isUnread ? (
           <Circle className="w-4 h-4 fill-current" />
         ) : (
-          <MessageSquare className="w-5 h-5" />
+          <MessageSquare className="w-5 h-5 text-violet-500" />
         )}
       </div>
 
@@ -305,7 +299,7 @@ function MessageRow({ message, isInbox, onOpen, onDelete }) {
 
         {message.solicitud_id && (
           <div className="mt-2 flex items-center gap-1.5 text-xs text-cyan-600">
-            <FileText className="w-3 h-3" />
+            <FileText className="w-3 h-3 text-blue-500" />
             <span>Solicitud #{message.solicitud_id}</span>
           </div>
         )}
@@ -314,7 +308,7 @@ function MessageRow({ message, isInbox, onOpen, onDelete }) {
       {/* Metadata */}
       <div className="flex-shrink-0 flex flex-col items-end gap-2">
         <div className="flex items-center gap-1.5 text-xs text-slate-400">
-          <Clock className="w-3 h-3" />
+          <Clock className="w-3 h-3 text-cyan-500" />
           <span>
             {new Date(message.created_at).toLocaleDateString("es-AR", {
               day: "2-digit",
@@ -335,18 +329,17 @@ function MessageRow({ message, isInbox, onOpen, onDelete }) {
             }}
             title="Ver conversación"
           >
-            <Reply className="w-4 h-4" />
+            <Reply className="w-4 h-4 text-blue-600" />
           </Button>
 
           <Button
-            variant="ghost"
-            size="sm"
+            variant="icon-danger"
+            size="icon-sm"
             onClick={(e) => {
               e.stopPropagation();
               onDelete();
             }}
             title="Eliminar"
-            className="text-red-600 hover:bg-red-100/70"
           >
             <Trash2 className="w-4 h-4" />
           </Button>

@@ -154,8 +154,10 @@ def format_user_response(user: dict) -> dict:
     rol_raw = user.get("rol", "")
     roles = normalize_roles(rol_raw)
 
+    user_id = user.get("id_spm") or user.get("id")
     return {
-        "id": user.get("id_spm") or user.get("id"),
+        "id": user_id,
+        "id_spm": user_id,  # Alias para compatibilidad con frontend
         "username": user.get("id_spm"),
         "email": user.get("mail"),
         "nombre": f"{user.get('nombre', '')} {user.get('apellido', '')}".strip(),

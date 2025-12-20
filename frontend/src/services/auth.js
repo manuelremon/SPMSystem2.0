@@ -6,22 +6,53 @@ const ACCESS_TOKEN_KEY = 'spm_access_token'
 const REFRESH_TOKEN_KEY = 'spm_refresh_token'
 
 /**
- * Store tokens in localStorage (needed for cross-domain auth with GitHub Pages)
+ * SECURITY: Cross-origin token storage
+ *
+ * En producción (mismo dominio): Los tokens se manejan SOLO via cookies httpOnly.
+ * En desarrollo/GitHub Pages (cross-origin): Se usa localStorage como fallback.
+ *
+ * Detectamos cross-origin comparando el origen del frontend con la API.
+ * Si son diferentes, habilitamos localStorage (menos seguro pero necesario).
+ *
+ * RIESGO XSS: localStorage es accesible desde JavaScript. En producción
+ * con mismo dominio, esto está deshabilitado.
+ */
+const isCrossOrigin = () => {
+  const apiUrl = import.meta.env.VITE_API_URL || ''
+  if (!apiUrl) return false // Same origin, use cookies only
+  try {
+    const apiOrigin = new URL(apiUrl).origin
+    return apiOrigin !== window.location.origin
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Store tokens in localStorage (ONLY for cross-domain auth with GitHub Pages)
+ * In same-origin production, this is a no-op for security.
  */
 export const storeTokens = (accessToken, refreshToken) => {
+  if (!isCrossOrigin()) return // Same origin: use cookies only (more secure)
   if (accessToken) localStorage.setItem(ACCESS_TOKEN_KEY, accessToken)
   if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
 }
 
 /**
- * Get access token from localStorage
+ * Get access token from localStorage (only in cross-origin mode)
  */
-export const getAccessToken = () => localStorage.getItem(ACCESS_TOKEN_KEY)
+export const getAccessToken = () => {
+  if (!isCrossOrigin()) return null // Same origin: rely on cookies
+  return localStorage.getItem(ACCESS_TOKEN_KEY)
+}
 
 /**
- * Get refresh token from localStorage
+ * Get refresh token from localStorage (only in cross-origin mode)
  */
-export const getRefreshToken = () => localStorage.getItem(REFRESH_TOKEN_KEY)
+export const getRefreshToken = () => {
+  if (!isCrossOrigin()) return null // Same origin: rely on cookies
+  return localStorage.getItem(REFRESH_TOKEN_KEY)
+}
 
 /**
  * Clear tokens from localStorage
@@ -47,16 +78,22 @@ export const login = async (username, password) => {
 /**
  * Registro de usuarios
  *
- * NOTA: El endpoint /auth/register NO está implementado en el backend (retorna 501).
- * Esta función lanza un error explícito para evitar estados inconsistentes.
- *
- * Cuando se implemente el registro en backend, actualizar esta función.
+ * Crea un nuevo usuario y lo autentica automáticamente.
  */
-export const register = async (/* userData */) => {
-  throw new Error(
-    'El registro de usuarios no está disponible. ' +
-    'Contacta al administrador del sistema para crear una cuenta.'
-  )
+export const register = async (userData) => {
+  await ensureCsrfToken()
+  const response = await api.post('/auth/register', {
+    email: userData.email,
+    nombre: userData.nombre,
+    password: userData.password
+  })
+
+  // Store tokens for cross-domain auth (igual que login)
+  if (response.data.access_token) {
+    storeTokens(response.data.access_token, response.data.refresh_token)
+  }
+
+  return response.data
 }
 
 export const getCurrentUser = async () => {

@@ -1,9 +1,18 @@
 /**
- * Icon Component - Unified icon system
- * Standardized sizes and colors for consistent UI
+ * Icon Component - Sistema de iconos unificado
+ * Tamaños y colores estandarizados para UI consistente
+ *
+ * Usa SVGs locales en lugar de lucide-react
  */
 
 import clsx from "clsx";
+
+// Importar iconos para presets
+import CheckCircleFill from "./Icons/svg/checkmark_circle_fill.svg?react";
+import XCircleFill from "./Icons/svg/xmark_circle_fill.svg?react";
+import AlertTriangleFill from "./Icons/svg/exclamationmark_triangle_fill.svg?react";
+import InfoCircle from "./Icons/svg/info_circle.svg?react";
+import ArrowCirclepath from "./Icons/svg/arrow_2_circlepath.svg?react";
 
 // Sistema de tamaños estandarizado
 export const ICON_SIZES = {
@@ -44,7 +53,7 @@ export const ICON_COLORS = {
 /**
  * Icon wrapper component for consistent styling
  *
- * @param {React.ComponentType} icon - Lucide icon component
+ * @param {React.ComponentType} icon - SVG icon component
  * @param {string} size - Size key: xs, sm, md, lg, xl, 2xl, 3xl
  * @param {string} color - Color key from ICON_COLORS
  * @param {string} className - Additional classes
@@ -76,32 +85,28 @@ export function Icon({
 
 /**
  * Preset icons for common use cases
+ * Usan SVGs locales con colores semanticos
  */
 
-// Status icons with correct colors
+// Status icons with correct colors (usando SVGs locales)
 export function SuccessIcon({ size = "md", className }) {
-  const CheckCircle = require("lucide-react").CheckCircle;
-  return <Icon icon={CheckCircle} size={size} color="success" className={className} />;
+  return <Icon icon={CheckCircleFill} size={size} color="success" className={className} />;
 }
 
 export function ErrorIcon({ size = "md", className }) {
-  const XCircle = require("lucide-react").XCircle;
-  return <Icon icon={XCircle} size={size} color="error" className={className} />;
+  return <Icon icon={XCircleFill} size={size} color="error" className={className} />;
 }
 
 export function WarningIcon({ size = "md", className }) {
-  const AlertTriangle = require("lucide-react").AlertTriangle;
-  return <Icon icon={AlertTriangle} size={size} color="warning" className={className} />;
+  return <Icon icon={AlertTriangleFill} size={size} color="warning" className={className} />;
 }
 
 export function InfoIcon({ size = "md", className }) {
-  const Info = require("lucide-react").Info;
-  return <Icon icon={Info} size={size} color="info" className={className} />;
+  return <Icon icon={InfoCircle} size={size} color="info" className={className} />;
 }
 
 export function LoadingIcon({ size = "md", className }) {
-  const Loader2 = require("lucide-react").Loader2;
-  return <Icon icon={Loader2} size={size} color="muted" spin className={className} />;
+  return <Icon icon={ArrowCirclepath} size={size} color="muted" spin className={className} />;
 }
 
 export default Icon;

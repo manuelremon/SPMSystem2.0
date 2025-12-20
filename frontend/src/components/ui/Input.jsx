@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import clsx from "clsx";
 
 /**
@@ -41,3 +42,20 @@ export const Input = React.forwardRef(({ className, error = false, ...props }, r
 });
 
 Input.displayName = "Input";
+
+Input.propTypes = {
+  className: PropTypes.string,
+  error: PropTypes.bool,
+  type: PropTypes.string,
+  placeholder: PropTypes.string,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onChange: PropTypes.func,
+  disabled: PropTypes.bool,
+  id: PropTypes.string,
+  name: PropTypes.string,
+};
+
+Input.defaultProps = {
+  error: false,
+  type: "text",
+};

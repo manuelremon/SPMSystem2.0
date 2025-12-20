@@ -13,7 +13,7 @@ import {
   TableHead,
   TableCell,
 } from "../../ui/table";
-import { ChevronUp, ChevronDown, ChevronsUpDown, Inbox } from "lucide-react";
+import { ChevronUp, ChevronDown, ChevronsUpDown, Inbox } from "../../ui/Icons";
 import { cn } from "../../../lib/utils";
 import { adaptLegacyColumns, getAlignmentClass } from "./columns";
 

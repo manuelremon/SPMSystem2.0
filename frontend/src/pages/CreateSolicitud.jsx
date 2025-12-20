@@ -12,7 +12,7 @@ import { Alert } from '../components/ui/Alert'
 import { Card, CardContent } from '../components/ui/Card'
 import { PageHeader } from '../components/ui/PageHeader'
 import { FormSkeleton } from '../components/ui/Skeleton'
-import { Paperclip, X, Upload } from 'lucide-react'
+import { Paperclip, X, Upload } from '../components/ui/Icons'
 import clsx from 'clsx'
 
 function getDefaultNeedDate() {
@@ -406,7 +406,7 @@ export default function CreateSolicitud() {
 
                     {form.archivos.length === 0 ? (
                       <>
-                        <Paperclip className="w-6 h-6 text-slate-400 mb-2" />
+                        <Paperclip className="w-6 h-6 text-blue-500 mb-2" />
                         <span className="text-sm font-medium text-slate-600">Arrastra o Clic</span>
                         <span className="text-[10px] text-slate-400 mt-1">Máx 5 archivos</span>
                       </>
@@ -430,13 +430,13 @@ export default function CreateSolicitud() {
                               }}
                               className="p-0.5 hover:bg-red-100 rounded text-slate-400 hover:text-red-500 transition-colors"
                             >
-                              <X className="w-4 h-4" />
+                              <X className="w-4 h-4 text-red-500" />
                             </button>
                           </div>
                         ))}
                         {form.archivos.length < 5 && (
                           <div className="flex items-center justify-center gap-1 py-1 text-[10px] text-blue-500">
-                            <Upload className="w-3 h-3" />
+                            <Upload className="w-3 h-3 text-blue-600" />
                             <span>Agregar más</span>
                           </div>
                         )}

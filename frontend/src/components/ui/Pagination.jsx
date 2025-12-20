@@ -1,7 +1,8 @@
 import React from "react";
+import PropTypes from "prop-types";
 import clsx from "clsx";
 import { Button } from "./Button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "./Icons";
 
 /**
  * Pagination Component - Glass Morphism Style
@@ -67,5 +68,26 @@ export function Pagination({
     </div>
   );
 }
+
+Pagination.propTypes = {
+  currentPage: PropTypes.number.isRequired,
+  totalPages: PropTypes.number.isRequired,
+  totalItems: PropTypes.number.isRequired,
+  itemsPerPage: PropTypes.number.isRequired,
+  onPageChange: PropTypes.func.isRequired,
+  labels: PropTypes.shape({
+    page: PropTypes.string,
+    of: PropTypes.string,
+    showing: PropTypes.string,
+    prev: PropTypes.string,
+    next: PropTypes.string,
+  }),
+  className: PropTypes.string,
+};
+
+Pagination.defaultProps = {
+  labels: {},
+  className: "",
+};
 
 export default Pagination;

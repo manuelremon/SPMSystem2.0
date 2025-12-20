@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
+import PropTypes from "prop-types";
 import clsx from "clsx";
 
 // Context for Tabs state
@@ -43,9 +44,9 @@ export function TabsList({ children, className, ...props }) {
   const { variant } = useContext(TabsContext);
 
   const variantStyles = {
-    default: "bg-[var(--card-glass)] backdrop-blur-sm p-1 rounded-xl border border-[var(--border-glass)]",
+    default: "bg-white/50 backdrop-blur-sm p-1 rounded-xl border border-white/30 gap-1",
     pills: "gap-2",
-    underline: "border-b border-[var(--border-glass)] gap-0",
+    underline: "border-b border-white/30 gap-0",
   };
 
   return (
@@ -74,7 +75,7 @@ export function TabsTrigger({ children, value, className, disabled = false, ...p
     "inline-flex items-center justify-center gap-2",
     "text-sm font-medium",
     "transition-all duration-200",
-    "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/30 focus-visible:ring-offset-2",
+    "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-2",
     disabled && "opacity-50 cursor-not-allowed pointer-events-none"
   );
 
@@ -82,20 +83,20 @@ export function TabsTrigger({ children, value, className, disabled = false, ...p
     default: clsx(
       "px-4 py-2 rounded-lg",
       isActive
-        ? "bg-[var(--bg-elevated)] backdrop-blur-sm text-[var(--fg)] shadow-sm border border-[var(--border-glass-strong)]"
-        : "text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--card-glass)]"
+        ? "bg-white shadow-sm text-blue-600"
+        : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
     ),
     pills: clsx(
       "px-4 py-2 rounded-full border",
       isActive
-        ? "bg-gradient-to-r from-[var(--primary)] to-[var(--primary-strong)] text-white border-[var(--primary)]/50 shadow-lg shadow-[var(--primary-glow)]"
-        : "bg-[var(--card-glass)] backdrop-blur-sm text-[var(--fg-muted)] border-[var(--border-glass)] hover:border-[var(--border-glass-strong)] hover:text-[var(--fg)]"
+        ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-500/50 shadow-lg"
+        : "bg-white/50 backdrop-blur-sm text-slate-600 border-white/30 hover:border-white/50 hover:text-slate-800"
     ),
     underline: clsx(
       "px-4 py-3 border-b-2 -mb-px",
       isActive
-        ? "text-[var(--primary)] border-[var(--primary)]"
-        : "text-[var(--fg-muted)] border-transparent hover:text-[var(--fg)] hover:border-[var(--border)]"
+        ? "text-blue-600 border-blue-600"
+        : "text-slate-600 border-transparent hover:text-slate-800 hover:border-slate-200"
     ),
   };
 
@@ -139,3 +140,38 @@ export function TabsContent({ children, value, className, ...props }) {
     </div>
   );
 }
+
+Tabs.propTypes = {
+  children: PropTypes.node,
+  defaultValue: PropTypes.string,
+  value: PropTypes.string,
+  onValueChange: PropTypes.func,
+  variant: PropTypes.oneOf(["default", "pills", "underline"]),
+  className: PropTypes.string,
+};
+
+Tabs.defaultProps = {
+  variant: "default",
+};
+
+TabsList.propTypes = {
+  children: PropTypes.node,
+  className: PropTypes.string,
+};
+
+TabsTrigger.propTypes = {
+  children: PropTypes.node,
+  value: PropTypes.string.isRequired,
+  className: PropTypes.string,
+  disabled: PropTypes.bool,
+};
+
+TabsTrigger.defaultProps = {
+  disabled: false,
+};
+
+TabsContent.propTypes = {
+  children: PropTypes.node,
+  value: PropTypes.string.isRequired,
+  className: PropTypes.string,
+};

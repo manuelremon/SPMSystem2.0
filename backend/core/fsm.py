@@ -443,7 +443,12 @@ def _disparar_notificaciones(
     mensaje = None
 
     # Determinar destinatario y mensaje segun transicion
-    if estado_nuevo == "approved":
+    if estado_nuevo == "submitted":
+        # Notificar al aprobador asignado
+        destinatario = solicitud_data.get("aprobador_id")
+        mensaje = f"Nueva solicitud #{solicitud_id} pendiente de aprobación"
+
+    elif estado_nuevo == "approved":
         # Notificar al planificador asignado
         destinatario = solicitud_data.get("planner_id")
         mensaje = f"Solicitud #{solicitud_id} aprobada y asignada para planificacion"

@@ -7,7 +7,7 @@ import api from "../../services/api";
 import { ensureCsrfToken } from "../../services/csrf";
 import { Card, CardContent } from "../ui/Card";
 import { Button } from "../ui/Button";
-import { Check, TrendingUp, Layers } from "lucide-react";
+import { Check, TrendingUp, Layers } from "../ui/Icons";
 import StatusBadge from "../ui/StatusBadge";
 import { renderSector as renderSectorUtil } from "../../constants/sectores";
 import { formatAlmacen } from "../../utils/formatters";

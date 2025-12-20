@@ -1,5 +1,5 @@
 import React from "react";
-import { FileX } from "lucide-react";
+import { FileX } from "./Icons";
 
 /**
  * Componente para mostrar estados vacíos con CTA opcional

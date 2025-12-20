@@ -18,7 +18,7 @@ import {
   Layers,
   BarChart3,
   Loader2,
-} from "lucide-react";
+} from "../components/ui/Icons";
 
 // Componente de mini gráfico de barras
 function MiniBarChart({ data, maxValue, color = "blue" }) {
@@ -279,7 +279,7 @@ export default function KPI() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
       </div>
     );
   }
@@ -319,18 +319,18 @@ export default function KPI() {
                   <p className="text-3xl font-bold text-slate-800">{kpiData.solicitudes.total}</p>
                 </div>
                 <div className="h-12 w-12 rounded-2xl bg-blue-500/10 grid place-items-center flex-shrink-0">
-                  <FileText className="w-6 h-6 text-blue-600" />
+                  <FileText className="w-6 h-6 text-blue-500" />
                 </div>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 {kpiData.solicitudes.trendPercentage >= 0 ? (
                   <div className="flex items-center gap-1 text-emerald-600">
-                    <TrendingUp className="w-4 h-4" />
+                    <TrendingUp className="w-4 h-4 text-emerald-500" />
                     <span className="font-semibold">+{kpiData.solicitudes.trendPercentage}%</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-1 text-red-600">
-                    <TrendingDown className="w-4 h-4" />
+                    <TrendingDown className="w-4 h-4 text-red-500" />
                     <span className="font-semibold">{kpiData.solicitudes.trendPercentage}%</span>
                   </div>
                 )}
@@ -407,12 +407,12 @@ export default function KPI() {
                   <div className="flex items-center gap-2 text-sm">
                     {isGood ? (
                       <div className="flex items-center gap-1 text-emerald-600">
-                        <TrendingDown className="w-4 h-4" />
+                        <TrendingDown className="w-4 h-4 text-emerald-500" />
                         <span className="font-semibold">Bajo meta</span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-1 text-amber-600">
-                        <TrendingUp className="w-4 h-4" />
+                        <TrendingUp className="w-4 h-4 text-amber-500" />
                         <span className="font-semibold">Sobre meta</span>
                       </div>
                     )}
@@ -470,7 +470,7 @@ export default function KPI() {
             <CardHeader className="px-6 pt-5 pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Tendencia de Solicitudes</CardTitle>
-                <BarChart3 className="w-5 h-5 text-blue-600" />
+                <BarChart3 className="w-5 h-5 text-pink-500" />
               </div>
             </CardHeader>
             <CardContent className="px-6 pb-5 flex flex-col justify-between h-[calc(100%-60px)]">
@@ -496,7 +496,7 @@ export default function KPI() {
             <CardHeader className="px-6 pt-5 pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Distribución de Estados</CardTitle>
-                <BarChart3 className="w-5 h-5 text-blue-600" />
+                <BarChart3 className="w-5 h-5 text-pink-500" />
               </div>
             </CardHeader>
             <CardContent className="px-6 pb-5 flex items-center justify-center h-[calc(100%-60px)]">
@@ -522,7 +522,7 @@ export default function KPI() {
             <CardHeader className="px-5 pt-5 pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Materiales Más Solicitados</CardTitle>
-                <Package className="w-5 h-5 text-blue-600" />
+                <Package className="w-5 h-5 text-indigo-500" />
               </div>
             </CardHeader>
             <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
@@ -572,7 +572,7 @@ export default function KPI() {
             <CardHeader className="px-5 pt-5 pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Presupuesto por Centro</CardTitle>
-                <DollarSign className="w-5 h-5 text-emerald-600" />
+                <DollarSign className="w-5 h-5 text-amber-700" />
               </div>
             </CardHeader>
             <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">

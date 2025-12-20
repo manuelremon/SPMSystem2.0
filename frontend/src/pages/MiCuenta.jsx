@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import * as account from "../services/account";
 import { Button } from "../components/ui/Button";
 import { Select } from "../components/ui/Select";
+import { Textarea } from "../components/ui/Textarea";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/Card";
 import StatusBadge from "../components/ui/StatusBadge";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Alert } from "../components/ui/Alert";
 import { FormSkeleton } from "../components/ui/Skeleton";
 import { PushNotificationBanner } from "../components/ui/PushNotificationToggle";
-import { X, MessageSquare, Send } from "lucide-react";
+import { X, MessageSquare, Send } from "../components/ui/Icons";
 
 const initialPending = {
   sector_nuevo: "",
@@ -474,23 +475,23 @@ export default function MiCuenta() {
               {solicitudes.length === 0 && <p className="text-sm text-slate-500">Sin solicitudes pendientes.</p>}
               {solicitudes.length > 0 && (
                 <div className="overflow-x-auto rounded-xl border border-white/50">
-                  <table className="min-w-full text-sm">
-                    <thead className="bg-white/50 backdrop-blur-sm text-slate-700 border-b border-white/30">
+                  <table className="w-full text-sm">
+                    <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
                       <tr>
-                        <th className="px-3 py-2 text-left font-black uppercase tracking-[0.04em] text-slate-500">Fecha</th>
-                        <th className="px-3 py-2 text-left font-black uppercase tracking-[0.04em] text-slate-500">Campos</th>
-                        <th className="px-3 py-2 text-left font-black uppercase tracking-[0.04em] text-slate-500">Estado</th>
-                        <th className="px-3 py-2 text-left font-black uppercase tracking-[0.04em] text-slate-500">Comentario</th>
-                        <th className="px-3 py-2 text-center font-black uppercase tracking-[0.04em] text-slate-500">Acciones</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Fecha</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Campos</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Estado</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Comentario</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
                       {solicitudes.map((s, idx) => (
                         <tr key={s.id || s.fecha} className={idx % 2 ? "bg-white/30" : "bg-white/50"}>
-                          <td className="px-3 py-2 text-slate-700 border-b border-white/30">{s.fecha || "-"}</td>
-                          <td className="px-3 py-2 text-slate-700 border-b border-white/30">{(s.campos || []).join(", ") || "-"}</td>
-                          <td className="px-3 py-2 border-b border-white/30">{renderEstadoBadge(s.estado)}</td>
-                          <td className="px-3 py-2 text-slate-700 border-b border-white/30">{s.comentario || "-"}</td>
+                          <td className="px-3 py-2 text-slate-700 border-b border-white/30 border-r border-b border-slate-200">{s.fecha || "-"}</td>
+                          <td className="px-3 py-2 text-slate-700 border-b border-white/30 border-r border-b border-slate-200">{(s.campos || []).join(", ") || "-"}</td>
+                          <td className="px-3 py-2 border-b border-white/30 border-r border-b border-slate-200">{renderEstadoBadge(s.estado)}</td>
+                          <td className="px-3 py-2 text-slate-700 border-b border-white/30 border-r border-b border-slate-200">{s.comentario || "-"}</td>
                           <td className="px-3 py-2 border-b border-white/30">
                             <div className="flex items-center justify-center gap-2">
                               {s.estado === "pendiente" && (
@@ -508,7 +509,7 @@ export default function MiCuenta() {
                                 className="p-2 rounded-lg hover:bg-blue-50/70 text-slate-400 hover:text-blue-600 transition-colors"
                                 title="Enviar mensaje al admin"
                               >
-                                <MessageSquare className="w-4 h-4" />
+                                <MessageSquare className="w-4 h-4 text-violet-500" />
                               </button>
                             </div>
                           </td>
@@ -546,15 +547,15 @@ export default function MiCuenta() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs uppercase font-bold tracking-[0.06em] text-slate-500">
+              <label className="text-xs font-medium text-slate-500 uppercase tracking-wide block">
                 Tu mensaje
               </label>
-              <textarea
+              <Textarea
                 value={messageToAdmin}
                 onChange={(e) => setMessageToAdmin(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none resize-none transition-all"
                 rows={4}
                 placeholder="Escribe tu mensaje al administrador..."
+                className="resize-none"
               />
             </div>
 

@@ -1,29 +1,75 @@
+# Git
 .git
 .gitignore
 .github
+
+# Python
 .mypy_cache
 .pytest_cache
 .venv
 venv
-node_modules
+env
 __pycache__
 *.pyc
 *.pyo
 *.pyd
-*.db
+*.egg-info
+.coverage
+htmlcov
+
+# Node
+node_modules
+frontend/node_modules
+
+# Databases
+# Solo excluir spm.db (BD de desarrollo)
+# Mantener equivalentes.db, sap_data.db, catalogo_materiales.db (datos de referencia)
+data/spm.db
+data/spm.db-journal
+data/spm.db-wal
+data/*_backup*.db
+
+# Build artifacts
 *.diff
 *.codexbackup
+frontend/dist
+frontend/.vite
+.cache
+
+# User files
 Manu-Notas
 uploads
+.tmp.driveupload
+
+# OS
 .DS_Store
+
+# Environment (usar variables de entorno)
 .env
 .env.local
+.env.development
+.env.*.local
+
+# Logs
 docker-build.log
 *.log
+
+# IDEs
 .vscode
 .idea
+
+# Backups
 db_backup
 db_audit
+
+# Docker internal
 infra/docker
+
+# Windows scripts
+scripts/*.bat
 scripts/*.bat~
+
+# Documentation
 docs
+*.md
+!README.md

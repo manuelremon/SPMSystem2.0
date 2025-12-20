@@ -20,7 +20,7 @@ import {
   Layers,
   BarChart3,
   Loader2,
-} from "lucide-react";
+} from "../components/ui/Icons";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
 import { useNavigate, Link } from "react-router-dom";
@@ -95,9 +95,9 @@ export default function DashboardPlanificador() {
   const navigate = useNavigate();
   const { t } = useI18n();
 
-  const [activeTab, setActiveTab] = useState("por_planificar");
-  const [stats, setStats] = useState({ por_planificar: 0, en_proceso: 0, completadas: 0 });
-  const [allData, setAllData] = useState({ por_planificar: [], en_proceso: [], completadas: [] });
+  const [activeTab, setActiveTab] = useState("todas");
+  const [stats, setStats] = useState({ todas: 0, por_planificar: 0, en_proceso: 0, completadas: 0 });
+  const [allData, setAllData] = useState({ todas: [], por_planificar: [], en_proceso: [], completadas: [] });
   const [loading, setLoading] = useState(true);
 
   const [kpiLoading, setKpiLoading] = useState(true);
@@ -120,8 +120,10 @@ export default function DashboardPlanificador() {
         const aprobadasLista = aprobadasRes?.data?.solicitudes || aprobadasRes?.data?.items || [];
         const enProcesoLista = enProcesoRes?.data?.solicitudes || enProcesoRes?.data?.items || [];
         const completadasLista = completadasRes?.data?.solicitudes || completadasRes?.data?.items || [];
-        setStats({ por_planificar: aprobadasLista.length, en_proceso: enProcesoLista.length, completadas: completadasLista.length });
-        setAllData({ por_planificar: aprobadasLista, en_proceso: enProcesoLista, completadas: completadasLista });
+        const todasLista = [...aprobadasLista, ...enProcesoLista, ...completadasLista]
+          .sort((a, b) => new Date(b.fecha_creacion || b.created_at || 0) - new Date(a.fecha_creacion || a.created_at || 0));
+        setStats({ todas: todasLista.length, por_planificar: aprobadasLista.length, en_proceso: enProcesoLista.length, completadas: completadasLista.length });
+        setAllData({ todas: todasLista, por_planificar: aprobadasLista, en_proceso: enProcesoLista, completadas: completadasLista });
       })
       .finally(() => setLoading(false));
   }, [user]);
@@ -140,6 +142,7 @@ export default function DashboardPlanificador() {
 
   const columns = useMemo(() => getTableColumns(t), [t]);
   const tabs = [
+    { key: "todas", label: t("dash_todas", "Todas"), count: stats.todas },
     { key: "por_planificar", label: t("dash_por_planificar", "Por Planificar"), count: stats.por_planificar },
     { key: "en_proceso", label: t("dash_en_proceso", "En Proceso"), count: stats.en_proceso },
     { key: "completadas", label: t("dash_despachadas", "Despachadas"), count: stats.completadas },
@@ -148,6 +151,7 @@ export default function DashboardPlanificador() {
 
   const getTableTitle = () => {
     switch (activeTab) {
+      case "todas": return t("dash_all_requests", "Todas las Solicitudes");
       case "por_planificar": return t("dash_pending_planning", "Solicitudes Pendientes de Planificación");
       case "en_proceso": return t("dash_in_progress", "Solicitudes En Proceso");
       case "completadas": return t("dash_dispatched", "Solicitudes Despachadas");
@@ -180,7 +184,7 @@ export default function DashboardPlanificador() {
           <div className="p-4">
             {loading ? <TableSkeleton rows={5} columns={7} /> : currentData.length === 0 ? (
               <div className="py-16 text-center">
-                <Calendar className="w-12 h-12 text-emerald-400 mx-auto mb-4 opacity-60" />
+                <Calendar className="w-12 h-12 text-cyan-500 mx-auto mb-4 opacity-60" />
                 <p className="text-slate-500 text-sm">{activeTab === "por_planificar" ? t("dash_no_pending_planning", "No hay solicitudes pendientes de planificación") : t("dash_no_requests_category", "No hay solicitudes en esta categoría")}</p>
               </div>
             ) : <DataTable columns={columns} rows={currentData} emptyMessage={t("dash_no_requests", "No hay solicitudes")} onRowClick={(row) => navigate(`/planificador?solicitud=${row.id}`)} />}

@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { Bell, BellOff, BellRing, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Bell, BellOff, BellRing, Loader2, AlertCircle, CheckCircle } from './Icons';
 import usePushNotifications from '../../hooks/usePushNotifications';
 import { useI18n } from '../../context/i18n';
 
@@ -57,7 +57,7 @@ export const PushNotificationToggle = ({ className = '' }) => {
           <BellOff className="w-5 h-5" />
         </button>
         {showTooltip && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[var(--fg-strong)] text-white text-xs rounded shadow-lg whitespace-nowrap z-50">
+          <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-[var(--fg-strong)] text-white text-xs rounded shadow-lg whitespace-nowrap z-50">
             {t('push_denied_hint', 'Habilita notificaciones en la configuracion del navegador')}
           </div>
         )}
@@ -97,7 +97,7 @@ export const PushNotificationToggle = ({ className = '' }) => {
       </button>
 
       {showTooltip && !isLoading && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[var(--fg-strong)] text-white text-xs rounded shadow-lg whitespace-nowrap z-50">
+        <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-[var(--fg-strong)] text-white text-xs rounded shadow-lg whitespace-nowrap z-50">
           {isSubscribed
             ? t('push_active', 'Notificaciones activas')
             : needsPermission

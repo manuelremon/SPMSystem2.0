@@ -2,9 +2,11 @@
  * MaterialDetailModal - Modal showing detailed material information
  * Displays stock, MRP parameters, and consumption history
  */
+import { useState } from 'react'
 import { Modal } from '../ui/Modal'
 import { useI18n } from '../../context/i18n'
 import { formatCurrency, formatAlmacen } from '../../utils/formatters'
+import { ChevronDown, ChevronRight } from '../ui/Icons'
 
 /**
  * InfoRow - Key-value display row
@@ -53,6 +55,7 @@ export function MaterialDetailModal({
   setShowStockFull,
 }) {
   const { t } = useI18n()
+  const [showStockDetalle, setShowStockDetalle] = useState(false)
 
   if (!selectedMaterial) return null
 
@@ -106,24 +109,40 @@ export function MaterialDetailModal({
               value="N/D"
             />
 
-            {/* Stock detallado */}
+            {/* Stock detallado - Colapsable */}
             <div className="pt-2">
-              <p className="text-xs uppercase font-semibold text-[var(--fg-muted)] mb-1">
+              <button
+                type="button"
+                onClick={() => setShowStockDetalle((v) => !v)}
+                className="flex items-center gap-1 text-xs uppercase font-semibold text-[var(--fg-muted)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+              >
+                {showStockDetalle ? (
+                  <ChevronDown className="w-4 h-4" />
+                ) : (
+                  <ChevronRight className="w-4 h-4" />
+                )}
                 {t('materials_stock_detalle', 'Stock detallado (centro)')}
-              </p>
-              <StockList rows={detail?.stock_detalle || []} />
-              {(detail?.stock_detalle_full?.length || 0) > (detail?.stock_detalle?.length || 0) && (
-                <button
-                  type="button"
-                  className="text-xs font-semibold text-[var(--accent)] hover:underline mt-2"
-                  onClick={() => setShowStockFull((v) => !v)}
-                >
-                  {showStockFull
-                    ? t('materials_ocultar_stock', 'Ocultar stock interno completo')
-                    : t('materials_ver_stock', 'Ver stock interno completo (+)')}
-                </button>
+                <span className="ml-1 text-[var(--accent)]">
+                  ({(detail?.stock_detalle?.length || 0)})
+                </span>
+              </button>
+              {showStockDetalle && (
+                <>
+                  <StockList rows={detail?.stock_detalle || []} />
+                  {(detail?.stock_detalle_full?.length || 0) > (detail?.stock_detalle?.length || 0) && (
+                    <button
+                      type="button"
+                      className="text-xs font-semibold text-[var(--accent)] hover:underline mt-2"
+                      onClick={() => setShowStockFull((v) => !v)}
+                    >
+                      {showStockFull
+                        ? t('materials_ocultar_stock', 'Ocultar stock interno completo')
+                        : t('materials_ver_stock', 'Ver stock interno completo (+)')}
+                    </button>
+                  )}
+                  {showStockFull && <StockList rows={detail?.stock_detalle_full || []} compact />}
+                </>
               )}
-              {showStockFull && <StockList rows={detail?.stock_detalle_full || []} compact />}
             </div>
           </div>
         </div>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import AdminCrudTemplate from '../../components/AdminCrudTemplate'
 import { Badge } from '../../components/ui/Badge'
 import { admin } from '../../services/spm'
-import { User, Briefcase, Building2, Shield } from 'lucide-react'
+import { User, Briefcase, Building2, Shield } from '../../components/ui/Icons'
 
 export default function AdminUsuarios() {
   const [usuarios, setUsuarios] = useState([])

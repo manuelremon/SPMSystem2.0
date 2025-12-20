@@ -42,10 +42,70 @@ import {
   Clock,
   Wifi,
   WifiOff,
-} from "lucide-react";
+  BarChart2,
+  LineChart,
+  ICON_DEFAULT_COLORS,
+} from "./ui/Icons";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
 import { Tooltip } from "./ui/Tooltip";
+
+// Colores semánticos para iconos del sidebar
+const SIDEBAR_ICON_COLORS = {
+  // Navegación principal
+  Home: 'text-slate-500',
+  Bell: 'text-amber-500',
+  FileText: 'text-blue-500',
+  FilePlus2: 'text-blue-600',
+  ClipboardList: 'text-blue-500',
+  CheckCircle2: 'text-emerald-500',
+
+  // Materiales
+  Package: 'text-indigo-500',
+  Search: 'text-blue-500',
+  GitCompare: 'text-blue-500',
+
+  // Planificador
+  Workflow: 'text-blue-600',
+  Layers: 'text-indigo-500',
+  AlertTriangle: 'text-amber-500',
+  TrendingUp: 'text-emerald-500',
+  LineChart: 'text-pink-500',
+  BarChart2: 'text-pink-500',
+  Clock: 'text-cyan-500',
+  Activity: 'text-pink-500',
+
+  // Admin
+  Database: 'text-slate-600',
+  Users: 'text-teal-500',
+  User: 'text-teal-500',
+  Shield: 'text-slate-600',
+  Briefcase: 'text-amber-700',
+  Building: 'text-slate-600',
+  Building2: 'text-slate-600',
+  MapPin: 'text-red-500',
+  Boxes: 'text-indigo-500',
+  Server: 'text-slate-600',
+  Truck: 'text-indigo-500',
+
+  // Presupuesto
+  Wallet: 'text-amber-700',
+
+  // Comunicación
+  MessageSquare: 'text-violet-500',
+
+  // Sistema
+  Settings: 'text-slate-600',
+  LogOut: 'text-red-500',
+  Wifi: 'text-emerald-500',
+  WifiOff: 'text-slate-400',
+};
+
+// Helper para obtener el color del icono
+const getIconColor = (iconName, isActive) => {
+  if (isActive) return ''; // Cuando está activo, hereda el color del item activo
+  return SIDEBAR_ICON_COLORS[iconName] || 'text-slate-500';
+};
 
 // Navigation structure
 // Base navigation items (without role-specific items)
@@ -56,6 +116,7 @@ const getMainNavItems = (canApprove) => [
     label: "Dashboard",
     to: "/dashboard",
     icon: Home,
+    iconName: "Home",
   },
   {
     key: "notificaciones",
@@ -63,17 +124,20 @@ const getMainNavItems = (canApprove) => [
     label: "Notificaciones",
     to: "/notificaciones",
     icon: Bell,
+    iconName: "Bell",
   },
   {
     key: "solicitudes",
     trKey: "nav_solicitudes",
     label: "Solicitudes",
     icon: FileText,
+    iconName: "FileText",
     children: [
-      { trKey: "nav_nueva", label: "Nueva Solicitud", to: "/solicitudes/nueva", icon: FilePlus2 },
-      { trKey: "nav_mis", label: "Mis Solicitudes", to: "/mis-solicitudes", icon: FileText },
+      { trKey: "nav_nueva", label: "Nueva Solicitud", to: "/solicitudes/nueva", icon: FilePlus2, iconName: "FilePlus2" },
+      { trKey: "nav_mis", label: "Mis Solicitudes", to: "/mis-solicitudes", icon: FileText, iconName: "FileText" },
+      { trKey: "nav_todas", label: "Todas las Solicitudes", to: "/solicitudes/todas", icon: ClipboardList, iconName: "ClipboardList" },
       // Aprobaciones - solo visible para aprobadores
-      ...(canApprove ? [{ trKey: "nav_aprobaciones", label: "Aprobaciones", to: "/aprobaciones", icon: CheckCircle2 }] : []),
+      ...(canApprove ? [{ trKey: "nav_aprobaciones", label: "Aprobaciones", to: "/aprobaciones", icon: CheckCircle2, iconName: "CheckCircle2" }] : []),
     ],
   },
   {
@@ -81,9 +145,10 @@ const getMainNavItems = (canApprove) => [
     trKey: "nav_materiales",
     label: "Materiales",
     icon: Package,
+    iconName: "Package",
     children: [
-      { trKey: "nav_catalogo_materiales", label: "Catálogo", to: "/materiales/catalogo", icon: Search },
-      { trKey: "nav_equivalencias", label: "Alternativos", to: "/materiales/equivalencias", icon: GitCompare },
+      { trKey: "nav_catalogo_materiales", label: "Catálogo", to: "/materiales/catalogo", icon: Search, iconName: "Search" },
+      { trKey: "nav_equivalencias", label: "Alternativos", to: "/materiales/equivalencias", icon: GitCompare, iconName: "GitCompare" },
     ],
   },
 ];
@@ -94,22 +159,35 @@ const plannerNavItems = [
     trKey: "nav_planificador",
     label: "Planificador",
     icon: Workflow,
+    iconName: "Workflow",
     children: [
-      { trKey: "nav_panel_tratamiento", label: "Panel", to: "/planificador", icon: CheckCircle2 },
-      { trKey: "nav_asignadas", label: "Mis Asignadas", to: "/planificador/asignadas", icon: FileText },
-      { trKey: "nav_no_asignadas", label: "No Asignadas", to: "/planificador/no-asignadas", icon: FilePlus2 },
+      { trKey: "nav_panel_tratamiento", label: "Panel", to: "/planificador", icon: CheckCircle2, iconName: "CheckCircle2" },
+      { trKey: "nav_asignadas", label: "Mis Asignadas", to: "/planificador/asignadas", icon: FileText, iconName: "FileText" },
+      { trKey: "nav_no_asignadas", label: "No Asignadas", to: "/planificador/no-asignadas", icon: FilePlus2, iconName: "FilePlus2" },
       {
         key: "mrp",
         trKey: "nav_mrp",
         label: "MRP",
         icon: Layers,
+        iconName: "Layers",
         children: [
-          { trKey: "nav_mrp_alertas", label: "Alertas", to: "/planificador/mrp/alertas", icon: AlertTriangle },
-          { trKey: "nav_mrp_kpis", label: "KPIs", to: "/planificador/mrp/kpis", icon: TrendingUp },
+          { trKey: "nav_mrp_alertas", label: "Alertas", to: "/planificador/mrp/alertas", icon: AlertTriangle, iconName: "AlertTriangle" },
+          { trKey: "nav_mrp_kpis", label: "KPIs", to: "/planificador/mrp/kpis", icon: TrendingUp, iconName: "TrendingUp" },
         ],
       },
-      { trKey: "nav_sla", label: "SLA", to: "/planificador/sla", icon: Clock },
-      { trKey: "nav_ai", label: "IA Analytics", to: "/planificador/ai", icon: Activity },
+      {
+        key: "forecast",
+        trKey: "nav_forecast",
+        label: "Forecast",
+        icon: LineChart,
+        iconName: "LineChart",
+        children: [
+          { trKey: "nav_forecast_individual", label: "Individual", to: "/planificador/forecast", icon: BarChart2, iconName: "BarChart2" },
+          { trKey: "nav_forecast_masivo", label: "Masivo", to: "/planificador/forecast/masivo", icon: TrendingUp, iconName: "TrendingUp" },
+        ],
+      },
+      { trKey: "nav_sla", label: "SLA", to: "/planificador/sla", icon: Clock, iconName: "Clock" },
+      { trKey: "nav_ai", label: "IA Analytics", to: "/planificador/ai", icon: Activity, iconName: "Activity" },
     ],
   },
 ];
@@ -121,13 +199,15 @@ const adminNavHierarchy = [
     trKey: "admin_cat_registros",
     label: "Registros",
     icon: Database,
+    iconName: "Database",
     children: [
-      { trKey: "admin_usuarios", label: "Usuarios", to: "/admin/usuarios", icon: Users },
-      { trKey: "admin_planificadores", label: "Planificadores", to: "/admin/planificadores", icon: Workflow },
-      { trKey: "admin_roles", label: "Roles", to: "/admin/roles", icon: Shield },
-      { trKey: "admin_puestos", label: "Puestos", to: "/admin/puestos", icon: Briefcase },
-      { trKey: "admin_sectores", label: "Sectores", to: "/admin/sectores", icon: Building },
-      { trKey: "admin_presupuestos", label: "Presupuestos", to: "/admin/presupuestos", icon: ClipboardList },
+      { trKey: "admin_usuarios", label: "Usuarios", to: "/admin/usuarios", icon: Users, iconName: "Users" },
+      { trKey: "admin_solicitudes_perfil", label: "Solicitudes Perfil", to: "/admin/solicitudes-perfil", icon: User, iconName: "User" },
+      { trKey: "admin_planificadores", label: "Planificadores", to: "/admin/planificadores", icon: Workflow, iconName: "Workflow" },
+      { trKey: "admin_roles", label: "Roles", to: "/admin/roles", icon: Shield, iconName: "Shield" },
+      { trKey: "admin_puestos", label: "Puestos", to: "/admin/puestos", icon: Briefcase, iconName: "Briefcase" },
+      { trKey: "admin_sectores", label: "Sectores", to: "/admin/sectores", icon: Building, iconName: "Building" },
+      { trKey: "admin_presupuestos", label: "Presupuestos", to: "/admin/presupuestos", icon: ClipboardList, iconName: "ClipboardList" },
     ],
   },
   {
@@ -135,9 +215,10 @@ const adminNavHierarchy = [
     trKey: "admin_cat_locaciones",
     label: "Locaciones",
     icon: MapPin,
+    iconName: "MapPin",
     children: [
-      { trKey: "admin_centros", label: "Centros", to: "/admin/centros", icon: Building2 },
-      { trKey: "admin_almacenes", label: "Almacenes", to: "/admin/almacenes", icon: Boxes },
+      { trKey: "admin_centros", label: "Centros", to: "/admin/centros", icon: Building2, iconName: "Building2" },
+      { trKey: "admin_almacenes", label: "Almacenes", to: "/admin/almacenes", icon: Boxes, iconName: "Boxes" },
     ],
   },
   {
@@ -145,8 +226,9 @@ const adminNavHierarchy = [
     trKey: "admin_cat_sistema",
     label: "Sistema",
     icon: Server,
+    iconName: "Server",
     children: [
-      { trKey: "admin_estado", label: "Estado del Sistema", to: "/admin/estado", icon: Activity },
+      { trKey: "admin_estado", label: "Estado del Sistema", to: "/admin/estado", icon: Activity, iconName: "Activity" },
     ],
   },
   {
@@ -154,9 +236,10 @@ const adminNavHierarchy = [
     trKey: "admin_cat_proveedores",
     label: "Proveedores",
     icon: Truck,
+    iconName: "Truck",
     children: [
-      { trKey: "admin_proveedores_internos", label: "Internos", to: "/admin/proveedores?tab=internos", icon: Boxes },
-      { trKey: "admin_proveedores_externos", label: "Externos", to: "/admin/proveedores?tab=externos", icon: Package },
+      { trKey: "admin_proveedores_internos", label: "Internos", to: "/admin/proveedores?tab=internos", icon: Boxes, iconName: "Boxes" },
+      { trKey: "admin_proveedores_externos", label: "Externos", to: "/admin/proveedores?tab=externos", icon: Package, iconName: "Package" },
     ],
   },
 ];
@@ -203,7 +286,8 @@ export default function Sidebar({ collapsed, onToggle, unreadCount = 0, isConnec
   const isRequestApprover = () => hasRole("aprobador solicitudes") || hasRole("aprobador_solicitudes");
   const canSeePlanner = isPlanner() || isAdmin();
   const canSeeBudget = isAdmin() || isJefe() || isCoordinador() || isBudgetApprover();
-  const canApprove = isAdmin() || isJefe() || isCoordinador() || isRequestApprover();
+  const isGerente = () => hasRole("gerente");
+  const canApprove = isAdmin() || isJefe() || isCoordinador() || isRequestApprover() || isGerente();
 
   // Get main nav items with role-based filtering
   const mainNavItems = getMainNavItems(canApprove);
@@ -223,6 +307,7 @@ export default function Sidebar({ collapsed, onToggle, unreadCount = 0, isConnec
     const label = t(item.trKey, item.label);
     const isNotifications = item.key === "notificaciones";
     const hasNotifications = isNotifications && unreadCount > 0;
+    const iconColor = getIconColor(item.iconName, isActive);
 
     const baseClass = clsx(
       "flex items-center gap-3 w-full rounded-xl transition-all duration-200",
@@ -238,8 +323,8 @@ export default function Sidebar({ collapsed, onToggle, unreadCount = 0, isConnec
       return (
         <Tooltip key={item.key || item.to} content={`${label}${hasNotifications ? ` (${unreadCount})` : ""}`} position="right" delay={0} className="w-full flex justify-center py-0.5">
           {item.to ? (
-            <NavLink to={item.to} className="relative flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-800 hover:bg-white/50">
-              <Icon className={clsx("w-5 h-5 flex-shrink-0", hasNotifications && "animate-notification-blink")} />
+            <NavLink to={item.to} className="relative flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200 hover:bg-white/50">
+              <Icon className={clsx("w-5 h-5 flex-shrink-0", iconColor, hasNotifications && "animate-notification-blink")} />
               {hasNotifications && (
                 <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 px-0.5 flex items-center justify-center text-[8px] font-bold text-blue-600 bg-white border-2 border-blue-500 rounded-full">
                   {unreadCount > 99 ? "99+" : unreadCount}
@@ -250,9 +335,9 @@ export default function Sidebar({ collapsed, onToggle, unreadCount = 0, isConnec
             <button
               type="button"
               onClick={() => hasChildren && toggleMenu(item.key)}
-              className="flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-800 hover:bg-white/50"
+              className="flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200 hover:bg-white/50"
             >
-              <Icon className="w-5 h-5 flex-shrink-0" />
+              <Icon className={clsx("w-5 h-5 flex-shrink-0", iconColor)} />
             </button>
           )}
         </Tooltip>
@@ -263,7 +348,7 @@ export default function Sidebar({ collapsed, onToggle, unreadCount = 0, isConnec
     if (item.to && !hasChildren) {
       return (
         <NavLink key={item.to} to={item.to} className={baseClass}>
-          <Icon className={clsx("w-4 h-4 flex-shrink-0", hasNotifications && "animate-notification-blink")} />
+          <Icon className={clsx("w-4 h-4 flex-shrink-0", !isActive && iconColor, hasNotifications && "animate-notification-blink")} />
           <span className="truncate">{label}</span>
           {hasNotifications && (
             <span className="ml-auto min-w-[16px] h-4 px-1 flex items-center justify-center text-[10px] font-bold text-blue-600 bg-white border-2 border-blue-500 rounded-full">
@@ -283,11 +368,11 @@ export default function Sidebar({ collapsed, onToggle, unreadCount = 0, isConnec
           className={clsx(baseClass, "justify-between")}
         >
           <div className="flex items-center gap-3">
-            <Icon className="w-4 h-4 flex-shrink-0" />
+            <Icon className={clsx("w-4 h-4 flex-shrink-0", iconColor)} />
             <span className="truncate">{label}</span>
           </div>
           <ChevronDown
-            className={clsx("w-4 h-4 transition-transform duration-200", isExpanded && "rotate-180")}
+            className={clsx("w-4 h-4 transition-transform duration-200 text-slate-400", isExpanded && "rotate-180")}
           />
         </button>
 
@@ -303,6 +388,7 @@ export default function Sidebar({ collapsed, onToggle, unreadCount = 0, isConnec
               const ChildIcon = child.icon;
               const childActive = isPathActive(child.to);
               const childLabel = t(child.trKey, child.label);
+              const childIconColor = getIconColor(child.iconName, childActive);
 
               return (
                 <NavLink
@@ -316,7 +402,7 @@ export default function Sidebar({ collapsed, onToggle, unreadCount = 0, isConnec
                       : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
                   )}
                 >
-                  <ChildIcon className="w-4 h-4 flex-shrink-0" />
+                  <ChildIcon className={clsx("w-4 h-4 flex-shrink-0", !childActive && childIconColor)} />
                   <span className="truncate">{childLabel}</span>
                 </NavLink>
               );

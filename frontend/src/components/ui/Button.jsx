@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import { buttonStyles } from "../../utils/gradients";
 
 /**
@@ -104,6 +105,56 @@ const variants = {
     hover:border-blue-500/70 dark:hover:border-blue-400/70
     active:scale-[0.98]
   `,
+  // Icon - Para botones de solo icono (ghost con hover suave)
+  icon: `
+    bg-transparent
+    text-slate-500 dark:text-slate-400
+    border border-transparent
+    hover:bg-slate-100/70 dark:hover:bg-slate-700/50
+    hover:text-slate-700 dark:hover:text-slate-200
+    active:bg-slate-200/70 dark:active:bg-slate-600/50
+    active:scale-[0.95]
+  `,
+  // Icon Primary - Icono con hover azul
+  "icon-primary": `
+    bg-transparent
+    text-blue-500 dark:text-blue-400
+    border border-transparent
+    hover:bg-blue-50/70 dark:hover:bg-blue-900/30
+    hover:text-blue-600 dark:hover:text-blue-300
+    active:bg-blue-100/70 dark:active:bg-blue-800/30
+    active:scale-[0.95]
+  `,
+  // Icon Danger - Icono con hover rojo
+  "icon-danger": `
+    bg-transparent
+    text-red-500 dark:text-red-400
+    border border-transparent
+    hover:bg-red-50/70 dark:hover:bg-red-900/30
+    hover:text-red-600 dark:hover:text-red-300
+    active:bg-red-100/70 dark:active:bg-red-800/30
+    active:scale-[0.95]
+  `,
+  // Icon Success - Icono con hover verde
+  "icon-success": `
+    bg-transparent
+    text-emerald-500 dark:text-emerald-400
+    border border-transparent
+    hover:bg-emerald-50/70 dark:hover:bg-emerald-900/30
+    hover:text-emerald-600 dark:hover:text-emerald-300
+    active:bg-emerald-100/70 dark:active:bg-emerald-800/30
+    active:scale-[0.95]
+  `,
+  // Icon Warning - Icono con hover amber
+  "icon-warning": `
+    bg-transparent
+    text-amber-500 dark:text-amber-400
+    border border-transparent
+    hover:bg-amber-50/70 dark:hover:bg-amber-900/30
+    hover:text-amber-600 dark:hover:text-amber-300
+    active:bg-amber-100/70 dark:active:bg-amber-800/30
+    active:scale-[0.95]
+  `,
   // Solid primary (legacy support)
   "primary-solid": `
     bg-gradient-to-r from-blue-500 to-blue-600
@@ -116,9 +167,15 @@ const variants = {
 };
 
 const sizes = {
+  xs: "px-2 py-1 text-xs",
   sm: "px-3 py-1.5 text-xs",
   md: "px-4 py-2.5 text-sm",
   lg: "px-6 py-3.5 text-base",
+  // Para icon buttons (cuadrado)
+  "icon-xs": "p-1",
+  "icon-sm": "p-1.5",
+  "icon-md": "p-2",
+  "icon-lg": "p-2.5",
 };
 
 export function Button({
@@ -158,3 +215,40 @@ export function Button({
     </Component>
   );
 }
+
+Button.propTypes = {
+  as: PropTypes.elementType,
+  variant: PropTypes.oneOf([
+    "primary",
+    "secondary",
+    "ghost",
+    "danger",
+    "success",
+    "info",
+    "warning",
+    "accent",
+    "outline",
+    "icon",
+    "icon-primary",
+    "icon-danger",
+    "icon-success",
+    "icon-warning",
+    "primary-solid",
+  ]),
+  size: PropTypes.oneOf(["xs", "sm", "md", "lg", "icon-xs", "icon-sm", "icon-md", "icon-lg"]),
+  className: PropTypes.string,
+  children: PropTypes.node,
+  disabled: PropTypes.bool,
+  style: PropTypes.object,
+  onClick: PropTypes.func,
+  type: PropTypes.oneOf(["button", "submit", "reset"]),
+};
+
+Button.defaultProps = {
+  as: "button",
+  variant: "primary",
+  size: "md",
+  className: "",
+  disabled: false,
+  style: {},
+};

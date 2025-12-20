@@ -1,6 +1,6 @@
 import React from "react";
 import clsx from "clsx";
-import { Search, X } from "lucide-react";
+import { Search, X } from "./Icons";
 
 /**
  * SearchInput Component - Glass Morphism Style

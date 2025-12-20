@@ -5,7 +5,7 @@ import { Button } from "../components/ui/Button";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Alert } from "../components/ui/Alert";
-import { CheckCircle, Send } from "lucide-react";
+import { CheckCircle, Send } from "../components/ui/Icons";
 
 const sectoresEjemplo = ["Operaciones", "Logística", "Compras", "Mantenimiento"];
 const centrosEjemplo = ["Centro A", "Centro B", "Centro C"];

@@ -1,6 +1,7 @@
 import React from "react";
+import PropTypes from "prop-types";
 import clsx from "clsx";
-import { Check } from "lucide-react";
+import { Check } from "./Icons";
 
 /**
  * Checkbox Component - Glass Morphism Style
@@ -90,3 +91,20 @@ export const Checkbox = React.forwardRef(({
 });
 
 Checkbox.displayName = "Checkbox";
+
+Checkbox.propTypes = {
+  className: PropTypes.string,
+  label: PropTypes.string,
+  description: PropTypes.string,
+  error: PropTypes.bool,
+  checked: PropTypes.bool,
+  onChange: PropTypes.func,
+  disabled: PropTypes.bool,
+  id: PropTypes.string,
+  name: PropTypes.string,
+};
+
+Checkbox.defaultProps = {
+  error: false,
+  disabled: false,
+};

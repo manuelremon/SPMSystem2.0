@@ -16,6 +16,7 @@ import { renderSector } from '../constants/sectores'
 // UI Components
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import { Textarea } from '../components/ui/Textarea'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import { Alert } from '../components/ui/Alert'
 import { PageHeader } from '../components/ui/PageHeader'
@@ -24,7 +25,7 @@ import { ConfirmModal } from '../components/ui/ConfirmModal'
 import { TableSkeleton } from '../components/ui/Skeleton'
 import { Badge } from '../components/ui/Badge'
 import { ScrollReveal } from '../components/ui/ScrollReveal'
-import { Loader2, Check, X, Sparkles, Eye } from 'lucide-react'
+import { Loader2, Check, X, Sparkles, Eye } from '../components/ui/Icons'
 
 // Material-specific components
 import { MaterialDetailModal, MaterialsTable, SearchDropdown } from '../components/materials'
@@ -220,13 +221,13 @@ export default function Materials() {
             >
               {t('materials_nota_label_input', 'Comentario / Nota')}
             </label>
-            <textarea
+            <Textarea
               id="commentInput"
               value={m.commentModal.comment}
               onChange={(e) => m.updateCommentText(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl bg-white/50 backdrop-blur-sm border border-white/50 text-sm text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all resize-none"
               rows={4}
               placeholder={t('materials_nota_placeholder', 'Escribe una nota o comentario para este material...')}
+              className="resize-none min-h-[100px]"
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">
@@ -284,7 +285,7 @@ function SearchSection({ m, t }) {
           onClick={() => m.setShowAssistant && m.setShowAssistant(true)}
           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold uppercase tracking-wider text-amber-700 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/60 shadow-sm hover:from-amber-100 hover:to-yellow-100 hover:border-amber-300 transition-all duration-200"
         >
-          <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+          <Sparkles className="w-3.5 h-3.5 text-purple-500" />
           {t('materials_asistente_ia', 'Asistente IA')}
         </button>
       </div>
@@ -329,7 +330,7 @@ function SearchSection({ m, t }) {
                   className="p-0.5 hover:bg-white/70 rounded transition-colors"
                   aria-label={t('materials_limpiar_busqueda', 'Limpiar busqueda')}
                 >
-                  <X className="h-4 w-4 text-slate-500" />
+                  <X className="h-4 w-4 text-red-500" />
                 </button>
               )}
             </div>
@@ -356,7 +357,7 @@ function SelectedMaterialSection({ m, t }) {
       {m.selectedMaterial ? (
         <div className="p-3 bg-slate-50/70 backdrop-blur-sm border border-blue-200/50 rounded-lg flex-1">
           <div className="flex items-center gap-2 mb-2">
-            {m.detailViewed && <Check className="h-4 w-4 text-emerald-600" />}
+            {m.detailViewed && <Check className="h-4 w-4 text-emerald-500" />}
             <span className="font-mono text-sm text-blue-600 font-medium">
               {m.selectedMaterial.codigo}
             </span>
@@ -388,7 +389,7 @@ function SelectedMaterialSection({ m, t }) {
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  <Eye className="h-4 w-4" />
+                  <Eye className="h-4 w-4 text-blue-500" />
                   {t('materials_mas_detalles', 'Ver detalles')}
                 </>
               )}

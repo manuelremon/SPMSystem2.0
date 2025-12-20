@@ -39,7 +39,7 @@ import {
   Package,
   FileText,
   TrendingUp
-} from 'lucide-react'
+} from '../../components/ui/Icons'
 import { useI18n } from '../../context/i18n'
 
 // Umbrales de alertas
@@ -248,7 +248,7 @@ export default function AdminEstado() {
             </CardTitle>
             <div className="flex items-center gap-4 text-sm text-slate-500">
               <span className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4" />
+                <Clock className="w-4 h-4 text-cyan-500" />
                 Uptime: {formatUptime(health?.uptime_seconds)}
               </span>
               <Badge variant={health?.status === 'healthy' ? 'success' : 'warning'}>
@@ -329,6 +329,7 @@ export default function AdminEstado() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard
           icon={Activity}
+          iconColor="text-pink-500"
           label={t('total_requests', 'Total Requests')}
           value={metrics?.total_requests?.toLocaleString() || '0'}
           variant="primary"
@@ -341,12 +342,14 @@ export default function AdminEstado() {
         />
         <MetricCard
           icon={Zap}
+          iconColor="text-amber-500"
           label={t('latency_p50', 'Latencia P50')}
           value={`${Math.round(metrics?.latency?.p50_ms || 0)}ms`}
           variant={getVariant(metrics?.latency?.p50_ms || 0, 'latency')}
         />
         <MetricCard
           icon={Clock}
+          iconColor="text-cyan-500"
           label={t('uptime', 'Uptime')}
           value={formatUptime(health?.uptime_seconds)}
           variant="info"
@@ -474,7 +477,7 @@ export default function AdminEstado() {
             {dbMetrics && (
               <div className="border-t pt-4 mt-4">
                 <p className="text-sm font-medium text-slate-600 mb-3 flex items-center gap-2">
-                  <Database className="w-4 h-4" />
+                  <Database className="w-4 h-4 text-emerald-500" />
                   {t('connection_pool', 'Pool de Conexiones')}
                 </p>
                 <div className="grid grid-cols-3 gap-4 text-sm">
@@ -511,7 +514,7 @@ export default function AdminEstado() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <div className="flex items-center gap-2 text-slate-600 mb-2">
-                      <Cpu className="w-4 h-4" />
+                      <Cpu className="w-4 h-4 text-blue-500" />
                       <span className="text-sm">CPU Sistema</span>
                     </div>
                     <p className="text-2xl font-bold text-slate-800">

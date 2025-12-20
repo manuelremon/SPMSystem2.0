@@ -120,30 +120,23 @@ def create_app(config_override: dict | None = None) -> Flask:
 
     # CORS - Manejar manualmente para soportar wildcards con credentials
     # Flask-CORS no soporta funciones callable, así que usamos @after_request
-    ALLOWED_ORIGINS_EXACT = {
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5175",
-        "http://localhost:5176",
-        "http://localhost:4173",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-        "http://127.0.0.1:5175",
-        "http://127.0.0.1:4173",
-        "https://manuelremon.github.io",
-    }
+    # Leer origenes de la variable de entorno CORS_ORIGINS
+    import re
+    cors_origins = settings.get_cors_origins()
+    ALLOWED_ORIGINS_EXACT = {o for o in cors_origins if isinstance(o, str)}
+    ALLOWED_ORIGINS_REGEX = [o for o in cors_origins if hasattr(o, 'match')]
 
     def is_origin_allowed(origin):
         """Valida si el origen está permitido."""
         if not origin:
             return False
+        # Verificar origenes exactos
         if origin in ALLOWED_ORIGINS_EXACT:
             return True
-        if origin.endswith(".trycloudflare.com"):
-            return True
-        if origin.endswith(".loca.lt"):
-            return True
+        # Verificar patrones regex (wildcards)
+        for pattern in ALLOWED_ORIGINS_REGEX:
+            if pattern.match(origin):
+                return True
         return False
 
     @app.after_request

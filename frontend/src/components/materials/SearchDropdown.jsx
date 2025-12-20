@@ -5,7 +5,7 @@
 import { createPortal } from 'react-dom'
 import { useI18n } from '../../context/i18n'
 import { formatCurrency } from '../../utils/formatters'
-import { Search, X, Loader2, Check } from 'lucide-react'
+import { Search, X, Loader2, Check } from '../ui/Icons'
 
 /**
  * Escape regex special characters for safe string matching

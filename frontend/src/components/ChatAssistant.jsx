@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, X, Loader2 } from 'lucide-react'
+import { Send, X, Loader2 } from './ui/Icons'
 import { useChatStore } from '../store/chatStore'
 import agentService from '../services/agent'
 import { Button } from './ui/Button'

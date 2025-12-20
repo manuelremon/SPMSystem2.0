@@ -19,7 +19,7 @@ import {
   Layers,
   BarChart3,
   Loader2,
-} from "lucide-react";
+} from "../components/ui/Icons";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
 import { useNavigate, Link } from "react-router-dom";

@@ -99,6 +99,12 @@ export const buttonStyles = {
   secondary: {},
   ghost: {},
   outline: {},
+  // Variantes de icono - transparentes, sin inline styles
+  icon: {},
+  'icon-primary': {},
+  'icon-danger': {},
+  'icon-success': {},
+  'icon-warning': {},
   'primary-solid': {
     background: gradients.primaryButton,
     color: colors.onPrimary,

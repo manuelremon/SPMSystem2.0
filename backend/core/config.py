@@ -59,10 +59,12 @@ class Settings(BaseSettings):
     JWT_COOKIE_HTTPONLY: bool = True
     JWT_COOKIE_SAMESITE: str = "Lax"
 
-    # Database (unificada) - resuelve a data/spm.db (carpeta raíz del proyecto)
+    # Database (unificada)
+    # - Produccion: PostgreSQL via DATABASE_URL env var
+    # - Desarrollo: SQLite en data/spm.db
     _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent  # SPMv2.0/
     _DEFAULT_DB = _PROJECT_ROOT / "data" / "spm.db"
-    DATABASE_URL: str = f"sqlite:///{_DEFAULT_DB}"
+    DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{_DEFAULT_DB}")
 
     # Logging
     LOG_LEVEL: str = "INFO"

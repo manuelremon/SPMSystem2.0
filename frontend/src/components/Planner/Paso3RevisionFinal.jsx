@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Package, ShoppingCart } from "lucide-react";
+import { Package, ShoppingCart } from "../ui/Icons";
 
 export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
   // Agrupar fuentes por tipo: stock vs compra
@@ -132,11 +132,11 @@ function StockTable({ rows }) {
               borderBottom: "1px solid var(--border)",
             }}
           >
-            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Código SAP</th>
-            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Descripción</th>
+            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Código SAP</th>
+            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Descripción</th>
             <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Solicitado</th>
             <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Asignado</th>
-            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Ubicación</th>
+            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Ubicación</th>
             <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Plazo</th>
           </tr>
         </thead>
@@ -201,11 +201,11 @@ function CompraTable({ rows }) {
               borderBottom: "1px solid var(--border)",
             }}
           >
-            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Código SAP</th>
-            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Descripción</th>
+            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Código SAP</th>
+            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Descripción</th>
             <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Solicitado</th>
             <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Asignado</th>
-            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Proveedor</th>
+            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Proveedor</th>
             <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Plazo</th>
           </tr>
         </thead>

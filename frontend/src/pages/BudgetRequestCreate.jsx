@@ -8,7 +8,7 @@ import { PageHeader } from "../components/ui/PageHeader";
 import { Alert } from "../components/ui/Alert";
 import { useI18n } from "../context/i18n";
 import { formatCurrency } from "../utils/formatters";
-import { ArrowLeft, Send, DollarSign, Building, MapPin } from "lucide-react";
+import { ArrowLeft, Send, DollarSign, Building, MapPin } from "../components/ui/Icons";
 
 const UMBRAL_L1 = 200000;
 const UMBRAL_L2 = 1000000;
@@ -132,7 +132,7 @@ export default function BudgetRequestCreate() {
         title={t("bur_create_title", "NUEVA SOLICITUD DE PRESUPUESTO").toUpperCase()}
         actions={
           <Button variant="ghost" onClick={() => navigate("/presupuestos")}>
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 text-slate-600" />
             {t("common_volver", "Volver")}
           </Button>
         }
@@ -154,7 +154,7 @@ export default function BudgetRequestCreate() {
                 {/* Centro */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-800">
-                    <Building className="w-4 h-4 inline mr-2" />
+                    <Building className="w-4 h-4 inline mr-2 text-slate-600" />
                     {t("bur_campo_centro", "Centro")} *
                   </label>
                   <select
@@ -176,7 +176,7 @@ export default function BudgetRequestCreate() {
                 {/* Sector */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-800">
-                    <MapPin className="w-4 h-4 inline mr-2" />
+                    <MapPin className="w-4 h-4 inline mr-2 text-slate-600" />
                     {t("bur_campo_sector", "Sector")} *
                   </label>
                   <select
@@ -198,7 +198,7 @@ export default function BudgetRequestCreate() {
                 {/* Monto */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-800">
-                    <DollarSign className="w-4 h-4 inline mr-2" />
+                    <DollarSign className="w-4 h-4 inline mr-2 text-amber-700" />
                     {t("bur_campo_monto", "Monto (USD)")} *
                   </label>
                   <input
@@ -251,7 +251,7 @@ export default function BudgetRequestCreate() {
                     disabled={submitting || loading}
                     className="flex-1"
                   >
-                    <Send className="w-4 h-4" />
+                    <Send className="w-4 h-4 text-blue-600" />
                     {submitting ? t("common_cargando", "Cargando...") : t("bur_btn_enviar", "Enviar Solicitud")}
                   </Button>
                 </div>

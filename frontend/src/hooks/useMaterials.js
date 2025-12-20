@@ -1,30 +1,24 @@
 /**
  * useMaterials - Custom hook for Materials page state management
  * Encapsulates all state, side effects, and handlers for the materials workflow
+ *
+ * This hook manages the complete Materials page workflow including:
+ * - Solicitud loading and persistence
+ * - Material search with debouncing
+ * - Item cart management (add, update quantity, delete)
+ * - Modal states (detail, cancel, submit, comment, assistant)
+ * - Budget validation
  */
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { materiales, solicitudes } from '../services/spm'
 import api from '../services/api'
 import { useI18n } from '../context/i18n'
+import { useDebounced } from './useDebounced'
 
 const DEBOUNCE_MS = 250
 const MAX_RESULTS = 500
 const AUTO_DISMISS_MS = 3000
-
-/**
- * Debounce hook for search input values
- */
-function useDebouncedValue(value, delay) {
-  const [debounced, setDebounced] = useState(value)
-
-  useEffect(() => {
-    const handler = setTimeout(() => setDebounced(value), delay)
-    return () => clearTimeout(handler)
-  }, [value, delay])
-
-  return debounced
-}
 
 /**
  * Main materials hook - manages all state and business logic
@@ -48,8 +42,8 @@ export function useMaterials() {
   // Búsqueda
   const [searchCodigo, setSearchCodigo] = useState('')
   const [searchDesc, setSearchDesc] = useState('')
-  const debouncedCodigo = useDebouncedValue(searchCodigo, DEBOUNCE_MS)
-  const debouncedDesc = useDebouncedValue(searchDesc, DEBOUNCE_MS)
+  const debouncedCodigo = useDebounced(searchCodigo, DEBOUNCE_MS)
+  const debouncedDesc = useDebounced(searchDesc, DEBOUNCE_MS)
   const [results, setResults] = useState([])
   const [loadingSearch, setLoadingSearch] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)

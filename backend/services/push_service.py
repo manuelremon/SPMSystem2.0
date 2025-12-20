@@ -52,33 +52,38 @@ class PushService:
 
     def _ensure_table(self):
         """Crea la tabla de suscripciones si no existe."""
-        with get_db_transaction() as conn:
-            conn.execute(
+        try:
+            with get_db_transaction() as conn:
+                cur = conn.cursor()
+                # Sintaxis compatible con PostgreSQL y SQLite
+                cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS push_subscriptions (
+                        id SERIAL PRIMARY KEY,
+                        user_id TEXT NOT NULL,
+                        endpoint TEXT UNIQUE NOT NULL,
+                        p256dh TEXT NOT NULL,
+                        auth TEXT NOT NULL,
+                        user_agent TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        last_used_at TIMESTAMP
+                    )
                 """
-                CREATE TABLE IF NOT EXISTS push_subscriptions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id TEXT NOT NULL,
-                    endpoint TEXT UNIQUE NOT NULL,
-                    p256dh TEXT NOT NULL,
-                    auth TEXT NOT NULL,
-                    user_agent TEXT,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    last_used_at DATETIME
                 )
-            """
-            )
-            conn.execute(
+                cur.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_push_user
+                    ON push_subscriptions(user_id)
                 """
-                CREATE INDEX IF NOT EXISTS idx_push_user
-                ON push_subscriptions(user_id)
-            """
-            )
-            conn.execute(
+                )
+                cur.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_push_endpoint
+                    ON push_subscriptions(endpoint)
                 """
-                CREATE INDEX IF NOT EXISTS idx_push_endpoint
-                ON push_subscriptions(endpoint)
-            """
-            )
+                )
+        except Exception as e:
+            logger.warning(f"[PUSH] No se pudo crear tabla push_subscriptions: {e}")
 
     def subscribe(
         self, user_id: str, endpoint: str, p256dh: str, auth: str, user_agent: Optional[str] = None
@@ -98,12 +103,13 @@ class PushService:
         """
         try:
             with get_db_transaction() as conn:
-                # Upsert: actualizar si ya existe el endpoint
-                conn.execute(
+                cur = conn.cursor()
+                # Upsert: actualizar si ya existe el endpoint (PostgreSQL syntax)
+                cur.execute(
                     """
                     INSERT INTO push_subscriptions
                     (user_id, endpoint, p256dh, auth, user_agent, created_at)
-                    VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                     ON CONFLICT(endpoint) DO UPDATE SET
                         user_id = excluded.user_id,
                         p256dh = excluded.p256dh,
@@ -131,15 +137,16 @@ class PushService:
         """
         try:
             with get_db_transaction() as conn:
-                result = conn.execute(
+                cur = conn.cursor()
+                cur.execute(
                     """
                     DELETE FROM push_subscriptions
-                    WHERE user_id = ? AND endpoint = ?
+                    WHERE user_id = %s AND endpoint = %s
                 """,
                     (user_id, endpoint),
                 )
             logger.info(f"[PUSH] Suscripcion eliminada para usuario {user_id}")
-            return result.rowcount > 0
+            return cur.rowcount > 0
         except Exception as e:
             logger.error(f"[PUSH] Error al eliminar suscripcion: {e}")
             return False
@@ -153,14 +160,15 @@ class PushService:
         """
         try:
             with get_db_transaction() as conn:
-                result = conn.execute(
+                cur = conn.cursor()
+                cur.execute(
                     """
                     DELETE FROM push_subscriptions
-                    WHERE user_id = ?
+                    WHERE user_id = %s
                 """,
                     (user_id,),
                 )
-            count = result.rowcount
+            count = cur.rowcount
             logger.info(f"[PUSH] {count} suscripciones eliminadas para usuario {user_id}")
             return count
         except Exception as e:
@@ -169,43 +177,51 @@ class PushService:
 
     def get_user_subscriptions(self, user_id: str) -> List[PushSubscription]:
         """Obtiene todas las suscripciones de un usuario."""
-        with get_db_connection() as conn:
-            cur = conn.cursor()
-            cur.execute(
-                """
-                SELECT id, user_id, endpoint, p256dh, auth, created_at
-                FROM push_subscriptions
-                WHERE user_id = ?
-            """,
-                (user_id,),
-            )
-            rows = cur.fetchall()
-            return [
-                PushSubscription(
-                    id=row["id"],
-                    user_id=row["user_id"],
-                    endpoint=row["endpoint"],
-                    p256dh=row["p256dh"],
-                    auth=row["auth"],
-                    created_at=row["created_at"],
+        try:
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    """
+                    SELECT id, user_id, endpoint, p256dh, auth, created_at
+                    FROM push_subscriptions
+                    WHERE user_id = %s
+                """,
+                    (user_id,),
                 )
-                for row in rows
-            ]
+                rows = cur.fetchall()
+                return [
+                    PushSubscription(
+                        id=row[0],
+                        user_id=row[1],
+                        endpoint=row[2],
+                        p256dh=row[3],
+                        auth=row[4],
+                        created_at=row[5],
+                    )
+                    for row in rows
+                ]
+        except Exception as e:
+            logger.error(f"[PUSH] Error al obtener suscripciones: {e}")
+            return []
 
     def has_subscription(self, user_id: str) -> bool:
         """Verifica si el usuario tiene al menos una suscripcion."""
-        with get_db_connection() as conn:
-            cur = conn.cursor()
-            cur.execute(
-                """
-                SELECT COUNT(*) as count
-                FROM push_subscriptions
-                WHERE user_id = ?
-            """,
-                (user_id,),
-            )
-            row = cur.fetchone()
-            return row["count"] > 0
+        try:
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    """
+                    SELECT COUNT(*) as count
+                    FROM push_subscriptions
+                    WHERE user_id = %s
+                """,
+                    (user_id,),
+                )
+                row = cur.fetchone()
+                return row[0] > 0 if row else False
+        except Exception as e:
+            logger.error(f"[PUSH] Error al verificar suscripcion: {e}")
+            return False
 
     def send_push(
         self,

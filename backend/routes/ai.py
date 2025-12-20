@@ -267,19 +267,24 @@ def forecast_demanda(material_codigo):
         - material_codigo: Codigo del material
 
     Query params:
-        - centro: Centro de costo
+        - centro: Centro de costo (opcional)
+        - almacen: Almacen (opcional)
         - dias: Dias a proyectar (default: 30)
+        - modelo: Tipo de modelo ML (default: random_forest)
+                  Opciones: random_forest, gradient_boosting, linear, xgboost, prophet, arima
 
     Returns:
         Proyeccion con intervalo de confianza
     """
-    centro = request.args.get("centro", "1000")
+    centro = request.args.get("centro", "")
+    almacen = request.args.get("almacen", "")
     dias = int(request.args.get("dias", 30))
+    modelo = request.args.get("modelo", "random_forest")
 
     try:
         service = get_ai_service()
         result = service.proyectar_demanda(
-            material_codigo=material_codigo, centro=centro, dias=dias
+            material_codigo=material_codigo, centro=centro, dias=dias, modelo_tipo=modelo, almacen=almacen
         )
 
         return jsonify({"ok": True, "data": result})
@@ -481,3 +486,347 @@ def cantidad_optima():
     except Exception as e:
         logger.error(f"Error calculando cantidad optima: {e}")
         return jsonify({"ok": False, "error": {"code": "eoq_error", "message": str(e)}}), 500
+
+
+# =============================================================================
+# Endpoints de Forecast Avanzado (Sprint Forecast Integration)
+# =============================================================================
+
+@bp.route("/forecast/models", methods=["GET"])
+@require_auth
+def get_forecast_models():
+    """
+    Lista modelos de forecast disponibles.
+
+    Returns:
+        Lista de modelos con sus nombres legibles
+    """
+    try:
+        from backend.agent.pipelines.forecast import (
+            obtener_estrategias_disponibles,
+            obtener_nombres_modelos
+        )
+    except ImportError:
+        from agent.pipelines.forecast import (
+            obtener_estrategias_disponibles,
+            obtener_nombres_modelos
+        )
+
+    try:
+        modelos = obtener_estrategias_disponibles()
+        nombres = obtener_nombres_modelos()
+
+        return jsonify({
+            "ok": True,
+            "data": {
+                "modelos": modelos,
+                "nombres": nombres
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error listando modelos forecast: {e}")
+        return jsonify({"ok": False, "error": {"code": "models_error", "message": str(e)}}), 500
+
+
+@bp.route("/forecast/backtest", methods=["POST"])
+@require_auth
+@require_role(["admin", "planner"])
+def run_backtest():
+    """
+    Ejecuta backtesting para evaluar precisión del modelo.
+
+    Body:
+        {
+            "material_codigo": "MAT001",
+            "centro": "1000",
+            "modelo": "random_forest",
+            "ventana_test": 30,
+            "n_pasos": 5
+        }
+
+    Returns:
+        Reporte de backtesting con métricas
+    """
+    try:
+        from backend.core.db import get_db_connection
+        from backend.agent.pipelines.forecast import DemandPredictor, Backtester
+    except ImportError:
+        from core.db import get_db_connection
+        from agent.pipelines.forecast import DemandPredictor, Backtester
+
+    data = request.get_json() or {}
+    material_codigo = data.get("material_codigo")
+    centro = data.get("centro", "1000")
+    modelo = data.get("modelo", "random_forest")
+    ventana_test = int(data.get("ventana_test", 30))
+    n_pasos = int(data.get("n_pasos", 5))
+
+    if not material_codigo:
+        return jsonify({
+            "ok": False,
+            "error": {"code": "bad_request", "message": "material_codigo es requerido"}
+        }), 400
+
+    try:
+        import pandas as pd
+
+        # Obtener datos históricos
+        with get_db_connection("sap_data") as conn:
+            query = """
+                SELECT fecha_doc as fecha, cantidad
+                FROM consumo_historico
+                WHERE material = ? AND centro = ?
+                ORDER BY fecha_doc
+            """
+            df = pd.read_sql_query(query, conn, params=[material_codigo, centro])
+
+        if len(df) < 60:
+            return jsonify({
+                "ok": False,
+                "error": {"code": "insufficient_data", "message": f"Datos insuficientes: {len(df)} registros"}
+            }), 400
+
+        # Ejecutar backtesting
+        backtester = Backtester(DemandPredictor, modelo)
+        report = backtester.ejecutar(df, ventana_test=ventana_test, n_pasos=n_pasos)
+
+        return jsonify({"ok": True, "data": report.to_dict()})
+
+    except Exception as e:
+        logger.error(f"Error en backtesting: {e}")
+        return jsonify({"ok": False, "error": {"code": "backtest_error", "message": str(e)}}), 500
+
+
+@bp.route("/forecast/compare", methods=["POST"])
+@require_auth
+@require_role(["admin", "planner"])
+def compare_models():
+    """
+    Compara múltiples modelos de forecast.
+
+    Body:
+        {
+            "material_codigo": "MAT001",
+            "centro": "1000",
+            "modelos": ["random_forest", "gradient_boosting", "linear"]
+        }
+
+    Returns:
+        Comparación con ranking y mejor modelo
+    """
+    try:
+        from backend.core.db import get_db_connection
+        from backend.agent.pipelines.forecast import DemandPredictor, ModelComparator
+    except ImportError:
+        from core.db import get_db_connection
+        from agent.pipelines.forecast import DemandPredictor, ModelComparator
+
+    data = request.get_json() or {}
+    material_codigo = data.get("material_codigo")
+    centro = data.get("centro", "1000")
+    modelos = data.get("modelos", ["random_forest", "gradient_boosting", "linear"])
+
+    if not material_codigo:
+        return jsonify({
+            "ok": False,
+            "error": {"code": "bad_request", "message": "material_codigo es requerido"}
+        }), 400
+
+    try:
+        import pandas as pd
+
+        with get_db_connection("sap_data") as conn:
+            query = """
+                SELECT fecha_doc as fecha, cantidad
+                FROM consumo_historico
+                WHERE material = ? AND centro = ?
+                ORDER BY fecha_doc
+            """
+            df = pd.read_sql_query(query, conn, params=[material_codigo, centro])
+
+        if len(df) < 60:
+            return jsonify({
+                "ok": False,
+                "error": {"code": "insufficient_data", "message": f"Datos insuficientes: {len(df)} registros"}
+            }), 400
+
+        comparator = ModelComparator(DemandPredictor)
+        result = comparator.comparar(df, modelos)
+
+        # Serializar resultado (sin el report completo)
+        serializable_result = {
+            "mejor_modelo": result["mejor_modelo"],
+            "recomendacion": result["recomendacion"],
+            "ranking": result["ranking"],
+            "resultados": {
+                k: {kk: vv for kk, vv in v.items() if kk != "report"}
+                for k, v in result["resultados"].items()
+            }
+        }
+
+        return jsonify({"ok": True, "data": serializable_result})
+
+    except Exception as e:
+        logger.error(f"Error comparando modelos: {e}")
+        return jsonify({"ok": False, "error": {"code": "compare_error", "message": str(e)}}), 500
+
+
+@bp.route("/forecast/auto-select", methods=["POST"])
+@require_auth
+@require_role(["admin", "planner"])
+def auto_select_model():
+    """
+    Selecciona automáticamente el mejor modelo para un material.
+
+    Body:
+        {
+            "material_codigo": "MAT001",
+            "centro": "1000",
+            "optimizar_params": false
+        }
+
+    Returns:
+        Mejor modelo con métricas y recomendación
+    """
+    try:
+        from backend.core.db import get_db_connection
+        from backend.agent.pipelines.forecast import (
+            DemandPredictor, AutoModelSelector, obtener_estrategias_disponibles
+        )
+    except ImportError:
+        from core.db import get_db_connection
+        from agent.pipelines.forecast import (
+            DemandPredictor, AutoModelSelector, obtener_estrategias_disponibles
+        )
+
+    data = request.get_json() or {}
+    material_codigo = data.get("material_codigo")
+    centro = data.get("centro", "1000")
+    optimizar_params = data.get("optimizar_params", False)
+
+    if not material_codigo:
+        return jsonify({
+            "ok": False,
+            "error": {"code": "bad_request", "message": "material_codigo es requerido"}
+        }), 400
+
+    try:
+        import pandas as pd
+        import numpy as np
+
+        with get_db_connection("sap_data") as conn:
+            query = """
+                SELECT fecha_doc as fecha, cantidad
+                FROM consumo_historico
+                WHERE material = ? AND centro = ?
+                ORDER BY fecha_doc
+            """
+            df = pd.read_sql_query(query, conn, params=[material_codigo, centro])
+
+        if len(df) < 30:
+            return jsonify({
+                "ok": False,
+                "error": {"code": "insufficient_data", "message": f"Datos insuficientes: {len(df)} registros"}
+            }), 400
+
+        # Preparar features para auto-selección
+        predictor = DemandPredictor()
+        df_prep = predictor._preparar_features(df)
+        df_prep = predictor._crear_lag_features(df_prep).dropna()
+
+        if len(df_prep) < 20:
+            return jsonify({
+                "ok": False,
+                "error": {"code": "insufficient_data", "message": "Datos insuficientes después de preparación"}
+            }), 400
+
+        feature_cols = [c for c in df_prep.columns if c not in ["fecha", "cantidad"]]
+        X = df_prep[feature_cols].values
+        y = df_prep["cantidad"].values
+
+        # Auto-seleccionar
+        modelos_disponibles = obtener_estrategias_disponibles()
+        selector = AutoModelSelector(modelos=modelos_disponibles, optimizar_params=optimizar_params)
+        result = selector.seleccionar(X, y)
+
+        return jsonify({"ok": True, "data": result.to_dict()})
+
+    except Exception as e:
+        logger.error(f"Error en auto-selección: {e}")
+        return jsonify({"ok": False, "error": {"code": "autoselect_error", "message": str(e)}}), 500
+
+
+@bp.route("/forecast/tune", methods=["POST"])
+@require_auth
+@require_role(["admin", "planner"])
+def tune_hyperparameters():
+    """
+    Optimiza hiperparámetros de un modelo.
+
+    Body:
+        {
+            "material_codigo": "MAT001",
+            "centro": "1000",
+            "modelo": "random_forest",
+            "n_iter": 30
+        }
+
+    Returns:
+        Mejores hiperparámetros encontrados
+    """
+    try:
+        from backend.core.db import get_db_connection
+        from backend.agent.pipelines.forecast import DemandPredictor, HyperparameterTuner
+    except ImportError:
+        from core.db import get_db_connection
+        from agent.pipelines.forecast import DemandPredictor, HyperparameterTuner
+
+    data = request.get_json() or {}
+    material_codigo = data.get("material_codigo")
+    centro = data.get("centro", "1000")
+    modelo = data.get("modelo", "random_forest")
+    n_iter = int(data.get("n_iter", 30))
+
+    if not material_codigo:
+        return jsonify({
+            "ok": False,
+            "error": {"code": "bad_request", "message": "material_codigo es requerido"}
+        }), 400
+
+    try:
+        import pandas as pd
+
+        with get_db_connection("sap_data") as conn:
+            query = """
+                SELECT fecha_doc as fecha, cantidad
+                FROM consumo_historico
+                WHERE material = ? AND centro = ?
+                ORDER BY fecha_doc
+            """
+            df = pd.read_sql_query(query, conn, params=[material_codigo, centro])
+
+        if len(df) < 30:
+            return jsonify({
+                "ok": False,
+                "error": {"code": "insufficient_data", "message": f"Datos insuficientes: {len(df)} registros"}
+            }), 400
+
+        # Preparar features
+        predictor = DemandPredictor()
+        df_prep = predictor._preparar_features(df)
+        df_prep = predictor._crear_lag_features(df_prep).dropna()
+
+        feature_cols = [c for c in df_prep.columns if c not in ["fecha", "cantidad"]]
+        X = df_prep[feature_cols].values
+        y = df_prep["cantidad"].values
+
+        # Optimizar
+        tuner = HyperparameterTuner()
+        result = tuner.optimizar(X, y, modelo, n_iter=n_iter, rapido=True)
+
+        return jsonify({"ok": True, "data": result.to_dict()})
+
+    except Exception as e:
+        logger.error(f"Error en tuning: {e}")
+        return jsonify({"ok": False, "error": {"code": "tune_error", "message": str(e)}}), 500

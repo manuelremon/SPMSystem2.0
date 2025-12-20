@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import clsx from "clsx";
 
 /**
@@ -32,3 +33,13 @@ export function Badge({ variant = "default", className, children }) {
     </span>
   );
 }
+
+Badge.propTypes = {
+  variant: PropTypes.oneOf(["default", "success", "warning", "danger", "info", "primary"]),
+  className: PropTypes.string,
+  children: PropTypes.node,
+};
+
+Badge.defaultProps = {
+  variant: "default",
+};

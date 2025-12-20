@@ -16,7 +16,7 @@ import { formatCurrency, formatAlmacen } from "../utils/formatters";
 import { useDebounced } from "../hooks/useDebounced";
 import { Modal } from "../components/ui/Modal";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/Tabs";
-import { XCircle, CheckCircle, RefreshCw, Eye, Package, Clock } from "lucide-react";
+import { XCircle, CheckCircle, RefreshCw, Eye, Package, Clock } from "../components/ui/Icons";
 import { getCriticidadConfig } from "../utils/styleConfig";
 
 const DEBOUNCE_MS = 300;
@@ -37,12 +37,17 @@ export default function Aprobaciones() {
   const [refreshing, setRefreshing] = useState(false);
   const [detailModal, setDetailModal] = useState({ open: false, solicitud: null });
 
-  // Load pending approvals
+  // Load pending approvals - filtered by current user as aprobador
   const loadPendientes = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const res = await solicitudes.listar({ estado: "Enviada" });
+      // Filtrar por estado "Enviada" y por aprobador_id = usuario actual
+      // user.id viene de format_user_response (que usa id_spm internamente)
+      const res = await solicitudes.listar({
+        estado: "Enviada",
+        aprobador_id: user?.id
+      });
       const data = res.data.solicitudes || res.data.results || [];
       setItems(data);
     } catch (err) {
@@ -50,7 +55,7 @@ export default function Aprobaciones() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.id]);
 
   // Load approval history
   const loadHistorial = useCallback(async () => {
@@ -279,37 +284,37 @@ export default function Aprobaciones() {
       render: (row) => (
         <div className="flex items-center justify-center gap-1" role="group" aria-label={`${t("aprov_acciones", "Acciones")} solicitud ${row.id}`}>
           {/* Botón Ver */}
-          <button
-            className="p-1.5 rounded-lg hover:bg-blue-50/70 transition-colors cursor-pointer"
+          <Button
+            variant="icon-primary"
+            size="icon-sm"
             onClick={() => openDetailModal(row)}
-            type="button"
             title={t("aprov_ver_tooltip", "Ver detalle de la solicitud")}
             aria-label={`Ver detalle solicitud ${row.id}`}
           >
-            <Eye className="w-4 h-4 text-blue-600" aria-hidden="true" />
-          </button>
+            <Eye className="w-4 h-4" aria-hidden="true" />
+          </Button>
 
           {/* Botón Aprobar */}
-          <button
-            className="p-1.5 rounded-lg hover:bg-emerald-50/70 transition-colors cursor-pointer"
+          <Button
+            variant="icon-success"
+            size="icon-sm"
             onClick={() => aprobar(row.id)}
-            type="button"
             title={t("aprov_aprobar_tooltip", "Aprobar y asignar a planificador")}
             aria-label={`${t("aprov_aprobar", "Aprobar")} solicitud ${row.id}`}
           >
-            <CheckCircle className="w-4 h-4 text-emerald-600" aria-hidden="true" />
-          </button>
+            <CheckCircle className="w-4 h-4" aria-hidden="true" />
+          </Button>
 
           {/* Botón Rechazar */}
-          <button
-            className="p-1.5 rounded-lg hover:bg-red-50/70 transition-colors cursor-pointer"
+          <Button
+            variant="icon-danger"
+            size="icon-sm"
             onClick={() => openRejectModal(row.id)}
-            type="button"
             title={t("aprov_rechazar_tooltip", "Rechazar la solicitud")}
             aria-label={`${t("aprov_rechazar", "Rechazar")} solicitud ${row.id}`}
           >
-            <XCircle className="w-4 h-4 text-red-600" aria-hidden="true" />
-          </button>
+            <XCircle className="w-4 h-4" aria-hidden="true" />
+          </Button>
         </div>
       ),
     },
@@ -328,7 +333,7 @@ export default function Aprobaciones() {
               disabled={refreshing || loading}
               aria-label={t("common_refresh", "Actualizar")}
             >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-4 h-4 text-slate-600 ${refreshing ? "animate-spin" : ""}`} />
               {t("common_refresh", "Actualizar")}
             </Button>
           }
@@ -348,7 +353,7 @@ export default function Aprobaciones() {
             <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
               <TabsList>
                 <TabsTrigger value="pendientes">
-                  <CheckCircle className="w-4 h-4" />
+                  <CheckCircle className="w-4 h-4 text-emerald-500" />
                   {t("aprov_tab_pendientes", "Pendientes")}
                   {items.length > 0 && (
                     <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-600 rounded-full">
@@ -357,7 +362,7 @@ export default function Aprobaciones() {
                   )}
                 </TabsTrigger>
                 <TabsTrigger value="historial">
-                  <Clock className="w-4 h-4" />
+                  <Clock className="w-4 h-4 text-cyan-500" />
                   {t("aprov_tab_historial", "Historial")}
                 </TabsTrigger>
               </TabsList>
@@ -441,6 +446,7 @@ export default function Aprobaciones() {
               type="button"
               aria-label={`${t("aprov_rechazar", "Rechazar")} solicitud ${rejectModal.id}`}
             >
+              <XCircle className="w-4 h-4 text-red-500 mr-1" />
               {t("aprov_rechazar", "Rechazar")}
             </Button>
           </>
@@ -484,7 +490,7 @@ export default function Aprobaciones() {
               }}
               type="button"
             >
-              <CheckCircle className="w-4 h-4 mr-1" />
+              <CheckCircle className="w-4 h-4 text-emerald-500 mr-1" />
               {t("aprov_aprobar", "Aprobar")}
             </Button>
             <Button
@@ -495,7 +501,7 @@ export default function Aprobaciones() {
               }}
               type="button"
             >
-              <XCircle className="w-4 h-4 mr-1" />
+              <XCircle className="w-4 h-4 text-red-500 mr-1" />
               {t("aprov_rechazar", "Rechazar")}
             </Button>
           </div>
@@ -551,7 +557,7 @@ export default function Aprobaciones() {
             {/* Tabla de materiales */}
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Package className="w-5 h-5 text-blue-600" />
+                <Package className="w-5 h-5 text-indigo-500" />
                 <p className="text-sm font-semibold text-slate-700">
                   {t("aprov_materiales_titulo", "Materiales Solicitados")} ({detailModal.solicitud.items?.length || 0})
                 </p>
@@ -559,22 +565,22 @@ export default function Aprobaciones() {
 
               {detailModal.solicitud.items && detailModal.solicitud.items.length > 0 ? (
                 <div className="overflow-x-auto rounded-xl border border-slate-200/50">
-                  <table className="min-w-full text-sm">
-                    <thead className="bg-slate-100/70 border-b border-slate-200/50">
+                  <table className="w-full text-sm">
+                    <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
                           Código SAP
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
                           Descripción
                         </th>
-                        <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
                           Cantidad
                         </th>
-                        <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-slate-500">
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
                           P. Unit.
                         </th>
-                        <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-slate-500">
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">
                           Subtotal
                         </th>
                       </tr>
@@ -582,16 +588,16 @@ export default function Aprobaciones() {
                     <tbody className="divide-y divide-slate-200/50">
                       {detailModal.solicitud.items.map((item, idx) => (
                         <tr key={idx} className={idx % 2 === 0 ? "bg-transparent" : "bg-slate-50/30"}>
-                          <td className="px-4 py-3 font-mono text-sm text-slate-700">
+                          <td className="px-4 py-3 font-mono text-sm text-slate-700 border-r border-b border-slate-200">
                             {item.codigo_sap || item.material_id || "-"}
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-700">
+                          <td className="px-4 py-3 text-sm text-slate-700 border-r border-b border-slate-200">
                             {item.descripcion || item.nombre || "-"}
                           </td>
-                          <td className="px-4 py-3 text-center text-sm text-slate-700">
+                          <td className="px-4 py-3 text-center text-sm text-slate-700 border-r border-b border-slate-200">
                             {item.cantidad || 0} {item.unidad_medida || item.uom || "UN"}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono text-sm text-slate-700">
+                          <td className="px-4 py-3 text-right font-mono text-sm text-slate-700 border-r border-b border-slate-200">
                             {formatCurrency(item.precio_unitario || item.precio || 0)}
                           </td>
                           <td className="px-4 py-3 text-right font-mono text-sm font-semibold text-slate-700">

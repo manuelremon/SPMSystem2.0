@@ -43,3 +43,15 @@ tzdata==2025.2
 urllib3==2.5.0
 Werkzeug==3.1.3
 flask-shell-ipython==0.5.3
+
+# PostgreSQL (produccion)
+psycopg2-binary>=2.9.9
+
+# Push Notifications
+pywebpush>=1.14.0
+
+# Forecast ML Avanzado (opcionales)
+xgboost>=2.0.0
+statsmodels>=0.14.0
+pmdarima>=2.0.0
+# prophet>=1.1.0  # Comentado: requiere instalación especial en Windows

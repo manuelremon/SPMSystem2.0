@@ -22,7 +22,7 @@ import {
   Clock,
   User,
   Hash,
-} from "lucide-react";
+} from "../components/ui/Icons";
 
 function DetailRow({ icon: Icon, label, value, className = "" }) {
   return (
@@ -283,27 +283,27 @@ export default function SolicitudDetalle() {
         <CardContent>
           {items.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
-              <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <Package className="w-12 h-12 mx-auto mb-3 opacity-50 text-indigo-500" />
               <p>{t("detalle_sin_items", "No hay materiales en esta solicitud")}</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl border border-white/30">
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-white/30">
-                    <th className="text-left py-3 px-4 font-medium text-slate-500">
+                <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
+                  <tr>
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
                       {t("detalle_item_codigo", "Código")}
                     </th>
-                    <th className="text-left py-3 px-4 font-medium text-slate-500">
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
                       {t("detalle_item_descripcion", "Descripción")}
                     </th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-500">
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
                       {t("detalle_item_cantidad", "Cantidad")}
                     </th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-500">
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
                       {t("detalle_item_precio", "Precio Unit.")}
                     </th>
-                    <th className="text-right py-3 px-4 font-medium text-slate-500">
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">
                       {t("detalle_item_subtotal", "Subtotal")}
                     </th>
                   </tr>
@@ -318,10 +318,10 @@ export default function SolicitudDetalle() {
                         key={idx}
                         className="border-b border-white/30 last:border-b-0 hover:bg-white/50 transition-colors"
                       >
-                        <td className="py-3 px-4 font-mono text-slate-800">
+                        <td className="py-3 px-4 font-mono text-slate-800 border-r border-b border-slate-200">
                           {item.codigo || item.material_codigo || "-"}
                         </td>
-                        <td className="py-3 px-4 text-slate-800">
+                        <td className="py-3 px-4 text-slate-800 border-r border-b border-slate-200">
                           <div className="max-w-xs">
                             <p className="truncate" title={item.descripcion || item.material_descripcion}>
                               {item.descripcion || item.material_descripcion || "-"}
@@ -333,10 +333,10 @@ export default function SolicitudDetalle() {
                             )}
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-right font-medium text-slate-800">
+                        <td className="py-3 px-4 text-right font-medium text-slate-800 border-r border-b border-slate-200">
                           {cantidad} {item.unidad || ""}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono text-slate-500">
+                        <td className="py-3 px-4 text-right font-mono text-slate-500 border-r border-b border-slate-200">
                           {formatCurrency(precio)}
                         </td>
                         <td className="py-3 px-4 text-right font-mono font-medium text-slate-800">

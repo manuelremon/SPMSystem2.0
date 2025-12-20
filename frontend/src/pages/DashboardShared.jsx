@@ -21,6 +21,33 @@ export function getTableColumns(t) {
       ),
     },
     {
+      key: "solicitante",
+      header: t("dash_table_solicitante", "Solicitante"),
+      render: (row) => {
+        const nombre = [row.solicitante_nombre, row.solicitante_apellido]
+          .filter(Boolean).join(" ").trim();
+        return (
+          <span className="text-xs text-slate-600 font-medium">
+            {nombre || "-"}
+          </span>
+        );
+      },
+    },
+    {
+      key: "fecha_creacion",
+      header: t("dash_table_fecha", "Fecha"),
+      sortAccessor: (row) => new Date(row.created_at).getTime() || 0,
+      render: (row) => {
+        if (!row.created_at) return <span className="text-xs text-slate-400">-</span>;
+        const date = new Date(row.created_at);
+        return (
+          <span className="text-xs text-slate-500 tabular-nums">
+            {date.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit" })}
+          </span>
+        );
+      },
+    },
+    {
       key: "estado",
       header: t("dash_table_estado", "Estado"),
       render: (row) => {
@@ -75,6 +102,13 @@ export function getTableColumns(t) {
         <span className="font-mono text-xs tabular-nums font-medium text-right block">
           {formatCurrency(row.total_monto || 0)}
         </span>
+      ),
+    },
+    {
+      key: "sector",
+      header: "Sector",
+      render: (row) => (
+        <span className="text-xs text-slate-500">{row.sector_nombre || row.sector || "-"}</span>
       ),
     },
     {

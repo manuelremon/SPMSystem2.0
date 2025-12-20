@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/Card";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Select } from "../components/ui/Select";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
+import { Textarea } from "../components/ui/Textarea";
 import {
   Send,
   Book,
@@ -19,7 +22,7 @@ import {
   Workflow,
   Settings,
   Package,
-} from "lucide-react";
+} from "../components/ui/Icons";
 import { useAuthStore } from "../store/authStore";
 import api from "../services/api";
 
@@ -158,7 +161,7 @@ ${formData.mensaje}
       />
 
       {/* Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-white/30 pb-4">
+      <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30 w-fit">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -166,13 +169,11 @@ ${formData.mensaje}
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`
-                flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all
-                ${isActive
-                  ? "bg-blue-600 text-white"
-                  : "bg-slate-50/70 text-slate-500 hover:bg-slate-100/70 hover:text-slate-800"
-                }
-              `}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive
+                  ? "bg-white shadow-sm text-blue-600"
+                  : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+              }`}
             >
               <Icon className="w-4 h-4" />
               {tab.label}
@@ -190,7 +191,7 @@ ${formData.mensaje}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-blue-600" />
+                    <MessageSquare className="w-5 h-5 text-violet-500" />
                     Enviar Mensaje al Administrador
                   </CardTitle>
                   <CardDescription>
@@ -200,19 +201,16 @@ ${formData.mensaje}
                 <CardContent>
                   {sent ? (
                     <div className="text-center py-8">
-                      <CheckCircle className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
+                      <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold text-slate-900 mb-2">
                         Mensaje Enviado
                       </h3>
                       <p className="text-slate-500 mb-4">
                         Tu mensaje ha sido enviado al administrador. Recibirás una respuesta pronto.
                       </p>
-                      <button
-                        onClick={() => setSent(false)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      >
+                      <Button onClick={() => setSent(false)}>
                         Enviar otro mensaje
-                      </button>
+                      </Button>
                     </div>
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -236,13 +234,12 @@ ${formData.mensaje}
                         <label className="block text-sm font-medium text-slate-800 mb-1.5">
                           Asunto
                         </label>
-                        <input
+                        <Input
                           type="text"
                           value={formData.asunto}
                           onChange={(e) => setFormData({ ...formData, asunto: e.target.value })}
                           placeholder="Describe brevemente tu consulta"
                           required
-                          className="w-full px-3 py-2 rounded-lg bg-slate-100/70 border border-white/30 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20"
                         />
                       </div>
 
@@ -250,13 +247,13 @@ ${formData.mensaje}
                         <label className="block text-sm font-medium text-slate-800 mb-1.5">
                           Mensaje
                         </label>
-                        <textarea
+                        <Textarea
                           value={formData.mensaje}
                           onChange={(e) => setFormData({ ...formData, mensaje: e.target.value })}
                           placeholder="Describe tu consulta o problema en detalle..."
                           required
                           rows={6}
-                          className="w-full px-3 py-2 rounded-lg bg-slate-100/70 border border-white/30 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 resize-none"
+                          className="resize-none"
                         />
                       </div>
 
@@ -266,10 +263,10 @@ ${formData.mensaje}
                         </div>
                       )}
 
-                      <button
+                      <Button
                         type="submit"
                         disabled={sending}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full"
                       >
                         {sending ? (
                           <>
@@ -278,11 +275,11 @@ ${formData.mensaje}
                           </>
                         ) : (
                           <>
-                            <Send className="w-4 h-4" />
+                            <Send className="w-4 h-4 text-blue-600" />
                             Enviar Mensaje
                           </>
                         )}
-                      </button>
+                      </Button>
                     </form>
                   )}
                 </CardContent>
@@ -297,21 +294,21 @@ ${formData.mensaje}
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-start gap-3">
-                    <Mail className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <Mail className="w-5 h-5 text-violet-500 mt-0.5" />
                     <div>
                       <p className="font-medium text-slate-900">Email</p>
                       <p className="text-sm text-slate-500">solicitudespuntualesmateriales@gmail.com</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Phone className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <Phone className="w-5 h-5 text-blue-500 mt-0.5" />
                     <div>
                       <p className="font-medium text-slate-900">Teléfono</p>
                       <p className="text-sm text-slate-500">+54 11 1234-5678</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Clock className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <Clock className="w-5 h-5 text-cyan-500 mt-0.5" />
                     <div>
                       <p className="font-medium text-slate-900">Horario de Atención</p>
                       <p className="text-sm text-slate-500">Lun - Vie: 8:00 - 18:00</p>
@@ -334,9 +331,9 @@ ${formData.mensaje}
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-medium text-slate-800">{faq.pregunta}</span>
                         {expandedFaq === idx ? (
-                          <ChevronDown className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                          <ChevronDown className="w-4 h-4 text-slate-600 flex-shrink-0" />
                         ) : (
-                          <ChevronRight className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                          <ChevronRight className="w-4 h-4 text-slate-600 flex-shrink-0" />
                         )}
                       </div>
                       {expandedFaq === idx && (
@@ -360,7 +357,7 @@ ${formData.mensaje}
                   <Card key={idx}>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <Icon className="w-5 h-5 text-blue-600" />
+                        <Icon className="w-5 h-5 text-blue-500" />
                         {instruccion.titulo}
                       </CardTitle>
                     </CardHeader>
@@ -385,7 +382,7 @@ ${formData.mensaje}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <HelpCircle className="w-5 h-5 text-blue-600" />
+                  <HelpCircle className="w-5 h-5 text-blue-500" />
                   Preguntas Frecuentes
                 </CardTitle>
               </CardHeader>
@@ -399,9 +396,9 @@ ${formData.mensaje}
                     <div className="flex items-center justify-between gap-4">
                       <span className="font-medium text-slate-800">{faq.pregunta}</span>
                       {expandedFaq === `faq-${idx}` ? (
-                        <ChevronDown className="w-5 h-5 text-slate-500 flex-shrink-0" />
+                        <ChevronDown className="w-5 h-5 text-slate-600 flex-shrink-0" />
                       ) : (
-                        <ChevronRight className="w-5 h-5 text-slate-500 flex-shrink-0" />
+                        <ChevronRight className="w-5 h-5 text-slate-600 flex-shrink-0" />
                       )}
                     </div>
                     {expandedFaq === `faq-${idx}` && (
@@ -434,17 +431,17 @@ ${formData.mensaje}
                   {/* Contacto de Emergencia */}
                   <div className="p-6 rounded-xl bg-white border border-white/30">
                     <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                      <Phone className="w-5 h-5 text-blue-600" />
+                      <Phone className="w-5 h-5 text-blue-500" />
                       Contacto de Emergencia
                     </h3>
                     <div className="space-y-3">
                       <div className="p-3 rounded-lg bg-slate-50/70">
                         <p className="text-sm text-slate-500">Línea directa soporte:</p>
-                        <p className="text-lg font-mono font-bold text-blue-600">+54 11 1234-5678</p>
+                        <p className="text-lg font-mono font-bold text-blue-500">+54 11 1234-5678</p>
                       </div>
                       <div className="p-3 rounded-lg bg-slate-50/70">
                         <p className="text-sm text-slate-500">WhatsApp urgencias:</p>
-                        <p className="text-lg font-mono font-bold text-emerald-600">+54 9 11 9876-5432</p>
+                        <p className="text-lg font-mono font-bold text-emerald-500">+54 9 11 9876-5432</p>
                       </div>
                     </div>
                   </div>
@@ -479,7 +476,7 @@ ${formData.mensaje}
                 {/* Administradores del Sistema */}
                 <div className="p-6 rounded-xl bg-white border border-white/30">
                   <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-blue-600" />
+                    <Users className="w-5 h-5 text-teal-500" />
                     Administradores del Sistema
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -507,7 +504,7 @@ ${formData.mensaje}
                     href="tel:+541112345678"
                     className="flex items-center gap-3 px-8 py-4 bg-amber-500 text-black rounded-xl font-semibold text-lg hover:bg-amber-500/90 transition-colors shadow-lg"
                   >
-                    <Phone className="w-6 h-6" />
+                    <Phone className="w-6 h-6 text-blue-500" />
                     Llamar Ahora
                   </a>
                 </div>

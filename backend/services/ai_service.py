@@ -204,7 +204,8 @@ class AIService:
         return self.scoring.rank_solicitudes(solicitudes)
 
     def proyectar_demanda(
-        self, material_codigo: str, centro: str, dias: int = 30
+        self, material_codigo: str, centro: str, dias: int = 30,
+        modelo_tipo: str = "random_forest", almacen: str = ""
     ) -> Dict[str, Any]:
         """
         Proyecta demanda futura usando forecast ML.
@@ -213,16 +214,77 @@ class AIService:
             material_codigo: Codigo del material
             centro: Centro de costo
             dias: Dias a proyectar
+            modelo_tipo: Tipo de modelo ML (random_forest, gradient_boosting, linear, ridge)
+            almacen: Codigo de almacen (opcional, filtra datos historicos)
 
         Returns:
             Proyeccion con intervalo de confianza
         """
         try:
-            if self.forecast.model is not None:
-                return self.forecast.predict(material_codigo, centro, dias)
-            else:
-                # Fallback a promedio historico
+            # Usar nuevo módulo de forecast
+            from agent.pipelines.forecast import DemandPredictor
+            from core.db import get_db_connection
+            import pandas as pd
+
+            # Obtener datos históricos de consumo con filtros opcionales de centro y almacen
+            with get_db_connection("sap_data") as conn:
+                # Construir query con filtros opcionales
+                params = [material_codigo]
+                conditions = ["material = ?"]
+
+                if centro:
+                    conditions.append("centro = ?")
+                    params.append(centro)
+
+                if almacen:
+                    conditions.append("almacen = ?")
+                    params.append(almacen)
+
+                where_clause = " AND ".join(conditions)
+                query = f"""
+                    SELECT fecha, SUM(cantidad) as cantidad
+                    FROM consumo_historico
+                    WHERE {where_clause}
+                    GROUP BY fecha
+                    ORDER BY fecha
+                """
+                df = pd.read_sql_query(query, conn, params=params)
+
+            if len(df) < 10:
                 return self._fallback_proyeccion(material_codigo, centro, dias)
+
+            # Crear predictor y generar forecast
+            predictor = DemandPredictor(modelo=modelo_tipo)
+            metricas = predictor.entrenar(df)
+            predicciones_df = predictor.predecir(df, periodos=dias)
+
+            # Formatear predicciones para el frontend
+            predicciones = []
+            for _, row in predicciones_df.iterrows():
+                predicciones.append({
+                    "fecha": row['fecha'].strftime('%Y-%m-%d') if hasattr(row['fecha'], 'strftime') else str(row['fecha']),
+                    "cantidad_predicha": round(float(row['prediccion']), 2),
+                    "limite_inferior": round(float(row['limite_inferior']), 2),
+                    "limite_superior": round(float(row['limite_superior']), 2)
+                })
+
+            return {
+                "material": material_codigo,
+                "centro": centro,
+                "modelo": modelo_tipo,
+                "nombre_modelo": predictor.nombre_modelo,
+                "dias": dias,
+                "predicciones": predicciones,
+                "metricas": {
+                    "mae": round(metricas.get('mae', 0), 2),
+                    "rmse": round(metricas.get('rmse', 0), 2),
+                    "r2": round(metricas.get('r2', 0), 4),
+                    "mape": round(metricas.get('mape', 0), 2)
+                },
+                "historico": df.tail(30).to_dict('records'),
+                "fecha_generacion": datetime.now(timezone.utc).isoformat()
+            }
+
         except Exception as e:
             logger.error(f"Error proyectando demanda: {e}")
             return self._fallback_proyeccion(material_codigo, centro, dias)
@@ -589,14 +651,35 @@ class AIService:
         except Exception:
             consumo = 100  # Default
 
+        # Generar predicciones para cada día con estructura consistente
+        from datetime import date
+        predicciones = []
+        base_date = date.today()
+        for i in range(1, dias + 1):
+            fecha = base_date + timedelta(days=i)
+            predicciones.append({
+                "fecha": fecha.strftime('%Y-%m-%d'),
+                "cantidad_predicha": round(consumo, 2),
+                "limite_inferior": round(consumo * 0.8, 2),
+                "limite_superior": round(consumo * 1.2, 2)
+            })
+
         return {
-            "material_codigo": material_codigo,
+            "material": material_codigo,
             "centro": centro,
-            "days_ahead": dias,
-            "predicted_demand": consumo,
-            "confidence_lower": consumo * 0.8,
-            "confidence_upper": consumo * 1.2,
+            "modelo": "fallback",
+            "nombre_modelo": "Promedio Histórico",
+            "dias": dias,
+            "predicciones": predicciones,
+            "metricas": {
+                "mae": 0,
+                "rmse": 0,
+                "r2": 0,
+                "mape": 0
+            },
+            "historico": [],
             "metodo": "promedio_historico",
+            "fecha_generacion": datetime.now(timezone.utc).isoformat()
         }
 
 

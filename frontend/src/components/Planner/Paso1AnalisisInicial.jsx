@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { ModernDataTable as DataTable } from "../features/DataTable";
 import { withSpmAlignments } from "../../utils/tableAlignments";
-import { DollarSign, Package, ChevronDown, ChevronUp, Send, X, AlertOctagon, Info, Lightbulb } from "lucide-react";
+import { DollarSign, Package, ChevronDown, ChevronUp, Send, X, AlertOctagon, Info, Lightbulb } from "../ui/Icons";
 import { formatCurrency } from "../../utils/formatters";
 import api from "../../services/api";
 import { ensureCsrfToken } from "../../services/csrf";

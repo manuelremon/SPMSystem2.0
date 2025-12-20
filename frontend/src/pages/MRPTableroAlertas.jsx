@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
+import { Select } from "../components/ui/Select";
+import { SearchInput } from "../components/ui/SearchInput";
 import { useI18n } from "../context/i18n";
 import { formatCurrency } from "../utils/formatters";
 import api from "../services/api";
@@ -23,7 +25,7 @@ import {
   CheckCircle2,
   Info,
   XCircle,
-} from "lucide-react";
+} from "../components/ui/Icons";
 
 // Estado badge component - Glass style
 function EstadoBadge({ estado, clase }) {
@@ -206,7 +208,7 @@ export default function MRPTableroAlertas() {
               onClick={fetchAlertas}
               disabled={loading}
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 text-slate-600 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         }
@@ -257,10 +259,10 @@ export default function MRPTableroAlertas() {
         <CardHeader className="cursor-pointer" onClick={() => setShowFiltros(!showFiltros)}>
           <CardTitle className="flex items-center justify-between">
             <span className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-blue-600" />
+              <Filter className="w-5 h-5 text-slate-600" />
               {t("mrp_filtros", "Filtros")}
             </span>
-            {showFiltros ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            {showFiltros ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />}
           </CardTitle>
         </CardHeader>
         {showFiltros && (
@@ -268,92 +270,83 @@ export default function MRPTableroAlertas() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Centro */}
               <div>
-                <label className="block text-sm font-medium text-slate-500 mb-1">
+                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
                   {t("mrp_centro", "Centro")}
                 </label>
-                <select
+                <Select
                   value={filtros.centro}
                   onChange={(e) => setFiltros(prev => ({ ...prev, centro: e.target.value }))}
-                  className="w-full px-3 py-2 bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 transition-all"
                 >
                   <option value="">Seleccionar...</option>
                   {catalogos.centros?.map(c => (
                     <option key={c.codigo} value={c.codigo}>{c.codigo} - {c.nombre}</option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               {/* Almacén */}
               <div>
-                <label className="block text-sm font-medium text-slate-500 mb-1">
+                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
                   {t("mrp_almacen", "Almacén")}
                 </label>
-                <select
+                <Select
                   value={filtros.almacen}
                   onChange={(e) => setFiltros(prev => ({ ...prev, almacen: e.target.value }))}
-                  className="w-full px-3 py-2 bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 transition-all"
                 >
                   <option value="">Todos</option>
                   {catalogos.almacenes?.map(a => (
                     <option key={a.codigo} value={a.codigo}>{a.codigo} - {a.nombre}</option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               {/* Sector */}
               <div>
-                <label className="block text-sm font-medium text-slate-500 mb-1">
+                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
                   {t("mrp_sector", "Sector")}
                 </label>
-                <select
+                <Select
                   value={filtros.sector}
                   onChange={(e) => setFiltros(prev => ({ ...prev, sector: e.target.value }))}
-                  className="w-full px-3 py-2 bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 transition-all"
                 >
                   <option value="">Todos</option>
                   {catalogos.sectores?.map(s => (
                     <option key={s.nombre} value={s.nombre}>{s.nombre}</option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               {/* Estado */}
               <div>
-                <label className="block text-sm font-medium text-slate-500 mb-1">
+                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
                   {t("mrp_estado", "Estado")}
                 </label>
-                <select
+                <Select
                   value={filtros.estado}
                   onChange={(e) => setFiltros(prev => ({ ...prev, estado: e.target.value }))}
-                  className="w-full px-3 py-2 bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 transition-all"
                 >
                   {estados.map(e => (
                     <option key={e.value} value={e.value}>{e.label}</option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               {/* Búsqueda */}
               <div>
-                <label className="block text-sm font-medium text-slate-500 mb-1">
+                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
                   {t("mrp_buscar", "Buscar")}
                 </label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Código o descripción..."
-                    className="w-full pl-10 pr-3 py-2 bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 transition-all"
-                  />
-                </div>
+                <SearchInput
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Código o descripción..."
+                />
               </div>
             </div>
 
             <div className="flex justify-end mt-4">
               <Button onClick={fetchAlertas}>
-                <RefreshCw className="w-4 h-4" />
+                <RefreshCw className="w-4 h-4 text-slate-600" />
                 {t("mrp_actualizar", "Actualizar")}
               </Button>
             </div>
@@ -365,7 +358,7 @@ export default function MRPTableroAlertas() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-blue-600" />
+            <AlertTriangle className="w-5 h-5 text-amber-500" />
             {t("mrp_lista_alertas", "Lista de Alertas")}
             <span className="ml-2 text-sm font-normal text-slate-500">
               ({filteredAlertas.length} materiales)
@@ -375,40 +368,40 @@ export default function MRPTableroAlertas() {
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
             </div>
           ) : error ? (
             <div className="flex items-center justify-center py-12 text-red-500">
-              <AlertCircle className="w-6 h-6 mr-2" />
+              <AlertCircle className="w-6 h-6 mr-2 text-red-500" />
               {error}
             </div>
           ) : filteredAlertas.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-slate-500">
-              <Package className="w-12 h-12 mb-4 opacity-50" />
+              <Package className="w-12 h-12 mb-4 opacity-50 text-indigo-500" />
               <p>{t("mrp_sin_alertas", "No hay alertas para mostrar")}</p>
               <p className="text-sm">{t("mrp_ajustar_filtros", "Ajuste los filtros o intente de nuevo")}</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl border border-white/30">
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-white/30">
+                <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
+                  <tr>
                     <th
-                      className="px-4 py-3 text-left cursor-pointer hover:bg-white/50 transition-colors"
+                      className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] cursor-pointer hover:bg-slate-100 transition-colors border-r border-b border-slate-200"
                       onClick={() => handleSort("codigo")}
                     >
-                      <span className="flex items-center gap-1">
+                      <span className="flex items-center justify-center gap-1">
                         {t("mrp_col_codigo", "Código SAP")}
                         <SortIcon columnKey="codigo" />
                       </span>
                     </th>
-                    <th className="px-4 py-3 text-left">{t("mrp_col_descripcion", "Descripción")}</th>
-                    <th className="px-4 py-3 text-center">{t("mrp_col_demanda", "Demanda Anual")}</th>
-                    <th className="px-4 py-3 text-center">{t("mrp_col_ss", "Stock Seg.")}</th>
-                    <th className="px-4 py-3 text-center">{t("mrp_col_pp", "Pto. Pedido")}</th>
-                    <th className="px-4 py-3 text-center">{t("mrp_col_smax", "Stock Máx.")}</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">{t("mrp_col_descripcion", "Descripción")}</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">{t("mrp_col_demanda", "Demanda Anual")}</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">{t("mrp_col_ss", "Stock Seg.")}</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">{t("mrp_col_pp", "Pto. Pedido")}</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">{t("mrp_col_smax", "Stock Máx.")}</th>
                     <th
-                      className="px-4 py-3 text-center cursor-pointer hover:bg-white/50 transition-colors"
+                      className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] cursor-pointer hover:bg-slate-100 transition-colors border-r border-b border-slate-200"
                       onClick={() => handleSort("stock_actual")}
                     >
                       <span className="flex items-center justify-center gap-1">
@@ -416,9 +409,9 @@ export default function MRPTableroAlertas() {
                         <SortIcon columnKey="stock_actual" />
                       </span>
                     </th>
-                    <th className="px-4 py-3 text-center">{t("mrp_col_pedidos", "Pedidos Curso")}</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">{t("mrp_col_pedidos", "Pedidos Curso")}</th>
                     <th
-                      className="px-4 py-3 text-center cursor-pointer hover:bg-white/50 transition-colors"
+                      className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] cursor-pointer hover:bg-slate-100 transition-colors border-r border-b border-slate-200"
                       onClick={() => handleSort("rotacion_pct")}
                     >
                       <span className="flex items-center justify-center gap-1">
@@ -426,8 +419,8 @@ export default function MRPTableroAlertas() {
                         <SortIcon columnKey="rotacion_pct" />
                       </span>
                     </th>
-                    <th className="px-4 py-3 text-center">{t("mrp_col_estado", "Estado")}</th>
-                    <th className="px-4 py-3 text-left">{t("mrp_col_sugerencia", "Sugerencia")}</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">{t("mrp_col_estado", "Estado")}</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">{t("mrp_col_sugerencia", "Sugerencia")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -439,23 +432,23 @@ export default function MRPTableroAlertas() {
                         idx % 2 === 0 ? "bg-transparent" : "bg-white/20"
                       )}
                     >
-                      <td className="px-4 py-3 font-mono text-blue-600">{alerta.codigo}</td>
-                      <td className="px-4 py-3 max-w-xs truncate" title={alerta.descripcion}>
+                      <td className="px-4 py-3 font-mono text-blue-600 border-r border-b border-slate-200">{alerta.codigo}</td>
+                      <td className="px-4 py-3 max-w-xs truncate border-r border-b border-slate-200" title={alerta.descripcion}>
                         {alerta.descripcion}
                       </td>
-                      <td className="px-4 py-3 text-center">{alerta.demanda_estimada_anual?.toLocaleString()}</td>
-                      <td className="px-4 py-3 text-center">{alerta.stock_seguridad}</td>
-                      <td className="px-4 py-3 text-center">{alerta.punto_pedido}</td>
-                      <td className="px-4 py-3 text-center">{alerta.stock_maximo}</td>
+                      <td className="px-4 py-3 text-center border-r border-b border-slate-200">{alerta.demanda_estimada_anual?.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-center border-r border-b border-slate-200">{alerta.stock_seguridad}</td>
+                      <td className="px-4 py-3 text-center border-r border-b border-slate-200">{alerta.punto_pedido}</td>
+                      <td className="px-4 py-3 text-center border-r border-b border-slate-200">{alerta.stock_maximo}</td>
                       <td className={clsx(
-                        "px-4 py-3 text-center font-medium",
+                        "px-4 py-3 text-center font-medium border-r border-b border-slate-200",
                         alerta.stock_actual <= 0 ? "text-red-400" :
                         alerta.stock_actual < alerta.punto_pedido ? "text-yellow-400" : "text-green-400"
                       )}>
                         {alerta.stock_actual}
                       </td>
-                      <td className="px-4 py-3 text-center">{alerta.pedidos_en_curso}</td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center border-r border-b border-slate-200">{alerta.pedidos_en_curso}</td>
+                      <td className="px-4 py-3 text-center border-r border-b border-slate-200">
                         <span className={clsx(
                           "font-medium",
                           alerta.rotacion_pct > 300 ? "text-green-400" :
@@ -464,7 +457,7 @@ export default function MRPTableroAlertas() {
                           {alerta.rotacion_pct}%
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center border-r border-b border-slate-200">
                         <EstadoBadge estado={alerta.estado} clase={alerta.estado_clase} />
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-500 max-w-xs truncate" title={alerta.sugerencia}>
@@ -477,27 +470,29 @@ export default function MRPTableroAlertas() {
             </div>
           )}
 
-          {/* Paginación - Glass style */}
+          {/* Paginación */}
           {pagination.total > pagination.limit && (
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/30">
               <span className="text-sm text-slate-500">
                 Mostrando {pagination.offset + 1} - {Math.min(pagination.offset + pagination.limit, pagination.total)} de {pagination.total}
               </span>
               <div className="flex gap-2">
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setPagination(prev => ({ ...prev, offset: Math.max(0, prev.offset - prev.limit) }))}
                   disabled={pagination.offset === 0}
-                  className="px-3 py-1 rounded-xl border border-white/50 bg-white/50 backdrop-blur-sm text-sm text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/70 transition-all"
                 >
                   Anterior
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setPagination(prev => ({ ...prev, offset: prev.offset + prev.limit }))}
                   disabled={!pagination.has_more}
-                  className="px-3 py-1 rounded-xl border border-white/50 bg-white/50 backdrop-blur-sm text-sm text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/70 transition-all"
                 >
                   Siguiente
-                </button>
+                </Button>
               </div>
             </div>
           )}

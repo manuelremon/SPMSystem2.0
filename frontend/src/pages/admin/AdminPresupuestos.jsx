@@ -15,7 +15,7 @@ import {
   Plus, Edit3, Trash2, X, Save, History,
   TrendingUp, TrendingDown, RefreshCw, Clock,
   ArrowUpCircle, ArrowDownCircle, PlusCircle, MinusCircle
-} from 'lucide-react'
+} from '../../components/ui/Icons'
 
 const TIPO_CAMBIO_ICONS = {
   creacion: { icon: PlusCircle, color: 'text-blue-600', bg: 'bg-blue-100' },
@@ -181,10 +181,10 @@ export default function AdminPresupuestos() {
       header: 'Acciones',
       render: (row) => (
         <div className="flex gap-1.5 justify-center">
-          <Button variant="secondary" className="px-2.5 py-1.5 text-xs" onClick={() => handleEdit(row)}>
+          <Button variant="icon" className="px-2.5 py-1.5 text-xs" onClick={() => handleEdit(row)}>
             <Edit3 className="w-4 h-4" />
           </Button>
-          <Button variant="danger" className="px-2.5 py-1.5 text-xs" onClick={() => handleDelete(row)}>
+          <Button variant="icon-danger" className="px-2.5 py-1.5 text-xs" onClick={() => handleDelete(row)}>
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>

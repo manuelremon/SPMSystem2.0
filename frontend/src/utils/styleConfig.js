@@ -16,7 +16,7 @@ import {
   FileText,
   Pause,
   Play
-} from "lucide-react";
+} from "../components/ui/Icons";
 
 // ═══════════════════════════════════════════════════════════════
 // CONFIGURACIÓN DE ESTADOS

@@ -20,7 +20,7 @@ import {
   Layers,
   BarChart3,
   Loader2,
-} from "lucide-react";
+} from "../components/ui/Icons";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
 import { useNavigate, Link } from "react-router-dom";
@@ -141,9 +141,9 @@ export default function DashboardAprobador() {
   const navigate = useNavigate();
   const { t } = useI18n();
 
-  const [activeTab, setActiveTab] = useState("pendientes");
-  const [stats, setStats] = useState({ pendientes: 0, aprobadas: 0, rechazadas: 0 });
-  const [allData, setAllData] = useState({ pendientes: [], aprobadas: [], rechazadas: [] });
+  const [activeTab, setActiveTab] = useState("todas");
+  const [stats, setStats] = useState({ todas: 0, pendientes: 0, aprobadas: 0, rechazadas: 0 });
+  const [allData, setAllData] = useState({ todas: [], pendientes: [], aprobadas: [], rechazadas: [] });
   const [loading, setLoading] = useState(true);
 
   // KPI state
@@ -167,9 +167,11 @@ export default function DashboardAprobador() {
         const pendientesLista = pendientesRes?.data?.solicitudes || pendientesRes?.data?.items || [];
         const aprobadasLista = aprobadasRes?.data?.solicitudes || aprobadasRes?.data?.items || [];
         const rechazadasLista = rechazadasRes?.data?.solicitudes || rechazadasRes?.data?.items || [];
+        const todasLista = [...pendientesLista, ...aprobadasLista, ...rechazadasLista]
+          .sort((a, b) => new Date(b.fecha_creacion || b.created_at || 0) - new Date(a.fecha_creacion || a.created_at || 0));
 
-        setStats({ pendientes: pendientesLista.length, aprobadas: aprobadasLista.length, rechazadas: rechazadasLista.length });
-        setAllData({ pendientes: pendientesLista, aprobadas: aprobadasLista, rechazadas: rechazadasLista });
+        setStats({ todas: todasLista.length, pendientes: pendientesLista.length, aprobadas: aprobadasLista.length, rechazadas: rechazadasLista.length });
+        setAllData({ todas: todasLista, pendientes: pendientesLista, aprobadas: aprobadasLista, rechazadas: rechazadasLista });
       })
       .finally(() => setLoading(false));
   }, [user]);
@@ -191,6 +193,7 @@ export default function DashboardAprobador() {
 
   const columns = useMemo(() => getTableColumns(t), [t]);
   const tabs = [
+    { key: "todas", label: t("dash_todas", "Todas"), count: stats.todas },
     { key: "pendientes", label: t("dash_por_aprobar", "Por Aprobar"), count: stats.pendientes },
     { key: "aprobadas", label: t("dash_aprobadas", "Aprobadas"), count: stats.aprobadas },
     { key: "rechazadas", label: t("dash_rechazadas", "Rechazadas"), count: stats.rechazadas },
@@ -199,6 +202,7 @@ export default function DashboardAprobador() {
 
   const getTableTitle = () => {
     switch (activeTab) {
+      case "todas": return t("dash_all_requests", "Todas las Solicitudes");
       case "pendientes": return t("dash_pending_approval", "Solicitudes Pendientes de Aprobación");
       case "aprobadas": return t("dash_approved", "Solicitudes Aprobadas");
       case "rechazadas": return t("dash_rejected", "Solicitudes Rechazadas");

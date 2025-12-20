@@ -4,7 +4,7 @@ import {
   Package, MapPin, Check, Warehouse, Truck, RefreshCw, Layers,
   LayoutGrid, List, ChevronLeft, ChevronRight, ArrowLeftRight,
   DollarSign, AlertTriangle, CheckCircle, Plus, Minus, Sparkles
-} from "lucide-react";
+} from "../ui/Icons";
 import { formatAlmacen } from "../../utils/formatters";
 
 /**
@@ -678,7 +678,7 @@ export default function Paso2DecisionAbastecimiento({
                   title={itemCompleto ? "Ítem ya completado" : "Aceptar opciones sugeridas por el sistema"}
                   className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-lg transition shadow-sm ${
                     itemCompleto
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      ? "bg-slate-100 text-slate-400 cursor-not-allowed"
                       : "bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 hover:shadow-md"
                   }`}
                 >
@@ -1397,7 +1397,7 @@ function OpcionesTablaMulti({ opciones, fuentesSeleccionadas, onToggle, isSelect
         <thead>
           <tr className="border-b border-[var(--border)] bg-[var(--bg-soft)]">
             <th className="w-10 px-3 py-3 text-center"></th>
-            <th className="px-4 py-3 text-left font-semibold text-[var(--fg)]">Opción</th>
+            <th className="px-4 py-3 text-center font-semibold text-[var(--fg)]">Opción</th>
             <th className="px-4 py-3 text-right font-semibold text-[var(--fg)]">Precio</th>
             <th className="px-4 py-3 text-center font-semibold text-[var(--fg)]">Plazo</th>
             <th className="px-4 py-3 text-center font-semibold text-[var(--fg)]">Disponible</th>

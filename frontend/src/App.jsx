@@ -32,6 +32,7 @@ const Foro = lazy(() => import('./pages/Foro'))
 const CompleteRegistration = lazy(() => import('./pages/CompleteRegistration'))
 const CatalogoMateriales = lazy(() => import('./pages/CatalogoMateriales'))
 const CatalogoEquivalencias = lazy(() => import('./pages/CatalogoEquivalencias'))
+const TodasLasSolicitudes = lazy(() => import('./pages/TodasLasSolicitudes'))
 
 // MRP pages (lazy-loaded)
 const MRPTableroAlertas = lazy(() => import('./pages/MRPTableroAlertas'))
@@ -42,6 +43,10 @@ const SLADashboard = lazy(() => import('./pages/SLADashboard'))
 
 // AI Analytics (lazy-loaded)
 const AIAnalytics = lazy(() => import('./pages/AIAnalytics'))
+
+// Forecast pages (lazy-loaded)
+const ForecastIndividual = lazy(() => import('./pages/ForecastIndividual'))
+const ForecastMasivo = lazy(() => import('./pages/ForecastMasivo'))
 
 // Budget pages (lazy-loaded)
 const BudgetRequests = lazy(() => import('./pages/BudgetRequests'))
@@ -99,6 +104,7 @@ function App() {
             <Route path="/solicitudes/:id/materiales" element={<ProtectedRoute><Materials /></ProtectedRoute>} />
             <Route path="/mis-solicitudes" element={<ProtectedRoute><MisSolicitudes /></ProtectedRoute>} />
             <Route path="/solicitudes/:id" element={<ProtectedRoute><SolicitudDetalle /></ProtectedRoute>} />
+            <Route path="/solicitudes/todas" element={<ProtectedRoute><TodasLasSolicitudes /></ProtectedRoute>} />
             <Route path="/aprobaciones" element={<ProtectedRoute><Aprobaciones /></ProtectedRoute>} />
             <Route path="/aprobaciones/historial" element={<ProtectedRoute><HistorialAprobaciones /></ProtectedRoute>} />
             <Route path="/planificador" element={<ProtectedRoute><Planner /></ProtectedRoute>} />
@@ -106,6 +112,8 @@ function App() {
             <Route path="/planificador/mrp/kpis" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><MRPKPIs /></ProtectedRoute>} />
             <Route path="/planificador/sla" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador', 'coordinador']}><SLADashboard /></ProtectedRoute>} />
             <Route path="/planificador/ai" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><AIAnalytics /></ProtectedRoute>} />
+            <Route path="/planificador/forecast" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ForecastIndividual /></ProtectedRoute>} />
+            <Route path="/planificador/forecast/masivo" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ForecastMasivo /></ProtectedRoute>} />
             <Route path="/presupuestos" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe', 'coordinador']}><BudgetRequests /></ProtectedRoute>} />
             <Route path="/presupuestos/nueva" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe']}><BudgetRequestCreate /></ProtectedRoute>} />
             <Route path="/presupuestos/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe', 'coordinador']}><BudgetRequestDetail /></ProtectedRoute>} />

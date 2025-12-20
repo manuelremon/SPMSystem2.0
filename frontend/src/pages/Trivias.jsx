@@ -19,7 +19,7 @@ import {
   Medal,
   Crown,
   RefreshCw,
-} from "lucide-react";
+} from "../components/ui/Icons";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
 import api from "../services/api";

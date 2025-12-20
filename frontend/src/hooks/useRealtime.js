@@ -69,11 +69,27 @@ export function useRealtime({ enabled = true, subscriptions = [] } = {}) {
     deleteNotification,
     refresh,
     connect,
-    disconnect
+    disconnect,
+    notifications: hookNotifications,
+    unreadCount: hookUnreadCount
   } = useNotifications({
     enabled,
     onNotification: handleNotification
   })
+
+  // Sincronizar el unreadCount del hook con el store
+  useEffect(() => {
+    if (hookUnreadCount !== undefined && hookUnreadCount !== unreadCount) {
+      setUnreadCount(hookUnreadCount)
+    }
+  }, [hookUnreadCount, setUnreadCount])
+
+  // Sincronizar las notificaciones del hook con el store (solo inicial)
+  useEffect(() => {
+    if (hookNotifications && hookNotifications.length > 0 && notifications.length === 0) {
+      setNotifications(hookNotifications)
+    }
+  }, [hookNotifications, setNotifications])
 
   // Sincronizar estado de conexion con el store
   useEffect(() => {
@@ -157,18 +173,18 @@ export function useRealtime({ enabled = true, subscriptions = [] } = {}) {
  * @param {Array} deps - Dependencias del handler
  */
 export function useRealtimeEvent(eventType, handler, deps = []) {
-  const { subscribe, unsubscribe } = useRealtimeStore()
+  const { registerEventHandler, unregisterEventHandler } = useRealtimeStore()
   const handlerIdRef = useRef(`${eventType}_${Math.random().toString(36).substr(2, 9)}`)
 
   useEffect(() => {
     const handlerId = handlerIdRef.current
-    subscribe(eventType, handlerId, handler)
+    registerEventHandler(eventType, handlerId, handler)
 
     return () => {
-      unsubscribe(eventType, handlerId)
+      unregisterEventHandler(eventType, handlerId)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventType, subscribe, unsubscribe, ...deps])
+  }, [eventType, registerEventHandler, unregisterEventHandler, ...deps])
 }
 
 /**

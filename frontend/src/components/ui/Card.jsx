@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 
 /**
  * Card Component - Glass Morphism Style
@@ -72,3 +73,53 @@ export function CardContent({ className = "", children, ...props }) {
     </div>
   );
 }
+
+Card.propTypes = {
+  className: PropTypes.string,
+  children: PropTypes.node,
+  hover: PropTypes.bool,
+  glow: PropTypes.bool,
+  interactive: PropTypes.bool,
+};
+
+Card.defaultProps = {
+  className: "",
+  hover: false,
+  glow: false,
+};
+
+CardHeader.propTypes = {
+  className: PropTypes.string,
+  children: PropTypes.node,
+};
+
+CardHeader.defaultProps = {
+  className: "",
+};
+
+CardTitle.propTypes = {
+  className: PropTypes.string,
+  children: PropTypes.node,
+};
+
+CardTitle.defaultProps = {
+  className: "",
+};
+
+CardDescription.propTypes = {
+  className: PropTypes.string,
+  children: PropTypes.node,
+};
+
+CardDescription.defaultProps = {
+  className: "",
+};
+
+CardContent.propTypes = {
+  className: PropTypes.string,
+  children: PropTypes.node,
+};
+
+CardContent.defaultProps = {
+  className: "",
+};

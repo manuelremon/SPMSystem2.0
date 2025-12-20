@@ -9,7 +9,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react'
-import { Download, FileSpreadsheet, FileText, FileType, ChevronDown, Loader2 } from 'lucide-react'
+import { Download, FileSpreadsheet, FileText, FileType, ChevronDown, Loader2 } from '../ui/Icons'
 import { Button } from '../ui/Button'
 
 const FORMAT_OPTIONS = [
@@ -115,7 +115,7 @@ export function ExportButton({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-50 py-1">
+        <div className="absolute right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-[9999] py-1">
           {availableOptions.map((option) => {
             const Icon = option.icon
             const isCurrentExporting = isExporting && exportingFormat === option.value

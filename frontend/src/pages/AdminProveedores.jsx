@@ -4,7 +4,7 @@ import api from "../services/api";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { ScrollReveal } from "../components/ui/ScrollReveal";
-import { Warehouse, Truck, Plus, Edit2, Trash2, Check, X, MapPin, Phone, Mail, Star, Clock } from "lucide-react";
+import { Warehouse, Truck, Plus, Edit2, Trash2, Check, X, MapPin, Phone, Mail, Star, Clock } from "../components/ui/Icons";
 
 export default function AdminProveedores() {
   const [searchParams] = useSearchParams();
@@ -29,27 +29,27 @@ export default function AdminProveedores() {
       </ScrollReveal>
 
       <ScrollReveal delay={100}>
-        <div className="flex gap-2 border-b border-white/30 pb-2">
+        <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30 w-fit">
           <button
             onClick={() => setTab("internos")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-semibold text-sm transition ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
               tab === "internos"
-                ? "bg-blue-600 text-white"
-                : "text-slate-500 hover:text-slate-800 hover:bg-slate-100/70"
+                ? "bg-white shadow-sm text-blue-600"
+                : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
             }`}
           >
-            <Warehouse className="w-4 h-4" />
+            <Warehouse className="w-4 h-4 text-indigo-500" />
             Internos (Almacenes)
           </button>
           <button
             onClick={() => setTab("externos")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-semibold text-sm transition ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
               tab === "externos"
-                ? "bg-blue-600 text-white"
-                : "text-slate-500 hover:text-slate-800 hover:bg-slate-100/70"
+                ? "bg-white shadow-sm text-blue-600"
+                : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
             }`}
           >
-            <Truck className="w-4 h-4" />
+            <Truck className="w-4 h-4 text-indigo-500" />
             Externos
           </button>
         </div>
@@ -212,18 +212,18 @@ function ProveedoresInternos() {
           </div>
         )}
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-xl border border-white/30">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/30 text-left">
-                <th className="px-4 py-3 font-semibold text-slate-800">Centro</th>
-                <th className="px-4 py-3 font-semibold text-slate-800">Almacen</th>
-                <th className="px-4 py-3 font-semibold text-slate-800">Centro Nombre</th>
-                <th className="px-4 py-3 font-semibold text-slate-800">Almacen Nombre</th>
-                <th className="px-4 py-3 font-semibold text-slate-800">Sector</th>
-                <th className="px-4 py-3 font-semibold text-slate-800">Responsable</th>
-                <th className="px-4 py-3 font-semibold text-slate-800 text-center">Activo</th>
-                <th className="px-4 py-3 font-semibold text-slate-800">Acciones</th>
+            <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
+              <tr>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Centro</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Almacen</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Centro Nombre</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Almacen Nombre</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Sector</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Responsable</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Activo</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -292,23 +292,27 @@ function ProveedoresInternos() {
                     </td>
                     <td className="px-4 py-3">
                       {isEditing ? (
-                        <div className="flex gap-2">
-                          <button
+                        <div className="flex gap-1">
+                          <Button
+                            variant="success"
+                            size="icon-sm"
                             onClick={() => handleSave(prov.centro, prov.almacen, editForm)}
-                            className="p-1.5 rounded-lg bg-emerald-600 text-white hover:opacity-80"
                           >
                             <Check className="w-4 h-4" />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="icon"
+                            size="icon-sm"
                             onClick={() => setEditingId(null)}
-                            className="p-1.5 rounded-lg bg-slate-100/70 text-slate-500 hover:bg-white/50"
                           >
                             <X className="w-4 h-4" />
-                          </button>
+                          </Button>
                         </div>
                       ) : (
-                        <div className="flex gap-2">
-                          <button
+                        <div className="flex gap-1">
+                          <Button
+                            variant="icon"
+                            size="icon-sm"
                             onClick={() => {
                               setEditingId(key);
                               setEditForm({
@@ -319,16 +323,16 @@ function ProveedoresInternos() {
                                 contacto_centro: prov.contacto_centro,
                               });
                             }}
-                            className="p-1.5 rounded-lg bg-slate-100/70 text-slate-500 hover:bg-white/50 hover:text-slate-800"
                           >
                             <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="icon-danger"
+                            size="icon-sm"
                             onClick={() => handleDelete(prov.centro, prov.almacen)}
-                            className="p-1.5 rounded-lg bg-slate-100/70 text-red-600 hover:bg-[rgba(239,68,68,0.15)]"
                           >
                             <Trash2 className="w-4 h-4" />
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </td>
@@ -527,18 +531,18 @@ function ProveedoresExternos() {
           </div>
         )}
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-xl border border-white/30">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/30 text-left">
-                <th className="px-4 py-3 font-semibold text-slate-800">CUIT</th>
-                <th className="px-4 py-3 font-semibold text-slate-800">Nombre</th>
-                <th className="px-4 py-3 font-semibold text-slate-800">Localidad</th>
-                <th className="px-4 py-3 font-semibold text-slate-800">Rubro</th>
-                <th className="px-4 py-3 font-semibold text-slate-800 text-center">Lead Time</th>
-                <th className="px-4 py-3 font-semibold text-slate-800">Calificacion</th>
-                <th className="px-4 py-3 font-semibold text-slate-800 text-center">Activo</th>
-                <th className="px-4 py-3 font-semibold text-slate-800">Acciones</th>
+            <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
+              <tr>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">CUIT</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Nombre</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Localidad</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Rubro</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Lead Time</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Calificacion</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Activo</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -568,7 +572,7 @@ function ProveedoresExternos() {
                         />
                       ) : (
                         <span className="text-slate-600 flex items-center gap-1">
-                          <MapPin className="w-3 h-3" /> {prov.localidad || "-"}
+                          <MapPin className="w-3 h-3 text-blue-500" /> {prov.localidad || "-"}
                         </span>
                       )}
                     </td>
@@ -593,7 +597,7 @@ function ProveedoresExternos() {
                         />
                       ) : (
                         <span className="text-slate-800 flex items-center justify-center gap-1">
-                          <Clock className="w-3 h-3 text-slate-400" /> {prov.lead_time_dias || "-"} dias
+                          <Clock className="w-3 h-3 text-cyan-500" /> {prov.lead_time_dias || "-"} dias
                         </span>
                       )}
                     </td>
@@ -625,23 +629,27 @@ function ProveedoresExternos() {
                     </td>
                     <td className="px-4 py-3">
                       {isEditing ? (
-                        <div className="flex gap-2">
-                          <button
+                        <div className="flex gap-1">
+                          <Button
+                            variant="success"
+                            size="icon-sm"
                             onClick={() => handleSave(prov.cuit, editForm)}
-                            className="p-1.5 rounded-lg bg-emerald-600 text-white hover:opacity-80"
                           >
                             <Check className="w-4 h-4" />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="icon"
+                            size="icon-sm"
                             onClick={() => setEditingId(null)}
-                            className="p-1.5 rounded-lg bg-slate-100/70 text-slate-500 hover:bg-white/50"
                           >
                             <X className="w-4 h-4" />
-                          </button>
+                          </Button>
                         </div>
                       ) : (
-                        <div className="flex gap-2">
-                          <button
+                        <div className="flex gap-1">
+                          <Button
+                            variant="icon"
+                            size="icon-sm"
                             onClick={() => {
                               setEditingId(prov.cuit);
                               setEditForm({
@@ -654,16 +662,16 @@ function ProveedoresExternos() {
                                 activo: prov.activo,
                               });
                             }}
-                            className="p-1.5 rounded-lg bg-slate-100/70 text-slate-500 hover:bg-white/50 hover:text-slate-800"
                           >
                             <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="icon-danger"
+                            size="icon-sm"
                             onClick={() => handleDelete(prov.cuit)}
-                            className="p-1.5 rounded-lg bg-slate-100/70 text-red-600 hover:bg-[rgba(239,68,68,0.15)]"
                           >
                             <Trash2 className="w-4 h-4" />
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </td>

@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import clsx from "clsx";
 
 /**
@@ -115,3 +116,19 @@ export const Switch = React.forwardRef(({
 });
 
 Switch.displayName = "Switch";
+
+Switch.propTypes = {
+  className: PropTypes.string,
+  label: PropTypes.string,
+  description: PropTypes.string,
+  checked: PropTypes.bool,
+  onChange: PropTypes.func,
+  disabled: PropTypes.bool,
+  size: PropTypes.oneOf(["sm", "md", "lg"]),
+};
+
+Switch.defaultProps = {
+  checked: false,
+  disabled: false,
+  size: "md",
+};

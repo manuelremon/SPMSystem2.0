@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "./Button";
-import { AlertTriangle, X } from "lucide-react";
+import { AlertTriangle, X } from "./Icons";
 
 /**
  * Modal de confirmación reutilizable

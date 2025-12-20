@@ -26,7 +26,7 @@ import {
   ArrowRight,
   Check,
   ExternalLink
-} from 'lucide-react'
+} from '../components/ui/Icons'
 
 const DEBOUNCE_MS = 300
 const PAGE_SIZE = 50
@@ -82,8 +82,9 @@ export default function CatalogoEquivalencias() {
     try {
       // Get basic material info - search by codigo exactly
       const res = await materiales.buscar({ codigo: codigo, limit: 10 })
-      // Find exact match by codigo
-      const mat = res.data?.find(m => String(m.codigo) === String(codigo)) || res.data?.[0]
+      // API returns {data: [...], ok, total} - find exact match by codigo
+      const materialesArray = res.data?.data || res.data || []
+      const mat = materialesArray.find(m => String(m.codigo) === String(codigo)) || materialesArray[0]
 
       if (mat) {
         setSelectedMaterialForDetail(mat)
@@ -374,7 +375,7 @@ export default function CatalogoEquivalencias() {
                 {t('equivalencias_buscar', 'Buscar por código o descripción')}
               </label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-500" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -382,13 +383,15 @@ export default function CatalogoEquivalencias() {
                   className="pl-10"
                 />
                 {searchQuery && (
-                  <button
+                  <Button
                     type="button"
+                    variant="icon"
+                    size="icon-xs"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100/70 rounded"
+                    className="absolute right-2 top-1/2 -translate-y-1/2"
                   >
-                    <X className="h-4 w-4 text-slate-500" />
-                  </button>
+                    <X className="h-4 w-4 text-red-500" />
+                  </Button>
                 )}
               </div>
             </div>
@@ -415,7 +418,7 @@ export default function CatalogoEquivalencias() {
       <Card hover={false}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <GitCompare className="h-5 w-5 text-cyan-600" />
+            <GitCompare className="h-5 w-5 text-violet-500" />
             {t('equivalencias_lista', 'Equivalencias')}
           </CardTitle>
         </CardHeader>
@@ -424,7 +427,7 @@ export default function CatalogoEquivalencias() {
             <TableSkeleton rows={5} columns={6} />
           ) : results.length === 0 ? (
             <div className="py-12 text-center">
-              <GitCompare className="h-12 w-12 text-slate-500/30 mx-auto mb-4" />
+              <GitCompare className="h-12 w-12 text-violet-500/30 mx-auto mb-4" />
               <p className="text-slate-500">
                 {searchQuery
                   ? t('equivalencias_sin_resultados', 'No se encontraron equivalencias con los criterios de búsqueda')
@@ -436,7 +439,7 @@ export default function CatalogoEquivalencias() {
                   className="mt-4"
                   onClick={() => { resetForm(); setShowCreateModal(true) }}
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-4 h-4 text-blue-600" />
                   {t('equivalencias_crear_primera', 'Crear la primera equivalencia')}
                 </Button>
               )}
@@ -445,24 +448,24 @@ export default function CatalogoEquivalencias() {
             <>
               <div className="overflow-x-auto border border-white/30 rounded-lg">
                 <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-white/30 bg-slate-50/70">
-                      <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
+                    <tr>
+                      <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
                         {t('equivalencias_col_original', 'Material Original')}
                       </th>
-                      <th className="px-2 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
+                      <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                      <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
                         {t('equivalencias_col_equivalente', 'Material Equivalente')}
                       </th>
-                      <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
+                      <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
                         {t('equivalencias_col_tipo', 'Tipo')}
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">
+                      <th className={`px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] ${canManage ? 'border-r border-b border-slate-200' : ''}`}>
                         {t('equivalencias_col_motivo', 'Motivo')}
                       </th>
                       {canManage && (
-                        <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">
                           {t('equivalencias_col_acciones', 'Acciones')}
                         </th>
                       )}
@@ -478,7 +481,7 @@ export default function CatalogoEquivalencias() {
                           hover:bg-slate-100/70
                         `}
                       >
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 border-r border-b border-slate-200">
                           <div>
                             <button
                               type="button"
@@ -494,10 +497,10 @@ export default function CatalogoEquivalencias() {
                             </p>
                           </div>
                         </td>
-                        <td className="px-2 py-3 text-center">
-                          <ArrowRight className="h-4 w-4 text-slate-500 mx-auto" />
+                        <td className="px-2 py-3 text-center border-r border-b border-slate-200">
+                          <ArrowRight className="h-4 w-4 text-slate-600 mx-auto" />
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 border-r border-b border-slate-200">
                           <div>
                             <button
                               type="button"
@@ -513,7 +516,7 @@ export default function CatalogoEquivalencias() {
                             </p>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-4 py-3 text-center border-r border-b border-slate-200">
                           <Badge variant={eq.tipo_equivalencia === 'SUSTITUTO' ? 'success' : 'secondary'}>
                             {eq.tipo_equivalencia || '-'}
                           </Badge>
@@ -521,28 +524,30 @@ export default function CatalogoEquivalencias() {
                             <p className="text-xs text-slate-500 mt-0.5">{eq.criterio}</p>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-slate-800">
+                        <td className={`px-4 py-3 text-slate-800 ${canManage ? 'border-r border-b border-slate-200' : ''}`}>
                           <p className="line-clamp-2">{eq.motivo || '-'}</p>
                         </td>
                         {canManage && (
                           <td className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
+                            <div className="flex items-center justify-center gap-1">
+                              <Button
                                 type="button"
+                                variant="icon-primary"
+                                size="icon-sm"
                                 onClick={() => openEditModal(eq)}
-                                className="p-2 rounded-lg text-blue-500 hover:bg-blue-500/10 transition-colors"
                                 title={t('common_editar', 'Editar')}
                               >
-                                <Edit2 className="h-4 w-4" />
-                              </button>
-                              <button
+                                <Edit2 className="h-4 w-4 text-blue-600" />
+                              </Button>
+                              <Button
                                 type="button"
+                                variant="icon-danger"
+                                size="icon-sm"
                                 onClick={() => openDeleteModal(eq)}
-                                className="p-2 rounded-lg text-red-600 hover:bg-red-500/10 transition-colors"
                                 title={t('common_eliminar', 'Eliminar')}
                               >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
                             </div>
                           </td>
                         )}
@@ -755,7 +760,7 @@ export default function CatalogoEquivalencias() {
               {formLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Plus className="h-4 w-4" />
+                <Plus className="h-4 w-4 text-blue-600" />
               )}
               {t('equivalencias_crear', 'Crear Equivalencia')}
             </Button>
@@ -852,7 +857,7 @@ export default function CatalogoEquivalencias() {
               {formLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Check className="h-4 w-4" />
+                <Check className="h-4 w-4 text-emerald-500" />
               )}
               {t('equivalencias_guardar', 'Guardar Cambios')}
             </Button>

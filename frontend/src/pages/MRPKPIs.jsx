@@ -21,7 +21,7 @@ import {
   AlertCircle,
   RefreshCw,
   Calendar,
-} from "lucide-react";
+} from "../components/ui/Icons";
 
 // KPI Card component - Glass Morphism style
 function KPICard({ titulo, valor, unidad, tendencia, objetivo, descripcion, icon: Icon }) {

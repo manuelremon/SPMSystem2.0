@@ -62,7 +62,7 @@ const TableRow = React.forwardRef(({ className, ...props }, ref) => (
   <tr
     ref={ref}
     className={cn(
-      "border-b border-[var(--border-subtle)]",
+      "border-b border-slate-200",
       "transition-colors duration-200",
       "hover:bg-[var(--bg-elevated)]",
       "data-[state=selected]:bg-[var(--primary-muted)]",
@@ -84,10 +84,12 @@ const TableHead = React.forwardRef(({ className, ...props }, ref) => (
       "text-[var(--fg-muted)]",
       // Background - inherits from TableHeader
       "bg-transparent",
+      // Grid lines - gray
+      "border-r border-b border-slate-200 last:border-r-0",
       // Sticky header
       "sticky top-0 z-10",
-      // Alignment
-      "text-left align-middle",
+      // Alignment - Centrado global
+      "text-center align-middle",
       // Sortable state
       "[&:has([role=button])]:cursor-pointer",
       "[&:has([role=button])]:hover:text-[var(--primary)]",
@@ -113,6 +115,8 @@ const TableCell = React.forwardRef(({ className, align = "left", ...props }, ref
         "px-4 py-3",
         // Typography
         "text-sm text-[var(--fg)]",
+        // Grid lines - gray
+        "border-r border-b border-slate-200 last:border-r-0",
         // Alignment
         "align-middle",
         alignClass,

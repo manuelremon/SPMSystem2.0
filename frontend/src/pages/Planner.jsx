@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+/**
+ * Planner Page
+ * Refactored to use usePlanner hook for state management
+ * Sprint: Technical Audit - Phase 2
+ */
+
+import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { planner, solicitudes } from "../services/spm";
-import { useAuthStore } from "../store/authStore";
-import { useRealtimeEvent } from "../hooks/useRealtime";
+import { usePlanner, renderSolicitante } from "../hooks/usePlanner";
 import { Button } from "../components/ui/Button";
 import { Card, CardHeader, CardDescription, CardContent } from "../components/ui/Card";
 import { ModernDataTable as DataTable } from "../components/features/DataTable";
@@ -21,253 +25,61 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  Edit3,
   Download,
   Eye,
   Play,
-  Check,
   Info
 } from "../components/ui/Icons";
-import { renderSector as renderSectorUtil } from "../constants/sectores";
-import { formatDate, formatCurrency, exportToExcel, getSectorNombre } from "../utils/formatters";
+import { formatDate, formatCurrency, getSectorNombre } from "../utils/formatters";
 import { getCriticidadConfig, getEstadoConfig } from "../utils/styleConfig";
-import { useDebounced } from "../hooks/useDebounced";
-
-const DEBOUNCE_MS = 300;
-const ITEMS_PER_PAGE = 20;
 
 export default function Planner() {
-  const { user } = useAuthStore();
   const { t } = useI18n();
   const navigate = useNavigate();
-  const [items, setItems] = useState([]);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  // Búsqueda general
-  const [q, setQ] = useState("");
-  const debouncedQ = useDebounced(q, DEBOUNCE_MS);
+  // All state and logic extracted to usePlanner hook
+  const {
+    error,
+    success,
+    loading,
+    q,
+    filtroCentro,
+    filtroSector,
+    filtroEstado,
+    filtroCriticidad,
+    currentPage,
+    activeTab,
+    selectedParaTratar,
+    rejectModal,
+    historialModal,
+    filtered,
+    paginatedItems,
+    totalPages,
+    tabCounts,
+    itemsPerPage,
+    setQ,
+    setFiltroCentro,
+    setFiltroSector,
+    setFiltroEstado,
+    setFiltroCriticidad,
+    setCurrentPage,
+    setActiveTab,
+    load,
+    handleTratar,
+    rechazar,
+    handleExport,
+    closeTratarModal,
+    onTratarComplete,
+    closeRejectModal,
+    updateRejectMotivo,
+    openHistorialModal,
+    closeHistorialModal,
+    clearError,
+    clearSuccess,
+  } = usePlanner({ t });
 
-  // Filtros
-  const [filtroCentro, setFiltroCentro] = useState("");
-  const [filtroSector, setFiltroSector] = useState("");
-  const [filtroEstado, setFiltroEstado] = useState("");
-  const [filtroCriticidad, setFiltroCriticidad] = useState("");
-
-  // Paginación
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // Tab activo para filtrar por estado de tratamiento
-  const [activeTab, setActiveTab] = useState("pendientes");
-
-  // Modales
-  const [selectedParaTratar, setSelectedParaTratar] = useState(null);
-  const [rejectModal, setRejectModal] = useState({ open: false, solicitud: null, motivo: "" });
-  const [historialModal, setHistorialModal] = useState({ open: false, solicitud: null });
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await planner.listar({
-        planner_id: user?.rol?.toLowerCase() === "admin" ? undefined : user?.id,
-      });
-      setItems(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      setError(err.response?.data?.error?.message || err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.rol, user?.id]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  // Auto-refresh cuando llegan notificaciones de solicitudes nuevas o aprobadas
-  useRealtimeEvent('notification:solicitud_to_plan', () => {
-    load();
-  }, [load]);
-
-  useRealtimeEvent('notification:solicitud_approved', () => {
-    load();
-  }, [load]);
-
-  // Resetear paginación cuando cambian los filtros o el tab
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedQ, filtroCentro, filtroSector, filtroEstado, filtroCriticidad, activeTab]);
-
-  // Helper para clasificar estado
-  const getEstadoCategoria = useCallback((item) => {
-    const estado = (item.status || item.estado || "").toLowerCase();
-    if (estado.includes("finaliz") || estado.includes("complet") || estado.includes("tratad")) {
-      return "finalizadas";
-    }
-    if (estado.includes("progreso") || estado.includes("proceso")) {
-      return "en_progreso";
-    }
-    // Aprobada o cualquier otro estado = pendientes
-    return "pendientes";
-  }, []);
-
-  // Contadores por estado (para mostrar en los tabs)
-  const tabCounts = useMemo(() => {
-    const counts = { pendientes: 0, en_progreso: 0, finalizadas: 0 };
-    items.forEach((item) => {
-      const cat = getEstadoCategoria(item);
-      counts[cat]++;
-    });
-    return counts;
-  }, [items, getEstadoCategoria]);
-
-  // Tratar: si está Aprobada, primero la acepta y luego abre el modal
-  const handleTratar = useCallback(async (row) => {
-    const estadoVal = (row.status || row.estado || "").toLowerCase();
-    const isAprobada = estadoVal.includes("aprobad");
-
-    if (isAprobada) {
-      // Primero aceptar (cambiar a "En Progreso")
-      setSuccess("");
-      setError("");
-      try {
-        await planner.aceptar(row.id);
-        // Actualizar el item localmente para reflejar el cambio
-        setItems(prev => prev.map(item =>
-          item.id === row.id ? { ...item, status: "En Progreso", estado: "En Progreso" } : item
-        ));
-      } catch (err) {
-        setError(err.response?.data?.error?.message || err.message);
-        return; // No abrir modal si falla
-      }
-    }
-
-    // Abrir modal de tratamiento
-    setSelectedParaTratar(row);
-  }, []);
-
-  const finalizar = useCallback(async (id) => {
-    setSuccess("");
-    setError("");
-    try {
-      await planner.finalizar(id);
-      setSuccess(t("planner_msg_finalizar", "Solicitud tratada/finalizada."));
-      setTimeout(() => setSuccess(""), 3000);
-      load();
-    } catch (err) {
-      setError(err.response?.data?.error?.message || err.message);
-    }
-  }, [load, t]);
-
-  const rechazar = useCallback(async () => {
-    if (!rejectModal.solicitud) return;
-    const motivo = rejectModal.motivo.trim();
-    if (!motivo) {
-      setError(t("planner_rechazar_motivo_required", "Debes indicar el motivo del rechazo"));
-      return;
-    }
-    setSuccess("");
-    setError("");
-    try {
-      await solicitudes.rechazar(rejectModal.solicitud.id, motivo);
-      setSuccess(t("planner_rechazar_success", "Solicitud rechazada correctamente."));
-      setTimeout(() => setSuccess(""), 3000);
-      setRejectModal({ open: false, solicitud: null, motivo: "" });
-      load();
-    } catch (err) {
-      setError(err.response?.data?.error?.message || err.message);
-    }
-  }, [rejectModal.solicitud, rejectModal.motivo, load, t]);
-
-  // Filtrado con búsqueda general
-  const filtered = useMemo(() => {
-    let result = [...items];
-
-    // Filtro por tab (estado de tratamiento)
-    result = result.filter((s) => getEstadoCategoria(s) === activeTab);
-
-    // Búsqueda general
-    if (debouncedQ) {
-      const qLower = debouncedQ.toLowerCase();
-      result = result.filter((s) => {
-        const searchText = [
-          s.id,
-          s.justificacion,
-          s.centro,
-          getSectorNombre(s.sector),
-          s.status,
-          s.estado,
-          s.solicitante_nombre,
-          s.solicitante_apellido,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        return searchText.includes(qLower);
-      });
-    }
-
-    // Filtro por centro
-    if (filtroCentro) {
-      result = result.filter((s) =>
-        (s.centro || "").toString().toLowerCase().includes(filtroCentro.toLowerCase())
-      );
-    }
-
-    // Filtro por sector
-    if (filtroSector) {
-      result = result.filter((s) =>
-        getSectorNombre(s.sector).toLowerCase().includes(filtroSector.toLowerCase())
-      );
-    }
-
-    // Filtro por estado
-    if (filtroEstado) {
-      result = result.filter((s) => {
-        const estado = (s.status || s.estado || "").toLowerCase();
-        return estado.includes(filtroEstado.toLowerCase());
-      });
-    }
-
-    // Filtro por criticidad
-    if (filtroCriticidad) {
-      result = result.filter((s) =>
-        (s.criticidad || "Normal").toLowerCase() === filtroCriticidad.toLowerCase()
-      );
-    }
-
-    return result;
-  }, [items, activeTab, getEstadoCategoria, debouncedQ, filtroCentro, filtroSector, filtroEstado, filtroCriticidad]);
-
-  // Paginación
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-  const paginatedItems = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filtered.slice(start, start + ITEMS_PER_PAGE);
-  }, [filtered, currentPage]);
-
-  // Exportar
-  const handleExport = useCallback(() => {
-    const dataToExport = filtered.map((s) => ({
-      ID: s.id,
-      Justificacion: s.justificacion || "",
-      Centro: s.centro || "",
-      Sector: getSectorNombre(s.sector),
-      Criticidad: s.criticidad || "Normal",
-      "Monto Total": s.total_monto || 0,
-      Estado: s.status || s.estado || "",
-      "Fecha Necesidad": formatDate(s.fecha_necesidad),
-      "Fecha Creación": formatDate(s.created_at),
-      Solicitante: renderSolicitante(s),
-    }));
-    exportToExcel(dataToExport, `planificador-${new Date().toISOString().split("T")[0]}.xls`);
-    setSuccess(t("planner_export_success", "Datos exportados correctamente"));
-    setTimeout(() => setSuccess(""), 3000);
-  }, [filtered, t]);
-
-  // Columnas de la tabla (con alineación SPM automática)
-  const columns = withSpmAlignments([
+  // Column definitions with SPM alignments
+  const columns = useCallback(() => withSpmAlignments([
     {
       key: "id",
       header: "ID",
@@ -402,7 +214,7 @@ export default function Planner() {
         const config = getEstadoConfig(estadoVal);
         return (
           <button
-            onClick={() => setHistorialModal({ open: true, solicitud: row })}
+            onClick={() => openHistorialModal(row)}
             className="inline-flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
             style={{ color: config.color }}
             title={t("planner_ver_historial", "Ver historial de estados")}
@@ -416,29 +228,29 @@ export default function Planner() {
       },
       sortAccessor: (row) => (row.status || row.estado || "").toString(),
     },
-  ]);
+  ]), [t, navigate, handleTratar, openHistorialModal]);
 
   return (
     <div className="space-y-6">
-      {/* Encabezado */}
+      {/* Header */}
       <PageHeader title="PLANIFICADOR" />
 
-      {/* Mensajes de éxito/error */}
+      {/* Success/Error Messages */}
       {success && (
-        <Alert variant="success" onDismiss={() => setSuccess("")} className="animate-in fade-in duration-200">
+        <Alert variant="success" onDismiss={clearSuccess} className="animate-in fade-in duration-200">
           {success}
         </Alert>
       )}
       {error && (
-        <Alert variant="danger" onDismiss={() => setError("")} className="animate-in fade-in duration-200">
+        <Alert variant="danger" onDismiss={clearError} className="animate-in fade-in duration-200">
           {error}
         </Alert>
       )}
 
-      {/* Barra de filtros horizontal */}
+      {/* Filter Bar */}
       <Card className="p-4">
         <div className="flex flex-wrap items-end gap-4">
-          {/* Búsqueda general */}
+          {/* General Search */}
           <div className="flex-1 min-w-[200px] max-w-[300px]">
             <label htmlFor="planner-search" className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1.5">
               {t("planner_busqueda_general", "Buscar")}
@@ -452,7 +264,7 @@ export default function Planner() {
             />
           </div>
 
-          {/* Filtro Centro */}
+          {/* Centro Filter */}
           <div className="w-[130px]">
             <label htmlFor="planner-centro" className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1.5">
               {t("planner_centro", "Centro")}
@@ -470,7 +282,7 @@ export default function Planner() {
             </Select>
           </div>
 
-          {/* Filtro Sector */}
+          {/* Sector Filter */}
           <div className="w-[160px]">
             <label htmlFor="planner-sector" className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1.5">
               {t("planner_sector", "Sector")}
@@ -493,7 +305,7 @@ export default function Planner() {
             </Select>
           </div>
 
-          {/* Filtro Estado */}
+          {/* Estado Filter */}
           <div className="w-[140px]">
             <label htmlFor="planner-estado" className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1.5">
               {t("planner_estado", "Estado")}
@@ -512,7 +324,7 @@ export default function Planner() {
             </Select>
           </div>
 
-          {/* Filtro Criticidad */}
+          {/* Criticidad Filter */}
           <div className="w-[120px]">
             <label htmlFor="planner-criticidad" className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1.5">
               {t("planner_criticidad", "Criticidad")}
@@ -529,7 +341,7 @@ export default function Planner() {
             </Select>
           </div>
 
-          {/* Botones de acción */}
+          {/* Action Buttons */}
           <div className="flex items-center gap-2 ml-auto">
             <Button
               variant="ghost"
@@ -555,74 +367,41 @@ export default function Planner() {
         </div>
       </Card>
 
-      {/* Tabla de solicitudes */}
+      {/* Solicitudes Table */}
       <Card>
-        {/* Tabs de estado de tratamiento */}
+        {/* Status Tabs */}
         <div className="px-6 pt-4">
           <div className="flex border-b border-slate-200">
-            <button
+            <TabButton
+              active={activeTab === "pendientes"}
               onClick={() => setActiveTab("pendientes")}
-              className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
-                activeTab === "pendientes"
-                  ? "text-amber-600"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-cyan-500" />
-                {t("planner_tab_pendientes", "Pendientes")}
-                {tabCounts.pendientes > 0 && (
-                  <span className="min-w-[20px] h-5 px-1.5 flex items-center justify-center text-xs font-bold text-white bg-amber-500 rounded-full">
-                    {tabCounts.pendientes}
-                  </span>
-                )}
-              </span>
-              {activeTab === "pendientes" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-600" />
-              )}
-            </button>
-            <button
+              icon={<Clock className="w-4 h-4 text-cyan-500" />}
+              label={t("planner_tab_pendientes", "Pendientes")}
+              count={tabCounts.pendientes}
+              countColor="bg-amber-500"
+              activeColor="text-amber-600"
+              borderColor="bg-amber-600"
+            />
+            <TabButton
+              active={activeTab === "en_progreso"}
               onClick={() => setActiveTab("en_progreso")}
-              className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
-                activeTab === "en_progreso"
-                  ? "text-blue-600"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <Play className="w-4 h-4 text-blue-600" />
-                {t("planner_tab_en_progreso", "En Progreso")}
-                {tabCounts.en_progreso > 0 && (
-                  <span className="min-w-[20px] h-5 px-1.5 flex items-center justify-center text-xs font-bold text-white bg-blue-500 rounded-full">
-                    {tabCounts.en_progreso}
-                  </span>
-                )}
-              </span>
-              {activeTab === "en_progreso" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
-              )}
-            </button>
-            <button
+              icon={<Play className="w-4 h-4 text-blue-600" />}
+              label={t("planner_tab_en_progreso", "En Progreso")}
+              count={tabCounts.en_progreso}
+              countColor="bg-blue-500"
+              activeColor="text-blue-600"
+              borderColor="bg-blue-600"
+            />
+            <TabButton
+              active={activeTab === "finalizadas"}
               onClick={() => setActiveTab("finalizadas")}
-              className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
-                activeTab === "finalizadas"
-                  ? "text-emerald-600"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-500" />
-                {t("planner_tab_finalizadas", "Finalizadas")}
-                {tabCounts.finalizadas > 0 && (
-                  <span className="min-w-[20px] h-5 px-1.5 flex items-center justify-center text-xs font-medium text-slate-500 bg-slate-100 rounded-full">
-                    {tabCounts.finalizadas}
-                  </span>
-                )}
-              </span>
-              {activeTab === "finalizadas" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600" />
-              )}
-            </button>
+              icon={<CheckCircle className="w-4 h-4 text-emerald-500" />}
+              label={t("planner_tab_finalizadas", "Finalizadas")}
+              count={tabCounts.finalizadas}
+              countColor="bg-slate-100 text-slate-500"
+              activeColor="text-emerald-600"
+              borderColor="bg-emerald-600"
+            />
           </div>
         </div>
 
@@ -639,18 +418,18 @@ export default function Planner() {
             <TableSkeleton rows={5} columns={10} />
           ) : (
             <DataTable
-              columns={columns}
+              columns={columns()}
               rows={paginatedItems}
               emptyMessage={t("planner_empty_full", "Sin solicitudes asignadas")}
             />
           )}
 
-          {/* Paginación */}
+          {/* Pagination */}
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
             totalItems={filtered.length}
-            itemsPerPage={ITEMS_PER_PAGE}
+            itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
             labels={{
               page: t("common_pagina", "Página"),
@@ -663,30 +442,23 @@ export default function Planner() {
         </CardContent>
       </Card>
 
-      {/* Modal Tratar Solicitud */}
+      {/* Treatment Modal */}
       <TratarSolicitudModal
         solicitud={selectedParaTratar}
         isOpen={!!selectedParaTratar}
-        onClose={() => setSelectedParaTratar(null)}
-        onComplete={() => {
-          setSelectedParaTratar(null);
-          load();
-        }}
+        onClose={closeTratarModal}
+        onComplete={onTratarComplete}
       />
 
-      {/* Modal Rechazar */}
+      {/* Reject Modal */}
       <Modal
         isOpen={rejectModal.open}
-        onClose={() => setRejectModal({ open: false, solicitud: null, motivo: "" })}
+        onClose={closeRejectModal}
         title={`${t("planner_rechazar_solicitud", "Rechazar Solicitud")} #${rejectModal.solicitud?.id}`}
         size="md"
         footer={
           <>
-            <Button
-              variant="ghost"
-              onClick={() => setRejectModal({ open: false, solicitud: null, motivo: "" })}
-              type="button"
-            >
+            <Button variant="ghost" onClick={closeRejectModal} type="button">
               {t("common_cancelar", "Cancelar")}
             </Button>
             <Button onClick={rechazar} type="button">
@@ -701,7 +473,7 @@ export default function Planner() {
           </p>
           <textarea
             value={rejectModal.motivo}
-            onChange={(e) => setRejectModal((prev) => ({ ...prev, motivo: e.target.value }))}
+            onChange={(e) => updateRejectMotivo(e.target.value)}
             rows={3}
             className="w-full px-4 py-3 rounded-xl border border-blue-300 ring-1 ring-blue-100 bg-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
             placeholder={t("planner_rechazar_placeholder", "Explica brevemente el motivo del rechazo...")}
@@ -709,135 +481,145 @@ export default function Planner() {
         </div>
       </Modal>
 
-      {/* Modal Historial de Estados */}
-      <Modal
+      {/* Historial Modal */}
+      <HistorialModal
         isOpen={historialModal.open}
-        onClose={() => setHistorialModal({ open: false, solicitud: null })}
-        title={`${t("planner_historial_titulo", "Historial de Estados")} - Solicitud #${historialModal.solicitud?.id}`}
-        size="md"
-      >
-        {historialModal.solicitud && (
-          <div className="space-y-4">
-            {/* Estado Actual */}
-            <div className="p-4 rounded-lg bg-slate-50/70 border border-white/30">
-              <h4 className="text-xs uppercase font-bold tracking-[0.08em] text-slate-500 mb-2">
-                {t("planner_historial_estado_actual", "Estado Actual")}
-              </h4>
-              {(() => {
-                const estadoVal = historialModal.solicitud.status || historialModal.solicitud.estado || "Pendiente";
-                const config = getEstadoConfig(estadoVal);
-                return (
-                  <div className="flex items-center gap-2" style={{ color: config.color }}>
-                    {config.icon}
-                    <span className="text-lg font-semibold">{config.label}</span>
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Timeline de estados */}
-            <div className="space-y-3">
-              {/* Creación */}
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50/70 border border-white/30">
-                <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                  <Clock className="w-4 h-4 text-blue-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-800">
-                    {t("planner_historial_creada", "Solicitud Creada")}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {formatDate(historialModal.solicitud.created_at)}
-                    {historialModal.solicitud.solicitante_nombre && (
-                      <> • {historialModal.solicitud.solicitante_nombre} {historialModal.solicitud.solicitante_apellido || ""}</>
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              {/* Aprobación (si fue aprobada) */}
-              {(historialModal.solicitud.status || historialModal.solicitud.estado || "").toLowerCase().includes("aprobad") && (
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50/70 border border-white/30">
-                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                    <CheckCircle className="w-4 h-4 text-emerald-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800">
-                      {t("planner_historial_aprobada", "Aprobada por Coordinador")}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {historialModal.solicitud.aprobado_at ? formatDate(historialModal.solicitud.aprobado_at) : t("planner_historial_fecha_no_disponible", "Fecha no disponible")}
-                      {historialModal.solicitud.aprobador_nombre && (
-                        <> • {historialModal.solicitud.aprobador_nombre} {historialModal.solicitud.aprobador_apellido || ""}</>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Asignación a Planificador */}
-              {historialModal.solicitud.planner_nombre && (
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50/70 border border-white/30">
-                  <div className="w-8 h-8 rounded-full bg-blue-600/20 flex items-center justify-center flex-shrink-0">
-                    <Play className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800">
-                      {t("planner_historial_asignada", "Asignada a Planificador")}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {historialModal.solicitud.planner_nombre} {historialModal.solicitud.planner_apellido || ""}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* En Progreso */}
-              {(historialModal.solicitud.status || historialModal.solicitud.estado || "").toLowerCase().includes("progreso") && (
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50/70 border border-white/30">
-                  <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-4 h-4 text-blue-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800">
-                      {t("planner_historial_en_progreso", "En Progreso")}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {t("planner_historial_tratamiento", "En tratamiento por el planificador")}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Rechazada */}
-              {(historialModal.solicitud.status || historialModal.solicitud.estado || "").toLowerCase().includes("rechaz") && (
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50/70 border border-white/30">
-                  <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
-                    <XCircle className="w-4 h-4 text-red-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800">
-                      {t("planner_historial_rechazada", "Rechazada")}
-                    </p>
-                    {historialModal.solicitud.motivo_rechazo && (
-                      <p className="text-xs text-slate-500 mt-1">
-                        {t("planner_historial_motivo", "Motivo")}: {historialModal.solicitud.motivo_rechazo}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </Modal>
+        onClose={closeHistorialModal}
+        solicitud={historialModal.solicitud}
+        t={t}
+      />
     </div>
   );
 }
 
-function renderSolicitante(row) {
-  const nombre = row.solicitante_nombre || row.nombre || "";
-  const apellido = row.solicitante_apellido || row.apellido || "";
-  const full = `${nombre} ${apellido}`.trim();
-  return full || row.id_usuario || "N/D";
+/**
+ * Tab Button Component
+ */
+function TabButton({ active, onClick, icon, label, count, countColor, activeColor, borderColor }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
+        active ? activeColor : "text-slate-500 hover:text-slate-700"
+      }`}
+    >
+      <span className="flex items-center gap-2">
+        {icon}
+        {label}
+        {count > 0 && (
+          <span className={`min-w-[20px] h-5 px-1.5 flex items-center justify-center text-xs font-bold rounded-full ${
+            countColor.includes("text-") ? countColor : `text-white ${countColor}`
+          }`}>
+            {count}
+          </span>
+        )}
+      </span>
+      {active && <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${borderColor}`} />}
+    </button>
+  );
+}
+
+/**
+ * Historial Modal Component
+ */
+function HistorialModal({ isOpen, onClose, solicitud, t }) {
+  if (!solicitud) return null;
+
+  const estadoVal = solicitud.status || solicitud.estado || "Pendiente";
+  const config = getEstadoConfig(estadoVal);
+  const estadoLower = estadoVal.toLowerCase();
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`${t("planner_historial_titulo", "Historial de Estados")} - Solicitud #${solicitud?.id}`}
+      size="md"
+    >
+      <div className="space-y-4">
+        {/* Current State */}
+        <div className="p-4 rounded-lg bg-slate-50/70 border border-white/30">
+          <h4 className="text-xs uppercase font-bold tracking-[0.08em] text-slate-500 mb-2">
+            {t("planner_historial_estado_actual", "Estado Actual")}
+          </h4>
+          <div className="flex items-center gap-2" style={{ color: config.color }}>
+            {config.icon}
+            <span className="text-lg font-semibold">{config.label}</span>
+          </div>
+        </div>
+
+        {/* Timeline */}
+        <div className="space-y-3">
+          {/* Creation */}
+          <TimelineItem
+            icon={<Clock className="w-4 h-4 text-blue-500" />}
+            iconBg="bg-blue-500/20"
+            title={t("planner_historial_creada", "Solicitud Creada")}
+            subtitle={`${formatDate(solicitud.created_at)}${
+              solicitud.solicitante_nombre ? ` • ${solicitud.solicitante_nombre} ${solicitud.solicitante_apellido || ""}` : ""
+            }`}
+          />
+
+          {/* Approval */}
+          {estadoLower.includes("aprobad") && (
+            <TimelineItem
+              icon={<CheckCircle className="w-4 h-4 text-emerald-500" />}
+              iconBg="bg-emerald-500/20"
+              title={t("planner_historial_aprobada", "Aprobada por Coordinador")}
+              subtitle={`${solicitud.aprobado_at ? formatDate(solicitud.aprobado_at) : t("planner_historial_fecha_no_disponible", "Fecha no disponible")}${
+                solicitud.aprobador_nombre ? ` • ${solicitud.aprobador_nombre} ${solicitud.aprobador_apellido || ""}` : ""
+              }`}
+            />
+          )}
+
+          {/* Assigned to Planner */}
+          {solicitud.planner_nombre && (
+            <TimelineItem
+              icon={<Play className="w-4 h-4 text-blue-600" />}
+              iconBg="bg-blue-600/20"
+              title={t("planner_historial_asignada", "Asignada a Planificador")}
+              subtitle={`${solicitud.planner_nombre} ${solicitud.planner_apellido || ""}`}
+            />
+          )}
+
+          {/* In Progress */}
+          {estadoLower.includes("progreso") && (
+            <TimelineItem
+              icon={<Clock className="w-4 h-4 text-blue-500" />}
+              iconBg="bg-blue-500/20"
+              title={t("planner_historial_en_progreso", "En Progreso")}
+              subtitle={t("planner_historial_tratamiento", "En tratamiento por el planificador")}
+            />
+          )}
+
+          {/* Rejected */}
+          {estadoLower.includes("rechaz") && (
+            <TimelineItem
+              icon={<XCircle className="w-4 h-4 text-red-500" />}
+              iconBg="bg-red-500/20"
+              title={t("planner_historial_rechazada", "Rechazada")}
+              subtitle={solicitud.motivo_rechazo ? `${t("planner_historial_motivo", "Motivo")}: ${solicitud.motivo_rechazo}` : undefined}
+            />
+          )}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * Timeline Item Component
+ */
+function TimelineItem({ icon, iconBg, title, subtitle }) {
+  return (
+    <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50/70 border border-white/30">
+      <div className={`w-8 h-8 rounded-full ${iconBg} flex items-center justify-center flex-shrink-0`}>
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-slate-800">{title}</p>
+        {subtitle && <p className="text-xs text-slate-500 mt-1">{subtitle}</p>}
+      </div>
+    </div>
+  );
 }

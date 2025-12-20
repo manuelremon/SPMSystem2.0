@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { Modal } from "./ui/Modal";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
-import { Sparkles, Loader2, Check, Plus, AlertCircle } from "lucide-react";
+import { Sparkles, Loader2, Check, Plus, AlertCircle } from "./ui/Icons";
 import api from "../services/api";
 import { useI18n } from "../context/i18n";
 

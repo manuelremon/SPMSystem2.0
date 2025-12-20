@@ -11,7 +11,7 @@ import {
   Film,
   Music,
   Archive,
-} from "lucide-react";
+} from "./Icons";
 
 /**
  * Obtiene el icono apropiado según el tipo MIME del archivo

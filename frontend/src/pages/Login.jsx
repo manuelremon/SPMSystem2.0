@@ -5,12 +5,12 @@ import { fetchCsrfToken } from "../services/csrf";
 import { Button } from "../components/ui/Button";
 import { Modal } from "../components/ui/Modal";
 import { useI18n } from "../context/i18n";
-import { Mail, Lock, User, AlertCircle } from "lucide-react";
+import { Mail, Lock, User, AlertCircle } from "../components/ui/Icons";
 import logo from "../assets/spm-logo.png";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, isLoading, error, clearError, user } = useAuthStore();
+  const { login, register, isLoading, error, clearError, user } = useAuthStore();
   const { t } = useI18n();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -20,6 +20,8 @@ export default function Login() {
   const [recoverEmail, setRecoverEmail] = useState("");
   const [registerData, setRegisterData] = useState({ email: "", nombre: "", password: "" });
   const [feedback, setFeedback] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registerError, setRegisterError] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -61,11 +63,28 @@ export default function Login() {
     setShowRecover(false);
   };
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
-    setFeedback(t("login_feedback_sent", "Solicitud de registro enviada. Completa tu perfil en el siguiente paso."));
-    setShowRegister(false);
-    navigate("/registro/completar");
+    setRegisterError("");
+    clearError();
+
+    if (!registerData.email || !registerData.nombre || !registerData.password) {
+      setRegisterError(t("register_error_required", "Todos los campos son obligatorios"));
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await register(registerData);
+      setShowRegister(false);
+      setRegisterData({ email: "", nombre: "", password: "" });
+      navigate("/dashboard");
+    } catch (err) {
+      const errorMsg = err.response?.data?.error?.message || err.message || t("register_error_default", "Error al crear la cuenta");
+      setRegisterError(errorMsg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -92,7 +111,7 @@ export default function Login() {
             {/* Error Message - Glass style */}
             {(localError || error) && (
               <div className="flex items-center gap-2 p-3 bg-red-50/70 dark:bg-red-900/30 backdrop-blur-sm border border-red-200/50 dark:border-red-500/30 rounded-xl text-red-700 dark:text-red-400 text-sm">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-500" />
                 <span>{localError || error}</span>
               </div>
             )}
@@ -103,7 +122,7 @@ export default function Login() {
                 {t("login_user_label", "Correo electrónico")}
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-violet-500 dark:text-slate-500" />
                 <input
                   type="text"
                   value={username}
@@ -120,7 +139,7 @@ export default function Login() {
                 {t("login_pass_label", "Contraseña")}
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-slate-500" />
                 <input
                   type="password"
                   value={password}
@@ -164,7 +183,7 @@ export default function Login() {
 
         {/* Footer */}
         <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-6">
-          © 2025 SPM System. Todos los derechos reservados.
+          © 2025 SPM. Todos los derechos reservados. Desarrollador: Manuel Remón / Neuquén, Argentina. / +54 9 299 467 3102
         </p>
       </div>
 
@@ -214,6 +233,12 @@ export default function Login() {
         size="sm"
       >
         <form onSubmit={handleRegister} className="space-y-4">
+          {registerError && (
+            <div className="flex items-center gap-2 p-3 bg-red-50/70 dark:bg-red-900/30 backdrop-blur-sm border border-red-200/50 dark:border-red-500/30 rounded-xl text-red-700 dark:text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-500" />
+              <span>{registerError}</span>
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1.5">
               {t("login_email_label", "Correo electrónico")}
@@ -254,11 +279,11 @@ export default function Login() {
             />
           </div>
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="ghost" onClick={() => setShowRegister(false)}>
+            <Button type="button" variant="ghost" onClick={() => setShowRegister(false)} disabled={isSubmitting}>
               {t("login_cancel", "Cancelar")}
             </Button>
-            <Button type="submit">
-              {t("login_register", "Crear cuenta")}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? t("register_loading", "Creando cuenta...") : t("login_register", "Crear cuenta")}
             </Button>
           </div>
         </form>

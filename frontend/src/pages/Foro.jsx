@@ -17,7 +17,7 @@ import {
   Search,
   Filter,
   Hash,
-} from "lucide-react";
+} from "../components/ui/Icons";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
 import api from "../services/api";
@@ -160,7 +160,7 @@ export default function Foro() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2 uppercase">
-            <MessageCircle className="w-6 h-6 text-blue-600" />
+            <MessageCircle className="w-6 h-6 text-violet-500" />
             Foro SPM
           </h1>
         </div>
@@ -197,7 +197,7 @@ export default function Foro() {
           <Card className="sticky top-4">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
-                <Filter className="w-4 h-4" />
+                <Filter className="w-4 h-4 text-slate-500" />
                 Categorías
               </CardTitle>
             </CardHeader>
@@ -338,7 +338,7 @@ export default function Foro() {
           ) : error ? (
             <Card className="border-red-500/30">
               <CardContent className="py-8 text-center">
-                <AlertCircle className="w-12 h-12 mx-auto mb-3 text-red-600" />
+                <AlertCircle className="w-12 h-12 mx-auto mb-3 text-amber-500" />
                 <p className="text-slate-500">{error}</p>
                 <Button variant="outline" onClick={loadPosts} className="mt-4">
                   Reintentar
@@ -348,7 +348,7 @@ export default function Foro() {
           ) : filteredPosts.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
-                <MessageCircle className="w-16 h-16 mx-auto mb-4 text-slate-400 opacity-50" />
+                <MessageCircle className="w-16 h-16 mx-auto mb-4 text-violet-500 opacity-50" />
                 <h3 className="text-lg font-semibold text-slate-800 mb-2">
                   {posts.length === 0 ? "No hay publicaciones aún" : "No se encontraron resultados"}
                 </h3>
@@ -445,7 +445,7 @@ export default function Foro() {
                               {getCategoriaLabel(post.categoria)}
                             </span>
                             <span className="text-xs text-slate-400 flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
+                              <Clock className="w-3 h-3 text-cyan-500" />
                               {formatDate(post.created_at)}
                             </span>
                           </div>
@@ -473,7 +473,7 @@ export default function Foro() {
                           onClick={() => toggleExpand(post.id)}
                           className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-blue-600 transition-colors"
                         >
-                          <MessageSquare className="w-4 h-4" />
+                          <MessageSquare className="w-4 h-4 text-violet-500" />
                           <span>{post.respuestas?.length || 0} respuestas</span>
                           {hasReplies && (
                             isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />

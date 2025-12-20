@@ -11,7 +11,7 @@ import { Alert } from "./ui/Alert";
 import { PageHeader } from "./ui/PageHeader";
 import { ConfirmModal } from "./ui/ConfirmModal";
 import { TableSkeleton } from "./ui/Skeleton";
-import { Plus, Edit3, Trash2, X, Save, Settings } from "lucide-react";
+import { Plus, Edit3, Trash2, X, Save, Settings } from "./ui/Icons";
 import { useI18n } from "../context/i18n";
 import { useDebounced } from "../hooks/useDebounced";
 
@@ -207,7 +207,7 @@ export default function AdminCrudTemplate({
       render: (row) => (
         <div className="flex gap-1.5 justify-center" role="group" aria-label={`${t("common_acciones", "Acciones")} ${row[idKey]}`}>
           <Button
-            variant="secondary"
+            variant="icon"
             className="px-2.5 py-1.5 text-xs"
             onClick={() => handleEdit(row)}
             aria-label={`${t("crud_edit", "Editar")} ${title} ${row[idKey]}`}
@@ -215,7 +215,7 @@ export default function AdminCrudTemplate({
             <Edit3 className="w-4 h-4" aria-hidden="true" />
           </Button>
           <Button
-            variant="danger"
+            variant="icon-danger"
             className="px-2.5 py-1.5 text-xs"
             onClick={() => handleDelete(row)}
             aria-label={`${t("common_eliminar", "Eliminar")} ${title} ${row[idKey]}`}

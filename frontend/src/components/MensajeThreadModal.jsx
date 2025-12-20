@@ -7,7 +7,7 @@ import {
   FileText,
   Loader2,
   MessageSquare
-} from "lucide-react";
+} from "./ui/Icons";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
 import { Alert } from "./ui/Alert";
