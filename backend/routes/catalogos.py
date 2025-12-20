@@ -2,25 +2,38 @@ from flask import Blueprint, jsonify
 
 try:
     from backend.core.cache import cached, catalog_cache
-    from backend.core.db import get_db_connection, get_spm_db_path
+    from backend.core.db import get_db_connection, get_spm_db_path, is_using_postgresql
 except ImportError:
     from core.cache import cached, catalog_cache
-    from core.db import get_db_connection, get_spm_db_path
+    from core.db import get_db_connection, get_spm_db_path, is_using_postgresql
 
 bp = Blueprint("catalogos", __name__)
 
 
+def _row_to_dict(row, cursor):
+    """Convierte una fila de BD a diccionario"""
+    if row is None:
+        return None
+    # PostgreSQL wrapper ya retorna dicts, SQLite retorna Row
+    if isinstance(row, dict):
+        return row
+    return dict(row)
+
+
 def _fetch(query: str, mapper):
     """Ejecuta query y mapea resultados usando context manager"""
-    db_path = get_spm_db_path()
-    if not db_path.exists():
-        return []
+    # Solo verificar archivo para SQLite
+    if not is_using_postgresql():
+        db_path = get_spm_db_path()
+        if not db_path.exists():
+            return []
 
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(query)
         rows = cur.fetchall()
-        return [mapper(row) for row in rows]
+        # El wrapper ya retorna dicts para PostgreSQL, SQLite retorna Rows
+        return [mapper(row if isinstance(row, dict) else dict(row)) for row in rows]
 
 
 @bp.route("", methods=["GET"])
@@ -59,10 +72,16 @@ def get_usuarios():
     return jsonify(_usuarios()), 200
 
 
+def _activo_condition():
+    """Retorna la condición de activo correcta para la BD"""
+    # Usar =1 para ambos porque la columna es INTEGER en ambas BDs
+    return "activo=1"
+
+
 @cached(catalog_cache, "centros", ttl=600)  # 10 min TTL
 def _centros():
     return _fetch(
-        "SELECT codigo, nombre FROM catalog_centros WHERE activo=1",
+        f"SELECT codigo, nombre FROM catalog_centros WHERE {_activo_condition()}",
         lambda r: {"id": r["codigo"], "nombre": r["nombre"]},
     )
 
@@ -70,7 +89,7 @@ def _centros():
 @cached(catalog_cache, "sectores", ttl=600)  # 10 min TTL
 def _sectores():
     return _fetch(
-        "SELECT nombre FROM catalog_sectores WHERE activo=1",
+        f"SELECT nombre FROM catalog_sectores WHERE {_activo_condition()}",
         lambda r: {"id": r["nombre"], "nombre": r["nombre"]},
     )
 
@@ -78,8 +97,8 @@ def _sectores():
 @cached(catalog_cache, "almacenes", ttl=600)  # 10 min TTL
 def _almacenes():
     return _fetch(
-        "SELECT codigo, nombre FROM catalog_almacenes WHERE activo=1",
-        lambda r: {"id": r["codigo"], "nombre": r["nombre"]},
+        f"SELECT codigo, nombre FROM catalog_almacenes WHERE {_activo_condition()}",
+        lambda r: {"id": r["codigo"], "nombre": r["nombre"] or r["codigo"]},
     )
 
 
@@ -90,6 +109,6 @@ def _usuarios():
         lambda r: {
             "id": r["id_spm"],
             "nombre": f"{r['nombre']} {r['apellido']}",
-            "mail": r["mail"],
+            "mail": r["mail"] or "",
         },
     )

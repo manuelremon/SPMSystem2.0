@@ -1,0 +1,63 @@
+# SPM v2.0 - Dockerfile de Produccion
+# Multi-stage build para imagen optimizada
+
+# === Stage 1: Builder ===
+FROM python:3.12-slim as builder
+
+WORKDIR /build
+
+# Instalar dependencias de compilacion
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copiar requirements y crear wheels
+COPY requirements.txt .
+RUN pip wheel --no-cache-dir --wheel-dir=/wheels -r requirements.txt
+RUN pip wheel --no-cache-dir --wheel-dir=/wheels psycopg2-binary
+
+# === Stage 2: Runtime ===
+FROM python:3.12-slim
+
+# Variables de entorno
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
+
+WORKDIR /app
+
+# Instalar dependencias de runtime
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --shell /bin/bash spm
+
+# Instalar wheels desde builder
+COPY --from=builder /wheels /wheels
+RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
+
+# Copiar codigo de aplicacion
+COPY --chown=spm:spm backend/ ./backend/
+COPY --chown=spm:spm wsgi.py ./
+
+# Copiar BDs de solo lectura (equivalentes, sap_data, catalogo)
+COPY --chown=spm:spm data/equivalentes.db ./data/
+COPY --chown=spm:spm data/sap_data.db ./data/
+COPY --chown=spm:spm data/catalogo_materiales.db ./data/
+
+# Crear directorios para uploads y logs
+RUN mkdir -p /app/uploads /app/logs && chown -R spm:spm /app/uploads /app/logs
+
+# Cambiar a usuario no-root
+USER spm
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:5000/api/health || exit 1
+
+EXPOSE 5000
+
+# Comando de inicio con gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "2", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "wsgi:app"]

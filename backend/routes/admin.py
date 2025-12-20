@@ -819,14 +819,19 @@ def admin_metricas():
                 counts[key] = 0
                 continue
             try:
-                cur.execute(f"SELECT COUNT(*) FROM {table}")
-                counts[key] = cur.fetchone()[0]
+                cur.execute(f"SELECT COUNT(*) AS count FROM {table}")
+                row = cur.fetchone()
+                counts[key] = row["count"] if isinstance(row, dict) else row[0]
             except Exception as e:
                 logging.getLogger(__name__).warning(f"Error contando {table}: {e}")
                 counts[key] = 0
         try:
-            cur.execute("SELECT status, COUNT(*) FROM solicitudes GROUP BY status")
-            for status, c in cur.fetchall():
+            cur.execute("SELECT status, COUNT(*) AS count FROM solicitudes GROUP BY status")
+            for row in cur.fetchall():
+                if isinstance(row, dict):
+                    status, c = row["status"], row["count"]
+                else:
+                    status, c = row[0], row[1]
                 counts[f"solicitudes_{status.lower()}"] = c
         except Exception as e:
             logging.getLogger(__name__).warning(f"Error obteniendo status de solicitudes: {e}")

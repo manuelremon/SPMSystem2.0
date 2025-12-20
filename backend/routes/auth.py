@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict
@@ -19,12 +20,12 @@ from jwt import InvalidTokenError
 try:
     from backend.core.cache import user_cache
     from backend.core.config import settings
-    from backend.core.db import get_db_connection, get_spm_db_path
+    from backend.core.db import get_db_connection, get_spm_db_path, is_using_postgresql
     from backend.core.roles import format_user_response, is_admin, normalize_roles
 except ImportError:
     from core.cache import user_cache
     from core.config import settings
-    from core.db import get_db_connection, get_spm_db_path
+    from core.db import get_db_connection, get_spm_db_path, is_using_postgresql
     from core.roles import format_user_response, is_admin, normalize_roles
 
 bp = Blueprint("auth", __name__)
@@ -77,18 +78,26 @@ _login_limiter = RateLimiter(max_attempts=10, window_seconds=300)
 
 def _get_user(username: str):
     """Busca por id_spm o mail"""
-    db_path = get_spm_db_path()
-    if not db_path.exists():
-        return None
+    # Para SQLite, verificar que el archivo existe
+    if not is_using_postgresql():
+        db_path = get_spm_db_path()
+        if not db_path.exists():
+            return None
 
     with get_db_connection() as conn:
         cur = conn.cursor()
+        # Usar siempre ? - el wrapper convierte automáticamente a %s para PostgreSQL
         cur.execute(
             "SELECT * FROM usuarios WHERE id_spm=? OR mail=?",
             (username, username),
         )
         row = cur.fetchone()
-        return dict(row) if row else None
+        if row is None:
+            return None
+        # El wrapper ya retorna dict para PostgreSQL, SQLite retorna Row
+        if isinstance(row, dict):
+            return row
+        return dict(row)
 
 
 def _get_user_by_id(user_id: str):
@@ -100,15 +109,21 @@ def _get_user_by_id(user_id: str):
         return cached_user
 
     # Cache miss - fetch from DB
-    db_path = get_spm_db_path()
-    if not db_path.exists():
-        return None
+    # Para SQLite, verificar que el archivo existe
+    if not is_using_postgresql():
+        db_path = get_spm_db_path()
+        if not db_path.exists():
+            return None
 
+    user = None
     with get_db_connection() as conn:
         cur = conn.cursor()
+        # Usar siempre ? - el wrapper convierte automáticamente a %s para PostgreSQL
         cur.execute("SELECT * FROM usuarios WHERE id_spm=?", (str(user_id),))
         row = cur.fetchone()
-        user = dict(row) if row else None
+        if row:
+            # El wrapper ya retorna dict para PostgreSQL, SQLite retorna Row
+            user = row if isinstance(row, dict) else dict(row)
 
     # Cache the result (including None to avoid repeated DB queries)
     if user:
@@ -434,26 +449,127 @@ def logout():
 @bp.route("/register", methods=["POST"])
 def register():
     """
-    Registro de usuarios - NO IMPLEMENTADO
+    Registro de nuevos usuarios - acceso inmediato
 
-    El registro de usuarios se realiza administrativamente.
-    Contacte al administrador del sistema para crear nuevas cuentas.
-
-    Este endpoint retorna 501 (Not Implemented) intencionalmente.
+    Crea un usuario con rol 'Solicitante' y lo autentica automáticamente.
     """
-    return (
-        jsonify(
-            {
-                "ok": False,
-                "error": {
-                    "code": "not_implemented",
-                    "message": "El registro de usuarios no está disponible. "
-                    "Contacte al administrador del sistema para crear una cuenta.",
-                },
-            }
-        ),
-        501,
+    data = _safe_json()
+    if data is None:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {"code": "validation_error", "message": "Invalid JSON payload"},
+                }
+            ),
+            400,
+        )
+
+    email = (data.get("email") or "").strip().lower()
+    nombre = (data.get("nombre") or "").strip()
+    password = data.get("password") or ""
+
+    # Validar campos requeridos
+    if not email or not nombre or not password:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "validation_error",
+                        "message": "Email, nombre y contraseña son requeridos",
+                    },
+                }
+            ),
+            400,
+        )
+
+    # Validar formato email básico
+    if "@" not in email or "." not in email.split("@")[-1]:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {"code": "validation_error", "message": "Formato de email inválido"},
+                }
+            ),
+            400,
+        )
+
+    # Verificar email único
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id_spm FROM usuarios WHERE mail=?", (email,))
+        if cur.fetchone():
+            return (
+                jsonify(
+                    {
+                        "ok": False,
+                        "error": {
+                            "code": "duplicate_email",
+                            "message": "Este email ya está registrado",
+                        },
+                    }
+                ),
+                409,
+            )
+
+    # Generar ID y hashear password
+    user_id = str(uuid.uuid4())[:8]
+    password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+    # Insertar usuario con rol Solicitante
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO usuarios (id_spm, nombre, apellido, rol, contrasena, mail, estado_registro)
+               VALUES (?, ?, '', 'Solicitante', ?, ?, 'Activo')""",
+            (user_id, nombre, password_hash, email),
+        )
+        conn.commit()
+
+    logging.getLogger(__name__).info(f"Nuevo usuario registrado: {email} (ID: {user_id})")
+
+    # Auto-login: generar tokens
+    tokens = generate_tokens(user_id)
+    user_response = {
+        "id_spm": user_id,
+        "nombre": nombre,
+        "apellido": "",
+        "mail": email,
+        "rol": "Solicitante",
+        "roles": ["Solicitante"],
+    }
+
+    response = jsonify(
+        {
+            "ok": True,
+            "message": "Registro exitoso",
+            "user": user_response,
+            "access_token": tokens["access_token"],
+            "refresh_token": tokens["refresh_token"],
+        }
     )
+
+    # Establecer cookies (igual que login)
+    response.set_cookie(
+        "spm_token",
+        tokens["access_token"],
+        httponly=True,
+        secure=settings.JWT_COOKIE_SECURE,
+        samesite=settings.JWT_COOKIE_SAMESITE,
+        max_age=settings.JWT_ACCESS_TOKEN_EXPIRES,
+    )
+    response.set_cookie(
+        "spm_token_refresh",
+        tokens["refresh_token"],
+        httponly=True,
+        secure=settings.JWT_COOKIE_SECURE,
+        samesite=settings.JWT_COOKIE_SAMESITE,
+        max_age=settings.JWT_REFRESH_TOKEN_EXPIRES,
+    )
+
+    return response, 201
 
 
 @bp.route("/csrf", methods=["GET"])

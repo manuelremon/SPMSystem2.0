@@ -2,9 +2,10 @@
 Inicialización de la base de datos con SQLAlchemy y schema SQL.
 
 Provee:
-- Context managers para conexiones SQLite seguras
+- Context managers para conexiones SQLite/PostgreSQL seguras
 - Funciones helper centralizadas para acceso a BD
 - Inicialización automática de schema
+- Soporte dual: PostgreSQL (produccion) + SQLite (desarrollo/catalogs)
 """
 
 import sqlite3
@@ -23,14 +24,97 @@ db = SQLAlchemy()
 
 
 # =============================================================================
-# Context Managers para Conexiones SQLite
+# Deteccion de tipo de BD
+# =============================================================================
+
+
+def is_using_postgresql() -> bool:
+    """Detecta si la BD principal usa PostgreSQL"""
+    return settings.DATABASE_URL.startswith("postgresql://")
+
+
+class PostgresCursorWrapper:
+    """Wrapper para cursor PostgreSQL que convierte ? a %s automaticamente"""
+
+    def __init__(self, cursor):
+        self._cursor = cursor
+
+    def execute(self, sql, params=None):
+        # Convertir ? a %s para compatibilidad con SQLite syntax
+        sql = sql.replace("?", "%s")
+        return self._cursor.execute(sql, params)
+
+    def fetchone(self):
+        row = self._cursor.fetchone()
+        if row is None:
+            return None
+        # Convertir a dict-like para compatibilidad con sqlite3.Row
+        if hasattr(self._cursor, "description") and self._cursor.description:
+            cols = [desc[0] for desc in self._cursor.description]
+            return dict(zip(cols, row))
+        return row
+
+    def fetchall(self):
+        rows = self._cursor.fetchall()
+        if not rows:
+            return []
+        if hasattr(self._cursor, "description") and self._cursor.description:
+            cols = [desc[0] for desc in self._cursor.description]
+            return [dict(zip(cols, row)) for row in rows]
+        return rows
+
+    def __getattr__(self, name):
+        return getattr(self._cursor, name)
+
+
+class PostgresConnectionWrapper:
+    """Wrapper para conexion PostgreSQL que retorna cursor compatible"""
+
+    def __init__(self, conn):
+        self._conn = conn
+
+    def cursor(self):
+        return PostgresCursorWrapper(self._conn.cursor())
+
+    def commit(self):
+        return self._conn.commit()
+
+    def rollback(self):
+        return self._conn.rollback()
+
+    def close(self):
+        return self._conn.close()
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
+def _get_postgres_connection():
+    """Obtiene conexion a PostgreSQL con wrapper compatible"""
+    try:
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+
+        conn = psycopg2.connect(settings.DATABASE_URL)
+        return PostgresConnectionWrapper(conn)
+    except ImportError:
+        raise ImportError("psycopg2-binary no instalado. Ejecuta: pip install psycopg2-binary")
+
+
+# =============================================================================
+# Context Managers para Conexiones SQLite/PostgreSQL
 # =============================================================================
 
 
 @contextmanager
-def get_db_connection(db_name: str = "spm") -> Generator[sqlite3.Connection, None, None]:
+def get_db_connection(db_name: str = "spm") -> Generator:
     """
-    Context manager para conexiones SQLite seguras.
+    Context manager para conexiones de BD seguras.
+
+    Soporta:
+    - PostgreSQL para BD principal (spm) en produccion
+    - SQLite para BDs secundarias (equivalentes, sap_data, catalogo)
+    - SQLite para desarrollo local
 
     Garantiza que la conexión se cierre automáticamente, incluso si hay excepciones.
 
@@ -38,7 +122,7 @@ def get_db_connection(db_name: str = "spm") -> Generator[sqlite3.Connection, Non
         db_name: Nombre de la base de datos ("spm", "equivalentes", "sap_data")
 
     Yields:
-        sqlite3.Connection con row_factory configurado
+        Conexion con row_factory/cursor configurado
 
     Example:
         with get_db_connection() as conn:
@@ -49,9 +133,18 @@ def get_db_connection(db_name: str = "spm") -> Generator[sqlite3.Connection, Non
     """
     conn = None
     try:
-        db_path = get_db_path(db_name)
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
+        # BDs secundarias SIEMPRE usan SQLite (son de solo lectura)
+        if db_name in ("equivalentes", "sap_data", "catalogo_materiales"):
+            db_path = get_db_path(db_name)
+            conn = sqlite3.connect(db_path)
+            conn.row_factory = sqlite3.Row
+        # BD principal: PostgreSQL o SQLite segun configuracion
+        elif db_name == "spm" and is_using_postgresql():
+            conn = _get_postgres_connection()
+        else:
+            db_path = get_db_path(db_name)
+            conn = sqlite3.connect(db_path)
+            conn.row_factory = sqlite3.Row
         yield conn
     finally:
         if conn:
@@ -59,17 +152,18 @@ def get_db_connection(db_name: str = "spm") -> Generator[sqlite3.Connection, Non
 
 
 @contextmanager
-def get_db_transaction(db_name: str = "spm") -> Generator[sqlite3.Connection, None, None]:
+def get_db_transaction(db_name: str = "spm") -> Generator:
     """
-    Context manager para transacciones SQLite con commit automático.
+    Context manager para transacciones con commit automático.
 
+    Soporta PostgreSQL y SQLite.
     Si no hay excepciones, hace commit. Si hay excepción, hace rollback.
 
     Args:
         db_name: Nombre de la base de datos
 
     Yields:
-        sqlite3.Connection con row_factory configurado
+        Conexion con row_factory/cursor configurado
 
     Example:
         with get_db_transaction() as conn:
@@ -79,9 +173,18 @@ def get_db_transaction(db_name: str = "spm") -> Generator[sqlite3.Connection, No
     """
     conn = None
     try:
-        db_path = get_db_path(db_name)
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
+        # BDs secundarias SIEMPRE usan SQLite
+        if db_name in ("equivalentes", "sap_data", "catalogo_materiales"):
+            db_path = get_db_path(db_name)
+            conn = sqlite3.connect(db_path)
+            conn.row_factory = sqlite3.Row
+        # BD principal: PostgreSQL o SQLite segun configuracion
+        elif db_name == "spm" and is_using_postgresql():
+            conn = _get_postgres_connection()
+        else:
+            db_path = get_db_path(db_name)
+            conn = sqlite3.connect(db_path)
+            conn.row_factory = sqlite3.Row
         yield conn
         conn.commit()
     except Exception:
@@ -183,8 +286,16 @@ def init_db():
 
     Si la BD no existe o está vacía (sin usuarios), elimina y recrea
     desde schema.sql con todas las tablas y datos iniciales.
+
+    Nota: Solo aplica a SQLite. PostgreSQL se inicializa externamente.
     """
     from flask import current_app
+
+    # Si es PostgreSQL, no inicializar con schema.sql
+    # PostgreSQL se inicializa con migrations o manualmente
+    if is_using_postgresql():
+        current_app.logger.info("Usando PostgreSQL - saltando init_db() de SQLite")
+        return
 
     db_path = get_spm_db_path()
     schema_path = _get_schema_path()

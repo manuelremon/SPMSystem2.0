@@ -29,6 +29,7 @@ try:
     )
     from backend.core.budget_transaction import AtomicBudgetTransaction
     from backend.core.config import settings
+    from backend.core.db import get_db_connection, is_using_postgresql
     from backend.core.roles import is_admin, normalize_roles
 except ImportError:
     from core.budget_schemas import (
@@ -44,6 +45,7 @@ except ImportError:
     )
     from core.budget_transaction import AtomicBudgetTransaction
     from core.config import settings
+    from core.db import is_using_postgresql
 
 
 def _db_path() -> Path:
@@ -53,11 +55,63 @@ def _db_path() -> Path:
     return Path("spm.db")
 
 
-def _connect() -> sqlite3.Connection:
-    """Crea conexion a BD"""
-    conn = sqlite3.connect(_db_path())
-    conn.row_factory = sqlite3.Row
-    return conn
+def _connect():
+    """Crea conexion a BD (PostgreSQL o SQLite segun configuracion)"""
+    # Usar el contexto de db.py que soporta ambos
+    if is_using_postgresql():
+        # Para PostgreSQL, usamos psycopg2 directo (no context manager)
+        import psycopg2
+
+        conn = psycopg2.connect(settings.DATABASE_URL)
+        return conn
+    else:
+        conn = sqlite3.connect(_db_path())
+        conn.row_factory = sqlite3.Row
+        return conn
+
+
+def _row_to_dict(row, cursor):
+    """Convierte fila a dict para compatibilidad SQLite/PostgreSQL"""
+    if row is None:
+        return None
+    if isinstance(row, dict):
+        return row
+    # PostgreSQL tuple
+    if hasattr(cursor, "description") and cursor.description:
+        columns = [desc[0] for desc in cursor.description]
+        return dict(zip(columns, row))
+    # SQLite Row
+    return dict(row)
+
+
+def _execute(cursor, sql, params=None):
+    """Ejecuta query convirtiendo placeholders ? a %s para PostgreSQL"""
+    if is_using_postgresql():
+        sql = sql.replace("?", "%s")
+    return cursor.execute(sql, params)
+
+
+def _fetchone(cursor):
+    """Obtiene una fila y la convierte a dict si es necesario"""
+    row = cursor.fetchone()
+    if row is None:
+        return None
+    # PostgreSQL wrapper ya retorna dicts, SQLite retorna Row
+    if isinstance(row, dict):
+        return row
+    return dict(row) if hasattr(row, "keys") else row
+
+
+def _fetchall(cursor):
+    """Obtiene todas las filas y las convierte a dicts si es necesario"""
+    rows = cursor.fetchall()
+    if not rows:
+        return rows
+    # PostgreSQL wrapper ya retorna dicts
+    if isinstance(rows[0], dict):
+        return rows
+    # SQLite Rows
+    return [dict(row) if hasattr(row, "keys") else row for row in rows]
 
 
 def _resolve_sector_name(sector_value: str) -> str:
@@ -73,11 +127,12 @@ def _resolve_sector_name(sector_value: str) -> str:
     if str(sector_value).isdigit():
         conn = _connect()
         cur = conn.cursor()
-        cur.execute("SELECT nombre FROM catalog_sectores WHERE id = ?", (int(sector_value),))
-        row = cur.fetchone()
+        _execute(cur, "SELECT nombre FROM catalog_sectores WHERE id = ?", (int(sector_value),))
+        row = _fetchone(cur)
         conn.close()
         if row:
-            return row[0]
+            # row puede ser dict (PostgreSQL) o Row (SQLite)
+            return row.get("nombre") if isinstance(row, dict) else row[0]
 
     return sector_value
 
@@ -96,12 +151,13 @@ class PresupuestoService:
         conn = _connect()
         try:
             cur = conn.cursor()
-            cur.execute(
+            _execute(
+                cur,
                 """SELECT centro, sector, monto_cents, saldo_cents, version
                    FROM presupuestos WHERE centro = ? AND sector = ?""",
                 (centro, sector),
             )
-            row = cur.fetchone()
+            row = _fetchone(cur)
             if row:
                 return PresupuestoInfo(
                     centro=row["centro"],
@@ -161,14 +217,15 @@ class PresupuestoService:
             where_sql = f"WHERE {' AND '.join(where)}" if where else ""
             params.extend([limit, offset])
 
-            cur.execute(
+            _execute(
+                cur,
                 f"""SELECT * FROM presupuesto_ledger
                     {where_sql}
                     ORDER BY created_at DESC
                     LIMIT ? OFFSET ?""",
                 params,
             )
-            return [LedgerEntry.from_row(dict(row)) for row in cur.fetchall()]
+            return [LedgerEntry.from_row(dict(row)) for row in _fetchall(cur)]
         finally:
             conn.close()
 
@@ -237,7 +294,8 @@ class BURService:
         conn = _connect()
         try:
             cur = conn.cursor()
-            cur.execute(
+            _execute(
+                cur,
                 """INSERT INTO budget_update_requests
                    (centro, sector, monto_solicitado_cents, saldo_actual_cents,
                     nivel_aprobacion_requerido, solicitante_id, solicitante_rol, justificacion)
@@ -256,8 +314,8 @@ class BURService:
             conn.commit()
             bur_id = cur.lastrowid
 
-            cur.execute("SELECT * FROM budget_update_requests WHERE id = ?", (bur_id,))
-            row = cur.fetchone()
+            _execute(cur, "SELECT * FROM budget_update_requests WHERE id = ?", (bur_id,))
+            row = _fetchone(cur)
             return {"ok": True, "bur": BudgetUpdateRequest.from_row(dict(row)).to_dict()}
         except Exception as e:
             return {"ok": False, "error": str(e)}
@@ -270,8 +328,8 @@ class BURService:
         conn = _connect()
         try:
             cur = conn.cursor()
-            cur.execute("SELECT * FROM budget_update_requests WHERE id = ?", (bur_id,))
-            row = cur.fetchone()
+            _execute(cur, "SELECT * FROM budget_update_requests WHERE id = ?", (bur_id,))
+            row = _fetchone(cur)
             return BudgetUpdateRequest.from_row(dict(row)) if row else None
         finally:
             conn.close()
@@ -308,14 +366,15 @@ class BURService:
             where_sql = f"WHERE {' AND '.join(where)}" if where else ""
             params.extend([limit, offset])
 
-            cur.execute(
+            _execute(
+                cur,
                 f"""SELECT * FROM budget_update_requests
                     {where_sql}
                     ORDER BY created_at DESC
                     LIMIT ? OFFSET ?""",
                 params,
             )
-            return [BudgetUpdateRequest.from_row(dict(row)) for row in cur.fetchall()]
+            return [BudgetUpdateRequest.from_row(dict(row)) for row in _fetchall(cur)]
         finally:
             conn.close()
 
@@ -383,7 +442,8 @@ class BURService:
             cur = conn.cursor()
 
             # Actualizar BUR
-            cur.execute(
+            _execute(
+                cur,
                 f"""UPDATE budget_update_requests
                     SET estado = ?, {campo_aprobador} = ?, {campo_fecha} = ?,
                         {campo_comentario} = ?, updated_at = ?
@@ -449,7 +509,8 @@ class BURService:
         conn = _connect()
         try:
             cur = conn.cursor()
-            cur.execute(
+            _execute(
+                cur,
                 """UPDATE budget_update_requests
                    SET estado = ?, rechazado_por = ?, motivo_rechazo = ?,
                        fecha_rechazo = ?, updated_at = ?

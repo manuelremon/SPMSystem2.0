@@ -346,10 +346,12 @@ class MessageService:
 
         try:
             cursor.execute(
-                "SELECT COUNT(*) FROM mensajes WHERE destinatario_id = ? AND leido = 0", (user_id,)
+                "SELECT COUNT(*) AS count FROM mensajes WHERE destinatario_id = ? AND leido = 0",
+                (user_id,),
             )
 
-            count = cursor.fetchone()[0]
+            row = cursor.fetchone()
+            count = row["count"] if isinstance(row, dict) else row[0]
             return count
 
         except Exception as e:

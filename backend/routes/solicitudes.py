@@ -95,9 +95,9 @@ def _row_to_dict(row, cursor):
     """Convierte una fila de BD a diccionario"""
     if row is None:
         return None
-    if is_using_postgresql():
-        columns = [desc[0] for desc in cursor.description]
-        return dict(zip(columns, row))
+    # PostgreSQL wrapper ya retorna dicts, SQLite retorna Row
+    if isinstance(row, dict):
+        return row
     return dict(row)
 
 
@@ -192,8 +192,9 @@ def list_solicitudes():
 
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute(f"SELECT COUNT(*) FROM solicitudes {where_sql_count}", params)
-        total = cur.fetchone()[0]
+        cur.execute(f"SELECT COUNT(*) AS count FROM solicitudes {where_sql_count}", params)
+        row = cur.fetchone()
+        total = row["count"] if isinstance(row, dict) else row[0]
 
         offset = (page - 1) * page_size
         cur.execute(
@@ -215,11 +216,10 @@ def list_solicitudes():
             params + [page_size, offset],
         )
         rows = cur.fetchall()
-        columns = [desc[0] for desc in cur.description] if is_using_postgresql() else None
-
     solicitudes_list = []
     for r in rows:
-        d = dict(zip(columns, r)) if is_using_postgresql() else dict(r)
+        # PostgreSQL wrapper ya retorna dicts, SQLite retorna Row
+        d = r if isinstance(r, dict) else dict(r)
         try:
             extra = json.loads(d.get("data_json") or "{}")
         except Exception:
@@ -401,7 +401,8 @@ def create_solicitud():
                     now,
                 ),
             )
-            new_id = cur.fetchone()[0]
+            row = cur.fetchone()
+            new_id = row["id"] if isinstance(row, dict) else row[0]
         else:
             cur.execute(
                 """

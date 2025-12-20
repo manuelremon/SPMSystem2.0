@@ -10,13 +10,12 @@ Maneja la lógica de negocio para notificaciones:
 """
 
 import logging
-import sqlite3
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 try:
     from backend.core.config import settings
+    from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
     from backend.core.notification_schemas import (
         Notificacion,
         NotificacionCreate,
@@ -25,7 +24,7 @@ try:
     )
     from backend.services.push_service import send_push_notification
 except ImportError:
-    from core.config import settings
+    from core.db import get_db_connection, get_db_transaction, is_using_postgresql
     from core.notification_schemas import Notificacion
 
     try:
@@ -40,17 +39,9 @@ class NotificationService:
     """Servicio para gestionar notificaciones"""
 
     @staticmethod
-    def _db_path() -> Path:
-        """Obtener ruta de la base de datos"""
-        if settings.DATABASE_URL.startswith("sqlite:///"):
-            return Path(settings.DATABASE_URL.split("sqlite:///", 1)[1])
-        return Path("spm.db")
-
-    @staticmethod
-    def _connect():
-        """Conectar a la base de datos"""
-        path = NotificationService._db_path()
-        return sqlite3.connect(path)
+    def _placeholder():
+        """Retorna el placeholder correcto para la BD"""
+        return "%s" if is_using_postgresql() else "?"
 
     # Mapeo de tipos de notificación a títulos para push
     PUSH_TITLES = {
@@ -87,24 +78,34 @@ class NotificationService:
         Returns:
             ID de la notificación creada o None si falla
         """
-        conn = cls._connect()
         notif_id = None
+        ph = cls._placeholder()
         try:
-            cursor = conn.cursor()
-            cursor.execute(
-                """
-                INSERT INTO notificaciones (destinatario_id, mensaje, tipo, solicitud_id, leido, created_at)
-                VALUES (?, ?, ?, ?, 0, ?)
-                """,
-                (destinatario_id, mensaje, tipo, solicitud_id, datetime.now().isoformat()),
-            )
-            conn.commit()
-            notif_id = cursor.lastrowid
+            with get_db_transaction() as conn:
+                cursor = conn.cursor()
+                if is_using_postgresql():
+                    cursor.execute(
+                        f"""
+                        INSERT INTO notificaciones (destinatario_id, mensaje, tipo, solicitud_id, leido, created_at)
+                        VALUES ({ph}, {ph}, {ph}, {ph}, false, {ph})
+                        RETURNING id
+                        """,
+                        (destinatario_id, mensaje, tipo, solicitud_id, datetime.now().isoformat()),
+                    )
+                    row = cursor.fetchone()
+                    notif_id = row[0] if row else None
+                else:
+                    cursor.execute(
+                        f"""
+                        INSERT INTO notificaciones (destinatario_id, mensaje, tipo, solicitud_id, leido, created_at)
+                        VALUES ({ph}, {ph}, {ph}, {ph}, 0, {ph})
+                        """,
+                        (destinatario_id, mensaje, tipo, solicitud_id, datetime.now().isoformat()),
+                    )
+                    notif_id = cursor.lastrowid
         except Exception as e:
             logger.error(f"Error creating notification: {e}")
             return None
-        finally:
-            conn.close()
 
         # Enviar push notification si está habilitado
         if notif_id and send_push and send_push_notification:
@@ -139,42 +140,43 @@ class NotificationService:
         Returns:
             Lista de notificaciones como diccionarios
         """
-        conn = cls._connect()
+        ph = cls._placeholder()
         try:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
 
-            where_clause = "WHERE destinatario_id = ?"
-            params = [user_id]
+                where_clause = f"WHERE destinatario_id = {ph}"
+                params = [user_id]
 
-            if unread_only:
-                where_clause += " AND leido = 0"
+                if unread_only:
+                    # Column is INTEGER (0/1), not BOOLEAN
+                    where_clause += " AND leido = 0"
 
-            cursor.execute(
-                f"""
-                SELECT id, destinatario_id, mensaje, tipo, solicitud_id, leido, created_at
-                FROM notificaciones
-                {where_clause}
-                ORDER BY created_at DESC
-                LIMIT ?
-                """,
-                params + [limit],
-            )
+                cursor.execute(
+                    f"""
+                    SELECT id, destinatario_id, mensaje, tipo, solicitud_id, leido, created_at
+                    FROM notificaciones
+                    {where_clause}
+                    ORDER BY created_at DESC
+                    LIMIT {ph}
+                    """,
+                    params + [limit],
+                )
 
-            rows = cursor.fetchall()
-            notifications = []
+                rows = cursor.fetchall()
+                notifications = []
 
-            for row in rows:
-                notif = Notificacion.from_db_row(dict(row))
-                notifications.append(notif.to_dict())
+                # PostgreSQL wrapper ya retorna dicts, SQLite retorna Row
+                for row in rows:
+                    row_dict = row if isinstance(row, dict) else dict(row)
+                    notif = Notificacion.from_db_row(row_dict)
+                    notifications.append(notif.to_dict())
 
-            return notifications
+                return notifications
 
         except Exception as e:
-            print(f"Error fetching notifications: {e}")
+            logger.error(f"Error fetching notifications: {e}")
             return []
-        finally:
-            conn.close()
 
     @classmethod
     def get_unread_count(cls, user_id: str) -> int:
@@ -187,20 +189,20 @@ class NotificationService:
         Returns:
             Cantidad de notificaciones no leídas
         """
-        conn = cls._connect()
+        ph = cls._placeholder()
         try:
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT COUNT(*) FROM notificaciones WHERE destinatario_id = ? AND leido = 0",
-                (user_id,),
-            )
-            result = cursor.fetchone()
-            return result[0] if result else 0
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                # Column is INTEGER (0/1), not BOOLEAN
+                cursor.execute(
+                    f"SELECT COUNT(*) FROM notificaciones WHERE destinatario_id = {ph} AND leido = 0",
+                    (user_id,),
+                )
+                result = cursor.fetchone()
+                return result[0] if result else 0
         except Exception as e:
-            print(f"Error counting unread: {e}")
+            logger.error(f"Error counting unread: {e}")
             return 0
-        finally:
-            conn.close()
 
     @classmethod
     def mark_as_read(cls, notification_id: int, user_id: str) -> bool:
@@ -214,24 +216,23 @@ class NotificationService:
         Returns:
             True si se marcó correctamente, False en caso contrario
         """
-        conn = cls._connect()
+        ph = cls._placeholder()
         try:
-            cursor = conn.cursor()
-            cursor.execute(
-                """
-                UPDATE notificaciones
-                SET leido = 1
-                WHERE id = ? AND destinatario_id = ?
-                """,
-                (notification_id, user_id),
-            )
-            conn.commit()
-            return cursor.rowcount > 0
+            with get_db_transaction() as conn:
+                cursor = conn.cursor()
+                # Column is INTEGER (0/1), not BOOLEAN
+                cursor.execute(
+                    f"""
+                    UPDATE notificaciones
+                    SET leido = 1
+                    WHERE id = {ph} AND destinatario_id = {ph}
+                    """,
+                    (notification_id, user_id),
+                )
+                return cursor.rowcount > 0
         except Exception as e:
-            print(f"Error marking as read: {e}")
+            logger.error(f"Error marking as read: {e}")
             return False
-        finally:
-            conn.close()
 
     @classmethod
     def mark_all_as_read(cls, user_id: str) -> int:
@@ -244,24 +245,23 @@ class NotificationService:
         Returns:
             Cantidad de notificaciones marcadas
         """
-        conn = cls._connect()
+        ph = cls._placeholder()
         try:
-            cursor = conn.cursor()
-            cursor.execute(
-                """
-                UPDATE notificaciones
-                SET leido = 1
-                WHERE destinatario_id = ? AND leido = 0
-                """,
-                (user_id,),
-            )
-            conn.commit()
-            return cursor.rowcount
+            with get_db_transaction() as conn:
+                cursor = conn.cursor()
+                # Column is INTEGER (0/1), not BOOLEAN
+                cursor.execute(
+                    f"""
+                    UPDATE notificaciones
+                    SET leido = 1
+                    WHERE destinatario_id = {ph} AND leido = 0
+                    """,
+                    (user_id,),
+                )
+                return cursor.rowcount
         except Exception as e:
-            print(f"Error marking all as read: {e}")
+            logger.error(f"Error marking all as read: {e}")
             return 0
-        finally:
-            conn.close()
 
     @classmethod
     def delete_notification(cls, notification_id: int, user_id: str) -> bool:
@@ -275,23 +275,21 @@ class NotificationService:
         Returns:
             True si se eliminó correctamente
         """
-        conn = cls._connect()
+        ph = cls._placeholder()
         try:
-            cursor = conn.cursor()
-            cursor.execute(
-                """
-                DELETE FROM notificaciones
-                WHERE id = ? AND destinatario_id = ?
-                """,
-                (notification_id, user_id),
-            )
-            conn.commit()
-            return cursor.rowcount > 0
+            with get_db_transaction() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    f"""
+                    DELETE FROM notificaciones
+                    WHERE id = {ph} AND destinatario_id = {ph}
+                    """,
+                    (notification_id, user_id),
+                )
+                return cursor.rowcount > 0
         except Exception as e:
-            print(f"Error deleting notification: {e}")
+            logger.error(f"Error deleting notification: {e}")
             return False
-        finally:
-            conn.close()
 
 
 # Helper functions para crear notificaciones automáticas
