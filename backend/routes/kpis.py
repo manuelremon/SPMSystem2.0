@@ -8,9 +8,28 @@ from collections import Counter, defaultdict
 from flask import Blueprint, jsonify
 
 try:
-    from backend.core.db import get_db_connection
+    from backend.core.db import get_db_connection, is_using_postgresql
 except ImportError:
-    from core.db import get_db_connection
+    from core.db import get_db_connection, is_using_postgresql
+
+
+def _row_to_dict(row, cursor):
+    """Convierte una fila de BD a diccionario"""
+    if row is None:
+        return None
+    if is_using_postgresql():
+        columns = [desc[0] for desc in cursor.description]
+        return dict(zip(columns, row))
+    return dict(row)
+
+
+def _rows_to_dicts(rows, cursor):
+    """Convierte múltiples filas a diccionarios"""
+    if is_using_postgresql():
+        columns = [desc[0] for desc in cursor.description]
+        return [dict(zip(columns, row)) for row in rows]
+    return [dict(row) for row in rows]
+
 
 bp = Blueprint("kpis", __name__, url_prefix="/api/kpis")
 
@@ -29,6 +48,7 @@ def get_kpis():
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
+            using_pg = is_using_postgresql()
 
             # =============================================
             # 1. MÉTRICAS DE SOLICITUDES
@@ -44,7 +64,8 @@ def get_kpis():
                 GROUP BY status
             """
             )
-            estados_raw = {row["status"]: row["cantidad"] for row in cursor.fetchall()}
+            rows = _rows_to_dicts(cursor.fetchall(), cursor)
+            estados_raw = {row["status"]: row["cantidad"] for row in rows}
 
             # Mapear estados a categorías
             total = sum(estados_raw.values())
@@ -58,18 +79,31 @@ def get_kpis():
             pendientes = estados_raw.get("submitted", 0) + estados_raw.get("draft", 0)
 
             # Tendencia últimos 7 días
-            cursor.execute(
+            if using_pg:
+                cursor.execute(
+                    """
+                    SELECT
+                        DATE(created_at) as fecha,
+                        COUNT(*) as cantidad
+                    FROM solicitudes
+                    WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
+                    GROUP BY DATE(created_at)
+                    ORDER BY fecha
                 """
-                SELECT
-                    DATE(created_at) as fecha,
-                    COUNT(*) as cantidad
-                FROM solicitudes
-                WHERE created_at >= DATE('now', '-7 days')
-                GROUP BY DATE(created_at)
-                ORDER BY fecha
-            """
-            )
-            trend_data = cursor.fetchall()
+                )
+            else:
+                cursor.execute(
+                    """
+                    SELECT
+                        DATE(created_at) as fecha,
+                        COUNT(*) as cantidad
+                    FROM solicitudes
+                    WHERE created_at >= DATE('now', '-7 days')
+                    GROUP BY DATE(created_at)
+                    ORDER BY fecha
+                """
+                )
+            trend_data = _rows_to_dicts(cursor.fetchall(), cursor)
             trend = [row["cantidad"] for row in trend_data] if trend_data else [0] * 7
 
             # Asegurar 7 valores
@@ -78,20 +112,37 @@ def get_kpis():
             trend = trend[-7:]
 
             # Calcular tendencia porcentual (vs semana anterior)
-            cursor.execute(
+            if using_pg:
+                cursor.execute(
+                    """
+                    SELECT COUNT(*) FROM solicitudes
+                    WHERE created_at >= CURRENT_DATE - INTERVAL '14 days'
+                    AND created_at < CURRENT_DATE - INTERVAL '7 days'
                 """
-                SELECT COUNT(*) FROM solicitudes
-                WHERE created_at >= DATE('now', '-14 days')
-                AND created_at < DATE('now', '-7 days')
-            """
-            )
+                )
+            else:
+                cursor.execute(
+                    """
+                    SELECT COUNT(*) FROM solicitudes
+                    WHERE created_at >= DATE('now', '-14 days')
+                    AND created_at < DATE('now', '-7 days')
+                """
+                )
             prev_week = cursor.fetchone()[0] or 1
-            cursor.execute(
+            if using_pg:
+                cursor.execute(
+                    """
+                    SELECT COUNT(*) FROM solicitudes
+                    WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
                 """
-                SELECT COUNT(*) FROM solicitudes
-                WHERE created_at >= DATE('now', '-7 days')
-            """
-            )
+                )
+            else:
+                cursor.execute(
+                    """
+                    SELECT COUNT(*) FROM solicitudes
+                    WHERE created_at >= DATE('now', '-7 days')
+                """
+                )
             this_week = cursor.fetchone()[0] or 0
             trend_percentage = (
                 round(((this_week - prev_week) / prev_week) * 100, 1) if prev_week > 0 else 0
@@ -106,25 +157,28 @@ def get_kpis():
                 SELECT
                     centro,
                     sector,
-                    monto_usd,
-                    saldo_usd
+                    monto_total,
+                    monto_disponible
                 FROM presupuestos
-                WHERE monto_usd > 0
-                ORDER BY monto_usd DESC
+                WHERE monto_total > 0
+                ORDER BY monto_total DESC
             """
             )
-            presupuestos = cursor.fetchall()
+            presupuestos = _rows_to_dicts(cursor.fetchall(), cursor)
 
-            total_presupuesto = sum(row["monto_usd"] for row in presupuestos)
-            total_utilizado = sum(row["monto_usd"] - row["saldo_usd"] for row in presupuestos)
-            total_disponible = sum(row["saldo_usd"] for row in presupuestos)
+            total_presupuesto = sum(row["monto_total"] or 0 for row in presupuestos)
+            total_utilizado = sum(
+                (row["monto_total"] or 0) - (row["monto_disponible"] or 0) for row in presupuestos
+            )
+            total_disponible = sum(row["monto_disponible"] or 0 for row in presupuestos)
 
             presupuesto_por_centro = []
             for row in presupuestos[:5]:  # Top 5
                 presupuesto_por_centro.append(
                     {
                         "nombre": f"Centro {row['centro']} - {row['sector']}",
-                        "valor": row["monto_usd"] - row["saldo_usd"],  # Utilizado
+                        "valor": (row["monto_total"] or 0)
+                        - (row["monto_disponible"] or 0),  # Utilizado
                     }
                 )
 
@@ -147,7 +201,8 @@ def get_kpis():
             material_counter = Counter()
             grupo_counter = Counter()
 
-            for row in cursor.fetchall():
+            rows_data = _rows_to_dicts(cursor.fetchall(), cursor)
+            for row in rows_data:
                 try:
                     data = json.loads(row["data_json"])
                     items = data.get("items", [])
@@ -196,16 +251,28 @@ def get_kpis():
             # =============================================
 
             # Calcular tiempo promedio entre creación y aprobación
-            cursor.execute(
+            if using_pg:
+                cursor.execute(
+                    """
+                    SELECT
+                        AVG(EXTRACT(EPOCH FROM (updated_at::timestamp - created_at::timestamp)) / 86400) as promedio_dias
+                    FROM solicitudes
+                    WHERE status IN ('approved', 'processing', 'dispatched', 'closed')
                 """
-                SELECT
-                    AVG(JULIANDAY(updated_at) - JULIANDAY(created_at)) as promedio_dias
-                FROM solicitudes
-                WHERE status IN ('approved', 'processing', 'dispatched', 'closed')
-            """
+                )
+            else:
+                cursor.execute(
+                    """
+                    SELECT
+                        AVG(JULIANDAY(updated_at) - JULIANDAY(created_at)) as promedio_dias
+                    FROM solicitudes
+                    WHERE status IN ('approved', 'processing', 'dispatched', 'closed')
+                """
+                )
+            row = _row_to_dict(cursor.fetchone(), cursor)
+            promedio_dias = (
+                round(row["promedio_dias"], 1) if row and row.get("promedio_dias") else 2.5
             )
-            row = cursor.fetchone()
-            promedio_dias = round(row["promedio_dias"], 1) if row["promedio_dias"] else 2.5
 
             # =============================================
             # 5. SOLICITUDES POR ESTADO (ÚLTIMOS 6 MESES)
@@ -227,21 +294,36 @@ def get_kpis():
                 "Dic",
             ]
 
-            cursor.execute(
+            if using_pg:
+                cursor.execute(
+                    """
+                    SELECT
+                        TO_CHAR(created_at::timestamp, 'YYYY-MM') as mes,
+                        status,
+                        COUNT(*) as cantidad
+                    FROM solicitudes
+                    WHERE created_at >= CURRENT_DATE - INTERVAL '6 months'
+                    GROUP BY TO_CHAR(created_at::timestamp, 'YYYY-MM'), status
+                    ORDER BY mes
                 """
-                SELECT
-                    strftime('%Y-%m', created_at) as mes,
-                    status,
-                    COUNT(*) as cantidad
-                FROM solicitudes
-                WHERE created_at >= DATE('now', '-6 months')
-                GROUP BY strftime('%Y-%m', created_at), status
-                ORDER BY mes
-            """
-            )
+                )
+            else:
+                cursor.execute(
+                    """
+                    SELECT
+                        strftime('%Y-%m', created_at) as mes,
+                        status,
+                        COUNT(*) as cantidad
+                    FROM solicitudes
+                    WHERE created_at >= DATE('now', '-6 months')
+                    GROUP BY strftime('%Y-%m', created_at), status
+                    ORDER BY mes
+                """
+                )
 
             por_mes = defaultdict(lambda: {"aprobadas": 0, "rechazadas": 0, "pendientes": 0})
-            for row in cursor.fetchall():
+            rows_mes = _rows_to_dicts(cursor.fetchall(), cursor)
+            for row in rows_mes:
                 mes = row["mes"]
                 status = row["status"]
                 cantidad = row["cantidad"]
@@ -320,4 +402,18 @@ def get_kpis():
             )
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "kpi_error", "message": str(e)}}), 500
+        import logging
+
+        logging.getLogger(__name__).error(f"Error obteniendo KPIs: {e}")
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "kpi_error",
+                        "message": "Error al obtener métricas del sistema",
+                    },
+                }
+            ),
+            500,
+        )

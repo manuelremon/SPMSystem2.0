@@ -27,37 +27,14 @@ import {
   Play,
   Check,
   Info
-} from "lucide-react";
+} from "../components/ui/Icons";
 import { renderSector as renderSectorUtil } from "../constants/sectores";
 import { formatDate, formatCurrency, exportToExcel, getSectorNombre } from "../utils/formatters";
-import { getCriticidadConfig } from "../utils/styleConfig";
+import { getCriticidadConfig, getEstadoConfig } from "../utils/styleConfig";
 import { useDebounced } from "../hooks/useDebounced";
 
 const DEBOUNCE_MS = 300;
 const ITEMS_PER_PAGE = 20;
-
-// Configuración de estados con iconos y colores (consistente con MisSolicitudes)
-function getEstadoConfig(estado) {
-  const estadoLower = (estado || "").toLowerCase();
-
-  if (estadoLower.includes("aprobad")) {
-    return { icon: <CheckCircle className="w-4 h-4" />, color: "#10b981", label: estado || "Aprobada" };
-  }
-  if (estadoLower.includes("progreso") || estadoLower.includes("proceso")) {
-    return { icon: <Clock className="w-4 h-4" />, color: "#3b82f6", label: estado || "En Progreso" };
-  }
-  if (estadoLower.includes("finaliz") || estadoLower.includes("complet") || estadoLower.includes("tratad")) {
-    return { icon: <CheckCircle className="w-4 h-4" />, color: "#10b981", label: estado || "Finalizada" };
-  }
-  if (estadoLower.includes("rechaz")) {
-    return { icon: <XCircle className="w-4 h-4" />, color: "#ef4444", label: estado || "Rechazada" };
-  }
-  if (estadoLower.includes("borrador")) {
-    return { icon: <Edit3 className="w-4 h-4" />, color: "#64748b", label: estado || "Borrador" };
-  }
-
-  return { icon: <Clock className="w-4 h-4" />, color: "#64748b", label: estado || "Pendiente" };
-}
 
 export default function Planner() {
   const { user } = useAuthStore();
@@ -433,7 +410,7 @@ export default function Planner() {
           >
             {config.icon}
             <span className="text-xs font-semibold tracking-wide uppercase">{config.label}</span>
-            <Info className="w-3 h-3 opacity-50" />
+            <Info className="w-3 h-3 opacity-50 text-blue-500" />
           </button>
         );
       },
@@ -463,7 +440,7 @@ export default function Planner() {
         <div className="flex flex-wrap items-end gap-4">
           {/* Búsqueda general */}
           <div className="flex-1 min-w-[200px] max-w-[300px]">
-            <label htmlFor="planner-search" className="block text-xs uppercase font-bold tracking-[0.08em] text-slate-500 mb-1.5">
+            <label htmlFor="planner-search" className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1.5">
               {t("planner_busqueda_general", "Buscar")}
             </label>
             <Input
@@ -477,7 +454,7 @@ export default function Planner() {
 
           {/* Filtro Centro */}
           <div className="w-[130px]">
-            <label htmlFor="planner-centro" className="block text-xs uppercase font-bold tracking-[0.08em] text-slate-500 mb-1.5">
+            <label htmlFor="planner-centro" className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1.5">
               {t("planner_centro", "Centro")}
             </label>
             <Select
@@ -495,7 +472,7 @@ export default function Planner() {
 
           {/* Filtro Sector */}
           <div className="w-[160px]">
-            <label htmlFor="planner-sector" className="block text-xs uppercase font-bold tracking-[0.08em] text-slate-500 mb-1.5">
+            <label htmlFor="planner-sector" className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1.5">
               {t("planner_sector", "Sector")}
             </label>
             <Select
@@ -518,7 +495,7 @@ export default function Planner() {
 
           {/* Filtro Estado */}
           <div className="w-[140px]">
-            <label htmlFor="planner-estado" className="block text-xs uppercase font-bold tracking-[0.08em] text-slate-500 mb-1.5">
+            <label htmlFor="planner-estado" className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1.5">
               {t("planner_estado", "Estado")}
             </label>
             <Select
@@ -537,7 +514,7 @@ export default function Planner() {
 
           {/* Filtro Criticidad */}
           <div className="w-[120px]">
-            <label htmlFor="planner-criticidad" className="block text-xs uppercase font-bold tracking-[0.08em] text-slate-500 mb-1.5">
+            <label htmlFor="planner-criticidad" className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1.5">
               {t("planner_criticidad", "Criticidad")}
             </label>
             <Select
@@ -592,7 +569,7 @@ export default function Planner() {
               }`}
             >
               <span className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
+                <Clock className="w-4 h-4 text-cyan-500" />
                 {t("planner_tab_pendientes", "Pendientes")}
                 {tabCounts.pendientes > 0 && (
                   <span className="min-w-[20px] h-5 px-1.5 flex items-center justify-center text-xs font-bold text-white bg-amber-500 rounded-full">
@@ -613,7 +590,7 @@ export default function Planner() {
               }`}
             >
               <span className="flex items-center gap-2">
-                <Play className="w-4 h-4" />
+                <Play className="w-4 h-4 text-blue-600" />
                 {t("planner_tab_en_progreso", "En Progreso")}
                 {tabCounts.en_progreso > 0 && (
                   <span className="min-w-[20px] h-5 px-1.5 flex items-center justify-center text-xs font-bold text-white bg-blue-500 rounded-full">
@@ -634,7 +611,7 @@ export default function Planner() {
               }`}
             >
               <span className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4" />
+                <CheckCircle className="w-4 h-4 text-emerald-500" />
                 {t("planner_tab_finalizadas", "Finalizadas")}
                 {tabCounts.finalizadas > 0 && (
                   <span className="min-w-[20px] h-5 px-1.5 flex items-center justify-center text-xs font-medium text-slate-500 bg-slate-100 rounded-full">

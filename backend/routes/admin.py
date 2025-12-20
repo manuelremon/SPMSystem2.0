@@ -3,33 +3,36 @@ Admin routes - CRUD para catálogos y gestión básica
 Protegido: requiere rol admin (token access)
 """
 
+import logging
 import sys
 
 from flask import Blueprint, jsonify, request
+
+logger = logging.getLogger(__name__)
 
 try:
     from backend.core.cache import get_cache_stats, invalidate_catalog_cache, invalidate_user_cache
     from backend.core.config import settings
     from backend.core.db import get_db_connection, get_db_transaction, get_spm_db_path
+    from backend.core.rate_limit import rate_limit
     from backend.core.roles import is_admin, normalize_roles
+    from backend.core.user_helpers import get_user_by_id
     from backend.routes.auth import _decode_token
 except ImportError:
     from core.cache import get_cache_stats, invalidate_catalog_cache, invalidate_user_cache
     from core.config import settings
     from core.db import get_db_connection, get_db_transaction, get_spm_db_path
+    from core.rate_limit import rate_limit
     from core.roles import is_admin, normalize_roles
+    from core.user_helpers import get_user_by_id
 
     from routes.auth import _decode_token
 
 bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
 
-def _get_user(user_id: str):
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM usuarios WHERE id_spm=?", (str(user_id),))
-        row = cur.fetchone()
-        return dict(row) if row else None
+# Alias para compatibilidad con código existente
+_get_user = get_user_by_id
 
 
 def _require_admin():
@@ -53,6 +56,7 @@ def _admin_guard():
 
 
 @bp.route("/centros", methods=["GET", "POST"])
+@rate_limit(requests=30, window_seconds=60)
 def admin_centros():
     guard = _admin_guard()
     if guard:
@@ -78,6 +82,7 @@ def admin_centros():
 
 
 @bp.route("/centros/<centro_codigo>", methods=["PUT", "DELETE"])
+@rate_limit(requests=20, window_seconds=60)
 def admin_centros_mod(centro_codigo):
     guard = _admin_guard()
     if guard:
@@ -99,6 +104,7 @@ def admin_centros_mod(centro_codigo):
 
 
 @bp.route("/almacenes", methods=["GET", "POST"])
+@rate_limit(requests=30, window_seconds=60)
 def admin_almacenes():
     guard = _admin_guard()
     if guard:
@@ -124,6 +130,7 @@ def admin_almacenes():
 
 
 @bp.route("/almacenes/<almacen_codigo>", methods=["PUT", "DELETE"])
+@rate_limit(requests=20, window_seconds=60)
 def admin_almacenes_mod(almacen_codigo):
     guard = _admin_guard()
     if guard:
@@ -145,6 +152,7 @@ def admin_almacenes_mod(almacen_codigo):
 
 
 @bp.route("/sectores", methods=["GET", "POST"])
+@rate_limit(requests=30, window_seconds=60)
 def admin_sectores():
     guard = _admin_guard()
     if guard:
@@ -170,6 +178,7 @@ def admin_sectores():
 
 
 @bp.route("/sectores/<sector_nombre>", methods=["PUT", "DELETE"])
+@rate_limit(requests=20, window_seconds=60)
 def admin_sectores_mod(sector_nombre):
     guard = _admin_guard()
     if guard:
@@ -192,6 +201,7 @@ def admin_sectores_mod(sector_nombre):
 
 # ======================== ROLES ========================
 @bp.route("/roles", methods=["GET", "POST"])
+@rate_limit(requests=30, window_seconds=60)
 def admin_roles():
     guard = _admin_guard()
     if guard:
@@ -217,6 +227,7 @@ def admin_roles():
 
 
 @bp.route("/roles/<rol_nombre>", methods=["PUT", "DELETE"])
+@rate_limit(requests=20, window_seconds=60)
 def admin_roles_mod(rol_nombre):
     guard = _admin_guard()
     if guard:
@@ -242,6 +253,7 @@ def admin_roles_mod(rol_nombre):
 
 # ======================== PUESTOS ========================
 @bp.route("/puestos", methods=["GET", "POST"])
+@rate_limit(requests=30, window_seconds=60)
 def admin_puestos():
     guard = _admin_guard()
     if guard:
@@ -267,6 +279,7 @@ def admin_puestos():
 
 
 @bp.route("/puestos/<puesto_nombre>", methods=["PUT", "DELETE"])
+@rate_limit(requests=20, window_seconds=60)
 def admin_puestos_mod(puesto_nombre):
     guard = _admin_guard()
     if guard:
@@ -291,6 +304,7 @@ def admin_puestos_mod(puesto_nombre):
 
 
 @bp.route("/usuarios", methods=["GET", "POST"])
+@rate_limit(requests=30, window_seconds=60)  # Proteccion contra brute force
 def admin_usuarios():
     guard = _admin_guard()
     if guard:
@@ -354,6 +368,7 @@ def admin_usuarios():
 
 
 @bp.route("/usuarios/<id_spm>", methods=["GET", "PUT", "DELETE"])
+@rate_limit(requests=20, window_seconds=60)  # Proteccion contra enumeracion/brute force
 def admin_usuarios_mod(id_spm):
     guard = _admin_guard()
     if guard:
@@ -373,7 +388,7 @@ def admin_usuarios_mod(id_spm):
 
     elif request.method == "PUT":
         data = request.get_json(silent=True) or {}
-        print(f"[DEBUG] Actualizando usuario {id_spm} con datos: {data}")
+        logger.debug(f"Actualizando usuario {id_spm} con campos: {list(data.keys())}")
 
         update_fields = []
         values = []
@@ -435,13 +450,12 @@ def admin_usuarios_mod(id_spm):
             with get_db_transaction() as conn:
                 cur = conn.cursor()
                 query = f"UPDATE usuarios SET {', '.join(update_fields)} WHERE id_spm=?"
-                print(f"[DEBUG] Ejecutando query: {query}")
-                print(f"[DEBUG] Con valores: {values}")
+                logger.debug(f"Ejecutando UPDATE usuario {id_spm}, campos: {update_fields}")
                 cur.execute(query, values)
-                print(f"[DEBUG] Filas afectadas: {cur.rowcount}")
+                logger.debug(f"Usuario {id_spm} actualizado, filas afectadas: {cur.rowcount}")
         except Exception as e:
-            print(f"[ERROR] Error en UPDATE: {e}")
-            return jsonify({"ok": False, "error": str(e)}), 500
+            logger.error(f"Error actualizando usuario {id_spm}: {e}", exc_info=True)
+            return jsonify({"ok": False, "error": "Error interno al actualizar usuario"}), 500
     else:
         with get_db_transaction() as conn:
             cur = conn.cursor()
@@ -453,6 +467,7 @@ def admin_usuarios_mod(id_spm):
 
 
 @bp.route("/planificadores", methods=["GET", "POST"])
+@rate_limit(requests=30, window_seconds=60)
 def admin_planificadores():
     guard = _admin_guard()
     if guard:
@@ -492,6 +507,7 @@ def admin_planificadores():
 
 
 @bp.route("/planificadores/<usuario_id>", methods=["PUT", "DELETE"])
+@rate_limit(requests=20, window_seconds=60)
 def admin_planificadores_mod(usuario_id):
     guard = _admin_guard()
     if guard:
@@ -581,6 +597,7 @@ def _registrar_historial_presupuesto(
 
 
 @bp.route("/presupuestos", methods=["GET", "POST"])
+@rate_limit(requests=30, window_seconds=60)
 def admin_presupuestos():
     guard = _admin_guard()
     if guard:
@@ -646,6 +663,7 @@ def admin_presupuestos():
 
 
 @bp.route("/presupuestos/historial", methods=["GET"])
+@rate_limit(requests=30, window_seconds=60)
 def admin_presupuestos_historial():
     """Obtiene el historial de cambios en presupuestos."""
     guard = _admin_guard()
@@ -685,6 +703,7 @@ def admin_presupuestos_historial():
 
 
 @bp.route("/presupuestos/<centro>/<sector>", methods=["PUT", "DELETE"])
+@rate_limit(requests=20, window_seconds=60)
 def admin_presupuestos_mod(centro, sector):
     guard = _admin_guard()
     if guard:
@@ -750,6 +769,7 @@ def admin_presupuestos_mod(centro, sector):
 
 
 @bp.route("/estado", methods=["GET"])
+@rate_limit(requests=30, window_seconds=60)
 def admin_estado():
     guard = _admin_guard()
     if guard:
@@ -776,6 +796,7 @@ def admin_estado():
 
 
 @bp.route("/metricas", methods=["GET"])
+@rate_limit(requests=30, window_seconds=60)
 def admin_metricas():
     guard = _admin_guard()
     if guard:
@@ -819,6 +840,7 @@ def admin_metricas():
 
 
 @bp.route("/config/almacenes", methods=["GET", "POST"])
+@rate_limit(requests=30, window_seconds=60)
 def admin_config_almacenes():
     guard = _admin_guard()
     if guard:
@@ -877,6 +899,7 @@ def admin_config_almacenes():
 
 
 @bp.route("/config/almacenes/<centro>/<almacen>", methods=["PUT", "DELETE"])
+@rate_limit(requests=20, window_seconds=60)
 def admin_config_almacenes_mod(centro, almacen):
     guard = _admin_guard()
     if guard:
@@ -915,6 +938,7 @@ def admin_config_almacenes_mod(centro, almacen):
 
 
 @bp.route("/proveedores/externos", methods=["GET", "POST"])
+@rate_limit(requests=30, window_seconds=60)
 def admin_proveedores_externos():
     """
     GET: Lista proveedores externos con sus contactos/emails
@@ -993,6 +1017,7 @@ def admin_proveedores_externos():
 
 
 @bp.route("/proveedores/externos/<cuit>", methods=["GET", "PUT", "DELETE"])
+@rate_limit(requests=20, window_seconds=60)
 def admin_proveedores_externos_mod(cuit):
     """
     GET: Detalle completo de un proveedor (con contactos, emails, teléfonos)
@@ -1075,6 +1100,7 @@ def admin_proveedores_externos_mod(cuit):
 
 
 @bp.route("/proveedores/internos", methods=["GET", "POST"])
+@rate_limit(requests=30, window_seconds=60)
 def admin_proveedores_internos():
     """
     GET: Lista proveedores internos (almacenes)
@@ -1141,6 +1167,7 @@ def admin_proveedores_internos():
 
 
 @bp.route("/proveedores/internos/<centro>/<almacen>", methods=["GET", "PUT", "DELETE"])
+@rate_limit(requests=20, window_seconds=60)
 def admin_proveedores_internos_mod(centro, almacen):
     """
     GET: Detalle de un proveedor interno
@@ -1212,6 +1239,7 @@ def admin_proveedores_internos_mod(centro, almacen):
 
 
 @bp.route("/cache/stats", methods=["GET"])
+@rate_limit(requests=30, window_seconds=60)
 def admin_cache_stats():
     """Get cache statistics for monitoring performance"""
     guard = _admin_guard()
@@ -1223,6 +1251,7 @@ def admin_cache_stats():
 
 
 @bp.route("/cache/clear", methods=["POST"])
+@rate_limit(requests=10, window_seconds=60)
 def admin_cache_clear():
     """Clear all caches (use after major data changes)"""
     guard = _admin_guard()
@@ -1262,6 +1291,7 @@ except ImportError:
 
 
 @bp.route("/reglas-aprobacion", methods=["GET", "POST"])
+@rate_limit(requests=30, window_seconds=60)
 def admin_reglas_aprobacion():
     """
     GET: Lista todas las reglas de aprobacion
@@ -1305,7 +1335,8 @@ def admin_reglas_aprobacion():
         except ApprovalValidationError as e:
             return jsonify({"ok": False, "error": str(e)}), 400
         except Exception as e:
-            return jsonify({"ok": False, "error": f"Error creando regla: {e}"}), 500
+            logger.error(f"Error creando regla de aprobación: {e}")
+            return jsonify({"ok": False, "error": "Error interno al crear la regla"}), 500
 
     # GET: Listar reglas
     solo_activas = request.args.get("activas", "true").lower() == "true"
@@ -1315,6 +1346,7 @@ def admin_reglas_aprobacion():
 
 
 @bp.route("/reglas-aprobacion/<int:regla_id>", methods=["GET", "PUT", "DELETE"])
+@rate_limit(requests=20, window_seconds=60)
 def admin_reglas_aprobacion_mod(regla_id):
     """
     GET: Obtiene detalle de una regla
@@ -1364,7 +1396,8 @@ def admin_reglas_aprobacion_mod(regla_id):
                 return jsonify({"ok": False, "error": "Regla no encontrada o sin cambios"}), 404
             return jsonify({"ok": True}), 200
         except Exception as e:
-            return jsonify({"ok": False, "error": str(e)}), 500
+            logger.error(f"Error actualizando regla: {e}")
+            return jsonify({"ok": False, "error": "Error interno al procesar la solicitud"}), 500
 
     else:  # DELETE
         resultado = desactivar_regla(regla_id)
@@ -1374,6 +1407,7 @@ def admin_reglas_aprobacion_mod(regla_id):
 
 
 @bp.route("/delegaciones-aprobacion", methods=["GET", "POST"])
+@rate_limit(requests=30, window_seconds=60)
 def admin_delegaciones_aprobacion():
     """
     GET: Lista delegaciones de aprobacion activas
@@ -1410,7 +1444,8 @@ def admin_delegaciones_aprobacion():
         except ApprovalValidationError as e:
             return jsonify({"ok": False, "error": str(e)}), 400
         except Exception as e:
-            return jsonify({"ok": False, "error": f"Error creando delegacion: {e}"}), 500
+            logger.error(f"Error creando delegación: {e}")
+            return jsonify({"ok": False, "error": "Error interno al crear la delegación"}), 500
 
     # GET: Listar delegaciones activas
     with get_db_connection() as conn:
@@ -1434,6 +1469,7 @@ def admin_delegaciones_aprobacion():
 
 
 @bp.route("/delegaciones-aprobacion/<int:delegacion_id>", methods=["PUT", "DELETE"])
+@rate_limit(requests=20, window_seconds=60)
 def admin_delegaciones_aprobacion_mod(delegacion_id):
     """
     PUT: Actualiza una delegacion

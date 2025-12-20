@@ -14,11 +14,13 @@ from flask import Blueprint, jsonify, request
 
 try:
     from backend.core.db import get_db_connection, get_db_transaction
+    from backend.core.rate_limit import rate_limit
     from backend.core.roles import is_admin, normalize_roles
     from backend.routes.auth import _decode_token
     from backend.services.notification_service import NotificationService
 except ImportError:
     from core.db import get_db_connection, get_db_transaction
+    from core.rate_limit import rate_limit
     from core.roles import is_admin, normalize_roles
     from services.notification_service import NotificationService
 
@@ -143,6 +145,7 @@ def get_mi_cuenta():
 
 
 @bp.route("/mi-cuenta/password", methods=["PUT"])
+@rate_limit(requests=5, window_seconds=300)  # 5 intentos cada 5 minutos (prevenir fuerza bruta)
 def update_password():
     """
     Actualiza la contraseña del usuario autenticado.
@@ -465,7 +468,7 @@ def listar_cambios_perfil():
                     fecha_formateada = fecha_dt.strftime("%d/%m/%Y %H:%M")
                 else:
                     fecha_formateada = fecha_str
-            except:
+            except (ValueError, TypeError):
                 fecha_formateada = fecha_str
 
             solicitudes.append(
@@ -718,7 +721,7 @@ def admin_listar_profile_requests():
             # Parse payload
             try:
                 payload = json.loads(row_dict.get("payload", "{}"))
-            except:
+            except (json.JSONDecodeError, TypeError):
                 payload = {}
 
             requests.append(
@@ -782,7 +785,7 @@ def admin_get_profile_request(request_id: int):
         # Parse payload
         try:
             payload = json.loads(row_dict.get("payload", "{}"))
-        except:
+        except (json.JSONDecodeError, TypeError):
             payload = {}
 
         # Obtener valores actuales vs solicitados
@@ -805,7 +808,7 @@ def admin_get_profile_request(request_id: int):
                 if isinstance(current_val, str) and current_val.startswith("["):
                     try:
                         current_val = json.loads(current_val)
-                    except:
+                    except (json.JSONDecodeError, TypeError):
                         pass
                 current_values[db_field] = current_val
                 requested_values[db_field] = payload[key]
@@ -878,7 +881,7 @@ def admin_aprobar_profile_request(request_id: int):
         # Parse payload y preparar cambios
         try:
             payload = json.loads(req["payload"])
-        except:
+        except (json.JSONDecodeError, TypeError):
             payload = {}
 
         centros_actuales = _parse_json_field(usuario_actual["centros"] if usuario_actual else None)

@@ -44,6 +44,7 @@ try:
         paso_2_opciones_abastecimiento,
         paso_3_guardar_tratamiento,
     )
+    from backend.core.user_helpers import get_user_by_id
     from backend.routes.auth import _decode_token
     from backend.services.audit_service import auditar_modificacion
 except ImportError:
@@ -69,6 +70,7 @@ except ImportError:
         paso_2_opciones_abastecimiento,
         paso_3_guardar_tratamiento,
     )
+    from core.user_helpers import get_user_by_id
 
     from routes.auth import _decode_token
 
@@ -135,14 +137,8 @@ def dashboard_stats():
         )
 
 
-def _get_user(user_id: str):
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM usuarios WHERE id_spm=?", (str(user_id),))
-        row = cur.fetchone()
-    if not row:
-        return None
-    return dict(row)
+# Alias para compatibilidad con código existente
+_get_user = get_user_by_id
 
 
 def _current_user():
@@ -741,8 +737,17 @@ def aceptar_solicitud(solicitud_id):
         return jsonify({"ok": True, "estado": resultado["estado_nuevo"]}), 200
 
     except TransicionInvalidaError as e:
+        logging.warning(f"Transición inválida aceptar solicitud {solicitud_id}: {e}")
         return (
-            jsonify({"ok": False, "error": {"code": "invalid_transition", "message": str(e)}}),
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "invalid_transition",
+                        "message": "Transición de estado no permitida",
+                    },
+                }
+            ),
             400,
         )
     except SolicitudNoEncontradaError:
@@ -778,8 +783,17 @@ def finalizar_solicitud(solicitud_id):
         return jsonify({"ok": True, "estado": resultado["estado_nuevo"]}), 200
 
     except TransicionInvalidaError as e:
+        logging.warning(f"Transición inválida finalizar solicitud {solicitud_id}: {e}")
         return (
-            jsonify({"ok": False, "error": {"code": "invalid_transition", "message": str(e)}}),
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "invalid_transition",
+                        "message": "Transición de estado no permitida",
+                    },
+                }
+            ),
             400,
         )
     except SolicitudNoEncontradaError:
@@ -973,9 +987,11 @@ def analizar_solicitud(solicitud_id):
         resultado = paso_1_analizar_solicitud(solicitud_id)
         return jsonify({"ok": True, "data": resultado}), 200
     except ValueError as e:
-        return error_validation("solicitud_id", str(e))
+        logging.warning(f"Validación paso1 solicitud {solicitud_id}: {e}")
+        return error_validation("solicitud_id", "Solicitud no válida o no encontrada")
     except Exception as e:
-        return error_internal(str(e))
+        logging.error(f"Error en paso1_analisis solicitud {solicitud_id}: {e}")
+        return error_internal("Error al analizar solicitud")
 
 
 def _generar_recomendaciones(conflictos: list, avisos: list) -> list:
@@ -1061,9 +1077,11 @@ def obtener_opciones_abastecimiento(solicitud_id, item_idx):
         resultado = paso_2_opciones_abastecimiento(solicitud_id, item_idx)
         return jsonify({"ok": True, "data": resultado}), 200
     except ValueError as e:
-        return error_validation("item_idx", str(e))
+        logging.warning(f"Validación opciones item {item_idx} solicitud {solicitud_id}: {e}")
+        return error_validation("item_idx", "Item no válido o fuera de rango")
     except Exception as e:
-        return error_internal(str(e))
+        logging.error(f"Error obteniendo opciones item {item_idx} solicitud {solicitud_id}: {e}")
+        return error_internal("Error al obtener opciones de abastecimiento")
 
 
 @bp.route("/solicitudes/<int:solicitud_id>/guardar-tratamiento", methods=["POST"])
@@ -1092,9 +1110,11 @@ def guardar_tratamiento(solicitud_id):
         return jsonify({"ok": True, "data": resultado}), 200
 
     except ValueError as e:
-        return error_validation("decisiones", str(e))
+        logging.warning(f"Validación decisiones solicitud {solicitud_id}: {e}")
+        return error_validation("decisiones", "Datos de decisiones no válidos")
     except Exception as e:
-        return error_internal(str(e))
+        logging.error(f"Error guardando tratamiento solicitud {solicitud_id}: {e}")
+        return error_internal("Error al guardar el tratamiento")
 
 
 # =============================================================================
@@ -1178,9 +1198,13 @@ def guardar_decision_multifuente_endpoint(solicitud_id, item_idx):
         return jsonify({"ok": True, "data": resultado}), 200
 
     except ValueError as e:
-        return error_validation("fuentes", str(e))
+        logging.warning(f"Validación fuentes item {item_idx} solicitud {solicitud_id}: {e}")
+        return error_validation("fuentes", "Datos de fuentes no válidos")
     except Exception as e:
-        return error_internal(str(e))
+        logging.error(
+            f"Error guardando decisión multifuente item {item_idx} solicitud {solicitud_id}: {e}"
+        )
+        return error_internal("Error al guardar la decisión")
 
 
 @bp.route("/solicitudes/<int:solicitud_id>/decisiones-resumen", methods=["GET"])
@@ -1215,7 +1239,8 @@ def obtener_resumen_decisiones_endpoint(solicitud_id):
         resultado = obtener_resumen_decisiones(solicitud_id)
         return jsonify({"ok": True, "data": resultado}), 200
     except Exception as e:
-        return error_internal(str(e))
+        logging.error(f"Error obteniendo resumen decisiones solicitud {solicitud_id}: {e}")
+        return error_internal("Error al obtener resumen de decisiones")
 
 
 @bp.route(
@@ -1303,7 +1328,8 @@ def obtener_detalle_mrp(solicitud_id, item_idx):
         return jsonify({"ok": True, "data": resultado}), 200
 
     except Exception as e:
-        return error_internal(str(e))
+        logging.error(f"Error obteniendo detalle MRP item {item_idx} solicitud {solicitud_id}: {e}")
+        return error_internal("Error al obtener información MRP")
 
 
 # =============================================================================
@@ -1340,7 +1366,8 @@ def listar_precios_proveedor(cuit):
         return jsonify({"ok": True, "data": precios}), 200
 
     except Exception as e:
-        return error_internal(str(e))
+        logging.error(f"Error listando precios proveedor {cuit}: {e}")
+        return error_internal("Error al obtener precios del proveedor")
 
 
 @bp.route("/proveedores/<cuit>/precios", methods=["POST"])
@@ -1405,7 +1432,8 @@ def crear_precio_negociado(cuit):
         )
 
     except Exception as e:
-        return error_internal(str(e))
+        logging.error(f"Error creando precio proveedor {cuit}: {e}")
+        return error_internal("Error al crear precio negociado")
 
 
 @bp.route("/materiales/<codigo>/mejores-precios", methods=["GET"])
@@ -1429,7 +1457,8 @@ def obtener_mejores_precios_material(codigo):
         return jsonify({"ok": True, "data": precios}), 200
 
     except Exception as e:
-        return error_internal(str(e))
+        logging.error(f"Error obteniendo mejores precios material {codigo}: {e}")
+        return error_internal("Error al obtener precios del material")
 
 
 # =============================================================================
@@ -1472,7 +1501,8 @@ def obtener_decision_item(solicitud_id, item_idx):
         return jsonify({"ok": True, "data": resultado}), 200
 
     except Exception as e:
-        return error_internal(str(e))
+        logging.error(f"Error obteniendo decisión item {item_idx} solicitud {solicitud_id}: {e}")
+        return error_internal("Error al obtener decisión del item")
 
 
 # =============================================================================
@@ -1701,9 +1731,9 @@ def ejecutar_acciones_post_tratamiento(solicitud_id):
         return jsonify({"ok": True, "data": resumen}), 200
 
     except Exception as e:
-        logging.error(f"Error en ejecutar_acciones_post_tratamiento: {e}")
+        logging.error(f"Error en ejecutar_acciones_post_tratamiento solicitud {solicitud_id}: {e}")
         logging.error(traceback.format_exc())
-        return error_internal(str(e))
+        return error_internal("Error al ejecutar acciones de tratamiento")
 
 
 @bp.route("/responder-consulta/<int:decision_id>", methods=["POST"])
@@ -1820,7 +1850,8 @@ def responder_consulta_referente(decision_id):
         )
 
     except Exception as e:
-        return error_internal(str(e))
+        logging.error(f"Error respondiendo consulta decisión {decision_id}: {e}")
+        return error_internal("Error al registrar respuesta")
 
 
 @bp.route("/solicitudes/<int:solicitud_id>/estado-acciones", methods=["GET"])
@@ -1895,7 +1926,8 @@ def obtener_estado_acciones(solicitud_id):
         return jsonify({"ok": True, "data": resumen}), 200
 
     except Exception as e:
-        return error_internal(str(e))
+        logging.error(f"Error obteniendo estado acciones solicitud {solicitud_id}: {e}")
+        return error_internal("Error al obtener estado de acciones")
 
 
 def _get_responsable_almacen(centro: str, almacen: str) -> str | None:

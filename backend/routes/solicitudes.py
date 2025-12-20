@@ -5,6 +5,7 @@ Refactorizado para usar FSM centralizado (Sprint 1.6)
 """
 
 import json
+import logging
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -12,8 +13,10 @@ from pathlib import Path
 from flask import Blueprint, jsonify, request
 from werkzeug.utils import secure_filename
 
+logger = logging.getLogger(__name__)
+
 try:
-    from backend.core.db import get_db_connection, get_db_transaction
+    from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
     from backend.core.fsm import (
         EstadoSolicitud,
         SolicitudNoEncontradaError,
@@ -29,6 +32,8 @@ try:
         validar_items,
         validar_solicitud_create,
     )
+    from backend.core.rate_limit import rate_limit
+    from backend.core.roles import has_any_role, is_admin
     from backend.routes.auth import _decode_token
     from backend.services.approval_service import (
         obtener_aprobador_por_monto,
@@ -47,7 +52,7 @@ try:
         resolver_alertas_solicitud,
     )
 except ImportError:
-    from core.db import get_db_connection, get_db_transaction
+    from core.db import get_db_connection, get_db_transaction, is_using_postgresql
     from core.fsm import (
         EstadoSolicitud,
         SolicitudNoEncontradaError,
@@ -60,6 +65,8 @@ except ImportError:
     from core.item_schemas import (
         validar_items,
     )
+    from core.rate_limit import rate_limit
+    from core.roles import has_any_role, is_admin
     from services.approval_service import (
         obtener_aprobador_por_monto,
         puede_aprobar,
@@ -77,6 +84,22 @@ except ImportError:
     )
 
     from routes.auth import _decode_token
+
+
+def _ph():
+    """Retorna el placeholder correcto para SQL (? para SQLite, %s para PostgreSQL)"""
+    return "%s" if is_using_postgresql() else "?"
+
+
+def _row_to_dict(row, cursor):
+    """Convierte una fila de BD a diccionario"""
+    if row is None:
+        return None
+    if is_using_postgresql():
+        columns = [desc[0] for desc in cursor.description]
+        return dict(zip(columns, row))
+    return dict(row)
+
 
 bp = Blueprint("solicitudes", __name__, url_prefix="/api/solicitudes")
 
@@ -135,17 +158,34 @@ def list_solicitudes():
     user_id = request.args.get("user_id")
     estado = request.args.get("estado")
 
+    # DEBUG LOG
+    import logging
+
+    logging.getLogger(__name__).info(
+        f"[DEBUG] list_solicitudes: estado={estado}, aprobador_id={request.args.get('aprobador_id')}, all_args={dict(request.args)}"
+    )
+
+    ph = _ph()
     where = []
     where_count = []
     params = []
     if user_id:
-        where.append("s.id_usuario = ?")
-        where_count.append("id_usuario = ?")
+        where.append(f"s.id_usuario = {ph}")
+        where_count.append(f"id_usuario = {ph}")
         params.append(str(user_id))
     if estado:
-        where.append("LOWER(s.status) = LOWER(?)")
-        where_count.append("LOWER(status) = LOWER(?)")
-        params.append(estado)
+        # Normalizar estado legacy (ej: "Enviada" -> "submitted")
+        estado_normalizado = normalizar_estado(estado)
+        where.append(f"LOWER(s.status) = LOWER({ph})")
+        where_count.append(f"LOWER(status) = LOWER({ph})")
+        params.append(estado_normalizado)
+
+    # Filtrar por aprobador_id si se pasa el parametro
+    aprobador_id = request.args.get("aprobador_id")
+    if aprobador_id:
+        where.append(f"s.aprobador_id = {ph}")
+        where_count.append(f"aprobador_id = {ph}")
+        params.append(str(aprobador_id))
 
     where_sql = f"WHERE {' AND '.join(where)}" if where else ""
     where_sql_count = f"WHERE {' AND '.join(where_count)}" if where_count else ""
@@ -170,15 +210,16 @@ def list_solicitudes():
             LEFT JOIN usuarios p ON s.planner_id = p.id_spm
             {where_sql}
             ORDER BY s.created_at DESC
-            LIMIT ? OFFSET ?
+            LIMIT {ph} OFFSET {ph}
             """,
             params + [page_size, offset],
         )
         rows = cur.fetchall()
+        columns = [desc[0] for desc in cur.description] if is_using_postgresql() else None
 
     solicitudes_list = []
     for r in rows:
-        d = dict(r)
+        d = dict(zip(columns, r)) if is_using_postgresql() else dict(r)
         try:
             extra = json.loads(d.get("data_json") or "{}")
         except Exception:
@@ -208,19 +249,51 @@ def get_solicitud(solicitud_id):
     if isinstance(user_payload, tuple):
         return user_payload
 
+    user_id = user_payload.get("user_id")
+    user_rol = user_payload.get("rol", "")
+
+    ph = _ph()
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM solicitudes WHERE id=?", (solicitud_id,))
+        cur.execute(f"SELECT * FROM solicitudes WHERE id={ph}", (solicitud_id,))
         row = cur.fetchone()
+        if not row:
+            return (
+                jsonify(
+                    {"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}
+                ),
+                404,
+            )
+        d = _row_to_dict(row, cur)
 
-    if not row:
+    # SEGURIDAD: Verificar ownership - solo el dueño, admin, aprobadores o planificadores pueden ver
+    solicitud_owner = str(d.get("id_usuario", ""))
+    roles_permitidos = [
+        "aprobador",
+        "approver",
+        "coordinador",
+        "coordinator",
+        "planificador",
+        "planner",
+    ]
+    if (
+        str(user_id) != solicitud_owner
+        and not is_admin(user_rol)
+        and not has_any_role(user_rol, roles_permitidos)
+    ):
         return (
             jsonify(
-                {"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "forbidden",
+                        "message": "No tiene permiso para ver esta solicitud",
+                    },
+                }
             ),
-            404,
+            403,
         )
-    d = dict(row)
+
     try:
         extra = json.loads(d.get("data_json") or "{}")
     except json.JSONDecodeError:
@@ -230,6 +303,7 @@ def get_solicitud(solicitud_id):
 
 
 @bp.route("", methods=["POST"])
+@rate_limit(requests=10, window_seconds=60)  # 10 solicitudes por minuto (prevenir spam)
 def create_solicitud():
     """Crear una nueva solicitud (soporta JSON o multipart/form-data con archivos)"""
     # SEGURIDAD: Requiere autenticación válida
@@ -301,30 +375,56 @@ def create_solicitud():
     total = validacion["total"]
     now = datetime.utcnow().isoformat()
 
+    ph = _ph()
     with get_db_transaction() as conn:
         cur = conn.cursor()
-        cur.execute(
-            """
-            INSERT INTO solicitudes (id_usuario, centro, sector, justificacion, centro_costos, almacen_virtual, criticidad, fecha_necesidad, data_json, status, total_monto, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?, ?, ?)
-            """,
-            (
-                str(user_id),
-                data.get("centro") or data.get("centro_id") or "",
-                data.get("sector") or data.get("sector_id") or "",
-                data.get("justificacion") or "",
-                data.get("centro_costos") or "",
-                data.get("almacen_virtual") or data.get("almacen") or "",
-                data.get("criticidad") or "Normal",
-                data.get("fecha_necesidad") or "",
-                json.dumps({"items": items_validos, "archivos": []}),
-                "Borrador",
-                total,
-                now,
-                now,
-            ),
-        )
-        new_id = cur.lastrowid
+        if is_using_postgresql():
+            cur.execute(
+                f"""
+                INSERT INTO solicitudes (id_usuario, centro, sector, justificacion, centro_costos, almacen_virtual, criticidad, fecha_necesidad, data_json, status, total_monto, created_at, updated_at)
+                VALUES ({ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph})
+                RETURNING id
+                """,
+                (
+                    str(user_id),
+                    data.get("centro") or data.get("centro_id") or "",
+                    data.get("sector") or data.get("sector_id") or "",
+                    data.get("justificacion") or "",
+                    data.get("centro_costos") or "",
+                    data.get("almacen_virtual") or data.get("almacen") or "",
+                    data.get("criticidad") or "Normal",
+                    data.get("fecha_necesidad") or "",
+                    json.dumps({"items": items_validos, "archivos": []}),
+                    "Borrador",
+                    total,
+                    now,
+                    now,
+                ),
+            )
+            new_id = cur.fetchone()[0]
+        else:
+            cur.execute(
+                """
+                INSERT INTO solicitudes (id_usuario, centro, sector, justificacion, centro_costos, almacen_virtual, criticidad, fecha_necesidad, data_json, status, total_monto, created_at, updated_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    str(user_id),
+                    data.get("centro") or data.get("centro_id") or "",
+                    data.get("sector") or data.get("sector_id") or "",
+                    data.get("justificacion") or "",
+                    data.get("centro_costos") or "",
+                    data.get("almacen_virtual") or data.get("almacen") or "",
+                    data.get("criticidad") or "Normal",
+                    data.get("fecha_necesidad") or "",
+                    json.dumps({"items": items_validos, "archivos": []}),
+                    "Borrador",
+                    total,
+                    now,
+                    now,
+                ),
+            )
+            new_id = cur.lastrowid
 
     # Procesar archivos adjuntos si los hay
     archivos_metadata = []
@@ -337,9 +437,10 @@ def create_solicitud():
 
         # Actualizar data_json con metadata de archivos
         if archivos_metadata:
+            ph = _ph()
             with get_db_connection() as conn:
                 cur = conn.cursor()
-                cur.execute("SELECT data_json FROM solicitudes WHERE id = ?", (new_id,))
+                cur.execute(f"SELECT data_json FROM solicitudes WHERE id = {ph}", (new_id,))
                 row = cur.fetchone()
                 data_json = json.loads(row[0]) if row and row[0] else {"items": [], "archivos": []}
 
@@ -347,7 +448,7 @@ def create_solicitud():
             with get_db_transaction() as conn:
                 cur = conn.cursor()
                 cur.execute(
-                    "UPDATE solicitudes SET data_json = ? WHERE id = ?",
+                    f"UPDATE solicitudes SET data_json = {ph} WHERE id = {ph}",
                     (json.dumps(data_json), new_id),
                 )
 
@@ -364,8 +465,8 @@ def create_solicitud():
             },
             ip_address=request.remote_addr,
         )
-    except Exception:
-        pass  # No fallar si auditoría falla
+    except Exception as e:
+        logger.warning(f"Auditoria de creacion fallo para solicitud {new_id}: {e}")
 
     return get_solicitud(new_id)
 
@@ -432,9 +533,10 @@ def eliminar_solicitud(solicitud_id):
             403,
         )
 
+    ph = _ph()
     with get_db_transaction() as conn:
         cur = conn.cursor()
-        cur.execute("DELETE FROM solicitudes WHERE id=?", (solicitud_id,))
+        cur.execute(f"DELETE FROM solicitudes WHERE id={ph}", (solicitud_id,))
 
     return jsonify({"ok": True, "message": "Solicitud eliminada correctamente"}), 200
 
@@ -442,6 +544,50 @@ def eliminar_solicitud(solicitud_id):
 @bp.route("/<int:solicitud_id>/draft", methods=["PATCH"])
 def guardar_borrador(solicitud_id):
     """Guardar borrador con items y total"""
+    # SEGURIDAD: Requiere autenticación
+    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
+    if isinstance(user_payload, tuple):
+        return user_payload
+
+    user_id = user_payload.get("user_id")
+    if not user_id:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "unauthorized",
+                        "message": "Usuario no identificado en token",
+                    },
+                }
+            ),
+            401,
+        )
+
+    # SEGURIDAD: Validar ownership - solo el dueño puede editar el borrador
+    solicitud = _get_raw(solicitud_id)
+    if not solicitud:
+        return (
+            jsonify(
+                {"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}
+            ),
+            404,
+        )
+
+    if str(solicitud.get("id_usuario")) != str(user_id):
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "forbidden",
+                        "message": "No tienes permiso para editar esta solicitud",
+                    },
+                }
+            ),
+            403,
+        )
+
     data = request.get_json(silent=True) or {}
     items = data.get("items") or []
 
@@ -488,6 +634,43 @@ def enviar_solicitud(solicitud_id):
         return user_payload
 
     user_id = str(user_payload.get("user_id", "system"))
+    if not user_id or user_id == "system":
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "unauthorized",
+                        "message": "Usuario no identificado en token",
+                    },
+                }
+            ),
+            401,
+        )
+
+    # SEGURIDAD: Validar ownership - solo el dueño puede enviar la solicitud
+    solicitud = _get_raw(solicitud_id)
+    if not solicitud:
+        return (
+            jsonify(
+                {"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}
+            ),
+            404,
+        )
+
+    if str(solicitud.get("id_usuario")) != str(user_id):
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "forbidden",
+                        "message": "No tienes permiso para enviar esta solicitud",
+                    },
+                }
+            ),
+            403,
+        )
 
     data = request.get_json(silent=True) or {}
     items = data.get("items") or []
@@ -495,7 +678,7 @@ def enviar_solicitud(solicitud_id):
     # Validar items antes de enviar (Sprint 3.3)
     # Si no se envian items, obtener los existentes de la solicitud
     if not items:
-        solicitud = _get_raw(solicitud_id)
+        # Ya tenemos la solicitud cargada arriba
         if solicitud:
             try:
                 data_json = json.loads(solicitud.get("data_json") or "{}")
@@ -597,9 +780,9 @@ def enviar_solicitud(solicitud_id):
                 fecha_limite=fecha_limite.isoformat() + "Z",
                 estado_sla="on_time",
             )
-    except Exception:
+    except Exception as e:
         # SLA es informativo, no debe bloquear el flujo principal
-        pass
+        logger.warning(f"Actualizacion SLA fallo para solicitud {solicitud_id}: {e}")
 
     return get_solicitud(solicitud_id)
 
@@ -691,12 +874,13 @@ def aprobar_solicitud(solicitud_id):
         from services.budget_service import aprobar_solicitud_con_presupuesto
 
     # Obtener rol del aprobador
+    ph = _ph()
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (aprobador_id,))
+        cur.execute(f"SELECT rol FROM usuarios WHERE id_spm = {ph}", (aprobador_id,))
         user_row = cur.fetchone()
 
-    aprobador_rol = user_row["rol"] if user_row else ""
+    aprobador_rol = _row_to_dict(user_row, cur).get("rol", "") if user_row else ""
 
     result = aprobar_solicitud_con_presupuesto(
         solicitud_id=solicitud_id,
@@ -800,6 +984,50 @@ def rechazar_solicitud(solicitud_id):
         return user_payload
 
     actor_id = str(user_payload.get("user_id", "system"))
+    if not actor_id or actor_id == "system":
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "unauthorized",
+                        "message": "Usuario no identificado en token",
+                    },
+                }
+            ),
+            401,
+        )
+
+    # Obtener rol del actor ANTES de procesar (necesario para validar autorización)
+    ph = _ph()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(f"SELECT rol FROM usuarios WHERE id_spm = {ph}", (actor_id,))
+        user_row = cur.fetchone()
+    actor_rol = _row_to_dict(user_row, cur).get("rol", "") if user_row else ""
+
+    # SEGURIDAD: Validar autorización - solo aprobadores/coordinadores/admin pueden rechazar
+    roles_rechazo = [
+        "aprobador",
+        "approver",
+        "coordinador",
+        "coordinator",
+        "admin",
+        "administrador",
+    ]
+    if not is_admin(actor_rol) and not has_any_role(actor_rol, roles_rechazo):
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "forbidden",
+                        "message": "No tiene permisos para rechazar solicitudes",
+                    },
+                }
+            ),
+            403,
+        )
 
     # Obtener solicitud
     solicitud = _get_raw(solicitud_id)
@@ -830,13 +1058,6 @@ def rechazar_solicitud(solicitud_id):
 
     data = request.get_json(silent=True) or {}
     motivo = data.get("motivo") or ""
-
-    # Obtener rol del actor
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (actor_id,))
-        user_row = cur.fetchone()
-    actor_rol = user_row["rol"] if user_row else ""
 
     # Usar FSM para cambiar estado (registra historial y dispara notificaciones)
     try:
@@ -912,16 +1133,22 @@ def comentar_solicitud(solicitud_id):
         with get_db_connection() as conn:
             cur = conn.cursor()
             # Verificar si existe la tabla de log
-            cur.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='solicitud_tratamiento_log'"
-            )
+            if is_using_postgresql():
+                cur.execute(
+                    "SELECT table_name FROM information_schema.tables WHERE table_name='solicitud_tratamiento_log'"
+                )
+            else:
+                cur.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='solicitud_tratamiento_log'"
+                )
             table_exists = cur.fetchone() is not None
 
         if table_exists:
+            ph = _ph()
             with get_db_transaction() as conn:
                 cur = conn.cursor()
                 cur.execute(
-                    "INSERT INTO solicitud_tratamiento_log (solicitud_id, item_index, actor_id, tipo, estado, payload_json) VALUES (?,?,?,?,?,?)",
+                    f"INSERT INTO solicitud_tratamiento_log (solicitud_id, item_index, actor_id, tipo, estado, payload_json) VALUES ({ph},{ph},{ph},{ph},{ph},{ph})",
                     (
                         solicitud_id,
                         None,
@@ -1037,20 +1264,23 @@ def _update_solicitud(solicitud_id: int, fields: dict):
     if not fields:
         return
     fields["updated_at"] = datetime.utcnow().isoformat()
-    set_clause = ", ".join([f"{k}=?" for k in fields.keys()])
+    ph = _ph()
+    set_clause = ", ".join([f"{k}={ph}" for k in fields.keys()])
     params = list(fields.values()) + [solicitud_id]
     with get_db_transaction() as conn:
         cur = conn.cursor()
-        cur.execute(f"UPDATE solicitudes SET {set_clause} WHERE id=?", params)
+        cur.execute(f"UPDATE solicitudes SET {set_clause} WHERE id={ph}", params)
 
 
 def _get_raw(solicitud_id: int):
+    ph = _ph()
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM solicitudes WHERE id=?", (solicitud_id,))
+        cur.execute(f"SELECT * FROM solicitudes WHERE id={ph}", (solicitud_id,))
         row = cur.fetchone()
-
-    return dict(row) if row else None
+        if row is None:
+            return None
+        return _row_to_dict(row, cur)
 
 
 def _calcular_total(items):
@@ -1105,9 +1335,10 @@ def _planificador_para(centro: str, sector: str) -> str:
         if (not centro or centro == c) and (not sector or sector == s):
             planificador_id = r["planificador_id"]
             # Verificar que el ID existe en la tabla usuarios
+            ph = _ph()
             with get_db_connection() as conn:
                 cur = conn.cursor()
-                cur.execute("SELECT id_spm FROM usuarios WHERE id_spm = ?", (planificador_id,))
+                cur.execute(f"SELECT id_spm FROM usuarios WHERE id_spm = {ph}", (planificador_id,))
                 if cur.fetchone():
                     return planificador_id
 
