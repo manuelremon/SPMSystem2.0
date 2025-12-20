@@ -52,7 +52,8 @@
       "Bash(scripts/deploy.sh:*)",
       "Bash(scripts/deploy-ip.sh:*)",
       "Bash(scripts/oracle-setup.sh )",
-      "Bash(scripts/setup-ssl.sh:*)"
+      "Bash(scripts/setup-ssl.sh:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []
