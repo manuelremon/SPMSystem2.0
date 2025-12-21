@@ -242,7 +242,18 @@ def get_solicitud(solicitud_id):
         return user_payload
 
     user_id = user_payload.get("user_id")
-    user_rol = user_payload.get("rol", "")
+    # Obtener rol de g.user (set by auth middleware) o de la BD si no está disponible
+    user_rol = ""
+    if hasattr(g, "user") and g.user:
+        user_rol = g.user.get("rol", "")
+    if not user_rol and user_id:
+        # Fallback: buscar rol en BD
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT rol FROM usuarios WHERE id_spm=%s", (str(user_id),))
+            row = cur.fetchone()
+            if row:
+                user_rol = row["rol"] if isinstance(row, dict) else row[0]
 
     with get_db_connection() as conn:
         cur = conn.cursor()
