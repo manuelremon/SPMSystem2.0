@@ -449,12 +449,12 @@ def buscar_aprobador(
 
         # Buscar aprobador con ROL "aprobador_solicitudes" y PUESTO adecuado
         # Prioriza aprobadores del mismo centro
-        # PostgreSQL: usar ANY(%s) con array
+        # Nota: En psycopg2, los % literales en LIKE deben escaparse como %%
         if centro:
             query = """
                 SELECT id_spm, nombre, apellido, rol, posicion, centros
                 FROM usuarios
-                WHERE LOWER(rol) LIKE '%aprobador_solicitudes%'
+                WHERE LOWER(rol) LIKE '%%aprobador_solicitudes%%'
                     AND LOWER(posicion) = ANY(%s)
                     AND (',' || centros || ',') LIKE %s
                     AND estado_registro = 'Activo'
@@ -477,7 +477,7 @@ def buscar_aprobador(
             query = """
                 SELECT id_spm, nombre, apellido, rol, posicion, centros
                 FROM usuarios
-                WHERE LOWER(rol) LIKE '%aprobador_solicitudes%'
+                WHERE LOWER(rol) LIKE '%%aprobador_solicitudes%%'
                     AND LOWER(posicion) = ANY(%s)
                     AND estado_registro = 'Activo'
                 ORDER BY
@@ -769,7 +769,7 @@ def obtener_aprobador_por_monto(monto: float, centro: Optional[str] = None) -> s
         cursor.execute(
             """
             SELECT id_spm FROM usuarios
-            WHERE LOWER(rol) LIKE '%aprobador_solicitudes%'
+            WHERE LOWER(rol) LIKE '%%aprobador_solicitudes%%'
                 AND LOWER(posicion) IN ('jefe', 'gerente1', 'gerente2', 'admin', 'administrador')
                 AND estado_registro = 'Activo'
             LIMIT 1
