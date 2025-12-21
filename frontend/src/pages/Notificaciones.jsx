@@ -14,7 +14,9 @@ import {
   RefreshCw,
   Inbox,
   Wifi,
-  WifiOff
+  WifiOff,
+  Search,
+  Filter
 } from "../components/ui/Icons";
 import { Card, CardContent } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
@@ -26,6 +28,16 @@ import { useRealtime } from "../hooks/useRealtime";
 import { PushNotificationToggle } from "../components/ui/PushNotificationToggle";
 
 import { MessageSquare } from "../components/ui/Icons";
+
+// Opciones de filtro por tipo
+const filterOptions = [
+  { value: "all", label: "Todos" },
+  { value: "solicitud", label: "Solicitudes" },
+  { value: "aprobacion", label: "Aprobaciones" },
+  { value: "mensaje", label: "Mensajes" },
+  { value: "profile", label: "Perfil" },
+  { value: "info", label: "Info" },
+];
 
 // Mapeo de tipos de notificacion a iconos y colores - Glass style
 const notificationConfig = {
@@ -66,6 +78,8 @@ export default function Notificaciones() {
   const { t } = useI18n();
   const [msg, setMsg] = useState("");
   const [activeTab, setActiveTab] = useState("unread"); // "unread" or "read"
+  const [filterType, setFilterType] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Usar hook de tiempo real unificado
   const {
@@ -83,13 +97,44 @@ export default function Notificaciones() {
   // Combinar errores
   const error = connectionError;
 
-  // Filtrar notificaciones segun la pestaña activa
+  // Funcion para determinar la categoria de un tipo de notificacion
+  const getTypeCategory = useCallback((tipo) => {
+    if (!tipo) return "info";
+    if (tipo.includes("solicitud_created") || tipo.includes("solicitud_planned") || tipo.includes("solicitud_to_plan")) return "solicitud";
+    if (tipo.includes("solicitud_approved") || tipo.includes("solicitud_rejected")) return "aprobacion";
+    if (tipo.includes("mensaje")) return "mensaje";
+    if (tipo.includes("profile")) return "profile";
+    return "info";
+  }, []);
+
+  // Filtrar notificaciones segun la pestaña activa, tipo y busqueda
   const filteredNotifications = useMemo(() => {
+    let result = notifications;
+
+    // Filtrar por tab (leido/no leido)
     if (activeTab === "unread") {
-      return notifications.filter(n => !n.leido);
+      result = result.filter(n => !n.leido);
+    } else {
+      result = result.filter(n => n.leido);
     }
-    return notifications.filter(n => n.leido);
-  }, [notifications, activeTab]);
+
+    // Filtrar por tipo
+    if (filterType !== "all") {
+      result = result.filter(n => getTypeCategory(n.tipo) === filterType);
+    }
+
+    // Filtrar por busqueda
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase().trim();
+      result = result.filter(n =>
+        (n.mensaje || "").toLowerCase().includes(term) ||
+        (n.tipo || "").toLowerCase().includes(term) ||
+        (n.solicitud_id && String(n.solicitud_id).includes(term))
+      );
+    }
+
+    return result;
+  }, [notifications, activeTab, filterType, searchTerm, getTypeCategory]);
 
   const readCount = useMemo(() => {
     return notifications.filter(n => n.leido).length;
@@ -323,39 +368,79 @@ export default function Notificaciones() {
       {msg && <Alert variant="success" onDismiss={() => setMsg("")}>{msg}</Alert>}
 
       <Card>
-        {/* Tabs */}
+        {/* Tabs y Filtros */}
         <div className="p-4 border-b border-white/30">
-          <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30 w-fit">
-            <button
-              onClick={() => setActiveTab("unread")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                activeTab === "unread"
-                  ? "bg-white shadow-sm text-blue-600"
-                  : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
-              }`}
-            >
-              <span>{t("notif_tab_unread", "No Leidas")}</span>
-              {unreadCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums bg-blue-100 text-blue-600">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab("read")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                activeTab === "read"
-                  ? "bg-white shadow-sm text-blue-600"
-                  : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
-              }`}
-            >
-              <span>{t("notif_tab_read", "Leidas")}</span>
-              {readCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums bg-slate-100 text-slate-500">
-                  {readCount}
-                </span>
-              )}
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            {/* Tabs */}
+            <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30 w-fit">
+              <button
+                onClick={() => setActiveTab("unread")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  activeTab === "unread"
+                    ? "bg-white shadow-sm text-blue-600"
+                    : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+                }`}
+              >
+                <span>{t("notif_tab_unread", "No Leidas")}</span>
+                {unreadCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums bg-blue-100 text-blue-600">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab("read")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  activeTab === "read"
+                    ? "bg-white shadow-sm text-blue-600"
+                    : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+                }`}
+              >
+                <span>{t("notif_tab_read", "Leidas")}</span>
+                {readCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums bg-slate-100 text-slate-500">
+                    {readCount}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Filtros y Busqueda */}
+            <div className="flex items-center gap-3">
+              {/* Filtro por tipo */}
+              <div className="relative flex items-center">
+                <Filter className="absolute left-3 w-4 h-4 text-slate-400" />
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="pl-9 pr-4 py-2 text-sm bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl text-slate-700 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none appearance-none cursor-pointer min-w-[120px]"
+                >
+                  {filterOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Busqueda */}
+              <div className="relative flex items-center">
+                <Search className="absolute left-3 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder={t("notif_search", "Buscar...")}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 pr-4 py-2 text-sm bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl text-slate-700 placeholder-slate-400 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none w-48"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-2 p-1 text-slate-400 hover:text-slate-600"
+                  >
+                    <XCircle className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 

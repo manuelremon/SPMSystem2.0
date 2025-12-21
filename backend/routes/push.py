@@ -17,6 +17,7 @@ from flask import Blueprint, jsonify, request
 
 try:
     from backend.core.config import settings
+    from backend.core.db import get_db_connection
     from backend.routes.auth import _decode_token
     from backend.services.push_service import (
         get_vapid_public_key,
@@ -25,6 +26,7 @@ try:
     )
 except ImportError:
     from core.config import settings
+    from core.db import get_db_connection
     from services.push_service import get_vapid_public_key, push_service, send_push_notification
 
     from routes.auth import _decode_token
@@ -40,6 +42,21 @@ def _get_current_user():
     if isinstance(payload, tuple):
         return None, payload
     return payload.get("user_id"), None
+
+
+def _is_admin(user_id: str) -> bool:
+    """Verifica si el usuario tiene rol admin."""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (user_id,))
+            row = cursor.fetchone()
+            if row:
+                rol = row["rol"] if isinstance(row, dict) else row[0]
+                return "admin" in (rol or "").lower()
+    except Exception as e:
+        logger.error(f"[PUSH] Error verificando rol admin: {e}")
+    return False
 
 
 @bp.route("/vapid-key", methods=["GET"])
@@ -232,7 +249,14 @@ def send_notification():
     if error:
         return error
 
-    # TODO: Verificar rol admin
+    # Verificar rol admin
+    if not _is_admin(current_user_id):
+        return (
+            jsonify(
+                {"ok": False, "error": {"code": "forbidden", "message": "Requiere rol admin"}}
+            ),
+            403,
+        )
 
     data = request.get_json(silent=True) or {}
     target_user_id = data.get("user_id")

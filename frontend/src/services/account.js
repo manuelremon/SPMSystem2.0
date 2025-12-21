@@ -31,3 +31,10 @@ export const catalogs = {
   almacenes: () => api.get('/catalogos/almacenes', { headers: authHeaders() }),
   usuarios: () => api.get('/catalogos/usuarios', { headers: authHeaders() }),
 }
+
+// Preferencias de notificacion
+export const getNotificationPreferences = () =>
+  api.get('/mi-cuenta/notification-preferences', { headers: authHeaders() })
+
+export const updateNotificationPreferences = (payload) =>
+  api.put('/mi-cuenta/notification-preferences', payload, { headers: authHeaders() })

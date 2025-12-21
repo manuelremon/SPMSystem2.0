@@ -8,13 +8,18 @@ Diseñado para backward compatibility con estados legacy.
 """
 
 import json
+import logging
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 try:
     from backend.core.db import get_db_connection, get_db_transaction
+    from backend.services.push_service import send_push_notification
 except ImportError:
     from core.db import get_db_connection, get_db_transaction
+    from services.push_service import send_push_notification
+
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -478,7 +483,7 @@ def crear_notificacion(
     cursor, destinatario_id: str, solicitud_id: int, mensaje: str, tipo: str = "info"
 ) -> None:
     """
-    Crea una notificacion para un usuario.
+    Crea una notificacion para un usuario y envia Web Push.
 
     Args:
         cursor: Cursor de base de datos
@@ -487,6 +492,7 @@ def crear_notificacion(
         mensaje: Texto de la notificacion
         tipo: Tipo de notificacion (info, warning, error)
     """
+    # Crear notificacion en BD
     cursor.execute(
         """
         INSERT INTO notificaciones (destinatario_id, solicitud_id, mensaje, tipo)
@@ -494,6 +500,29 @@ def crear_notificacion(
         """,
         (destinatario_id, solicitud_id, mensaje, tipo),
     )
+
+    # Enviar Web Push (no bloquea si falla)
+    try:
+        # Mapeo de tipo a titulo de push
+        PUSH_TITLES = {
+            "info": "SPM - Información",
+            "success": "SPM - Éxito",
+            "warning": "SPM - Atención",
+            "error": "SPM - Error",
+        }
+        title = PUSH_TITLES.get(tipo, "SPM - Notificación")
+        url = f"/solicitudes/{solicitud_id}" if solicitud_id else "/notificaciones"
+
+        send_push_notification(
+            user_id=destinatario_id,
+            title=title,
+            body=mensaje,
+            url=url,
+            tag=f"solicitud-{solicitud_id}" if solicitud_id else None,
+        )
+    except Exception as e:
+        # No fallar si push falla - la notificacion in-app ya se creo
+        logger.warning(f"[FSM] Error enviando Web Push a {destinatario_id}: {e}")
 
 
 # =============================================================================

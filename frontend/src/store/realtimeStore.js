@@ -18,6 +18,9 @@ export const useRealtimeStore = create((set, get) => ({
   // Alertas del sistema (MRP, SLA, etc.)
   alerts: [],
 
+  // Toasts temporales (auto-dismiss)
+  toasts: [],
+
   // Eventos recientes (para debug/monitoring)
   recentEvents: [],
 
@@ -93,6 +96,24 @@ export const useRealtimeStore = create((set, get) => ({
 
   clearAlerts: () => set({ alerts: [] }),
 
+  // ==================== Toasts ====================
+
+  addToast: (toast) => set((state) => {
+    const id = toast.id || `toast_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    return {
+      toasts: [
+        { ...toast, id, timestamp: Date.now() },
+        ...state.toasts
+      ].slice(0, 5) // Max 5 toasts simultaneos
+    }
+  }),
+
+  removeToast: (toastId) => set((state) => ({
+    toasts: state.toasts.filter(t => t.id !== toastId)
+  })),
+
+  clearToasts: () => set({ toasts: [] }),
+
   // ==================== Eventos ====================
 
   /**
@@ -158,6 +179,7 @@ export const useRealtimeStore = create((set, get) => ({
     notifications: [],
     unreadCount: 0,
     alerts: [],
+    toasts: [],
     recentEvents: [],
     _eventHandlers: {}
   })

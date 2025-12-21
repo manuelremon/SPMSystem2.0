@@ -1098,3 +1098,159 @@ def admin_enviar_mensaje_profile_request(request_id: int):
     except Exception as e:
         logger.error(f"Error enviando mensaje: {e}")
         return jsonify({"ok": False, "error": {"message": str(e)}}), 500
+
+
+# ============================================================================
+# PREFERENCIAS DE NOTIFICACION
+# ============================================================================
+
+
+@bp.route("/mi-cuenta/notification-preferences", methods=["GET"])
+def get_notification_preferences():
+    """
+    Obtiene las preferencias de notificacion del usuario.
+
+    Returns:
+        200: Preferencias del usuario
+        401: No autenticado
+    """
+    user_id, error = _get_current_user_id()
+    if error:
+        return error
+
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """SELECT push_enabled, sound_enabled, notif_solicitudes, notif_aprobaciones,
+                          notif_mensajes, notif_presupuestos, notif_mrp, notif_sla
+                   FROM user_notification_preferences
+                   WHERE user_id = ?""",
+                (str(user_id),),
+            )
+            row = cur.fetchone()
+
+        if row:
+            prefs = dict(row) if hasattr(row, "keys") else {
+                "push_enabled": row[0],
+                "sound_enabled": row[1],
+                "notif_solicitudes": row[2],
+                "notif_aprobaciones": row[3],
+                "notif_mensajes": row[4],
+                "notif_presupuestos": row[5],
+                "notif_mrp": row[6],
+                "notif_sla": row[7],
+            }
+        else:
+            # Si no hay preferencias, crear con valores por defecto
+            with get_db_transaction() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "INSERT OR IGNORE INTO user_notification_preferences (user_id) VALUES (?)",
+                    (str(user_id),),
+                )
+
+            prefs = {
+                "push_enabled": 1,
+                "sound_enabled": 1,
+                "notif_solicitudes": 1,
+                "notif_aprobaciones": 1,
+                "notif_mensajes": 1,
+                "notif_presupuestos": 1,
+                "notif_mrp": 1,
+                "notif_sla": 1,
+            }
+
+        # Convertir a booleanos para el frontend
+        return jsonify({
+            "ok": True,
+            "preferences": {
+                "pushEnabled": bool(prefs.get("push_enabled", 1)),
+                "soundEnabled": bool(prefs.get("sound_enabled", 1)),
+                "notifSolicitudes": bool(prefs.get("notif_solicitudes", 1)),
+                "notifAprobaciones": bool(prefs.get("notif_aprobaciones", 1)),
+                "notifMensajes": bool(prefs.get("notif_mensajes", 1)),
+                "notifPresupuestos": bool(prefs.get("notif_presupuestos", 1)),
+                "notifMrp": bool(prefs.get("notif_mrp", 1)),
+                "notifSla": bool(prefs.get("notif_sla", 1)),
+            },
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error obteniendo preferencias de notificacion: {e}")
+        return jsonify({"ok": False, "error": {"message": str(e)}}), 500
+
+
+@bp.route("/mi-cuenta/notification-preferences", methods=["PUT"])
+def update_notification_preferences():
+    """
+    Actualiza las preferencias de notificacion del usuario.
+
+    Body:
+        pushEnabled (bool, opcional): Web Push habilitado
+        soundEnabled (bool, opcional): Sonido habilitado
+        notifSolicitudes (bool, opcional): Notificaciones de solicitudes
+        notifAprobaciones (bool, opcional): Notificaciones de aprobaciones
+        notifMensajes (bool, opcional): Notificaciones de mensajes
+        notifPresupuestos (bool, opcional): Notificaciones de presupuesto
+        notifMrp (bool, opcional): Notificaciones MRP
+        notifSla (bool, opcional): Notificaciones SLA
+
+    Returns:
+        200: Preferencias actualizadas
+        401: No autenticado
+    """
+    user_id, error = _get_current_user_id()
+    if error:
+        return error
+
+    data = request.get_json(silent=True) or {}
+
+    # Mapeo de camelCase a snake_case
+    field_mapping = {
+        "pushEnabled": "push_enabled",
+        "soundEnabled": "sound_enabled",
+        "notifSolicitudes": "notif_solicitudes",
+        "notifAprobaciones": "notif_aprobaciones",
+        "notifMensajes": "notif_mensajes",
+        "notifPresupuestos": "notif_presupuestos",
+        "notifMrp": "notif_mrp",
+        "notifSla": "notif_sla",
+    }
+
+    updates = []
+    values = []
+
+    for camel_key, snake_key in field_mapping.items():
+        if camel_key in data:
+            updates.append(f"{snake_key} = ?")
+            values.append(1 if data[camel_key] else 0)
+
+    if not updates:
+        return jsonify({"ok": False, "error": {"message": "No hay preferencias para actualizar"}}), 400
+
+    # Agregar updated_at
+    updates.append("updated_at = ?")
+    values.append(datetime.utcnow().isoformat())
+    values.append(str(user_id))
+
+    try:
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+
+            # Primero intentar INSERT si no existe
+            cur.execute(
+                "INSERT OR IGNORE INTO user_notification_preferences (user_id) VALUES (?)",
+                (str(user_id),),
+            )
+
+            # Luego UPDATE
+            query = f"UPDATE user_notification_preferences SET {', '.join(updates)} WHERE user_id = ?"
+            cur.execute(query, values)
+
+        logger.info(f"Preferencias de notificacion actualizadas para usuario {user_id}")
+        return jsonify({"ok": True, "message": "Preferencias actualizadas"}), 200
+
+    except Exception as e:
+        logger.error(f"Error actualizando preferencias: {e}")
+        return jsonify({"ok": False, "error": {"message": str(e)}}), 500

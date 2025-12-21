@@ -51,6 +51,7 @@ try:
         obtener_configuracion_sla,
         resolver_alertas_solicitud,
     )
+    from backend.services.notification_service import NotificationService
 except ImportError:
     from core.db import get_db_connection, get_db_transaction
     from core.fsm import (
@@ -82,6 +83,7 @@ except ImportError:
         obtener_configuracion_sla,
         resolver_alertas_solicitud,
     )
+    from services.notification_service import NotificationService
 
     from routes.auth import _decode_token
 
@@ -451,6 +453,17 @@ def create_solicitud():
     except Exception as e:
         logger.warning(f"Auditoria de creacion fallo para solicitud {new_id}: {e}")
 
+    # Notificar al usuario que su solicitud fue creada
+    try:
+        NotificationService.create_notification(
+            destinatario_id=str(user_id),
+            mensaje=f"Solicitud #{new_id} creada exitosamente como borrador",
+            tipo="solicitud_created",
+            solicitud_id=new_id,
+        )
+    except Exception as e:
+        logger.warning(f"Notificacion de creacion fallo para solicitud {new_id}: {e}")
+
     return get_solicitud(new_id)
 
 
@@ -519,6 +532,17 @@ def eliminar_solicitud(solicitud_id):
     with get_db_transaction() as conn:
         cur = conn.cursor()
         cur.execute("DELETE FROM solicitudes WHERE id=%s", (solicitud_id,))
+
+    # Notificar al usuario que su solicitud fue eliminada
+    try:
+        NotificationService.create_notification(
+            destinatario_id=str(user_id),
+            mensaje=f"Solicitud #{solicitud_id} eliminada correctamente",
+            tipo="info",
+            solicitud_id=None,  # Ya no existe
+        )
+    except Exception as e:
+        logger.warning(f"Notificacion de eliminacion fallo para solicitud {solicitud_id}: {e}")
 
     return jsonify({"ok": True, "message": "Solicitud eliminada correctamente"}), 200
 
@@ -917,6 +941,19 @@ def aprobar_solicitud(solicitud_id):
             actor_rol=aprobador_rol,
             ip_address=request.remote_addr,
         )
+
+        # Notificar al solicitante que su solicitud fue aprobada
+        solicitante_id = solicitud.get("id_usuario")
+        if solicitante_id:
+            try:
+                NotificationService.create_notification(
+                    destinatario_id=str(solicitante_id),
+                    mensaje=f"Tu solicitud #{solicitud_id} ha sido aprobada",
+                    tipo="solicitud_approved",
+                    solicitud_id=solicitud_id,
+                )
+            except Exception as e:
+                logger.warning(f"Notificacion de aprobacion fallo para solicitud {solicitud_id}: {e}")
 
     except TransicionInvalidaError as e:
         return (

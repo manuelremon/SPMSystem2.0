@@ -51,6 +51,93 @@ class NotificationService:
         "solicitud_dispatched": "Solicitud Despachada",
     }
 
+    # Mapeo de tipos de notificación a preferencias del usuario
+    TIPO_TO_PREFERENCE = {
+        "solicitud_created": "notif_solicitudes",
+        "solicitud_approved": "notif_aprobaciones",
+        "solicitud_rejected": "notif_aprobaciones",
+        "solicitud_planned": "notif_solicitudes",
+        "solicitud_dispatched": "notif_solicitudes",
+        "mensaje_nuevo": "notif_mensajes",
+        "budget_alert": "notif_presupuestos",
+        "mrp_alert": "notif_mrp",
+        "sla_alert": "notif_sla",
+        "profile_approved": "notif_solicitudes",
+        "profile_rejected": "notif_solicitudes",
+    }
+
+    @classmethod
+    def _get_user_preferences(cls, user_id: str) -> Dict[str, bool]:
+        """
+        Obtiene las preferencias de notificación del usuario.
+
+        Returns:
+            Dict con preferencias (todo True si no hay registro)
+        """
+        defaults = {
+            "push_enabled": True,
+            "sound_enabled": True,
+            "notif_solicitudes": True,
+            "notif_aprobaciones": True,
+            "notif_mensajes": True,
+            "notif_presupuestos": True,
+            "notif_mrp": True,
+            "notif_sla": True,
+        }
+
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """SELECT push_enabled, sound_enabled, notif_solicitudes, notif_aprobaciones,
+                              notif_mensajes, notif_presupuestos, notif_mrp, notif_sla
+                       FROM user_notification_preferences
+                       WHERE user_id = ?""",
+                    (str(user_id),),
+                )
+                row = cursor.fetchone()
+
+            if row:
+                if hasattr(row, "keys"):
+                    return {k: bool(v) for k, v in dict(row).items()}
+                else:
+                    return {
+                        "push_enabled": bool(row[0]),
+                        "sound_enabled": bool(row[1]),
+                        "notif_solicitudes": bool(row[2]),
+                        "notif_aprobaciones": bool(row[3]),
+                        "notif_mensajes": bool(row[4]),
+                        "notif_presupuestos": bool(row[5]),
+                        "notif_mrp": bool(row[6]),
+                        "notif_sla": bool(row[7]),
+                    }
+        except Exception as e:
+            logger.warning(f"Error getting user preferences for {user_id}: {e}")
+
+        return defaults
+
+    @classmethod
+    def _should_notify(cls, user_id: str, tipo: str) -> tuple:
+        """
+        Determina si se debe notificar al usuario basado en sus preferencias.
+
+        Returns:
+            tuple: (should_create_inapp, should_send_push)
+        """
+        prefs = cls._get_user_preferences(user_id)
+
+        # Verificar preferencia específica del tipo
+        pref_key = cls.TIPO_TO_PREFERENCE.get(tipo)
+        if pref_key and not prefs.get(pref_key, True):
+            # Usuario deshabilitó este tipo de notificación
+            return (False, False)
+
+        # Tipos básicos (info, success, warning, error) siempre se crean in-app
+        # pero respetan la preferencia de push
+        should_push = prefs.get("push_enabled", True)
+
+        return (True, should_push)
+
     @classmethod
     def create_notification(
         cls,
@@ -71,8 +158,15 @@ class NotificationService:
             send_push: Enviar también push notification (default: True)
 
         Returns:
-            ID de la notificación creada o None si falla
+            ID de la notificación creada o None si falla o el usuario deshabilitó este tipo
         """
+        # Verificar preferencias del usuario
+        should_create, should_push = cls._should_notify(destinatario_id, tipo)
+
+        if not should_create:
+            logger.debug(f"Notificación tipo {tipo} omitida por preferencias de usuario {destinatario_id}")
+            return None
+
         notif_id = None
         try:
             with get_db_transaction() as conn:
@@ -91,8 +185,8 @@ class NotificationService:
             logger.error(f"Error creating notification: {e}")
             return None
 
-        # Enviar push notification si está habilitado
-        if notif_id and send_push and send_push_notification:
+        # Enviar push notification si está habilitado (por parámetro Y por preferencias)
+        if notif_id and send_push and should_push and send_push_notification:
             try:
                 title = cls.PUSH_TITLES.get(tipo, "SPM - Notificación")
                 url = f"/solicitudes/{solicitud_id}" if solicitud_id else "/notificaciones"
@@ -271,7 +365,12 @@ class NotificationService:
             return False
 
 
+# =============================================================================
 # Helper functions para crear notificaciones automáticas
+# =============================================================================
+# Estas funciones proveen una API simple para notificar eventos específicos.
+# Deben usarse desde las rutas (routes/) cuando ocurren eventos importantes.
+# El FSM también genera notificaciones automáticas en cambios de estado.
 
 
 def notify_solicitud_created(solicitud_id: int, aprobador_id: str):

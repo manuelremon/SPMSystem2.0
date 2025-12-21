@@ -47,11 +47,25 @@ export default function MiCuenta() {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [cancelingRequest, setCancelingRequest] = useState(null);
 
+  // Preferencias de notificacion
+  const [notifPrefs, setNotifPrefs] = useState({
+    pushEnabled: true,
+    soundEnabled: true,
+    notifSolicitudes: true,
+    notifAprobaciones: true,
+    notifMensajes: true,
+    notifPresupuestos: true,
+    notifMrp: true,
+    notifSla: true,
+  });
+  const [savingNotifPrefs, setSavingNotifPrefs] = useState(false);
+  const [notifPrefsMessage, setNotifPrefsMessage] = useState("");
+
   useEffect(() => {
     const init = async () => {
       setLoading(true);
       try {
-        await Promise.all([loadProfile(), loadCatalogs(), loadSolicitudes()]);
+        await Promise.all([loadProfile(), loadCatalogs(), loadSolicitudes(), loadNotifPrefs()]);
       } catch (err) {
         console.error("MiCuenta init error:", err);
         setError("No se pudo cargar Mi Cuenta. Intenta recargar.");
@@ -97,6 +111,49 @@ export default function MiCuenta() {
       setSolicitudes(res.data || []);
     } catch (err) {
       console.error("Solicitudes perfil:", err);
+    }
+  };
+
+  const loadNotifPrefs = async () => {
+    try {
+      const res = await account.getNotificationPreferences();
+      if (res.data?.ok && res.data?.preferences) {
+        const prefs = res.data.preferences;
+        setNotifPrefs(prefs);
+
+        // Sincronizar preferencia de sonido en localStorage
+        localStorage.setItem('spm-notification-prefs', JSON.stringify({
+          soundEnabled: prefs.soundEnabled
+        }));
+      }
+    } catch (err) {
+      console.error("Error cargando preferencias de notificacion:", err);
+    }
+  };
+
+  const handleNotifPrefChange = (key) => {
+    setNotifPrefs((prev) => ({ ...prev, [key]: !prev[key] }));
+    setNotifPrefsMessage("");
+  };
+
+  const saveNotifPrefs = async () => {
+    setSavingNotifPrefs(true);
+    setNotifPrefsMessage("");
+    try {
+      await account.updateNotificationPreferences(notifPrefs);
+
+      // Guardar preferencia de sonido en localStorage para acceso rapido
+      localStorage.setItem('spm-notification-prefs', JSON.stringify({
+        soundEnabled: notifPrefs.soundEnabled
+      }));
+
+      setNotifPrefsMessage("Preferencias guardadas correctamente.");
+      setTimeout(() => setNotifPrefsMessage(""), 3000);
+    } catch (err) {
+      console.error("Error guardando preferencias:", err);
+      setNotifPrefsMessage(err.response?.data?.error?.message || "No se pudieron guardar las preferencias.");
+    } finally {
+      setSavingNotifPrefs(false);
     }
   };
 
@@ -279,6 +336,86 @@ export default function MiCuenta() {
 
         {/* Push Notifications Banner */}
         <PushNotificationBanner />
+
+        {/* Preferencias de Notificacion */}
+        <section className="grid grid-cols-1">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-black">Preferencias de Notificacion</CardTitle>
+              <CardDescription className="text-sm text-slate-500">Configura que notificaciones deseas recibir</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-1 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Generales */}
+                <div className="space-y-3">
+                  <p className="text-xs uppercase font-bold tracking-[0.06em] text-slate-500">General</p>
+                  <ToggleSwitch
+                    label="Push del navegador"
+                    checked={notifPrefs.pushEnabled}
+                    onChange={() => handleNotifPrefChange("pushEnabled")}
+                  />
+                  <ToggleSwitch
+                    label="Sonido"
+                    checked={notifPrefs.soundEnabled}
+                    onChange={() => handleNotifPrefChange("soundEnabled")}
+                  />
+                </div>
+
+                {/* Solicitudes */}
+                <div className="space-y-3">
+                  <p className="text-xs uppercase font-bold tracking-[0.06em] text-slate-500">Solicitudes</p>
+                  <ToggleSwitch
+                    label="Crear, cambios"
+                    checked={notifPrefs.notifSolicitudes}
+                    onChange={() => handleNotifPrefChange("notifSolicitudes")}
+                  />
+                  <ToggleSwitch
+                    label="Aprobaciones"
+                    checked={notifPrefs.notifAprobaciones}
+                    onChange={() => handleNotifPrefChange("notifAprobaciones")}
+                  />
+                </div>
+
+                {/* Comunicacion */}
+                <div className="space-y-3">
+                  <p className="text-xs uppercase font-bold tracking-[0.06em] text-slate-500">Comunicacion</p>
+                  <ToggleSwitch
+                    label="Mensajes"
+                    checked={notifPrefs.notifMensajes}
+                    onChange={() => handleNotifPrefChange("notifMensajes")}
+                  />
+                  <ToggleSwitch
+                    label="Presupuestos"
+                    checked={notifPrefs.notifPresupuestos}
+                    onChange={() => handleNotifPrefChange("notifPresupuestos")}
+                  />
+                </div>
+
+                {/* Alertas */}
+                <div className="space-y-3">
+                  <p className="text-xs uppercase font-bold tracking-[0.06em] text-slate-500">Alertas</p>
+                  <ToggleSwitch
+                    label="MRP / Stock"
+                    checked={notifPrefs.notifMrp}
+                    onChange={() => handleNotifPrefChange("notifMrp")}
+                  />
+                  <ToggleSwitch
+                    label="SLA / Tiempos"
+                    checked={notifPrefs.notifSla}
+                    onChange={() => handleNotifPrefChange("notifSla")}
+                  />
+                </div>
+              </div>
+
+              {notifPrefsMessage && <p className="text-sm text-slate-500">{notifPrefsMessage}</p>}
+              <div className="flex justify-end">
+                <Button className="px-5 py-3" disabled={savingNotifPrefs} onClick={saveNotifPrefs} type="button">
+                  {savingNotifPrefs ? "Guardando..." : "Guardar preferencias"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
 
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card className="h-full">
@@ -603,4 +740,22 @@ function ReadOnlyField({ label, value }) {
 
 function renderEstadoBadge(estado) {
   return <StatusBadge estado={estado || "pendiente"} className="px-2 py-1" />;
+}
+
+function ToggleSwitch({ label, checked, onChange }) {
+  return (
+    <label className="flex items-center justify-between cursor-pointer group">
+      <span className="text-sm text-slate-700 group-hover:text-slate-900">{label}</span>
+      <div className="relative">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={onChange}
+          className="sr-only peer"
+        />
+        <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:bg-blue-500 peer-focus:ring-2 peer-focus:ring-blue-300 transition-colors"></div>
+        <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm peer-checked:translate-x-5 transition-transform"></div>
+      </div>
+    </label>
+  );
 }

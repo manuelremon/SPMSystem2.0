@@ -11,6 +11,61 @@ import { useEffect, useCallback, useRef } from 'react'
 import { useRealtimeStore } from '../store/realtimeStore'
 import { useNotifications } from './useNotifications'
 
+// Web Audio API para sonido de notificacion
+let audioContext = null
+
+/**
+ * Verifica si el sonido esta habilitado en las preferencias del usuario
+ * Se almacena en localStorage para acceso rapido
+ */
+function isSoundEnabled() {
+  try {
+    const prefs = localStorage.getItem('spm-notification-prefs')
+    if (prefs) {
+      const parsed = JSON.parse(prefs)
+      return parsed.soundEnabled !== false // Default true
+    }
+  } catch {
+    // Ignorar errores de parsing
+  }
+  return true // Habilitado por defecto
+}
+
+function playNotificationSound() {
+  // Verificar preferencia de sonido
+  if (!isSoundEnabled()) {
+    return
+  }
+
+  try {
+    // Crear contexto solo una vez
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)()
+    }
+
+    // Crear un beep corto y agradable
+    const oscillator = audioContext.createOscillator()
+    const gainNode = audioContext.createGain()
+
+    oscillator.connect(gainNode)
+    gainNode.connect(audioContext.destination)
+
+    // Frecuencia agradable (C6 - 1046.5 Hz)
+    oscillator.frequency.setValueAtTime(1046.5, audioContext.currentTime)
+    oscillator.type = 'sine'
+
+    // Volume fade out
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime)
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15)
+
+    oscillator.start(audioContext.currentTime)
+    oscillator.stop(audioContext.currentTime + 0.15)
+  } catch (err) {
+    // Ignorar errores de audio (puede fallar si no hay interaccion previa)
+    console.debug('Audio notification failed:', err)
+  }
+}
+
 /**
  * Hook principal de tiempo real
  *
@@ -29,6 +84,7 @@ export function useRealtime({ enabled = true, subscriptions = [] } = {}) {
     notifications,
     unreadCount,
     alerts,
+    toasts,
     setConnected,
     setConnectionError,
     setNotifications,
@@ -38,6 +94,8 @@ export function useRealtime({ enabled = true, subscriptions = [] } = {}) {
     removeNotification,
     setUnreadCount,
     addAlert,
+    addToast,
+    removeToast,
     emitEvent,
     registerEventHandler,
     unregisterEventHandler
@@ -50,6 +108,20 @@ export function useRealtime({ enabled = true, subscriptions = [] } = {}) {
     // Agregar al store
     addNotification(notification)
 
+    // Mostrar toast para la notificacion nueva
+    if (!notification.leido) {
+      addToast({
+        id: `toast_notif_${notification.id}`,
+        message: notification.mensaje || "Nueva notificacion",
+        type: notification.tipo || "info",
+        solicitudId: notification.solicitud_id,
+        duration: 5000 // Auto-dismiss despues de 5s
+      })
+
+      // Reproducir sonido de notificacion
+      playNotificationSound()
+    }
+
     // Emitir evento para handlers suscritos
     emitEvent('notification', notification)
 
@@ -57,7 +129,7 @@ export function useRealtime({ enabled = true, subscriptions = [] } = {}) {
     if (notification.tipo) {
       emitEvent(`notification:${notification.tipo}`, notification)
     }
-  }, [addNotification, emitEvent])
+  }, [addNotification, addToast, emitEvent])
 
   // Usar el hook de notificaciones existente
   const {
@@ -147,6 +219,11 @@ export function useRealtime({ enabled = true, subscriptions = [] } = {}) {
     // Alertas
     alerts,
     addAlert,
+
+    // Toasts
+    toasts,
+    addToast,
+    removeToast,
 
     // Acciones de notificaciones
     markAsRead: handleMarkAsRead,

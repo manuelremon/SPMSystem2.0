@@ -14,6 +14,7 @@ import { useChatStore } from "../store/chatStore";
 import { useRealtime } from "../hooks/useRealtime";
 import ChatAssistant from "./ChatAssistant";
 import Sidebar from "./Sidebar";
+import ToastContainer from "./ui/ToastContainer";
 import { useI18n } from "../context/i18n";
 
 export default function Layout({ children }) {
@@ -88,6 +89,9 @@ export default function Layout({ children }) {
 
       {/* Chat Assistant */}
       <ChatAssistant />
+
+      {/* Toast Container for notifications */}
+      <ToastContainer />
     </div>
   );
 }
