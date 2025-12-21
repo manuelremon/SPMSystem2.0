@@ -135,8 +135,6 @@ def _save_uploaded_file(file, solicitud_id: int) -> dict:
     }
 
 
-def _row_to_dict(row, cols):
-    return {col: row[idx] for idx, col in enumerate(cols)}
 
 
 @bp.route("", methods=["GET"])
@@ -410,7 +408,8 @@ def create_solicitud():
                 cur = conn.cursor()
                 cur.execute("SELECT data_json FROM solicitudes WHERE id = ?", (new_id,))
                 row = cur.fetchone()
-                data_json = json.loads(row[0]) if row and row[0] else {"items": [], "archivos": []}
+                data_json_raw = row["data_json"] if isinstance(row, dict) else row[0]
+                data_json = json.loads(data_json_raw) if row and data_json_raw else {"items": [], "archivos": []}
 
             data_json["archivos"] = archivos_metadata
             with get_db_transaction() as conn:
