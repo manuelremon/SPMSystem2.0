@@ -65,7 +65,8 @@ def _analizar_item_material(
     Analiza un item individual de la solicitud.
     Retorna información del material con stock, consumo y criticidad.
     """
-    codigo = item.get("codigo", "")
+    # Soportar ambos keys para compatibilidad (material_id usado por item_schemas, codigo legacy)
+    codigo = item.get("codigo") or item.get("material_id") or ""
     cantidad = float(item.get("cantidad", 0) or 0)
     precio_unitario = float(item.get("precio_unitario", 0) or 0)
     costo_item = cantidad * precio_unitario
@@ -226,7 +227,8 @@ def _validar_integridad_items(items: List[Dict[str, Any]]) -> List[Dict[str, Any
     codigos_vistos = {}
 
     for idx, item in enumerate(items):
-        codigo = (item.get("codigo") or "").strip()
+        # Soportar ambos keys para compatibilidad
+        codigo = (item.get("codigo") or item.get("material_id") or "").strip()
         cantidad = float(item.get("cantidad", 0) or 0)
         precio_unitario = float(item.get("precio_unitario", 0) or 0)
         descripcion = item.get("descripcion", "")
@@ -440,7 +442,8 @@ def paso_2_opciones_abastecimiento(solicitud_id: int, item_idx: int) -> Dict[str
         raise ValueError(f"Item index {item_idx} fuera de rango")
 
     item = items[item_idx]
-    codigo_original = item.get("codigo", "")
+    # Soportar ambos keys para compatibilidad
+    codigo_original = item.get("codigo") or item.get("material_id") or ""
     cantidad_solicitada = float(item.get("cantidad", 0) or 0)
     precio_unitario_original = float(item.get("precio_unitario", 0) or 0)
     centro_solicitud = solicitud.get("centro", "")
