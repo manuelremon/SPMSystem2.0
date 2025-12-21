@@ -59,13 +59,12 @@ const isUserAdmin = (normalizedRoles) => {
 
 /**
  * Verifica si el usuario tiene alguno de los roles requeridos
+ * IMPORTANTE: Usa igualdad exacta para evitar que "administrativo" coincida con "admin"
  */
 const hasRequiredRole = (userRoles, requiredRoles) => {
   const normalizedRequired = requiredRoles.map(r => r.toLowerCase().trim())
   return userRoles.some(userRole =>
-    normalizedRequired.some(required =>
-      userRole === required || userRole.includes(required)
-    )
+    normalizedRequired.includes(userRole)
   )
 }
 

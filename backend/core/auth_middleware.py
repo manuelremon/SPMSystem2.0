@@ -9,8 +9,6 @@ This middleware runs before every request and:
 """
 
 import logging
-import sqlite3
-from pathlib import Path
 
 import jwt
 from flask import Flask, g, request
@@ -19,48 +17,55 @@ from jwt import InvalidTokenError
 try:
     from backend.core.cache import user_cache
     from backend.core.config import settings
+    from backend.core.db import get_db_connection
 except ImportError:
     from core.cache import user_cache
     from core.config import settings
+    from core.db import get_db_connection
 
 
 logger = logging.getLogger(__name__)
 
 
-def _db_path() -> Path:
-    """Get database path from settings"""
-    if settings.DATABASE_URL.startswith("sqlite:///"):
-        return Path(settings.DATABASE_URL.split("sqlite:///", 1)[1])
-    return Path("spm.db")
-
-
 def _get_user_by_id(user_id: str) -> dict | None:
-    """Fetch user from database with caching"""
+    """Fetch user from database with caching (PostgreSQL/SQLite compatible)"""
     # Try cache first
     cache_key = f"user:{user_id}"
     cached_user = user_cache.get(cache_key)
     if cached_user is not None:
         return cached_user
 
-    # Cache miss - fetch from DB
-    path = _db_path()
-    if not path.exists():
-        return None
-
+    # Cache miss - fetch from DB (uses get_db_connection for PG/SQLite compatibility)
     try:
-        conn = sqlite3.connect(path)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM usuarios WHERE id_spm=?", (str(user_id),))
-        row = cur.fetchone()
-        conn.close()
-        user = dict(row) if row else None
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT id_spm, nombre, apellido, rol, email, centro, activo FROM usuarios WHERE id_spm = %s",
+                (str(user_id),),
+            )
+            row = cur.fetchone()
+
+        if not row:
+            return None
+
+        # Convert row to dict (compatible with both PostgreSQL dict and SQLite tuple)
+        if isinstance(row, dict):
+            user = row
+        else:
+            user = {
+                "id_spm": row[0],
+                "nombre": row[1],
+                "apellido": row[2],
+                "rol": row[3],
+                "email": row[4],
+                "centro": row[5],
+                "activo": row[6],
+            }
 
         # Cache the result
-        if user:
-            user_cache.set(cache_key, user, ttl=120)  # 2 min TTL
-
+        user_cache.set(cache_key, user, ttl=120)  # 2 min TTL
         return user
+
     except Exception as e:
         logger.error(f"Error fetching user {user_id}: {e}")
         return None

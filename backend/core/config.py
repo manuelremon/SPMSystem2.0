@@ -83,8 +83,9 @@ class Settings(BaseSettings):
             for origin in self.CORS_ORIGINS.split(","):
                 origin = origin.strip()
                 if "*" in origin:
-                    # Convertir wildcard a regex pattern
-                    pattern = origin.replace(".", r"\.").replace("*", ".*")
+                    # Convertir wildcard a regex pattern ANCLADO (evita bypass con sufijos)
+                    # ^https://.*\.trycloudflare\.com$ solo coincide con subdominios exactos
+                    pattern = "^" + origin.replace(".", r"\.").replace("*", "[^/]*") + "$"
                     origins.append(re.compile(pattern))
                 else:
                     origins.append(origin)

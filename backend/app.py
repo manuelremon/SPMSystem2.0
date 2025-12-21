@@ -136,9 +136,9 @@ def create_app(config_override: dict | None = None) -> Flask:
         # Verificar origenes exactos
         if origin in ALLOWED_ORIGINS_EXACT:
             return True
-        # Verificar patrones regex (wildcards)
+        # Verificar patrones regex (wildcards) - usar fullmatch para seguridad
         for pattern in ALLOWED_ORIGINS_REGEX:
-            if pattern.match(origin):
+            if pattern.fullmatch(origin):
                 return True
         return False
 

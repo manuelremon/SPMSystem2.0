@@ -2,13 +2,66 @@
 Rutas API para el agente ReAct.
 
 Endpoints para ejecutar agente, consultar memoria, ejecutar herramientas.
+NOTA: Todos los endpoints requieren autenticación (roles admin/planificador).
 """
 
 import logging
 from datetime import datetime
+from functools import wraps
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 from pydantic import ValidationError
+
+
+def require_auth(f):
+    """Decorator que requiere autenticación"""
+
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not hasattr(g, "user") or not g.user:
+            return (
+                jsonify(
+                    {"ok": False, "error": {"code": "unauthorized", "message": "No autenticado"}}
+                ),
+                401,
+            )
+        return f(*args, **kwargs)
+
+    return decorated
+
+
+def require_agent_access(f):
+    """Decorator que requiere rol admin o planificador para acceso al agente"""
+
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not hasattr(g, "user") or not g.user:
+            return (
+                jsonify(
+                    {"ok": False, "error": {"code": "unauthorized", "message": "No autenticado"}}
+                ),
+                401,
+            )
+
+        user_role = (g.user.get("rol") or "").lower()
+        # Solo admin y planificador pueden acceder al agente
+        if "admin" not in user_role and "planificador" not in user_role:
+            return (
+                jsonify(
+                    {
+                        "ok": False,
+                        "error": {
+                            "code": "forbidden",
+                            "message": "Acceso denegado. Requiere rol admin o planificador.",
+                        },
+                    }
+                ),
+                403,
+            )
+
+        return f(*args, **kwargs)
+
+    return decorated
 
 from .core.memory import Memory
 from .core.react_agent import ReactAgent
@@ -45,6 +98,7 @@ scoring = ScoringPipeline()
 
 
 @agent_bp.route("/execute", methods=["POST"])
+@require_agent_access
 def execute_agent():
     """
     Ejecuta el agente con un objetivo dado.
@@ -85,6 +139,7 @@ def execute_agent():
 
 
 @agent_bp.route("/memory", methods=["GET"])
+@require_agent_access
 def get_memory():
     """Obtiene contexto de memoria actual."""
     try:
@@ -107,6 +162,7 @@ def get_memory():
 
 
 @agent_bp.route("/memory", methods=["DELETE"])
+@require_agent_access
 def clear_memory():
     """Limpia la memoria."""
     try:
@@ -122,6 +178,7 @@ def clear_memory():
 
 
 @agent_bp.route("/tools", methods=["GET"])
+@require_auth
 def list_tools():
     """Lista todas las herramientas disponibles."""
     try:
@@ -154,6 +211,7 @@ def list_tools():
 
 
 @agent_bp.route("/data/load", methods=["POST"])
+@require_agent_access
 def load_data():
     """Carga datos del sistema."""
     try:
@@ -180,6 +238,7 @@ def load_data():
 
 
 @agent_bp.route("/ml/train", methods=["POST"])
+@require_agent_access
 def train_model():
     """Entrena un modelo ML."""
     try:
@@ -212,6 +271,7 @@ def train_model():
 
 
 @agent_bp.route("/ml/evaluate", methods=["POST"])
+@require_agent_access
 def evaluate_model():
     """Evalúa un modelo ML."""
     try:
@@ -240,6 +300,7 @@ def evaluate_model():
 
 
 @agent_bp.route("/ml/predict", methods=["POST"])
+@require_agent_access
 def predict():
     """Realiza predicciones con modelo entrenado."""
     try:
@@ -271,6 +332,7 @@ def predict():
 
 
 @agent_bp.route("/forecast/demand", methods=["POST"])
+@require_agent_access
 def forecast_demand():
     """Pronostica demanda de material."""
     try:
@@ -302,6 +364,7 @@ def forecast_demand():
 
 
 @agent_bp.route("/cluster/status", methods=["GET"])
+@require_auth
 def get_clustering_status():
     """Obtiene estado de clustering."""
     return jsonify({"ok": True, "data": clustering.get_status()}), 200
@@ -311,6 +374,7 @@ def get_clustering_status():
 
 
 @agent_bp.route("/score/solicitud", methods=["POST"])
+@require_agent_access
 def score_solicitud():
     """Calcula puntuación de solicitud."""
     try:

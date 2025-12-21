@@ -70,6 +70,7 @@ def require_admin(f):
 
 @bp.route("", methods=["GET"])
 @bp.route("/", methods=["GET"])
+@require_admin
 def get_all_metrics():
     """
     Obtiene todas las metricas del sistema.
@@ -88,6 +89,7 @@ def get_all_metrics():
 
 
 @bp.route("/requests", methods=["GET"])
+@require_admin
 def get_request_metrics():
     """
     Obtiene metricas de requests HTTP.
@@ -102,6 +104,7 @@ def get_request_metrics():
 
 
 @bp.route("/endpoints", methods=["GET"])
+@require_admin
 def get_endpoint_metrics():
     """
     Obtiene metricas por endpoint.
@@ -292,6 +295,7 @@ def reset_metrics():
 
 
 @bp.route("/prometheus", methods=["GET"])
+@require_admin
 def prometheus_metrics():
     """
     Expone metricas en formato Prometheus.

@@ -555,16 +555,21 @@ CREATE TABLE IF NOT EXISTS config_lotes_excluidos (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Historial de estados de solicitudes
+-- Historial de estados de solicitudes (migración 006)
 CREATE TABLE IF NOT EXISTS solicitudes_historial_estados (
     id SERIAL PRIMARY KEY,
     solicitud_id INTEGER NOT NULL REFERENCES solicitudes(id) ON DELETE CASCADE,
-    estado_anterior TEXT,
+    estado_anterior TEXT NOT NULL,
     estado_nuevo TEXT NOT NULL,
-    actor_id TEXT,
-    comentario TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    actor_id TEXT NOT NULL,
+    razon TEXT,
+    metadata_json TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
 );
+CREATE INDEX IF NOT EXISTS idx_historial_solicitud ON solicitudes_historial_estados(solicitud_id);
+CREATE INDEX IF NOT EXISTS idx_historial_estado_nuevo ON solicitudes_historial_estados(estado_nuevo);
+CREATE INDEX IF NOT EXISTS idx_historial_actor ON solicitudes_historial_estados(actor_id);
+CREATE INDEX IF NOT EXISTS idx_historial_fecha ON solicitudes_historial_estados(created_at);
 
 -- Reglas de aprobacion
 CREATE TABLE IF NOT EXISTS reglas_aprobacion (
