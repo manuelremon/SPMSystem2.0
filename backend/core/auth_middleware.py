@@ -40,7 +40,7 @@ def _get_user_by_id(user_id: str) -> dict | None:
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT id_spm, nombre, apellido, rol, mail, centro, activo FROM usuarios WHERE id_spm = %s",
+                "SELECT id_spm, nombre, apellido, rol, mail, centros, activo FROM usuarios WHERE id_spm = %s",
                 (str(user_id),),
             )
             row = cur.fetchone()
@@ -58,7 +58,7 @@ def _get_user_by_id(user_id: str) -> dict | None:
                 "apellido": row[2],
                 "rol": row[3],
                 "mail": row[4],
-                "centro": row[5],
+                "centros": row[5],
                 "activo": row[6],
             }
 
