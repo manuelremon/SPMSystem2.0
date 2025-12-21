@@ -41,6 +41,27 @@ def _connect():
     return conn
 
 
+def _table_exists(conn, table_name: str) -> bool:
+    """Verifica si una tabla existe (compatible PostgreSQL y SQLite)"""
+    cur = conn.cursor()
+    try:
+        if is_using_postgresql():
+            cur.execute(
+                "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = %s)",
+                (table_name,),
+            )
+            result = cur.fetchone()
+            return result and result[0] if result else False
+        else:
+            cur.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                (table_name,),
+            )
+            return cur.fetchone() is not None
+    except Exception:
+        return False
+
+
 def _connect_catalogo() -> sqlite3.Connection:
     """Crea conexión a BD de catálogo de materiales"""
     catalogo_path = _db_path().parent / "catalogo_materiales.db"
@@ -340,10 +361,7 @@ class MaterialRepository:
         try:
             cur = conn.cursor()
             # Verificar existencia tabla
-            cur.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='stock_almacenes'"
-            )
-            if cur.fetchone():
+            if _table_exists(conn, "stock_almacenes"):
                 params = [codigo]
                 sql = "SELECT centro, almacen, SUM(cantidad) as cantidad FROM stock_almacenes WHERE codigo_material = ?"
                 if centro:
@@ -455,10 +473,7 @@ class ConfigAlmacenesRepository:
         conn = _connect()
         try:
             cur = conn.cursor()
-            cur.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='config_almacenes'"
-            )
-            if not cur.fetchone():
+            if not _table_exists(conn, "config_almacenes"):
                 return []
 
             cur.execute(
@@ -480,10 +495,7 @@ class ConfigAlmacenesRepository:
         conn = _connect()
         try:
             cur = conn.cursor()
-            cur.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='config_lotes_excluidos'"
-            )
-            if not cur.fetchone():
+            if not _table_exists(conn, "config_lotes_excluidos"):
                 return []
 
             cur.execute("SELECT lote FROM config_lotes_excluidos")
