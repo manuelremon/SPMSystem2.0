@@ -343,13 +343,14 @@ def _configure_default_limits(limiter: RateLimiter) -> None:
     limiter.configure_endpoint("/api/auth/refresh", requests=100, window_seconds=60, burst=20)
 
     # Endpoints de escritura (moderados)
-    limiter.configure_endpoint("/api/solicitudes", requests=200, window_seconds=60, burst=50)
+    limiter.configure_endpoint("/api/solicitudes", requests=500, window_seconds=60, burst=100)
 
     # Endpoints de lectura (mas permisivos)
-    limiter.configure_endpoint("/api/catalogos", requests=500, window_seconds=60, burst=100)
-    limiter.configure_endpoint("/api/materiales", requests=500, window_seconds=60, burst=100)
-    limiter.configure_endpoint("/api/notificaciones", requests=500, window_seconds=60, burst=100)
-    limiter.configure_endpoint("/api/admin", requests=500, window_seconds=60, burst=100)
+    limiter.configure_endpoint("/api/catalogos", requests=1000, window_seconds=60, burst=200)
+    limiter.configure_endpoint("/api/materiales", requests=1000, window_seconds=60, burst=200)
+    limiter.configure_endpoint("/api/notificaciones", requests=1000, window_seconds=60, burst=200)
+    limiter.configure_endpoint("/api/kpis", requests=1000, window_seconds=60, burst=200)
+    limiter.configure_endpoint("/api/admin", requests=1000, window_seconds=60, burst=200)
 
     # Health checks (sin limite)
     limiter.configure_endpoint("/health", requests=1000, window_seconds=60, burst=100)
