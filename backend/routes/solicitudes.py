@@ -261,11 +261,16 @@ def get_solicitud(solicitud_id):
     solicitud_owner = str(d.get("id_usuario", ""))
     roles_permitidos = [
         "aprobador",
+        "aprobador_solicitudes",
+        "aprobador_presupuestos",
         "approver",
         "coordinador",
         "coordinator",
         "planificador",
         "planner",
+        "jefe",
+        "gerente1",
+        "gerente2",
     ]
     if (
         str(user_id) != solicitud_owner
