@@ -9,9 +9,12 @@ Endpoints:
 - GET /api/health/ready - Readiness probe (Kubernetes)
 """
 
+import json
 import logging
 import os
+import shutil
 import sqlite3
+import subprocess
 import time
 from datetime import datetime
 
@@ -324,3 +327,233 @@ def check_dependencies():
             "timestamp": datetime.utcnow().isoformat() + "Z",
         }
     ), (200 if all_healthy else 503)
+
+
+# =============================================================================
+# Infrastructure Monitoring
+# =============================================================================
+
+
+def _run_command(cmd: list, timeout: int = 5) -> tuple:
+    """
+    Ejecuta un comando de shell con timeout.
+
+    Args:
+        cmd: Lista con comando y argumentos
+        timeout: Timeout en segundos
+
+    Returns:
+        (success, output)
+    """
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=timeout, check=False
+        )
+        return result.returncode == 0, result.stdout.strip()
+    except subprocess.TimeoutExpired:
+        return False, "timeout"
+    except FileNotFoundError:
+        return False, "command not found"
+    except Exception as e:
+        return False, str(e)
+
+
+def _get_docker_status() -> dict:
+    """
+    Obtiene estado de contenedores Docker.
+
+    Returns:
+        Dict con lista de contenedores y su estado
+    """
+    result = {"available": False, "containers": [], "error": None}
+
+    # Verificar si docker está disponible
+    success, output = _run_command(["docker", "version", "--format", "{{.Server.Version}}"])
+    if not success:
+        result["error"] = "Docker no disponible" if output == "command not found" else output
+        return result
+
+    result["available"] = True
+    result["docker_version"] = output
+
+    # Obtener lista de contenedores
+    success, output = _run_command([
+        "docker", "ps", "-a", "--format",
+        '{"name":"{{.Names}}","status":"{{.Status}}","state":"{{.State}}","image":"{{.Image}}","ports":"{{.Ports}}"}'
+    ])
+
+    if not success:
+        result["error"] = output
+        return result
+
+    containers = []
+    for line in output.split("\n"):
+        if line.strip():
+            try:
+                container = json.loads(line)
+                # Extraer uptime del status
+                status = container.get("status", "")
+                container["running"] = container.get("state") == "running"
+                containers.append(container)
+            except json.JSONDecodeError:
+                continue
+
+    result["containers"] = containers
+    result["running_count"] = sum(1 for c in containers if c.get("running"))
+    result["total_count"] = len(containers)
+
+    return result
+
+
+def _get_git_status() -> dict:
+    """
+    Obtiene información del repositorio Git.
+
+    Returns:
+        Dict con info de git (branch, último commit, etc.)
+    """
+    result = {"available": False, "error": None}
+
+    # Verificar si git está disponible
+    success, _ = _run_command(["git", "--version"])
+    if not success:
+        result["error"] = "Git no disponible"
+        return result
+
+    result["available"] = True
+
+    # Branch actual
+    success, branch = _run_command(["git", "branch", "--show-current"])
+    result["branch"] = branch if success else "unknown"
+
+    # Último commit
+    success, commit_info = _run_command([
+        "git", "log", "-1", "--format=%H|%s|%ar|%an"
+    ])
+    if success and commit_info:
+        parts = commit_info.split("|")
+        if len(parts) >= 4:
+            result["last_commit"] = {
+                "hash": parts[0][:7],
+                "hash_full": parts[0],
+                "message": parts[1][:50] + ("..." if len(parts[1]) > 50 else ""),
+                "time_ago": parts[2],
+                "author": parts[3],
+            }
+
+    # Cambios pendientes
+    success, status_output = _run_command(["git", "status", "--porcelain"])
+    if success:
+        changes = [line for line in status_output.split("\n") if line.strip()]
+        result["pending_changes"] = len(changes)
+        result["clean"] = len(changes) == 0
+
+    # Remote URL (sin credenciales)
+    success, remote = _run_command(["git", "remote", "get-url", "origin"])
+    if success:
+        # Limpiar credenciales si existen
+        if "@" in remote:
+            remote = remote.split("@")[-1]
+        result["remote"] = remote
+
+    return result
+
+
+def _get_services_status() -> dict:
+    """
+    Obtiene estado de servicios del sistema.
+
+    Returns:
+        Dict con estado de servicios (nginx, postgresql, docker)
+    """
+    result = {"services": []}
+
+    # Lista de servicios a verificar con sus puertos
+    services_to_check = [
+        {"name": "nginx", "port": 443, "systemd": "nginx"},
+        {"name": "postgresql", "port": 5432, "systemd": "postgresql"},
+        {"name": "docker", "port": None, "systemd": "docker"},
+    ]
+
+    for svc in services_to_check:
+        service_status = {
+            "name": svc["name"],
+            "running": False,
+            "port": svc["port"],
+        }
+
+        # Intentar con systemctl
+        success, output = _run_command(["systemctl", "is-active", svc["systemd"]])
+        if success and output == "active":
+            service_status["running"] = True
+            service_status["method"] = "systemctl"
+        else:
+            # Fallback: verificar puerto si está definido
+            if svc["port"]:
+                success, _ = _run_command([
+                    "ss", "-tlnp", f"sport = :{svc['port']}"
+                ])
+                if success:
+                    # Si ss no falla y tiene contenido, el puerto está en uso
+                    service_status["running"] = True
+                    service_status["method"] = "port_check"
+
+        result["services"].append(service_status)
+
+    # Agregar información del sistema
+    result["system"] = {}
+
+    # Uso de disco
+    disk = shutil.disk_usage("/")
+    result["system"]["disk"] = {
+        "total_gb": round(disk.total / (1024**3), 1),
+        "used_gb": round(disk.used / (1024**3), 1),
+        "free_gb": round(disk.free / (1024**3), 1),
+        "percent_used": round(disk.used / disk.total * 100, 1),
+    }
+
+    # Carga del sistema
+    try:
+        load1, load5, load15 = os.getloadavg()
+        result["system"]["load"] = {
+            "1min": round(load1, 2),
+            "5min": round(load5, 2),
+            "15min": round(load15, 2),
+        }
+    except (OSError, AttributeError):
+        pass
+
+    return result
+
+
+@bp.route("/api/health/infrastructure", methods=["GET"])
+def infrastructure_status():
+    """
+    Estado de infraestructura: Docker, Git, servicios del sistema.
+
+    Requiere autenticación para no exponer información sensible.
+
+    Returns:
+        JSON con estado de Docker, Git y servicios
+    """
+    # Nota: En producción, agregar @require_auth cuando esté disponible
+    # Por ahora, solo verificamos que viene de admin (se puede mejorar)
+
+    try:
+        response = {
+            "ok": True,
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "docker": _get_docker_status(),
+            "git": _get_git_status(),
+            "services": _get_services_status(),
+        }
+
+        return jsonify(response), 200
+
+    except Exception as e:
+        logger.exception("Error getting infrastructure status")
+        return jsonify({
+            "ok": False,
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+        }), 500

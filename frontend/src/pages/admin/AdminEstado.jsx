@@ -38,7 +38,9 @@ import {
   Users,
   Package,
   FileText,
-  TrendingUp
+  TrendingUp,
+  GitCompare,
+  Boxes
 } from '../../components/ui/Icons'
 import { useI18n } from '../../context/i18n'
 
@@ -109,6 +111,7 @@ export default function AdminEstado() {
   const [dbStats, setDbStats] = useState(null)
   const [systemMetrics, setSystemMetrics] = useState(null)
   const [businessMetrics, setBusinessMetrics] = useState(null)
+  const [infrastructure, setInfrastructure] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [autoRefresh, setAutoRefresh] = useState(true)
@@ -118,14 +121,15 @@ export default function AdminEstado() {
   const fetchData = useCallback(async () => {
     try {
       setError('')
-      const [healthRes, metricsRes, cacheRes, dbRes, dbStatsRes, sysRes, businessRes] = await Promise.all([
+      const [healthRes, metricsRes, cacheRes, dbRes, dbStatsRes, sysRes, businessRes, infraRes] = await Promise.all([
         system.health().catch(() => ({ data: null })),
         system.metricsRequests().catch(() => ({ data: null })),
         system.metricsCache().catch(() => ({ data: null })),
         system.metricsDb().catch(() => ({ data: null })),
         system.metricsDbStats().catch(() => ({ data: null })),
         system.metricsSystem().catch(() => ({ data: null })),
-        metricsService.getBusinessMetrics().catch(() => null)
+        metricsService.getBusinessMetrics().catch(() => null),
+        system.infrastructure().catch(() => ({ data: null }))
       ])
 
       setHealth(healthRes.data)
@@ -135,6 +139,7 @@ export default function AdminEstado() {
       setDbStats(dbStatsRes.data?.data)
       setSystemMetrics(sysRes.data?.data)
       setBusinessMetrics(businessRes)
+      setInfrastructure(infraRes.data)
       setLastUpdate(new Date())
     } catch (e) {
       setError(e.response?.data?.error || e.message)
@@ -173,7 +178,8 @@ export default function AdminEstado() {
       metrics,
       cache: cacheMetrics,
       database: dbMetrics,
-      system: systemMetrics
+      system: systemMetrics,
+      infrastructure
     }
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -746,6 +752,175 @@ export default function AdminEstado() {
                   )}
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Infraestructura */}
+      {infrastructure && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Server className="w-5 h-5 text-violet-500" />
+              {t('infrastructure', 'Infraestructura')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Docker Containers */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Boxes className="w-4 h-4 text-blue-500" />
+                <span className="text-sm font-medium text-slate-600">Docker Containers</span>
+                {infrastructure.docker?.available && (
+                  <Badge variant="default" className="text-xs">
+                    v{infrastructure.docker.docker_version}
+                  </Badge>
+                )}
+              </div>
+              {infrastructure.docker?.available ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {infrastructure.docker.containers?.map((container) => (
+                    <div
+                      key={container.name}
+                      className={`p-3 rounded-lg border ${
+                        container.running
+                          ? 'bg-emerald-50 border-emerald-200'
+                          : 'bg-red-50 border-red-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            container.running ? 'bg-emerald-500' : 'bg-red-500'
+                          }`}
+                        />
+                        <span className="font-medium text-sm text-slate-800 truncate">
+                          {container.name}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 truncate">{container.status}</p>
+                      {container.image && (
+                        <p className="text-xs text-slate-400 truncate mt-1">{container.image}</p>
+                      )}
+                    </div>
+                  ))}
+                  {infrastructure.docker.containers?.length === 0 && (
+                    <p className="text-sm text-slate-500 col-span-3">No hay contenedores</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">
+                  {infrastructure.docker?.error || 'Docker no disponible'}
+                </p>
+              )}
+              {infrastructure.docker?.available && (
+                <p className="text-xs text-slate-400 mt-2">
+                  {infrastructure.docker.running_count} / {infrastructure.docker.total_count} contenedores activos
+                </p>
+              )}
+            </div>
+
+            {/* Git Status */}
+            <div className="border-t pt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <GitCompare className="w-4 h-4 text-orange-500" />
+                <span className="text-sm font-medium text-slate-600">Git Status</span>
+              </div>
+              {infrastructure.git?.available ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="default">{infrastructure.git.branch}</Badge>
+                    {infrastructure.git.clean ? (
+                      <Badge variant="success" className="text-xs">Clean</Badge>
+                    ) : (
+                      <Badge variant="warning" className="text-xs">
+                        {infrastructure.git.pending_changes} cambios
+                      </Badge>
+                    )}
+                  </div>
+                  {infrastructure.git.last_commit && (
+                    <div className="bg-slate-50 p-3 rounded-lg">
+                      <div className="flex items-center gap-2 mb-1">
+                        <code className="text-xs bg-slate-200 px-1.5 py-0.5 rounded font-mono">
+                          {infrastructure.git.last_commit.hash}
+                        </code>
+                        <span className="text-xs text-slate-500">
+                          {infrastructure.git.last_commit.time_ago}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-700">
+                        {infrastructure.git.last_commit.message}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        por {infrastructure.git.last_commit.author}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">
+                  {infrastructure.git?.error || 'Git no disponible'}
+                </p>
+              )}
+            </div>
+
+            {/* Services */}
+            <div className="border-t pt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Server className="w-4 h-4 text-cyan-500" />
+                <span className="text-sm font-medium text-slate-600">Servicios del Sistema</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {infrastructure.services?.services?.map((svc) => (
+                  <div
+                    key={svc.name}
+                    className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg"
+                  >
+                    <span
+                      className={`w-2.5 h-2.5 rounded-full ${
+                        svc.running ? 'bg-emerald-500' : 'bg-red-500'
+                      }`}
+                    />
+                    <span className="text-sm font-medium text-slate-700 capitalize">
+                      {svc.name}
+                    </span>
+                    {svc.port && (
+                      <span className="text-xs text-slate-400">:{svc.port}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* System Info */}
+              {infrastructure.services?.system && (
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                  {infrastructure.services.system.disk && (
+                    <div className="p-3 bg-slate-50 rounded-lg">
+                      <p className="text-xs text-slate-500 mb-1">Disco</p>
+                      <p className="text-lg font-bold text-slate-800">
+                        {infrastructure.services.system.disk.percent_used}%
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {infrastructure.services.system.disk.free_gb} GB libres de{' '}
+                        {infrastructure.services.system.disk.total_gb} GB
+                      </p>
+                    </div>
+                  )}
+                  {infrastructure.services.system.load && (
+                    <div className="p-3 bg-slate-50 rounded-lg">
+                      <p className="text-xs text-slate-500 mb-1">Load Average</p>
+                      <p className="text-lg font-bold text-slate-800">
+                        {infrastructure.services.system.load['1min']}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        5m: {infrastructure.services.system.load['5min']} | 15m:{' '}
+                        {infrastructure.services.system.load['15min']}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

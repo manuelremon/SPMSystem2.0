@@ -68,6 +68,7 @@ export const system = {
   // Health endpoints
   health: () => api.get('/health'),
   dependencies: () => api.get('/health/dependencies'),
+  infrastructure: () => api.get('/health/infrastructure'),
   // Metrics endpoints
   metrics: () => api.get('/metrics'),
   metricsRequests: () => api.get('/metrics/requests'),
