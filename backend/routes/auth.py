@@ -20,12 +20,12 @@ from jwt import InvalidTokenError
 try:
     from backend.core.cache import user_cache
     from backend.core.config import settings
-    from backend.core.db import get_db_connection, get_spm_db_path, is_using_postgresql
+    from backend.core.db import get_db_connection
     from backend.core.roles import format_user_response, is_admin, normalize_roles
 except ImportError:
     from core.cache import user_cache
     from core.config import settings
-    from core.db import get_db_connection, get_spm_db_path, is_using_postgresql
+    from core.db import get_db_connection
     from core.roles import format_user_response, is_admin, normalize_roles
 
 bp = Blueprint("auth", __name__)
@@ -78,12 +78,6 @@ _login_limiter = RateLimiter(max_attempts=10, window_seconds=300)
 
 def _get_user(username: str):
     """Busca por id_spm o mail"""
-    # Para SQLite, verificar que el archivo existe
-    if not is_using_postgresql():
-        db_path = get_spm_db_path()
-        if not db_path.exists():
-            return None
-
     with get_db_connection() as conn:
         cur = conn.cursor()
         # Usar siempre ? - el wrapper convierte automáticamente a %s para PostgreSQL
@@ -109,12 +103,6 @@ def _get_user_by_id(user_id: str):
         return cached_user
 
     # Cache miss - fetch from DB
-    # Para SQLite, verificar que el archivo existe
-    if not is_using_postgresql():
-        db_path = get_spm_db_path()
-        if not db_path.exists():
-            return None
-
     user = None
     with get_db_connection() as conn:
         cur = conn.cursor()

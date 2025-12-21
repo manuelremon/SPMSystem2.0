@@ -214,7 +214,7 @@ def admin_roles():
         with get_db_transaction() as conn:
             cur = conn.cursor()
             cur.execute(
-                "INSERT INTO catalog_roles (nombre, activo, created_at) VALUES (?, ?, datetime('now'))",
+                "INSERT INTO catalog_roles (nombre, activo, created_at) VALUES (?, ?, NOW())",
                 (data["nombre"], data.get("activo", 1)),
             )
         invalidate_catalog_cache()
@@ -238,12 +238,12 @@ def admin_roles_mod(rol_nombre):
         if request.method == "PUT":
             data = request.get_json(silent=True) or {}
             cur.execute(
-                "UPDATE catalog_roles SET activo=?, updated_at=datetime('now') WHERE nombre=?",
+                "UPDATE catalog_roles SET activo=?, updated_at=NOW() WHERE nombre=?",
                 (data.get("activo", 1), rol_nombre),
             )
         else:
             cur.execute(
-                "UPDATE catalog_roles SET activo=0, updated_at=datetime('now') WHERE nombre=?",
+                "UPDATE catalog_roles SET activo=0, updated_at=NOW() WHERE nombre=?",
                 (rol_nombre,),
             )
 
@@ -266,7 +266,7 @@ def admin_puestos():
         with get_db_transaction() as conn:
             cur = conn.cursor()
             cur.execute(
-                "INSERT INTO catalog_puestos (nombre, activo, created_at) VALUES (?, ?, datetime('now'))",
+                "INSERT INTO catalog_puestos (nombre, activo, created_at) VALUES (?, ?, NOW())",
                 (data["nombre"], data.get("activo", 1)),
             )
         invalidate_catalog_cache()
@@ -290,12 +290,12 @@ def admin_puestos_mod(puesto_nombre):
         if request.method == "PUT":
             data = request.get_json(silent=True) or {}
             cur.execute(
-                "UPDATE catalog_puestos SET activo=?, updated_at=datetime('now') WHERE nombre=?",
+                "UPDATE catalog_puestos SET activo=?, updated_at=NOW() WHERE nombre=?",
                 (data.get("activo", 1), puesto_nombre),
             )
         else:
             cur.execute(
-                "UPDATE catalog_puestos SET activo=0, updated_at=datetime('now') WHERE nombre=?",
+                "UPDATE catalog_puestos SET activo=0, updated_at=NOW() WHERE nombre=?",
                 (puesto_nombre,),
             )
 
@@ -861,13 +861,13 @@ def admin_config_almacenes():
             cur.execute(
                 """
                 INSERT INTO config_almacenes (centro, almacen, nombre, libre_disponibilidad, responsable_id, excluido, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+                VALUES (?, ?, ?, ?, ?, ?, NOW())
                 ON CONFLICT(centro, almacen) DO UPDATE SET
                     nombre = excluded.nombre,
                     libre_disponibilidad = excluded.libre_disponibilidad,
                     responsable_id = excluded.responsable_id,
                     excluido = excluded.excluido,
-                    updated_at = datetime('now')
+                    updated_at = NOW()
             """,
                 (
                     data["centro"],
@@ -917,7 +917,7 @@ def admin_config_almacenes_mod(centro, almacen):
             cur.execute(
                 """
                 UPDATE config_almacenes
-                SET nombre = ?, libre_disponibilidad = ?, responsable_id = ?, excluido = ?, updated_at = datetime('now')
+                SET nombre = ?, libre_disponibilidad = ?, responsable_id = ?, excluido = ?, updated_at = NOW()
                 WHERE centro = ? AND almacen = ?
             """,
                 (
@@ -977,7 +977,7 @@ def admin_proveedores_externos():
                     rubro = excluded.rubro,
                     calificacion = excluded.calificacion,
                     notas = excluded.notas,
-                    updated_at = datetime('now')
+                    updated_at = NOW()
                 """,
                 (
                     data["cuit"],
@@ -1073,7 +1073,7 @@ def admin_proveedores_externos_mod(cuit):
                 UPDATE proveedores_externos
                 SET nombre = ?, direccion = ?, localidad = ?, pais = ?,
                     origen = ?, lead_time_dias = ?, rubro = ?,
-                    calificacion = ?, activo = ?, notas = ?, updated_at = datetime('now')
+                    calificacion = ?, activo = ?, notas = ?, updated_at = NOW()
                 WHERE cuit = ?
                 """,
                 (
@@ -1092,7 +1092,7 @@ def admin_proveedores_externos_mod(cuit):
             )
         else:  # DELETE
             cur.execute(
-                "UPDATE proveedores_externos SET activo = 0, updated_at = datetime('now') WHERE cuit = ?",
+                "UPDATE proveedores_externos SET activo = 0, updated_at = NOW() WHERE cuit = ?",
                 (cuit,),
             )
 
@@ -1139,7 +1139,7 @@ def admin_proveedores_internos():
                     referente_nombre = excluded.referente_nombre,
                     referente_email = excluded.referente_email,
                     notas = excluded.notas,
-                    updated_at = datetime('now')
+                    updated_at = NOW()
                 """,
                 (
                     data["centro"],
@@ -1211,7 +1211,7 @@ def admin_proveedores_internos_mod(centro, almacen):
                 SET centro_nombre = ?, almacen_nombre = ?, sector = ?,
                     contacto_centro = ?, responsable_centro = ?,
                     referente_id = ?, referente_nombre = ?, referente_email = ?,
-                    activo = ?, notas = ?, updated_at = datetime('now')
+                    activo = ?, notas = ?, updated_at = NOW()
                 WHERE centro = ? AND almacen = ?
                 """,
                 (
@@ -1231,7 +1231,7 @@ def admin_proveedores_internos_mod(centro, almacen):
             )
         else:  # DELETE
             cur.execute(
-                "UPDATE proveedores_internos SET activo = 0, updated_at = datetime('now') WHERE centro = ? AND almacen = ?",
+                "UPDATE proveedores_internos SET activo = 0, updated_at = NOW() WHERE centro = ? AND almacen = ?",
                 (centro, almacen),
             )
 

@@ -29,7 +29,7 @@ try:
     )
     from backend.core.budget_transaction import AtomicBudgetTransaction
     from backend.core.config import settings
-    from backend.core.db import get_db_connection, is_using_postgresql
+    from backend.core.db import get_db_connection
     from backend.core.roles import is_admin, normalize_roles
 except ImportError:
     from core.budget_schemas import (
@@ -45,29 +45,14 @@ except ImportError:
     )
     from core.budget_transaction import AtomicBudgetTransaction
     from core.config import settings
-    from core.db import is_using_postgresql
-
-
-def _db_path() -> Path:
-    """Obtiene ruta a base de datos"""
-    if settings.DATABASE_URL.startswith("sqlite:///"):
-        return Path(settings.DATABASE_URL.split("sqlite:///", 1)[1])
-    return Path("spm.db")
+    from core.db import get_db_connection
 
 
 def _connect():
-    """Crea conexion a BD (PostgreSQL o SQLite segun configuracion)"""
-    # Usar el contexto de db.py que soporta ambos
-    if is_using_postgresql():
-        # Para PostgreSQL, usamos psycopg2 directo (no context manager)
-        import psycopg2
-
-        conn = psycopg2.connect(settings.DATABASE_URL)
-        return conn
-    else:
-        conn = sqlite3.connect(_db_path())
-        conn.row_factory = sqlite3.Row
-        return conn
+    """Crea conexion a BD PostgreSQL"""
+    import psycopg2
+    conn = psycopg2.connect(settings.DATABASE_URL)
+    return conn
 
 
 def _row_to_dict(row, cursor):
@@ -86,8 +71,7 @@ def _row_to_dict(row, cursor):
 
 def _execute(cursor, sql, params=None):
     """Ejecuta query convirtiendo placeholders ? a %s para PostgreSQL"""
-    if is_using_postgresql():
-        sql = sql.replace("?", "%s")
+    sql = sql.replace("?", "%s")
     return cursor.execute(sql, params)
 
 

@@ -558,13 +558,12 @@ def get_bur_pendientes():
 
     with get_db_connection() as conn:
         cur = conn.cursor()
-        placeholders = ",".join("?" * len(niveles_aprobables))
         cur.execute(
-            f"""SELECT * FROM budget_update_requests
+            """SELECT * FROM budget_update_requests
                 WHERE estado IN ('pendiente', 'aprobado_l1', 'aprobado_l2')
-                AND nivel_aprobacion_requerido IN ({placeholders})
+                AND nivel_aprobacion_requerido = ANY(%s)
                 ORDER BY created_at DESC""",
-            niveles_aprobables,
+            (list(niveles_aprobables),),
         )
         rows = cur.fetchall()
         burs = [BudgetUpdateRequest.from_row(dict(r)).to_dict() for r in rows]

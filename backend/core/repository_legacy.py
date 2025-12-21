@@ -498,13 +498,13 @@ class ConfigAlmacenesRepository:
             cur.execute(
                 """
                 INSERT INTO config_almacenes (centro, almacen, nombre, libre_disponibilidad, responsable_id, excluido, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+                VALUES (?, ?, ?, ?, ?, ?, NOW())
                 ON CONFLICT(centro, almacen) DO UPDATE SET
                     nombre = excluded.nombre,
                     libre_disponibilidad = excluded.libre_disponibilidad,
                     responsable_id = excluded.responsable_id,
                     excluido = excluded.excluido,
-                    updated_at = datetime('now')
+                    updated_at = NOW()
             """,
                 (
                     centro,

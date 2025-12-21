@@ -16,7 +16,7 @@ from werkzeug.utils import secure_filename
 logger = logging.getLogger(__name__)
 
 try:
-    from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+    from backend.core.db import get_db_connection, get_db_transaction
     from backend.core.fsm import (
         EstadoSolicitud,
         SolicitudNoEncontradaError,
@@ -52,7 +52,7 @@ try:
         resolver_alertas_solicitud,
     )
 except ImportError:
-    from core.db import get_db_connection, get_db_transaction, is_using_postgresql
+    from core.db import get_db_connection, get_db_transaction
     from core.fsm import (
         EstadoSolicitud,
         SolicitudNoEncontradaError,
@@ -84,11 +84,6 @@ except ImportError:
     )
 
     from routes.auth import _decode_token
-
-
-def _ph():
-    """Retorna el placeholder correcto para SQL (? para SQLite, %s para PostgreSQL)"""
-    return "%s" if is_using_postgresql() else "?"
 
 
 def _row_to_dict(row, cursor):
@@ -165,26 +160,25 @@ def list_solicitudes():
         f"[DEBUG] list_solicitudes: estado={estado}, aprobador_id={request.args.get('aprobador_id')}, all_args={dict(request.args)}"
     )
 
-    ph = _ph()
     where = []
     where_count = []
     params = []
     if user_id:
-        where.append(f"s.id_usuario = {ph}")
-        where_count.append(f"id_usuario = {ph}")
+        where.append("s.id_usuario = ?")
+        where_count.append("id_usuario = ?")
         params.append(str(user_id))
     if estado:
         # Normalizar estado legacy (ej: "Enviada" -> "submitted")
         estado_normalizado = normalizar_estado(estado)
-        where.append(f"LOWER(s.status) = LOWER({ph})")
-        where_count.append(f"LOWER(status) = LOWER({ph})")
+        where.append("LOWER(s.status) = LOWER(?)")
+        where_count.append("LOWER(status) = LOWER(?)")
         params.append(estado_normalizado)
 
     # Filtrar por aprobador_id si se pasa el parametro
     aprobador_id = request.args.get("aprobador_id")
     if aprobador_id:
-        where.append(f"s.aprobador_id = {ph}")
-        where_count.append(f"aprobador_id = {ph}")
+        where.append("s.aprobador_id = ?")
+        where_count.append("aprobador_id = ?")
         params.append(str(aprobador_id))
 
     where_sql = f"WHERE {' AND '.join(where)}" if where else ""
@@ -211,7 +205,7 @@ def list_solicitudes():
             LEFT JOIN usuarios p ON s.planner_id = p.id_spm
             {where_sql}
             ORDER BY s.created_at DESC
-            LIMIT {ph} OFFSET {ph}
+            LIMIT ? OFFSET ?
             """,
             params + [page_size, offset],
         )
@@ -252,10 +246,9 @@ def get_solicitud(solicitud_id):
     user_id = user_payload.get("user_id")
     user_rol = user_payload.get("rol", "")
 
-    ph = _ph()
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute(f"SELECT * FROM solicitudes WHERE id={ph}", (solicitud_id,))
+        cur.execute("SELECT * FROM solicitudes WHERE id=?", (solicitud_id,))
         row = cur.fetchone()
         if not row:
             return (
@@ -375,57 +368,32 @@ def create_solicitud():
     total = validacion["total"]
     now = datetime.utcnow().isoformat()
 
-    ph = _ph()
     with get_db_transaction() as conn:
         cur = conn.cursor()
-        if is_using_postgresql():
-            cur.execute(
-                f"""
-                INSERT INTO solicitudes (id_usuario, centro, sector, justificacion, centro_costos, almacen_virtual, criticidad, fecha_necesidad, data_json, status, total_monto, created_at, updated_at)
-                VALUES ({ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph})
-                RETURNING id
-                """,
-                (
-                    str(user_id),
-                    data.get("centro") or data.get("centro_id") or "",
-                    data.get("sector") or data.get("sector_id") or "",
-                    data.get("justificacion") or "",
-                    data.get("centro_costos") or "",
-                    data.get("almacen_virtual") or data.get("almacen") or "",
-                    data.get("criticidad") or "Normal",
-                    data.get("fecha_necesidad") or "",
-                    json.dumps({"items": items_validos, "archivos": []}),
-                    "Borrador",
-                    total,
-                    now,
-                    now,
-                ),
-            )
-            row = cur.fetchone()
-            new_id = row["id"] if isinstance(row, dict) else row[0]
-        else:
-            cur.execute(
-                """
-                INSERT INTO solicitudes (id_usuario, centro, sector, justificacion, centro_costos, almacen_virtual, criticidad, fecha_necesidad, data_json, status, total_monto, created_at, updated_at)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
-                """,
-                (
-                    str(user_id),
-                    data.get("centro") or data.get("centro_id") or "",
-                    data.get("sector") or data.get("sector_id") or "",
-                    data.get("justificacion") or "",
-                    data.get("centro_costos") or "",
-                    data.get("almacen_virtual") or data.get("almacen") or "",
-                    data.get("criticidad") or "Normal",
-                    data.get("fecha_necesidad") or "",
-                    json.dumps({"items": items_validos, "archivos": []}),
-                    "Borrador",
-                    total,
-                    now,
-                    now,
-                ),
-            )
-            new_id = cur.lastrowid
+        cur.execute(
+            """
+            INSERT INTO solicitudes (id_usuario, centro, sector, justificacion, centro_costos, almacen_virtual, criticidad, fecha_necesidad, data_json, status, total_monto, created_at, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+            RETURNING id
+            """,
+            (
+                str(user_id),
+                data.get("centro") or data.get("centro_id") or "",
+                data.get("sector") or data.get("sector_id") or "",
+                data.get("justificacion") or "",
+                data.get("centro_costos") or "",
+                data.get("almacen_virtual") or data.get("almacen") or "",
+                data.get("criticidad") or "Normal",
+                data.get("fecha_necesidad") or "",
+                json.dumps({"items": items_validos, "archivos": []}),
+                "Borrador",
+                total,
+                now,
+                now,
+            ),
+        )
+        row = cur.fetchone()
+        new_id = row["id"] if isinstance(row, dict) else row[0]
 
     # Procesar archivos adjuntos si los hay
     archivos_metadata = []
@@ -438,10 +406,9 @@ def create_solicitud():
 
         # Actualizar data_json con metadata de archivos
         if archivos_metadata:
-            ph = _ph()
             with get_db_connection() as conn:
                 cur = conn.cursor()
-                cur.execute(f"SELECT data_json FROM solicitudes WHERE id = {ph}", (new_id,))
+                cur.execute("SELECT data_json FROM solicitudes WHERE id = ?", (new_id,))
                 row = cur.fetchone()
                 data_json = json.loads(row[0]) if row and row[0] else {"items": [], "archivos": []}
 
@@ -449,7 +416,7 @@ def create_solicitud():
             with get_db_transaction() as conn:
                 cur = conn.cursor()
                 cur.execute(
-                    f"UPDATE solicitudes SET data_json = {ph} WHERE id = {ph}",
+                    "UPDATE solicitudes SET data_json = ? WHERE id = ?",
                     (json.dumps(data_json), new_id),
                 )
 
@@ -534,10 +501,9 @@ def eliminar_solicitud(solicitud_id):
             403,
         )
 
-    ph = _ph()
     with get_db_transaction() as conn:
         cur = conn.cursor()
-        cur.execute(f"DELETE FROM solicitudes WHERE id={ph}", (solicitud_id,))
+        cur.execute("DELETE FROM solicitudes WHERE id=?", (solicitud_id,))
 
     return jsonify({"ok": True, "message": "Solicitud eliminada correctamente"}), 200
 
@@ -875,10 +841,9 @@ def aprobar_solicitud(solicitud_id):
         from services.budget_service import aprobar_solicitud_con_presupuesto
 
     # Obtener rol del aprobador
-    ph = _ph()
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute(f"SELECT rol FROM usuarios WHERE id_spm = {ph}", (aprobador_id,))
+        cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (aprobador_id,))
         user_row = cur.fetchone()
 
     aprobador_rol = _row_to_dict(user_row, cur).get("rol", "") if user_row else ""
@@ -1000,10 +965,9 @@ def rechazar_solicitud(solicitud_id):
         )
 
     # Obtener rol del actor ANTES de procesar (necesario para validar autorización)
-    ph = _ph()
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute(f"SELECT rol FROM usuarios WHERE id_spm = {ph}", (actor_id,))
+        cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (actor_id,))
         user_row = cur.fetchone()
     actor_rol = _row_to_dict(user_row, cur).get("rol", "") if user_row else ""
 
@@ -1134,22 +1098,16 @@ def comentar_solicitud(solicitud_id):
         with get_db_connection() as conn:
             cur = conn.cursor()
             # Verificar si existe la tabla de log
-            if is_using_postgresql():
-                cur.execute(
-                    "SELECT table_name FROM information_schema.tables WHERE table_name='solicitud_tratamiento_log'"
-                )
-            else:
-                cur.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table' AND name='solicitud_tratamiento_log'"
-                )
+            cur.execute(
+                "SELECT table_name FROM information_schema.tables WHERE table_name='solicitud_tratamiento_log'"
+            )
             table_exists = cur.fetchone() is not None
 
         if table_exists:
-            ph = _ph()
             with get_db_transaction() as conn:
                 cur = conn.cursor()
                 cur.execute(
-                    f"INSERT INTO solicitud_tratamiento_log (solicitud_id, item_index, actor_id, tipo, estado, payload_json) VALUES ({ph},{ph},{ph},{ph},{ph},{ph})",
+                    "INSERT INTO solicitud_tratamiento_log (solicitud_id, item_index, actor_id, tipo, estado, payload_json) VALUES (?,?,?,?,?,?)",
                     (
                         solicitud_id,
                         None,
@@ -1265,19 +1223,17 @@ def _update_solicitud(solicitud_id: int, fields: dict):
     if not fields:
         return
     fields["updated_at"] = datetime.utcnow().isoformat()
-    ph = _ph()
-    set_clause = ", ".join([f"{k}={ph}" for k in fields.keys()])
+    set_clause = ", ".join([f"{k}=?" for k in fields.keys()])
     params = list(fields.values()) + [solicitud_id]
     with get_db_transaction() as conn:
         cur = conn.cursor()
-        cur.execute(f"UPDATE solicitudes SET {set_clause} WHERE id={ph}", params)
+        cur.execute(f"UPDATE solicitudes SET {set_clause} WHERE id=?", params)
 
 
 def _get_raw(solicitud_id: int):
-    ph = _ph()
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute(f"SELECT * FROM solicitudes WHERE id={ph}", (solicitud_id,))
+        cur.execute("SELECT * FROM solicitudes WHERE id=?", (solicitud_id,))
         row = cur.fetchone()
         if row is None:
             return None
@@ -1336,10 +1292,9 @@ def _planificador_para(centro: str, sector: str) -> str:
         if (not centro or centro == c) and (not sector or sector == s):
             planificador_id = r["planificador_id"]
             # Verificar que el ID existe en la tabla usuarios
-            ph = _ph()
             with get_db_connection() as conn:
                 cur = conn.cursor()
-                cur.execute(f"SELECT id_spm FROM usuarios WHERE id_spm = {ph}", (planificador_id,))
+                cur.execute("SELECT id_spm FROM usuarios WHERE id_spm = ?", (planificador_id,))
                 if cur.fetchone():
                     return planificador_id
 

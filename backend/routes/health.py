@@ -19,10 +19,10 @@ from flask import Blueprint, jsonify, request
 
 try:
     from backend.core.config import settings
-    from backend.core.db import get_db_path, is_using_postgresql
+    from backend.core.db import get_db_path
 except ImportError:
     from core.config import settings
-    from core.db import get_db_path, is_using_postgresql
+    from core.db import get_db_path
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +44,11 @@ def _check_database(db_name: str = "spm") -> dict:
         Estado de la BD
     """
     try:
-        # BD principal (spm) puede usar PostgreSQL en produccion
-        if db_name == "spm" and is_using_postgresql():
+        # BD principal (spm) usa PostgreSQL
+        if db_name == "spm":
             return _check_postgresql()
 
-        # BDs secundarias siempre usan SQLite
+        # BDs secundarias todavia usan SQLite (migracion pendiente)
         db_path = get_db_path(db_name)
         if not db_path.exists():
             return {"status": "unavailable", "error": f"Database file not found: {db_path}"}

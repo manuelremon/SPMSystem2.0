@@ -503,7 +503,7 @@ def solicitudes_por_material(codigo):
             cursor = conn.cursor()
 
             # Estados activos de solicitudes
-            estados_activos = ("submitted", "approved", "processing")
+            estados_activos = ["submitted", "approved", "processing"]
 
             # Buscar solicitudes con el material en data_json
             cursor.execute(
@@ -516,10 +516,10 @@ def solicitudes_por_material(codigo):
                     u.nombre as solicitante_nombre
                 FROM solicitudes s
                 LEFT JOIN usuarios u ON s.id_usuario = u.id_spm
-                WHERE s.status IN (?, ?, ?)
+                WHERE s.status = ANY(%s)
                 ORDER BY s.created_at DESC
             """,
-                estados_activos,
+                (estados_activos,),
             )
             rows = cursor.fetchall()
 

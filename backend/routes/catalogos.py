@@ -2,10 +2,10 @@ from flask import Blueprint, jsonify
 
 try:
     from backend.core.cache import cached, catalog_cache
-    from backend.core.db import get_db_connection, get_spm_db_path, is_using_postgresql
+    from backend.core.db import get_db_connection
 except ImportError:
     from core.cache import cached, catalog_cache
-    from core.db import get_db_connection, get_spm_db_path, is_using_postgresql
+    from core.db import get_db_connection
 
 bp = Blueprint("catalogos", __name__)
 
@@ -22,17 +22,11 @@ def _row_to_dict(row, cursor):
 
 def _fetch(query: str, mapper):
     """Ejecuta query y mapea resultados usando context manager"""
-    # Solo verificar archivo para SQLite
-    if not is_using_postgresql():
-        db_path = get_spm_db_path()
-        if not db_path.exists():
-            return []
-
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(query)
         rows = cur.fetchall()
-        # El wrapper ya retorna dicts para PostgreSQL, SQLite retorna Rows
+        # El wrapper ya retorna dicts para PostgreSQL
         return [mapper(row if isinstance(row, dict) else dict(row)) for row in rows]
 
 

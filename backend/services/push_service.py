@@ -324,13 +324,12 @@ class PushService:
         """Elimina endpoints que ya no son validos."""
         try:
             with get_db_transaction() as conn:
-                placeholders = ",".join("?" * len(endpoints))
                 conn.execute(
-                    f"""
+                    """
                     DELETE FROM push_subscriptions
-                    WHERE endpoint IN ({placeholders})
+                    WHERE endpoint = ANY(%s)
                 """,
-                    endpoints,
+                    (endpoints,),
                 )
             logger.info(f"[PUSH] Limpiados {len(endpoints)} endpoints invalidos")
         except Exception as e:

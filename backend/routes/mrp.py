@@ -216,22 +216,15 @@ def get_alertas():
         materiales = [dict(row) for row in cursor.fetchall()]
 
         # Obtener consumo historico promedio por material
-        consumo_query = (
-            """
-            SELECT material, AVG(cantidad) as consumo_mensual
-            FROM consumo_historico
-            WHERE material IN ({})
-            GROUP BY material
-        """.format(
-                ",".join("?" * len(materiales))
-            )
-            if materiales
-            else "SELECT 1 WHERE 0"
-        )
-
         consumos = {}
         if materiales:
-            cursor.execute(consumo_query, [m["codigo"] for m in materiales])
+            consumo_query = """
+                SELECT material, AVG(cantidad) as consumo_mensual
+                FROM consumo_historico
+                WHERE material = ANY(%s)
+                GROUP BY material
+            """
+            cursor.execute(consumo_query, ([m["codigo"] for m in materiales],))
             for row in cursor.fetchall():
                 consumos[row[0]] = row[1] or 0
 

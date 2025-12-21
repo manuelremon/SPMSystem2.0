@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 
 try:
     from backend.core.config import settings
-    from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+    from backend.core.db import get_db_connection, get_db_transaction
     from backend.core.notification_schemas import (
         Notificacion,
         NotificacionCreate,
@@ -24,7 +24,7 @@ try:
     )
     from backend.services.push_service import send_push_notification
 except ImportError:
-    from core.db import get_db_connection, get_db_transaction, is_using_postgresql
+    from core.db import get_db_connection, get_db_transaction
     from core.notification_schemas import Notificacion
 
     try:
@@ -37,11 +37,6 @@ logger = logging.getLogger(__name__)
 
 class NotificationService:
     """Servicio para gestionar notificaciones"""
-
-    @staticmethod
-    def _placeholder():
-        """Retorna el placeholder correcto para la BD"""
-        return "%s" if is_using_postgresql() else "?"
 
     # Mapeo de tipos de notificación a títulos para push
     PUSH_TITLES = {
@@ -79,30 +74,19 @@ class NotificationService:
             ID de la notificación creada o None si falla
         """
         notif_id = None
-        ph = cls._placeholder()
         try:
             with get_db_transaction() as conn:
                 cursor = conn.cursor()
-                if is_using_postgresql():
-                    cursor.execute(
-                        f"""
-                        INSERT INTO notificaciones (destinatario_id, mensaje, tipo, solicitud_id, leido, created_at)
-                        VALUES ({ph}, {ph}, {ph}, {ph}, false, {ph})
-                        RETURNING id
-                        """,
-                        (destinatario_id, mensaje, tipo, solicitud_id, datetime.now().isoformat()),
-                    )
-                    row = cursor.fetchone()
-                    notif_id = row[0] if row else None
-                else:
-                    cursor.execute(
-                        f"""
-                        INSERT INTO notificaciones (destinatario_id, mensaje, tipo, solicitud_id, leido, created_at)
-                        VALUES ({ph}, {ph}, {ph}, {ph}, 0, {ph})
-                        """,
-                        (destinatario_id, mensaje, tipo, solicitud_id, datetime.now().isoformat()),
-                    )
-                    notif_id = cursor.lastrowid
+                cursor.execute(
+                    """
+                    INSERT INTO notificaciones (destinatario_id, mensaje, tipo, solicitud_id, leido, created_at)
+                    VALUES (?, ?, ?, ?, false, ?)
+                    RETURNING id
+                    """,
+                    (destinatario_id, mensaje, tipo, solicitud_id, datetime.now().isoformat()),
+                )
+                row = cursor.fetchone()
+                notif_id = row[0] if row else None
         except Exception as e:
             logger.error(f"Error creating notification: {e}")
             return None
@@ -140,12 +124,11 @@ class NotificationService:
         Returns:
             Lista de notificaciones como diccionarios
         """
-        ph = cls._placeholder()
         try:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
 
-                where_clause = f"WHERE destinatario_id = {ph}"
+                where_clause = "WHERE destinatario_id = ?"
                 params = [user_id]
 
                 if unread_only:
@@ -158,7 +141,7 @@ class NotificationService:
                     FROM notificaciones
                     {where_clause}
                     ORDER BY created_at DESC
-                    LIMIT {ph}
+                    LIMIT ?
                     """,
                     params + [limit],
                 )
@@ -189,13 +172,12 @@ class NotificationService:
         Returns:
             Cantidad de notificaciones no leídas
         """
-        ph = cls._placeholder()
         try:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 # Column is INTEGER (0/1), not BOOLEAN
                 cursor.execute(
-                    f"SELECT COUNT(*) FROM notificaciones WHERE destinatario_id = {ph} AND leido = 0",
+                    "SELECT COUNT(*) FROM notificaciones WHERE destinatario_id = ? AND leido = 0",
                     (user_id,),
                 )
                 result = cursor.fetchone()
@@ -216,16 +198,15 @@ class NotificationService:
         Returns:
             True si se marcó correctamente, False en caso contrario
         """
-        ph = cls._placeholder()
         try:
             with get_db_transaction() as conn:
                 cursor = conn.cursor()
                 # Column is INTEGER (0/1), not BOOLEAN
                 cursor.execute(
-                    f"""
+                    """
                     UPDATE notificaciones
                     SET leido = 1
-                    WHERE id = {ph} AND destinatario_id = {ph}
+                    WHERE id = ? AND destinatario_id = ?
                     """,
                     (notification_id, user_id),
                 )
@@ -245,16 +226,15 @@ class NotificationService:
         Returns:
             Cantidad de notificaciones marcadas
         """
-        ph = cls._placeholder()
         try:
             with get_db_transaction() as conn:
                 cursor = conn.cursor()
                 # Column is INTEGER (0/1), not BOOLEAN
                 cursor.execute(
-                    f"""
+                    """
                     UPDATE notificaciones
                     SET leido = 1
-                    WHERE destinatario_id = {ph} AND leido = 0
+                    WHERE destinatario_id = ? AND leido = 0
                     """,
                     (user_id,),
                 )
@@ -275,14 +255,13 @@ class NotificationService:
         Returns:
             True si se eliminó correctamente
         """
-        ph = cls._placeholder()
         try:
             with get_db_transaction() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    f"""
+                    """
                     DELETE FROM notificaciones
-                    WHERE id = {ph} AND destinatario_id = {ph}
+                    WHERE id = ? AND destinatario_id = ?
                     """,
                     (notification_id, user_id),
                 )
