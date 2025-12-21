@@ -26,9 +26,9 @@ logger = logging.getLogger(__name__)
 class RateLimitConfig:
     """Configuracion de rate limit."""
 
-    requests: int = 500  # Numero de requests permitidos (aumentado para dev)
+    requests: int = 1000  # Numero de requests permitidos
     window_seconds: int = 60  # Ventana de tiempo en segundos
-    burst: int = 50  # Requests adicionales permitidos en rafaga (aumentado)
+    burst: int = 200  # Requests adicionales permitidos en rafaga
     by_user: bool = True  # Limitar por usuario autenticado
     by_ip: bool = True  # Limitar por IP
 
