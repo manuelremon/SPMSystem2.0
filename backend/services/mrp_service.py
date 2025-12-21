@@ -11,11 +11,14 @@ Gestiona:
 - Alertas automaticas de reposicion
 """
 
+import logging
 import math
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from backend.core.db import get_db_connection, get_db_transaction
+
+logger = logging.getLogger(__name__)
 
 # Intentar importar el pipeline de forecast
 try:
@@ -329,8 +332,8 @@ def generar_ordenes_mrp(centro: str, solo_criticos: bool = False) -> Dict[str, A
                 )
                 ordenes.append(orden)
                 ordenes_generadas += 1
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Error generando orden para material {material_codigo}: {e}")
 
     return {
         "centro": centro,
@@ -374,8 +377,8 @@ def obtener_demanda_proyectada(material_codigo: str, centro: str, dias: int = 30
                 "confianza_superior": forecast.get("confidence_upper", 0),
                 "metodo": "ml_forecast",
             }
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"ML forecast no disponible para {material_codigo}: {e}")
 
     # Fallback: usar promedio historico
     with get_db_connection() as conn:

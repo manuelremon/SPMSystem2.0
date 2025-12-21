@@ -889,7 +889,7 @@ class MrpRepository:
             cur.execute(
                 """
                 SELECT name FROM sqlite_master
-                WHERE type='table' AND (name LIKE '%mrp%' OR name LIKE '%param%')
+                WHERE type='table' AND (name LIKE '%%mrp%%' OR name LIKE '%%param%%')
             """
             )
             mrp_tables = [row[0] for row in cur.fetchall()]
@@ -957,7 +957,7 @@ class MrpRepository:
             cur.execute(
                 """
                 SELECT name FROM sqlite_master
-                WHERE type='table' AND (name LIKE '%pedido%' OR name LIKE '%orden%')
+                WHERE type='table' AND (name LIKE '%%pedido%%' OR name LIKE '%%orden%%')
             """
             )
             pedido_tables = [row[0] for row in cur.fetchall()]
@@ -1000,7 +1000,7 @@ class MrpRepository:
             cur.execute(
                 """
                 SELECT name FROM sqlite_master
-                WHERE type='table' AND name LIKE '%consumo%'
+                WHERE type='table' AND name LIKE '%%consumo%%'
             """
             )
             consumo_tables = [row[0] for row in cur.fetchall()]

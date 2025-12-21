@@ -10,10 +10,13 @@ Gestiona:
 - Asociación con solicitudes
 """
 
+import logging
 import sqlite3
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 # Importar configuración de BD
 try:
@@ -162,14 +165,15 @@ class MessageService:
 
                     try:
                         msg["metadata"] = json.loads(msg["metadata_json"])
-                    except:
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"Error parseando metadata_json mensaje {msg.get('id')}: {e}")
                         msg["metadata"] = {}
                 messages.append(msg)
 
             return messages
 
         except Exception as e:
-            print(f"Error al obtener inbox: {e}")
+            logger.exception(f"Error al obtener inbox: {e}")
             return []
         finally:
             conn.close()
@@ -218,14 +222,15 @@ class MessageService:
 
                     try:
                         msg["metadata"] = json.loads(msg["metadata_json"])
-                    except:
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"Error parseando metadata_json mensaje {msg.get('id')}: {e}")
                         msg["metadata"] = {}
                 messages.append(msg)
 
             return messages
 
         except Exception as e:
-            print(f"Error al obtener outbox: {e}")
+            logger.exception(f"Error al obtener outbox: {e}")
             return []
         finally:
             conn.close()

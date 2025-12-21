@@ -109,8 +109,14 @@ def dashboard_stats():
             cur = conn.cursor()
 
             if _table_exists(conn, "solicitudes"):
-                cur.execute("SELECT status, COUNT(*) FROM solicitudes GROUP BY status")
-                counts = {row[0]: row[1] for row in cur.fetchall() or []}
+                cur.execute("SELECT status, COUNT(*) as cnt FROM solicitudes GROUP BY status")
+                rows = cur.fetchall() or []
+                counts = {}
+                for row in rows:
+                    if isinstance(row, dict):
+                        counts[row["status"]] = row["cnt"]
+                    else:
+                        counts[row[0]] = row[1]
                 stats["total_solicitudes"] = int(sum(counts.values()))
                 stats["en_aprobacion"] = int(
                     counts.get("En Progreso", 0)
@@ -308,7 +314,8 @@ def _stock_disponible(codigo: str, centro: str = None, almacen: str = None, stoc
                 cur.execute(sql, params)
                 row = cur.fetchone()
                 if row is not None:
-                    return float(row[0] or 0)
+                    val = row["cantidad"] if isinstance(row, dict) else row[0]
+                    return float(val or 0)
     except Exception:
         pass
 
@@ -565,15 +572,24 @@ def _stock_detalle(codigo: str, centro: str = None, almacen: str = None, stock_d
                 cur.execute(sql, params)
                 for row in cur.fetchall() or []:
                     # OPTIMIZACIÓN: Consulta SQL directa en lugar de filtrar en memoria
-                    consumo_total, consumo_prom = _get_consumo_sql(codigo, row[0], row[1])
+                    # Compatibilidad PostgreSQL (dict) y SQLite (tuple)
+                    if isinstance(row, dict):
+                        r_centro = row["centro"]
+                        r_almacen = row["almacen"]
+                        r_cantidad = row["cantidad"]
+                    else:
+                        r_centro = row[0]
+                        r_almacen = row[1]
+                        r_cantidad = row[2]
+                    consumo_total, consumo_prom = _get_consumo_sql(codigo, r_centro, r_almacen)
                     detalle.append(
                         {
-                            "centro": row[0],
-                            "almacen": row[1],
-                            "cantidad": float(row[2] or 0),
+                            "centro": r_centro,
+                            "almacen": r_almacen,
+                            "cantidad": float(r_cantidad or 0),
                             "consumo_total": consumo_total,
                             "consumo_promedio": consumo_prom,
-                            "libre_disponibilidad": str(row[1]) in ("0100", "9999"),
+                            "libre_disponibilidad": str(r_almacen) in ("0100", "9999"),
                         }
                     )
                 return detalle
@@ -1940,7 +1956,7 @@ def _get_responsable_almacen(centro: str, almacen: str) -> str | None:
                 """
                 SELECT u.id_spm
                 FROM usuarios u
-                WHERE u.centro = ? AND u.rol LIKE '%almacen%'
+                WHERE u.centro = ? AND u.rol LIKE '%%almacen%%'
                 LIMIT 1
                 """,
                 (centro,),
@@ -1961,7 +1977,7 @@ def _get_referente_centro(centro: str) -> str | None:
                 """
                 SELECT u.id_spm
                 FROM usuarios u
-                WHERE u.centro = ? AND (u.rol LIKE '%coordinador%' OR u.rol LIKE '%jefe%')
+                WHERE u.centro = ? AND (u.rol LIKE '%%coordinador%%' OR u.rol LIKE '%%jefe%%')
                 LIMIT 1
                 """,
                 (centro,),

@@ -500,7 +500,8 @@ class ReportingService:
                         try:
                             if len(str(cell.value)) > max_length:
                                 max_length = len(str(cell.value))
-                        except:
+                        except (TypeError, AttributeError):
+                            # Celda sin valor o tipo incompatible - ignorar
                             pass
                     adjusted_width = min(max_length + 2, 50)
                     ws.column_dimensions[column].width = adjusted_width

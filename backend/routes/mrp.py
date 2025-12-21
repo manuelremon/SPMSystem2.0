@@ -226,7 +226,11 @@ def get_alertas():
             """
             cursor.execute(consumo_query, ([m["codigo"] for m in materiales],))
             for row in cursor.fetchall():
-                consumos[row[0]] = row[1] or 0
+                # Compatibilidad PostgreSQL (dict) y SQLite (tuple)
+                if isinstance(row, dict):
+                    consumos[row["material"]] = row["consumo_mensual"] or 0
+                else:
+                    consumos[row[0]] = row[1] or 0
 
         conn.close()
 
