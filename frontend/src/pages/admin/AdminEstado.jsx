@@ -767,18 +767,138 @@ export default function AdminEstado() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Docker Containers */}
-            <div>
+            {/* Oracle Cloud Instance */}
+            {infrastructure.oci?.available && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Database className="w-4 h-4 text-red-500" />
+                  <span className="text-sm font-medium text-slate-600">Oracle Cloud Instance</span>
+                  <Badge variant="success" className="text-xs">{infrastructure.oci.instance?.state}</Badge>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Instance Info */}
+                  <div className="p-3 bg-gradient-to-br from-red-50 to-orange-50 rounded-lg border border-red-100">
+                    <p className="text-xs text-slate-500 mb-1">Instancia</p>
+                    <p className="text-sm font-bold text-slate-800">{infrastructure.oci.instance?.name}</p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {infrastructure.oci.instance?.hostname}
+                    </p>
+                  </div>
+                  {/* Shape */}
+                  <div className="p-3 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-100">
+                    <p className="text-xs text-slate-500 mb-1">Shape</p>
+                    <p className="text-sm font-bold text-slate-800">{infrastructure.oci.shape?.name}</p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {infrastructure.oci.shape?.ocpus} OCPU • {infrastructure.oci.shape?.memory_gb} GB RAM
+                    </p>
+                  </div>
+                  {/* Location */}
+                  <div className="p-3 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg border border-emerald-100">
+                    <p className="text-xs text-slate-500 mb-1">Región</p>
+                    <p className="text-sm font-bold text-slate-800">{infrastructure.oci.location?.region}</p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {infrastructure.oci.location?.availability_domain}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* System Metrics */}
+            <div className={infrastructure.oci?.available ? "border-t pt-4" : ""}>
               <div className="flex items-center gap-2 mb-3">
-                <Boxes className="w-4 h-4 text-blue-500" />
-                <span className="text-sm font-medium text-slate-600">Docker Containers</span>
-                {infrastructure.docker?.available && (
+                <Activity className="w-4 h-4 text-emerald-500" />
+                <span className="text-sm font-medium text-slate-600">Recursos del Sistema</span>
+                {infrastructure.system?.uptime && (
                   <Badge variant="default" className="text-xs">
-                    v{infrastructure.docker.docker_version}
+                    Uptime: {infrastructure.system.uptime.formatted}
                   </Badge>
                 )}
               </div>
-              {infrastructure.docker?.available ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {/* Memory */}
+                {infrastructure.system?.memory && (
+                  <div className="p-3 bg-slate-50 rounded-lg">
+                    <p className="text-xs text-slate-500 mb-1">Memoria RAM</p>
+                    <p className="text-lg font-bold text-slate-800">
+                      {infrastructure.system.memory.percent_used}%
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {infrastructure.system.memory.used_gb} / {infrastructure.system.memory.total_gb} GB
+                    </p>
+                    <div className="mt-2 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${
+                          infrastructure.system.memory.percent_used > 80
+                            ? 'bg-red-500'
+                            : infrastructure.system.memory.percent_used > 60
+                              ? 'bg-amber-500'
+                              : 'bg-emerald-500'
+                        }`}
+                        style={{ width: `${infrastructure.system.memory.percent_used}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                {/* Disk */}
+                {infrastructure.services?.system?.disk && (
+                  <div className="p-3 bg-slate-50 rounded-lg">
+                    <p className="text-xs text-slate-500 mb-1">Disco</p>
+                    <p className="text-lg font-bold text-slate-800">
+                      {infrastructure.services.system.disk.percent_used}%
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {infrastructure.services.system.disk.used_gb} / {infrastructure.services.system.disk.total_gb} GB
+                    </p>
+                    <div className="mt-2 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${
+                          infrastructure.services.system.disk.percent_used > 85
+                            ? 'bg-red-500'
+                            : infrastructure.services.system.disk.percent_used > 70
+                              ? 'bg-amber-500'
+                              : 'bg-emerald-500'
+                        }`}
+                        style={{ width: `${infrastructure.services.system.disk.percent_used}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                {/* Load Average */}
+                {infrastructure.services?.system?.load && (
+                  <div className="p-3 bg-slate-50 rounded-lg">
+                    <p className="text-xs text-slate-500 mb-1">CPU Load</p>
+                    <p className="text-lg font-bold text-slate-800">
+                      {infrastructure.services.system.load['1min']}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      5m: {infrastructure.services.system.load['5min']} • 15m: {infrastructure.services.system.load['15min']}
+                    </p>
+                  </div>
+                )}
+                {/* Network */}
+                {infrastructure.oci?.shape?.network_gbps && (
+                  <div className="p-3 bg-slate-50 rounded-lg">
+                    <p className="text-xs text-slate-500 mb-1">Network</p>
+                    <p className="text-lg font-bold text-slate-800">
+                      {infrastructure.oci.shape.network_gbps} Gbps
+                    </p>
+                    <p className="text-xs text-slate-500">Bandwidth disponible</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Docker Containers - Collapsed if not available */}
+            {infrastructure.docker?.available && (
+              <div className="border-t pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Boxes className="w-4 h-4 text-blue-500" />
+                  <span className="text-sm font-medium text-slate-600">Docker Containers</span>
+                  <Badge variant="default" className="text-xs">
+                    v{infrastructure.docker.docker_version}
+                  </Badge>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {infrastructure.docker.containers?.map((container) => (
                     <div
@@ -800,128 +920,35 @@ export default function AdminEstado() {
                         </span>
                       </div>
                       <p className="text-xs text-slate-500 truncate">{container.status}</p>
-                      {container.image && (
-                        <p className="text-xs text-slate-400 truncate mt-1">{container.image}</p>
-                      )}
                     </div>
                   ))}
-                  {infrastructure.docker.containers?.length === 0 && (
-                    <p className="text-sm text-slate-500 col-span-3">No hay contenedores</p>
-                  )}
                 </div>
-              ) : (
-                <p className="text-sm text-slate-500">
-                  {infrastructure.docker?.error || 'Docker no disponible'}
-                </p>
-              )}
-              {infrastructure.docker?.available && (
-                <p className="text-xs text-slate-400 mt-2">
-                  {infrastructure.docker.running_count} / {infrastructure.docker.total_count} contenedores activos
-                </p>
-              )}
-            </div>
-
-            {/* Git Status */}
-            <div className="border-t pt-4">
-              <div className="flex items-center gap-2 mb-3">
-                <GitCompare className="w-4 h-4 text-orange-500" />
-                <span className="text-sm font-medium text-slate-600">Git Status</span>
               </div>
-              {infrastructure.git?.available ? (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="default">{infrastructure.git.branch}</Badge>
-                    {infrastructure.git.clean ? (
-                      <Badge variant="success" className="text-xs">Clean</Badge>
-                    ) : (
-                      <Badge variant="warning" className="text-xs">
-                        {infrastructure.git.pending_changes} cambios
-                      </Badge>
-                    )}
+            )}
+
+            {/* Git Status - Collapsed if not available */}
+            {infrastructure.git?.available && (
+              <div className="border-t pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <GitCompare className="w-4 h-4 text-orange-500" />
+                  <span className="text-sm font-medium text-slate-600">Git Status</span>
+                  <Badge variant="default">{infrastructure.git.branch}</Badge>
+                </div>
+                {infrastructure.git.last_commit && (
+                  <div className="bg-slate-50 p-3 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <code className="text-xs bg-slate-200 px-1.5 py-0.5 rounded font-mono">
+                        {infrastructure.git.last_commit.hash}
+                      </code>
+                      <span className="text-xs text-slate-500">
+                        {infrastructure.git.last_commit.time_ago}
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-700">{infrastructure.git.last_commit.message}</p>
                   </div>
-                  {infrastructure.git.last_commit && (
-                    <div className="bg-slate-50 p-3 rounded-lg">
-                      <div className="flex items-center gap-2 mb-1">
-                        <code className="text-xs bg-slate-200 px-1.5 py-0.5 rounded font-mono">
-                          {infrastructure.git.last_commit.hash}
-                        </code>
-                        <span className="text-xs text-slate-500">
-                          {infrastructure.git.last_commit.time_ago}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-700">
-                        {infrastructure.git.last_commit.message}
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">
-                        por {infrastructure.git.last_commit.author}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm text-slate-500">
-                  {infrastructure.git?.error || 'Git no disponible'}
-                </p>
-              )}
-            </div>
-
-            {/* Services */}
-            <div className="border-t pt-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Server className="w-4 h-4 text-cyan-500" />
-                <span className="text-sm font-medium text-slate-600">Servicios del Sistema</span>
+                )}
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {infrastructure.services?.services?.map((svc) => (
-                  <div
-                    key={svc.name}
-                    className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg"
-                  >
-                    <span
-                      className={`w-2.5 h-2.5 rounded-full ${
-                        svc.running ? 'bg-emerald-500' : 'bg-red-500'
-                      }`}
-                    />
-                    <span className="text-sm font-medium text-slate-700 capitalize">
-                      {svc.name}
-                    </span>
-                    {svc.port && (
-                      <span className="text-xs text-slate-400">:{svc.port}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* System Info */}
-              {infrastructure.services?.system && (
-                <div className="mt-4 grid grid-cols-2 gap-4">
-                  {infrastructure.services.system.disk && (
-                    <div className="p-3 bg-slate-50 rounded-lg">
-                      <p className="text-xs text-slate-500 mb-1">Disco</p>
-                      <p className="text-lg font-bold text-slate-800">
-                        {infrastructure.services.system.disk.percent_used}%
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {infrastructure.services.system.disk.free_gb} GB libres de{' '}
-                        {infrastructure.services.system.disk.total_gb} GB
-                      </p>
-                    </div>
-                  )}
-                  {infrastructure.services.system.load && (
-                    <div className="p-3 bg-slate-50 rounded-lg">
-                      <p className="text-xs text-slate-500 mb-1">Load Average</p>
-                      <p className="text-lg font-bold text-slate-800">
-                        {infrastructure.services.system.load['1min']}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        5m: {infrastructure.services.system.load['5min']} | 15m:{' '}
-                        {infrastructure.services.system.load['15min']}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            )}
           </CardContent>
         </Card>
       )}

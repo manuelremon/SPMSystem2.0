@@ -526,6 +526,124 @@ def _get_services_status() -> dict:
     return result
 
 
+def _get_oci_metadata() -> dict:
+    """
+    Obtiene metadatos de la instancia Oracle Cloud desde el servicio IMDS.
+
+    El Instance Metadata Service (IMDS) está disponible en 169.254.169.254
+    y no requiere autenticación desde dentro de la instancia.
+
+    Returns:
+        Dict con información de la instancia OCI
+    """
+    import urllib.request
+    import urllib.error
+
+    result = {"available": False, "error": None}
+
+    try:
+        # OCI Instance Metadata Service v2
+        url = "http://169.254.169.254/opc/v2/instance/"
+        req = urllib.request.Request(url)
+        req.add_header("Authorization", "Bearer Oracle")
+
+        with urllib.request.urlopen(req, timeout=5) as response:
+            data = json.loads(response.read().decode("utf-8"))
+
+            result["available"] = True
+            result["instance"] = {
+                "id": data.get("id", "").split(".")[-1][:12] + "...",  # Truncar OCID
+                "name": data.get("displayName"),
+                "hostname": data.get("hostname"),
+                "state": data.get("state"),
+                "created": data.get("timeCreated"),
+            }
+            result["shape"] = {
+                "name": data.get("shape"),
+                "ocpus": data.get("shapeConfig", {}).get("ocpus"),
+                "memory_gb": data.get("shapeConfig", {}).get("memoryInGBs"),
+                "network_gbps": data.get("shapeConfig", {}).get("networkingBandwidthInGbps"),
+            }
+            result["location"] = {
+                "region": data.get("region"),
+                "availability_domain": data.get("availabilityDomain", "").split(":")[-1],
+                "fault_domain": data.get("faultDomain"),
+            }
+
+    except urllib.error.URLError as e:
+        result["error"] = f"Metadata service unavailable: {e.reason}"
+    except Exception as e:
+        result["error"] = str(e)
+
+    return result
+
+
+def _get_system_metrics() -> dict:
+    """
+    Obtiene métricas del sistema en tiempo real.
+
+    Lee /proc/stat y /proc/meminfo para CPU y memoria.
+
+    Returns:
+        Dict con métricas de CPU y memoria
+    """
+    result = {}
+
+    # CPU Usage (from /proc/stat)
+    try:
+        with open("/proc/stat", "r") as f:
+            line = f.readline()
+            if line.startswith("cpu "):
+                parts = line.split()[1:]
+                # user, nice, system, idle, iowait, irq, softirq
+                idle = int(parts[3]) + int(parts[4])  # idle + iowait
+                total = sum(int(p) for p in parts[:7])
+                # Necesitamos dos muestras para calcular % real
+                # Por ahora retornamos los valores de carga
+    except Exception:
+        pass
+
+    # Memory Usage (from /proc/meminfo)
+    try:
+        meminfo = {}
+        with open("/proc/meminfo", "r") as f:
+            for line in f:
+                parts = line.split()
+                if len(parts) >= 2:
+                    key = parts[0].rstrip(":")
+                    value = int(parts[1])  # En KB
+                    meminfo[key] = value
+
+        total = meminfo.get("MemTotal", 0)
+        available = meminfo.get("MemAvailable", 0)
+        used = total - available
+
+        result["memory"] = {
+            "total_gb": round(total / 1024 / 1024, 1),
+            "used_gb": round(used / 1024 / 1024, 1),
+            "available_gb": round(available / 1024 / 1024, 1),
+            "percent_used": round(used / total * 100, 1) if total > 0 else 0,
+        }
+    except Exception:
+        pass
+
+    # Uptime
+    try:
+        with open("/proc/uptime", "r") as f:
+            uptime_seconds = float(f.read().split()[0])
+            days = int(uptime_seconds // 86400)
+            hours = int((uptime_seconds % 86400) // 3600)
+            minutes = int((uptime_seconds % 3600) // 60)
+            result["uptime"] = {
+                "seconds": int(uptime_seconds),
+                "formatted": f"{days}d {hours}h {minutes}m" if days > 0 else f"{hours}h {minutes}m",
+            }
+    except Exception:
+        pass
+
+    return result
+
+
 @bp.route("/api/health/infrastructure", methods=["GET"])
 def infrastructure_status():
     """
@@ -543,6 +661,8 @@ def infrastructure_status():
         response = {
             "ok": True,
             "timestamp": datetime.utcnow().isoformat() + "Z",
+            "oci": _get_oci_metadata(),
+            "system": _get_system_metrics(),
             "docker": _get_docker_status(),
             "git": _get_git_status(),
             "services": _get_services_status(),
