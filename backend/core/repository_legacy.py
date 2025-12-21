@@ -1156,7 +1156,7 @@ class DecisionAbastecimientoRepository:
                 VALUES (?, ?, ?, ?, ?)
                 ON CONFLICT(solicitud_id, item_index) DO UPDATE SET
                     cantidad_solicitada = excluded.cantidad_solicitada,
-                    comentario = COALESCE(excluded.comentario, comentario),
+                    comentario = COALESCE(excluded.comentario, decision_abastecimiento.comentario),
                     updated_at = CURRENT_TIMESTAMP
             """,
                 (solicitud_id, item_index, cantidad_solicitada, planner_id, comentario),
