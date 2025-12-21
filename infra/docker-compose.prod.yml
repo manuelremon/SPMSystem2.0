@@ -47,6 +47,8 @@ services:
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_EMAIL: ${VAPID_EMAIL:-}
+      # Rate Limiting (opcional, desactivar con DISABLE_RATE_LIMIT=1)
+      DISABLE_RATE_LIMIT: ${DISABLE_RATE_LIMIT:-0}
     volumes:
       - spm_uploads:/app/uploads
       - spm_logs:/app/logs

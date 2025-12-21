@@ -111,9 +111,12 @@ def create_app(config_override: dict | None = None) -> Flask:
     init_security_headers(app)
 
     # Rate limiting (proteccion contra abuso)
-    # Desactivar en tests si es necesario con config_override["RATE_LIMIT_ENABLED"] = False
-    if app.config.get("RATE_LIMIT_ENABLED", True) and settings.ENV != "test":
+    # Desactivar con DISABLE_RATE_LIMIT=1 o config_override["RATE_LIMIT_ENABLED"] = False
+    rate_limit_disabled = os.environ.get("DISABLE_RATE_LIMIT") == "1"
+    if not rate_limit_disabled and app.config.get("RATE_LIMIT_ENABLED", True) and settings.ENV != "test":
         init_rate_limiting(app)
+    elif rate_limit_disabled:
+        app.logger.warning("Rate limiting DESHABILITADO por variable de entorno")
 
     # Request validation (sanitizacion de inputs)
     init_request_validation(app, max_content_length=10 * 1024 * 1024)  # 10MB max
