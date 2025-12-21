@@ -294,7 +294,7 @@ def get_solicitud(solicitud_id):
 
 
 @bp.route("", methods=["POST"])
-@rate_limit(requests=10, window_seconds=60)  # 10 solicitudes por minuto (prevenir spam)
+# Rate limit removido temporalmente - usar rate limiting global
 def create_solicitud():
     """Crear una nueva solicitud (soporta JSON o multipart/form-data con archivos)"""
     # SEGURIDAD: Requiere autenticación válida
