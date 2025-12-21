@@ -324,7 +324,7 @@ def puede_aprobar(
         cursor = conn.cursor()
 
         # Obtener rol y posicion del usuario
-        cursor.execute("SELECT rol, posicion FROM usuarios WHERE id_spm = ?", (usuario_id,))
+        cursor.execute("SELECT rol, posicion FROM usuarios WHERE id_spm = %s", (usuario_id,))
         user_row = cursor.fetchone()
         if not user_row:
             return {"puede_aprobar": False, "razon": "Usuario no encontrado"}

@@ -25,9 +25,11 @@ def get_user_by_id(user_id: str) -> Optional[dict]:
     """
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM usuarios WHERE id_spm=?", (str(user_id),))
+        cur.execute("SELECT * FROM usuarios WHERE id_spm=%s", (str(user_id),))
         row = cur.fetchone()
-        return dict(row) if row else None
+        if row is None:
+            return None
+        return row if isinstance(row, dict) else dict(row)
 
 
 def get_user_by_username(username: str) -> Optional[dict]:
@@ -42,9 +44,11 @@ def get_user_by_username(username: str) -> Optional[dict]:
     """
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM usuarios WHERE usuario=?", (username,))
+        cur.execute("SELECT * FROM usuarios WHERE usuario=%s", (username,))
         row = cur.fetchone()
-        return dict(row) if row else None
+        if row is None:
+            return None
+        return row if isinstance(row, dict) else dict(row)
 
 
 def get_user_by_email(email: str) -> Optional[dict]:
@@ -59,9 +63,11 @@ def get_user_by_email(email: str) -> Optional[dict]:
     """
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM usuarios WHERE mail=?", (email,))
+        cur.execute("SELECT * FROM usuarios WHERE mail=%s", (email,))
         row = cur.fetchone()
-        return dict(row) if row else None
+        if row is None:
+            return None
+        return row if isinstance(row, dict) else dict(row)
 
 
 def user_exists(user_id: str) -> bool:

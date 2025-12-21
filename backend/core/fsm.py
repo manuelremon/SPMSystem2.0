@@ -411,7 +411,7 @@ def obtener_estado_actual(solicitud_id: int) -> Optional[str]:
     """
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT status FROM solicitudes WHERE id = ?", (solicitud_id,))
+        cursor.execute("SELECT status FROM solicitudes WHERE id = %s", (solicitud_id,))
         row = cursor.fetchone()
 
     if row is None:
