@@ -83,7 +83,6 @@ logger = logging.getLogger(__name__)
 agent_bp = Blueprint("agent", __name__, url_prefix="/api/agent")
 
 # Instancias globales
-agent = ReactAgent()
 memory = Memory()
 data_loader = DataLoader()
 ml_trainer = MLTrainer()
@@ -92,6 +91,18 @@ predictor = Predictor()
 demand_forecast = DemandForecastPipeline()
 clustering = ClusteringPipeline()
 scoring = ScoringPipeline()
+
+# Crear agente y registrar herramientas
+agent = ReactAgent()
+agent.register_tool("load_data", lambda **kwargs: data_loader.execute(**kwargs))
+agent.register_tool("train_model", lambda **kwargs: ml_trainer.execute(**kwargs))
+agent.register_tool("evaluate", lambda **kwargs: evaluator.execute(**kwargs))
+agent.register_tool("predict", lambda **kwargs: predictor.execute(**kwargs))
+agent.register_tool("forecast_demand", lambda material_codigo, centro, days_ahead=30, **kwargs:
+    demand_forecast.predict(material_codigo=material_codigo, centro=centro, days_ahead=days_ahead))
+agent.register_tool("score_solicitud", lambda solicitud, **kwargs:
+    scoring.score_solicitud(solicitud=solicitud, presupuesto_disponible=kwargs.get("presupuesto_disponible")))
+logger.info(f"Agente inicializado con {len(agent.tools)} herramientas")
 
 
 # ==================== AGENT EXECUTION ====================
@@ -182,7 +193,11 @@ def clear_memory():
 def list_tools():
     """Lista todas las herramientas disponibles."""
     try:
-        tools = [
+        # Herramientas registradas en el agente
+        registered_tools = list(agent.tools.keys())
+
+        # Metadata de las herramientas base
+        tools_metadata = [
             data_loader.get_metadata(),
             ml_trainer.get_metadata(),
             evaluator.get_metadata(),
@@ -197,10 +212,17 @@ def list_tools():
                 "output_schema": tool.output_schema,
                 "version": tool.version,
             }
-            for tool in tools
+            for tool in tools_metadata
         ]
 
-        return jsonify({"ok": True, "data": {"tools": tool_list, "total": len(tool_list)}}), 200
+        return jsonify({
+            "ok": True,
+            "data": {
+                "registered_in_agent": registered_tools,
+                "tools": tool_list,
+                "total": len(tool_list)
+            }
+        }), 200
 
     except Exception as e:
         logger.error(f"Error listando herramientas: {e}")
