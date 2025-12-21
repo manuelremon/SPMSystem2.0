@@ -3,11 +3,14 @@ MRP Routes - Material Requirements Planning
 Tablero de Alertas y KPIs para planificadores
 """
 
+import logging
 from datetime import datetime, timedelta
 from functools import wraps
 from typing import Dict
 
 from flask import Blueprint, g, jsonify, request
+
+logger = logging.getLogger(__name__)
 
 try:
     from backend.core.db import get_db_connection, get_db_path
@@ -218,19 +221,26 @@ def get_alertas():
         # Obtener consumo historico promedio por material
         consumos = {}
         if materiales:
-            consumo_query = """
+            # Usar sintaxis compatible con SQLite (IN con placeholders)
+            codigos = [m["codigo"] for m in materiales]
+            placeholders = ",".join(["?" for _ in codigos])
+            consumo_query = f"""
                 SELECT material, AVG(cantidad) as consumo_mensual
                 FROM consumo_historico
-                WHERE material = ANY(%s)
+                WHERE material IN ({placeholders})
                 GROUP BY material
             """
-            cursor.execute(consumo_query, ([m["codigo"] for m in materiales],))
-            for row in cursor.fetchall():
-                # Compatibilidad PostgreSQL (dict) y SQLite (tuple)
-                if isinstance(row, dict):
-                    consumos[row["material"]] = row["consumo_mensual"] or 0
-                else:
-                    consumos[row[0]] = row[1] or 0
+            try:
+                cursor.execute(consumo_query, codigos)
+                for row in cursor.fetchall():
+                    # Compatibilidad PostgreSQL (dict) y SQLite (tuple/Row)
+                    if isinstance(row, dict):
+                        consumos[row["material"]] = row["consumo_mensual"] or 0
+                    else:
+                        consumos[row[0]] = row[1] or 0
+            except Exception as e:
+                # Si la tabla consumo_historico no existe, continuar sin consumos
+                logger.warning(f"No se pudo obtener consumo historico: {e}")
 
         conn.close()
 
