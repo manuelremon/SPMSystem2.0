@@ -15,16 +15,32 @@ ADMIN_ROLES: Set[str] = frozenset({"admin", "administrador", "administrator", "s
 # Roles válidos del sistema
 VALID_ROLES: Set[str] = frozenset(
     {
+        # Administración
         "admin",
         "administrador",
+        # Usuarios base
         "usuario",
         "user",
+        "solicitante",
+        # Planificación
         "planificador",
         "planner",
+        # Coordinación
         "coordinador",
         "coordinator",
+        # Aprobación general
         "aprobador",
         "approver",
+        # Aprobación específica
+        "aprobador_solicitudes",
+        "aprobador solicitudes",
+        "aprobador_presupuestos",
+        "aprobador presupuestos",
+        # Niveles jerárquicos
+        "jefe",
+        "gerente1",
+        "gerente2",
+        # Solo lectura
         "viewer",
         "lector",
     }
