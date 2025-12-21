@@ -1,5 +1,5 @@
 """
-Capa Repositorio: Abstracción de acceso a datos SQLite
+Capa Repositorio: Abstracción de acceso a datos SQLite/PostgreSQL
 Centraliza todas las operaciones CRUD para facilitar tests, migraciones y cambios de BD
 """
 
@@ -14,19 +14,28 @@ logger = logging.getLogger(__name__)
 # Import con manejo de rutas relativas
 try:
     from backend.core.config import settings
+    from backend.core.db import is_using_postgresql, _get_postgres_connection
 except ImportError:
     from core.config import settings
+    from core.db import is_using_postgresql, _get_postgres_connection
 
 
 def _db_path() -> Path:
     """Obtiene ruta a base de datos desde configuración"""
     if settings.DATABASE_URL.startswith("sqlite:///"):
         return Path(settings.DATABASE_URL.split("sqlite:///", 1)[1])
-    return Path("spm.db")
+    # Para PostgreSQL, retorna path al directorio data para BDs secundarias
+    return Path("data/spm.db")
 
 
-def _connect() -> sqlite3.Connection:
-    """Crea conexión a BD con row factory habilitado"""
+def _connect():
+    """Crea conexión a BD con row factory habilitado
+
+    Retorna conexión PostgreSQL cuando está configurado, SQLite en caso contrario.
+    Ambos retornan rows tipo dict para compatibilidad.
+    """
+    if is_using_postgresql():
+        return _get_postgres_connection()
     conn = sqlite3.connect(_db_path())
     conn.row_factory = sqlite3.Row
     return conn
