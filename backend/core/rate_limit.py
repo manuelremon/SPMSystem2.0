@@ -145,11 +145,15 @@ class RateLimiter:
         # Tasa de reposicion: requests por segundo
         rate = config.requests / config.window_seconds
 
-        # Agregar tokens
-        state.tokens = min(
-            config.requests + config.burst,  # Maximo con burst
-            state.tokens + elapsed * rate,
-        )
+        # Si es un cliente nuevo (tokens=0 y primer request), inicializar con el máximo
+        if state.tokens == 0 and state.request_count == 0:
+            state.tokens = config.requests + config.burst
+        else:
+            # Agregar tokens basado en tiempo transcurrido
+            state.tokens = min(
+                config.requests + config.burst,  # Maximo con burst
+                state.tokens + elapsed * rate,
+            )
         state.last_update = now
 
     def check_rate_limit(self, path: str) -> Tuple[bool, Dict[str, Any]]:
