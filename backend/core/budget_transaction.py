@@ -1,13 +1,14 @@
 """
 Gestor de transacciones atomicas para presupuesto.
 
-Usa BEGIN IMMEDIATE para obtener write-lock al inicio,
-previniendo race conditions en operaciones concurrentes.
+Soporta PostgreSQL y SQLite.
+Para PostgreSQL usa transacciones SERIALIZABLE.
+Para SQLite usa BEGIN IMMEDIATE para obtener write-lock al inicio.
 """
 
 import sqlite3
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 
 try:
     from backend.core.budget_schemas import (
@@ -21,8 +22,13 @@ except ImportError:
     from core.config import settings
 
 
+def _is_postgresql() -> bool:
+    """Verifica si estamos usando PostgreSQL"""
+    return settings.DATABASE_URL.startswith("postgresql://")
+
+
 def _db_path() -> Path:
-    """Obtiene ruta a base de datos desde configuracion"""
+    """Obtiene ruta a base de datos SQLite desde configuracion"""
     if settings.DATABASE_URL.startswith("sqlite:///"):
         return Path(settings.DATABASE_URL.split("sqlite:///", 1)[1])
     return Path("spm.db")
@@ -32,8 +38,8 @@ class AtomicBudgetTransaction:
     """
     Gestor de transacciones atomicas para presupuesto.
 
-    Usa BEGIN IMMEDIATE para obtener write-lock al inicio,
-    previniendo race conditions en operaciones concurrentes.
+    Para PostgreSQL: usa transacciones con nivel SERIALIZABLE.
+    Para SQLite: usa BEGIN IMMEDIATE para obtener write-lock al inicio.
 
     Uso:
         with AtomicBudgetTransaction() as txn:
@@ -46,14 +52,24 @@ class AtomicBudgetTransaction:
     """
 
     def __init__(self, db_path: Optional[str] = None):
+        self._use_postgresql = _is_postgresql()
         self._db_path = Path(db_path) if db_path else _db_path()
-        self._conn: Optional[sqlite3.Connection] = None
+        self._conn: Any = None
+        self._cursor: Any = None
 
     def __enter__(self):
-        self._conn = sqlite3.connect(str(self._db_path), timeout=30)
-        self._conn.row_factory = sqlite3.Row
-        # IMMEDIATE = adquirir write-lock inmediatamente (evita race conditions)
-        self._conn.execute("BEGIN IMMEDIATE")
+        if self._use_postgresql:
+            import psycopg2
+            import psycopg2.extras
+            self._conn = psycopg2.connect(settings.DATABASE_URL)
+            self._conn.set_session(isolation_level="SERIALIZABLE", autocommit=False)
+            self._cursor = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        else:
+            self._conn = sqlite3.connect(str(self._db_path), timeout=30)
+            self._conn.row_factory = sqlite3.Row
+            # IMMEDIATE = adquirir write-lock inmediatamente (evita race conditions)
+            self._conn.execute("BEGIN IMMEDIATE")
+            self._cursor = self._conn.cursor()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -65,12 +81,44 @@ class AtomicBudgetTransaction:
             self._conn.close()
         return False
 
+    def _placeholder(self) -> str:
+        """Retorna el placeholder correcto para la BD"""
+        return "%s" if self._use_postgresql else "?"
+
+    def _execute(self, sql: str, params: tuple = None):
+        """Ejecuta SQL con placeholders convertidos"""
+        if self._use_postgresql:
+            # Convertir ? a %s para PostgreSQL
+            sql = sql.replace("?", "%s")
+        if params:
+            self._cursor.execute(sql, params)
+        else:
+            self._cursor.execute(sql)
+        return self._cursor
+
     @property
-    def cursor(self) -> sqlite3.Cursor:
+    def cursor(self) -> Any:
         """Acceso al cursor para operaciones adicionales"""
         if not self._conn:
             raise RuntimeError("Transaccion no iniciada")
-        return self._conn.cursor()
+        return self._cursor
+
+    def _get_row_value(self, row: Any, key: str) -> Any:
+        """Obtiene valor de fila compatible con SQLite Row y PostgreSQL dict"""
+        if row is None:
+            return None
+        if isinstance(row, dict):
+            return row.get(key)
+        # SQLite Row
+        return row[key]
+
+    def _get_lastrowid(self) -> Optional[int]:
+        """Obtiene el ID de la ultima fila insertada"""
+        if self._use_postgresql:
+            # PostgreSQL requiere RETURNING en el INSERT
+            row = self._cursor.fetchone()
+            return self._get_row_value(row, "id") if row else None
+        return self._cursor.lastrowid
 
     def consumir_presupuesto(
         self,
@@ -101,29 +149,28 @@ class AtomicBudgetTransaction:
             )
 
         idem_key = idempotency_key or f"consumo_{solicitud_id}_{ctx.timestamp}"
-        cur = self.cursor
 
         # Verificar idempotencia (operacion ya ejecutada?)
-        cur.execute(
+        self._execute(
             "SELECT id, saldo_posterior_cents FROM presupuesto_ledger WHERE idempotency_key = ?",
             (idem_key,),
         )
-        existing = cur.fetchone()
+        existing = self._cursor.fetchone()
         if existing:
             # Operacion ya ejecutada - retornar resultado previo
             return BudgetOperationResult(
                 success=True,
                 saldo_anterior_cents=0,
-                saldo_posterior_cents=existing["saldo_posterior_cents"],
-                ledger_id=existing["id"],
+                saldo_posterior_cents=self._get_row_value(existing, "saldo_posterior_cents"),
+                ledger_id=self._get_row_value(existing, "id"),
             )
 
-        # Obtener saldo actual (ya tenemos write-lock por BEGIN IMMEDIATE)
-        cur.execute(
+        # Obtener saldo actual (ya tenemos lock por transaccion SERIALIZABLE/BEGIN IMMEDIATE)
+        self._execute(
             "SELECT saldo_cents, version FROM presupuestos WHERE centro = ? AND sector = ?",
             (centro, sector),
         )
-        row = cur.fetchone()
+        row = self._cursor.fetchone()
 
         if not row:
             return BudgetOperationResult(
@@ -132,8 +179,8 @@ class AtomicBudgetTransaction:
                 error_message=f"No existe presupuesto para centro={centro}, sector={sector}",
             )
 
-        saldo_actual = row["saldo_cents"]
-        version_actual = row["version"]
+        saldo_actual = self._get_row_value(row, "saldo_cents")
+        version_actual = self._get_row_value(row, "version")
 
         if saldo_actual < monto_cents:
             return BudgetOperationResult(
@@ -147,7 +194,7 @@ class AtomicBudgetTransaction:
         nuevo_saldo = saldo_actual - monto_cents
 
         # Actualizar presupuesto con optimistic locking
-        cur.execute(
+        self._execute(
             """
             UPDATE presupuestos
             SET saldo_cents = ?,
@@ -159,7 +206,7 @@ class AtomicBudgetTransaction:
             (nuevo_saldo, nuevo_saldo / 100, ctx.actor_id, centro, sector, version_actual),
         )
 
-        if cur.rowcount == 0:
+        if self._cursor.rowcount == 0:
             return BudgetOperationResult(
                 success=False,
                 saldo_anterior_cents=saldo_actual,
@@ -169,32 +216,60 @@ class AtomicBudgetTransaction:
             )
 
         # Insertar en ledger inmutable (monto negativo = debito)
-        cur.execute(
-            """
-            INSERT INTO presupuesto_ledger (
-                idempotency_key, centro, sector, tipo_movimiento,
-                monto_cents, saldo_anterior_cents, saldo_posterior_cents,
-                referencia_tipo, referencia_id,
-                actor_id, actor_rol, motivo
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                idem_key,
-                centro,
-                sector,
-                TipoMovimiento.CONSUMO_APROBACION.value,
-                -monto_cents,
-                saldo_actual,
-                nuevo_saldo,
-                "solicitud",
-                solicitud_id,
-                ctx.actor_id,
-                ctx.actor_rol,
-                f"Aprobacion solicitud #{solicitud_id}",
-            ),
-        )
-
-        ledger_id = cur.lastrowid
+        # Para PostgreSQL usamos RETURNING id
+        if self._use_postgresql:
+            self._execute(
+                """
+                INSERT INTO presupuesto_ledger (
+                    idempotency_key, centro, sector, tipo_movimiento,
+                    monto_cents, saldo_anterior_cents, saldo_posterior_cents,
+                    referencia_tipo, referencia_id,
+                    actor_id, actor_rol, motivo
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                RETURNING id
+                """,
+                (
+                    idem_key,
+                    centro,
+                    sector,
+                    TipoMovimiento.CONSUMO_APROBACION.value,
+                    -monto_cents,
+                    saldo_actual,
+                    nuevo_saldo,
+                    "solicitud",
+                    solicitud_id,
+                    ctx.actor_id,
+                    ctx.actor_rol,
+                    f"Aprobacion solicitud #{solicitud_id}",
+                ),
+            )
+            ledger_id = self._get_lastrowid()
+        else:
+            self._execute(
+                """
+                INSERT INTO presupuesto_ledger (
+                    idempotency_key, centro, sector, tipo_movimiento,
+                    monto_cents, saldo_anterior_cents, saldo_posterior_cents,
+                    referencia_tipo, referencia_id,
+                    actor_id, actor_rol, motivo
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    idem_key,
+                    centro,
+                    sector,
+                    TipoMovimiento.CONSUMO_APROBACION.value,
+                    -monto_cents,
+                    saldo_actual,
+                    nuevo_saldo,
+                    "solicitud",
+                    solicitud_id,
+                    ctx.actor_id,
+                    ctx.actor_rol,
+                    f"Aprobacion solicitud #{solicitud_id}",
+                ),
+            )
+            ledger_id = self._cursor.lastrowid
 
         return BudgetOperationResult(
             success=True,
@@ -227,10 +302,9 @@ class AtomicBudgetTransaction:
             BudgetOperationResult con el resultado
         """
         idem_key = f"reversion_{solicitud_id}_{ctx.timestamp}"
-        cur = self.cursor
 
         # Verificar que exista el consumo original
-        cur.execute(
+        self._execute(
             """
             SELECT id FROM presupuesto_ledger
             WHERE referencia_tipo = 'solicitud'
@@ -239,7 +313,7 @@ class AtomicBudgetTransaction:
             """,
             (solicitud_id, TipoMovimiento.CONSUMO_APROBACION.value),
         )
-        if not cur.fetchone():
+        if not self._cursor.fetchone():
             return BudgetOperationResult(
                 success=False,
                 error_code="consumo_not_found",
@@ -247,10 +321,10 @@ class AtomicBudgetTransaction:
             )
 
         # Obtener saldo actual
-        cur.execute(
+        self._execute(
             "SELECT saldo_cents FROM presupuestos WHERE centro = ? AND sector = ?", (centro, sector)
         )
-        row = cur.fetchone()
+        row = self._cursor.fetchone()
         if not row:
             return BudgetOperationResult(
                 success=False,
@@ -258,11 +332,11 @@ class AtomicBudgetTransaction:
                 error_message=f"No existe presupuesto para centro={centro}, sector={sector}",
             )
 
-        saldo_actual = row["saldo_cents"]
+        saldo_actual = self._get_row_value(row, "saldo_cents")
         nuevo_saldo = saldo_actual + monto_cents
 
         # Actualizar presupuesto
-        cur.execute(
+        self._execute(
             """
             UPDATE presupuestos
             SET saldo_cents = ?,
@@ -275,36 +349,65 @@ class AtomicBudgetTransaction:
         )
 
         # Insertar en ledger (monto positivo = credito)
-        cur.execute(
-            """
-            INSERT INTO presupuesto_ledger (
-                idempotency_key, centro, sector, tipo_movimiento,
-                monto_cents, saldo_anterior_cents, saldo_posterior_cents,
-                referencia_tipo, referencia_id,
-                actor_id, actor_rol, motivo
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                idem_key,
-                centro,
-                sector,
-                TipoMovimiento.REVERSION_RECHAZO.value,
-                monto_cents,
-                saldo_actual,
-                nuevo_saldo,
-                "solicitud",
-                solicitud_id,
-                ctx.actor_id,
-                ctx.actor_rol,
-                motivo,
-            ),
-        )
+        if self._use_postgresql:
+            self._execute(
+                """
+                INSERT INTO presupuesto_ledger (
+                    idempotency_key, centro, sector, tipo_movimiento,
+                    monto_cents, saldo_anterior_cents, saldo_posterior_cents,
+                    referencia_tipo, referencia_id,
+                    actor_id, actor_rol, motivo
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                RETURNING id
+                """,
+                (
+                    idem_key,
+                    centro,
+                    sector,
+                    TipoMovimiento.REVERSION_RECHAZO.value,
+                    monto_cents,
+                    saldo_actual,
+                    nuevo_saldo,
+                    "solicitud",
+                    solicitud_id,
+                    ctx.actor_id,
+                    ctx.actor_rol,
+                    motivo,
+                ),
+            )
+            ledger_id = self._get_lastrowid()
+        else:
+            self._execute(
+                """
+                INSERT INTO presupuesto_ledger (
+                    idempotency_key, centro, sector, tipo_movimiento,
+                    monto_cents, saldo_anterior_cents, saldo_posterior_cents,
+                    referencia_tipo, referencia_id,
+                    actor_id, actor_rol, motivo
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    idem_key,
+                    centro,
+                    sector,
+                    TipoMovimiento.REVERSION_RECHAZO.value,
+                    monto_cents,
+                    saldo_actual,
+                    nuevo_saldo,
+                    "solicitud",
+                    solicitud_id,
+                    ctx.actor_id,
+                    ctx.actor_rol,
+                    motivo,
+                ),
+            )
+            ledger_id = self._cursor.lastrowid
 
         return BudgetOperationResult(
             success=True,
             saldo_anterior_cents=saldo_actual,
             saldo_posterior_cents=nuevo_saldo,
-            ledger_id=cur.lastrowid,
+            ledger_id=ledger_id,
         )
 
     def aplicar_bur(
@@ -324,14 +427,13 @@ class AtomicBudgetTransaction:
             BudgetOperationResult con el resultado
         """
         idem_key = f"bur_{bur_id}_{ctx.timestamp}"
-        cur = self.cursor
 
         # Obtener saldo actual
-        cur.execute(
+        self._execute(
             "SELECT monto_cents, saldo_cents FROM presupuestos WHERE centro = ? AND sector = ?",
             (centro, sector),
         )
-        row = cur.fetchone()
+        row = self._cursor.fetchone()
         if not row:
             return BudgetOperationResult(
                 success=False,
@@ -339,13 +441,13 @@ class AtomicBudgetTransaction:
                 error_message=f"No existe presupuesto para centro={centro}, sector={sector}",
             )
 
-        monto_actual = row["monto_cents"]
-        saldo_actual = row["saldo_cents"]
+        monto_actual = self._get_row_value(row, "monto_cents")
+        saldo_actual = self._get_row_value(row, "saldo_cents")
         nuevo_monto = monto_actual + monto_cents
         nuevo_saldo = saldo_actual + monto_cents
 
         # Actualizar presupuesto (monto total y saldo)
-        cur.execute(
+        self._execute(
             """
             UPDATE presupuestos
             SET monto_cents = ?,
@@ -368,34 +470,63 @@ class AtomicBudgetTransaction:
         )
 
         # Insertar en ledger
-        cur.execute(
-            """
-            INSERT INTO presupuesto_ledger (
-                idempotency_key, centro, sector, tipo_movimiento,
-                monto_cents, saldo_anterior_cents, saldo_posterior_cents,
-                referencia_tipo, referencia_id,
-                actor_id, actor_rol, motivo
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                idem_key,
-                centro,
-                sector,
-                TipoMovimiento.BUR_APROBADO.value,
-                monto_cents,
-                saldo_actual,
-                nuevo_saldo,
-                "bur",
-                bur_id,
-                ctx.actor_id,
-                ctx.actor_rol,
-                f"BUR #{bur_id} aprobado",
-            ),
-        )
+        if self._use_postgresql:
+            self._execute(
+                """
+                INSERT INTO presupuesto_ledger (
+                    idempotency_key, centro, sector, tipo_movimiento,
+                    monto_cents, saldo_anterior_cents, saldo_posterior_cents,
+                    referencia_tipo, referencia_id,
+                    actor_id, actor_rol, motivo
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                RETURNING id
+                """,
+                (
+                    idem_key,
+                    centro,
+                    sector,
+                    TipoMovimiento.BUR_APROBADO.value,
+                    monto_cents,
+                    saldo_actual,
+                    nuevo_saldo,
+                    "bur",
+                    bur_id,
+                    ctx.actor_id,
+                    ctx.actor_rol,
+                    f"BUR #{bur_id} aprobado",
+                ),
+            )
+            ledger_id = self._get_lastrowid()
+        else:
+            self._execute(
+                """
+                INSERT INTO presupuesto_ledger (
+                    idempotency_key, centro, sector, tipo_movimiento,
+                    monto_cents, saldo_anterior_cents, saldo_posterior_cents,
+                    referencia_tipo, referencia_id,
+                    actor_id, actor_rol, motivo
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    idem_key,
+                    centro,
+                    sector,
+                    TipoMovimiento.BUR_APROBADO.value,
+                    monto_cents,
+                    saldo_actual,
+                    nuevo_saldo,
+                    "bur",
+                    bur_id,
+                    ctx.actor_id,
+                    ctx.actor_rol,
+                    f"BUR #{bur_id} aprobado",
+                ),
+            )
+            ledger_id = self._cursor.lastrowid
 
         return BudgetOperationResult(
             success=True,
             saldo_anterior_cents=saldo_actual,
             saldo_posterior_cents=nuevo_saldo,
-            ledger_id=cur.lastrowid,
+            ledger_id=ledger_id,
         )
