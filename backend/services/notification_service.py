@@ -372,11 +372,16 @@ class NotificationService:
                 cursor = conn.cursor()
                 # Column is INTEGER (0/1), not BOOLEAN
                 cursor.execute(
-                    "SELECT COUNT(*) FROM notificaciones WHERE destinatario_id = ? AND leido = 0",
+                    "SELECT COUNT(*) as count FROM notificaciones WHERE destinatario_id = ? AND leido = 0",
                     (user_id,),
                 )
                 result = cursor.fetchone()
-                return result[0] if result else 0
+                # Handle both dict (PostgreSQL wrapper) and tuple (SQLite)
+                if result is None:
+                    return 0
+                if isinstance(result, dict):
+                    return result.get("count", 0)
+                return result[0]
         except Exception as e:
             logger.error(f"Error counting unread: {e}")
             return 0
