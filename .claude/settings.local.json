@@ -92,7 +92,9 @@
       "Bash(du:*)",
       "Bash(md5sum:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(./scripts/deploy-full.sh:*)"
     ],
     "deny": [],
     "ask": []
