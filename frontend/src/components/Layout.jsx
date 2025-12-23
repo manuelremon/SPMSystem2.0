@@ -25,7 +25,7 @@ export default function Layout({ children }) {
 
   // Inicializar conexion de tiempo real (SSE)
   // Solo se conecta si hay usuario autenticado
-  const { isConnected, connectionError, unreadCount } = useRealtime({
+  const { isConnected, connectionError } = useRealtime({
     enabled: !!user
   });
 
@@ -50,7 +50,6 @@ export default function Layout({ children }) {
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={handleSidebarToggle}
-        unreadCount={unreadCount}
         isConnected={isConnected}
       />
 

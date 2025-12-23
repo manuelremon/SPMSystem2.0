@@ -218,6 +218,7 @@ def notification_stream():
                             "tipo": notif["tipo"],
                             "solicitud_id": notif["solicitud_id"],
                             "created_at": notif["created_at"],
+                            "leido": notif.get("leido", False),
                         },
                     )
                     yield event.to_sse_format()

@@ -48,6 +48,7 @@ import {
 } from "./ui/Icons";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
+import { useRealtimeStore } from "../store/realtimeStore";
 import { Tooltip } from "./ui/Tooltip";
 
 // Colores semánticos para iconos del sidebar
@@ -244,13 +245,16 @@ const adminNavHierarchy = [
   },
 ];
 
-export default function Sidebar({ collapsed, onToggle, unreadCount = 0, isConnected = false }) {
+export default function Sidebar({ collapsed, onToggle, isConnected = false }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useI18n();
   const { user, logout } = useAuthStore();
   const [expandedMenus, setExpandedMenus] = useState({});
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  // Obtener unreadCount directamente del store (reactivo)
+  const unreadCount = useRealtimeStore((state) => state.unreadCount);
 
   // Handle logout
   const handleLogout = () => {
