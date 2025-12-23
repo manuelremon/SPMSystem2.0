@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Test que los endpoints de usuario están registrados y funcionan"""
 
-from src.backend.app import create_app
+from backend.app import create_app
 
 app = create_app()
 

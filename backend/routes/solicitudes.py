@@ -826,6 +826,31 @@ def aprobar_solicitud(solicitud_id):
             404,
         )
 
+    # 2.5 SEGURIDAD: Validar que el aprobador sea el asignado (si hay uno asignado)
+    aprobador_asignado = solicitud.get("aprobador_id") or solicitud.get("aprobador_asignado")
+    if aprobador_asignado and str(aprobador_asignado) != str(aprobador_id):
+        # Verificar si es admin (admins pueden aprobar cualquier solicitud)
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT rol FROM usuarios WHERE id_spm = %s", (aprobador_id,))
+            row = cur.fetchone()
+            user_rol = _row_to_dict(row, cur).get("rol", "") if row else ""
+
+        if not is_admin(user_rol):
+            return (
+                jsonify(
+                    {
+                        "ok": False,
+                        "error": {
+                            "code": "forbidden",
+                            "message": "Solo el aprobador asignado puede aprobar esta solicitud",
+                            "aprobador_asignado": str(aprobador_asignado),
+                        },
+                    }
+                ),
+                403,
+            )
+
     # 3. Validar transición con FSM (submitted -> approved)
     estado_actual = normalizar_estado(solicitud.get("status") or "")
     if not validar_transicion(estado_actual, EstadoSolicitud.APPROVED):
@@ -922,6 +947,12 @@ def aprobar_solicitud(solicitud_id):
 
     # 7. Usar FSM para cambiar estado (registra historial y dispara notificaciones)
     try:
+        # Calcular presupuesto consumido desde budget_result
+        budget_result = result.get("budget_result", {})
+        presupuesto_consumido = budget_result.get("saldo_anterior_cents", 0) - budget_result.get(
+            "saldo_posterior_cents", 0
+        )
+
         resultado = cambiar_estado(
             solicitud_id=solicitud_id,
             nuevo_estado=EstadoSolicitud.APPROVED,
@@ -930,7 +961,10 @@ def aprobar_solicitud(solicitud_id):
             metadata={
                 "total_monto": total,
                 "planificador_asignado": planificador,
-                "presupuesto_consumido": result.get("monto_consumido_cents"),
+                "presupuesto_consumido_cents": presupuesto_consumido,
+                "saldo_anterior_cents": budget_result.get("saldo_anterior_cents"),
+                "saldo_posterior_cents": budget_result.get("saldo_posterior_cents"),
+                "ledger_id": budget_result.get("ledger_id"),
             },
         )
 
@@ -1055,6 +1089,24 @@ def rechazar_solicitud(solicitud_id):
             ),
             404,
         )
+
+    # SEGURIDAD: Validar que el rechazante sea el aprobador asignado (si hay uno)
+    aprobador_asignado = solicitud.get("aprobador_id") or solicitud.get("aprobador_asignado")
+    if aprobador_asignado and str(aprobador_asignado) != str(actor_id):
+        if not is_admin(actor_rol):
+            return (
+                jsonify(
+                    {
+                        "ok": False,
+                        "error": {
+                            "code": "forbidden",
+                            "message": "Solo el aprobador asignado puede rechazar esta solicitud",
+                            "aprobador_asignado": str(aprobador_asignado),
+                        },
+                    }
+                ),
+                403,
+            )
 
     # Validar transición con FSM
     estado_actual = normalizar_estado(solicitud.get("status") or "")

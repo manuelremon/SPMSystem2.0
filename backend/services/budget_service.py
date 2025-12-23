@@ -132,6 +132,8 @@ class PresupuestoService:
     @staticmethod
     def get_info(centro: str, sector: str) -> Optional[PresupuestoInfo]:
         """Obtiene informacion completa de presupuesto"""
+        # Normalizar sector ID a nombre para consistencia
+        sector_normalizado = _resolve_sector_name(sector)
         conn = _connect()
         try:
             cur = conn.cursor()
@@ -139,7 +141,7 @@ class PresupuestoService:
                 cur,
                 """SELECT centro, sector, monto_cents, saldo_cents, version
                    FROM presupuestos WHERE centro = ? AND sector = ?""",
-                (centro, sector),
+                (centro, sector_normalizado),
             )
             row = _fetchone(cur)
             if row:
@@ -185,6 +187,8 @@ class PresupuestoService:
         centro: Optional[str] = None, sector: Optional[str] = None, limit: int = 50, offset: int = 0
     ) -> List[LedgerEntry]:
         """Obtiene historial de movimientos"""
+        # Normalizar sector ID a nombre para consistencia
+        sector_normalizado = _resolve_sector_name(sector) if sector else None
         conn = _connect()
         try:
             cur = conn.cursor()
@@ -194,9 +198,9 @@ class PresupuestoService:
             if centro:
                 where.append("centro = ?")
                 params.append(centro)
-            if sector:
+            if sector_normalizado:
                 where.append("sector = ?")
-                params.append(sector)
+                params.append(sector_normalizado)
 
             where_sql = f"WHERE {' AND '.join(where)}" if where else ""
             params.extend([limit, offset])
@@ -268,8 +272,10 @@ class BURService:
         solicitante_rol: str,
     ) -> Dict[str, Any]:
         """Crea nueva solicitud de aumento de presupuesto"""
+        # Normalizar sector ID a nombre para consistencia
+        sector_normalizado = _resolve_sector_name(sector)
         # Obtener saldo actual
-        info = PresupuestoService.get_info(centro, sector)
+        info = PresupuestoService.get_info(centro, sector_normalizado)
         saldo_actual_cents = info.saldo_cents if info else 0
 
         # Determinar nivel de aprobacion
@@ -286,7 +292,7 @@ class BURService:
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     centro,
-                    sector,
+                    sector_normalizado,
                     monto_solicitado_cents,
                     saldo_actual_cents,
                     nivel.value,
@@ -328,6 +334,8 @@ class BURService:
         offset: int = 0,
     ) -> List[BudgetUpdateRequest]:
         """Lista BURs con filtros"""
+        # Normalizar sector ID a nombre para consistencia
+        sector_normalizado = _resolve_sector_name(sector) if sector else None
         conn = _connect()
         try:
             cur = conn.cursor()
@@ -340,9 +348,9 @@ class BURService:
             if centro:
                 where.append("centro = ?")
                 params.append(centro)
-            if sector:
+            if sector_normalizado:
                 where.append("sector = ?")
-                params.append(sector)
+                params.append(sector_normalizado)
             if solicitante_id:
                 where.append("solicitante_id = ?")
                 params.append(solicitante_id)

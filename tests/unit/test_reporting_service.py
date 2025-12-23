@@ -331,9 +331,21 @@ class TestExportFromDB:
         from backend.services.reporting_service import ReportingService
 
         _, conn, cursor = mock_db
-        cursor.fetchall.return_value = [
-            {"id": 1, "codigo": "SOL-001", "estado": "approved"},
-            {"id": 2, "codigo": "SOL-002", "estado": "submitted"},
+        # Bug #29 fix: ahora se consultan items y decisiones además de solicitudes
+        cursor.fetchall.side_effect = [
+            # Primera llamada: solicitudes
+            [
+                {"id": 1, "codigo": "SOL-001", "estado": "approved"},
+                {"id": 2, "codigo": "SOL-002", "estado": "submitted"},
+            ],
+            # Segunda llamada: items para las solicitudes
+            [
+                {"solicitud_id": 1, "material_id": "MAT001", "descripcion": "Material 1", "cantidad": 10, "precio_unitario": 100, "subtotal": 1000},
+            ],
+            # Tercera llamada: decisiones para las solicitudes
+            [
+                {"solicitud_id": 1, "item_idx": 0, "decision": "stock", "fuente": "local", "cantidad_asignada": 10, "almacen_origen": "ALM1", "proveedor": None, "observaciones": None},
+            ],
         ]
 
         service = ReportingService()

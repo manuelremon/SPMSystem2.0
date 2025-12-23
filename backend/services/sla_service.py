@@ -362,13 +362,13 @@ def obtener_metricas_sla(periodo_dias: int = 30, por_criticidad: bool = False) -
         total_row = cursor.fetchone()
         total = total_row["total"] if total_row else 0
 
-        # Solicitudes a tiempo
+        # Solicitudes a tiempo (solo contamos explícitamente on_time, NO NULL)
         cursor.execute(
             """
             SELECT COUNT(*) as on_time
             FROM solicitudes
             WHERE created_at >= ?
-              AND (sla_estado = 'on_time' OR sla_estado IS NULL)
+              AND sla_estado = 'on_time'
         """,
             (fecha_str,),
         )
@@ -401,12 +401,30 @@ def obtener_metricas_sla(periodo_dias: int = 30, por_criticidad: bool = False) -
         breach_row = cursor.fetchone()
         breach = breach_row["breach"] if breach_row else 0
 
+        # Solicitudes sin SLA calculado (NULL)
+        cursor.execute(
+            """
+            SELECT COUNT(*) as sin_sla
+            FROM solicitudes
+            WHERE created_at >= ?
+              AND sla_estado IS NULL
+        """,
+            (fecha_str,),
+        )
+        sin_sla_row = cursor.fetchone()
+        sin_sla = sin_sla_row["sin_sla"] if sin_sla_row else 0
+
+        # Calcular % cumplimiento solo sobre solicitudes con SLA calculado
+        solicitudes_con_sla = on_time + warning + breach
         resultado = {
             "total_solicitudes": total,
             "on_time": on_time,
             "warning": warning,
             "breach": breach,
-            "porcentaje_cumplimiento": round((on_time / total) * 100, 1) if total > 0 else 0,
+            "sin_sla": sin_sla,
+            "porcentaje_cumplimiento": (
+                round((on_time / solicitudes_con_sla) * 100, 1) if solicitudes_con_sla > 0 else 0
+            ),
         }
 
         # Desglose por criticidad si se solicita
@@ -416,8 +434,10 @@ def obtener_metricas_sla(periodo_dias: int = 30, por_criticidad: bool = False) -
                 SELECT
                     criticidad,
                     COUNT(*) as total,
-                    SUM(CASE WHEN sla_estado = 'on_time' OR sla_estado IS NULL THEN 1 ELSE 0 END) as on_time,
-                    SUM(CASE WHEN sla_estado = 'breach' THEN 1 ELSE 0 END) as breach
+                    SUM(CASE WHEN sla_estado = 'on_time' THEN 1 ELSE 0 END) as on_time,
+                    SUM(CASE WHEN sla_estado = 'warning' THEN 1 ELSE 0 END) as warning,
+                    SUM(CASE WHEN sla_estado = 'breach' THEN 1 ELSE 0 END) as breach,
+                    SUM(CASE WHEN sla_estado IS NULL THEN 1 ELSE 0 END) as sin_sla
                 FROM solicitudes
                 WHERE created_at >= ?
                 GROUP BY criticidad

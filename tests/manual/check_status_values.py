@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Verificar valores de status reales en la base de datos"""
 
-from src.backend.core.db import get_connection
+from backend.core.db import get_connection
 
 with get_connection() as con:
     con.row_factory = None  # Get raw tuples

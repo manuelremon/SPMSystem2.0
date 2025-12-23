@@ -6,7 +6,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from src.backend.core.db import get_connection
+from backend.core.db import get_connection
 
 with get_connection() as con:
     # Check tables exist

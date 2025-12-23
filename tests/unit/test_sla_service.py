@@ -289,11 +289,13 @@ class TestMetricasSLA:
 
         _, conn, cursor = mock_db
 
+        # Bug #26 fix: ahora se consulta sin_sla (NULL) por separado
         cursor.fetchone.side_effect = [
             {"total": 100},  # Total solicitudes
-            {"on_time": 85},  # A tiempo
+            {"on_time": 85},  # A tiempo (explícito, no NULL)
             {"warning": 10},  # Con warning
             {"breach": 5},  # Incumplidas
+            {"sin_sla": 0},  # Sin SLA calculado (NULL)
         ]
 
         metricas = obtener_metricas_sla(periodo_dias=30)
@@ -307,19 +309,20 @@ class TestMetricasSLA:
 
         _, conn, cursor = mock_db
 
-        # La implementacion hace 4 fetchone() antes del fetchall()
+        # Bug #26 fix: ahora se consulta sin_sla (NULL) por separado
         cursor.fetchone.side_effect = [
             {"total": 100},  # Total solicitudes
-            {"on_time": 85},  # A tiempo
+            {"on_time": 85},  # A tiempo (explícito, no NULL)
             {"warning": 10},  # Con warning
             {"breach": 5},  # Incumplidas
+            {"sin_sla": 0},  # Sin SLA calculado (NULL)
         ]
 
         cursor.fetchall.return_value = [
-            {"criticidad": "Urgente", "total": 10, "on_time": 8, "breach": 2},
-            {"criticidad": "Alta", "total": 20, "on_time": 18, "breach": 2},
-            {"criticidad": "Normal", "total": 50, "on_time": 48, "breach": 2},
-            {"criticidad": "Baja", "total": 20, "on_time": 20, "breach": 0},
+            {"criticidad": "Urgente", "total": 10, "on_time": 8, "breach": 2, "sin_sla": 0},
+            {"criticidad": "Alta", "total": 20, "on_time": 18, "breach": 2, "sin_sla": 0},
+            {"criticidad": "Normal", "total": 50, "on_time": 48, "breach": 2, "sin_sla": 0},
+            {"criticidad": "Baja", "total": 20, "on_time": 20, "breach": 0, "sin_sla": 0},
         ]
 
         metricas = obtener_metricas_sla(periodo_dias=30, por_criticidad=True)

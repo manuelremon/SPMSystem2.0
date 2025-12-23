@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Inspeccionar el schema de la tabla solicitudes"""
 
-from src.backend.core.db import get_connection
+from backend.core.db import get_connection
 
 with get_connection() as con:
     # Get table schema

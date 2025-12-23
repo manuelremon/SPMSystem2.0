@@ -6,7 +6,7 @@ import { Button } from "../components/ui/Button";
 import { Modal } from "../components/ui/Modal";
 import { useI18n } from "../context/i18n";
 import { Mail, Lock, User, AlertCircle } from "../components/ui/Icons";
-import logo from "../assets/spm-logo.png";
+import logo from "../assets/spm-logo.svg";
 
 export default function Login() {
   const navigate = useNavigate();

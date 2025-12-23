@@ -178,10 +178,13 @@ class TestAIServiceRecommendations:
         """Proyecta demanda para material."""
         result = trained_service.proyectar_demanda(material_codigo="MAT001", centro="1000", dias=30)
 
-        assert result["material_codigo"] == "MAT001"
-        assert "predicted_demand" in result
-        assert "confidence_lower" in result
-        assert "confidence_upper" in result
+        assert result["material"] == "MAT001"
+        assert "predicciones" in result
+        assert len(result["predicciones"]) > 0
+        primera = result["predicciones"][0]
+        assert "cantidad_predicha" in primera
+        assert "limite_inferior" in primera
+        assert "limite_superior" in primera
 
 
 class TestAIServiceSugerencias:

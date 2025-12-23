@@ -1,4 +1,4 @@
-from src.backend.app import app as flask_app
+from backend.app import app as flask_app
 
 
 def _login_and_get_csrf(client):
@@ -10,8 +10,8 @@ def _login_and_get_csrf(client):
 
 def test_csrf_required_on_post(tmp_path):
     # Crea usuario válido antes del test
-    from src.backend.db import get_db
-    from src.backend.security import hash_password
+    from backend.db import get_db
+    from backend.security import hash_password
 
     pw_hash = hash_password("p@ssw0rd!")
     with flask_app.app_context():
@@ -42,13 +42,13 @@ def test_csrf_required_on_post(tmp_path):
 
 def test_login_rate_limit():
     # Limpia el bucket de rate limit antes del test
-    from src.backend import ratelimit
+    from backend import ratelimit
 
     ratelimit._buckets.clear()
     c = flask_app.test_client()
     # Crea usuario válido antes del test
-    from src.backend.db import get_db
-    from src.backend.security import hash_password
+    from backend.db import get_db
+    from backend.security import hash_password
 
     pw_hash = hash_password("p@ssw0rd!")
     with flask_app.app_context():

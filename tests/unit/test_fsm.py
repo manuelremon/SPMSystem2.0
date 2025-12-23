@@ -85,13 +85,19 @@ class TestTransicionesValidas:
         assert len(transiciones) == 2
 
     def test_transiciones_desde_in_planning(self):
-        """Desde IN_PLANNING se puede ir a IN_TREATMENT o REJECTED."""
+        """Desde IN_PLANNING solo se puede ir a IN_TREATMENT.
+
+        NOTA: La transición a REJECTED fue removida en la auditoría de bugs
+        (Bug #1) porque una solicitud aprobada ya consumió presupuesto y no
+        debe ser rechazada por el planificador sin lógica de devolución.
+        """
         from backend.core.fsm import TRANSICIONES_VALIDAS, EstadoSolicitud
 
         transiciones = TRANSICIONES_VALIDAS[EstadoSolicitud.IN_PLANNING]
         assert EstadoSolicitud.IN_TREATMENT in transiciones
-        assert EstadoSolicitud.REJECTED in transiciones
-        assert len(transiciones) == 2
+        # REJECTED ya no es válido desde IN_PLANNING (Bug #1 fix)
+        assert EstadoSolicitud.REJECTED not in transiciones
+        assert len(transiciones) == 1
 
     def test_transiciones_desde_in_treatment(self):
         """Desde IN_TREATMENT se puede ir a TREATED o volver a IN_PLANNING."""

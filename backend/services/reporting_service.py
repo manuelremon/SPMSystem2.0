@@ -143,7 +143,8 @@ class ReportingService:
             return {"success": False, "error": str(e)}
 
     def export_solicitudes_from_db(
-        self, formato: str = "xlsx", filtros: Optional[Dict[str, Any]] = None
+        self, formato: str = "xlsx", filtros: Optional[Dict[str, Any]] = None,
+        incluir_items: bool = True, incluir_decisiones: bool = True
     ) -> Dict[str, Any]:
         """
         Exporta solicitudes directamente desde BD.
@@ -151,10 +152,14 @@ class ReportingService:
         Args:
             formato: Formato de salida
             filtros: Filtros a aplicar (estado, centro, fecha, etc.)
+            incluir_items: Incluir items de cada solicitud
+            incluir_decisiones: Incluir decisiones de planificación
 
         Returns:
             Dict con contenido exportado
         """
+        import json
+
         try:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
@@ -185,6 +190,74 @@ class ReportingService:
 
                 cursor.execute(query, params)
                 solicitudes = [dict(row) for row in cursor.fetchall()]
+
+                # Obtener items para cada solicitud
+                if incluir_items and solicitudes:
+                    solicitud_ids = [s["id"] for s in solicitudes]
+                    placeholders = ",".join("?" * len(solicitud_ids))
+                    cursor.execute(
+                        f"""
+                        SELECT solicitud_id, material_id, descripcion, cantidad,
+                               precio_unitario, subtotal
+                        FROM solicitud_items
+                        WHERE solicitud_id IN ({placeholders})
+                        """,
+                        solicitud_ids,
+                    )
+                    items_rows = cursor.fetchall()
+
+                    # Agrupar items por solicitud
+                    items_por_solicitud = {}
+                    for row in items_rows:
+                        row_dict = dict(row)
+                        sol_id = row_dict["solicitud_id"]
+                        if sol_id not in items_por_solicitud:
+                            items_por_solicitud[sol_id] = []
+                        items_por_solicitud[sol_id].append({
+                            "material": row_dict.get("material_id", ""),
+                            "descripcion": row_dict.get("descripcion", ""),
+                            "cantidad": row_dict.get("cantidad", 0),
+                            "precio": row_dict.get("precio_unitario", 0),
+                        })
+
+                    for solicitud in solicitudes:
+                        items = items_por_solicitud.get(solicitud["id"], [])
+                        solicitud["items_count"] = len(items)
+                        solicitud["items"] = json.dumps(items, ensure_ascii=False) if items else ""
+
+                # Obtener decisiones para cada solicitud
+                if incluir_decisiones and solicitudes:
+                    solicitud_ids = [s["id"] for s in solicitudes]
+                    placeholders = ",".join("?" * len(solicitud_ids))
+                    cursor.execute(
+                        f"""
+                        SELECT solicitud_id, item_idx, decision, fuente, cantidad_asignada,
+                               almacen_origen, proveedor, observaciones
+                        FROM solicitud_decisiones
+                        WHERE solicitud_id IN ({placeholders})
+                        """,
+                        solicitud_ids,
+                    )
+                    decisiones_rows = cursor.fetchall()
+
+                    # Agrupar decisiones por solicitud
+                    decisiones_por_solicitud = {}
+                    for row in decisiones_rows:
+                        row_dict = dict(row)
+                        sol_id = row_dict["solicitud_id"]
+                        if sol_id not in decisiones_por_solicitud:
+                            decisiones_por_solicitud[sol_id] = []
+                        decisiones_por_solicitud[sol_id].append({
+                            "item": row_dict.get("item_idx", 0),
+                            "decision": row_dict.get("decision", ""),
+                            "fuente": row_dict.get("fuente", ""),
+                            "cantidad": row_dict.get("cantidad_asignada", 0),
+                        })
+
+                    for solicitud in solicitudes:
+                        decisiones = decisiones_por_solicitud.get(solicitud["id"], [])
+                        solicitud["decisiones_count"] = len(decisiones)
+                        solicitud["decisiones"] = json.dumps(decisiones, ensure_ascii=False) if decisiones else ""
 
             return self.export_solicitudes(
                 solicitudes=solicitudes, formato=formato, filtros=filtros

@@ -95,10 +95,12 @@ TRANSICIONES_VALIDAS: Dict[EstadoSolicitud, List[EstadoSolicitud]] = {
     EstadoSolicitud.DRAFT: [EstadoSolicitud.SUBMITTED, EstadoSolicitud.CANCELLED],
     EstadoSolicitud.SUBMITTED: [EstadoSolicitud.APPROVED, EstadoSolicitud.REJECTED],
     EstadoSolicitud.APPROVED: [EstadoSolicitud.IN_PLANNING, EstadoSolicitud.CANCELLED],
-    EstadoSolicitud.IN_PLANNING: [EstadoSolicitud.IN_TREATMENT, EstadoSolicitud.REJECTED],
+    # NOTA: Removida transición a REJECTED - una solicitud aprobada no puede ser rechazada
+    # por el planificador (el presupuesto ya fue consumido). Solo puede avanzar a IN_TREATMENT.
+    EstadoSolicitud.IN_PLANNING: [EstadoSolicitud.IN_TREATMENT],
     EstadoSolicitud.IN_TREATMENT: [
         EstadoSolicitud.TREATED,
-        EstadoSolicitud.IN_PLANNING,  # Permite volver atras
+        EstadoSolicitud.IN_PLANNING,  # Permite volver atrás (máx 3 veces, validado en cambiar_estado)
     ],
     EstadoSolicitud.TREATED: [EstadoSolicitud.COMPLETED],
     EstadoSolicitud.REJECTED: [EstadoSolicitud.DRAFT],  # Permite reenviar
@@ -113,14 +115,16 @@ TRANSICIONES_VALIDAS: Dict[EstadoSolicitud, List[EstadoSolicitud]] = {
 
 
 # Mapeo de estados legacy (display) a estados nuevos (internos)
+# NOTA: Algunos estados legacy son ambiguos:
+# - "Pendiente" -> submitted (podría ser in_planning en algunos contextos)
+# - "En Progreso" -> in_planning (algunas veces se usaba para in_treatment)
+# Se recomienda usar estados internos (snake_case) para evitar ambigüedad.
 ESTADO_LEGACY_A_NUEVO: Dict[str, str] = {
-    # Formato capitalizado (legacy)
+    # Formato capitalizado (legacy) - estados claros
     "Borrador": "draft",
     "Enviada": "submitted",
     "Aprobada": "approved",
     "Rechazada": "rejected",
-    "En Progreso": "in_planning",
-    "En progreso": "in_planning",
     "En tratamiento": "in_treatment",
     "En Tratamiento": "in_treatment",
     "Tratado": "treated",
@@ -128,14 +132,20 @@ ESTADO_LEGACY_A_NUEVO: Dict[str, str] = {
     "Finalizada": "completed",
     "Completada": "completed",
     "Cancelada": "cancelled",
-    # Formatos alternativos encontrados en el sistema
+    # Estados ambiguos - documentados explícitamente
+    "En Progreso": "in_planning",  # AMBIGUO: a veces significaba in_treatment
+    "En progreso": "in_planning",  # AMBIGUO: ver arriba
+    "Pendiente": "submitted",  # AMBIGUO: podría ser in_planning si ya fue aprobada
+    "pendiente": "submitted",  # AMBIGUO: ver arriba
+    # Formatos internos (passthrough)
     "submitted": "submitted",
     "approved": "approved",
     "rejected": "rejected",
-    "processing": "in_planning",
-    "Pendiente": "submitted",
-    "pendiente": "submitted",
+    "processing": "in_planning",  # LEGACY: ya no se usa
 }
+
+# Estados considerados ambiguos (para logging)
+ESTADOS_AMBIGUOS = {"En Progreso", "En progreso", "Pendiente", "pendiente", "processing"}
 
 # Mapeo de estados nuevos a display (para UI)
 ESTADO_NUEVO_A_DISPLAY: Dict[str, str] = {
@@ -169,6 +179,13 @@ def normalizar_estado(estado: str) -> str:
     # Si ya esta en formato nuevo, retornar
     if estado in [e.value for e in EstadoSolicitud]:
         return estado
+
+    # Advertir sobre estados ambiguos
+    if estado in ESTADOS_AMBIGUOS:
+        logger.warning(
+            f"[FSM] Estado ambiguo '{estado}' normalizado a '{ESTADO_LEGACY_A_NUEVO.get(estado)}'. "
+            f"Se recomienda usar estados internos (snake_case) para evitar ambigüedad."
+        )
 
     # Buscar en mapeo legacy
     return ESTADO_LEGACY_A_NUEVO.get(estado, estado)
@@ -333,6 +350,23 @@ def cambiar_estado(
         # 2. Validar transicion
         if not validar_transicion(estado_actual, nuevo_estado_str):
             raise TransicionInvalidaError(estado_actual, nuevo_estado_str)
+
+        # 2.5 Validar límite de retrocesos IN_TREATMENT -> IN_PLANNING (máx 3)
+        if estado_actual == "in_treatment" and nuevo_estado_str == "in_planning":
+            cursor.execute(
+                """
+                SELECT COUNT(*) as retrocesos FROM solicitudes_historial_estados
+                WHERE solicitud_id = ? AND estado_anterior = 'in_treatment' AND estado_nuevo = 'in_planning'
+                """,
+                (solicitud_id,),
+            )
+            row = cursor.fetchone()
+            retrocesos = row["retrocesos"] if row else 0
+            if retrocesos >= 3:
+                raise TransicionInvalidaError(
+                    estado_actual,
+                    nuevo_estado_str + " (límite de 3 retrocesos alcanzado)",
+                )
 
         # 3. Actualizar estado de solicitud
         cursor.execute(

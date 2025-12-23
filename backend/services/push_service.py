@@ -104,12 +104,12 @@ class PushService:
         try:
             with get_db_transaction() as conn:
                 cur = conn.cursor()
-                # Upsert: actualizar si ya existe el endpoint (PostgreSQL syntax)
+                # Upsert: actualizar si ya existe el endpoint (SQLite 3.24+ compatible)
                 cur.execute(
                     """
                     INSERT INTO push_subscriptions
                     (user_id, endpoint, p256dh, auth, user_agent, created_at)
-                    VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                     ON CONFLICT(endpoint) DO UPDATE SET
                         user_id = excluded.user_id,
                         p256dh = excluded.p256dh,
@@ -141,7 +141,7 @@ class PushService:
                 cur.execute(
                     """
                     DELETE FROM push_subscriptions
-                    WHERE user_id = %s AND endpoint = %s
+                    WHERE user_id = ? AND endpoint = ?
                 """,
                     (user_id, endpoint),
                 )
@@ -164,7 +164,7 @@ class PushService:
                 cur.execute(
                     """
                     DELETE FROM push_subscriptions
-                    WHERE user_id = %s
+                    WHERE user_id = ?
                 """,
                     (user_id,),
                 )
@@ -184,7 +184,7 @@ class PushService:
                     """
                     SELECT id, user_id, endpoint, p256dh, auth, created_at
                     FROM push_subscriptions
-                    WHERE user_id = %s
+                    WHERE user_id = ?
                 """,
                     (user_id,),
                 )
@@ -213,7 +213,7 @@ class PushService:
                     """
                     SELECT COUNT(*) as count
                     FROM push_subscriptions
-                    WHERE user_id = %s
+                    WHERE user_id = ?
                 """,
                     (user_id,),
                 )
@@ -322,14 +322,18 @@ class PushService:
 
     def _cleanup_invalid_endpoints(self, endpoints: List[str]):
         """Elimina endpoints que ya no son validos."""
+        if not endpoints:
+            return
         try:
             with get_db_transaction() as conn:
+                # Usar IN con placeholders dinamicos (compatible SQLite/PostgreSQL)
+                placeholders = ",".join("?" * len(endpoints))
                 conn.execute(
-                    """
+                    f"""
                     DELETE FROM push_subscriptions
-                    WHERE endpoint = ANY(%s)
+                    WHERE endpoint IN ({placeholders})
                 """,
-                    (endpoints,),
+                    tuple(endpoints),
                 )
             logger.info(f"[PUSH] Limpiados {len(endpoints)} endpoints invalidos")
         except Exception as e:

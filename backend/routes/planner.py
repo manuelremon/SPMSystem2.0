@@ -30,13 +30,13 @@ try:
         normalizar_estado,
         validar_transicion,
     )
-    from backend.core.repository import (
+    from backend.core.repository_legacy import (
         DecisionAbastecimientoRepository,
         MrpRepository,
         ProveedorPreciosRepository,
     )
     from backend.core.schemas import ResultadoPaso1, ResultadoPaso2, ResultadoPaso3
-    from backend.core.services.planner_service import (
+    from backend.services.planner_service import (
         # Nuevas funciones V2 multi-fuente
         guardar_decision_multifuente,
         obtener_resumen_decisiones,
@@ -57,12 +57,12 @@ except ImportError:
         cambiar_estado,
         normalizar_estado,
     )
-    from core.repository import (
+    from core.repository_legacy import (
         DecisionAbastecimientoRepository,
         MrpRepository,
         ProveedorPreciosRepository,
     )
-    from core.services.planner_service import (
+    from services.planner_service import (
         # Nuevas funciones V2 multi-fuente
         guardar_decision_multifuente,
         obtener_resumen_decisiones,

@@ -5,7 +5,7 @@ import sys
 
 sys.path.insert(0, ".")
 
-from src.backend.services.auth.auth import authenticate_user
+from backend.services.auth.auth import authenticate_user
 
 print("=== PRUEBA DE AUTENTICACIÓN ===")
 

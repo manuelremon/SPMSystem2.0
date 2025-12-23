@@ -435,7 +435,7 @@ export default function Sidebar({ collapsed, onToggle, unreadCount = 0, isConnec
         {!collapsed && (
           <div className="flex items-center gap-2">
             <img
-              src={`${import.meta.env.BASE_URL}images/spm-logo.png`}
+              src={`${import.meta.env.BASE_URL}images/spm-logo.svg`}
               alt="SPM Logo"
               className="h-8 w-auto object-contain"
             />

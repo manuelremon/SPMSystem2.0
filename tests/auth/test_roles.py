@@ -1,4 +1,4 @@
-from src.backend.app import app as flask_app
+from backend.app import app as flask_app
 
 
 def _login(client, username="admin"):

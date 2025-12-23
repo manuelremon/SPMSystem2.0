@@ -9,7 +9,7 @@ from pathlib import Path
 # Agregar el proyecto al path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.backend.routes.solicitudes import (
+from backend.routes.solicitudes import (
     _ensure_approver_exists_and_active, _ensure_planner_exists_and_available,
     _get_approver_config, _pre_validar_aprobacion, _validar_material_existe)
 

@@ -22,8 +22,8 @@ try:
     print("\n[1] Importing Flask...")
     print("    ✓ Flask imported")
 
-    print("\n[2] Importing create_app from src.backend.app...")
-    from src.backend.app import create_app
+    print("\n[2] Importing create_app from backend.app...")
+    from backend.app import create_app
 
     print("    ✓ create_app imported")
 

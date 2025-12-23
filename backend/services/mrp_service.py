@@ -110,7 +110,8 @@ def calcular_punto_reorden(
     """
     # Calculo basico
     demanda_lead_time = lead_time_dias * consumo_diario
-    punto_basico = demanda_lead_time + stock_seguridad
+    # Garantizar minimo de 1 para evitar ROP = 0 (material nunca se reordena)
+    punto_basico = max(demanda_lead_time + stock_seguridad, 1.0)
 
     # Agregar factor de seguridad por variabilidad
     factor_seguridad = 1.0
@@ -125,9 +126,10 @@ def calcular_punto_reorden(
         ss_adicional = z * math.sqrt(
             lead_time_dias * (sigma_demanda**2) + (consumo_diario**2) * (sigma_lead_time**2)
         )
-        factor_seguridad = 1 + (ss_adicional / punto_basico) if punto_basico > 0 else 1
+        # punto_basico siempre > 0 por el max() anterior
+        factor_seguridad = 1 + (ss_adicional / punto_basico)
 
-    punto_reorden = round(punto_basico * factor_seguridad)
+    punto_reorden = max(round(punto_basico * factor_seguridad), 1)
 
     return {
         "punto_reorden": punto_reorden,
@@ -381,6 +383,7 @@ def obtener_demanda_proyectada(material_codigo: str, centro: str, dias: int = 30
             logger.debug(f"ML forecast no disponible para {material_codigo}: {e}")
 
     # Fallback: usar promedio historico
+    sin_datos_historicos = False
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
@@ -394,10 +397,14 @@ def obtener_demanda_proyectada(material_codigo: str, centro: str, dias: int = 30
         )
 
         row = cursor.fetchone()
-        consumo_mensual = row["consumo_promedio"] if row else 0
+        if row and row["consumo_promedio"]:
+            consumo_mensual = row["consumo_promedio"]
+        else:
+            consumo_mensual = 0
+            sin_datos_historicos = True
 
     # Proyectar consumo para los dias solicitados
-    demanda_proyectada = (consumo_mensual / 30) * dias
+    demanda_proyectada = (consumo_mensual / 30) * dias if consumo_mensual else 0
 
     return {
         "material_codigo": material_codigo,
@@ -405,6 +412,12 @@ def obtener_demanda_proyectada(material_codigo: str, centro: str, dias: int = 30
         "dias": dias,
         "demanda_proyectada": round(demanda_proyectada, 2),
         "metodo": "promedio_historico",
+        "sin_datos_historicos": sin_datos_historicos,
+        "alerta": (
+            "Sin datos históricos - demanda proyectada es 0, requiere revisión manual"
+            if sin_datos_historicos
+            else None
+        ),
     }
 
 

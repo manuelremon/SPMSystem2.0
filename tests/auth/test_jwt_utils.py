@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import jwt
 import pytest
-from src.backend.config import Settings
-from src.backend.jwt_utils import (create_access_token, create_refresh_token,
+from backend.config import Settings
+from backend.jwt_utils import (create_access_token, create_refresh_token,
                                    verify_access_token)
 
 

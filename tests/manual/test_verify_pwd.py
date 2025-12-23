@@ -3,8 +3,8 @@ import sys
 sys.path.insert(0, ".")
 import sqlite3
 
-from src.backend.core.config import Settings
-from src.backend.services.db.security import verify_password
+from backend.core.config import Settings
+from backend.services.db.security import verify_password
 
 con = sqlite3.connect(Settings.DB_PATH)
 con.row_factory = sqlite3.Row

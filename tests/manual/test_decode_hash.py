@@ -4,7 +4,7 @@ sys.path.insert(0, ".")
 import base64
 import sqlite3
 
-from src.backend.core.config import Settings
+from backend.core.config import Settings
 
 con = sqlite3.connect(Settings.DB_PATH)
 con.row_factory = sqlite3.Row

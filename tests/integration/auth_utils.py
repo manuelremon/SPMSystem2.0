@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from flask import Flask
 from flask.testing import FlaskClient
-from src.backend.auth import issue_token
+from backend.auth import issue_token
 
 
 def login_as(client: FlaskClient, username: str, password: str):

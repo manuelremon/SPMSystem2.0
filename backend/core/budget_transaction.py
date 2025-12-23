@@ -320,9 +320,10 @@ class AtomicBudgetTransaction:
                 error_message="No se encontro consumo original para revertir",
             )
 
-        # Obtener saldo actual
+        # Obtener saldo actual con version para optimistic locking
         self._execute(
-            "SELECT saldo_cents FROM presupuestos WHERE centro = ? AND sector = ?", (centro, sector)
+            "SELECT saldo_cents, version FROM presupuestos WHERE centro = ? AND sector = ?",
+            (centro, sector),
         )
         row = self._cursor.fetchone()
         if not row:
@@ -333,9 +334,10 @@ class AtomicBudgetTransaction:
             )
 
         saldo_actual = self._get_row_value(row, "saldo_cents")
+        version_actual = self._get_row_value(row, "version")
         nuevo_saldo = saldo_actual + monto_cents
 
-        # Actualizar presupuesto
+        # Actualizar presupuesto con optimistic locking
         self._execute(
             """
             UPDATE presupuestos
@@ -343,10 +345,19 @@ class AtomicBudgetTransaction:
                 saldo_usd = ?,
                 version = version + 1,
                 updated_by = ?
-            WHERE centro = ? AND sector = ?
+            WHERE centro = ? AND sector = ? AND version = ?
             """,
-            (nuevo_saldo, nuevo_saldo / 100, ctx.actor_id, centro, sector),
+            (nuevo_saldo, nuevo_saldo / 100, ctx.actor_id, centro, sector, version_actual),
         )
+
+        if self._cursor.rowcount == 0:
+            return BudgetOperationResult(
+                success=False,
+                saldo_anterior_cents=saldo_actual,
+                saldo_posterior_cents=saldo_actual,
+                error_code="concurrent_modification",
+                error_message="El presupuesto fue modificado por otro proceso durante la reversión",
+            )
 
         # Insertar en ledger (monto positivo = credito)
         if self._use_postgresql:
@@ -428,9 +439,9 @@ class AtomicBudgetTransaction:
         """
         idem_key = f"bur_{bur_id}_{ctx.timestamp}"
 
-        # Obtener saldo actual
+        # Obtener saldo actual con version para optimistic locking
         self._execute(
-            "SELECT monto_cents, saldo_cents FROM presupuestos WHERE centro = ? AND sector = ?",
+            "SELECT monto_cents, saldo_cents, version FROM presupuestos WHERE centro = ? AND sector = ?",
             (centro, sector),
         )
         row = self._cursor.fetchone()
@@ -443,10 +454,11 @@ class AtomicBudgetTransaction:
 
         monto_actual = self._get_row_value(row, "monto_cents")
         saldo_actual = self._get_row_value(row, "saldo_cents")
+        version_actual = self._get_row_value(row, "version")
         nuevo_monto = monto_actual + monto_cents
         nuevo_saldo = saldo_actual + monto_cents
 
-        # Actualizar presupuesto (monto total y saldo)
+        # Actualizar presupuesto con optimistic locking (monto total y saldo)
         self._execute(
             """
             UPDATE presupuestos
@@ -456,7 +468,7 @@ class AtomicBudgetTransaction:
                 saldo_usd = ?,
                 version = version + 1,
                 updated_by = ?
-            WHERE centro = ? AND sector = ?
+            WHERE centro = ? AND sector = ? AND version = ?
             """,
             (
                 nuevo_monto,
@@ -466,8 +478,18 @@ class AtomicBudgetTransaction:
                 ctx.actor_id,
                 centro,
                 sector,
+                version_actual,
             ),
         )
+
+        if self._cursor.rowcount == 0:
+            return BudgetOperationResult(
+                success=False,
+                saldo_anterior_cents=saldo_actual,
+                saldo_posterior_cents=saldo_actual,
+                error_code="concurrent_modification",
+                error_message="El presupuesto fue modificado por otro proceso durante la aplicación del BUR",
+            )
 
         # Insertar en ledger
         if self._use_postgresql:

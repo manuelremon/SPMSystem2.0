@@ -153,10 +153,10 @@ class TestValidarPermisoAprobacion:
 
         _, conn, cursor = mock_db
 
-        # Mock: usuario es aprobador
+        # Mock: usuario tiene rol aprobador_solicitudes y posicion coordinador
         cursor.fetchone.side_effect = [
-            {"rol": "aprobador"},  # Usuario
-            {"rol_requerido": "aprobador", "nivel_aprobacion": 1},  # Regla
+            {"rol": "aprobador_solicitudes", "posicion": "coordinador"},  # Usuario
+            {"rol_requerido": "aprobador", "nivel_aprobacion": 1, "posicion_requerida": "coordinador"},  # Regla
         ]
 
         resultado = puede_aprobar(usuario_id="aprobador_1", monto_usd=1000)
@@ -169,15 +169,16 @@ class TestValidarPermisoAprobacion:
 
         _, conn, cursor = mock_db
 
+        # Usuario tiene rol aprobador_solicitudes pero posicion coordinador
+        # La regla requiere jefe, así que no puede aprobar
         cursor.fetchone.side_effect = [
-            {"rol": "aprobador"},  # Usuario
-            {"rol_requerido": "jefe", "nivel_aprobacion": 2},  # Regla
+            {"rol": "aprobador_solicitudes", "posicion": "coordinador"},  # Usuario
+            {"rol_requerido": "jefe", "nivel_aprobacion": 2, "posicion_requerida": "jefe"},  # Regla
         ]
 
         resultado = puede_aprobar(usuario_id="aprobador_1", monto_usd=10000)
 
         assert resultado["puede_aprobar"] is False
-        assert "rol_requerido" in resultado
 
     def test_admin_puede_aprobar_cualquier_monto(self, mock_db):
         """Un admin puede aprobar cualquier monto."""
@@ -185,14 +186,15 @@ class TestValidarPermisoAprobacion:
 
         _, conn, cursor = mock_db
 
+        # Admin se detecta por POSICION, no por rol
         cursor.fetchone.side_effect = [
-            {"rol": "admin"},  # Usuario es admin
-            {"rol_requerido": "gerente", "nivel_aprobacion": 4},  # Regla
+            {"rol": "usuario", "posicion": "admin"},  # Usuario con posicion admin
         ]
 
         resultado = puede_aprobar(usuario_id="admin_1", monto_usd=100000)
 
         assert resultado["puede_aprobar"] is True
+        assert resultado.get("es_admin") is True
 
     def test_jefe_puede_aprobar_su_nivel_y_menores(self, mock_db):
         """Un jefe puede aprobar montos de su nivel y menores."""
@@ -200,9 +202,10 @@ class TestValidarPermisoAprobacion:
 
         _, conn, cursor = mock_db
 
+        # Jefe con rol aprobador_solicitudes puede aprobar su nivel y menores
         cursor.fetchone.side_effect = [
-            {"rol": "jefe"},
-            {"rol_requerido": "aprobador", "nivel_aprobacion": 1},
+            {"rol": "aprobador_solicitudes", "posicion": "jefe"},
+            {"rol_requerido": "aprobador", "nivel_aprobacion": 1, "posicion_requerida": "coordinador"},
         ]
 
         resultado = puede_aprobar(usuario_id="jefe_1", monto_usd=1000)
@@ -382,10 +385,10 @@ class TestDelegacionAprobaciones:
 
         mock_conn, _, conn, cursor = mock_db
 
-        # Mock: usuario es delegado activo
+        # Mock: usuario es delegado activo (incluye posicion para delegación)
         cursor.fetchone.side_effect = [
-            {"rol": "aprobador"},  # Rol del delegado
-            {"rol_requerido": "jefe", "nivel_aprobacion": 2},  # Regla requiere jefe
+            {"rol": "aprobador", "posicion": "coordinador"},  # Rol del delegado
+            {"rol_requerido": "jefe", "nivel_aprobacion": 2, "posicion_requerida": None},  # Regla requiere jefe
             {"delegado_id": "aprobador_2", "activo": 1},  # Delegacion activa de un jefe
         ]
 

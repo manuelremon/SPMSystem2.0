@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from flask import request
-from src.backend.auth_helpers import TOKEN_COOKIE_NAME, extract_bearer_token
+from backend.auth_helpers import TOKEN_COOKIE_NAME, extract_bearer_token
 
 
 def test_extract_bearer_token_from_header(app):

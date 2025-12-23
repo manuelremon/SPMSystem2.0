@@ -306,13 +306,15 @@ class TestValidarItems:
         assert resultado["items_validos"] == 1
 
     def test_validar_items_lista_vacia(self):
-        """Lista vacia debe indicar error."""
+        """Lista vacia es permitida para borradores (items se agregan después)."""
         from backend.core.item_schemas import validar_items
 
         resultado = validar_items([])
 
-        assert resultado["ok"] is False
-        assert "vacia" in resultado["mensaje"].lower() or "item" in resultado["mensaje"].lower()
+        # Lista vacía es válida para borradores
+        assert resultado["ok"] is True
+        assert resultado["items_validos"] == 0
+        assert resultado["total"] == 0
 
     def test_validar_items_calcula_total(self):
         """Debe calcular el total de items validos."""

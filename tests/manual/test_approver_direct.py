@@ -7,7 +7,7 @@ import sys
 
 sys.path.insert(0, "/d/GitHub/SPMv1.0")
 
-from src.backend.app import create_app
+from backend.app import create_app
 
 # Crear app y contexto
 app = create_app()
@@ -25,7 +25,7 @@ with app.test_client() as client:
     # Para hacer requests autenticados, necesitamos autenticarnos primero
     # Pero el test client puede usar AUTH_BYPASS
     print("\n2. Verificar solicitudes en BD...")
-    from src.backend.core.db import get_connection
+    from backend.core.db import get_connection
 
     with get_connection() as con:
         c.execute(

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Verificar solicitudes existentes y sus estados"""
 
-from src.backend.core.db import get_connection
+from backend.core.db import get_connection
 
 with get_connection() as con:
     print("Solicitudes existentes:")

@@ -272,7 +272,7 @@ class MessageService:
             if not original:
                 return []
 
-            # Obtener respuestas
+            # Obtener respuestas (validando que el usuario tenga acceso al thread)
             cursor.execute(
                 """
                 SELECT m.*,
@@ -283,10 +283,10 @@ class MessageService:
                 FROM mensajes m
                 LEFT JOIN usuarios u_rem ON m.remitente_id = u_rem.id_spm
                 LEFT JOIN usuarios u_dest ON m.destinatario_id = u_dest.id_spm
-                WHERE m.parent_id = ?
+                WHERE m.parent_id = ? AND (m.remitente_id = ? OR m.destinatario_id = ?)
                 ORDER BY m.created_at ASC
                 """,
-                (message_id,),
+                (message_id, user_id, user_id),
             )
 
             replies = cursor.fetchall()

@@ -7,10 +7,13 @@ Maneja la lógica de negocio para notificaciones:
 - Marcar como leídas
 - Gestión de eventos SSE
 - Envío de push notifications
+- Rate limiting por usuario
 """
 
 import logging
-from datetime import datetime
+import threading
+from collections import defaultdict
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 try:
@@ -33,6 +36,79 @@ except ImportError:
         send_push_notification = None
 
 logger = logging.getLogger(__name__)
+
+
+class NotificationRateLimiter:
+    """
+    Rate limiter para notificaciones por usuario.
+
+    Previene spam de notificaciones limitando la cantidad
+    de notificaciones por usuario en una ventana de tiempo.
+    """
+
+    # Configuración por defecto: máximo 20 notificaciones por minuto por usuario
+    DEFAULT_MAX_NOTIFICATIONS = 20
+    DEFAULT_WINDOW_SECONDS = 60
+
+    def __init__(self, max_notifications: int = None, window_seconds: int = None):
+        self.max_notifications = max_notifications or self.DEFAULT_MAX_NOTIFICATIONS
+        self.window_seconds = window_seconds or self.DEFAULT_WINDOW_SECONDS
+        self._user_timestamps: Dict[str, List[datetime]] = defaultdict(list)
+        self._lock = threading.Lock()
+
+    def is_allowed(self, user_id: str) -> bool:
+        """
+        Verifica si se permite enviar notificación al usuario.
+
+        Returns:
+            True si está permitido, False si excede el límite
+        """
+        now = datetime.now()
+        cutoff = now - timedelta(seconds=self.window_seconds)
+
+        with self._lock:
+            # Limpiar timestamps antiguos
+            self._user_timestamps[user_id] = [
+                ts for ts in self._user_timestamps[user_id] if ts > cutoff
+            ]
+
+            # Verificar límite
+            if len(self._user_timestamps[user_id]) >= self.max_notifications:
+                return False
+
+            # Registrar nuevo timestamp
+            self._user_timestamps[user_id].append(now)
+            return True
+
+    def get_remaining(self, user_id: str) -> int:
+        """Retorna cantidad de notificaciones restantes para el usuario."""
+        now = datetime.now()
+        cutoff = now - timedelta(seconds=self.window_seconds)
+
+        with self._lock:
+            recent = [ts for ts in self._user_timestamps[user_id] if ts > cutoff]
+            return max(0, self.max_notifications - len(recent))
+
+    def cleanup(self):
+        """Limpia timestamps antiguos de todos los usuarios."""
+        now = datetime.now()
+        cutoff = now - timedelta(seconds=self.window_seconds * 2)
+
+        with self._lock:
+            users_to_remove = []
+            for user_id in self._user_timestamps:
+                self._user_timestamps[user_id] = [
+                    ts for ts in self._user_timestamps[user_id] if ts > cutoff
+                ]
+                if not self._user_timestamps[user_id]:
+                    users_to_remove.append(user_id)
+
+            for user_id in users_to_remove:
+                del self._user_timestamps[user_id]
+
+
+# Instancia global del rate limiter
+_notification_rate_limiter = NotificationRateLimiter()
 
 
 class NotificationService:
@@ -167,10 +243,35 @@ class NotificationService:
             logger.debug(f"Notificación tipo {tipo} omitida por preferencias de usuario {destinatario_id}")
             return None
 
+        # Rate limiting: verificar si el usuario no ha excedido el límite
+        if not _notification_rate_limiter.is_allowed(destinatario_id):
+            logger.warning(
+                f"Rate limit excedido para usuario {destinatario_id}. "
+                f"Notificación omitida: {mensaje[:50]}..."
+            )
+            return None
+
         notif_id = None
         try:
             with get_db_transaction() as conn:
                 cursor = conn.cursor()
+
+                # Evitar notificaciones duplicadas en los últimos 5 segundos
+                cursor.execute(
+                    """
+                    SELECT id FROM notificaciones
+                    WHERE destinatario_id = ? AND mensaje = ? AND tipo = ?
+                    AND created_at > datetime('now', '-5 seconds')
+                    LIMIT 1
+                    """,
+                    (destinatario_id, mensaje, tipo),
+                )
+                if cursor.fetchone():
+                    logger.debug(
+                        f"Notificación duplicada omitida para usuario {destinatario_id}: {mensaje[:50]}..."
+                    )
+                    return None
+
                 cursor.execute(
                     """
                     INSERT INTO notificaciones (destinatario_id, mensaje, tipo, solicitud_id, leido, created_at)

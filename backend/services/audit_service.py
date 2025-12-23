@@ -62,6 +62,34 @@ def serializar_datos(datos: Optional[Dict[str, Any]]) -> Optional[str]:
     return json.dumps(datos, ensure_ascii=False, default=str)
 
 
+def serializar_valor(valor: Any) -> Optional[str]:
+    """
+    Serializa cualquier valor para almacenamiento en audit trail.
+
+    Para valores simples (str, int, float, bool) retorna string directo.
+    Para valores complejos (dict, list) retorna JSON.
+
+    Args:
+        valor: Valor a serializar
+
+    Returns:
+        String serializado o None si valor es None
+    """
+    if valor is None:
+        return None
+
+    # Valores primitivos - convertir directamente
+    if isinstance(valor, (str, int, float, bool)):
+        return str(valor)
+
+    # Valores complejos - serializar como JSON
+    try:
+        return json.dumps(valor, ensure_ascii=False, default=str)
+    except (TypeError, ValueError):
+        # Fallback a str si no se puede serializar
+        return str(valor)
+
+
 def validar_entrada_auditoria(entidad: str, entidad_id: str, accion: str, actor_id: str) -> None:
     """
     Valida los campos requeridos para un registro de auditoria.
@@ -382,8 +410,8 @@ def auditar_modificacion(
         accion="modificar",
         actor_id=actor_id,
         campo_modificado=campo,
-        valor_anterior=str(valor_anterior) if valor_anterior is not None else None,
-        valor_nuevo=str(valor_nuevo) if valor_nuevo is not None else None,
+        valor_anterior=serializar_valor(valor_anterior),
+        valor_nuevo=serializar_valor(valor_nuevo),
         actor_rol=actor_rol,
         ip_address=ip_address,
     )

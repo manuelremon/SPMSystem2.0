@@ -324,7 +324,7 @@ def puede_aprobar(
         cursor = conn.cursor()
 
         # Obtener rol y posicion del usuario
-        cursor.execute("SELECT rol, posicion FROM usuarios WHERE id_spm = %s", (usuario_id,))
+        cursor.execute("SELECT rol, posicion FROM usuarios WHERE id_spm = ?", (usuario_id,))
         user_row = cursor.fetchone()
         if not user_row:
             return {"puede_aprobar": False, "razon": "Usuario no encontrado"}
@@ -374,12 +374,25 @@ def puede_aprobar(
             "nivel_aprobacion": regla.get("nivel_aprobacion", 0),
         }
 
-    # Verificar delegacion activa si se solicito
+    # Verificar si el usuario es delegado de alguien que puede aprobar
     if verificar_delegacion:
-        delegacion = obtener_delegacion_activa(usuario_id)
-        if delegacion:
-            # TODO: Implementar logica de delegacion
-            pass
+        delegaciones = obtener_delegaciones_como_delegado(usuario_id)
+        for delegacion in delegaciones:
+            # Verificar si el aprobador original puede aprobar este monto
+            aprobador_original_id = delegacion.get("aprobador_original_id")
+            posicion_original = (delegacion.get("posicion_original") or "").lower()
+
+            # Si el aprobador original tiene nivel suficiente
+            if posicion_tiene_nivel(posicion_original, posicion_requerida):
+                return {
+                    "puede_aprobar": True,
+                    "posicion_usuario": posicion_usuario,
+                    "posicion_requerida": posicion_requerida,
+                    "nivel_aprobacion": regla.get("nivel_aprobacion", 0),
+                    "es_delegado": True,
+                    "delegado_de": aprobador_original_id,
+                    "posicion_delegante": posicion_original,
+                }
 
     return {
         "puede_aprobar": False,
@@ -572,6 +585,39 @@ def obtener_delegacion_activa(aprobador_id: str) -> Optional[Dict[str, Any]]:
 
         row = cursor.fetchone()
         return dict(row) if row else None
+
+
+def obtener_delegaciones_como_delegado(delegado_id: str) -> List[Dict[str, Any]]:
+    """
+    Obtiene las delegaciones activas donde el usuario es el delegado.
+
+    Args:
+        delegado_id: ID del usuario delegado
+
+    Returns:
+        Lista de delegaciones donde este usuario es el delegado
+    """
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+        cursor.execute(
+            """
+            SELECT d.*, u.rol as rol_original, u.posicion as posicion_original
+            FROM aprobadores_delegados d
+            JOIN usuarios u ON d.aprobador_original_id = u.id_spm
+            WHERE d.delegado_id = ?
+                AND d.activo = 1
+                AND d.fecha_inicio <= ?
+                AND d.fecha_fin >= ?
+            ORDER BY d.fecha_fin DESC
+        """,
+            (delegado_id, now, now),
+        )
+
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows] if rows else []
 
 
 # =============================================================================

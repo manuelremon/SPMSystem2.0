@@ -26,9 +26,9 @@ logger = logging.getLogger(__name__)
 class RateLimitConfig:
     """Configuracion de rate limit."""
 
-    requests: int = 1000  # Numero de requests permitidos
+    requests: int = 100  # Numero de requests permitidos
     window_seconds: int = 60  # Ventana de tiempo en segundos
-    burst: int = 200  # Requests adicionales permitidos en rafaga
+    burst: int = 10  # Requests adicionales permitidos en rafaga
     by_user: bool = True  # Limitar por usuario autenticado
     by_ip: bool = True  # Limitar por IP
 
@@ -339,7 +339,7 @@ def _configure_default_limits(limiter: RateLimiter) -> None:
     """Configura limites por defecto para endpoints comunes."""
     # Endpoints de autenticacion (mas restrictivos)
     limiter.configure_endpoint(
-        "/api/auth/login", requests=50, window_seconds=60, burst=10, by_user=False, by_ip=True
+        "/api/auth/login", requests=10, window_seconds=60, burst=5, by_user=False, by_ip=True
     )
     limiter.configure_endpoint(
         "/api/auth/register", requests=20, window_seconds=60, burst=5, by_user=False, by_ip=True

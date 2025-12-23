@@ -6,11 +6,15 @@ Sprint 3.2 - Validacion robusta con clases Python (sin Pydantic externo).
 Valida:
 - Estructura de items (campos requeridos, tipos)
 - Reglas de negocio (cantidad > 0, precio >= 0)
+- Existencia del material en catalogo
 - Sanitizacion de datos
 """
 
+import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
+
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # Excepciones
@@ -41,6 +45,68 @@ class SolicitudValidationError(Exception):
 
 
 CRITICIDADES_VALIDAS = {"Baja", "Normal", "Alta", "Urgente"}
+
+# Cache de materiales validados para evitar consultas repetidas
+_materiales_validados_cache: Set[str] = set()
+
+
+def _verificar_material_existe(material_id: str) -> bool:
+    """
+    Verifica si un material existe en el catalogo.
+
+    Args:
+        material_id: Codigo del material a verificar
+
+    Returns:
+        True si el material existe, False si no existe
+    """
+    if not material_id:
+        return False
+
+    # Normalizar codigo (eliminar ceros y .0 finales)
+    codigo_norm = material_id.strip()
+    if codigo_norm.endswith(".0"):
+        codigo_norm = codigo_norm[:-2]
+    codigo_norm = codigo_norm.lstrip("0")
+
+    # Verificar cache primero
+    if codigo_norm in _materiales_validados_cache:
+        return True
+
+    try:
+        # Import diferido para evitar dependencias circulares
+        try:
+            from backend.core.db import get_db_connection
+        except ImportError:
+            from core.db import get_db_connection
+
+        with get_db_connection("sap_data") as conn:
+            cursor = conn.cursor()
+            # Buscar material en catalogo (stock_detalle tiene todos los materiales)
+            cursor.execute(
+                """
+                SELECT 1 FROM stock_detalle
+                WHERE LTRIM(codigo, '0') = ? OR codigo = ?
+                LIMIT 1
+                """,
+                (codigo_norm, material_id),
+            )
+            existe = cursor.fetchone() is not None
+
+            if existe:
+                _materiales_validados_cache.add(codigo_norm)
+
+            return existe
+    except Exception as e:
+        # Si hay error de BD, permitir continuar (log warning)
+        logger.warning(f"Error verificando existencia de material {material_id}: {e}")
+        return True  # Asumir que existe si no se puede verificar
+
+
+def limpiar_cache_materiales():
+    """Limpia el cache de materiales validados."""
+    global _materiales_validados_cache
+    _materiales_validados_cache = set()
 
 
 # =============================================================================
@@ -380,6 +446,19 @@ def validar_items(items: List[Dict[str, Any]]) -> Dict[str, Any]:
     for idx, item_data in enumerate(items):
         try:
             item = ItemSolicitud.from_dict(item_data)
+
+            # Verificar que el material existe en el catalogo
+            if not _verificar_material_existe(item.material_id):
+                errores.append(
+                    {
+                        "indice": idx,
+                        "campo": "material_id",
+                        "mensaje": f"Material '{item.material_id}' no existe en el catálogo",
+                        "datos": item_data,
+                    }
+                )
+                continue
+
             items_validos.append(item)
         except ItemValidationError as e:
             errores.append(

@@ -5,7 +5,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, ".")
 
-from src.backend.core.config import Settings
+from backend.core.config import Settings
 
 print(f"DB Path: {Settings.DB_PATH}")
 print(f"DB Exists: {Path(Settings.DB_PATH).exists()}")

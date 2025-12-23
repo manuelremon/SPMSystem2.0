@@ -58,14 +58,19 @@ class TestCheckDatabase:
         except ImportError:
             pytest.skip("Module not available")
 
-        # Crear archivo que no es una BD valida
-        invalid_db = tmp_path / "invalid.db"
-        invalid_db.write_text("not a database")
+        import sqlite3
 
-        with patch("backend.routes.health.get_db_path", return_value=invalid_db):
-            result = _check_database("test")
+        # Crear archivo BD valido
+        db_file = tmp_path / "test.db"
+        db_file.touch()
 
-        # Puede ser unhealthy o error
+        # Mock sqlite3.connect para simular error de BD
+        with patch("backend.routes.health.get_db_path", return_value=db_file):
+            with patch("backend.routes.health.sqlite3.connect") as mock_conn:
+                mock_conn.side_effect = sqlite3.DatabaseError("database disk image is malformed")
+                result = _check_database("test")
+
+        # Debe retornar unhealthy cuando hay error de sqlite
         assert result["status"] in ["unhealthy", "error"]
 
 

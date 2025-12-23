@@ -1,8 +1,8 @@
 from io import BytesIO
 
-from src.backend.app import app as flask_app
-from src.backend.db import get_db
-from src.backend.security import hash_password
+from backend.app import app as flask_app
+from backend.db import get_db
+from backend.security import hash_password
 
 
 def _login(client):

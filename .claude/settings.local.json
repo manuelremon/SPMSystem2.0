@@ -82,7 +82,17 @@
       "Bash(done)",
       "Bash(chmod:*)",
       "Bash(COMMIT_MSG=\"fix: corregir placeholder SQL en solicitudes.py + agregar script deploy-full.sh\" ./scripts/deploy-full.sh)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(xargs:*)",
+      "Bash(python -m pytest tests/ -v --tb=short)",
+      "Bash(pip install:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(tree:*)",
+      "Bash(du:*)",
+      "Bash(md5sum:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

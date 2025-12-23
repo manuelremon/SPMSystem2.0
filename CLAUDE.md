@@ -2,17 +2,17 @@
 
 Guia para Claude Code (claude.ai/code) cuando trabaja con este repositorio.
 
-> **Ultima actualizacion**: 2025-12-08 (Security Review)
+> **Ultima actualizacion**: 2025-12-23 (Auditoria completa)
 
 ## Resumen del Proyecto
 
 | Metrica | Valor |
 |---------|-------|
-| **Backend** | 94 archivos Python, 38,000+ lineas |
-| **Frontend** | 31 paginas, 56 componentes, 6 hooks |
-| **Endpoints API** | 180 endpoints en 23 modulos |
-| **Tests** | 1,200+ tests (755 unit, 18 E2E, 140 integration) |
-| **Base de Datos** | 3 SQLite (213,703 registros totales) |
+| **Backend** | 109 archivos Python, ~36,000 lineas |
+| **Frontend** | 46 paginas, 61 componentes, 8 hooks |
+| **Endpoints API** | 194 endpoints en 24 modulos |
+| **Tests** | 969+ tests (792 unit, 25 E2E, 152 integration) |
+| **Base de Datos** | 3 SQLite + PostgreSQL (produccion) |
 
 ## Comandos de Desarrollo
 
@@ -48,54 +48,55 @@ http://localhost:5173       http://localhost:5000     SQLite (data/)
 
 ```
 SPMv2.0/
-├── backend/                    # API Flask (94 archivos, 38K lineas)
-│   ├── routes/                 # 23 modulos, 180 endpoints
+├── backend/                    # API Flask (109 archivos, ~36K lineas)
+│   ├── routes/                 # 24 modulos, 194 endpoints
 │   ├── services/               # 10 servicios de negocio
 │   ├── core/                   # 28 modulos de infraestructura
-│   ├── agent/                  # 19 archivos ML/IA
-│   └── migrations/             # 8 migraciones de BD
+│   ├── agent/                  # 30 archivos ML/IA (incluye forecast/)
+│   └── migrations/             # 9 migraciones de BD
 ├── frontend/src/
-│   ├── pages/                  # 31 paginas + 13 admin
-│   ├── components/             # 56 componentes
-│   ├── hooks/                  # 6 custom hooks
-│   ├── services/               # 6 servicios API
-│   ├── store/                  # 2 stores Zustand
+│   ├── pages/                  # 36 paginas + 10 admin
+│   ├── components/             # 61 componentes
+│   ├── hooks/                  # 8 custom hooks
+│   ├── services/               # 11 servicios API
+│   ├── store/                  # 3 stores Zustand
 │   └── context/                # i18n provider (200+ keys)
 ├── data/                       # Bases de datos SQLite
-├── tests/                      # 92 archivos de test
+├── tests/                      # 128 archivos de test
 ├── scripts/                    # Scripts de utilidad
 └── docs/                       # Documentacion
 ```
 
 ## Backend - Inventario Completo
 
-### Routes (23 modulos, 180 endpoints)
+### Routes (24 modulos, 194 endpoints)
 
 | Modulo | Endpoints | Proposito |
 |--------|-----------|-----------|
-| `admin.py` | 26 | CRUD usuarios, roles, materiales, proveedores |
+| `admin.py` | 31 | CRUD usuarios, roles, materiales, proveedores |
 | `planner.py` | 21 | Planificacion de solicitudes, decisiones |
-| `mi_cuenta.py` | 12 | Perfil, password, preferencias |
+| `mi_cuenta.py` | 14 | Perfil, password, preferencias |
+| `ai.py` | 14 | Recomendaciones IA, analisis, forecast |
 | `solicitudes.py` | 11 | CRUD solicitudes, estados, archivos |
-| `metrics.py` | 10 | Metricas de rendimiento |
-| `ai.py` | 9 | Recomendaciones IA, analisis |
+| `metrics.py` | 11 | Metricas de rendimiento |
 | `budget.py` | 8 | Presupuestos, ledger, BUR |
 | `mensajes.py` | 8 | Sistema de mensajeria |
 | `mrp.py` | 8 | Alertas MRP, KPIs, catalogo |
-| `auth.py` | 7 | Login, refresh, logout |
+| `auth.py` | 7 | Login, refresh, logout, registro |
 | `sla.py` | 7 | Metricas SLA, alertas |
 | `docs.py` | 6 | Swagger UI, OpenAPI |
 | `export.py` | 6 | Exportar solicitudes, inventario |
 | `notificaciones.py` | 6 | CRUD notificaciones |
 | `push.py` | 6 | Push notifications |
+| `health.py` | 6 | Health checks, probes, diagnostics |
 | `catalogos.py` | 5 | Centros, sectores, puestos |
 | `equivalencias.py` | 5 | Equivalencias de materiales |
 | `foro.py` | 5 | Posts, replies, likes |
-| `health.py` | 5 | Health checks, probes |
 | `materiales.py` | 3 | Busqueda, detalle, stats |
 | `trivias.py` | 3 | Rankings, scores |
 | `assistant.py` | 2 | Sugerencias IA |
 | `kpis.py` | 1 | Dashboard KPIs |
+| `materiales_detalle.py` | 0 | Helpers de detalle materiales |
 
 ### Services (10 servicios)
 
@@ -116,8 +117,8 @@ SPMv2.0/
 
 | Categoria | Modulos |
 |-----------|---------|
-| **Auth** | `auth_middleware.py`, `roles.py` |
-| **Database** | `db.py`, `db_optimization.py`, `repository.py` (50KB, 12 clases) |
+| **Auth** | `auth_middleware.py`, `roles.py`, `user_helpers.py` |
+| **Database** | `db.py`, `db_optimization.py`, `repository_legacy.py` (refactorizado), `repository/` (modular) |
 | **Schemas** | `schemas.py`, `budget_schemas.py`, `notification_schemas.py`, `item_schemas.py` |
 | **Validation** | `request_validation.py` (sanitizacion XSS/SQL) |
 | **Security** | `csrf.py`, `security_headers.py`, `rate_limit.py` |
@@ -130,8 +131,9 @@ SPMv2.0/
 | **Config** | `config.py`, `push_config.py` |
 | **API Docs** | `openapi.py` |
 | **Budget** | `budget_transaction.py` |
+| **Services** | `services/planner_service.py` (nuevo) |
 
-### Agent/ML (19 archivos)
+### Agent/ML (30 archivos)
 
 ```
 agent/
@@ -142,7 +144,18 @@ agent/
 ├── pipelines/
 │   ├── clustering.py      # Agrupacion de materiales
 │   ├── scoring.py         # Priorizacion de solicitudes
-│   └── demand_forecast.py # Proyeccion de demanda
+│   ├── demand_forecast.py # Proyeccion de demanda
+│   ├── forecast.py        # Orchestrador de pronosticos
+│   └── forecast/          # Modelos avanzados de pronostico
+│       ├── arima_model.py     # Modelo ARIMA
+│       ├── prophet_model.py   # Modelo Prophet
+│       ├── xgboost_model.py   # Modelo XGBoost
+│       ├── sklearn_models.py  # Modelos Sklearn
+│       ├── backtesting.py     # Validacion temporal
+│       ├── tuning.py          # Optimizacion hiperparametros
+│       ├── model_registry.py  # Registro de modelos
+│       ├── predictor.py       # Motor de prediccion
+│       └── base.py            # Clase base modelos
 └── tools/
     ├── base.py            # Abstraccion de herramientas
     ├── data_loader.py     # Carga de datos historicos
@@ -155,61 +168,74 @@ agent/
 
 ## Frontend - Inventario Completo
 
-### Pages (31 principales + 13 admin)
+### Pages (36 principales + 10 admin)
 
 | Categoria | Paginas |
 |-----------|---------|
 | **Auth** | Login, CompleteRegistration |
-| **Solicitudes** | CreateSolicitud, Materials, MisSolicitudes, SolicitudDetalle |
+| **Solicitudes** | CreateSolicitud, Materials, MisSolicitudes, SolicitudDetalle, TodasLasSolicitudes |
 | **Aprobacion** | Aprobaciones, HistorialAprobaciones |
 | **Planificacion** | Planner (con wizard 4 pasos) |
 | **MRP** | MRPTableroAlertas, MRPKPIs |
 | **Budget** | BudgetRequests, BudgetRequestCreate, BudgetRequestDetail |
 | **Catalogos** | CatalogoMateriales, CatalogoEquivalencias |
 | **Comunicacion** | Mensajes, Notificaciones, Foro, Ayuda |
-| **Usuario** | MiCuenta, Dashboard (5 variantes por rol) |
+| **Usuario** | MiCuenta, Dashboard, DashboardShared |
+| **Dashboards por Rol** | DashboardAdmin, DashboardAprobador, DashboardSolicitante, DashboardPlanificador |
+| **Forecast** | ForecastIndividual, ForecastMasivo |
+| **SLA** | SLADashboard |
+| **IA/Analisis** | AIAnalytics, KPI |
 | **Gamificacion** | Trivias |
-| **Admin** | AdminUsuarios, AdminRoles, AdminCentros, AdminSectores, AdminMateriales, AdminProveedores, AdminPresupuestos, AdminEstado, AdminMetricas, AdminPlanificadores, AdminPuestos, AdminAlmacenes, AdminSolicitudesPerfil |
+| **Admin** | AdminUsuarios, AdminRoles, AdminCentros, AdminSectores, AdminMateriales, AdminProveedores, AdminPresupuestos, AdminEstado, AdminPlanificadores, AdminPuestos, AdminAlmacenes, AdminSolicitudesPerfil |
 
-### Components (56 totales)
+### Components (61 totales)
 
 | Carpeta | Componentes | Proposito |
 |---------|-------------|-----------|
-| `ui/` | 27 | Primitivos (Button, Input, Card, Modal, Badge, etc.) |
-| `features/DataTable/` | 3 | Tabla avanzada con TanStack Table |
+| `ui/` | 32 | Primitivos (Button, Input, Card, Modal, Badge, PushNotificationToggle, etc.) |
+| `features/DataTable/` | 1 | ModernDataTable con TanStack Table |
 | `materials/` | 3 | MaterialDetailModal, MaterialsTable, SearchDropdown |
 | `Planner/` | 6 | Wizard de 4 pasos + StockDetalleModal |
-| **Core** | 7 | Layout, Sidebar, ErrorBoundary, ProtectedRoute, etc. |
-| **Modals** | 4 | AdminCrudTemplate, AssistantModal, ChatAssistant, MensajeThreadModal |
+| `forecast/` | 9 | BacktestResults, ForecastChart, ForecastKPIs, LazyPlot, MaterialSearchInput, ModelComparison, ModelSelector, PatternCharts, PredictionsTable |
+| `export/` | 1 | ExportButton |
+| **Core** | 9 | Layout, Sidebar, ErrorBoundary, ProtectedRoute, Loading, AdminCrudTemplate, AssistantModal, ChatAssistant, MensajeThreadModal |
 
-### Hooks
+### Hooks (8 totales)
 
 | Hook | Proposito |
 |------|-----------|
-| `useMaterials.js` | Estado completo de Materials.jsx (400+ lineas) |
+| `useMaterials.js` | Estado completo de Materials.jsx (590 lineas) |
 | `usePushNotifications.js` | Registro y gestion push |
 | `useDebounced.js` | Debounce de valores |
 | `useNotifications.js` | Notificaciones SSE |
 | `useScrollReveal.js` | Animaciones scroll |
-| `useTheme.js` | **STUB** - solo retorna light theme |
+| `useForecast.js` | Estado y logica de pronosticos |
+| `usePlanner.js` | Estado del wizard de planificacion |
+| `useRealtime.js` | Eventos en tiempo real WebSocket |
 
-### Services
+### Services (11 totales)
 
 | Servicio | Proposito |
 |----------|-----------|
 | `api.js` | Axios con interceptors, CSRF, refresh token |
-| `auth.js` | Login, tokens, logout |
+| `auth.js` | Login, tokens, logout (httpOnly cookies en prod) |
 | `csrf.js` | Gestion token CSRF |
 | `spm.js` | Operaciones de negocio (solicitudes, materiales, etc.) |
 | `agent.js` | Asistente IA |
 | `account.js` | Perfil de usuario |
+| `ai.js` | Servicios de IA y analisis |
+| `export.js` | Exportacion de datos |
+| `forecast.js` | Pronosticos de demanda |
+| `metrics.js` | Metricas del sistema |
+| `sla.js` | Servicios SLA |
 
-### Stores (Zustand)
+### Stores (Zustand) - 3 totales
 
 | Store | Estado |
 |-------|--------|
 | `authStore.js` | user, isAuthenticated, login/logout |
 | `chatStore.js` | messages, isOpen, context |
+| `realtimeStore.js` | eventos, conexion WebSocket |
 
 ## Bases de Datos
 
@@ -231,10 +257,12 @@ python scripts/migrate_excel_to_db.py
 | Categoria | Tests | Cobertura |
 |-----------|-------|-----------|
 | Backend Unit | 792 | Excelente (core, pipelines) |
-| Backend Integration | 140 | Buena (14 rutas) |
-| Backend E2E | 18 | Basica (health, auth, errors) |
-| Frontend Pages | 4 | **Gap critico** (9%) |
-| Frontend Components | 5 | **Gap critico** (13%) |
+| Backend Integration | 152 | Buena (14+ rutas) |
+| Backend E2E | 25 | Buena (health, auth, flujos) |
+| Frontend Pages | 6 | **Gap critico** (mejorando) |
+| Frontend Components | 13 | **Gap critico** (mejorando) |
+
+**Total: 969+ tests en 128 archivos**
 
 ### Backend - Tests por Modulo
 
@@ -274,75 +302,71 @@ frontend/src/
 
 ## Issues Conocidos
 
-### Prioridad Alta
+### Resueltos (Diciembre 2025)
 
-| Issue | Ubicacion | Impacto |
-|-------|-----------|---------|
-| `repository.py` muy grande | `core/repository.py` (50KB, 12 clases) | Mantenibilidad |
-| Imports try/except duplicados | Todos los routes (23 archivos) | DRY violation |
-| `useTheme` es codigo muerto | `hooks/useTheme.js` | ThemeToggle no funciona |
+| Issue | Estado | Notas |
+|-------|--------|-------|
+| `repository.py` muy grande | **RESUELTO** | Refactorizado a `repository_legacy.py` + `repository/` modular |
+| `useTheme.js` codigo muerto | **RESUELTO** | Archivo eliminado (dark mode eliminado) |
+| Tokens en localStorage | **MITIGADO** | httpOnly cookies en produccion, localStorage solo en desarrollo |
 
 ### Prioridad Media
 
 | Issue | Ubicacion | Impacto |
 |-------|-----------|---------|
+| Imports try/except duplicados | Todos los routes (24 archivos) | DRY violation |
 | Funciones helper duplicadas | `_get_user()` en 5+ routes | DRY violation |
-| Bare except handlers | `routes/mi_cuenta.py` | Puede ocultar errores |
-| Tokens en localStorage | `services/auth.js` | Seguridad (XSS) |
+| Bare except handlers | `routes/mi_cuenta.py`, `routes/admin.py` | Puede ocultar errores |
 
 ### Prioridad Baja
 
 | Issue | Ubicacion | Impacto |
 |-------|-----------|---------|
-| TODO/FIXME pendientes | 5 archivos | Deuda tecnica |
+| TODO/FIXME pendientes | 6 archivos backend | Deuda tecnica |
 | Imports no usados | Varios routes | Limpieza |
-| `useMaterials` muy grande | 400+ lineas | Podria dividirse |
+| `useMaterials` muy grande | 590 lineas | Podria dividirse |
 
-## Security Review (2025-12-08)
+## Security Review (2025-12-23)
 
 ### Resumen de Hallazgos
 
 | Severidad | Cantidad | Estado |
 |-----------|----------|--------|
-| **CRITICAL** | 3 | Pendiente |
-| **HIGH** | 7 | Pendiente |
-| **MEDIUM** | 10 | Pendiente |
+| **CRITICAL** | 3 | **TODOS RESUELTOS/MITIGADOS** |
+| **HIGH** | 7 | 6 Resueltos, 1 Pendiente |
+| **MEDIUM** | 10 | Mayoria resueltos |
 
-### Issues Criticos (Accion Inmediata)
+### Issues Criticos - ESTADO ACTUAL
 
-| # | Issue | Ubicacion | Riesgo |
-|---|-------|-----------|--------|
-| 1 | Privilege Escalation - Sin validacion ownership | `routes/solicitudes.py:204-229` | Usuario puede ver solicitudes de otros |
-| 2 | Tokens JWT en localStorage | `services/auth.js:5-13` | Vulnerable a XSS |
-| 3 | SQL Injection pattern (f-string tables) | `routes/admin.py:735` | Inyeccion SQL potencial |
+| # | Issue | Estado | Evidencia |
+|---|-------|--------|-----------|
+| 1 | Privilege Escalation - Sin validacion ownership | **RESUELTO** | `solicitudes.py:273-290` valida ownership y roles |
+| 2 | Tokens JWT en localStorage | **MITIGADO** | httpOnly cookies en prod, localStorage solo en dev/cross-origin |
+| 3 | SQL Injection pattern (f-string tables) | **MITIGADO** | Whitelist ALLOWED_TABLES en `admin.py:818` |
 
-### Issues de Alta Prioridad
+### Issues de Alta Prioridad - ESTADO ACTUAL
 
-| # | Issue | Ubicacion |
-|---|-------|-----------|
-| 4 | Sin check autorizacion en aprobaciones | `routes/solicitudes.py:608-794` |
-| 5 | CSRF token no es httpOnly | `core/csrf.py:103-110` |
-| 6 | Sin rate limiting en admin endpoints | `routes/admin.py` |
-| 7 | Bare exception handlers | `routes/admin.py`, `routes/mi_cuenta.py` |
-| 8 | CSRF bypass para Bearer tokens | `core/csrf.py:71-94` |
-| 9 | Sin ownership check en DELETE solicitud | `routes/solicitudes.py:374-441` |
-| 10 | Sin validacion en campos criticos | `routes/solicitudes.py:260-272` |
+| # | Issue | Estado | Notas |
+|---|-------|--------|-------|
+| 4 | Sin check autorizacion en aprobaciones | **RESUELTO** | `puede_aprobar()` implementado |
+| 5 | CSRF token no es httpOnly | **VALIDO** | Por diseno, cliente debe leerlo |
+| 6 | Sin rate limiting en admin endpoints | **RESUELTO** | `@rate_limit(30, 60)` implementado |
+| 7 | Bare exception handlers | **PENDIENTE** | Aun existen en algunos archivos |
+| 8 | CSRF bypass para Bearer tokens | **POR DISENO** | APIs con JWT no necesitan CSRF |
+| 9 | Sin ownership check en DELETE solicitud | **RESUELTO** | Validacion en linea 502-515 |
+| 10 | Sin validacion en campos criticos | **RESUELTO** | `@validate_json()` implementado |
 
-### Acciones Recomendadas (Prioridad)
-
-1. **Agregar validacion de ownership** en todos los endpoints de datos
-2. **Remover tokens de localStorage** - usar solo httpOnly cookies
-3. **Agregar rate limiting** a endpoints admin
-4. **Habilitar CSRF para logout**
-5. **Implementar validacion consistente** con decorador `@validate_json()`
-
-### Buenas Practicas Existentes
+### Buenas Practicas Implementadas
 
 - Password hashing con bcrypt
 - Rate limiting en login (10 intentos/5min)
+- Rate limiting en admin endpoints (30 req/min)
 - Security headers configurados
-- SQL parametrizado (mayoria de queries)
+- SQL parametrizado (mayoria de queries, whitelist para tablas)
 - JWT con expiracion (1h access, 7d refresh)
+- httpOnly cookies para tokens en produccion
+- Validacion de ownership en endpoints criticos
+- Matriz de aprobacion con permisos por monto
 
 ## Convenciones de Codigo
 
@@ -403,7 +427,8 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 | Archivo | Proposito |
 |---------|-----------|
 | `core/db.py` | Conexion BD |
-| `core/repository.py` | Data access (12 clases) |
+| `core/repository_legacy.py` | Data access legacy (refactorizado) |
+| `core/repository/` | Data access modular (nuevo) |
 | `core/fsm.py` | Maquina de estados |
 | `core/auth_middleware.py` | JWT middleware |
 | `core/rate_limit.py` | Rate limiting |
@@ -454,6 +479,21 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 - **Backend:** `core/observability.py`
 - **Features:** Structured logging (JSON), Request tracing (Spans)
 
+### Forecast (Pronosticos de Demanda)
+- **Backend:** `agent/pipelines/forecast/`, `routes/ai.py`
+- **Frontend:** `ForecastIndividual.jsx`, `ForecastMasivo.jsx`, `components/forecast/`
+- **Modelos:** ARIMA, Prophet, XGBoost, Sklearn
+- **Features:** Backtesting, tuning automatico, comparacion de modelos
+
+### SLA Dashboard
+- **Backend:** `routes/sla.py`, `services/sla_service.py`
+- **Frontend:** `SLADashboard.jsx`
+- **Features:** Tiempos limite, alertas, metricas de cumplimiento
+
+### AIAnalytics
+- **Frontend:** `AIAnalytics.jsx`, `services/ai.js`
+- **Features:** Analisis de datos con IA, visualizaciones
+
 ## Historial de Sprints (Diciembre 2025)
 
 | Sprint | Feature | Tests |
@@ -474,14 +514,58 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 | 14 | Cache + E2E | 49 |
 | 15 | WebSockets | 30 |
 | 16 | Observability | 31 |
+| 17 | Auditoria Logica Negocio | - |
 
-**Total: 755+ tests unitarios**
+**Total: 776+ tests unitarios**
+
+### Sprint 17: Auditoria de Logica de Negocio (2025-12-23)
+
+Revision completa de 30 bugs identificados en FSM, Aprobaciones, Presupuestos, MRP, Planificacion y Notificaciones.
+
+**Bugs Corregidos (29 de 30):**
+
+| Fase | Severidad | Bugs | Archivos Principales |
+|------|-----------|------|---------------------|
+| 1 | Critico | 12 | `fsm.py`, `solicitudes.py`, `budget_transaction.py`, `push_service.py` |
+| 2 | Alto | 10 | `mrp_service.py`, `planner_service.py`, `item_schemas.py`, `approval_service.py` |
+| 3 | Medio | 7 | `sla_service.py`, `budget_service.py`, `audit_service.py`, `reporting_service.py`, `notification_service.py` |
+
+**Cambios Clave:**
+- FSM: Removida transicion invalida IN_PLANNING -> REJECTED, limite de retrocesos
+- Aprobaciones: Validacion de ownership, implementacion de delegacion
+- Presupuesto: Optimistic locking en reversiones, normalizacion sector ID/nombre
+- MRP: Correccion division por cero en ROP, alertas para materiales sin historico
+- Notificaciones: Rate limiting (20/min por usuario), proteccion duplicados
+- Exportacion: Inclusion de items y decisiones en reportes
+- Audit: Serializacion JSON para valores complejos
+
+## Reorganizacion de Arquitectura (Sprint 18)
+
+**Fecha**: 2025-12-23
+**Espacio recuperado**: ~560 MB
+
+| Fase | Cambios Realizados |
+|------|-------------------|
+| **Limpieza Critica** | Eliminados: claves SSH/VAPID, .tmp.driveupload (413 MB), backups BD (~140 MB), repomix-output.xml |
+| **Backend** | `planner_service.py` movido a `backend/services/`, eliminado `backend/core/repository/` incompleto |
+| **Tests** | Corregidos 34 imports obsoletos (`src.backend` → `backend`), scripts exploratorios a `tests/manual/` |
+| **Scripts** | Consolidado `migrate_to_postgres.py`, eliminados 21 scripts PowerShell, 7 inspectores BD duplicados |
+| **Raiz** | Eliminados: `/database/`, `/.sugar/`, `/implement/` (contenido movido a `/docs/`) |
+| **Frontend** | Logos PNG reemplazados por SVG (~3 MB ahorrados) |
+
+**Estructura Consolidada:**
+- Servicios: `backend/services/` (11 servicios incluyendo `planner_service.py`)
+- Repositorios: `backend/core/repository_legacy.py` (12 clases)
+- Tests manuales: `tests/manual/` (scripts exploratorios)
+- Tests UI: `frontend/src/__tests__/ui/`
 
 ## Documentacion
 
 - `docs/ARQUITECTURA_SPM_2_0.md` - Arquitectura completa
 - `docs/DEPLOYMENT.md` - Guia de despliegue
 - `docs/GUIA_RAPIDA_USAR_SERVICIOS.md` - Uso de servicios
+- `docs/PLAN_ESCALADO_SPM.md` - Plan de escalado
+- `docs/implementation_plan.md` - Plan de implementacion
 - `docs/history/` - Documentacion historica
 
 ## Instrucciones para Claude
@@ -494,7 +578,7 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 6. No modificar estructura de BD sin crear migracion
 7. Verificar que el build compile sin errores
 8. **Priorizar tests para frontend** (cobertura critica baja)
-9. **Considerar refactorizar repository.py** si se agregan mas entidades
+9. Usar `repository_legacy.py` para entidades de datos (consolidado)
 
 ### Seguridad (Obligatorio)
 

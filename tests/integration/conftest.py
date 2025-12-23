@@ -13,10 +13,10 @@ def app(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     db_path = tmp_path / "spm-test.db"
     monkeypatch.setenv("SPM_DB_PATH", str(db_path))
 
-    import src.backend.app as app_module
-    import src.backend.auth as auth_module
-    import src.backend.config as config_module
-    import src.backend.jwt_utils as jwt_utils_module
+    import backend.app as app_module
+    import backend.auth as auth_module
+    import backend.config as config_module
+    import backend.jwt_utils as jwt_utils_module
 
     importlib.reload(config_module)
     importlib.reload(jwt_utils_module)

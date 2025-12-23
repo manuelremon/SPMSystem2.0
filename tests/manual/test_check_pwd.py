@@ -2,7 +2,7 @@ import sqlite3
 import sys
 
 sys.path.insert(0, ".")
-from src.backend.core.config import Settings
+from backend.core.config import Settings
 
 con = sqlite3.connect(Settings.DB_PATH)
 con.row_factory = sqlite3.Row
