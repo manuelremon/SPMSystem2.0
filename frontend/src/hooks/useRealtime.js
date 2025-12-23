@@ -151,14 +151,14 @@ export function useRealtime({ enabled = true, subscriptions = [] } = {}) {
 
   // Sincronizar el unreadCount del hook con el store
   useEffect(() => {
-    if (hookUnreadCount !== undefined && hookUnreadCount !== unreadCount) {
+    if (hookUnreadCount !== undefined) {
       setUnreadCount(hookUnreadCount)
     }
   }, [hookUnreadCount, setUnreadCount])
 
-  // Sincronizar las notificaciones del hook con el store (solo inicial)
+  // Sincronizar las notificaciones del hook con el store
   useEffect(() => {
-    if (hookNotifications && hookNotifications.length > 0 && notifications.length === 0) {
+    if (hookNotifications && hookNotifications.length > 0) {
       setNotifications(hookNotifications)
     }
   }, [hookNotifications, setNotifications])
