@@ -24,7 +24,8 @@ from backend.agent import agent_bp
 from backend.core.auth_middleware import init_auth_middleware
 from backend.core.config import settings
 from backend.core.csrf import init_csrf_protection
-from backend.core.db import db, init_db
+from backend.core.db import close_pg_pool, db, init_db
+from backend.core.db_optimization import create_indexes
 from backend.core.errors import register_spm_error_handler
 from backend.core.rate_limit import init_rate_limiting
 from backend.core.request_validation import init_request_validation
@@ -184,6 +185,16 @@ def create_app(config_override: dict | None = None) -> Flask:
     # En Render/producción también necesitamos inicializar la BD
     with app.app_context():
         init_db()
+        # Crear índices si no existen (mejora rendimiento de queries)
+        try:
+            create_indexes()
+        except Exception as e:
+            app.logger.warning(f"No se pudieron crear indices: {e}")
+
+    # Cerrar pool de conexiones PostgreSQL al cerrar la app
+    @app.teardown_appcontext
+    def close_db_pool(exception=None):
+        close_pg_pool()
 
     # Registrar blueprints
     app.register_blueprint(health.bp)

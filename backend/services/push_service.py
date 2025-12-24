@@ -26,6 +26,7 @@ except ImportError:
     from core.push_config import (
         VAPID_PRIVATE_KEY_PATH,
         get_vapid_claims,
+        get_vapid_private_key,
         get_vapid_public_key_base64,
     )
 
@@ -293,8 +294,9 @@ class PushService:
                 webpush(
                     subscription_info=subscription_info,
                     data=json.dumps(payload),
-                    vapid_private_key=str(VAPID_PRIVATE_KEY_PATH),
+                    vapid_private_key=get_vapid_private_key(),
                     vapid_claims=get_vapid_claims(),
+                    timeout=10,
                 )
 
                 results["sent"] += 1

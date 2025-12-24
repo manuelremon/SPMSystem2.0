@@ -145,8 +145,9 @@ class PostgresCursorWrapper:
 class PostgresConnectionWrapper:
     """Wrapper para conexion PostgreSQL que retorna cursor compatible"""
 
-    def __init__(self, conn):
+    def __init__(self, conn, pool=None):
         self._conn = conn
+        self._pool = pool
 
     def cursor(self):
         return PostgresCursorWrapper(self._conn.cursor())
@@ -158,20 +159,51 @@ class PostgresConnectionWrapper:
         return self._conn.rollback()
 
     def close(self):
-        return self._conn.close()
+        """Devuelve la conexión al pool en lugar de cerrarla"""
+        if self._pool:
+            self._pool.putconn(self._conn)
+        else:
+            self._conn.close()
 
     def __getattr__(self, name):
         return getattr(self._conn, name)
 
 
-def _get_postgres_connection():
-    """Obtiene conexion a PostgreSQL con wrapper compatible"""
-    try:
-        import psycopg2
-        from psycopg2.extras import RealDictCursor
+# =============================================================================
+# Connection Pool para PostgreSQL
+# =============================================================================
 
-        conn = psycopg2.connect(settings.DATABASE_URL)
-        return PostgresConnectionWrapper(conn)
+_pg_pool = None
+
+
+def _init_pg_pool():
+    """Inicializa el pool de conexiones PostgreSQL (singleton)"""
+    global _pg_pool
+    if _pg_pool is None:
+        import psycopg2.pool
+
+        _pg_pool = psycopg2.pool.SimpleConnectionPool(
+            minconn=2,
+            maxconn=10,
+            dsn=settings.DATABASE_URL,
+        )
+    return _pg_pool
+
+
+def close_pg_pool():
+    """Cierra el pool de conexiones PostgreSQL (llamar al cerrar la app)"""
+    global _pg_pool
+    if _pg_pool:
+        _pg_pool.closeall()
+        _pg_pool = None
+
+
+def _get_postgres_connection():
+    """Obtiene conexion a PostgreSQL desde el pool con wrapper compatible"""
+    try:
+        pool = _init_pg_pool()
+        conn = pool.getconn()
+        return PostgresConnectionWrapper(conn, pool)
     except ImportError:
         raise ImportError("psycopg2-binary no instalado. Ejecuta: pip install psycopg2-binary")
 
