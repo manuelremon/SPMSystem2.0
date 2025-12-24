@@ -465,11 +465,12 @@ def buscar_aprobador(
         # Usar IN clause con placeholders dinamicos (compatible SQLite/PostgreSQL)
         placeholders = ",".join(["?"] * len(puestos_validos))
 
+        # Nota: Usar %% para escapar % en LIKE cuando psycopg2 usa %s placeholders
         if centro:
             query = f"""
                 SELECT id_spm, nombre, apellido, rol, posicion, centros
                 FROM usuarios
-                WHERE LOWER(rol) LIKE '%aprobador_solicitudes%'
+                WHERE LOWER(rol) LIKE '%%aprobador_solicitudes%%'
                     AND LOWER(posicion) IN ({placeholders})
                     AND (',' || centros || ',') LIKE ?
                     AND estado_registro = 'Activo'
@@ -492,7 +493,7 @@ def buscar_aprobador(
             query = f"""
                 SELECT id_spm, nombre, apellido, rol, posicion, centros
                 FROM usuarios
-                WHERE LOWER(rol) LIKE '%aprobador_solicitudes%'
+                WHERE LOWER(rol) LIKE '%%aprobador_solicitudes%%'
                     AND LOWER(posicion) IN ({placeholders})
                     AND estado_registro = 'Activo'
                 ORDER BY
