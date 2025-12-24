@@ -14,10 +14,10 @@ from jwt import InvalidTokenError
 
 try:
     from backend.core.config import settings
-    from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
+    from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id, is_using_postgresql
 except ImportError:
     from core.config import settings
-    from core.db import get_db_connection, get_db_transaction, insert_returning_id
+    from core.db import get_db_connection, get_db_transaction, insert_returning_id, is_using_postgresql
 
 
 bp = Blueprint("foro", __name__)
@@ -29,48 +29,93 @@ def _ensure_foro_tables():
     with get_db_transaction() as conn:
         cur = conn.cursor()
 
-        cur.execute(
+        # PostgreSQL usa SERIAL, SQLite usa INTEGER PRIMARY KEY AUTOINCREMENT
+        if is_using_postgresql():
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS foro_posts (
+                    id SERIAL PRIMARY KEY,
+                    autor_id TEXT NOT NULL,
+                    autor_nombre TEXT NOT NULL,
+                    titulo TEXT NOT NULL,
+                    contenido TEXT NOT NULL,
+                    categoria TEXT DEFAULT 'general',
+                    likes INTEGER DEFAULT 0,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
             """
-            CREATE TABLE IF NOT EXISTS foro_posts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                autor_id TEXT NOT NULL,
-                autor_nombre TEXT NOT NULL,
-                titulo TEXT NOT NULL,
-                contenido TEXT NOT NULL,
-                categoria TEXT DEFAULT 'general',
-                likes INTEGER DEFAULT 0,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
-        """
-        )
 
-        cur.execute(
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS foro_respuestas (
+                    id SERIAL PRIMARY KEY,
+                    post_id INTEGER NOT NULL,
+                    autor_id TEXT NOT NULL,
+                    autor_nombre TEXT NOT NULL,
+                    contenido TEXT NOT NULL,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (post_id) REFERENCES foro_posts(id) ON DELETE CASCADE
+                )
             """
-            CREATE TABLE IF NOT EXISTS foro_respuestas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                post_id INTEGER NOT NULL,
-                autor_id TEXT NOT NULL,
-                autor_nombre TEXT NOT NULL,
-                contenido TEXT NOT NULL,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (post_id) REFERENCES foro_posts(id) ON DELETE CASCADE
             )
-        """
-        )
 
-        cur.execute(
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS foro_likes (
+                    id SERIAL PRIMARY KEY,
+                    post_id INTEGER NOT NULL,
+                    user_id TEXT NOT NULL,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(post_id, user_id),
+                    FOREIGN KEY (post_id) REFERENCES foro_posts(id) ON DELETE CASCADE
+                )
             """
-            CREATE TABLE IF NOT EXISTS foro_likes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                post_id INTEGER NOT NULL,
-                user_id TEXT NOT NULL,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(post_id, user_id),
-                FOREIGN KEY (post_id) REFERENCES foro_posts(id) ON DELETE CASCADE
             )
-        """
-        )
+        else:
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS foro_posts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    autor_id TEXT NOT NULL,
+                    autor_nombre TEXT NOT NULL,
+                    titulo TEXT NOT NULL,
+                    contenido TEXT NOT NULL,
+                    categoria TEXT DEFAULT 'general',
+                    likes INTEGER DEFAULT 0,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """
+            )
+
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS foro_respuestas (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    post_id INTEGER NOT NULL,
+                    autor_id TEXT NOT NULL,
+                    autor_nombre TEXT NOT NULL,
+                    contenido TEXT NOT NULL,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (post_id) REFERENCES foro_posts(id) ON DELETE CASCADE
+                )
+            """
+            )
+
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS foro_likes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    post_id INTEGER NOT NULL,
+                    user_id TEXT NOT NULL,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(post_id, user_id),
+                    FOREIGN KEY (post_id) REFERENCES foro_posts(id) ON DELETE CASCADE
+                )
+            """
+            )
 
 
 def _get_token_from_request() -> str | None:
