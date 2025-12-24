@@ -109,21 +109,30 @@ def run_migration(db_path: Path = DB_PATH) -> bool:
         print("No se pudo conectar a la base de datos")
         return False
 
+    # PostgreSQL requiere autocommit para CREATE INDEX sin transaccion
+    if db_type == "postgresql":
+        conn.autocommit = True
+
     try:
         cursor = conn.cursor()
         indexes = INDEXES_POSTGRESQL if db_type == "postgresql" else INDEXES_SQLITE
+        success_count = 0
 
         for idx_sql in indexes:
             idx_name = idx_sql.split("idx_")[1].split()[0] if "idx_" in idx_sql else "unknown"
             print(f"Creando indice idx_{idx_name}...")
             try:
                 cursor.execute(idx_sql)
+                success_count += 1
+                print(f"  OK")
             except Exception as e:
-                # El indice puede ya existir
-                print(f"  Nota: {e}")
+                # La tabla puede no existir o el indice ya existe
+                print(f"  Saltado: {e}")
 
-        conn.commit()
-        print(f"Migracion 011 completada exitosamente ({db_type})")
+        if db_type != "postgresql":
+            conn.commit()
+
+        print(f"Migracion 011 completada: {success_count}/{len(indexes)} indices creados ({db_type})")
         return True
 
     except Exception as e:
