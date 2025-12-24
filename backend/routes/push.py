@@ -200,7 +200,7 @@ def send_test_notification():
     """
     Envia una notificacion push de prueba.
 
-    Solo disponible en desarrollo.
+    Disponible en desarrollo para todos, en produccion solo para admins.
 
     Body (opcional):
     {
@@ -211,13 +211,14 @@ def send_test_notification():
     Returns:
         {ok: bool, results: {sent: int, failed: int}}
     """
-    # Solo permitir en desarrollo
-    if settings.ENV not in ("development", "dev", "local"):
-        return jsonify({"ok": False, "error": "Solo disponible en desarrollo"}), 403
-
     user_id, error = _get_current_user()
     if error:
         return error
+
+    # En produccion, solo admins pueden enviar test
+    if settings.ENV not in ("development", "dev", "local"):
+        if not _is_admin(user_id):
+            return jsonify({"ok": False, "error": "Solo disponible para administradores"}), 403
 
     data = request.get_json(silent=True) or {}
     title = data.get("title", "Notificacion de prueba")
