@@ -98,6 +98,14 @@ export default function MisSolicitudes() {
   // Modal de detalle de solicitud
   const [detalleModal, setDetalleModal] = useState({ open: false, solicitud: null });
 
+  // Auto-clear success messages with proper cleanup to prevent memory leaks
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(""), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
   // Cargar sectores desde el backend
   useEffect(() => {
     const fetchSectores = async () => {
@@ -140,7 +148,6 @@ export default function MisSolicitudes() {
       const data = res.data.solicitudes || res.data.results || [];
       setItems(data);
       setSuccess(t("mis_refresh_success", "Datos actualizados"));
-      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError(err.response?.data?.error?.message || err.message);
     } finally {
@@ -264,7 +271,6 @@ export default function MisSolicitudes() {
       setSuccess(t("mis_delete_success", "Solicitud eliminada correctamente"));
       setItems((prev) => prev.filter((s) => s.id !== id));
       setDeleteModal({ open: false, solicitudId: null });
-      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError(err.response?.data?.error?.message || err.message);
     } finally {
@@ -287,7 +293,6 @@ export default function MisSolicitudes() {
     }));
     exportToExcel(dataToExport, `mis-solicitudes-${new Date().toISOString().split("T")[0]}.xls`);
     setSuccess(t("mis_export_success", "Datos exportados correctamente"));
-    setTimeout(() => setSuccess(""), 3000);
   }, [filtered, sectores, t]);
 
   // Columnas de la tabla (memoizadas para evitar re-renders, con alineación SPM automática)

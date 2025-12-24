@@ -746,7 +746,7 @@ def actualizar_regla(regla_id: int, **campos) -> Dict[str, Any]:
         set_parts.append(f"{campo} = ?")
         values.append(valor)
 
-    set_parts.append("updated_at = NOW()")
+    set_parts.append("updated_at = CURRENT_TIMESTAMP")
     values.append(regla_id)
 
     with get_db_transaction() as conn:
@@ -780,7 +780,7 @@ def desactivar_regla(regla_id: int) -> Dict[str, Any]:
         cursor.execute(
             """
             UPDATE reglas_aprobacion
-            SET activo = 0, updated_at = NOW()
+            SET activo = 0, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         """,
             (regla_id,),

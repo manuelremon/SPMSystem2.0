@@ -105,8 +105,8 @@ class Evaluator(BaseTool):
             if "roc_auc" in metrics and len(np.unique(y_true)) == 2:
                 try:
                     results["roc_auc"] = float(roc_auc_score(y_true, y_pred))
-                except:
-                    pass
+                except ValueError as e:
+                    logger.debug(f"No se pudo calcular ROC-AUC: {e}")
 
         except Exception as e:
             logger.warning(f"No se pudieron calcular algunas métricas: {e}")

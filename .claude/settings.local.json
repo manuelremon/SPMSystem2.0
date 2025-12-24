@@ -113,7 +113,9 @@
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjY1ODU1ODcsImV4cCI6MTc2NjU4OTE4N30.5vmRUe6KpMNJRft7R3bfI0VbgqykaQc8_gUE5u2295M\")",
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjY1ODU5NTcsImV4cCI6MTc2NjU4OTU1N30.8puP5MMiVgeLO4gZvTHEQcuVQy751J9ADi_LCVP8Z0Q\")",
       "Bash(xxd:*)",
-      "Bash(TOKEN6=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNiIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjY1ODY2MDYsImV4cCI6MTc2NjU5MDIwNn0.HC8rlg1zZeuD1LCyjI3ZbwV1w_jo5d4AkmBkxzSdo80\")"
+      "Bash(TOKEN6=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNiIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjY1ODY2MDYsImV4cCI6MTc2NjU5MDIwNn0.HC8rlg1zZeuD1LCyjI3ZbwV1w_jo5d4AkmBkxzSdo80\")",
+      "Bash(TOKEN6=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNiIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjY1ODY2NjQsImV4cCI6MTc2NjU5MDI2NH0.k5lEP5iBNzVlxvGHiMCymihSKYptKPjmTncinPscSzk\" curl -s https://planifica-materiales.com/api/mi-cuenta/notification-preferences -H \"Authorization: Bearer $TOKEN6\")",
+      "Bash(python -m py_compile:*)"
     ],
     "deny": [],
     "ask": []

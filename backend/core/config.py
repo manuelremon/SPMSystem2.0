@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     LOG_FILE: str = "logs/spm_backend.log"
 
     def get_cors_origins(self) -> List[str]:
-        """Parse CORS_ORIGINS from comma-separated string
+        r"""Parse CORS_ORIGINS from comma-separated string
 
         Soporta wildcards para subdominios usando regex:
         - https://*.trycloudflare.com -> r"https://.*\.trycloudflare\.com"

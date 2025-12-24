@@ -65,7 +65,8 @@ class ScoringPipeline:
                     fecha_nec = datetime.fromisoformat(fecha_necesidad)
                     dias_restantes = (fecha_nec - datetime.now()).days
                     scores["fecha_urgencia"] = self._urgency_score(dias_restantes)
-                except:
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"Error parsing fecha_necesidad '{fecha_necesidad}': {e}")
                     scores["fecha_urgencia"] = 0.5
             else:
                 scores["fecha_urgencia"] = 0.5

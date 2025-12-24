@@ -137,7 +137,8 @@ class Predictor(BaseTool):
                         batch_result["probabilities"] = probabilities.tolist()
                         confidence = np.max(probabilities, axis=1)
                         batch_result["confidence"] = confidence.tolist()
-                    except:
+                    except AttributeError:
+                        # Model doesn't support predict_proba (e.g., SVM without probability=True)
                         pass
 
                 batch_results.append(batch_result)
