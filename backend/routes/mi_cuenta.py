@@ -1146,7 +1146,7 @@ def get_notification_preferences():
             with get_db_transaction() as conn:
                 cur = conn.cursor()
                 cur.execute(
-                    "INSERT OR IGNORE INTO user_notification_preferences (user_id) VALUES (?)",
+                    "INSERT INTO user_notification_preferences (user_id) VALUES (%s) ON CONFLICT (user_id) DO NOTHING",
                     (str(user_id),),
                 )
 
@@ -1223,14 +1223,14 @@ def update_notification_preferences():
 
     for camel_key, snake_key in field_mapping.items():
         if camel_key in data:
-            updates.append(f"{snake_key} = ?")
+            updates.append(f"{snake_key} = %s")
             values.append(1 if data[camel_key] else 0)
 
     if not updates:
         return jsonify({"ok": False, "error": {"message": "No hay preferencias para actualizar"}}), 400
 
     # Agregar updated_at
-    updates.append("updated_at = ?")
+    updates.append("updated_at = %s")
     values.append(datetime.utcnow().isoformat())
     values.append(str(user_id))
 
@@ -1240,12 +1240,12 @@ def update_notification_preferences():
 
             # Primero intentar INSERT si no existe
             cur.execute(
-                "INSERT OR IGNORE INTO user_notification_preferences (user_id) VALUES (?)",
+                "INSERT INTO user_notification_preferences (user_id) VALUES (%s) ON CONFLICT (user_id) DO NOTHING",
                 (str(user_id),),
             )
 
             # Luego UPDATE
-            query = f"UPDATE user_notification_preferences SET {', '.join(updates)} WHERE user_id = ?"
+            query = f"UPDATE user_notification_preferences SET {', '.join(updates)} WHERE user_id = %s"
             cur.execute(query, values)
 
         logger.info(f"Preferencias de notificacion actualizadas para usuario {user_id}")

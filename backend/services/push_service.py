@@ -303,11 +303,12 @@ class PushService:
 
                 # Actualizar last_used_at
                 with get_db_transaction() as conn:
-                    conn.execute(
+                    cur = conn.cursor()
+                    cur.execute(
                         """
                         UPDATE push_subscriptions
                         SET last_used_at = CURRENT_TIMESTAMP
-                        WHERE id = ?
+                        WHERE id = %s
                     """,
                         (sub.id,),
                     )
@@ -343,9 +344,10 @@ class PushService:
             return
         try:
             with get_db_transaction() as conn:
-                # Usar IN con placeholders dinamicos (compatible SQLite/PostgreSQL)
-                placeholders = ",".join("?" * len(endpoints))
-                conn.execute(
+                cur = conn.cursor()
+                # Usar IN con placeholders dinamicos (PostgreSQL)
+                placeholders = ",".join(["%s"] * len(endpoints))
+                cur.execute(
                     f"""
                     DELETE FROM push_subscriptions
                     WHERE endpoint IN ({placeholders})

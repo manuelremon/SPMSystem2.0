@@ -482,7 +482,7 @@ def admin_planificadores():
             cur = conn.cursor()
             for a in asignaciones:
                 cur.execute(
-                    "INSERT OR IGNORE INTO planificador_asignaciones (planificador_id, centro, sector, almacen_virtual, activo) VALUES (?,?,?,?,1)",
+                    "INSERT INTO planificador_asignaciones (planificador_id, centro, sector, almacen_virtual, activo) VALUES (%s,%s,%s,%s,1) ON CONFLICT DO NOTHING",
                     (
                         data["usuario_id"],
                         a.get("centro"),
@@ -519,16 +519,16 @@ def admin_planificadores_mod(usuario_id):
             data = request.get_json(silent=True) or {}
             if "asignaciones" in data:
                 cur.execute(
-                    "DELETE FROM planificador_asignaciones WHERE planificador_id=?", (usuario_id,)
+                    "DELETE FROM planificador_asignaciones WHERE planificador_id=%s", (usuario_id,)
                 )
                 for a in data.get("asignaciones") or []:
                     cur.execute(
-                        "INSERT OR IGNORE INTO planificador_asignaciones (planificador_id, centro, sector, almacen_virtual, activo) VALUES (?,?,?,?,1)",
+                        "INSERT INTO planificador_asignaciones (planificador_id, centro, sector, almacen_virtual, activo) VALUES (%s,%s,%s,%s,1) ON CONFLICT DO NOTHING",
                         (usuario_id, a.get("centro"), a.get("sector"), a.get("almacen_virtual")),
                     )
         else:
             cur.execute(
-                "UPDATE planificador_asignaciones SET activo=0 WHERE planificador_id=?",
+                "UPDATE planificador_asignaciones SET activo=0 WHERE planificador_id=%s",
                 (usuario_id,),
             )
 
