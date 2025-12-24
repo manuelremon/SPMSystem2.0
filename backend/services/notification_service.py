@@ -281,7 +281,11 @@ class NotificationService:
                     (destinatario_id, mensaje, tipo, solicitud_id, datetime.now().isoformat()),
                 )
                 row = cursor.fetchone()
-                notif_id = row[0] if row else None
+                # Compatibilidad PostgreSQL (dict) y SQLite (tuple)
+                if row:
+                    notif_id = row["id"] if isinstance(row, dict) else row[0]
+                else:
+                    notif_id = None
         except Exception as e:
             logger.error(f"Error creating notification: {e}")
             return None

@@ -131,9 +131,16 @@ def dashboard_stats():
                 )
 
             if _table_exists(conn, "presupuestos"):
-                cur.execute("SELECT SUM(saldo_usd) FROM presupuestos")
+                cur.execute("SELECT SUM(saldo_usd) as total FROM presupuestos")
                 total_saldo = cur.fetchone()
-                stats["presupuesto_disponible"] = float(total_saldo[0] or 0) if total_saldo else 0.0
+                # Compatibilidad PostgreSQL (dict) y SQLite (tuple)
+                if total_saldo:
+                    if isinstance(total_saldo, dict):
+                        stats["presupuesto_disponible"] = float(total_saldo.get("total", 0) or 0)
+                    else:
+                        stats["presupuesto_disponible"] = float(total_saldo[0] or 0)
+                else:
+                    stats["presupuesto_disponible"] = 0.0
 
         return jsonify({"ok": True, "data": stats}), 200
     except Exception as exc:

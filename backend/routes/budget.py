@@ -101,6 +101,9 @@ def _resolve_sector_name(sector_value: str) -> str:
             cur.execute("SELECT nombre FROM catalog_sectores WHERE id = ?", (int(sector_value),))
             row = cur.fetchone()
             if row:
+                # Compatibilidad PostgreSQL (dict) y SQLite (tuple)
+                if isinstance(row, dict):
+                    return row.get("nombre", sector_value)
                 return row[0]
 
     return sector_value

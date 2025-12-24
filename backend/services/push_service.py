@@ -189,17 +189,28 @@ class PushService:
                     (user_id,),
                 )
                 rows = cur.fetchall()
-                return [
-                    PushSubscription(
-                        id=row[0],
-                        user_id=row[1],
-                        endpoint=row[2],
-                        p256dh=row[3],
-                        auth=row[4],
-                        created_at=row[5],
-                    )
-                    for row in rows
-                ]
+                result = []
+                for row in rows:
+                    # Compatibilidad PostgreSQL (dict) y SQLite (tuple)
+                    if isinstance(row, dict):
+                        result.append(PushSubscription(
+                            id=row["id"],
+                            user_id=row["user_id"],
+                            endpoint=row["endpoint"],
+                            p256dh=row["p256dh"],
+                            auth=row["auth"],
+                            created_at=row["created_at"],
+                        ))
+                    else:
+                        result.append(PushSubscription(
+                            id=row[0],
+                            user_id=row[1],
+                            endpoint=row[2],
+                            p256dh=row[3],
+                            auth=row[4],
+                            created_at=row[5],
+                        ))
+                return result
         except Exception as e:
             logger.error(f"[PUSH] Error al obtener suscripciones: {e}")
             return []
@@ -218,7 +229,11 @@ class PushService:
                     (user_id,),
                 )
                 row = cur.fetchone()
-                return row[0] > 0 if row else False
+                # Compatibilidad PostgreSQL (dict) y SQLite (tuple)
+                if row:
+                    count = row["count"] if isinstance(row, dict) else row[0]
+                    return count > 0
+                return False
         except Exception as e:
             logger.error(f"[PUSH] Error al verificar suscripcion: {e}")
             return False
