@@ -33,6 +33,81 @@ def is_using_postgresql() -> bool:
     return settings.DATABASE_URL.startswith("postgresql://")
 
 
+# =============================================================================
+# Helpers para Compatibilidad SQL SQLite/PostgreSQL
+# =============================================================================
+
+
+def sql_datetime_now() -> str:
+    """
+    Retorna expresión SQL para timestamp actual.
+
+    Returns:
+        'NOW()' para PostgreSQL, "datetime('now')" para SQLite
+    """
+    if is_using_postgresql():
+        return "NOW()"
+    return "datetime('now')"
+
+
+def sql_now_minus(interval: str) -> str:
+    """
+    Retorna expresión SQL para NOW() - interval.
+
+    Args:
+        interval: Intervalo en formato "5 seconds", "90 days", etc.
+
+    Returns:
+        Expresión SQL compatible con el motor actual
+
+    Example:
+        >>> sql_now_minus("5 seconds")
+        # PostgreSQL: "NOW() - INTERVAL '5 seconds'"
+        # SQLite: "datetime('now', '-5 seconds')"
+    """
+    if is_using_postgresql():
+        return f"NOW() - INTERVAL '{interval}'"
+    return f"datetime('now', '-{interval}')"
+
+
+def insert_returning_id(cursor, sql: str, params: tuple = None) -> int:
+    """
+    Ejecuta INSERT y retorna el ID generado.
+
+    Para PostgreSQL agrega RETURNING id automáticamente.
+    Para SQLite usa lastrowid.
+
+    Args:
+        cursor: Cursor de base de datos
+        sql: Query INSERT (sin RETURNING para SQLite)
+        params: Parámetros del query
+
+    Returns:
+        ID del registro insertado
+
+    Example:
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+            new_id = insert_returning_id(
+                cur,
+                "INSERT INTO posts (titulo, contenido) VALUES (?, ?)",
+                (titulo, contenido)
+            )
+    """
+    if is_using_postgresql():
+        # Agregar RETURNING id si no está presente
+        if "RETURNING" not in sql.upper():
+            sql = sql.rstrip(";").rstrip() + " RETURNING id"
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        return row["id"] if isinstance(row, dict) else row[0]
+    else:
+        cursor.execute(sql, params)
+        return cursor.lastrowid
+
+
 class PostgresCursorWrapper:
     """Wrapper para cursor PostgreSQL que convierte ? a %s automaticamente"""
 

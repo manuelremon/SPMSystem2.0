@@ -14,9 +14,9 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 try:
-    from backend.core.db import get_db_connection, get_db_transaction
+    from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
 except ImportError:
-    from core.db import get_db_connection, get_db_transaction
+    from core.db import get_db_connection, get_db_transaction, insert_returning_id
 
 
 # =============================================================================
@@ -543,7 +543,8 @@ def crear_delegacion(
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        cursor.execute(
+        new_id = insert_returning_id(
+            cursor,
             """
             INSERT INTO aprobadores_delegados
                 (aprobador_original_id, delegado_id, fecha_inicio, fecha_fin, motivo, created_by)
@@ -552,7 +553,7 @@ def crear_delegacion(
             (aprobador_original_id, delegado_id, fecha_inicio, fecha_fin, motivo, created_by),
         )
 
-        return {"id": cursor.lastrowid}
+        return {"id": new_id}
 
 
 def obtener_delegacion_activa(aprobador_id: str) -> Optional[Dict[str, Any]]:
@@ -696,7 +697,8 @@ def crear_regla(
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        cursor.execute(
+        new_id = insert_returning_id(
+            cursor,
             """
             INSERT INTO reglas_aprobacion (
                 nombre, descripcion, monto_minimo_usd, monto_maximo_usd,
@@ -720,7 +722,7 @@ def crear_regla(
             ),
         )
 
-        return {"id": cursor.lastrowid}
+        return {"id": new_id}
 
 
 def actualizar_regla(regla_id: int, **campos) -> Dict[str, Any]:

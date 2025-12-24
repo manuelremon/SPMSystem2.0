@@ -289,7 +289,8 @@ class BURService:
                 """INSERT INTO budget_update_requests
                    (centro, sector, monto_solicitado_cents, saldo_actual_cents,
                     nivel_aprobacion_requerido, solicitante_id, solicitante_rol, justificacion)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                   RETURNING id""",
                 (
                     centro,
                     sector_normalizado,
@@ -301,8 +302,9 @@ class BURService:
                     justificacion,
                 ),
             )
+            row = cur.fetchone()
+            bur_id = row["id"] if isinstance(row, dict) else row[0]
             conn.commit()
-            bur_id = cur.lastrowid
 
             _execute(cur, "SELECT * FROM budget_update_requests WHERE id = ?", (bur_id,))
             row = _fetchone(cur)

@@ -628,26 +628,32 @@ class ProveedorPreciosRepository:
         conn = _connect()
         try:
             cur = conn.cursor()
-            cur.execute(
-                """
+            sql = """
                 INSERT INTO proveedor_precios_negociados
                 (cuit_proveedor, codigo_material, precio_usd, fecha_vigencia_desde,
                  fecha_vigencia_hasta, condicion_pago, cantidad_minima, notas)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    cuit_proveedor,
-                    codigo_material,
-                    precio_usd,
-                    fecha_vigencia_desde,
-                    fecha_vigencia_hasta,
-                    condicion_pago,
-                    cantidad_minima,
-                    notas,
-                ),
+            """
+            params = (
+                cuit_proveedor,
+                codigo_material,
+                precio_usd,
+                fecha_vigencia_desde,
+                fecha_vigencia_hasta,
+                condicion_pago,
+                cantidad_minima,
+                notas,
             )
+            if is_using_postgresql():
+                sql = sql.replace("?", "%s") + " RETURNING id"
+                cur.execute(sql, params)
+                row = cur.fetchone()
+                new_id = row["id"] if isinstance(row, dict) else row[0]
+            else:
+                cur.execute(sql, params)
+                new_id = cur.lastrowid
             conn.commit()
-            return cur.lastrowid
+            return new_id
         finally:
             conn.close()
 
@@ -1197,39 +1203,45 @@ class DecisionAbastecimientoRepository:
         conn = _connect()
         try:
             cur = conn.cursor()
-            cur.execute(
-                """
+            sql = """
                 INSERT INTO decision_abastecimiento_fuentes
                 (decision_id, tipo_fuente, cantidad_asignada, centro_origen, almacen_origen,
                  cuit_proveedor, proveedor_nombre, codigo_material_equiv, tipo_equivalencia,
                  precio_unitario, precio_es_negociado, plazo_dias, score_opcion,
                  orden_prioridad, notas)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    decision_id,
-                    tipo_fuente,
-                    cantidad_asignada,
-                    centro_origen,
-                    almacen_origen,
-                    cuit_proveedor,
-                    proveedor_nombre,
-                    codigo_material_equiv,
-                    tipo_equivalencia,
-                    precio_unitario,
-                    1 if precio_es_negociado else 0,
-                    plazo_dias,
-                    score_opcion,
-                    orden_prioridad,
-                    notas,
-                ),
+            """
+            params = (
+                decision_id,
+                tipo_fuente,
+                cantidad_asignada,
+                centro_origen,
+                almacen_origen,
+                cuit_proveedor,
+                proveedor_nombre,
+                codigo_material_equiv,
+                tipo_equivalencia,
+                precio_unitario,
+                1 if precio_es_negociado else 0,
+                plazo_dias,
+                score_opcion,
+                orden_prioridad,
+                notas,
             )
+            if is_using_postgresql():
+                sql = sql.replace("?", "%s") + " RETURNING id"
+                cur.execute(sql, params)
+                row = cur.fetchone()
+                new_id = row["id"] if isinstance(row, dict) else row[0]
+            else:
+                cur.execute(sql, params)
+                new_id = cur.lastrowid
             conn.commit()
 
             # Actualizar cantidad total asignada en cabecera
             DecisionAbastecimientoRepository._actualizar_totales(decision_id)
 
-            return cur.lastrowid
+            return new_id
         finally:
             conn.close()
 

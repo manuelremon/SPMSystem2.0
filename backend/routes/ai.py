@@ -127,9 +127,9 @@ def train_models():
         Resultado del entrenamiento
     """
     try:
-        from backend.core.db import get_db_connection
+        from backend.core.db import get_db_connection, sql_now_minus
     except ImportError:
-        from core.db import get_db_connection
+        from core.db import get_db_connection, sql_now_minus
 
     try:
         service = get_ai_service()
@@ -140,11 +140,11 @@ def train_models():
 
             # Solicitudes historicas
             cursor.execute(
-                """
+                f"""
                 SELECT id, created_at, material_codigo, centro, sector,
                        criticidad, total_monto, data_json
                 FROM solicitudes
-                WHERE created_at > datetime('now', '-90 days')
+                WHERE created_at > {sql_now_minus("90 days")}
             """
             )
             solicitudes = [dict(row) for row in cursor.fetchall()]

@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 
 try:
     from backend.core.config import settings
-    from backend.core.db import get_db_connection, get_db_transaction
+    from backend.core.db import get_db_connection, get_db_transaction, sql_now_minus
     from backend.core.notification_schemas import (
         Notificacion,
         NotificacionCreate,
@@ -27,7 +27,7 @@ try:
     )
     from backend.services.push_service import send_push_notification
 except ImportError:
-    from core.db import get_db_connection, get_db_transaction
+    from core.db import get_db_connection, get_db_transaction, sql_now_minus
     from core.notification_schemas import Notificacion
 
     try:
@@ -258,10 +258,10 @@ class NotificationService:
 
                 # Evitar notificaciones duplicadas en los últimos 5 segundos
                 cursor.execute(
-                    """
+                    f"""
                     SELECT id FROM notificaciones
                     WHERE destinatario_id = ? AND mensaje = ? AND tipo = ?
-                    AND created_at > datetime('now', '-5 seconds')
+                    AND created_at > {sql_now_minus("5 seconds")}
                     LIMIT 1
                     """,
                     (destinatario_id, mensaje, tipo),

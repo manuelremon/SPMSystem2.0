@@ -16,7 +16,7 @@ import math
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from backend.core.db import get_db_connection, get_db_transaction
+from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
 
 logger = logging.getLogger(__name__)
 
@@ -236,7 +236,8 @@ def generar_orden_planificada(
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        cursor.execute(
+        new_id = insert_returning_id(
+            cursor,
             """
             INSERT INTO ordenes_planificadas (
                 material_codigo, centro, cantidad,
@@ -256,7 +257,7 @@ def generar_orden_planificada(
         )
 
         return {
-            "id": cursor.lastrowid,
+            "id": new_id,
             "material_codigo": material_codigo,
             "centro": centro,
             "cantidad": cantidad,
@@ -656,7 +657,8 @@ def crear_alerta_mrp(
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        cursor.execute(
+        new_id = insert_returning_id(
+            cursor,
             """
             INSERT INTO alertas_mrp (
                 material_codigo, centro, tipo, severidad,
@@ -674,7 +676,7 @@ def crear_alerta_mrp(
         )
 
         return {
-            "id": cursor.lastrowid,
+            "id": new_id,
             "material_codigo": material_codigo,
             "tipo": tipo,
             "severidad": severidad,

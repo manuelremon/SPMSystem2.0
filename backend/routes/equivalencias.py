@@ -8,9 +8,9 @@ from functools import wraps
 from flask import Blueprint, g, jsonify, request
 
 try:
-    from backend.core.db import get_db_connection, get_db_transaction
+    from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
 except ImportError:
-    from core.db import get_db_connection, get_db_transaction
+    from core.db import get_db_connection, get_db_transaction, insert_returning_id
 
 bp = Blueprint("equivalencias", __name__, url_prefix="/api/equivalencias")
 
@@ -362,7 +362,8 @@ def crear_equivalencia():
     try:
         with get_db_transaction() as conn:
             cursor = conn.cursor()
-            cursor.execute(
+            new_id = insert_returning_id(
+                cursor,
                 """
                 INSERT INTO material_equivalencias
                 (codigo_original, codigo_equivalente, compatibilidad_pct, descripcion, notas, activo)
@@ -376,7 +377,6 @@ def crear_equivalencia():
                     notas or None,
                 ),
             )
-            new_id = cursor.lastrowid
 
         return (
             jsonify({"ok": True, "message": "Equivalencia creada exitosamente", "id": new_id}),

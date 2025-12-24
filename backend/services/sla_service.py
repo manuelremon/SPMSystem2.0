@@ -13,7 +13,7 @@ Gestiona:
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from backend.core.db import get_db_connection, get_db_transaction
+from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
 
 # =============================================================================
 # Configuracion SLA
@@ -204,7 +204,8 @@ def registrar_alerta_sla(
         if tiempo_transcurrido_horas and tiempo_objetivo_horas:
             porcentaje = round((tiempo_transcurrido_horas / tiempo_objetivo_horas) * 100, 2)
 
-        cursor.execute(
+        new_id = insert_returning_id(
+            cursor,
             """
             INSERT INTO sla_alertas (
                 solicitud_id, sla_config_id, tipo, estado,
@@ -226,7 +227,7 @@ def registrar_alerta_sla(
             ),
         )
 
-        return {"id": cursor.lastrowid}
+        return {"id": new_id}
 
 
 def resolver_alerta_sla(alerta_id: int, resuelto_por: str) -> Dict[str, Any]:
@@ -243,16 +244,17 @@ def resolver_alerta_sla(alerta_id: int, resuelto_por: str) -> Dict[str, Any]:
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
+        now_iso = datetime.now().isoformat()
         cursor.execute(
             """
             UPDATE sla_alertas
             SET estado = 'resuelta',
-                fecha_resolucion = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                fecha_resolucion = ?,
                 resuelto_por = ?
             WHERE id = ?
               AND estado = 'activa'
         """,
-            (resuelto_por, alerta_id),
+            (now_iso, resuelto_por, alerta_id),
         )
 
         return {"resuelto": cursor.rowcount > 0}
@@ -272,16 +274,17 @@ def resolver_alertas_solicitud(solicitud_id: int, resuelto_por: str) -> Dict[str
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
+        now_iso = datetime.now().isoformat()
         cursor.execute(
             """
             UPDATE sla_alertas
             SET estado = 'resuelta',
-                fecha_resolucion = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                fecha_resolucion = ?,
                 resuelto_por = ?
             WHERE solicitud_id = ?
               AND estado = 'activa'
         """,
-            (resuelto_por, solicitud_id),
+            (now_iso, resuelto_por, solicitud_id),
         )
 
         return {"alertas_resueltas": cursor.rowcount}
@@ -471,15 +474,16 @@ def actualizar_sla_solicitud(
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
+        now_iso = datetime.now().isoformat()
         cursor.execute(
             """
             UPDATE solicitudes
             SET sla_fecha_limite = ?,
                 sla_estado = ?,
-                updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                updated_at = ?
             WHERE id = ?
         """,
-            (fecha_limite, estado_sla, solicitud_id),
+            (fecha_limite, estado_sla, now_iso, solicitud_id),
         )
 
         return {"actualizado": cursor.rowcount > 0}
@@ -558,7 +562,8 @@ def crear_configuracion_sla(
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        cursor.execute(
+        new_id = insert_returning_id(
+            cursor,
             """
             INSERT INTO sla_configuracion (
                 nombre, descripcion, criticidad,
@@ -583,7 +588,7 @@ def crear_configuracion_sla(
             ),
         )
 
-        return {"id": cursor.lastrowid}
+        return {"id": new_id}
 
 
 def actualizar_configuracion_sla(config_id: int, **campos) -> Dict[str, Any]:
@@ -629,8 +634,9 @@ def actualizar_configuracion_sla(config_id: int, **campos) -> Dict[str, Any]:
         if not set_clauses:
             return {"actualizado": False, "mensaje": "No hay campos validos para actualizar"}
 
-        # Agregar updated_at
-        set_clauses.append("updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')")
+        # Agregar updated_at como parametro (compatible con PostgreSQL y SQLite)
+        set_clauses.append("updated_at = ?")
+        params.append(datetime.now().isoformat())
 
         query = f"""
             UPDATE sla_configuracion
@@ -657,14 +663,15 @@ def eliminar_configuracion_sla(config_id: int) -> Dict[str, Any]:
         cursor = conn.cursor()
 
         # Soft delete - solo desactivar
+        now_iso = datetime.now().isoformat()
         cursor.execute(
             """
             UPDATE sla_configuracion
             SET activo = 0,
-                updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                updated_at = ?
             WHERE id = ?
         """,
-            (config_id,),
+            (now_iso, config_id),
         )
 
         return {"eliminado": cursor.rowcount > 0}

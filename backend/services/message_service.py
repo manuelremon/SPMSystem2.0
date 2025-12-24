@@ -21,8 +21,10 @@ logger = logging.getLogger(__name__)
 # Importar configuración de BD
 try:
     from backend.core.config import settings
+    from backend.core.db import is_using_postgresql, _get_postgres_connection
 except ImportError:
     from core.config import settings
+    from core.db import is_using_postgresql, _get_postgres_connection
 
 
 class MessageService:
@@ -38,9 +40,13 @@ class MessageService:
 
     @staticmethod
     def _connect():
-        """Crear conexión a BD"""
+        """Crear conexión a BD (SQLite o PostgreSQL)"""
+        if is_using_postgresql():
+            return _get_postgres_connection()
         db_path = MessageService._get_db_path()
-        return sqlite3.connect(db_path)
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        return conn
 
     @staticmethod
     def send_message(
@@ -76,31 +82,38 @@ class MessageService:
             import json
 
             metadata_json = json.dumps(metadata) if metadata else None
+            now_ts = datetime.utcnow().isoformat()
 
-            cursor.execute(
-                """
+            sql = """
                 INSERT INTO mensajes (
                     remitente_id, destinatario_id, solicitud_id,
                     asunto, mensaje, parent_id, tipo, metadata_json,
                     created_at, updated_at
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    remitente_id,
-                    destinatario_id,
-                    solicitud_id,
-                    asunto,
-                    mensaje,
-                    parent_id,
-                    tipo,
-                    metadata_json,
-                    datetime.utcnow().isoformat(),
-                    datetime.utcnow().isoformat(),
-                ),
+            """
+            params = (
+                remitente_id,
+                destinatario_id,
+                solicitud_id,
+                asunto,
+                mensaje,
+                parent_id,
+                tipo,
+                metadata_json,
+                now_ts,
+                now_ts,
             )
 
-            message_id = cursor.lastrowid
+            if is_using_postgresql():
+                sql = sql.replace("?", "%s") + " RETURNING id"
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                message_id = row["id"] if isinstance(row, dict) else row[0]
+            else:
+                cursor.execute(sql, params)
+                message_id = cursor.lastrowid
+
             conn.commit()
             return message_id
 

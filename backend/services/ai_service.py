@@ -32,6 +32,16 @@ def get_db_connection():
         return db_conn()
 
 
+def _sql_now_minus(interval: str) -> str:
+    """Helper para obtener expresion SQL NOW() - interval compatible."""
+    try:
+        from backend.core.db import sql_now_minus
+        return sql_now_minus(interval)
+    except ImportError:
+        from core.db import sql_now_minus
+        return sql_now_minus(interval)
+
+
 class AIService:
     """
     Servicio unificado de inteligencia artificial.
@@ -638,11 +648,11 @@ class AIService:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    """
+                    f"""
                     SELECT AVG(total_monto) as consumo_promedio
                     FROM solicitudes
                     WHERE material_codigo = ? AND centro = ?
-                    AND created_at > datetime('now', '-90 days')
+                    AND created_at > {_sql_now_minus("90 days")}
                 """,
                     (material_codigo, centro),
                 )

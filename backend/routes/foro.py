@@ -14,10 +14,10 @@ from jwt import InvalidTokenError
 
 try:
     from backend.core.config import settings
-    from backend.core.db import get_db_connection, get_db_transaction
+    from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
 except ImportError:
     from core.config import settings
-    from core.db import get_db_connection, get_db_transaction
+    from core.db import get_db_connection, get_db_transaction, insert_returning_id
 
 
 bp = Blueprint("foro", __name__)
@@ -243,7 +243,8 @@ def create_post():
 
     with get_db_transaction() as conn:
         cur = conn.cursor()
-        cur.execute(
+        post_id = insert_returning_id(
+            cur,
             """
             INSERT INTO foro_posts (autor_id, autor_nombre, titulo, contenido, categoria, created_at)
             VALUES (?, ?, ?, ?, ?, ?)
@@ -257,7 +258,6 @@ def create_post():
                 datetime.utcnow().isoformat(),
             ),
         )
-        post_id = cur.lastrowid
 
     return jsonify({"ok": True, "message": "Post created successfully", "post_id": post_id}), 201
 
@@ -380,14 +380,14 @@ def create_reply(post_id):
                 404,
             )
 
-        cur.execute(
+        reply_id = insert_returning_id(
+            cur,
             """
             INSERT INTO foro_respuestas (post_id, autor_id, autor_nombre, contenido, created_at)
             VALUES (?, ?, ?, ?, ?)
         """,
             (post_id, str(user["id"]), user_name, contenido, datetime.utcnow().isoformat()),
         )
-        reply_id = cur.lastrowid
 
     return jsonify({"ok": True, "message": "Reply added successfully", "reply_id": reply_id}), 201
 

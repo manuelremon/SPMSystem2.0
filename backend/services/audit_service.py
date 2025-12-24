@@ -10,9 +10,9 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 try:
-    from backend.core.db import get_db_connection, get_db_transaction
+    from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
 except ImportError:
-    from core.db import get_db_connection, get_db_transaction
+    from core.db import get_db_connection, get_db_transaction, insert_returning_id
 
 
 # =============================================================================
@@ -159,7 +159,8 @@ def registrar_accion(
 
     with get_db_transaction() as conn:
         cursor = conn.cursor()
-        cursor.execute(
+        new_id = insert_returning_id(
+            cursor,
             """
             INSERT INTO audit_trail (
                 entidad, entidad_id, accion, actor_id,
@@ -180,7 +181,7 @@ def registrar_accion(
                 user_agent,
             ),
         )
-        return cursor.lastrowid
+        return new_id
 
 
 def obtener_auditoria(

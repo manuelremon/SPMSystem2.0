@@ -13,13 +13,13 @@ import bcrypt
 from flask import Blueprint, jsonify, request
 
 try:
-    from backend.core.db import get_db_connection, get_db_transaction
+    from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
     from backend.core.rate_limit import rate_limit
     from backend.core.roles import is_admin, normalize_roles
     from backend.routes.auth import _decode_token
     from backend.services.notification_service import NotificationService
 except ImportError:
-    from core.db import get_db_connection, get_db_transaction
+    from core.db import get_db_connection, get_db_transaction, insert_returning_id
     from core.rate_limit import rate_limit
     from core.roles import is_admin, normalize_roles
     from services.notification_service import NotificationService
@@ -368,13 +368,13 @@ def solicitar_cambio_perfil():
 
         with get_db_transaction() as conn:
             cur = conn.cursor()
-            cur.execute(
+            request_id = insert_returning_id(
+                cur,
                 """INSERT INTO user_profile_requests
                    (usuario_id, tipo, payload, estado, created_at, updated_at)
                    VALUES (?, ?, ?, ?, ?, ?)""",
                 (user_id, "cambio_perfil", payload_json, "pendiente", now, now),
             )
-            request_id = cur.lastrowid
 
             cur.execute("SELECT nombre, apellido FROM usuarios WHERE id_spm=?", (user_id,))
             solicitante = cur.fetchone()
@@ -614,12 +614,12 @@ def enviar_mensaje_solicitud(request_id: int):
         # Crear mensaje en la tabla mensajes
         with get_db_transaction() as conn:
             cur = conn.cursor()
-            cur.execute(
+            mensaje_id = insert_returning_id(
+                cur,
                 """INSERT INTO mensajes (remitente_id, destinatario_id, asunto, mensaje, leido, created_at)
                    VALUES (?, ?, ?, ?, 0, ?)""",
                 (user_id, destinatario_id, asunto, mensaje, now),
             )
-            mensaje_id = cur.lastrowid
 
             # Obtener nombre del remitente para la notificación
             cur.execute("SELECT nombre, apellido FROM usuarios WHERE id_spm=?", (user_id,))
@@ -1084,12 +1084,12 @@ def admin_enviar_mensaje_profile_request(request_id: int):
         # Fase 2: Escritura en transacción
         with get_db_transaction() as conn:
             cur = conn.cursor()
-            cur.execute(
+            mensaje_id = insert_returning_id(
+                cur,
                 """INSERT INTO mensajes (remitente_id, destinatario_id, asunto, mensaje, leido, created_at)
                    VALUES (?, ?, ?, ?, 0, ?)""",
                 (user_id, destinatario_id, asunto, mensaje, now),
             )
-            mensaje_id = cur.lastrowid
 
         logger.info(f"Mensaje enviado a {destinatario_id} sobre solicitud {request_id}")
 
