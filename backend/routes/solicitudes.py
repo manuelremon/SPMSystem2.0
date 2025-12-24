@@ -252,14 +252,14 @@ def get_solicitud(solicitud_id):
         # Fallback: buscar rol en BD
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT rol FROM usuarios WHERE id_spm=%s", (str(user_id),))
+            cur.execute("SELECT rol FROM usuarios WHERE id_spm=?", (str(user_id),))
             row = cur.fetchone()
             if row:
                 user_rol = row["rol"] if isinstance(row, dict) else row[0]
 
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM solicitudes WHERE id=%s", (solicitud_id,))
+        cur.execute("SELECT * FROM solicitudes WHERE id=?", (solicitud_id,))
         row = cur.fetchone()
         if not row:
             return (
@@ -424,7 +424,7 @@ def create_solicitud():
         if archivos_metadata:
             with get_db_connection() as conn:
                 cur = conn.cursor()
-                cur.execute("SELECT data_json FROM solicitudes WHERE id = %s", (new_id,))
+                cur.execute("SELECT data_json FROM solicitudes WHERE id = ?", (new_id,))
                 row = cur.fetchone()
                 data_json_raw = row["data_json"] if isinstance(row, dict) else row[0]
                 data_json = json.loads(data_json_raw) if row and data_json_raw else {"items": [], "archivos": []}
@@ -531,7 +531,7 @@ def eliminar_solicitud(solicitud_id):
 
     with get_db_transaction() as conn:
         cur = conn.cursor()
-        cur.execute("DELETE FROM solicitudes WHERE id=%s", (solicitud_id,))
+        cur.execute("DELETE FROM solicitudes WHERE id=?", (solicitud_id,))
 
     # Notificar al usuario que su solicitud fue eliminada
     try:
@@ -832,7 +832,7 @@ def aprobar_solicitud(solicitud_id):
         # Verificar si es admin (admins pueden aprobar cualquier solicitud)
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT rol FROM usuarios WHERE id_spm = %s", (aprobador_id,))
+            cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (aprobador_id,))
             row = cur.fetchone()
             user_rol = _row_to_dict(row, cur).get("rol", "") if row else ""
 
@@ -907,7 +907,7 @@ def aprobar_solicitud(solicitud_id):
     # Obtener rol del aprobador
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT rol FROM usuarios WHERE id_spm = %s", (aprobador_id,))
+        cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (aprobador_id,))
         user_row = cur.fetchone()
 
     aprobador_rol = _row_to_dict(user_row, cur).get("rol", "") if user_row else ""
@@ -1043,7 +1043,7 @@ def rechazar_solicitud(solicitud_id):
     # Obtener rol del actor ANTES de procesar (necesario para validar autorización)
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT rol FROM usuarios WHERE id_spm = %s", (actor_id,))
+        cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (actor_id,))
         user_row = cur.fetchone()
     actor_rol = _row_to_dict(user_row, cur).get("rol", "") if user_row else ""
 
@@ -1317,17 +1317,17 @@ def _update_solicitud(solicitud_id: int, fields: dict):
     if not fields:
         return
     fields["updated_at"] = datetime.utcnow().isoformat()
-    set_clause = ", ".join([f"{k}=%s" for k in fields.keys()])
+    set_clause = ", ".join([f"{k}=?" for k in fields.keys()])
     params = list(fields.values()) + [solicitud_id]
     with get_db_transaction() as conn:
         cur = conn.cursor()
-        cur.execute(f"UPDATE solicitudes SET {set_clause} WHERE id=%s", params)
+        cur.execute(f"UPDATE solicitudes SET {set_clause} WHERE id=?", params)
 
 
 def _get_raw(solicitud_id: int):
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM solicitudes WHERE id=%s", (solicitud_id,))
+        cur.execute("SELECT * FROM solicitudes WHERE id=?", (solicitud_id,))
         row = cur.fetchone()
         if row is None:
             return None
@@ -1388,7 +1388,7 @@ def _planificador_para(centro: str, sector: str) -> str:
             # Verificar que el ID existe en la tabla usuarios
             with get_db_connection() as conn:
                 cur = conn.cursor()
-                cur.execute("SELECT id_spm FROM usuarios WHERE id_spm = %s", (planificador_id,))
+                cur.execute("SELECT id_spm FROM usuarios WHERE id_spm = ?", (planificador_id,))
                 if cur.fetchone():
                     return planificador_id
 

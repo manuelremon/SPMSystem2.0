@@ -25,7 +25,7 @@ def get_user_by_id(user_id: str) -> Optional[dict]:
     """
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM usuarios WHERE id_spm=%s", (str(user_id),))
+        cur.execute("SELECT * FROM usuarios WHERE id_spm=?", (str(user_id),))
         row = cur.fetchone()
         if row is None:
             return None
@@ -44,7 +44,7 @@ def get_user_by_username(username: str) -> Optional[dict]:
     """
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM usuarios WHERE usuario=%s", (username,))
+        cur.execute("SELECT * FROM usuarios WHERE usuario=?", (username,))
         row = cur.fetchone()
         if row is None:
             return None
@@ -63,7 +63,7 @@ def get_user_by_email(email: str) -> Optional[dict]:
     """
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM usuarios WHERE mail=%s", (email,))
+        cur.execute("SELECT * FROM usuarios WHERE mail=?", (email,))
         row = cur.fetchone()
         if row is None:
             return None

@@ -105,7 +105,7 @@ def _get_user_by_id(user_id: str):
     user = None
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM usuarios WHERE id_spm=%s", (str(user_id),))
+        cur.execute("SELECT * FROM usuarios WHERE id_spm=?", (str(user_id),))
         row = cur.fetchone()
         if row:
             # El wrapper ya retorna dict para PostgreSQL, SQLite retorna Row
@@ -485,7 +485,7 @@ def register():
     # Verificar email único
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT id_spm FROM usuarios WHERE mail=%s", (email,))
+        cur.execute("SELECT id_spm FROM usuarios WHERE mail=?", (email,))
         if cur.fetchone():
             return (
                 jsonify(

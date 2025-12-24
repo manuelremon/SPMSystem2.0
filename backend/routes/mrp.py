@@ -13,11 +13,9 @@ from flask import Blueprint, g, jsonify, request
 logger = logging.getLogger(__name__)
 
 try:
-    from backend.core.db import get_db_connection, get_db_path
+    from backend.core.db import get_db_connection
 except ImportError:
-    from core.db import get_db_connection, get_db_path
-
-import sqlite3
+    from core.db import get_db_connection
 
 bp = Blueprint("mrp", __name__, url_prefix="/api/mrp")
 
@@ -174,75 +172,72 @@ def get_alertas():
     offset = int(request.args.get("offset", 0))
 
     try:
-        # Conectar a sap_data.db para obtener datos reales de stock
-        sap_db_path = get_db_path("sap_data")
-        conn = sqlite3.connect(str(sap_db_path))
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        # Conectar a la BD para obtener datos reales de stock
+        # En producción usa PostgreSQL (con vista 'stock'), en desarrollo SQLite
+        with get_db_connection("sap_data") as conn:
+            cursor = conn.cursor()
 
-        # Query para obtener stock agregado por material/centro/almacen
-        # Agrupa stocks del mismo material
-        base_query = """
-            SELECT
-                material as codigo,
-                material_descripcion as descripcion,
-                centro,
-                almacen,
-                grupo_de_articulos as sector,
-                gpo_articulos_descripcion as sector_nombre,
-                SUM(stock) as stock_actual,
-                um as unidad,
-                AVG(precio) as precio_unitario,
-                ubicacion,
-                critico,
-                MAX(dia) as ultima_actualizacion
-            FROM stock
-            WHERE stock > 0
-        """
-        params = []
-
-        if centro:
-            base_query += " AND centro = ?"
-            params.append(centro)
-
-        if almacen:
-            base_query += " AND almacen = ?"
-            params.append(almacen)
-
-        if sector:
-            base_query += " AND (grupo_de_articulos = ? OR gpo_articulos_descripcion LIKE ?)"
-            params.extend([sector, f"%{sector}%"])
-
-        base_query += " GROUP BY material, centro, almacen ORDER BY material LIMIT 500"
-
-        cursor.execute(base_query, params)
-        materiales = [dict(row) for row in cursor.fetchall()]
-
-        # Obtener consumo historico promedio por material
-        consumos = {}
-        if materiales:
-            # Usar sintaxis compatible con SQLite (IN con placeholders)
-            codigos = [m["codigo"] for m in materiales]
-            placeholders = ",".join(["?" for _ in codigos])
-            consumo_query = f"""
-                SELECT material, AVG(cantidad) as consumo_mensual
-                FROM consumo_historico
-                WHERE material IN ({placeholders})
-                GROUP BY material
+            # Query para obtener stock agregado por material/centro/almacen
+            # Agrupa stocks del mismo material
+            base_query = """
+                SELECT
+                    material as codigo,
+                    material_descripcion as descripcion,
+                    centro,
+                    almacen,
+                    grupo_de_articulos as sector,
+                    gpo_articulos_descripcion as sector_nombre,
+                    SUM(stock) as stock_actual,
+                    um as unidad,
+                    AVG(precio) as precio_unitario,
+                    ubicacion,
+                    critico,
+                    MAX(dia) as ultima_actualizacion
+                FROM stock
+                WHERE stock > 0
             """
-            try:
-                cursor.execute(consumo_query, codigos)
-                for row in cursor.fetchall():
-                    # Compatibilidad PostgreSQL (dict) y SQLite (tuple/Row)
-                    if isinstance(row, dict):
-                        consumos[row["material"]] = row["consumo_mensual"] or 0
-                    else:
-                        consumos[row[0]] = row[1] or 0
-            except Exception as e:
-                # Si la tabla consumo_historico no existe, continuar sin consumos
-                logger.warning(f"No se pudo obtener consumo historico: {e}")
+            params = []
 
-        conn.close()
+            if centro:
+                base_query += " AND centro = ?"
+                params.append(centro)
+
+            if almacen:
+                base_query += " AND almacen = ?"
+                params.append(almacen)
+
+            if sector:
+                base_query += " AND (grupo_de_articulos = ? OR gpo_articulos_descripcion LIKE ?)"
+                params.extend([sector, f"%{sector}%"])
+
+            base_query += " GROUP BY material, centro, almacen ORDER BY material LIMIT 500"
+
+            cursor.execute(base_query, params)
+            materiales = [dict(row) for row in cursor.fetchall()]
+
+            # Obtener consumo historico promedio por material
+            consumos = {}
+            if materiales:
+                # Usar sintaxis compatible con SQLite (IN con placeholders)
+                codigos = [m["codigo"] for m in materiales]
+                placeholders = ",".join(["?" for _ in codigos])
+                consumo_query = f"""
+                    SELECT material, AVG(cantidad) as consumo_mensual
+                    FROM consumo_historico
+                    WHERE material IN ({placeholders})
+                    GROUP BY material
+                """
+                try:
+                    cursor.execute(consumo_query, codigos)
+                    for row in cursor.fetchall():
+                        # Compatibilidad PostgreSQL (dict) y SQLite (tuple/Row)
+                        if isinstance(row, dict):
+                            consumos[row["material"]] = row["consumo_mensual"] or 0
+                        else:
+                            consumos[row[0]] = row[1] or 0
+                except Exception as e:
+                    # Si la tabla consumo_historico no existe, continuar sin consumos
+                    logger.warning(f"No se pudo obtener consumo historico: {e}")
 
         # Calcular alertas para cada material
         alertas = []
