@@ -464,12 +464,15 @@ def detalle_material(codigo):
 
 
 def _detalle_db(codigo: str) -> dict:
-    """Obtiene detalle de un material desde catalogo_materiales.db."""
+    """Obtiene detalle de un material desde cat_materiales (PostgreSQL) o catalogo_materiales.db (SQLite)."""
     try:
         with get_db_connection("catalogo_materiales") as conn:
             cur = conn.cursor()
+            # En PostgreSQL usa cat_materiales, en SQLite usa materiales
+            from core.db import is_using_postgresql
+            tabla = "cat_materiales" if is_using_postgresql() else "materiales"
             cur.execute(
-                "SELECT codigo, descripcion, descripcion_larga, unidad_medida, precio_usd FROM materiales WHERE codigo=?",
+                f"SELECT codigo, descripcion, descripcion_larga, unidad_medida, precio_usd FROM {tabla} WHERE codigo=?",
                 (codigo,),
             )
             row = cur.fetchone()

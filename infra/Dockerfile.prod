@@ -42,10 +42,8 @@ RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
 COPY --chown=spm:spm backend/ ./backend/
 COPY --chown=spm:spm wsgi.py ./
 
-# Copiar BDs de solo lectura (equivalentes, sap_data, catalogo)
-COPY --chown=spm:spm data/equivalentes.db ./data/
-COPY --chown=spm:spm data/sap_data.db ./data/
-COPY --chown=spm:spm data/catalogo_materiales.db ./data/
+# Nota: BDs de catalogo (equivalentes, sap_data, catalogo_materiales)
+# ahora estan en PostgreSQL. No se copian archivos SQLite.
 
 # Crear directorios para uploads y logs
 RUN mkdir -p /app/uploads /app/logs && chown -R spm:spm /app/uploads /app/logs

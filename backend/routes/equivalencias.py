@@ -290,14 +290,17 @@ def crear_equivalencia():
             400,
         )
 
-    # Fase 1: Verificar que los materiales existen en catalogo_materiales.db
+    # Fase 1: Verificar que los materiales existen en cat_materiales (PostgreSQL) o catalogo_materiales.db (SQLite)
     try:
         with get_db_connection("catalogo_materiales") as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT codigo FROM materiales WHERE codigo = ?", (codigo_original,))
+            # En PostgreSQL usa cat_materiales, en SQLite usa materiales
+            from core.db import is_using_postgresql
+            tabla = "cat_materiales" if is_using_postgresql() else "materiales"
+            cursor.execute(f"SELECT codigo FROM {tabla} WHERE codigo = ?", (codigo_original,))
             original_exists = cursor.fetchone() is not None
 
-            cursor.execute("SELECT codigo FROM materiales WHERE codigo = ?", (codigo_equivalente,))
+            cursor.execute(f"SELECT codigo FROM {tabla} WHERE codigo = ?", (codigo_equivalente,))
             equivalente_exists = cursor.fetchone() is not None
 
     except Exception as e:

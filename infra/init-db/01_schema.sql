@@ -703,3 +703,191 @@ CREATE TABLE IF NOT EXISTS material_equivalencias (
     descripcion TEXT,
     activo BOOLEAN DEFAULT TRUE
 );
+
+-- =========================================================================
+-- Tablas de Catálogos SAP (migradas de SQLite)
+-- Fecha: 2025-12-24
+-- =========================================================================
+
+-- Catálogo de materiales (de catalogo_materiales.db)
+CREATE TABLE IF NOT EXISTS cat_materiales (
+    id SERIAL PRIMARY KEY,
+    codigo VARCHAR(50) UNIQUE NOT NULL,
+    descripcion TEXT,
+    descripcion_larga TEXT,
+    grupo_articulos INTEGER,
+    unidad_medida VARCHAR(20),
+    precio_usd DECIMAL(15, 4),
+    activo INTEGER DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_cat_materiales_codigo ON cat_materiales(codigo);
+CREATE INDEX IF NOT EXISTS idx_cat_materiales_grupo ON cat_materiales(grupo_articulos);
+
+-- Stock SAP (de sap_data.db)
+CREATE TABLE IF NOT EXISTS sap_stock (
+    id SERIAL PRIMARY KEY,
+    dia DATE,
+    acreedor VARCHAR(50),
+    acreedor_descripcion TEXT,
+    regional VARCHAR(50),
+    centro VARCHAR(20),
+    centro_descripcion TEXT,
+    ypf_ute_desc TEXT,
+    almacen VARCHAR(20),
+    grupo_de_articulos VARCHAR(50),
+    gpo_articulos_descripcion TEXT,
+    material VARCHAR(50),
+    material_descripcion TEXT,
+    cat_valoracion VARCHAR(50),
+    elemento_pep VARCHAR(100),
+    lote VARCHAR(50),
+    stock DECIMAL(15, 3),
+    um VARCHAR(20),
+    precio DECIMAL(15, 4),
+    stock_valorizado DECIMAL(15, 4),
+    moneda VARCHAR(10),
+    ubicacion VARCHAR(100),
+    planificacion_categorias TEXT,
+    sub_categorias TEXT,
+    inmovilizado VARCHAR(20),
+    critico VARCHAR(20),
+    prevision_por_obsolescencia TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_sap_stock_material ON sap_stock(material);
+CREATE INDEX IF NOT EXISTS idx_sap_stock_centro ON sap_stock(centro);
+CREATE INDEX IF NOT EXISTS idx_sap_stock_almacen ON sap_stock(almacen);
+CREATE INDEX IF NOT EXISTS idx_sap_stock_dia ON sap_stock(dia);
+
+-- Pedidos SAP (de sap_data.db)
+CREATE TABLE IF NOT EXISTS sap_pedidos (
+    id SERIAL PRIMARY KEY,
+    centro VARCHAR(20),
+    almacen VARCHAR(20),
+    pedido VARCHAR(50),
+    posicion_pedido INTEGER,
+    material VARCHAR(50),
+    descripcion TEXT,
+    ctdpedida DECIMAL(15, 3),
+    ctdentregada DECIMAL(15, 3),
+    saldo_pend DECIMAL(15, 3),
+    um VARCHAR(20),
+    fecdocum DATE,
+    fecentre DATE,
+    cls VARCHAR(20),
+    solicitante VARCHAR(100),
+    nombre_1 TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_sap_pedidos_material ON sap_pedidos(material);
+CREATE INDEX IF NOT EXISTS idx_sap_pedidos_centro ON sap_pedidos(centro);
+
+-- Materiales BBDD (de sap_data.db)
+CREATE TABLE IF NOT EXISTS sap_materiales_bbdd (
+    id SERIAL PRIMARY KEY,
+    sector VARCHAR(50),
+    almacen VARCHAR(20),
+    centro VARCHAR(20),
+    codigo_material VARCHAR(50),
+    descripcion TEXT,
+    stock_de_seguridad INTEGER DEFAULT 0,
+    punto_de_pedido INTEGER DEFAULT 0,
+    stock_maximo INTEGER DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_sap_materiales_bbdd_codigo ON sap_materiales_bbdd(codigo_material);
+CREATE INDEX IF NOT EXISTS idx_sap_materiales_bbdd_centro ON sap_materiales_bbdd(centro);
+
+-- Consumo histórico (de sap_data.db)
+CREATE TABLE IF NOT EXISTS sap_consumo_historico (
+    id SERIAL PRIMARY KEY,
+    fecha DATE,
+    centro VARCHAR(20),
+    almacen VARCHAR(20),
+    cantidad DECIMAL(15, 3),
+    material VARCHAR(50),
+    descripcion TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_sap_consumo_material ON sap_consumo_historico(material);
+CREATE INDEX IF NOT EXISTS idx_sap_consumo_centro ON sap_consumo_historico(centro);
+CREATE INDEX IF NOT EXISTS idx_sap_consumo_fecha ON sap_consumo_historico(fecha);
+
+-- Equivalencias de materiales SAP (de equivalentes.db)
+CREATE TABLE IF NOT EXISTS cat_equivalencias (
+    id SERIAL PRIMARY KEY,
+    material_base VARCHAR(50),
+    texto_breve_base TEXT,
+    material_equivalente VARCHAR(50),
+    texto_breve_equivalente TEXT,
+    tipo_equiv VARCHAR(50),
+    criterio TEXT,
+    motivo_equivalencia TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_cat_equiv_base ON cat_equivalencias(material_base);
+CREATE INDEX IF NOT EXISTS idx_cat_equiv_equivalente ON cat_equivalencias(material_equivalente);
+
+-- =========================================================================
+-- Vistas de Compatibilidad (nombres SQLite → PostgreSQL)
+-- Permiten que las queries existentes funcionen sin modificación
+-- =========================================================================
+
+-- Vista: equivalencias (tabla original de equivalentes.db)
+CREATE OR REPLACE VIEW equivalencias AS
+SELECT
+    id as rowid,  -- Emular rowid de SQLite
+    id,
+    material_base,
+    texto_breve_base,
+    material_equivalente,
+    texto_breve_equivalente,
+    tipo_equiv,
+    criterio,
+    motivo_equivalencia
+FROM cat_equivalencias;
+
+-- Vista: stock (tabla original de sap_data.db)
+CREATE OR REPLACE VIEW stock AS
+SELECT
+    id as rowid,
+    id,
+    dia,
+    acreedor,
+    acreedor_descripcion,
+    regional,
+    centro,
+    centro_descripcion,
+    ypf_ute_desc as "ypf/ute_desc",  -- Nombre original con /
+    almacen,
+    grupo_de_articulos,
+    gpo_articulos_descripcion,
+    material,
+    material_descripcion,
+    cat_valoracion,
+    elemento_pep,
+    lote,
+    stock,
+    um,
+    precio,
+    stock_valorizado,
+    moneda,
+    ubicacion,
+    planificacion_categorias,
+    sub_categorias,
+    inmovilizado,
+    critico,
+    prevision_por_obsolescencia
+FROM sap_stock;
+
+-- Vista: pedidos_sap (tabla original de sap_data.db)
+CREATE OR REPLACE VIEW pedidos_sap AS
+SELECT * FROM sap_pedidos;
+
+-- Vista: materiales_bbdd (tabla original de sap_data.db)
+CREATE OR REPLACE VIEW materiales_bbdd AS
+SELECT * FROM sap_materiales_bbdd;
+
+-- Vista: consumo_historico (tabla original de sap_data.db)
+CREATE OR REPLACE VIEW consumo_historico AS
+SELECT * FROM sap_consumo_historico;
+
+-- Nota: La vista 'materiales' para catalogo_materiales.db NO se crea
+-- porque ya existe una tabla 'materiales' en la BD principal.
+-- Los queries a catalogo_materiales deben usar 'cat_materiales' directamente.

@@ -5,7 +5,11 @@ Provee:
 - Context managers para conexiones SQLite/PostgreSQL seguras
 - Funciones helper centralizadas para acceso a BD
 - Inicialización automática de schema
-- Soporte dual: PostgreSQL (produccion) + SQLite (desarrollo/catalogs)
+- Soporte dual: PostgreSQL (produccion) + SQLite (desarrollo local)
+
+Nota: En producción TODAS las conexiones usan PostgreSQL.
+Las BDs SQLite secundarias (catalogo_materiales, sap_data, equivalentes)
+solo se usan en desarrollo local.
 """
 
 import sqlite3
@@ -219,8 +223,7 @@ def get_db_connection(db_name: str = "spm") -> Generator:
     Context manager para conexiones de BD seguras.
 
     Soporta:
-    - PostgreSQL para BD principal (spm) en produccion
-    - SQLite para BDs secundarias (equivalentes, sap_data, catalogo)
+    - PostgreSQL para TODAS las BDs en produccion (incluye catalogs)
     - SQLite para desarrollo local
 
     Garantiza que la conexión se cierre automáticamente, incluso si hay excepciones.
@@ -240,14 +243,10 @@ def get_db_connection(db_name: str = "spm") -> Generator:
     """
     conn = None
     try:
-        # BDs secundarias SIEMPRE usan SQLite (son de solo lectura)
-        if db_name in ("equivalentes", "sap_data", "catalogo_materiales"):
-            db_path = get_db_path(db_name)
-            conn = sqlite3.connect(db_path)
-            conn.row_factory = sqlite3.Row
-        # BD principal: PostgreSQL o SQLite segun configuracion
-        elif db_name == "spm" and is_using_postgresql():
+        # PostgreSQL: TODAS las conexiones van a PostgreSQL en produccion
+        if is_using_postgresql():
             conn = _get_postgres_connection()
+        # SQLite: Desarrollo local
         else:
             db_path = get_db_path(db_name)
             conn = sqlite3.connect(db_path)
@@ -280,14 +279,10 @@ def get_db_transaction(db_name: str = "spm") -> Generator:
     """
     conn = None
     try:
-        # BDs secundarias SIEMPRE usan SQLite
-        if db_name in ("equivalentes", "sap_data", "catalogo_materiales"):
-            db_path = get_db_path(db_name)
-            conn = sqlite3.connect(db_path)
-            conn.row_factory = sqlite3.Row
-        # BD principal: PostgreSQL o SQLite segun configuracion
-        elif db_name == "spm" and is_using_postgresql():
+        # PostgreSQL: TODAS las conexiones van a PostgreSQL en produccion
+        if is_using_postgresql():
             conn = _get_postgres_connection()
+        # SQLite: Desarrollo local
         else:
             db_path = get_db_path(db_name)
             conn = sqlite3.connect(db_path)
