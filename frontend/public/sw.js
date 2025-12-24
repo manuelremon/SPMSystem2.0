@@ -4,7 +4,7 @@
  * Maneja notificaciones push en background.
  */
 
-const SW_VERSION = '1.0.0';
+const SW_VERSION = '1.0.1';
 const APP_NAME = 'SPM 2.0';
 
 // Log helper
@@ -59,7 +59,7 @@ self.addEventListener('push', (event) => {
     badge: data.badge,
     tag: data.tag,
     renotify: true, // Notificar aunque ya exista una con el mismo tag
-    requireInteraction: false, // No requiere interaccion del usuario
+    requireInteraction: true, // Mantener visible hasta que el usuario interactue o expire
     vibrate: [200, 100, 200], // Patron de vibracion
     timestamp: Date.now(),
     data: {
@@ -78,10 +78,18 @@ self.addEventListener('push', (event) => {
     ]
   };
 
-  // Mostrar la notificacion
+  // Mostrar la notificacion y cerrarla automaticamente despues de 5 segundos
   event.waitUntil(
     self.registration.showNotification(data.title, options)
-      .then(() => log('Notificacion mostrada'))
+      .then(() => {
+        log('Notificacion mostrada');
+        // Auto-cerrar despues de 5 segundos
+        setTimeout(async () => {
+          const notifications = await self.registration.getNotifications({ tag: data.tag });
+          notifications.forEach(notification => notification.close());
+          log('Notificacion auto-cerrada despues de 5s');
+        }, 5000);
+      })
       .catch(err => log('Error mostrando notificacion:', err))
   );
 });
