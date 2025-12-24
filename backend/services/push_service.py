@@ -294,7 +294,7 @@ class PushService:
                 webpush(
                     subscription_info=subscription_info,
                     data=json.dumps(payload),
-                    vapid_private_key=get_vapid_private_key(),
+                    vapid_private_key=str(VAPID_PRIVATE_KEY_PATH),
                     vapid_claims=get_vapid_claims(),
                     timeout=10,
                 )
