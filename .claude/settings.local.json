@@ -112,7 +112,8 @@
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjY1ODU1ODcsImV4cCI6MTc2NjU4OTE4N30.5vmRUe6KpMNJRft7R3bfI0VbgqykaQc8_gUE5u2295M\" ssh -i ~/.ssh/oracle_vps.key ubuntu@<SERVER_IP> \"docker exec spm-backend curl -s http://localhost:5000/api/solicitudes -H ''''Authorization: Bearer $TOKEN''''\")",
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjY1ODU1ODcsImV4cCI6MTc2NjU4OTE4N30.5vmRUe6KpMNJRft7R3bfI0VbgqykaQc8_gUE5u2295M\")",
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjY1ODU5NTcsImV4cCI6MTc2NjU4OTU1N30.8puP5MMiVgeLO4gZvTHEQcuVQy751J9ADi_LCVP8Z0Q\")",
-      "Bash(xxd:*)"
+      "Bash(xxd:*)",
+      "Bash(TOKEN6=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNiIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjY1ODY2MDYsImV4cCI6MTc2NjU5MDIwNn0.HC8rlg1zZeuD1LCyjI3ZbwV1w_jo5d4AkmBkxzSdo80\")"
     ],
     "deny": [],
     "ask": []

@@ -350,14 +350,19 @@ class NotificationService:
 
                 # PostgreSQL wrapper ya retorna dicts, SQLite retorna Row
                 for row in rows:
-                    row_dict = row if isinstance(row, dict) else dict(row)
-                    notif = Notificacion.from_db_row(row_dict)
-                    notifications.append(notif.to_dict())
+                    try:
+                        row_dict = row if isinstance(row, dict) else dict(row)
+                        notif = Notificacion.from_db_row(row_dict)
+                        notifications.append(notif.to_dict())
+                    except Exception as row_err:
+                        logger.error(f"Error processing notification row: {row_err}, row={row}")
+                        continue  # Skip bad rows instead of failing all
 
                 return notifications
 
         except Exception as e:
-            logger.error(f"Error fetching notifications: {e}")
+            import traceback
+            logger.error(f"Error fetching notifications: {e}\n{traceback.format_exc()}")
             return []
 
     @classmethod
