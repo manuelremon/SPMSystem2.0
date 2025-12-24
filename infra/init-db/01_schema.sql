@@ -888,6 +888,17 @@ SELECT * FROM sap_materiales_bbdd;
 CREATE OR REPLACE VIEW consumo_historico AS
 SELECT * FROM sap_consumo_historico;
 
+-- Vista: stock_detalle (para validación de materiales)
+CREATE OR REPLACE VIEW stock_detalle AS
+SELECT
+    material as codigo,
+    centro,
+    almacen,
+    stock as cantidad,
+    material_descripcion as descripcion,
+    um as unidad
+FROM sap_stock;
+
 -- Nota: La vista 'materiales' para catalogo_materiales.db NO se crea
 -- porque ya existe una tabla 'materiales' en la BD principal.
 -- Los queries a catalogo_materiales deben usar 'cat_materiales' directamente.
