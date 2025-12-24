@@ -52,6 +52,7 @@ services:
     volumes:
       - spm_uploads:/app/uploads
       - spm_logs:/app/logs
+      - spm_vapid:/app/data/vapid
     networks:
       - spm-network
     expose:
@@ -85,6 +86,8 @@ volumes:
     name: spm_uploads
   spm_logs:
     name: spm_logs
+  spm_vapid:
+    name: spm_vapid
 
 # === Networks ===
 networks:

@@ -13,8 +13,8 @@ from pathlib import Path
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 
-# Directorio donde se guardan las claves
-VAPID_KEYS_DIR = Path(__file__).parent.parent.parent / "data"
+# Directorio donde se guardan las claves (subdirectorio 'vapid' para persistencia en Docker)
+VAPID_KEYS_DIR = Path(__file__).parent.parent.parent / "data" / "vapid"
 VAPID_PRIVATE_KEY_PATH = VAPID_KEYS_DIR / "vapid_private_key.pem"
 VAPID_PUBLIC_KEY_PATH = VAPID_KEYS_DIR / "vapid_public_key.pem"
 VAPID_CLAIMS_PATH = VAPID_KEYS_DIR / "vapid_claims.json"
