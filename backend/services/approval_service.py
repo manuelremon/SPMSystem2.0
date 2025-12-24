@@ -462,17 +462,19 @@ def buscar_aprobador(
 
         # Buscar aprobador con ROL "aprobador_solicitudes" y PUESTO adecuado
         # Prioriza aprobadores del mismo centro
-        # Nota: En psycopg2, los % literales en LIKE deben escaparse como %%
+        # Usar IN clause con placeholders dinamicos (compatible SQLite/PostgreSQL)
+        placeholders = ",".join(["?"] * len(puestos_validos))
+
         if centro:
-            query = """
+            query = f"""
                 SELECT id_spm, nombre, apellido, rol, posicion, centros
                 FROM usuarios
-                WHERE LOWER(rol) LIKE '%%aprobador_solicitudes%%'
-                    AND LOWER(posicion) = ANY(%s)
-                    AND (',' || centros || ',') LIKE %s
+                WHERE LOWER(rol) LIKE '%aprobador_solicitudes%'
+                    AND LOWER(posicion) IN ({placeholders})
+                    AND (',' || centros || ',') LIKE ?
                     AND estado_registro = 'Activo'
                 ORDER BY
-                    CASE WHEN (',' || centros || ',') LIKE %s THEN 0 ELSE 1 END,
+                    CASE WHEN (',' || centros || ',') LIKE ? THEN 0 ELSE 1 END,
                     CASE LOWER(posicion)
                         WHEN 'jefe' THEN 1
                         WHEN 'gerente1' THEN 2
@@ -484,14 +486,14 @@ def buscar_aprobador(
                     nombre
                 LIMIT 1
             """
-            params = (puestos_validos, f"%,{centro},%", f"%,{centro},%")
+            params = tuple(puestos_validos) + (f"%,{centro},%", f"%,{centro},%")
             cursor.execute(query, params)
         else:
-            query = """
+            query = f"""
                 SELECT id_spm, nombre, apellido, rol, posicion, centros
                 FROM usuarios
-                WHERE LOWER(rol) LIKE '%%aprobador_solicitudes%%'
-                    AND LOWER(posicion) = ANY(%s)
+                WHERE LOWER(rol) LIKE '%aprobador_solicitudes%'
+                    AND LOWER(posicion) IN ({placeholders})
                     AND estado_registro = 'Activo'
                 ORDER BY
                     CASE LOWER(posicion)
@@ -505,7 +507,7 @@ def buscar_aprobador(
                     nombre
                 LIMIT 1
             """
-            cursor.execute(query, (puestos_validos,))
+            cursor.execute(query, tuple(puestos_validos))
 
         row = cursor.fetchone()
         return dict(row) if row else None

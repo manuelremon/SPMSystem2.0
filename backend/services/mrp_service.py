@@ -336,7 +336,7 @@ def generar_ordenes_mrp(centro: str, solo_criticos: bool = False) -> Dict[str, A
                 ordenes.append(orden)
                 ordenes_generadas += 1
             except Exception as e:
-                logger.warning(f"Error generando orden para material {material_codigo}: {e}")
+                logger.warning(f"Error generando orden para material {mat['codigo']}: {e}")
 
     return {
         "centro": centro,

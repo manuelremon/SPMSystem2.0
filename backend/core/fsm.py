@@ -450,7 +450,7 @@ def obtener_estado_actual(solicitud_id: int) -> Optional[str]:
     """
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT status FROM solicitudes WHERE id = %s", (solicitud_id,))
+        cursor.execute("SELECT status FROM solicitudes WHERE id = ?", (solicitud_id,))
         row = cursor.fetchone()
 
     if row is None:
@@ -520,11 +520,58 @@ def _disparar_notificaciones(
         crear_notificacion(cursor, destinatario, solicitud_id, mensaje, tipo)
 
 
+def _get_user_notification_preferences(user_id: str) -> dict:
+    """
+    Obtiene las preferencias de notificación del usuario.
+
+    Returns:
+        Dict con preferencias (todo True si no hay registro)
+    """
+    defaults = {"push_enabled": True, "notif_solicitudes": True, "notif_aprobaciones": True}
+
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """SELECT push_enabled, notif_solicitudes, notif_aprobaciones
+                   FROM user_notification_preferences
+                   WHERE user_id = ?""",
+                (str(user_id),),
+            )
+            row = cursor.fetchone()
+
+        if row:
+            if hasattr(row, "keys"):
+                return {k: bool(v) for k, v in dict(row).items()}
+            else:
+                return {
+                    "push_enabled": bool(row[0]),
+                    "notif_solicitudes": bool(row[1]),
+                    "notif_aprobaciones": bool(row[2]),
+                }
+    except Exception as e:
+        logger.warning(f"[FSM] Error getting user preferences for {user_id}: {e}")
+
+    return defaults
+
+
+# Mapeo de tipo de notificación a preferencia del usuario
+TIPO_TO_PREFERENCE = {
+    "solicitud_submitted": "notif_solicitudes",
+    "solicitud_approved": "notif_aprobaciones",
+    "solicitud_rejected": "notif_aprobaciones",
+    "solicitud_planned": "notif_solicitudes",
+    "solicitud_dispatched": "notif_solicitudes",
+}
+
+
 def crear_notificacion(
     cursor, destinatario_id: str, solicitud_id: int, mensaje: str, tipo: str = "info"
 ) -> None:
     """
     Crea una notificacion para un usuario y envia Web Push.
+
+    Respeta las preferencias del usuario para notificaciones.
 
     Args:
         cursor: Cursor de base de datos
@@ -533,6 +580,15 @@ def crear_notificacion(
         mensaje: Texto de la notificacion
         tipo: Tipo de notificacion (info, warning, error)
     """
+    # Verificar preferencias del usuario
+    prefs = _get_user_notification_preferences(destinatario_id)
+
+    # Verificar si el usuario desea este tipo de notificación
+    pref_key = TIPO_TO_PREFERENCE.get(tipo)
+    if pref_key and not prefs.get(pref_key, True):
+        logger.debug(f"[FSM] Notificación tipo {tipo} omitida por preferencias de usuario {destinatario_id}")
+        return
+
     # Crear notificacion en BD
     cursor.execute(
         """
@@ -541,6 +597,11 @@ def crear_notificacion(
         """,
         (destinatario_id, solicitud_id, mensaje, tipo),
     )
+
+    # Verificar si push está habilitado
+    if not prefs.get("push_enabled", True):
+        logger.debug(f"[FSM] Push deshabilitado para usuario {destinatario_id}")
+        return
 
     # Enviar Web Push (no bloquea si falla)
     try:

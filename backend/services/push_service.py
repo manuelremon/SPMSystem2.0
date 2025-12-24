@@ -308,7 +308,7 @@ class PushService:
                         """
                         UPDATE push_subscriptions
                         SET last_used_at = CURRENT_TIMESTAMP
-                        WHERE id = %s
+                        WHERE id = ?
                     """,
                         (sub.id,),
                     )
@@ -345,8 +345,8 @@ class PushService:
         try:
             with get_db_transaction() as conn:
                 cur = conn.cursor()
-                # Usar IN con placeholders dinamicos (PostgreSQL)
-                placeholders = ",".join(["%s"] * len(endpoints))
+                # Usar IN con placeholders dinamicos (SQLite compatible)
+                placeholders = ",".join(["?"] * len(endpoints))
                 cur.execute(
                     f"""
                     DELETE FROM push_subscriptions

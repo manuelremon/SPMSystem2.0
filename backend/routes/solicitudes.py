@@ -976,18 +976,8 @@ def aprobar_solicitud(solicitud_id):
             ip_address=request.remote_addr,
         )
 
-        # Notificar al solicitante que su solicitud fue aprobada
-        solicitante_id = solicitud.get("id_usuario")
-        if solicitante_id:
-            try:
-                NotificationService.create_notification(
-                    destinatario_id=str(solicitante_id),
-                    mensaje=f"Tu solicitud #{solicitud_id} ha sido aprobada",
-                    tipo="solicitud_approved",
-                    solicitud_id=solicitud_id,
-                )
-            except Exception as e:
-                logger.warning(f"Notificacion de aprobacion fallo para solicitud {solicitud_id}: {e}")
+        # NOTA: Notificación al solicitante ya se crea automáticamente en FSM
+        # (cambiar_estado -> _disparar_notificaciones) - NO duplicar aquí
 
     except TransicionInvalidaError as e:
         return (

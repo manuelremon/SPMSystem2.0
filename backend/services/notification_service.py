@@ -531,3 +531,37 @@ def notify_solicitud_planned(solicitud_id: int, solicitante_id: str):
         tipo="solicitud_planned",
         solicitud_id=solicitud_id,
     )
+
+
+# =============================================================================
+# Limpieza de notificaciones antiguas
+# =============================================================================
+
+
+def cleanup_old_notifications(days_old: int = 30) -> int:
+    """
+    Elimina notificaciones leídas con más de X días de antigüedad.
+
+    Args:
+        days_old: Días de antigüedad para eliminar (default: 30)
+
+    Returns:
+        Número de notificaciones eliminadas
+    """
+    try:
+        with get_db_transaction() as conn:
+            cursor = conn.cursor()
+            # Eliminar notificaciones leídas con más de X días
+            cursor.execute(
+                f"""
+                DELETE FROM notificaciones
+                WHERE leido = 1
+                AND created_at < {sql_now_minus(f"{days_old} days")}
+                """
+            )
+            deleted = cursor.rowcount
+            logger.info(f"[NOTIF] Limpiadas {deleted} notificaciones antiguas (>{days_old} días)")
+            return deleted
+    except Exception as e:
+        logger.error(f"[NOTIF] Error limpiando notificaciones antiguas: {e}")
+        return 0
