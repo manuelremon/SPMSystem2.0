@@ -4,12 +4,25 @@
  * Maneja notificaciones push en background.
  */
 
-const SW_VERSION = '1.0.1';
+const SW_VERSION = '1.0.2';
 const APP_NAME = 'SPM 2.0';
 
 // Log helper
 const log = (msg, ...args) => {
   console.log(`[SW ${SW_VERSION}] ${msg}`, ...args);
+};
+
+// Sanitizar texto removiendo HTML tags
+const stripHtml = (text) => {
+  if (!text) return text;
+  // Remover tags HTML y decodificar entidades basicas
+  return String(text)
+    .replace(/<[^>]*>/g, '')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .trim();
 };
 
 // Evento: Service Worker instalado
@@ -52,9 +65,12 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  // Sanitizar body para evitar HTML
+  const cleanBody = stripHtml(data.body) || 'Nueva notificación';
+
   // Opciones de la notificacion
   const options = {
-    body: data.body,
+    body: cleanBody,
     icon: data.icon,
     badge: data.badge,
     tag: data.tag,
