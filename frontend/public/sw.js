@@ -4,7 +4,7 @@
  * Maneja notificaciones push en background.
  */
 
-const SW_VERSION = '1.1.0';
+const SW_VERSION = '1.1.1';
 const APP_NAME = 'SPM 2.0';
 
 // Mapeo tipo -> icono

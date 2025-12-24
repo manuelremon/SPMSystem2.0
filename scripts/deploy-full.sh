@@ -175,7 +175,7 @@ server_deploy() {
     print_header "SERVIDOR: DEPLOY EN $SERVER_IP"
 
     # Verificar si el directorio existe, si no, clonar
-    print_step "1/7" "Verificando repositorio en servidor..."
+    print_step "1/8" "Verificando repositorio en servidor..."
     if ! ssh_exec "test -d $REMOTE_DIR"; then
         print_info "Clonando repositorio por primera vez..."
         ssh_exec "git clone $GITHUB_REPO $REMOTE_DIR"
@@ -184,33 +184,37 @@ server_deploy() {
         print_success "Repositorio existe"
     fi
 
-    print_step "2/7" "Actualizando codigo (git pull)..."
+    print_step "2/8" "Actualizando codigo (git pull)..."
     ssh_exec "cd $REMOTE_DIR && git fetch origin && git reset --hard origin/main"
     print_success "Codigo actualizado"
 
-    print_step "3/7" "Verificando Node.js..."
+    print_step "3/8" "Verificando Node.js..."
     if ! ssh_exec "command -v node" &>/dev/null; then
         print_info "Instalando Node.js..."
         ssh_exec "curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt-get install -y nodejs"
     fi
     print_success "Node.js OK"
 
-    print_step "4/7" "Instalando dependencias frontend..."
+    print_step "4/8" "Instalando dependencias frontend..."
     ssh_exec "cd $REMOTE_DIR/frontend && npm ci --legacy-peer-deps 2>/dev/null || npm install --legacy-peer-deps"
     print_success "Dependencias instaladas"
 
-    print_step "5/7" "Construyendo frontend (React/Vite)..."
+    print_step "5/8" "Construyendo frontend (React/Vite)..."
     ssh_exec "cd $REMOTE_DIR/frontend && npm run build"
     print_success "Frontend build OK"
 
-    print_step "6/7" "Reconstruyendo contenedores Docker..."
+    print_step "6/8" "Reconstruyendo contenedores Docker..."
     ssh_exec "cd $REMOTE_DIR/infra && docker-compose -f docker-compose.prod.yml --env-file .env.production build"
     print_success "Docker build OK"
 
-    print_step "7/7" "Reiniciando servicios..."
+    print_step "7/8" "Reiniciando servicios..."
     ssh_exec "cd $REMOTE_DIR/infra && docker-compose -f docker-compose.prod.yml --env-file .env.production down 2>/dev/null || true"
     ssh_exec "cd $REMOTE_DIR/infra && docker-compose -f docker-compose.prod.yml --env-file .env.production up -d"
     print_success "Servicios reiniciados"
+
+    print_step "8/8" "Limpiando cache de nginx..."
+    ssh_exec "docker exec spm-nginx nginx -s reload 2>/dev/null || true"
+    print_success "Cache de nginx limpiado"
 }
 
 # ============================================================================
@@ -268,6 +272,12 @@ show_summary() {
     echo "  Ver logs:     ./scripts/deploy-full.sh --logs"
     echo "  Estado:       ./scripts/deploy-full.sh --status"
     echo "  Conectar:     ./scripts/deploy-full.sh --ssh"
+    echo "  Clear cache:  ./scripts/deploy-full.sh --clear-cache"
+    echo ""
+    echo -e "${YELLOW}Para limpiar cache del navegador (Service Worker):${NC}"
+    echo "  1. Abre DevTools (F12) -> Application -> Service Workers"
+    echo "  2. Marca 'Update on reload' y recarga la pagina"
+    echo "  3. O haz click en 'Unregister' y recarga"
     echo ""
 }
 
@@ -295,6 +305,34 @@ restart_services() {
     print_success "Servicios reiniciados"
     sleep 10
     verify_deployment
+}
+
+clear_cache() {
+    print_header "LIMPIANDO CACHE"
+
+    print_step "1/3" "Recargando configuracion nginx..."
+    ssh_exec "docker exec spm-nginx nginx -s reload"
+    print_success "Nginx recargado"
+
+    print_step "2/3" "Verificando version de Service Worker..."
+    SW_VERSION=$(curl -s "https://$DOMAIN/sw.js" | grep "SW_VERSION" | head -1 | grep -oP "'[^']+'" | tr -d "'")
+    print_success "SW Version: $SW_VERSION"
+
+    print_step "3/3" "Verificando headers de cache..."
+    CACHE_HEADERS=$(curl -sI "https://$DOMAIN/sw.js" | grep -i "cache-control")
+    if echo "$CACHE_HEADERS" | grep -qi "no-cache\|no-store"; then
+        print_success "Headers anti-cache OK"
+    else
+        print_error "Headers de cache incorrectos: $CACHE_HEADERS"
+    fi
+
+    echo ""
+    echo -e "${YELLOW}Para forzar actualizacion en el navegador:${NC}"
+    echo "  1. Abre DevTools (F12) -> Application -> Service Workers"
+    echo "  2. Click en 'Update' junto al Service Worker"
+    echo "  3. O marca 'Update on reload' y recarga (F5)"
+    echo "  4. Alternativa: 'Unregister' y recargar la pagina"
+    echo ""
 }
 
 # ============================================================================
@@ -330,6 +368,7 @@ show_help() {
     echo "  --logs           Ver logs en tiempo real"
     echo "  --ssh            Conectar al servidor via SSH"
     echo "  --restart        Reiniciar servicios sin rebuild"
+    echo "  --clear-cache    Limpiar cache de nginx y verificar Service Worker"
     echo "  --help, -h       Mostrar esta ayuda"
     echo ""
     echo "VARIABLES DE ENTORNO:"
@@ -372,6 +411,10 @@ case "${1:-}" in
     --restart)
         check_prerequisites
         restart_services
+        ;;
+    --clear-cache)
+        check_prerequisites
+        clear_cache
         ;;
     --help|-h)
         show_help
