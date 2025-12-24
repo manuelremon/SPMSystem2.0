@@ -100,8 +100,15 @@ class NotificacionEvent:
     def to_sse_format(self) -> str:
         """Formatear para Server-Sent Events"""
         import json
+        from datetime import datetime
 
-        return f"event: {self.event}\ndata: {json.dumps(self.data)}\n\n"
+        def json_serial(obj):
+            """Serializer para objetos no serializables por defecto"""
+            if isinstance(obj, datetime):
+                return obj.isoformat()
+            raise TypeError(f"Type {type(obj)} not serializable")
+
+        return f"event: {self.event}\ndata: {json.dumps(self.data, default=json_serial)}\n\n"
 
 
 # Helper functions
