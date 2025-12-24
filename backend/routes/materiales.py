@@ -50,12 +50,13 @@ def search_materiales():
     params = []
 
     # Use OR between codigo and descripcion (user may search by either)
+    # UPPER() para búsqueda case-insensitive (compatible SQLite y PostgreSQL)
     search_conditions = []
     if q_codigo:
-        search_conditions.append("codigo LIKE ?")
+        search_conditions.append("UPPER(codigo) LIKE UPPER(?)")
         params.append(f"%{q_codigo}%")
     if q_desc:
-        search_conditions.append("descripcion LIKE ?")
+        search_conditions.append("UPPER(descripcion) LIKE UPPER(?)")
         params.append(f"%{q_desc}%")
 
     if search_conditions:
