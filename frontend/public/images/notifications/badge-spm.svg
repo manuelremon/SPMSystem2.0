@@ -1,0 +1,5 @@
+<svg viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="48" cy="48" r="44" fill="#3B82F6"/>
+  <text x="48" y="40" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white" text-anchor="middle">SPM</text>
+  <text x="48" y="62" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle">2.0</text>
+</svg>

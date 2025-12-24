@@ -244,6 +244,7 @@ class PushService:
         user_id: str,
         title: str,
         body: str,
+        tipo: Optional[str] = None,
         icon: Optional[str] = None,
         url: Optional[str] = None,
         tag: Optional[str] = None,
@@ -256,7 +257,8 @@ class PushService:
             user_id: ID del usuario destinatario
             title: Titulo de la notificacion
             body: Cuerpo del mensaje
-            icon: URL del icono (opcional)
+            tipo: Tipo de notificacion (para seleccion de icono en SW)
+            icon: URL del icono (opcional, se ignora si tipo esta definido)
             url: URL a abrir al hacer click (opcional)
             tag: Tag para agrupar notificaciones (opcional)
             data: Datos adicionales (opcional)
@@ -273,12 +275,10 @@ class PushService:
         payload = {
             "title": title,
             "body": body,
-            "icon": icon or "/images/Logo definitivo SPM.png",
-            "badge": "/images/Logo definitivo SPM.png",
+            "tipo": tipo or "default",
             "url": url or "/",
             "tag": tag,
             "data": data or {},
-            "timestamp": None,  # Se llenara en el SW
         }
 
         results = {"sent": 0, "failed": 0, "errors": []}
@@ -383,9 +383,24 @@ push_service = PushService()
 
 
 # Funciones helper para uso directo
-def send_push_notification(user_id: str, title: str, body: str, **kwargs) -> Dict[str, Any]:
-    """Envia una notificacion push al usuario."""
-    return push_service.send_push(user_id, title, body, **kwargs)
+def send_push_notification(
+    user_id: str,
+    title: str,
+    body: str,
+    tipo: Optional[str] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Envia una notificacion push al usuario.
+
+    Args:
+        user_id: ID del usuario destinatario
+        title: Titulo de la notificacion
+        body: Cuerpo del mensaje
+        tipo: Tipo de notificacion para seleccionar icono (ej: solicitud_approved)
+        **kwargs: Parametros adicionales (url, tag, data)
+    """
+    return push_service.send_push(user_id, title, body, tipo=tipo, **kwargs)
 
 
 def get_vapid_public_key() -> str:

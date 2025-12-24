@@ -481,36 +481,43 @@ def _disparar_notificaciones(
     destinatario = None
     mensaje = None
 
-    # Determinar destinatario y mensaje segun transicion
+    # Determinar destinatario, mensaje y tipo segun transicion
+    tipo = "info"
+
     if estado_nuevo == "submitted":
         # Notificar al aprobador asignado
         destinatario = solicitud_data.get("aprobador_id")
         mensaje = f"Nueva solicitud #{solicitud_id} pendiente de aprobación"
+        tipo = "solicitud_submitted"
 
     elif estado_nuevo == "approved":
         # Notificar al planificador asignado
         destinatario = solicitud_data.get("planner_id")
         mensaje = f"Solicitud #{solicitud_id} aprobada y asignada para planificacion"
+        tipo = "solicitud_approved"
 
     elif estado_nuevo == "rejected":
         # Notificar al solicitante
         destinatario = solicitud_data.get("id_usuario")
         motivo = f": {razon}" if razon else ""
         mensaje = f"Solicitud #{solicitud_id} rechazada{motivo}"
+        tipo = "solicitud_rejected"
 
     elif estado_nuevo == "in_planning":
         # Notificar al solicitante que esta en proceso
         destinatario = solicitud_data.get("id_usuario")
         mensaje = f"Solicitud #{solicitud_id} en proceso de planificacion"
+        tipo = "solicitud_planned"
 
     elif estado_nuevo == "completed":
         # Notificar al solicitante que esta completada
         destinatario = solicitud_data.get("id_usuario")
         mensaje = f"Solicitud #{solicitud_id} completada exitosamente"
+        tipo = "solicitud_dispatched"
 
     # Crear notificacion si hay destinatario
     if destinatario and mensaje:
-        crear_notificacion(cursor, destinatario, solicitud_id, mensaje)
+        crear_notificacion(cursor, destinatario, solicitud_id, mensaje, tipo)
 
 
 def crear_notificacion(
@@ -543,6 +550,11 @@ def crear_notificacion(
             "success": "SPM - Éxito",
             "warning": "SPM - Atención",
             "error": "SPM - Error",
+            "solicitud_submitted": "Nueva Solicitud",
+            "solicitud_approved": "Solicitud Aprobada",
+            "solicitud_rejected": "Solicitud Rechazada",
+            "solicitud_planned": "Solicitud Planificada",
+            "solicitud_dispatched": "Solicitud Completada",
         }
         title = PUSH_TITLES.get(tipo, "SPM - Notificación")
         url = f"/solicitudes/{solicitud_id}" if solicitud_id else "/notificaciones"
@@ -551,6 +563,7 @@ def crear_notificacion(
             user_id=destinatario_id,
             title=title,
             body=mensaje,
+            tipo=tipo,  # Para selección de icono en Service Worker
             url=url,
             tag=f"solicitud-{solicitud_id}" if solicitud_id else None,
         )

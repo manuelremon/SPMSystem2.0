@@ -4,8 +4,64 @@
  * Maneja notificaciones push en background.
  */
 
-const SW_VERSION = '1.0.2';
+const SW_VERSION = '1.1.0';
 const APP_NAME = 'SPM 2.0';
+
+// Mapeo tipo -> icono
+const NOTIFICATION_ICONS = {
+  'solicitud_created': '/images/notifications/icon-solicitud.svg',
+  'solicitud_submitted': '/images/notifications/icon-solicitud.svg',
+  'solicitud_approved': '/images/notifications/icon-aprobacion.svg',
+  'solicitud_rejected': '/images/notifications/icon-rechazo.svg',
+  'solicitud_planned': '/images/notifications/icon-planificacion.svg',
+  'solicitud_dispatched': '/images/notifications/icon-despacho.svg',
+  'mensaje_nuevo': '/images/notifications/icon-mensaje.svg',
+  'budget_alert': '/images/notifications/icon-presupuesto.svg',
+  'mrp_alert': '/images/notifications/icon-alerta.svg',
+  'sla_alert': '/images/notifications/icon-alerta.svg',
+  'info': '/images/notifications/icon-info.svg',
+  'success': '/images/notifications/icon-aprobacion.svg',
+  'warning': '/images/notifications/icon-alerta.svg',
+  'error': '/images/notifications/icon-rechazo.svg',
+  'test': '/images/notifications/icon-info.svg',
+  'default': '/images/notifications/icon-info.svg'
+};
+
+// Mapeo tipo -> acciones contextuales
+const NOTIFICATION_ACTIONS = {
+  'solicitud_created': [
+    { action: 'view', title: 'Ver solicitud' },
+    { action: 'dismiss', title: 'Cerrar' }
+  ],
+  'solicitud_submitted': [
+    { action: 'review', title: 'Revisar' },
+    { action: 'dismiss', title: 'Cerrar' }
+  ],
+  'solicitud_approved': [
+    { action: 'view', title: 'Ver detalles' },
+    { action: 'dismiss', title: 'Cerrar' }
+  ],
+  'solicitud_rejected': [
+    { action: 'view', title: 'Ver motivo' },
+    { action: 'dismiss', title: 'Cerrar' }
+  ],
+  'solicitud_planned': [
+    { action: 'view', title: 'Ver plan' },
+    { action: 'dismiss', title: 'Cerrar' }
+  ],
+  'solicitud_dispatched': [
+    { action: 'view', title: 'Ver despacho' },
+    { action: 'dismiss', title: 'Cerrar' }
+  ],
+  'mensaje_nuevo': [
+    { action: 'reply', title: 'Responder' },
+    { action: 'dismiss', title: 'Cerrar' }
+  ],
+  'default': [
+    { action: 'open', title: 'Ver' },
+    { action: 'dismiss', title: 'Cerrar' }
+  ]
+};
 
 // Log helper
 const log = (msg, ...args) => {
@@ -46,8 +102,7 @@ self.addEventListener('push', (event) => {
   let data = {
     title: APP_NAME,
     body: 'Nueva notificacion',
-    icon: '/images/Logo definitivo SPM.png',
-    badge: '/images/Logo definitivo SPM.png',
+    tipo: 'default',
     url: '/',
     tag: 'default',
     data: {}
@@ -68,11 +123,19 @@ self.addEventListener('push', (event) => {
   // Sanitizar body para evitar HTML
   const cleanBody = stripHtml(data.body) || 'Nueva notificación';
 
+  // Seleccionar icono y acciones segun tipo
+  const tipo = data.tipo || 'default';
+  const icon = NOTIFICATION_ICONS[tipo] || NOTIFICATION_ICONS['default'];
+  const badge = '/images/notifications/badge-spm.svg';
+  const actions = NOTIFICATION_ACTIONS[tipo] || NOTIFICATION_ACTIONS['default'];
+
+  log('Tipo:', tipo, 'Icon:', icon);
+
   // Opciones de la notificacion
   const options = {
     body: cleanBody,
-    icon: data.icon,
-    badge: data.badge,
+    icon: icon,
+    badge: badge,
     tag: data.tag,
     renotify: true, // Notificar aunque ya exista una con el mismo tag
     requireInteraction: true, // Mantener visible hasta que el usuario interactue o expire
@@ -80,18 +143,10 @@ self.addEventListener('push', (event) => {
     timestamp: Date.now(),
     data: {
       url: data.url,
+      tipo: tipo,
       ...data.data
     },
-    actions: [
-      {
-        action: 'open',
-        title: 'Ver'
-      },
-      {
-        action: 'dismiss',
-        title: 'Cerrar'
-      }
-    ]
+    actions: actions
   };
 
   // Mostrar la notificacion y cerrarla automaticamente despues de 5 segundos

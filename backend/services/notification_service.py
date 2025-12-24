@@ -299,6 +299,7 @@ class NotificationService:
                     user_id=destinatario_id,
                     title=title,
                     body=mensaje,
+                    tipo=tipo,  # Para selección de icono en Service Worker
                     url=url,
                     tag=f"notif-{notif_id}",
                 )

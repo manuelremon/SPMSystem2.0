@@ -225,7 +225,7 @@ def send_test_notification():
     body = data.get("body", "Esta es una notificacion de prueba del sistema SPM")
 
     results = send_push_notification(
-        user_id=user_id, title=title, body=body, url="/notificaciones", tag="test"
+        user_id=user_id, title=title, body=body, tipo="test", url="/notificaciones", tag="test"
     )
 
     return jsonify({"ok": True, "results": results}), 200
@@ -243,6 +243,7 @@ def send_notification():
         "user_id": "8",
         "title": "Titulo",
         "body": "Mensaje",
+        "tipo": "info" (opcional, default: "info"),
         "url": "/ruta" (opcional)
     }
     """
@@ -263,6 +264,7 @@ def send_notification():
     target_user_id = data.get("user_id")
     title = data.get("title")
     body = data.get("body")
+    tipo = data.get("tipo", "info")
     url = data.get("url")
 
     if not all([target_user_id, title, body]):
@@ -271,6 +273,6 @@ def send_notification():
             400,
         )
 
-    results = send_push_notification(user_id=target_user_id, title=title, body=body, url=url)
+    results = send_push_notification(user_id=target_user_id, title=title, body=body, tipo=tipo, url=url)
 
     return jsonify({"ok": True, "results": results}), 200
