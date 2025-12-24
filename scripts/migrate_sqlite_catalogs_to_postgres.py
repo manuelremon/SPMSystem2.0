@@ -35,7 +35,9 @@ logger = logging.getLogger(__name__)
 
 # Rutas de las bases de datos SQLite
 BASE_DIR = Path(__file__).parent.parent
-DATA_DIR = BASE_DIR / "data"
+# En Docker, los archivos están en /app/data
+# En desarrollo, están en proyecto/data
+DATA_DIR = Path("/app/data") if Path("/app/data").exists() else BASE_DIR / "data"
 
 SQLITE_DBS = {
     "catalogo_materiales": DATA_DIR / "catalogo_materiales.db",
