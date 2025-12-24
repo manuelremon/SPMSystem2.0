@@ -275,7 +275,7 @@ class NotificationService:
                 cursor.execute(
                     """
                     INSERT INTO notificaciones (destinatario_id, mensaje, tipo, solicitud_id, leido, created_at)
-                    VALUES (?, ?, ?, ?, false, ?)
+                    VALUES (?, ?, ?, ?, 0, ?)
                     RETURNING id
                     """,
                     (destinatario_id, mensaje, tipo, solicitud_id, datetime.now().isoformat()),
