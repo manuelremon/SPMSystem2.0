@@ -779,22 +779,50 @@ def aceptar_solicitud(solicitud_id):
 
 @bp.route("/solicitudes/<int:solicitud_id>/finalizar", methods=["POST"])
 def finalizar_solicitud(solicitud_id):
-    """Planificador finaliza tratamiento - Usa FSM"""
+    """Planificador finaliza tratamiento - Cambia estado a COMPLETED"""
     guard, user = _require_solicitud_access(solicitud_id)
     if guard:
         return guard
 
     actor_id = str(user.get("id_spm") or user.get("usuario") or user.get("id") or "planner")
 
-    # Usar FSM para cambiar estado (in_treatment -> treated)
+    # 1. Validar que hay decisiones y fueron ejecutadas
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """SELECT COUNT(*) as cnt FROM decision_abastecimiento
+               WHERE solicitud_id=? AND estado='pendiente'""",
+            (solicitud_id,),
+        )
+        row = cur.fetchone()
+        pending = row["cnt"] if row else 0
+
+        if pending > 0:
+            return error_validation(
+                "acciones",
+                f"Hay {pending} acciones pendientes de ejecutar",
+            )
+
     try:
-        resultado = cambiar_estado(
+        # 2. Transición: IN_TREATMENT -> TREATED
+        cambiar_estado(
             solicitud_id=solicitud_id,
             nuevo_estado=EstadoSolicitud.TREATED,
             actor_id=actor_id,
-            razon="Planificador finaliza tratamiento",
+            razon="Tratamiento completado",
             metadata={"paso": "finalizacion"},
         )
+
+        # 3. Transición: TREATED -> COMPLETED
+        resultado = cambiar_estado(
+            solicitud_id=solicitud_id,
+            nuevo_estado=EstadoSolicitud.COMPLETED,
+            actor_id=actor_id,
+            razon="Tratamiento finalizado",
+            metadata={"paso": "finalizacion_completa"},
+        )
+
+        # 4. Log evento
         _log_evento(
             solicitud_id,
             None,
@@ -803,6 +831,10 @@ def finalizar_solicitud(solicitud_id):
             {},
             actor=actor_id,
         )
+
+        # 5. Notificar al solicitante
+        _enviar_notificacion_finalizacion(solicitud_id)
+
         return jsonify({"ok": True, "estado": resultado["estado_nuevo"]}), 200
 
     except TransicionInvalidaError as e:
@@ -813,7 +845,7 @@ def finalizar_solicitud(solicitud_id):
                     "ok": False,
                     "error": {
                         "code": "invalid_transition",
-                        "message": "Transición de estado no permitida",
+                        "message": f"Transición de estado no permitida: {e}",
                     },
                 }
             ),
@@ -2062,3 +2094,27 @@ def _actualizar_estado_decision(decision_id: int, nuevo_estado: str):
             )
     except Exception as e:
         print(f"Error actualizando estado decisión: {e}")
+
+
+def _enviar_notificacion_finalizacion(solicitud_id: int):
+    """Notifica al solicitante que el tratamiento finalizó."""
+    try:
+        from backend.services.notification_service import NotificationService
+
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT id_usuario FROM solicitudes WHERE id = ?",
+                (solicitud_id,),
+            )
+            sol = cur.fetchone()
+
+            if sol and sol["id_usuario"]:
+                NotificationService.create_notification(
+                    destinatario_id=sol["id_usuario"],
+                    mensaje=f"El tratamiento de su solicitud #{solicitud_id} ha sido finalizado",
+                    tipo="solicitud_dispatched",
+                    solicitud_id=solicitud_id,
+                )
+    except Exception as e:
+        logging.warning(f"Error notificando finalizacion {solicitud_id}: {e}")

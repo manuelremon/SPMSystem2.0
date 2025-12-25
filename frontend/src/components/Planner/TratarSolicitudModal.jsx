@@ -32,6 +32,7 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
   const [mostrarMrp, setMostrarMrp] = useState(false);
   const [acciones, setAcciones] = useState(null);
   const [loadingAcciones, setLoadingAcciones] = useState(false);
+  const [finalizando, setFinalizando] = useState(false);
 
   const itemsAnalisis = useMemo(() => {
     const grupos = analisis?.materiales_por_criticidad || {};
@@ -213,6 +214,34 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
       return null;
     } finally {
       setLoadingAcciones(false);
+    }
+  };
+
+  const handleFinalizar = async () => {
+    if (!solicitud?.id) return;
+
+    // Validar que se ejecutaron las acciones
+    if (!acciones) {
+      setError("Debe ejecutar las acciones antes de finalizar.");
+      return;
+    }
+
+    setFinalizando(true);
+    setError("");
+
+    try {
+      await ensureCsrfToken();
+      await api.post(`/planificador/solicitudes/${solicitud.id}/finalizar`);
+
+      limpiarDecisionesGuardadas();
+      onComplete?.();
+      onClose?.();
+    } catch (err) {
+      const mensaje = err.response?.data?.error?.message || err.message || "Error al finalizar";
+      setError(`${mensaje}. Por favor, intente nuevamente.`);
+      console.error("Error en handleFinalizar:", err);
+    } finally {
+      setFinalizando(false);
     }
   };
 
@@ -681,13 +710,11 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
           {paso === 4 ? (
             <Button
               type="button"
-              onClick={() => {
-                onComplete?.();
-                onClose?.();
-              }}
+              onClick={handleFinalizar}
+              disabled={finalizando || !acciones}
               className="min-w-[120px]"
             >
-              Finalizar
+              {finalizando ? "Finalizando..." : "Finalizar"}
             </Button>
           ) : (
             <Button
