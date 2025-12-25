@@ -125,6 +125,8 @@ class NotificationService:
         "solicitud_rejected": "Solicitud Rechazada",
         "solicitud_planned": "Solicitud Planificada",
         "solicitud_dispatched": "Solicitud Despachada",
+        "stock_consulta": "SPM - Consulta de Stock",
+        "stock_consulta_respuesta": "SPM - Respuesta Consulta Stock",
     }
 
     # Mapeo de tipos de notificación a preferencias del usuario
@@ -140,6 +142,8 @@ class NotificationService:
         "sla_alert": "notif_sla",
         "profile_approved": "notif_solicitudes",
         "profile_rejected": "notif_solicitudes",
+        "stock_consulta": "notif_mrp",
+        "stock_consulta_respuesta": "notif_mrp",
     }
 
     @classmethod

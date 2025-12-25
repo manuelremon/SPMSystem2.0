@@ -26,6 +26,7 @@ const KPI = lazy(() => import('./pages/KPI'))
 const MiCuenta = lazy(() => import('./pages/MiCuenta'))
 const Mensajes = lazy(() => import('./pages/Mensajes'))
 const Notificaciones = lazy(() => import('./pages/Notificaciones'))
+const CentroInteraccion = lazy(() => import('./pages/CentroInteraccion'))
 const Ayuda = lazy(() => import('./pages/Ayuda'))
 const Trivias = lazy(() => import('./pages/Trivias'))
 const Foro = lazy(() => import('./pages/Foro'))
@@ -122,6 +123,7 @@ function App() {
             <Route path="/materiales/equivalencias" element={<ProtectedRoute><CatalogoEquivalencias /></ProtectedRoute>} />
             <Route path="/mensajes" element={<ProtectedRoute><Mensajes /></ProtectedRoute>} />
             <Route path="/notificaciones" element={<ProtectedRoute><Notificaciones /></ProtectedRoute>} />
+            <Route path="/centro-interaccion" element={<ProtectedRoute><CentroInteraccion /></ProtectedRoute>} />
             <Route path="/mi-cuenta" element={<ProtectedRoute><MiCuenta /></ProtectedRoute>} />
             <Route path="/ayuda" element={<ProtectedRoute><Ayuda /></ProtectedRoute>} />
             <Route path="/trivias" element={<ProtectedRoute><Trivias /></ProtectedRoute>} />

@@ -16,7 +16,8 @@ import {
   Wifi,
   WifiOff,
   Search,
-  Filter
+  Filter,
+  Package,
 } from "../components/ui/Icons";
 import { Card, CardContent } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
@@ -34,6 +35,7 @@ const filterOptions = [
   { value: "all", label: "Todos" },
   { value: "solicitud", label: "Solicitudes" },
   { value: "aprobacion", label: "Aprobaciones" },
+  { value: "stock", label: "Consultas Stock" },
   { value: "mensaje", label: "Mensajes" },
   { value: "profile", label: "Perfil" },
   { value: "info", label: "Info" },
@@ -54,6 +56,9 @@ const notificationConfig = {
   solicitud_planned: { icon: Clock, color: "text-amber-600", bg: "bg-amber-50/70 backdrop-blur-sm" },
   solicitud_to_plan: { icon: Clock, color: "text-orange-600", bg: "bg-orange-50/70 backdrop-blur-sm" },
   mensaje_nuevo: { icon: MessageSquare, color: "text-indigo-600", bg: "bg-indigo-50/70 backdrop-blur-sm" },
+  // Consultas de stock
+  stock_consulta: { icon: Package, color: "text-orange-600", bg: "bg-orange-50/70 backdrop-blur-sm" },
+  stock_consulta_respuesta: { icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50/70 backdrop-blur-sm" },
 };
 
 function formatTimeAgo(dateStr) {
@@ -102,6 +107,7 @@ export default function Notificaciones() {
     if (!tipo) return "info";
     if (tipo.includes("solicitud_created") || tipo.includes("solicitud_planned") || tipo.includes("solicitud_to_plan")) return "solicitud";
     if (tipo.includes("solicitud_approved") || tipo.includes("solicitud_rejected")) return "aprobacion";
+    if (tipo.includes("stock_consulta")) return "stock";
     if (tipo.includes("mensaje")) return "mensaje";
     if (tipo.includes("profile")) return "profile";
     return "info";
@@ -206,6 +212,18 @@ export default function Notificaciones() {
 
       case "mensaje_nuevo":
         navigate("/mensajes");
+        break;
+
+      case "stock_consulta":
+        navigate("/centro-interaccion");
+        break;
+
+      case "stock_consulta_respuesta":
+        if (notif.solicitud_id) {
+          navigate(`/solicitudes/${notif.solicitud_id}`);
+        } else {
+          navigate("/planificador");
+        }
         break;
 
       default:

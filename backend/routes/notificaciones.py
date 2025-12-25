@@ -235,6 +235,108 @@ def notification_stream():
     )
 
 
+@bp.route("/centro-interaccion", methods=["GET"])
+def centro_interaccion():
+    """
+    Datos consolidados para el Centro de Interacción.
+
+    Retorna:
+    - Contadores de notificaciones, consultas pendientes y mensajes
+    - Timeline de actividad reciente
+    """
+    user_id = _get_user_from_token()
+    if not user_id:
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+
+    try:
+        from backend.core.db import get_db_connection
+    except ImportError:
+        from core.db import get_db_connection
+
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+
+            # 1. Notificaciones no leídas
+            cur.execute(
+                """
+                SELECT COUNT(*) as count FROM notificaciones
+                WHERE destinatario_id = ? AND leido = 0
+                """,
+                (user_id,),
+            )
+            notif_count = cur.fetchone()["count"]
+
+            # 2. Consultas de stock pendientes (si es responsable/referente)
+            cur.execute(
+                """
+                SELECT COUNT(*) as count
+                FROM decision_abastecimiento_fuentes f
+                JOIN decision_abastecimiento d ON d.id = f.decision_id
+                LEFT JOIN config_almacenes ca
+                    ON ca.centro = f.centro_origen AND ca.almacen = f.almacen_origen
+                WHERE (f.estado_consulta = 'pendiente' OR f.estado_consulta IS NULL)
+                  AND f.tipo_fuente IN ('stock', 'transferencia', 'equivalencia')
+                  AND d.estado = 'esperando_confirmacion'
+                  AND (
+                      ca.responsable_id = ?
+                      OR EXISTS (
+                          SELECT 1 FROM usuarios u
+                          WHERE u.id_spm = ?
+                          AND u.centro = f.centro_origen
+                          AND (u.rol LIKE '%%coordinador%%' OR u.rol LIKE '%%jefe%%')
+                      )
+                  )
+                """,
+                (user_id, user_id),
+            )
+            consultas_count = cur.fetchone()["count"]
+
+            # 3. Mensajes no leídos
+            cur.execute(
+                """
+                SELECT COUNT(*) as count FROM mensajes
+                WHERE destinatario_id = ? AND leido = 0
+                """,
+                (user_id,),
+            )
+            mensajes_count = cur.fetchone()["count"]
+
+            # 4. Timeline (últimas 20 interacciones)
+            cur.execute(
+                """
+                SELECT 'notificacion' as tipo, mensaje as descripcion,
+                       tipo as subtipo, created_at, solicitud_id
+                FROM notificaciones WHERE destinatario_id = ?
+                UNION ALL
+                SELECT 'mensaje' as tipo, SUBSTR(contenido, 1, 100) as descripcion,
+                       'mensaje' as subtipo, created_at, NULL as solicitud_id
+                FROM mensajes WHERE destinatario_id = ?
+                ORDER BY created_at DESC LIMIT 20
+                """,
+                (user_id, user_id),
+            )
+            timeline = [dict(row) for row in cur.fetchall()]
+
+        return jsonify(
+            {
+                "ok": True,
+                "data": {
+                    "notificaciones_count": notif_count,
+                    "consultas_count": consultas_count,
+                    "mensajes_count": mensajes_count,
+                    "timeline": timeline,
+                },
+            }
+        )
+
+    except Exception as e:
+        import logging
+
+        logging.error(f"Error en centro-interaccion para {user_id}: {e}")
+        return jsonify({"ok": False, "error": "Error interno"}), 500
+
+
 @bp.route("/test", methods=["POST"])
 def create_test_notification():
     """

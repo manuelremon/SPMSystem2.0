@@ -128,6 +128,14 @@ const getMainNavItems = (canApprove) => [
     iconName: "Bell",
   },
   {
+    key: "centro-interaccion",
+    trKey: "nav_centro_interaccion",
+    label: "Centro Interaccion",
+    to: "/centro-interaccion",
+    icon: MessageSquare,
+    iconName: "MessageSquare",
+  },
+  {
     key: "solicitudes",
     trKey: "nav_solicitudes",
     label: "Solicitudes",

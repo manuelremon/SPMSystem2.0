@@ -1671,24 +1671,27 @@ def ejecutar_acciones_post_tratamiento(solicitud_id):
                             )
                             accion["notificacion_enviada"] = True
                     else:
-                        # Stock otro centro -> consulta a referente
+                        # Stock otro centro -> consulta a responsable Y referente
                         accion["estado"] = "esperando_confirmacion"
-                        accion["destinatario"] = f"Referente {centro_origen}"
+                        accion["destinatario"] = f"Responsable/Referente {centro_origen}/{almacen_origen}"
                         accion["mensaje"] = (
                             f"Consulta de disponibilidad: {cantidad} unidades de {codigo_material} "
                             f"({descripcion}) desde centro {centro_origen}, almacén {almacen_origen}"
                         )
 
-                        # Buscar referente del centro y crear consulta
-                        referente_id = _get_referente_centro(centro_origen)
-                        if referente_id:
-                            NotificationService.create_notification(
-                                destinatario_id=referente_id,
-                                mensaje=accion["mensaje"],
-                                tipo="warning",
-                                solicitud_id=solicitud_id,
-                            )
+                        # Notificar a AMBOS: responsable del almacén y referente del centro
+                        notificados = _enviar_consulta_stock(
+                            solicitud_id=solicitud_id,
+                            fuente_id=fuente.get("id", 0),
+                            centro=centro_origen,
+                            almacen=almacen_origen,
+                            material=codigo_material,
+                            cantidad=cantidad,
+                            descripcion=descripcion,
+                        )
+                        if notificados:
                             accion["notificacion_enviada"] = True
+                            accion["notificados"] = notificados
                             accion["requiere_respuesta"] = True
 
                 elif tipo_fuente == "equivalencia":
@@ -1719,9 +1722,9 @@ def ejecutar_acciones_post_tratamiento(solicitud_id):
                             )
                             accion["notificacion_enviada"] = True
                     else:
-                        # Equivalencia de otro centro -> consulta
+                        # Equivalencia de otro centro -> consulta a responsable Y referente
                         accion["estado"] = "esperando_confirmacion"
-                        accion["destinatario"] = f"Referente {centro_origen}"
+                        accion["destinatario"] = f"Responsable/Referente {centro_origen}"
                         accion["mensaje"] = (
                             f"Consulta equivalencia ({tipo_equiv}): {cantidad} unidades de {codigo_equiv} "
                             f"desde centro {centro_origen} - reemplaza {codigo_material}"
@@ -1729,15 +1732,19 @@ def ejecutar_acciones_post_tratamiento(solicitud_id):
                         accion["es_equivalencia"] = True
                         accion["codigo_equivalente"] = codigo_equiv
 
-                        referente_id = _get_referente_centro(centro_origen)
-                        if referente_id:
-                            NotificationService.create_notification(
-                                destinatario_id=referente_id,
-                                mensaje=accion["mensaje"],
-                                tipo="warning",
-                                solicitud_id=solicitud_id,
-                            )
+                        # Notificar a AMBOS: responsable del almacén y referente del centro
+                        notificados = _enviar_consulta_stock(
+                            solicitud_id=solicitud_id,
+                            fuente_id=fuente.get("id", 0),
+                            centro=centro_origen,
+                            almacen=almacen_origen or "0001",
+                            material=codigo_equiv,
+                            cantidad=cantidad,
+                            descripcion=f"Equivalencia de {codigo_material}",
+                        )
+                        if notificados:
                             accion["notificacion_enviada"] = True
+                            accion["notificados"] = notificados
                             accion["requiere_respuesta"] = True
 
                 elif tipo_fuente == "proveedor":
@@ -1843,7 +1850,270 @@ def ejecutar_acciones_post_tratamiento(solicitud_id):
         return error_internal("Error al ejecutar acciones de tratamiento")
 
 
-@bp.route("/responder-consulta/<int:decision_id>", methods=["POST"])
+@bp.route("/mis-consultas-pendientes", methods=["GET"])
+def obtener_mis_consultas_pendientes():
+    """
+    Obtiene consultas de stock pendientes para el usuario actual.
+
+    El usuario debe ser responsable de almacén o referente de centro
+    para ver las consultas que requieren su respuesta.
+    """
+    user = _current_user()
+    if isinstance(user, tuple):
+        return user
+
+    user_id = str(user.get("id_spm") or user.get("usuario") or user.get("id"))
+
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            # Buscar consultas pendientes donde el usuario es responsable o referente
+            cur.execute(
+                """
+                SELECT
+                    f.id as fuente_id,
+                    d.id as decision_id,
+                    d.solicitud_id,
+                    d.item_index,
+                    f.centro_origen,
+                    f.almacen_origen,
+                    f.cantidad_asignada,
+                    f.tipo_fuente,
+                    f.codigo_material_equiv,
+                    f.estado_consulta,
+                    f.created_at,
+                    s.criticidad,
+                    s.data_json,
+                    s.planner_id,
+                    s.fecha_necesidad,
+                    u.nombre || ' ' || u.apellido as planner_nombre
+                FROM decision_abastecimiento_fuentes f
+                JOIN decision_abastecimiento d ON d.id = f.decision_id
+                JOIN solicitudes s ON s.id = d.solicitud_id
+                LEFT JOIN usuarios u ON u.id_spm = s.planner_id
+                LEFT JOIN config_almacenes ca
+                    ON ca.centro = f.centro_origen AND ca.almacen = f.almacen_origen
+                WHERE (f.estado_consulta = 'pendiente' OR f.estado_consulta IS NULL)
+                  AND f.tipo_fuente IN ('stock', 'transferencia', 'equivalencia')
+                  AND d.estado = 'esperando_confirmacion'
+                  AND (
+                      ca.responsable_id = ?
+                      OR EXISTS (
+                          SELECT 1 FROM usuarios u2
+                          WHERE u2.id_spm = ?
+                          AND u2.centro = f.centro_origen
+                          AND (u2.rol LIKE '%%coordinador%%' OR u2.rol LIKE '%%jefe%%')
+                      )
+                  )
+                ORDER BY s.criticidad DESC, f.created_at ASC
+                """,
+                (user_id, user_id),
+            )
+
+            consultas = []
+            for row in cur.fetchall():
+                consulta = dict(row)
+                # Parsear data_json para obtener info del material
+                try:
+                    import json
+
+                    data = json.loads(consulta.get("data_json", "{}"))
+                    items = data.get("items", [])
+                    item_index = consulta.get("item_index", 0)
+                    if items and len(items) > item_index:
+                        item = items[item_index]
+                        consulta["material_id"] = item.get("material_id", "")
+                        consulta["material_descripcion"] = item.get("descripcion", "")
+                except Exception:
+                    consulta["material_id"] = ""
+                    consulta["material_descripcion"] = ""
+
+                # Limpiar data_json del response
+                del consulta["data_json"]
+                consultas.append(consulta)
+
+        return jsonify({"ok": True, "data": consultas}), 200
+
+    except Exception as e:
+        logging.error(f"Error obteniendo consultas pendientes para {user_id}: {e}")
+        return error_internal("Error al obtener consultas pendientes")
+
+
+@bp.route("/responder-consulta/<int:fuente_id>", methods=["POST"])
+def responder_consulta_stock(fuente_id):
+    """
+    Responder a consulta de disponibilidad de stock.
+
+    Body JSON:
+    {
+        "acepta": true/false,
+        "cantidad_confirmada": 50,  // Opcional, si confirma parcialmente
+        "fecha_disponibilidad": "2025-01-15",  // Opcional
+        "comentario": "Notas o motivo"
+    }
+    """
+    user = _current_user()
+    if isinstance(user, tuple):
+        return user
+
+    try:
+        data = request.get_json(silent=True) or {}
+        acepta = data.get("acepta", False)
+        cantidad_confirmada = data.get("cantidad_confirmada")
+        fecha_disponibilidad = data.get("fecha_disponibilidad")
+        comentario = data.get("comentario", "")
+
+        usuario_id = str(user.get("id_spm") or user.get("usuario") or user.get("id"))
+
+        # Obtener la fuente y su decisión asociada
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT f.*, d.solicitud_id, d.item_index, d.estado as decision_estado,
+                       s.planner_id
+                FROM decision_abastecimiento_fuentes f
+                JOIN decision_abastecimiento d ON d.id = f.decision_id
+                JOIN solicitudes s ON s.id = d.solicitud_id
+                WHERE f.id = ?
+                """,
+                (fuente_id,),
+            )
+            fuente = cur.fetchone()
+
+        if not fuente:
+            return error_not_found("Consulta", fuente_id)
+
+        # Validar que la consulta está pendiente
+        estado_actual = fuente.get("estado_consulta") or "pendiente"
+        if estado_actual not in ("pendiente", None):
+            return error_validation(
+                "estado", f"Esta consulta ya fue respondida (estado: {estado_actual})"
+            )
+
+        # Determinar nuevo estado
+        if acepta:
+            cantidad_solicitada = fuente.get("cantidad_asignada", 0)
+            if cantidad_confirmada and cantidad_confirmada < cantidad_solicitada:
+                nuevo_estado = "parcial"
+            else:
+                nuevo_estado = "confirmado"
+                cantidad_confirmada = cantidad_solicitada
+        else:
+            nuevo_estado = "rechazado"
+            cantidad_confirmada = 0
+
+        # Actualizar la fuente con la respuesta
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                UPDATE decision_abastecimiento_fuentes
+                SET estado_consulta = ?,
+                    cantidad_confirmada = ?,
+                    fecha_disponibilidad = ?,
+                    respuesta_comentario = ?,
+                    respondido_por = ?,
+                    respondido_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (
+                    nuevo_estado,
+                    cantidad_confirmada,
+                    fecha_disponibilidad,
+                    comentario,
+                    usuario_id,
+                    fuente_id,
+                ),
+            )
+
+            # Si todas las fuentes de la decisión están respondidas, actualizar decisión
+            cur.execute(
+                """
+                SELECT COUNT(*) as total,
+                       SUM(CASE WHEN estado_consulta IN ('confirmado', 'parcial') THEN 1 ELSE 0 END) as confirmadas,
+                       SUM(CASE WHEN estado_consulta = 'rechazado' THEN 1 ELSE 0 END) as rechazadas
+                FROM decision_abastecimiento_fuentes
+                WHERE decision_id = ?
+                """,
+                (fuente["decision_id"],),
+            )
+            stats = cur.fetchone()
+
+            if stats["total"] == (stats["confirmadas"] + stats["rechazadas"]):
+                # Todas respondidas - actualizar estado de la decisión
+                if stats["confirmadas"] > 0:
+                    nuevo_estado_decision = "confirmado"
+                else:
+                    nuevo_estado_decision = "rechazado"
+
+                cur.execute(
+                    """
+                    UPDATE decision_abastecimiento
+                    SET estado = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                    """,
+                    (nuevo_estado_decision, fuente["decision_id"]),
+                )
+
+        # Registrar evento
+        _log_evento(
+            fuente["solicitud_id"],
+            fuente["item_index"],
+            "respuesta_consulta_stock",
+            nuevo_estado,
+            {
+                "acepta": acepta,
+                "cantidad_confirmada": cantidad_confirmada,
+                "fecha_disponibilidad": fecha_disponibilidad,
+                "comentario": comentario,
+                "fuente_id": fuente_id,
+            },
+            actor=usuario_id,
+        )
+
+        # Notificar al planificador
+        try:
+            from backend.services.notification_service import NotificationService
+        except ImportError:
+            from services.notification_service import NotificationService
+
+        if fuente["planner_id"]:
+            estado_texto = "confirmada" if acepta else "rechazada"
+            mensaje = f"Consulta stock #{fuente['solicitud_id']}: {estado_texto}"
+            if cantidad_confirmada and acepta:
+                mensaje += f" ({cantidad_confirmada} unidades)"
+            if comentario:
+                mensaje += f" - {comentario[:50]}"
+
+            NotificationService.create_notification(
+                destinatario_id=fuente["planner_id"],
+                mensaje=mensaje,
+                tipo="stock_consulta_respuesta",
+                solicitud_id=fuente["solicitud_id"],
+            )
+
+        return (
+            jsonify(
+                {
+                    "ok": True,
+                    "data": {
+                        "fuente_id": fuente_id,
+                        "nuevo_estado": nuevo_estado,
+                        "cantidad_confirmada": cantidad_confirmada,
+                        "mensaje": "Respuesta registrada correctamente",
+                    },
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        logging.error(f"Error respondiendo consulta fuente {fuente_id}: {e}")
+        return error_internal("Error al registrar respuesta")
+
+
+@bp.route("/responder-consulta-legacy/<int:decision_id>", methods=["POST"])
 def responder_consulta_referente(decision_id):
     """
     Endpoint para que referentes respondan consultas de disponibilidad de stock.
@@ -2038,7 +2308,7 @@ def obtener_estado_acciones(solicitud_id):
 
 
 def _get_responsable_almacen(centro: str, almacen: str) -> str | None:
-    """Busca el responsable de un almacén específico."""
+    """Busca el responsable de un almacén específico por rol."""
     try:
         with get_db_connection() as conn:
             cur = conn.cursor()
@@ -2056,6 +2326,69 @@ def _get_responsable_almacen(centro: str, almacen: str) -> str | None:
             return row["id_spm"] if row else None
     except Exception:
         return None
+
+
+def _get_responsable_almacen_config(centro: str, almacen: str) -> str | None:
+    """Busca el responsable de un almacén desde config_almacenes."""
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT responsable_id
+                FROM config_almacenes
+                WHERE centro = ? AND almacen = ?
+                """,
+                (centro, almacen),
+            )
+            row = cur.fetchone()
+            return row["responsable_id"] if row and row["responsable_id"] else None
+    except Exception:
+        return None
+
+
+def _enviar_consulta_stock(
+    solicitud_id: int,
+    fuente_id: int,
+    centro: str,
+    almacen: str,
+    material: str,
+    cantidad: float,
+    descripcion: str,
+) -> list:
+    """
+    Envía notificación de consulta de stock a AMBOS:
+    - Responsable del almacén (desde config_almacenes)
+    - Referente del centro (coordinador/jefe)
+
+    Returns: Lista de user_ids notificados
+    """
+    notificados = []
+    mensaje = (
+        f"Consulta disponibilidad: {cantidad} uds de {material} "
+        f"({descripcion}) - {centro}/{almacen}"
+    )
+
+    # 1. Responsable del almacén (config_almacenes.responsable_id)
+    responsable_id = _get_responsable_almacen_config(centro, almacen)
+
+    # 2. Referente del centro (coordinador/jefe)
+    referente_id = _get_referente_centro(centro)
+
+    # Notificar a ambos (sin duplicados)
+    for user_id in set(filter(None, [responsable_id, referente_id])):
+        try:
+            NotificationService.create_notification(
+                destinatario_id=user_id,
+                mensaje=mensaje,
+                tipo="stock_consulta",
+                solicitud_id=solicitud_id,
+            )
+            notificados.append(user_id)
+        except Exception as e:
+            logging.warning(f"Error notificando consulta stock a {user_id}: {e}")
+
+    return notificados
 
 
 def _get_referente_centro(centro: str) -> str | None:

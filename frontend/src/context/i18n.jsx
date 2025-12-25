@@ -706,6 +706,44 @@ const translations = {
   mrp_total_materiales: { es: "Total materiales:", en: "Total materials:" },
   mrp_grafico_distribucion: { es: "Gráfico de distribución de estados", en: "Status distribution chart" },
   mrp_grafico_cumplimiento: { es: "Gráfico de nivel de cumplimiento", en: "Compliance level gauge" },
+
+  // Centro de Interaccion
+  nav_centro_interaccion: { es: "Centro de Interaccion", en: "Interaction Center" },
+  centro_titulo: { es: "Centro de Interaccion", en: "Interaction Center" },
+  centro_subtitulo: { es: "Gestiona tus notificaciones, consultas y mensajes", en: "Manage your notifications, queries and messages" },
+  centro_notificaciones: { es: "Notificaciones", en: "Notifications" },
+  centro_consultas: { es: "Consultas Stock", en: "Stock Queries" },
+  centro_mensajes: { es: "Mensajes", en: "Messages" },
+  centro_timeline: { es: "Timeline de Actividad", en: "Activity Timeline" },
+  centro_sin_actividad: { es: "No hay actividad reciente", en: "No recent activity" },
+
+  // Consultas de Stock
+  consulta_pendientes: { es: "Consultas de Stock Pendientes", en: "Pending Stock Queries" },
+  consulta_pendientes_count: { es: "consultas pendientes", en: "pending queries" },
+  consulta_sin_pendientes: { es: "No tienes consultas pendientes", en: "You have no pending queries" },
+  consulta_sin_pendientes_desc: { es: "Las nuevas consultas apareceran aqui", en: "New queries will appear here" },
+  consulta_responder: { es: "Responder", en: "Respond" },
+  consulta_responder_titulo: { es: "Responder Consulta de Stock", en: "Respond to Stock Query" },
+  consulta_solicitud: { es: "Solicitud", en: "Request" },
+  consulta_centro_almacen: { es: "Centro/Almacen", en: "Site/Warehouse" },
+  consulta_cantidad_solicitada: { es: "Cantidad Solicitada", en: "Requested Quantity" },
+  consulta_solicitado_por: { es: "Solicitado por", en: "Requested by" },
+  consulta_de: { es: "De", en: "From" },
+  consulta_confirmar: { es: "Confirmar Disponibilidad", en: "Confirm Availability" },
+  consulta_rechazar: { es: "No Disponible", en: "Not Available" },
+  consulta_cantidad_disponible: { es: "Cantidad Disponible", en: "Available Quantity" },
+  consulta_fecha_disponibilidad: { es: "Fecha Disponibilidad", en: "Availability Date" },
+  consulta_comentarios: { es: "Comentarios adicionales", en: "Additional comments" },
+  consulta_motivo_rechazo: { es: "Motivo del rechazo", en: "Rejection reason" },
+  consulta_placeholder_rechazo: { es: "Indica el motivo por el cual no esta disponible...", en: "Indicate the reason why it is not available..." },
+  consulta_placeholder_comentario: { es: "Notas adicionales sobre la disponibilidad...", en: "Additional notes about availability..." },
+  consulta_enviar_respuesta: { es: "Enviar Respuesta", en: "Send Response" },
+  consulta_seleccionar_opcion: { es: "Selecciona una opcion", en: "Select an option" },
+  consulta_confirmacion_parcial: { es: "Confirmacion parcial: se confirman menos unidades de las solicitadas", en: "Partial confirmation: fewer units confirmed than requested" },
+
+  // Tiempo
+  time_now: { es: "Ahora", en: "Now" },
+  time_ago: { es: "Hace", en: "ago" },
 };
 
 export function I18nProvider({ children }) {
