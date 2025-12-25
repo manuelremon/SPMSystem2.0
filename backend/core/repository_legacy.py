@@ -51,7 +51,12 @@ def _table_exists(conn, table_name: str) -> bool:
                 (table_name,),
             )
             result = cur.fetchone()
-            return result and result[0] if result else False
+            if not result:
+                return False
+            # PostgresCursorWrapper retorna dict-like, accedemos por clave 'exists'
+            if hasattr(result, 'get'):
+                return bool(result.get('exists', False))
+            return bool(result[0]) if result else False
         else:
             cur.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
