@@ -245,7 +245,7 @@ class TratamientoRepository:
             conn.commit()
             return True
         except Exception as e:
-            conn.close()
+            # No cerrar aquí - finally siempre se ejecuta
             raise e
         finally:
             conn.close()

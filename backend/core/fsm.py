@@ -368,6 +368,24 @@ def cambiar_estado(
                     nuevo_estado_str + " (límite de 3 retrocesos alcanzado)",
                 )
 
+        # 2.6 Validar límite de reenvíos REJECTED -> DRAFT (máx 2)
+        # Evita ciclos infinitos de rechazo-reenvío
+        if estado_actual == "rejected" and nuevo_estado_str == "draft":
+            cursor.execute(
+                """
+                SELECT COUNT(*) as reenvios FROM solicitudes_historial_estados
+                WHERE solicitud_id = ? AND estado_anterior = 'rejected' AND estado_nuevo = 'draft'
+                """,
+                (solicitud_id,),
+            )
+            row = cursor.fetchone()
+            reenvios = row["reenvios"] if row else 0
+            if reenvios >= 2:
+                raise TransicionInvalidaError(
+                    estado_actual,
+                    nuevo_estado_str + " (límite de 2 reenvíos alcanzado - solicitud debe ser cancelada)",
+                )
+
         # 3. Actualizar estado de solicitud
         cursor.execute(
             "UPDATE solicitudes SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
