@@ -681,6 +681,31 @@ const translations = {
   push_deactivate: { es: "Desactivar", en: "Deactivate" },
   push_activate: { es: "Activar", en: "Activate" },
   push_settings_title: { es: "Notificaciones Push", en: "Push Notifications" },
+
+  // MRP KPIs
+  mrp_kpis_titulo: { es: "KPI's MRP", en: "MRP KPI's" },
+  mrp_tendencia_up: { es: "Subiendo", en: "Rising" },
+  mrp_tendencia_down: { es: "Bajando", en: "Falling" },
+  mrp_tendencia_stable: { es: "Estable", en: "Stable" },
+  mrp_objetivo: { es: "Objetivo:", en: "Target:" },
+  mrp_periodo: { es: "Período:", en: "Period:" },
+  mrp_periodo_mes: { es: "Último Mes", en: "Last Month" },
+  mrp_periodo_trimestre: { es: "Último Trimestre", en: "Last Quarter" },
+  mrp_periodo_anio: { es: "Último Año", en: "Last Year" },
+  mrp_actualizar: { es: "Actualizar", en: "Refresh" },
+  mrp_distribucion_estados: { es: "Distribución de Estados", en: "Status Distribution" },
+  mrp_cumplimiento: { es: "Cumplimiento MRP", en: "MRP Compliance" },
+  mrp_nivel_cumplimiento: { es: "Nivel de Cumplimiento", en: "Compliance Level" },
+  mrp_evolucion_alertas: { es: "Evolución de Alertas", en: "Alerts Evolution" },
+  mrp_alertas_generadas: { es: "Alertas Generadas", en: "Generated Alerts" },
+  mrp_alertas_resueltas: { es: "Alertas Resueltas", en: "Resolved Alerts" },
+  mrp_top_riesgo: { es: "Top Materiales en Riesgo", en: "Top Materials at Risk" },
+  mrp_dias: { es: "días", en: "days" },
+  mrp_sin_stock: { es: "sin stock", en: "out of stock" },
+  mrp_total: { es: "Total", en: "Total" },
+  mrp_total_materiales: { es: "Total materiales:", en: "Total materials:" },
+  mrp_grafico_distribucion: { es: "Gráfico de distribución de estados", en: "Status distribution chart" },
+  mrp_grafico_cumplimiento: { es: "Gráfico de nivel de cumplimiento", en: "Compliance level gauge" },
 };
 
 export function I18nProvider({ children }) {

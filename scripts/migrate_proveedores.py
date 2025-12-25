@@ -5,6 +5,8 @@ Migra de la estructura antigua (proveedores) a la nueva:
 - proveedores_externos (con contactos, emails, teléfonos)
 - proveedores_internos (almacenes YPF)
 - proveedor_precios_negociados (precios especiales por material)
+
+Compatible con SQLite (desarrollo) y PostgreSQL (producción).
 """
 
 import sys
@@ -16,11 +18,104 @@ from datetime import date, timedelta
 # Agregar backend al path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from backend.core.db import get_db_connection
+from backend.core.db import get_db_connection, is_using_postgresql
+
+
+def upsert_externo(cursor, data):
+    """Inserta o actualiza proveedor externo."""
+    if is_using_postgresql():
+        cursor.execute(
+            """
+            INSERT INTO proveedores_externos
+            (cuit, nombre, direccion, localidad, pais, origen, lead_time_dias, rubro, calificacion)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (cuit) DO UPDATE SET
+                nombre = EXCLUDED.nombre,
+                direccion = EXCLUDED.direccion,
+                localidad = EXCLUDED.localidad,
+                pais = EXCLUDED.pais,
+                origen = EXCLUDED.origen,
+                lead_time_dias = EXCLUDED.lead_time_dias,
+                rubro = EXCLUDED.rubro,
+                calificacion = EXCLUDED.calificacion
+        """,
+            data,
+        )
+    else:
+        cursor.execute(
+            """
+            INSERT OR REPLACE INTO proveedores_externos
+            (cuit, nombre, direccion, localidad, pais, origen, lead_time_dias, rubro, calificacion)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+            data,
+        )
+
+
+def upsert_interno(cursor, data):
+    """Inserta o actualiza proveedor interno."""
+    if is_using_postgresql():
+        cursor.execute(
+            """
+            INSERT INTO proveedores_internos
+            (centro, almacen, centro_nombre, almacen_nombre, sector, contacto_centro, responsable_centro, referente_id, referente_nombre, referente_email)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (centro, almacen) DO UPDATE SET
+                centro_nombre = EXCLUDED.centro_nombre,
+                almacen_nombre = EXCLUDED.almacen_nombre,
+                sector = EXCLUDED.sector,
+                contacto_centro = EXCLUDED.contacto_centro,
+                responsable_centro = EXCLUDED.responsable_centro,
+                referente_id = EXCLUDED.referente_id,
+                referente_nombre = EXCLUDED.referente_nombre,
+                referente_email = EXCLUDED.referente_email
+        """,
+            data,
+        )
+    else:
+        cursor.execute(
+            """
+            INSERT OR REPLACE INTO proveedores_internos
+            (centro, almacen, centro_nombre, almacen_nombre, sector, contacto_centro, responsable_centro, referente_id, referente_nombre, referente_email)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+            data,
+        )
+
+
+def insert_ignore_precio(cursor, data):
+    """Inserta precio negociado si no existe."""
+    if is_using_postgresql():
+        # PostgreSQL UNIQUE is on (cuit_proveedor, codigo_material, fecha_vigencia_desde)
+        cursor.execute(
+            """
+            INSERT INTO proveedor_precios_negociados
+            (cuit_proveedor, codigo_material, precio_usd, moneda,
+             fecha_vigencia_desde, fecha_vigencia_hasta, condicion_pago,
+             cantidad_minima, notas)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (cuit_proveedor, codigo_material, fecha_vigencia_desde) DO NOTHING
+        """,
+            data,
+        )
+    else:
+        cursor.execute(
+            """
+            INSERT OR IGNORE INTO proveedor_precios_negociados
+            (cuit_proveedor, codigo_material, precio_usd, moneda,
+             fecha_vigencia_desde, fecha_vigencia_hasta, condicion_pago,
+             cantidad_minima, notas)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+            data,
+        )
 
 
 def migrate_proveedores():
     """Migra datos a las nuevas tablas de proveedores."""
+
+    db_type = "PostgreSQL" if is_using_postgresql() else "SQLite"
+    print(f"Conectando a {db_type}...")
 
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -92,63 +187,83 @@ def migrate_proveedores():
         ]
 
         for ext in externos_data:
-            cursor.execute(
-                """
-                INSERT OR REPLACE INTO proveedores_externos
-                (cuit, nombre, direccion, localidad, pais, origen, lead_time_dias, rubro, calificacion)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-                ext,
-            )
+            upsert_externo(cursor, ext)
 
-        # Contactos - al menos 1 por proveedor
-        contactos = [
-            # Originales
-            ("30-12345678-9", "Carlos", "Mendez", "Gerente Comercial", 1),
-            ("30-12345678-9", "Laura", "Fernández", "Ventas", 0),
-            ("30-23456789-0", "Roberto", "Silva", "Director Comercial", 1),
-            ("30-34567890-1", "María", "González", "Ventas", 1),
-            ("30-45678901-2", "Ana", "García", "Jefa de Ventas", 1),
-            ("30-56789012-3", "Pedro", "Martínez", "Gerente", 1),
-            ("US-9876543210", "John", "Smith", "Sales Manager", 1),
-            ("30-67890123-4", "Luis", "Rodríguez", "Director", 1),
-            # Nuevos
-            ("30-11111111-1", "Martín", "López", "Gerente Técnico", 1),
-            ("30-11111111-2", "Claudia", "Ruiz", "Ventas", 1),
-            ("30-11111111-3", "Diego", "Fernández", "Director", 1),
-            ("30-22222222-1", "Patricia", "Vega", "Gerente Comercial", 1),
-            ("30-22222222-2", "Ricardo", "Sosa", "Ventas", 1),
-            ("30-22222222-3", "Fernando", "Díaz", "Director Técnico", 1),
-            ("30-33333333-1", "Gabriela", "Castro", "Gerente", 1),
-            ("30-33333333-2", "Hernán", "Paz", "Ventas", 1),
-            ("30-33333333-3", "Luciana", "Romero", "Comercial", 1),
-            ("30-44444444-1", "Oscar", "Molina", "Gerente Técnico", 1),
-            ("30-44444444-2", "Valeria", "Sánchez", "Ventas", 1),
-            ("30-44444444-3", "Nicolás", "Álvarez", "Director", 1),
-            ("30-55555555-1", "Carolina", "Torres", "Gerente Comercial", 1),
-            ("30-55555555-2", "Sebastián", "Navarro", "Ventas", 1),
-            ("30-66666666-1", "Andrea", "Giménez", "Directora", 1),
-            ("30-66666666-2", "Marcelo", "Acosta", "Gerente", 1),
-            ("30-77777777-1", "Romina", "Herrera", "Ventas", 1),
-            ("30-77777777-2", "Eduardo", "Méndez", "Director", 1),
-            ("30-88888888-1", "Florencia", "Ríos", "Gerente Comercial", 1),
-            ("30-88888888-2", "Jorge", "Leiva", "Ventas", 1),
-            ("30-99999999-1", "Cecilia", "Vargas", "Directora", 1),
-            ("30-99999999-2", "Ariel", "Peralta", "Gerente", 1),
-            ("DE-123456789", "Hans", "Mueller", "Regional Manager LATAM", 1),
-            ("BR-98765432100", "Carlos", "Silva", "Director Regional", 1),
-            ("CL-76543210-9", "Alejandro", "Vargas", "Gerente Comercial", 1),
+        conn.commit()
+        print(f"  Insertados {len(externos_data)} proveedores externos")
+
+        # Obtener el mapeo cuit -> id para PostgreSQL (necesario para FK en telefonos)
+        cuit_to_id = {}
+        cursor.execute("SELECT id, cuit FROM proveedores_externos")
+        for row in cursor.fetchall():
+            cuit_to_id[row["cuit"]] = row["id"]
+
+        # Contactos - estructura PostgreSQL: (cuit_proveedor, nombre, cargo, telefono, email, principal)
+        # SQLite tiene: (cuit_proveedor, nombre, apellido, cargo, es_principal)
+        contactos_data = [
+            # (cuit, nombre_completo, cargo, telefono, email, principal)
+            ("30-12345678-9", "Carlos Mendez", "Gerente Comercial", "+54 299 4410001", "cmendez@ferreteria.com.ar", 1),
+            ("30-12345678-9", "Laura Fernández", "Ventas", "+54 299 4410002", "lfernandez@ferreteria.com.ar", 0),
+            ("30-23456789-0", "Roberto Silva", "Director Comercial", "+54 299 4420001", "rsilva@suministros.com.ar", 1),
+            ("30-34567890-1", "María González", "Ventas", "+54 291 4430001", "mgonzalez@valvulas.com.ar", 1),
+            ("30-45678901-2", "Ana García", "Jefa de Ventas", "+54 297 4440001", "agarcia@metalurgica.com.ar", 1),
+            ("30-56789012-3", "Pedro Martínez", "Gerente", "+54 299 4450001", "pmartinez@distribuidora.com.ar", 1),
+            ("US-9876543210", "John Smith", "Sales Manager", "+1 713 555 1001", "jsmith@globaloilparts.com", 1),
+            ("30-67890123-4", "Luis Rodríguez", "Director", "+54 261 4460001", "lrodriguez@bombas.com.ar", 1),
+            ("30-11111111-1", "Martín López", "Gerente Técnico", "+54 299 4470001", "mlopez@instrumentacion.com.ar", 1),
+            ("30-11111111-2", "Claudia Ruiz", "Ventas", "+54 299 4480001", "cruiz@mediciones.com.ar", 1),
+            ("30-11111111-3", "Diego Fernández", "Director", "+54 299 4490001", "dfernandez@control.com.ar", 1),
+            ("30-22222222-1", "Patricia Vega", "Gerente Comercial", "+54 291 4500001", "pvega@electrotecnia.com.ar", 1),
+            ("30-22222222-2", "Ricardo Sosa", "Ventas", "+54 299 4510001", "rsosa@tableros.com.ar", 1),
+            ("30-22222222-3", "Fernando Díaz", "Director Técnico", "+54 299 4520001", "fdiaz@motores.com.ar", 1),
+            ("30-33333333-1", "Gabriela Castro", "Gerente", "+54 299 4530001", "gcastro@seguridad.com.ar", 1),
+            ("30-33333333-2", "Hernán Paz", "Ventas", "+54 299 4540001", "hpaz@proteccion.com.ar", 1),
+            ("30-33333333-3", "Luciana Romero", "Comercial", "+54 298 4550001", "lromero@epp.com.ar", 1),
+            ("30-44444444-1", "Oscar Molina", "Gerente Técnico", "+54 299 4560001", "omolina@quimicos.com.ar", 1),
+            ("30-44444444-2", "Valeria Sánchez", "Ventas", "+54 291 4570001", "vsanchez@solventes.com.ar", 1),
+            ("30-44444444-3", "Nicolás Álvarez", "Director", "+54 299 4580001", "nalvarez@lubricantes.com.ar", 1),
+            ("30-55555555-1", "Carolina Torres", "Gerente Comercial", "+54 299 4590001", "ctorres@sellos.com.ar", 1),
+            ("30-55555555-2", "Sebastián Navarro", "Ventas", "+54 261 4600001", "snavarro@empaquetaduras.com.ar", 1),
+            ("30-66666666-1", "Andrea Giménez", "Directora", "+54 299 4610001", "agimenez@filtros.com.ar", 1),
+            ("30-66666666-2", "Marcelo Acosta", "Gerente", "+54 299 4620001", "macosta@purificacion.com.ar", 1),
+            ("30-77777777-1", "Romina Herrera", "Ventas", "+54 291 4630001", "rherrera@canerias.com.ar", 1),
+            ("30-77777777-2", "Eduardo Méndez", "Director", "+54 299 4640001", "emendez@accesorios.com.ar", 1),
+            ("30-88888888-1", "Florencia Ríos", "Gerente Comercial", "+54 299 4650001", "frios@skf.com.ar", 1),
+            ("30-88888888-2", "Jorge Leiva", "Ventas", "+54 299 4660001", "jleiva@rodamientos.com.ar", 1),
+            ("30-99999999-1", "Cecilia Vargas", "Directora", "+54 299 4670001", "cvargas@herramientas.com.ar", 1),
+            ("30-99999999-2", "Ariel Peralta", "Gerente", "+54 299 4680001", "aperalta@tools.com.ar", 1),
+            ("DE-123456789", "Hans Mueller", "Regional Manager LATAM", "+49 89 555 1001", "hmueller@siemens.com", 1),
+            ("BR-98765432100", "Carlos Silva", "Director Regional", "+55 21 555 1001", "csilva@petrobras.com.br", 1),
+            ("CL-76543210-9", "Alejandro Vargas", "Gerente Comercial", "+56 2 555 1001", "avargas@minerachilena.cl", 1),
         ]
 
-        for c in contactos:
-            cursor.execute(
-                """
-                INSERT INTO proveedor_ext_contactos
-                (cuit_proveedor, nombre, apellido, cargo, es_principal)
-                VALUES (?, ?, ?, ?, ?)
-            """,
-                c,
-            )
+        if is_using_postgresql():
+            # PostgreSQL: columnas (cuit_proveedor, nombre, cargo, telefono, email, principal)
+            for c in contactos_data:
+                cursor.execute(
+                    """
+                    INSERT INTO proveedor_ext_contactos
+                    (cuit_proveedor, nombre, cargo, telefono, email, principal)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                    c,
+                )
+        else:
+            # SQLite: columnas (cuit_proveedor, nombre, apellido, cargo, es_principal)
+            for c in contactos_data:
+                nombre_parts = c[1].split(" ", 1)
+                nombre = nombre_parts[0]
+                apellido = nombre_parts[1] if len(nombre_parts) > 1 else ""
+                cursor.execute(
+                    """
+                    INSERT INTO proveedor_ext_contactos
+                    (cuit_proveedor, nombre, apellido, cargo, es_principal)
+                    VALUES (?, ?, ?, ?, ?)
+                """,
+                    (c[0], nombre, apellido, c[2], c[5]),
+                )
+
+        print(f"  Insertados {len(contactos_data)} contactos")
 
         # Emails - uno por proveedor (principal)
         emails = []
@@ -170,8 +285,10 @@ def migrate_proveedores():
             """,
                 e,
             )
+        print(f"  Insertados {len(emails)} emails")
 
         # Teléfonos - uno por proveedor
+        # PostgreSQL: necesita proveedor_id; SQLite: usa cuit_proveedor
         telefonos = []
         for i, ext in enumerate(externos_data):
             cuit = ext[0]
@@ -187,15 +304,32 @@ def migrate_proveedores():
                 tel = f"+54 299 44{10000 + i * 100:05d}"
             telefonos.append((cuit, tel, "fijo"))
 
-        for t in telefonos:
-            cursor.execute(
-                """
-                INSERT INTO proveedor_ext_telefonos
-                (cuit_proveedor, telefono, tipo)
-                VALUES (?, ?, ?)
-            """,
-                t,
-            )
+        if is_using_postgresql():
+            # PostgreSQL: usa proveedor_id como FK
+            for t in telefonos:
+                cuit = t[0]
+                proveedor_id = cuit_to_id.get(cuit)
+                if proveedor_id:
+                    cursor.execute(
+                        """
+                        INSERT INTO proveedor_ext_telefonos
+                        (proveedor_id, telefono, tipo)
+                        VALUES (?, ?, ?)
+                    """,
+                        (proveedor_id, t[1], t[2]),
+                    )
+        else:
+            # SQLite: usa cuit_proveedor
+            for t in telefonos:
+                cursor.execute(
+                    """
+                    INSERT INTO proveedor_ext_telefonos
+                    (cuit_proveedor, telefono, tipo)
+                    VALUES (?, ?, ?)
+                """,
+                    t,
+                )
+        print(f"  Insertados {len(telefonos)} teléfonos")
 
         # === PROVEEDORES INTERNOS ===
         internos_data = [
@@ -211,21 +345,14 @@ def migrate_proveedores():
         ]
 
         for i in internos_data:
-            cursor.execute(
-                """
-                INSERT OR REPLACE INTO proveedores_internos
-                (centro, almacen, centro_nombre, almacen_nombre, sector, contacto_centro, responsable_centro, referente_id, referente_nombre, referente_email)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-                i,
-            )
+            upsert_interno(cursor, i)
 
         conn.commit()
 
         # Verificar migración básica
         cursor.execute("SELECT COUNT(*) as n FROM proveedores_externos")
         n_externos = cursor.fetchone()["n"]
-        print(f"✓ Proveedores externos: {n_externos}")
+        print(f"\n✓ Proveedores externos: {n_externos}")
 
         cursor.execute("SELECT COUNT(*) as n FROM proveedor_ext_contactos")
         print(f"✓ Contactos: {cursor.fetchone()['n']}")
@@ -246,7 +373,8 @@ def migrate_proveedores():
 def poblar_precios_negociados():
     """Pobla precios negociados vinculados a materiales reales del catálogo."""
 
-    sap_db_path = Path(__file__).parent.parent / "data" / "sap_data.db"
+    # En producción PostgreSQL, los materiales están en la misma BD
+    # En desarrollo SQLite, están en sap_data.db
 
     # Mapeo de rubros a grupos de artículos (de la tabla stock)
     rubro_keywords = {
@@ -280,6 +408,7 @@ def poblar_precios_negociados():
         "Minería": ["MINERIA", "MINING", "CRUSHER"],
     }
 
+    # Obtener proveedores y materiales
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
@@ -287,25 +416,41 @@ def poblar_precios_negociados():
         cursor.execute("SELECT cuit, rubro FROM proveedores_externos WHERE activo = 1")
         proveedores = cursor.fetchall()
 
-    # Conectar a sap_data.db para obtener materiales con precios
-    sap_conn = sqlite3.connect(sap_db_path)
-    sap_conn.row_factory = sqlite3.Row
-    sap_cursor = sap_conn.cursor()
-
-    # Obtener materiales únicos con precios
-    sap_cursor.execute("""
-        SELECT DISTINCT material as codigo, material_descripcion as descripcion,
-               AVG(precio) as precio_promedio, gpo_articulos_descripcion as grupo
-        FROM stock
-        WHERE precio > 0 AND precio < 100000
-        GROUP BY material
-        ORDER BY RANDOM()
-        LIMIT 2000
-    """)
-    materiales = sap_cursor.fetchall()
-    sap_conn.close()
+        # Obtener materiales - PostgreSQL tiene stock en la misma BD
+        if is_using_postgresql():
+            # PostgreSQL: ORDER BY RANDOM() no compatible con GROUP BY, usar subquery
+            cursor.execute("""
+                SELECT * FROM (
+                    SELECT material as codigo, material_descripcion as descripcion,
+                           AVG(precio) as precio_promedio, gpo_articulos_descripcion as grupo
+                    FROM stock
+                    WHERE precio > 0 AND precio < 100000
+                    GROUP BY material, material_descripcion, gpo_articulos_descripcion
+                ) AS subq
+                ORDER BY RANDOM()
+                LIMIT 2000
+            """)
+            materiales = cursor.fetchall()
+        else:
+            # SQLite: materiales en sap_data.db
+            sap_db_path = Path(__file__).parent.parent / "data" / "sap_data.db"
+            sap_conn = sqlite3.connect(sap_db_path)
+            sap_conn.row_factory = sqlite3.Row
+            sap_cursor = sap_conn.cursor()
+            sap_cursor.execute("""
+                SELECT DISTINCT material as codigo, material_descripcion as descripcion,
+                       AVG(precio) as precio_promedio, gpo_articulos_descripcion as grupo
+                FROM stock
+                WHERE precio > 0 AND precio < 100000
+                GROUP BY material
+                ORDER BY RANDOM()
+                LIMIT 2000
+            """)
+            materiales = [dict(row) for row in sap_cursor.fetchall()]
+            sap_conn.close()
 
     print(f"\nMateriales disponibles para vincular: {len(materiales)}")
+    print(f"Proveedores activos: {len(proveedores)}")
 
     # Generar precios negociados
     precios_data = []
@@ -371,18 +516,11 @@ def poblar_precios_negociados():
     # Insertar precios negociados
     with get_db_connection() as conn:
         cursor = conn.cursor()
+        inserted = 0
         for p in precios_data:
             try:
-                cursor.execute(
-                    """
-                    INSERT OR IGNORE INTO proveedor_precios_negociados
-                    (cuit_proveedor, codigo_material, precio_usd, moneda,
-                     fecha_vigencia_desde, fecha_vigencia_hasta, condicion_pago,
-                     cantidad_minima, notas)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                    p,
-                )
+                insert_ignore_precio(cursor, p)
+                inserted += 1
             except Exception as e:
                 print(f"  Error insertando precio: {e}")
 

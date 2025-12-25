@@ -62,24 +62,43 @@ def _table_exists(conn, table_name: str) -> bool:
         return False
 
 
-def _connect_catalogo() -> sqlite3.Connection:
-    """Crea conexión a BD de catálogo de materiales"""
+def _connect_catalogo():
+    """Crea conexión a BD de catálogo de materiales
+
+    En producción (PostgreSQL), todos los datos están en la misma BD.
+    En desarrollo (SQLite), conecta a catalogo_materiales.db separado.
+    """
+    if is_using_postgresql():
+        return _get_postgres_connection()
     catalogo_path = _db_path().parent / "catalogo_materiales.db"
     conn = sqlite3.connect(catalogo_path)
     conn.row_factory = sqlite3.Row
     return conn
 
 
-def _connect_equivalentes() -> sqlite3.Connection:
-    """Crea conexión a BD de equivalencias"""
+def _connect_equivalentes():
+    """Crea conexión a BD de equivalencias
+
+    En producción (PostgreSQL), todos los datos están en la misma BD.
+    En desarrollo (SQLite), conecta a equivalentes.db separado.
+    """
+    if is_using_postgresql():
+        return _get_postgres_connection()
     equiv_path = _db_path().parent / "equivalentes.db"
     conn = sqlite3.connect(equiv_path)
     conn.row_factory = sqlite3.Row
     return conn
 
 
-def _connect_sap_data() -> sqlite3.Connection:
-    """Crea conexión a BD de datos SAP"""
+def _connect_sap_data():
+    """Crea conexión a BD de datos SAP
+
+    En producción (PostgreSQL), todos los datos están en la misma BD.
+    En desarrollo (SQLite), conecta a sap_data.db separado.
+    """
+    if is_using_postgresql():
+        # En PostgreSQL, stock y demás tablas están en la BD principal
+        return _get_postgres_connection()
     sap_path = _db_path().parent / "sap_data.db"
     conn = sqlite3.connect(sap_path)
     conn.row_factory = sqlite3.Row
