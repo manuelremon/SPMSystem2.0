@@ -1,11 +1,13 @@
 import React, { useMemo } from "react";
-import { Package, ShoppingCart } from "../ui/Icons";
+import { Package, ShoppingCart, DollarSign } from "../ui/Icons";
 
 export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
-  // Agrupar fuentes por tipo: stock vs compra
-  const { stockRows, compraRows } = useMemo(() => {
+  // Agrupar fuentes por tipo: stock vs compra + calcular costos
+  const { stockRows, compraRows, costoStock, costoCompra, costoTotal } = useMemo(() => {
     const stock = [];
     const compra = [];
+    let totalStock = 0;
+    let totalCompra = 0;
 
     Object.entries(decisiones).forEach(([idx, decision]) => {
       const item = items.find((it) => Number(it.idx) === Number(idx)) || {};
@@ -15,37 +17,53 @@ export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
 
         const cantidadSolicitada = Number(item.cantidad || 0);
         const cantidadAsignada = Number(fuente.cantidad_asignada || 0);
+        const precioUnitario = Number(fuente.opcion?.precio_unitario || item.precio_unitario || 0);
+        const costoFuente = cantidadAsignada * precioUnitario;
         const porcentaje = cantidadSolicitada > 0
           ? Math.round((cantidadAsignada / cantidadSolicitada) * 100)
           : 0;
 
         if (tipo === "stock" || tipo === "transferencia") {
+          totalStock += costoFuente;
           stock.push({
             codigo: item.codigo,
             descripcion: item.descripcion,
             cantidadSolicitada,
             cantidadAsignada,
+            precioUnitario,
+            costo: costoFuente,
             porcentaje,
-            centro: fuente.opcion?.centro,
-            almacen: fuente.opcion?.almacen,
+            centro: fuente.opcion?.centro_origen || fuente.opcion?.centro,
+            almacen: fuente.opcion?.almacen_origen || fuente.opcion?.almacen,
             nombre_almacen: fuente.opcion?.nombre_almacen,
             plazo: fuente.opcion?.plazo_dias,
           });
         } else if (tipo === "proveedor" || tipo === "equivalencia") {
+          totalCompra += costoFuente;
           compra.push({
             codigo: item.codigo,
             descripcion: item.descripcion,
             cantidadSolicitada,
             cantidadAsignada,
+            precioUnitario,
+            costo: costoFuente,
             porcentaje,
             proveedor: fuente.opcion?.nombre_proveedor || fuente.opcion?.nombre,
             plazo: fuente.opcion?.plazo_dias,
+            esEquivalencia: tipo === "equivalencia",
+            esNegociado: fuente.opcion?.precio_es_negociado,
           });
         }
       });
     });
 
-    return { stockRows: stock, compraRows: compra };
+    return {
+      stockRows: stock,
+      compraRows: compra,
+      costoStock: totalStock,
+      costoCompra: totalCompra,
+      costoTotal: totalStock + totalCompra,
+    };
   }, [decisiones, items]);
 
   return (
@@ -82,6 +100,53 @@ export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
           </p>
         </div>
       )}
+
+      {/* G4: Sumario de Costos */}
+      {(stockRows.length > 0 || compraRows.length > 0) && (
+        <div className="mt-8">
+          <SectionHeader
+            icon={DollarSign}
+            title="RESUMEN DE COSTOS"
+            variant="warning"
+          />
+          <div
+            className="mt-3 p-4 rounded-2xl"
+            style={{
+              backgroundColor: "var(--card)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
+            }}
+          >
+            <div className="grid grid-cols-3 gap-4">
+              {/* Costo Stock */}
+              <div className="text-center p-4 rounded-xl" style={{ backgroundColor: "rgba(16, 185, 129, 0.08)" }}>
+                <p className="text-xs uppercase tracking-wide text-[var(--fg-muted)] mb-1">Desde Stock</p>
+                <p className="text-2xl font-bold" style={{ color: "var(--success)" }}>
+                  ${costoStock.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-[var(--fg-muted)] mt-1">{stockRows.length} líneas</p>
+              </div>
+
+              {/* Costo Compra */}
+              <div className="text-center p-4 rounded-xl" style={{ backgroundColor: "rgba(59, 130, 246, 0.08)" }}>
+                <p className="text-xs uppercase tracking-wide text-[var(--fg-muted)] mb-1">Por Compra</p>
+                <p className="text-2xl font-bold" style={{ color: "var(--info)" }}>
+                  ${costoCompra.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-[var(--fg-muted)] mt-1">{compraRows.length} líneas</p>
+              </div>
+
+              {/* Costo Total */}
+              <div className="text-center p-4 rounded-xl" style={{ backgroundColor: "rgba(139, 92, 246, 0.08)" }}>
+                <p className="text-xs uppercase tracking-wide text-[var(--fg-muted)] mb-1">Costo Total</p>
+                <p className="text-2xl font-bold" style={{ color: "var(--primary)" }}>
+                  ${costoTotal.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-[var(--fg-muted)] mt-1">{stockRows.length + compraRows.length} líneas</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -95,6 +160,10 @@ function SectionHeader({ icon: Icon, title, variant }) {
     info: {
       bg: "rgba(59, 130, 246, 0.12)",
       text: "var(--info)",
+    },
+    warning: {
+      bg: "rgba(139, 92, 246, 0.12)",
+      text: "var(--primary)",
     },
   };
 

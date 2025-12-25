@@ -593,13 +593,15 @@ def paso_2_opciones_abastecimiento(solicitud_id: int, item_idx: int) -> Dict[str
                     "cuit_proveedor": prov["cuit"],
                     "codigo_material": codigo_original,
                     "descripcion": item.get("descripcion", ""),
-                    "cantidad_disponible": cantidad_solicitada,  # Asumimos disponible
+                    "cantidad_disponible": cantidad_solicitada,  # Disponibilidad bajo pedido
                     "cantidad_solicitada": cantidad_solicitada,
+                    "disponibilidad_bajo_pedido": True,  # B1: Flag para indicar que es bajo pedido
                     "plazo_dias": prov.get("lead_time_dias") or 30,
                     "precio_unitario": precio_final,
                     "precio_es_negociado": es_negociado,
                     "costo_total": cantidad_solicitada * precio_final,
                     "rating": rating,
+                    "calificacion": calificacion,  # Agregar calificación para scoring
                     "compatibilidad_pct": 100,
                     "observaciones": f"Proveedor externo - {prov.get('rubro', 'General')}",
                     "rubro": prov.get("rubro"),
@@ -1099,6 +1101,10 @@ def _calcular_score_opcion_v2(opcion: Dict[str, Any], max_precio: float, max_pla
     # BONUS: Transferencia interna (preferir interno sobre externo)
     if opcion.get("tipo") == "transferencia":
         score += 2
+
+    # G2: PENALIZACIÓN por proveedor incumplidor
+    if opcion.get("calificacion") == "incumplidor":
+        score -= 5
 
     return max(0, min(100, score))
 

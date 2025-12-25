@@ -1659,6 +1659,55 @@ def ejecutar_acciones_post_tratamiento(solicitud_id):
                             accion["notificacion_enviada"] = True
                             accion["requiere_respuesta"] = True
 
+                elif tipo_fuente == "equivalencia":
+                    # G3: Manejo de equivalencias - tratar como stock interno
+                    codigo_equiv = fuente.get("codigo_material_equiv", codigo_material)
+                    tipo_equiv = fuente.get("tipo_equivalencia", "E1_ESTRICTA")
+
+                    if centro_origen == centro_solicitud or not centro_origen:
+                        # Equivalencia del mismo centro -> traspaso
+                        accion["estado"] = "transferencia_solicitada"
+                        accion["destinatario"] = f"Almacén {centro_origen or centro_solicitud}/{almacen_origen or '0001'}"
+                        accion["mensaje"] = (
+                            f"Traspaso de equivalencia ({tipo_equiv}): {cantidad} unidades de {codigo_equiv} "
+                            f"en lugar de {codigo_material} ({descripcion})"
+                        )
+                        accion["es_equivalencia"] = True
+                        accion["codigo_equivalente"] = codigo_equiv
+
+                        responsable_id = _get_responsable_almacen(
+                            centro_origen or centro_solicitud, almacen_origen or "0001"
+                        )
+                        if responsable_id:
+                            NotificationService.create_notification(
+                                destinatario_id=responsable_id,
+                                mensaje=accion["mensaje"],
+                                tipo="solicitud_planned",
+                                solicitud_id=solicitud_id,
+                            )
+                            accion["notificacion_enviada"] = True
+                    else:
+                        # Equivalencia de otro centro -> consulta
+                        accion["estado"] = "esperando_confirmacion"
+                        accion["destinatario"] = f"Referente {centro_origen}"
+                        accion["mensaje"] = (
+                            f"Consulta equivalencia ({tipo_equiv}): {cantidad} unidades de {codigo_equiv} "
+                            f"desde centro {centro_origen} - reemplaza {codigo_material}"
+                        )
+                        accion["es_equivalencia"] = True
+                        accion["codigo_equivalente"] = codigo_equiv
+
+                        referente_id = _get_referente_centro(centro_origen)
+                        if referente_id:
+                            NotificationService.create_notification(
+                                destinatario_id=referente_id,
+                                mensaje=accion["mensaje"],
+                                tipo="warning",
+                                solicitud_id=solicitud_id,
+                            )
+                            accion["notificacion_enviada"] = True
+                            accion["requiere_respuesta"] = True
+
                 elif tipo_fuente == "proveedor":
                     # Compra a proveedor -> pendiente SOLPED
                     proveedor = fuente.get("proveedor_nombre", "")
@@ -1690,7 +1739,10 @@ def ejecutar_acciones_post_tratamiento(solicitud_id):
             "solicitud_id": solicitud_id,
             "total_acciones": len(acciones_ejecutadas),
             "traspasos_solicitados": len(
-                [a for a in acciones_ejecutadas if a["estado"] == "transferencia_solicitada"]
+                [a for a in acciones_ejecutadas if a["estado"] == "transferencia_solicitada" and not a.get("es_equivalencia")]
+            ),
+            "equivalencias_solicitadas": len(
+                [a for a in acciones_ejecutadas if a.get("es_equivalencia")]
             ),
             "consultas_pendientes": len(
                 [a for a in acciones_ejecutadas if a["estado"] == "esperando_confirmacion"]

@@ -361,10 +361,10 @@ CREATE TABLE IF NOT EXISTS config_equivalencia_scores (
     descripcion TEXT,
     activo INTEGER DEFAULT 1
 );
-INSERT OR IGNORE INTO config_equivalencia_scores VALUES
-    ('E0_DUPLICADO', 100, 'Duplicado tecnico - mismo material'),
-    ('E1_ESTRICTA', 95, 'Equivalencia tecnica estricta 1:1'),
-    ('E2_SUPLIBLE', 85, 'Suplible bajo condiciones');
+INSERT OR IGNORE INTO config_equivalencia_scores (tipo_equiv, compatibilidad_pct, descripcion, activo) VALUES
+    ('E0_DUPLICADO', 100, 'Duplicado tecnico - mismo material', 1),
+    ('E1_ESTRICTA', 95, 'Equivalencia tecnica estricta 1:1', 1),
+    ('E2_SUPLIBLE', 85, 'Suplible bajo condiciones', 1);
 
 -- ============================================================================
 -- DECISIONES DE ABASTECIMIENTO (MULTI-FUENTE)

@@ -115,7 +115,12 @@
       "Bash(xxd:*)",
       "Bash(TOKEN6=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNiIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjY1ODY2MDYsImV4cCI6MTc2NjU5MDIwNn0.HC8rlg1zZeuD1LCyjI3ZbwV1w_jo5d4AkmBkxzSdo80\")",
       "Bash(TOKEN6=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNiIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjY1ODY2NjQsImV4cCI6MTc2NjU5MDI2NH0.k5lEP5iBNzVlxvGHiMCymihSKYptKPjmTncinPscSzk\" curl -s https://planifica-materiales.com/api/mi-cuenta/notification-preferences -H \"Authorization: Bearer $TOKEN6\")",
-      "Bash(python -m py_compile:*)"
+      "Bash(python -m py_compile:*)",
+      "Bash(.venv/bin/python -m pytest:*)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(COMMIT_MSG=\"already committed\" ./scripts/deploy-full.sh:*)",
+      "Bash(python scripts/migrate_proveedores.py:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []

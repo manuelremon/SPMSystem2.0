@@ -370,7 +370,7 @@ def cambiar_estado(
 
         # 3. Actualizar estado de solicitud
         cursor.execute(
-            "UPDATE solicitudes SET status = ?, updated_at = NOW() WHERE id = ?",
+            "UPDATE solicitudes SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
             (nuevo_estado_str, solicitud_id),
         )
 

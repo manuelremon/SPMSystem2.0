@@ -126,12 +126,15 @@ export default function Paso4AccionesPendientes({
         };
 
         if (tipoFuente === "stock" || tipoFuente === "transferencia") {
-          if (centroOrigen === centroSolicitud) {
+          // B5: Null check para centroOrigen - si no hay centro, asumir mismo centro
+          const esMismoCentro = !centroOrigen || centroOrigen === centroSolicitud;
+
+          if (esMismoCentro) {
             // Traspaso mismo centro
             preview.traspasos.push({
               ...accionBase,
               tipo: "traspaso_mismo_centro",
-              destinatario: `Almacen ${centroOrigen}/${almacenOrigen}`,
+              destinatario: `Almacen ${centroOrigen || centroSolicitud}/${almacenOrigen || "0001"}`,
               accion: "Notificar traspaso al almacen",
             });
           } else {
@@ -143,7 +146,27 @@ export default function Paso4AccionesPendientes({
               accion: "Enviar consulta de disponibilidad",
             });
           }
-        } else if (tipoFuente === "proveedor" || tipoFuente === "equivalencia") {
+        } else if (tipoFuente === "equivalencia") {
+          // Equivalencias - tratar según ubicación del stock
+          const esMismoCentro = !centroOrigen || centroOrigen === centroSolicitud;
+          if (esMismoCentro) {
+            preview.traspasos.push({
+              ...accionBase,
+              tipo: "traspaso_mismo_centro",
+              destinatario: `Almacen ${centroOrigen || centroSolicitud}/${almacenOrigen || "0001"}`,
+              accion: "Notificar traspaso (equivalencia)",
+              esEquivalencia: true,
+            });
+          } else {
+            preview.consultas.push({
+              ...accionBase,
+              tipo: "consulta_otro_centro",
+              destinatario: `Referente Centro ${centroOrigen}`,
+              accion: "Consulta equivalencia disponible",
+              esEquivalencia: true,
+            });
+          }
+        } else if (tipoFuente === "proveedor") {
           // SOLPED a proveedor
           preview.solpeds.push({
             ...accionBase,
