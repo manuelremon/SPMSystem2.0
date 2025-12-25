@@ -751,7 +751,7 @@ class ProveedorInternoRepository:
                 FROM stock
                 WHERE material = ? AND centro != ? AND stock > 0
                 GROUP BY centro, almacen
-                ORDER BY stock DESC
+                ORDER BY SUM(stock) DESC
             """,
                 (codigo_material, centro_destino),
             )
