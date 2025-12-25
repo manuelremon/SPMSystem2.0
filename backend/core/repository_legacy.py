@@ -379,8 +379,23 @@ class MaterialRepository:
         rows_raw = []
         try:
             cur = conn.cursor()
-            # Verificar existencia tabla
-            if _table_exists(conn, "stock_almacenes"):
+            # En PostgreSQL usamos stock_detalle (view), en SQLite stock_almacenes
+            if _table_exists(conn, "stock_detalle"):
+                # PostgreSQL: stock_detalle tiene columna 'codigo'
+                params = [codigo]
+                sql = "SELECT centro, almacen, SUM(cantidad) as cantidad FROM stock_detalle WHERE codigo = ?"
+                if centro:
+                    sql += " AND centro = ?"
+                    params.append(centro)
+                if almacen:
+                    sql += " AND almacen = ?"
+                    params.append(almacen)
+                sql += " GROUP BY centro, almacen"
+
+                cur.execute(sql, params)
+                rows_raw = [dict(row) for row in cur.fetchall()]
+            elif _table_exists(conn, "stock_almacenes"):
+                # SQLite fallback: stock_almacenes tiene columna 'codigo_material'
                 params = [codigo]
                 sql = "SELECT centro, almacen, SUM(cantidad) as cantidad FROM stock_almacenes WHERE codigo_material = ?"
                 if centro:
