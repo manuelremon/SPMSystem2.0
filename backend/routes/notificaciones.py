@@ -283,7 +283,7 @@ def centro_interaccion():
                       OR EXISTS (
                           SELECT 1 FROM usuarios u
                           WHERE u.id_spm = ?
-                          AND u.centro = f.centro_origen
+                          AND f.centro_origen = ANY(string_to_array(u.centros, ','))
                           AND (u.rol LIKE '%%coordinador%%' OR u.rol LIKE '%%jefe%%')
                       )
                   )

@@ -1901,7 +1901,7 @@ def obtener_mis_consultas_pendientes():
                       OR EXISTS (
                           SELECT 1 FROM usuarios u2
                           WHERE u2.id_spm = ?
-                          AND u2.centro = f.centro_origen
+                          AND f.centro_origen = ANY(string_to_array(u2.centros, ','))
                           AND (u2.rol LIKE '%%coordinador%%' OR u2.rol LIKE '%%jefe%%')
                       )
                   )
