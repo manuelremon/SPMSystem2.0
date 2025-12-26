@@ -19,6 +19,9 @@ import { useAuthStore } from "../store/authStore";
 import { useI18n } from "../context/i18n";
 import api from "../services/api";
 import ConsultasStockList from "../components/Planner/ConsultasStockList";
+import NotificacionesInline from "../components/Centro/NotificacionesInline";
+import MensajesInline from "../components/Centro/MensajesInline";
+import TimelineDetailModal from "../components/Centro/TimelineDetailModal";
 
 function formatTimeAgo(dateStr) {
   if (!dateStr) return "";
@@ -56,6 +59,7 @@ export default function CentroInteraccion() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedTimelineItem, setSelectedTimelineItem] = useState(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -102,12 +106,7 @@ export default function CentroInteraccion() {
 
   const handleTabClick = (tabId) => {
     setActiveTab(tabId);
-    // Para notificaciones y mensajes, redirigir a sus paginas
-    if (tabId === "notificaciones") {
-      navigate("/notificaciones");
-    } else if (tabId === "mensajes") {
-      navigate("/mensajes");
-    }
+    // Todo se muestra inline, no navegamos
   };
 
   const getTimelineIcon = (item) => {
@@ -182,6 +181,12 @@ export default function CentroInteraccion() {
             </CardContent>
           </Card>
         )}
+        {activeTab === "notificaciones" && (
+          <NotificacionesInline onUpdate={loadData} />
+        )}
+        {activeTab === "mensajes" && (
+          <MensajesInline onUpdate={loadData} />
+        )}
       </div>
 
       {/* Timeline de actividad */}
@@ -202,7 +207,10 @@ export default function CentroInteraccion() {
                 return (
                   <div
                     key={idx}
-                    className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
+                    onClick={() => setSelectedTimelineItem(item)}
+                    className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50
+                               cursor-pointer transition-colors border border-transparent
+                               hover:border-gray-200 hover:shadow-sm"
                   >
                     <div className="p-2 bg-gray-100 rounded-full">
                       <IconComponent className="w-4 h-4 text-gray-600" />
@@ -231,6 +239,14 @@ export default function CentroInteraccion() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de detalle del timeline */}
+      {selectedTimelineItem && (
+        <TimelineDetailModal
+          item={selectedTimelineItem}
+          onClose={() => setSelectedTimelineItem(null)}
+        />
+      )}
     </div>
   );
 }
