@@ -12,12 +12,14 @@ import {
   MessageSquare,
   RefreshCw,
   ExternalLink,
+  User,
 } from "../ui/Icons";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { Card, CardContent } from "../ui/Card";
 import { useI18n } from "../../context/i18n";
 import api from "../../services/api";
+import ProfileRequestActionModal from "./ProfileRequestActionModal";
 
 const tipoIcons = {
   solicitud_approved: Check,
@@ -27,6 +29,9 @@ const tipoIcons = {
   mensaje_nuevo: MessageSquare,
   budget_approved: Check,
   budget_rejected: X,
+  profile_request: User,
+  profile_approved: Check,
+  profile_rejected: X,
   default: Bell,
 };
 
@@ -38,11 +43,25 @@ const tipoColors = {
   mensaje_nuevo: "text-purple-600 bg-purple-50",
   budget_approved: "text-green-600 bg-green-50",
   budget_rejected: "text-red-600 bg-red-50",
+  profile_request: "text-indigo-600 bg-indigo-50",
+  profile_approved: "text-green-600 bg-green-50",
+  profile_rejected: "text-red-600 bg-red-50",
   default: "text-gray-600 bg-gray-50",
 };
 
 // Tipos que requieren respuesta del usuario
-const TIPOS_REQUIEREN_RESPUESTA = ["stock_consulta", "mensaje_nuevo"];
+const TIPOS_REQUIEREN_RESPUESTA = ["stock_consulta", "mensaje_nuevo", "profile_request"];
+
+// Tipos que abren modal de acción de perfil
+const TIPOS_PROFILE_ACTION = ["profile_request"];
+
+// Detectar si una notificación es de cambio de perfil por contenido
+function isProfileRequestNotif(notif) {
+  if (TIPOS_PROFILE_ACTION.includes(notif.tipo)) return true;
+  // También detectar por contenido del mensaje
+  const msg = (notif.mensaje || "").toLowerCase();
+  return msg.includes("cambio de perfil") || msg.includes("solicitud de perfil");
+}
 
 function formatTimeAgo(dateStr) {
   if (!dateStr) return "";
@@ -397,14 +416,23 @@ export default function NotificacionesInline({ onUpdate }) {
           </div>
         )}
 
-        {/* Modal de detalle */}
-        {selectedNotif && (
+        {/* Modal de detalle - diferente según tipo */}
+        {selectedNotif && isProfileRequestNotif(selectedNotif) ? (
+          <ProfileRequestActionModal
+            notif={selectedNotif}
+            onClose={() => setSelectedNotif(null)}
+            onAction={() => {
+              handleMarcarLeida(selectedNotif.id);
+              loadNotificaciones();
+            }}
+          />
+        ) : selectedNotif ? (
           <NotificacionDetailModal
             notif={selectedNotif}
             onClose={() => setSelectedNotif(null)}
             onMarcarLeida={handleMarcarLeida}
           />
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );
