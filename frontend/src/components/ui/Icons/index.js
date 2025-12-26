@@ -13,7 +13,7 @@
  * <Icon icon={Check} size="md" color="success" />
  */
 
-// Exportar componente wrapper y presets
+// Exportar componente wrapper, presets, helpers y constantes
 export {
   Icon,
   SuccessIcon,
@@ -21,6 +21,9 @@ export {
   WarningIcon,
   InfoIcon,
   LoadingIcon,
+  ICON_COLORS,
+  getIconColorClass,
+  getIconSemanticColor,
 } from './Icon';
 
 // Exportar todos los iconos mapeados (compatibles con lucide-react)

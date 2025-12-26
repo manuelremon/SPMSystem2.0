@@ -25,6 +25,7 @@ import {
   CheckCircle2,
   Info,
   XCircle,
+  ICON_COLORS,
 } from "../components/ui/Icons";
 
 // Estado badge component - Glass style
@@ -358,7 +359,7 @@ export default function MRPTableroAlertas() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-amber-500" />
+            <AlertTriangle className={`w-5 h-5 ${ICON_COLORS.warning}`} />
             {t("mrp_lista_alertas", "Lista de Alertas")}
             <span className="ml-2 text-sm font-normal text-slate-500">
               ({filteredAlertas.length} materiales)
@@ -368,16 +369,16 @@ export default function MRPTableroAlertas() {
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <Loader2 className={`w-8 h-8 animate-spin ${ICON_COLORS.primary}`} />
             </div>
           ) : error ? (
             <div className="flex items-center justify-center py-12 text-red-500">
-              <AlertCircle className="w-6 h-6 mr-2 text-red-500" />
+              <AlertCircle className={`w-6 h-6 mr-2 ${ICON_COLORS.danger}`} />
               {error}
             </div>
           ) : filteredAlertas.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-slate-500">
-              <Package className="w-12 h-12 mb-4 opacity-50 text-indigo-500" />
+              <Package className={`w-12 h-12 mb-4 opacity-50 ${ICON_COLORS.logistics}`} />
               <p>{t("mrp_sin_alertas", "No hay alertas para mostrar")}</p>
               <p className="text-sm">{t("mrp_ajustar_filtros", "Ajuste los filtros o intente de nuevo")}</p>
             </div>

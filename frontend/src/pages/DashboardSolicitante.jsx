@@ -19,6 +19,7 @@ import {
   Layers,
   BarChart3,
   Loader2,
+  ICON_COLORS,
 } from "../components/ui/Icons";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
@@ -204,7 +205,7 @@ export default function DashboardSolicitante() {
                 <CardContent className="h-full flex flex-col justify-between py-5">
                   <div className="flex items-start justify-between">
                     <div><p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Total Solicitudes</p><p className="text-3xl font-bold text-slate-800">{kpiData.solicitudes.total}</p></div>
-                    <div className="h-12 w-12 rounded-2xl bg-blue-500/10 grid place-items-center"><FileText className="w-6 h-6 text-blue-600" /></div>
+                    <div className="h-12 w-12 rounded-2xl bg-blue-500/10 grid place-items-center"><FileText className={`w-6 h-6 ${ICON_COLORS.primary}`} /></div>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     {kpiData.solicitudes.trendPercentage >= 0 ? <div className="flex items-center gap-1 text-emerald-600"><TrendingUp className="w-4 h-4" /><span className="font-semibold">+{kpiData.solicitudes.trendPercentage}%</span></div>
@@ -280,14 +281,14 @@ export default function DashboardSolicitante() {
           <ScrollReveal delay={200}>
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               <Card className="lg:col-span-3 h-[280px] bg-white/70 backdrop-blur-md border-white/30">
-                <CardHeader className="px-6 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Tendencia de Solicitudes</CardTitle><BarChart3 className="w-5 h-5 text-blue-600" /></div></CardHeader>
+                <CardHeader className="px-6 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Tendencia de Solicitudes</CardTitle><BarChart3 className={`w-5 h-5 ${ICON_COLORS.charts}`} /></div></CardHeader>
                 <CardContent className="px-6 pb-5 flex flex-col justify-between h-[calc(100%-60px)]">
                   <div className="flex-1 flex flex-col justify-center"><TrendLine data={kpiData.solicitudes.trend} /><div className="grid grid-cols-7 gap-1 text-xs text-slate-500 text-center mt-2">{["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((d) => <div key={d}>{d}</div>)}</div></div>
                   <div className="pt-3 border-t border-white/20 flex items-center justify-between text-sm"><span className="text-slate-500">Promedio semanal</span><span className="font-semibold text-slate-800">{Math.round(kpiData.solicitudes.trend.reduce((a, b) => a + b, 0) / Math.max(kpiData.solicitudes.trend.length, 1))} solicitudes</span></div>
                 </CardContent>
               </Card>
               <Card className="lg:col-span-2 h-[280px] bg-white/70 backdrop-blur-md border-white/30">
-                <CardHeader className="px-6 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Distribución de Estados</CardTitle><BarChart3 className="w-5 h-5 text-blue-600" /></div></CardHeader>
+                <CardHeader className="px-6 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Distribución de Estados</CardTitle><BarChart3 className={`w-5 h-5 ${ICON_COLORS.charts}`} /></div></CardHeader>
                 <CardContent className="px-6 pb-5 flex items-center justify-center h-[calc(100%-60px)]">
                   <DonutChart data={[kpiData.solicitudes.aprobadas, kpiData.solicitudes.rechazadas, kpiData.solicitudes.pendientes]} colors={["#10b981", "#ef4444", "#f59e0b"]} labels={["Aprobadas", "Rechazadas", "Pendientes"]} />
                 </CardContent>
@@ -298,7 +299,7 @@ export default function DashboardSolicitante() {
           <ScrollReveal delay={250}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
-                <CardHeader className="px-5 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Materiales Más Solicitados</CardTitle><Package className="w-5 h-5 text-blue-600" /></div></CardHeader>
+                <CardHeader className="px-5 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Materiales Más Solicitados</CardTitle><Package className={`w-5 h-5 ${ICON_COLORS.logistics}`} /></div></CardHeader>
                 <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
                   <div className="space-y-3">
                     {(kpiData.materialesMasSolicitados || []).length > 0 ? kpiData.materialesMasSolicitados.map((m, i) => {
@@ -309,7 +310,7 @@ export default function DashboardSolicitante() {
                 </CardContent>
               </Card>
               <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
-                <CardHeader className="px-5 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Presupuesto por Centro</CardTitle><DollarSign className="w-5 h-5 text-emerald-600" /></div></CardHeader>
+                <CardHeader className="px-5 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Presupuesto por Centro</CardTitle><DollarSign className={`w-5 h-5 ${ICON_COLORS.money}`} /></div></CardHeader>
                 <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
                   <div className="space-y-3">
                     {(kpiData.presupuesto.porCentro || []).length > 0 ? kpiData.presupuesto.porCentro.map((c, i) => {

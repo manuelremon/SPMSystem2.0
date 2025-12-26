@@ -49,6 +49,7 @@ import {
   AlertTriangle,
   User,
   Hash,
+  ICON_COLORS,
 } from "../components/ui/Icons";
 
 const DEBOUNCE_MS = 300;
@@ -532,15 +533,15 @@ export default function MisSolicitudes() {
               <p className="text-xs font-semibold text-slate-700 mb-2">{t("mis_help_title", "Acciones disponibles:")}</p>
               <ul className="text-xs text-slate-500 space-y-1.5">
                 <li className="flex items-start gap-2">
-                  <Edit3 className="w-3 h-3 mt-0.5 text-amber-500 flex-shrink-0" />
+                  <Edit3 className={`w-3 h-3 mt-0.5 ${ICON_COLORS.warning} flex-shrink-0`} />
                   <span><strong>{t("mis_help_editar", "Editar")}:</strong> {t("mis_help_editar_desc", "Solo borradores propios")}</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Trash2 className="w-3 h-3 mt-0.5 text-red-500 flex-shrink-0" />
+                  <Trash2 className={`w-3 h-3 mt-0.5 ${ICON_COLORS.danger} flex-shrink-0`} />
                   <span><strong>{t("mis_help_eliminar", "Eliminar")}:</strong> {t("mis_help_eliminar_desc", "Solo borradores propios")}</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Eye className="w-3 h-3 mt-0.5 text-blue-500 flex-shrink-0" />
+                  <Eye className={`w-3 h-3 mt-0.5 ${ICON_COLORS.info} flex-shrink-0`} />
                   <span><strong>{t("mis_help_ver", "Ver")}:</strong> {t("mis_help_ver_desc", "Todas tus solicitudes")}</span>
                 </li>
               </ul>
@@ -637,14 +638,14 @@ export default function MisSolicitudes() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full flex flex-wrap gap-1">
             <TabsTrigger value="todas" className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-blue-500" />
+              <FileText className={`w-4 h-4 ${ICON_COLORS.info}`} />
               <span>{t("mis_stats_total", "Todas")}</span>
               <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
                 {stats.total}
               </span>
             </TabsTrigger>
             <TabsTrigger value="borradores" className="flex items-center gap-2">
-              <Edit3 className="w-4 h-4 text-blue-600" />
+              <Edit3 className={`w-4 h-4 ${ICON_COLORS.primary}`} />
               <span>{t("mis_stats_borradores", "Borradores")}</span>
               {stats.borradores > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
@@ -653,7 +654,7 @@ export default function MisSolicitudes() {
               )}
             </TabsTrigger>
             <TabsTrigger value="enviadas" className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-cyan-500" />
+              <Clock className={`w-4 h-4 ${ICON_COLORS.time}`} />
               <span>{t("mis_stats_enviadas", "Enviadas")}</span>
               {stats.enviadas > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
@@ -662,7 +663,7 @@ export default function MisSolicitudes() {
               )}
             </TabsTrigger>
             <TabsTrigger value="aprobadas" className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              <CheckCircle2 className={`w-4 h-4 ${ICON_COLORS.success}`} />
               <span>{t("mis_stats_aprobadas", "Aprobadas")}</span>
               {stats.aprobadas > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
@@ -671,7 +672,7 @@ export default function MisSolicitudes() {
               )}
             </TabsTrigger>
             <TabsTrigger value="rechazadas" className="flex items-center gap-2">
-              <XCircle className="w-4 h-4 text-red-500" />
+              <XCircle className={`w-4 h-4 ${ICON_COLORS.danger}`} />
               <span>{t("mis_stats_rechazadas", "Rechazadas")}</span>
               {stats.rechazadas > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
@@ -702,7 +703,7 @@ export default function MisSolicitudes() {
               onClick={handleExport}
               disabled={filtered.length === 0}
             >
-              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <FileSpreadsheet className={`w-4 h-4 ${ICON_COLORS.success}`} />
               {t("mis_btn_export", "Exportar XLS")}
             </Button>
           </div>

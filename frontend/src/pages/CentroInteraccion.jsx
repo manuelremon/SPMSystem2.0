@@ -10,6 +10,7 @@ import {
   RefreshCw,
   AlertCircle,
   FileText,
+  ICON_COLORS,
 } from "../components/ui/Icons";
 import { Card, CardContent } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
@@ -198,7 +199,7 @@ export default function CentroInteraccion() {
 
           {loading ? (
             <div className="flex justify-center py-8">
-              <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
+              <RefreshCw className={`w-6 h-6 animate-spin ${ICON_COLORS.muted}`} />
             </div>
           ) : data?.timeline?.length > 0 ? (
             <div className="space-y-3">
@@ -213,7 +214,7 @@ export default function CentroInteraccion() {
                                hover:border-gray-200 hover:shadow-sm"
                   >
                     <div className="p-2 bg-gray-100 rounded-full">
-                      <IconComponent className="w-4 h-4 text-gray-600" />
+                      <IconComponent className={`w-4 h-4 ${ICON_COLORS.default}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-800 line-clamp-2">

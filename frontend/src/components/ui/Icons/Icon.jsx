@@ -6,6 +6,7 @@
  */
 
 import clsx from 'clsx';
+import { ICON_DEFAULT_COLORS } from './iconMap';
 
 // Tamaños estandarizados (coinciden con el sistema anterior)
 const sizeClasses = {
@@ -18,8 +19,8 @@ const sizeClasses = {
   '3xl': 'w-12 h-12', // 48px - splash screens
 };
 
-// Colores semanticos
-const colorClasses = {
+// Colores semanticos - exportados como ICON_COLORS para uso directo
+export const ICON_COLORS = {
   // Estados
   success: 'text-emerald-500',
   error: 'text-red-500',
@@ -78,7 +79,7 @@ export function Icon({
   }
 
   const sizeClass = sizeClasses[size] || sizeClasses.sm;
-  const colorClass = colorClasses[color] || '';
+  const colorClass = ICON_COLORS[color] || '';
 
   return (
     <SvgComponent
@@ -119,6 +120,25 @@ export function InfoIcon({ size = 'md', className, ...props }) {
 export function LoadingIcon({ size = 'md', className, ...props }) {
   const ArrowCircle = require('./svg/arrow_2_circlepath.svg?react').default;
   return <Icon icon={ArrowCircle} size={size} color="muted" className={className} spin {...props} />;
+}
+
+/**
+ * Obtiene la clase de color Tailwind para un icono según su semántica
+ * @param {string} iconName - Nombre del icono (ej: 'CheckCircle', 'XCircle')
+ * @returns {string} Clase Tailwind de color (ej: 'text-emerald-500')
+ */
+export function getIconColorClass(iconName) {
+  const semanticColor = ICON_DEFAULT_COLORS[iconName];
+  return ICON_COLORS[semanticColor] || ICON_COLORS.default;
+}
+
+/**
+ * Obtiene el nombre de color semántico para un icono
+ * @param {string} iconName - Nombre del icono
+ * @returns {string} Nombre semántico (ej: 'success', 'danger')
+ */
+export function getIconSemanticColor(iconName) {
+  return ICON_DEFAULT_COLORS[iconName] || 'default';
 }
 
 export default Icon;

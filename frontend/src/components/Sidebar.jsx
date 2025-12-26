@@ -45,61 +45,62 @@ import {
   BarChart2,
   LineChart,
   ICON_DEFAULT_COLORS,
+  ICON_COLORS,
 } from "./ui/Icons";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
 import { useRealtimeStore } from "../store/realtimeStore";
 import { Tooltip } from "./ui/Tooltip";
 
-// Colores semánticos para iconos del sidebar
+// Colores semánticos para iconos del sidebar - usa ICON_COLORS del sistema central
 const SIDEBAR_ICON_COLORS = {
   // Navegación principal
-  Home: 'text-slate-500',
-  Bell: 'text-amber-500',
-  FileText: 'text-blue-500',
-  FilePlus2: 'text-blue-600',
-  ClipboardList: 'text-blue-500',
-  CheckCircle2: 'text-emerald-500',
+  Home: ICON_COLORS.subtle,
+  Bell: ICON_COLORS.notification,
+  FileText: ICON_COLORS.info,
+  FilePlus2: ICON_COLORS.primary,
+  ClipboardList: ICON_COLORS.info,
+  CheckCircle2: ICON_COLORS.success,
 
   // Materiales
-  Package: 'text-indigo-500',
-  Search: 'text-blue-500',
-  GitCompare: 'text-blue-500',
+  Package: ICON_COLORS.logistics,
+  Search: ICON_COLORS.info,
+  GitCompare: ICON_COLORS.info,
 
   // Planificador
-  Workflow: 'text-blue-600',
-  Layers: 'text-indigo-500',
-  AlertTriangle: 'text-amber-500',
-  TrendingUp: 'text-emerald-500',
-  LineChart: 'text-pink-500',
-  BarChart2: 'text-pink-500',
-  Clock: 'text-cyan-500',
-  Activity: 'text-pink-500',
+  Workflow: ICON_COLORS.primary,
+  Layers: ICON_COLORS.logistics,
+  AlertTriangle: ICON_COLORS.warning,
+  TrendingUp: ICON_COLORS.success,
+  LineChart: ICON_COLORS.charts,
+  BarChart2: ICON_COLORS.charts,
+  Clock: ICON_COLORS.time,
+  Activity: ICON_COLORS.charts,
 
   // Admin
-  Database: 'text-slate-600',
-  Users: 'text-teal-500',
-  User: 'text-teal-500',
-  Shield: 'text-slate-600',
-  Briefcase: 'text-amber-700',
-  Building: 'text-slate-600',
-  Building2: 'text-slate-600',
-  MapPin: 'text-red-500',
-  Boxes: 'text-indigo-500',
-  Server: 'text-slate-600',
-  Truck: 'text-indigo-500',
+  Database: ICON_COLORS.secondary,
+  Users: ICON_COLORS.users,
+  User: ICON_COLORS.users,
+  Shield: ICON_COLORS.secondary,
+  Briefcase: ICON_COLORS.money,
+  Building: ICON_COLORS.secondary,
+  Building2: ICON_COLORS.secondary,
+  MapPin: ICON_COLORS.danger,
+  Boxes: ICON_COLORS.logistics,
+  Server: ICON_COLORS.secondary,
+  Truck: ICON_COLORS.logistics,
 
   // Presupuesto
-  Wallet: 'text-amber-700',
+  Wallet: ICON_COLORS.money,
 
   // Comunicación
-  MessageSquare: 'text-violet-500',
+  MessageSquare: ICON_COLORS.communication,
 
   // Sistema
-  Settings: 'text-slate-600',
-  LogOut: 'text-red-500',
-  Wifi: 'text-emerald-500',
-  WifiOff: 'text-slate-400',
+  Settings: ICON_COLORS.secondary,
+  LogOut: ICON_COLORS.danger,
+  Wifi: ICON_COLORS.success,
+  WifiOff: ICON_COLORS.muted,
 };
 
 // Helper para obtener el color del icono
@@ -623,7 +624,7 @@ export default function Sidebar({ collapsed, onToggle, isConnected = false }) {
           >
             <div className="flex items-center justify-center w-8 h-8">
               {isConnected ? (
-                <Wifi className="w-4 h-4 text-emerald-500" />
+                <Wifi className={`w-4 h-4 ${ICON_COLORS.success}`} />
               ) : (
                 <WifiOff className="w-4 h-4 text-slate-400" />
               )}
@@ -633,7 +634,7 @@ export default function Sidebar({ collapsed, onToggle, isConnected = false }) {
           <div className="flex items-center gap-3 px-3 py-2 text-sm">
             {isConnected ? (
               <>
-                <Wifi className="w-4 h-4 text-emerald-500" />
+                <Wifi className={`w-4 h-4 ${ICON_COLORS.success}`} />
                 <span className="text-emerald-600 text-xs">{t("realtime_live", "En vivo")}</span>
               </>
             ) : (

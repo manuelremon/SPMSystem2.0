@@ -28,7 +28,8 @@ import {
   Download,
   Eye,
   Play,
-  Info
+  Info,
+  ICON_COLORS,
 } from "../components/ui/Icons";
 import { formatDate, formatCurrency, getSectorNombre } from "../utils/formatters";
 import { getCriticidadConfig, getEstadoConfig } from "../utils/styleConfig";
@@ -99,7 +100,7 @@ export default function Planner() {
             type="button"
             title={t("planner_ver_tooltip", "Ver detalles")}
           >
-            <Eye className="w-4 h-4 text-blue-500" />
+            <Eye className={`w-4 h-4 ${ICON_COLORS.info}`} />
           </button>
           <button
             className="px-2 py-1 rounded-md hover:bg-emerald-500/10 transition-colors cursor-pointer flex items-center gap-1"
@@ -110,7 +111,7 @@ export default function Planner() {
             type="button"
             title={t("planner_tratar_tooltip", "Tratar solicitud")}
           >
-            <Play className="w-4 h-4 text-emerald-500" />
+            <Play className={`w-4 h-4 ${ICON_COLORS.success}`} />
             <span className="text-xs font-medium text-emerald-600">{t("planner_tratar", "Tratar")}</span>
           </button>
         </div>
@@ -222,7 +223,7 @@ export default function Planner() {
           >
             {config.icon}
             <span className="text-xs font-semibold tracking-wide uppercase">{config.label}</span>
-            <Info className="w-3 h-3 opacity-50 text-blue-500" />
+            <Info className={`w-3 h-3 opacity-50 ${ICON_COLORS.info}`} />
           </button>
         );
       },
@@ -375,7 +376,7 @@ export default function Planner() {
             <TabButton
               active={activeTab === "pendientes"}
               onClick={() => setActiveTab("pendientes")}
-              icon={<Clock className="w-4 h-4 text-cyan-500" />}
+              icon={<Clock className={`w-4 h-4 ${ICON_COLORS.time}`} />}
               label={t("planner_tab_pendientes", "Pendientes")}
               count={tabCounts.pendientes}
               countColor="bg-amber-500"
@@ -385,7 +386,7 @@ export default function Planner() {
             <TabButton
               active={activeTab === "en_progreso"}
               onClick={() => setActiveTab("en_progreso")}
-              icon={<Play className="w-4 h-4 text-blue-600" />}
+              icon={<Play className={`w-4 h-4 ${ICON_COLORS.primary}`} />}
               label={t("planner_tab_en_progreso", "En Progreso")}
               count={tabCounts.en_progreso}
               countColor="bg-blue-500"
@@ -395,7 +396,7 @@ export default function Planner() {
             <TabButton
               active={activeTab === "finalizadas"}
               onClick={() => setActiveTab("finalizadas")}
-              icon={<CheckCircle className="w-4 h-4 text-emerald-500" />}
+              icon={<CheckCircle className={`w-4 h-4 ${ICON_COLORS.success}`} />}
               label={t("planner_tab_finalizadas", "Finalizadas")}
               count={tabCounts.finalizadas}
               countColor="bg-slate-100 text-slate-500"
@@ -552,7 +553,7 @@ function HistorialModal({ isOpen, onClose, solicitud, t }) {
         <div className="space-y-3">
           {/* Creation */}
           <TimelineItem
-            icon={<Clock className="w-4 h-4 text-blue-500" />}
+            icon={<Clock className={`w-4 h-4 ${ICON_COLORS.info}`} />}
             iconBg="bg-blue-500/20"
             title={t("planner_historial_creada", "Solicitud Creada")}
             subtitle={`${formatDate(solicitud.created_at)}${
@@ -563,7 +564,7 @@ function HistorialModal({ isOpen, onClose, solicitud, t }) {
           {/* Approval */}
           {estadoLower.includes("aprobad") && (
             <TimelineItem
-              icon={<CheckCircle className="w-4 h-4 text-emerald-500" />}
+              icon={<CheckCircle className={`w-4 h-4 ${ICON_COLORS.success}`} />}
               iconBg="bg-emerald-500/20"
               title={t("planner_historial_aprobada", "Aprobada por Coordinador")}
               subtitle={`${solicitud.aprobado_at ? formatDate(solicitud.aprobado_at) : t("planner_historial_fecha_no_disponible", "Fecha no disponible")}${
@@ -575,7 +576,7 @@ function HistorialModal({ isOpen, onClose, solicitud, t }) {
           {/* Assigned to Planner */}
           {solicitud.planner_nombre && (
             <TimelineItem
-              icon={<Play className="w-4 h-4 text-blue-600" />}
+              icon={<Play className={`w-4 h-4 ${ICON_COLORS.primary}`} />}
               iconBg="bg-blue-600/20"
               title={t("planner_historial_asignada", "Asignada a Planificador")}
               subtitle={`${solicitud.planner_nombre} ${solicitud.planner_apellido || ""}`}
@@ -585,7 +586,7 @@ function HistorialModal({ isOpen, onClose, solicitud, t }) {
           {/* In Progress */}
           {estadoLower.includes("progreso") && (
             <TimelineItem
-              icon={<Clock className="w-4 h-4 text-blue-500" />}
+              icon={<Clock className={`w-4 h-4 ${ICON_COLORS.info}`} />}
               iconBg="bg-blue-500/20"
               title={t("planner_historial_en_progreso", "En Progreso")}
               subtitle={t("planner_historial_tratamiento", "En tratamiento por el planificador")}
@@ -595,7 +596,7 @@ function HistorialModal({ isOpen, onClose, solicitud, t }) {
           {/* Rejected */}
           {estadoLower.includes("rechaz") && (
             <TimelineItem
-              icon={<XCircle className="w-4 h-4 text-red-500" />}
+              icon={<XCircle className={`w-4 h-4 ${ICON_COLORS.danger}`} />}
               iconBg="bg-red-500/20"
               title={t("planner_historial_rechazada", "Rechazada")}
               subtitle={solicitud.motivo_rechazo ? `${t("planner_historial_motivo", "Motivo")}: ${solicitud.motivo_rechazo}` : undefined}

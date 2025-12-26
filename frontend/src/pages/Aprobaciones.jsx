@@ -16,7 +16,7 @@ import { formatCurrency, formatAlmacen } from "../utils/formatters";
 import { useDebounced } from "../hooks/useDebounced";
 import { Modal } from "../components/ui/Modal";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/Tabs";
-import { XCircle, CheckCircle, RefreshCw, Eye, Package, Clock } from "../components/ui/Icons";
+import { XCircle, CheckCircle, RefreshCw, Eye, Package, Clock, ICON_COLORS } from "../components/ui/Icons";
 import { getCriticidadConfig } from "../utils/styleConfig";
 
 const DEBOUNCE_MS = 300;
@@ -353,7 +353,7 @@ export default function Aprobaciones() {
             <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
               <TabsList>
                 <TabsTrigger value="pendientes">
-                  <CheckCircle className="w-4 h-4 text-emerald-500" />
+                  <CheckCircle className={`w-4 h-4 ${ICON_COLORS.success}`} />
                   {t("aprov_tab_pendientes", "Pendientes")}
                   {items.length > 0 && (
                     <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-600 rounded-full">
@@ -362,7 +362,7 @@ export default function Aprobaciones() {
                   )}
                 </TabsTrigger>
                 <TabsTrigger value="historial">
-                  <Clock className="w-4 h-4 text-cyan-500" />
+                  <Clock className={`w-4 h-4 ${ICON_COLORS.time}`} />
                   {t("aprov_tab_historial", "Historial")}
                 </TabsTrigger>
               </TabsList>
@@ -446,7 +446,7 @@ export default function Aprobaciones() {
               type="button"
               aria-label={`${t("aprov_rechazar", "Rechazar")} solicitud ${rejectModal.id}`}
             >
-              <XCircle className="w-4 h-4 text-red-500 mr-1" />
+              <XCircle className={`w-4 h-4 ${ICON_COLORS.danger} mr-1`} />
               {t("aprov_rechazar", "Rechazar")}
             </Button>
           </>
@@ -490,7 +490,7 @@ export default function Aprobaciones() {
               }}
               type="button"
             >
-              <CheckCircle className="w-4 h-4 text-emerald-500 mr-1" />
+              <CheckCircle className={`w-4 h-4 ${ICON_COLORS.success} mr-1`} />
               {t("aprov_aprobar", "Aprobar")}
             </Button>
             <Button
@@ -501,7 +501,7 @@ export default function Aprobaciones() {
               }}
               type="button"
             >
-              <XCircle className="w-4 h-4 text-red-500 mr-1" />
+              <XCircle className={`w-4 h-4 ${ICON_COLORS.danger} mr-1`} />
               {t("aprov_rechazar", "Rechazar")}
             </Button>
           </div>
@@ -557,7 +557,7 @@ export default function Aprobaciones() {
             {/* Tabla de materiales */}
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Package className="w-5 h-5 text-indigo-500" />
+                <Package className={`w-5 h-5 ${ICON_COLORS.logistics}`} />
                 <p className="text-sm font-semibold text-slate-700">
                   {t("aprov_materiales_titulo", "Materiales Solicitados")} ({detailModal.solicitud.items?.length || 0})
                 </p>

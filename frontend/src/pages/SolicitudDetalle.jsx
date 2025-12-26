@@ -22,6 +22,7 @@ import {
   Clock,
   User,
   Hash,
+  ICON_COLORS,
 } from "../components/ui/Icons";
 
 function DetailRow({ icon: Icon, label, value, className = "" }) {
@@ -237,7 +238,7 @@ export default function SolicitudDetalle() {
             />
             <div className="flex items-start gap-3">
               <div className="h-9 w-9 rounded-lg bg-blue-50/70 border border-blue-200/50 grid place-items-center flex-shrink-0">
-                <DollarSign className="w-4 h-4 text-blue-600" />
+                <DollarSign className={`w-4 h-4 ${ICON_COLORS.money}`} />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
@@ -283,7 +284,7 @@ export default function SolicitudDetalle() {
         <CardContent>
           {items.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
-              <Package className="w-12 h-12 mx-auto mb-3 opacity-50 text-indigo-500" />
+              <Package className={`w-12 h-12 mx-auto mb-3 opacity-50 ${ICON_COLORS.logistics}`} />
               <p>{t("detalle_sin_items", "No hay materiales en esta solicitud")}</p>
             </div>
           ) : (
