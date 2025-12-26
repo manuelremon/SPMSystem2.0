@@ -213,8 +213,25 @@ class PresupuestoService:
                     LIMIT ? OFFSET ?""",
                 params,
             )
-            rows = _fetchall(cur)
-            return [LedgerEntry.from_row(row if isinstance(row, dict) else dict(row)) for row in rows]
+            rows = cur.fetchall()
+            if not rows:
+                return []
+            # Convertir filas a dicts si es necesario
+            result = []
+            for row in rows:
+                if isinstance(row, dict):
+                    row_dict = row
+                elif hasattr(row, "_asdict"):
+                    # Named tuple de psycopg2
+                    row_dict = row._asdict()
+                elif hasattr(row, "keys"):
+                    row_dict = dict(row)
+                else:
+                    # Tupla simple - usar description para columnas
+                    cols = [d[0] for d in cur.description] if cur.description else []
+                    row_dict = dict(zip(cols, row))
+                result.append(LedgerEntry.from_row(row_dict))
+            return result
         finally:
             conn.close()
 
