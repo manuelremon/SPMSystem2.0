@@ -309,8 +309,8 @@ def centro_interaccion():
                        tipo as subtipo, created_at, solicitud_id
                 FROM notificaciones WHERE destinatario_id = ?
                 UNION ALL
-                SELECT 'mensaje' as tipo, SUBSTR(contenido, 1, 100) as descripcion,
-                       'mensaje' as subtipo, created_at, NULL as solicitud_id
+                SELECT 'mensaje' as tipo, SUBSTR(mensaje, 1, 100) as descripcion,
+                       'mensaje' as subtipo, created_at, solicitud_id
                 FROM mensajes WHERE destinatario_id = ?
                 ORDER BY created_at DESC LIMIT 20
                 """,
