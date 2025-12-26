@@ -140,7 +140,7 @@ export default function CentroInteraccion() {
       )}
 
       {/* Tabs con contadores */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30 w-fit">
         {tabs.map((tab) => {
           const IconComponent = tab.icon;
           const isActive = activeTab === tab.id;
@@ -148,18 +148,18 @@ export default function CentroInteraccion() {
             <button
               key={tab.id}
               onClick={() => handleTabClick(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? "bg-blue-600 text-white shadow-lg"
-                  : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-200"
+                  ? "bg-white shadow-sm text-blue-600"
+                  : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
               }`}
             >
-              <IconComponent className="w-5 h-5" />
+              <IconComponent className="w-4 h-4" />
               <span>{tab.label}</span>
               {tab.count > 0 && (
                 <Badge
-                  variant={isActive ? "secondary" : "danger"}
-                  className="ml-1"
+                  variant={isActive ? "primary" : "danger"}
+                  className="ml-1 text-xs"
                 >
                   {tab.count}
                 </Badge>
