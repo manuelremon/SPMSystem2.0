@@ -8,6 +8,13 @@
 @tailwind utilities;
 
 /* ============================================
+   SVG ICONS - Inherit text color
+   ============================================ */
+svg {
+  fill: currentColor;
+}
+
+/* ============================================
    CSS VARIABLES - GLASS MORPHISM PALETTE
    ============================================ */
 :root {
