@@ -124,7 +124,8 @@
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjY2OTY4MTgsImV4cCI6MTc2NjcwMDQxOH0.vZqoPnLXXfxEKXgzXHBdcPNHA5ND-0EykKN9186VI8g\" curl -s \"https://planifica-materiales.com/api/planner/material/1000000049/supply-options\" -H \"Authorization: Bearer $TOKEN\")",
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjY2OTY4MTgsImV4cCI6MTc2NjcwMDQxOH0.vZqoPnLXXfxEKXgzXHBdcPNHA5ND-0EykKN9186VI8g\" curl -s \"https://planifica-materiales.com/api/planner/opciones-abastecimiento/1000000049\" -H \"Authorization: Bearer $TOKEN\")",
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjY2OTY4MTgsImV4cCI6MTc2NjcwMDQxOH0.vZqoPnLXXfxEKXgzXHBdcPNHA5ND-0EykKN9186VI8g\" curl -s \"https://planifica-materiales.com/api/planner/solicitudes/17/items/0/opciones-abastecimiento\" -H \"Authorization: Bearer $TOKEN\")",
-      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjY2OTY4MTgsImV4cCI6MTc2NjcwMDQxOH0.vZqoPnLXXfxEKXgzXHBdcPNHA5ND-0EykKN9186VI8g\" curl -s \"https://planifica-materiales.com/api/planificador/solicitudes/17/items/0/opciones-abastecimiento\" -H \"Authorization: Bearer $TOKEN\")"
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjY2OTY4MTgsImV4cCI6MTc2NjcwMDQxOH0.vZqoPnLXXfxEKXgzXHBdcPNHA5ND-0EykKN9186VI8g\" curl -s \"https://planifica-materiales.com/api/planificador/solicitudes/17/items/0/opciones-abastecimiento\" -H \"Authorization: Bearer $TOKEN\")",
+      "Bash(COMMIT_MSG=\"feat: unificar sidebar - Bandeja de Entrada reemplaza notificaciones y centro-interaccion\" ./scripts/deploy-full.sh:*)"
     ],
     "deny": [],
     "ask": []

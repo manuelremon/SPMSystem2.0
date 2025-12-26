@@ -120,20 +120,12 @@ const getMainNavItems = (canApprove) => [
     iconName: "Home",
   },
   {
-    key: "notificaciones",
-    trKey: "nav_notificaciones",
-    label: "Notificaciones",
-    to: "/notificaciones",
+    key: "bandeja-entrada",
+    trKey: "nav_bandeja_entrada",
+    label: "Bandeja de Entrada",
+    to: "/centro-interaccion",
     icon: Bell,
     iconName: "Bell",
-  },
-  {
-    key: "centro-interaccion",
-    trKey: "nav_centro_interaccion",
-    label: "Centro Interaccion",
-    to: "/centro-interaccion",
-    icon: MessageSquare,
-    iconName: "MessageSquare",
   },
   {
     key: "solicitudes",
@@ -317,7 +309,7 @@ export default function Sidebar({ collapsed, onToggle, isConnected = false }) {
     const isExpanded = expandedMenus[item.key];
     const isActive = item.to ? isPathActive(item.to) : false;
     const label = t(item.trKey, item.label);
-    const isNotifications = item.key === "notificaciones";
+    const isNotifications = item.key === "bandeja-entrada";
     const hasNotifications = isNotifications && unreadCount > 0;
     const iconColor = getIconColor(item.iconName, isActive);
 

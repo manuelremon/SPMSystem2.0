@@ -707,8 +707,8 @@ const translations = {
   mrp_grafico_distribucion: { es: "Gráfico de distribución de estados", en: "Status distribution chart" },
   mrp_grafico_cumplimiento: { es: "Gráfico de nivel de cumplimiento", en: "Compliance level gauge" },
 
-  // Centro de Interaccion
-  nav_centro_interaccion: { es: "Centro de Interaccion", en: "Interaction Center" },
+  // Centro de Interaccion / Bandeja de Entrada
+  nav_bandeja_entrada: { es: "Bandeja de Entrada", en: "Inbox" },
   centro_titulo: { es: "Centro de Interaccion", en: "Interaction Center" },
   centro_subtitulo: { es: "Gestiona tus notificaciones, consultas y mensajes", en: "Manage your notifications, queries and messages" },
   centro_notificaciones: { es: "Notificaciones", en: "Notifications" },
