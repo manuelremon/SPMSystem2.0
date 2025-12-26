@@ -12,6 +12,18 @@ import { useI18n } from "../../context/i18n";
 import { useAuthStore } from "../../store/authStore";
 import api from "../../services/api";
 import MensajeThreadModal from "../MensajeThreadModal";
+import ProfileRequestActionModal from "./ProfileRequestActionModal";
+
+// Detectar si un mensaje es sobre solicitud de cambio de perfil
+function isProfileRequestMessage(mensaje) {
+  const asunto = (mensaje.asunto || "").toLowerCase();
+  const contenido = (mensaje.mensaje || mensaje.contenido || "").toLowerCase();
+  return (
+    asunto.includes("cambio de perfil") ||
+    asunto.includes("solicitud de perfil") ||
+    contenido.includes("solicitud de cambio de perfil")
+  );
+}
 
 function formatTimeAgo(dateStr) {
   if (!dateStr) return "";
@@ -210,15 +222,22 @@ export default function MensajesInline({ onUpdate }) {
                       {truncateText(mensaje.mensaje || mensaje.contenido, 80)}
                     </p>
 
-                    {/* Solicitud relacionada */}
-                    {mensaje.solicitud_id && (
-                      <div className="flex items-center gap-1 mt-2">
-                        <FileText className="w-3 h-3 text-blue-500" />
-                        <span className="text-xs text-blue-600">
-                          Solicitud #{mensaje.solicitud_id}
-                        </span>
-                      </div>
-                    )}
+                    {/* Indicadores */}
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      {mensaje.solicitud_id && (
+                        <div className="flex items-center gap-1">
+                          <FileText className="w-3 h-3 text-blue-500" />
+                          <span className="text-xs text-blue-600">
+                            Solicitud #{mensaje.solicitud_id}
+                          </span>
+                        </div>
+                      )}
+                      {isProfileRequestMessage(mensaje) && (
+                        <Badge variant="warning" className="text-xs py-0">
+                          Requiere acción
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -226,14 +245,23 @@ export default function MensajesInline({ onUpdate }) {
           </div>
         )}
 
-        {/* Modal de thread - reutiliza el existente */}
-        {selectedMensaje && (
+        {/* Modal - diferente según tipo de mensaje */}
+        {selectedMensaje && isProfileRequestMessage(selectedMensaje) ? (
+          <ProfileRequestActionModal
+            notif={{ mensaje: selectedMensaje.asunto, ...selectedMensaje }}
+            onClose={handleModalClose}
+            onAction={() => {
+              loadMensajes();
+              if (onUpdate) onUpdate();
+            }}
+          />
+        ) : selectedMensaje ? (
           <MensajeThreadModal
             message={selectedMensaje}
             isOpen={!!selectedMensaje}
             onClose={handleModalClose}
           />
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );
