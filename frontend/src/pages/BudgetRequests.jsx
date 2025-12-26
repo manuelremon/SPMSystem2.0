@@ -15,7 +15,7 @@ import { useI18n } from "../context/i18n";
 import { formatCurrency } from "../utils/formatters";
 import { useDebounced } from "../hooks/useDebounced";
 import { Modal } from "../components/ui/Modal";
-import { XCircle, CheckCircle, RefreshCw, Plus, Eye } from "../components/ui/Icons";
+import { XCircle, CheckCircle, RefreshCw, Plus, Eye, TrendingUp, TrendingDown, FileText } from "../components/ui/Icons";
 
 const DEBOUNCE_MS = 300;
 
@@ -44,7 +44,12 @@ export default function BudgetRequests() {
   const debouncedQ = useDebounced(q, DEBOUNCE_MS);
   const [msg, setMsg] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [mainTab, setMainTab] = useState("historial"); // "solicitudes" | "historial"
   const [tab, setTab] = useState("todas");
+
+  // Ledger state
+  const [ledgerEntries, setLedgerEntries] = useState([]);
+  const [ledgerLoading, setLedgerLoading] = useState(false);
 
   // Modals
   const [approveModal, setApproveModal] = useState({ open: false, id: null, comentario: "" });
@@ -69,15 +74,36 @@ export default function BudgetRequests() {
     }
   }, [tab]);
 
+  const loadLedger = useCallback(async () => {
+    setLedgerLoading(true);
+    setError("");
+    try {
+      const res = await budget.getLedger({ limit: 100 });
+      setLedgerEntries(res.data.entries || []);
+    } catch (err) {
+      setError(err.response?.data?.error?.message || err.message);
+    } finally {
+      setLedgerLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    load();
-  }, [load]);
+    if (mainTab === "solicitudes") {
+      load();
+    } else {
+      loadLedger();
+    }
+  }, [load, loadLedger, mainTab]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await load();
+    if (mainTab === "solicitudes") {
+      await load();
+    } else {
+      await loadLedger();
+    }
     setRefreshing(false);
-  }, [load]);
+  }, [load, loadLedger, mainTab]);
 
   const filtered = useMemo(() => {
     const term = debouncedQ.trim().toLowerCase();
@@ -226,16 +252,136 @@ export default function BudgetRequests() {
     { key: "rechazadas", label: t("bur_tab_rechazadas", "Rechazadas") },
   ];
 
+  // Ledger columns
+  const ledgerColumns = useMemo(() => withSpmAlignments([
+    {
+      key: "created_at",
+      header: t("ledger_col_fecha", "Fecha"),
+      sortAccessor: (row) => row.created_at || "",
+      render: (row) => {
+        const date = new Date(row.created_at);
+        return (
+          <span className="text-sm text-slate-600">
+            {date.toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
+            <span className="text-xs text-slate-400 ml-1">
+              {date.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          </span>
+        );
+      },
+    },
+    {
+      key: "tipo_movimiento",
+      header: t("ledger_col_tipo", "Tipo"),
+      sortAccessor: (row) => row.tipo_movimiento || "",
+      render: (row) => {
+        const tipo = row.tipo_movimiento || "";
+        const isConsumo = tipo.includes("consumo");
+        const isIncorporacion = tipo.includes("incorporacion") || tipo.includes("ajuste_positivo");
+        return (
+          <div className="flex items-center gap-2">
+            {isConsumo ? (
+              <TrendingDown className="w-4 h-4 text-red-500" />
+            ) : isIncorporacion ? (
+              <TrendingUp className="w-4 h-4 text-green-500" />
+            ) : (
+              <FileText className="w-4 h-4 text-slate-400" />
+            )}
+            <span className={`text-xs px-2 py-1 rounded ${
+              isConsumo ? "bg-red-50 text-red-700" :
+              isIncorporacion ? "bg-green-50 text-green-700" :
+              "bg-slate-100 text-slate-600"
+            }`}>
+              {tipo.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      key: "centro",
+      header: t("ledger_col_centro", "Centro"),
+      sortAccessor: (row) => row.centro || "",
+      render: (row) => row.centro || "-",
+    },
+    {
+      key: "sector",
+      header: t("ledger_col_sector", "Sector"),
+      sortAccessor: (row) => row.sector || "",
+      render: (row) => row.sector || "-",
+    },
+    {
+      key: "monto",
+      header: t("ledger_col_monto", "Monto"),
+      sortAccessor: (row) => Math.abs(row.monto_cents || 0),
+      render: (row) => {
+        const montoCents = row.monto_cents || 0;
+        const monto = montoCents / 100;
+        const isNegative = montoCents < 0;
+        return (
+          <span className={`font-mono text-sm ${isNegative ? "text-red-600" : "text-green-600"}`}>
+            {isNegative ? "-" : "+"}{formatCurrency(Math.abs(monto))}
+          </span>
+        );
+      },
+    },
+    {
+      key: "saldo",
+      header: t("ledger_col_saldo", "Saldo"),
+      sortAccessor: (row) => row.saldo_posterior_cents || 0,
+      render: (row) => {
+        const saldo = (row.saldo_posterior_cents || 0) / 100;
+        return (
+          <span className="font-mono text-sm text-slate-800">
+            {formatCurrency(saldo)}
+          </span>
+        );
+      },
+    },
+    {
+      key: "referencia",
+      header: t("ledger_col_referencia", "Referencia"),
+      sortAccessor: (row) => row.referencia_id || "",
+      render: (row) => {
+        if (!row.referencia_id) return "-";
+        const tipo = row.referencia_tipo || "";
+        if (tipo === "solicitud") {
+          return (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="px-2 py-1 text-xs"
+              onClick={() => navigate(`/solicitud/${row.referencia_id}`)}
+            >
+              <FileText className="w-3 h-3 mr-1 text-blue-500" />
+              #{row.referencia_id}
+            </Button>
+          );
+        }
+        return <span className="text-xs text-slate-500">{tipo} #{row.referencia_id}</span>;
+      },
+    },
+    {
+      key: "motivo",
+      header: t("ledger_col_motivo", "Motivo"),
+      render: (row) => (
+        <span className="text-sm text-slate-600 line-clamp-1" title={row.motivo}>
+          {row.motivo || "-"}
+        </span>
+      ),
+    },
+  ]), [t, navigate]);
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title={t("bur_title", "SOLICITUDES DE PRESUPUESTO").toUpperCase()}
+        title={t("bur_title", "PRESUPUESTOS").toUpperCase()}
         actions={
           <div className="flex gap-2">
             <Button
               variant="ghost"
               onClick={handleRefresh}
-              disabled={refreshing || loading}
+              disabled={refreshing || loading || ledgerLoading}
             >
               <RefreshCw className={`w-4 h-4 text-slate-600 ${refreshing ? "animate-spin" : ""}`} />
               {t("common_refresh", "Actualizar")}
@@ -251,52 +397,106 @@ export default function BudgetRequests() {
       {error && <Alert variant="danger" onDismiss={() => setError("")}>{error}</Alert>}
       {msg && <Alert variant="success" onDismiss={() => setMsg("")}>{msg}</Alert>}
 
-      <Card>
-        <CardContent className="space-y-4 pt-6">
-          {/* Tabs */}
-          <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30 w-fit">
-            {tabs.map((tabItem) => (
-              <button
-                key={tabItem.key}
-                onClick={() => setTab(tabItem.key)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  tab === tabItem.key
-                    ? "bg-white shadow-sm text-blue-600"
-                    : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
-                }`}
-              >
-                {tabItem.label}
-              </button>
-            ))}
-          </div>
+      {/* Main Tabs: Historial / Solicitudes */}
+      <div className="flex items-center gap-2 border-b border-slate-200">
+        <button
+          onClick={() => setMainTab("historial")}
+          className={`px-4 py-3 text-sm font-medium border-b-2 transition-all ${
+            mainTab === "historial"
+              ? "border-blue-500 text-blue-600"
+              : "border-transparent text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          <TrendingUp className="w-4 h-4 inline mr-2" />
+          {t("bur_main_historial", "Historial de Movimientos")}
+        </button>
+        <button
+          onClick={() => setMainTab("solicitudes")}
+          className={`px-4 py-3 text-sm font-medium border-b-2 transition-all ${
+            mainTab === "solicitudes"
+              ? "border-blue-500 text-blue-600"
+              : "border-transparent text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          <FileText className="w-4 h-4 inline mr-2" />
+          {t("bur_main_solicitudes", "Solicitudes BUR")}
+        </button>
+      </div>
 
-          {/* Search */}
-          <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-            <SearchInput
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder={t("bur_search_placeholder", "Buscar por centro, sector o justificacion")}
-              className="md:max-w-md"
-            />
-            {loading && (
-              <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                {t("bur_loading", "Cargando...")}
-              </div>
+      {/* Content based on main tab */}
+      {mainTab === "historial" ? (
+        <Card>
+          <CardContent className="space-y-4 pt-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-slate-500">
+                {t("ledger_descripcion", "Movimientos de presupuesto por aprobaciones y ajustes")}
+              </p>
+              {ledgerLoading && (
+                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  {t("bur_loading", "Cargando...")}
+                </div>
+              )}
+            </div>
+
+            {ledgerLoading ? (
+              <TableSkeleton rows={5} columns={8} />
+            ) : (
+              <DataTable
+                columns={ledgerColumns}
+                rows={ledgerEntries}
+                emptyMessage={t("ledger_empty", "No hay movimientos de presupuesto")}
+              />
             )}
-          </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="space-y-4 pt-6">
+            {/* Sub-tabs for BUR */}
+            <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30 w-fit">
+              {tabs.map((tabItem) => (
+                <button
+                  key={tabItem.key}
+                  onClick={() => setTab(tabItem.key)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    tab === tabItem.key
+                      ? "bg-white shadow-sm text-blue-600"
+                      : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+                  }`}
+                >
+                  {tabItem.label}
+                </button>
+              ))}
+            </div>
 
-          {/* Table */}
-          {loading ? (
-            <TableSkeleton rows={5} columns={7} />
-          ) : (
-            <DataTable
-              columns={columns}
-              rows={filtered}
-              emptyMessage={t("bur_empty", "No hay solicitudes de presupuesto")}
-            />
-          )}
-        </CardContent>
-      </Card>
+            {/* Search */}
+            <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+              <SearchInput
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder={t("bur_search_placeholder", "Buscar por centro, sector o justificacion")}
+                className="md:max-w-md"
+              />
+              {loading && (
+                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  {t("bur_loading", "Cargando...")}
+                </div>
+              )}
+            </div>
+
+            {/* Table */}
+            {loading ? (
+              <TableSkeleton rows={5} columns={7} />
+            ) : (
+              <DataTable
+                columns={columns}
+                rows={filtered}
+                emptyMessage={t("bur_empty", "No hay solicitudes de presupuesto")}
+              />
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Modal de aprobacion */}
       <Modal
