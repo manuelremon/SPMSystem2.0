@@ -695,8 +695,8 @@ def admin_listar_profile_requests():
     try:
         query = """
             SELECT
-                upr.id, upr.usuario_id, upr.tipo, upr.payload,
-                upr.estado, upr.created_at, upr.updated_at,
+                upr.id, upr.usuario_id, upr.tipo_cambio, upr.valor_nuevo,
+                upr.estado, upr.created_at, upr.resolved_at,
                 u.nombre, u.apellido, u.mail, u.posicion, u.sector
             FROM user_profile_requests upr
             JOIN usuarios u ON upr.usuario_id = u.id_spm
@@ -718,11 +718,10 @@ def admin_listar_profile_requests():
         for row in rows:
             row_dict = dict(row)
 
-            # Parse payload
-            try:
-                payload = json.loads(row_dict.get("payload", "{}"))
-            except (json.JSONDecodeError, TypeError):
-                payload = {}
+            # Parse valor_nuevo as payload
+            valor_nuevo = row_dict.get("valor_nuevo", "")
+            tipo_cambio = row_dict.get("tipo_cambio", "")
+            payload = {tipo_cambio: valor_nuevo} if tipo_cambio else {}
 
             requests.append(
                 {
@@ -734,11 +733,11 @@ def admin_listar_profile_requests():
                         "posicion": row_dict.get("posicion", ""),
                         "sector": row_dict.get("sector", ""),
                     },
-                    "tipo": row_dict.get("tipo"),
+                    "tipo": tipo_cambio,
                     "cambios_solicitados": payload,
                     "estado": row_dict.get("estado"),
                     "created_at": row_dict.get("created_at"),
-                    "updated_at": row_dict.get("updated_at"),
+                    "updated_at": row_dict.get("resolved_at"),
                 }
             )
 
@@ -782,11 +781,10 @@ def admin_get_profile_request(request_id: int):
 
         row_dict = dict(row)
 
-        # Parse payload
-        try:
-            payload = json.loads(row_dict.get("payload", "{}"))
-        except (json.JSONDecodeError, TypeError):
-            payload = {}
+        # Parse valor_nuevo as payload (tabla tiene tipo_cambio y valor_nuevo, no payload)
+        tipo_cambio = row_dict.get("tipo_cambio", "")
+        valor_nuevo = row_dict.get("valor_nuevo", "")
+        payload = {tipo_cambio: valor_nuevo} if tipo_cambio else {}
 
         # Obtener valores actuales vs solicitados
         current_values = {}
@@ -799,10 +797,14 @@ def admin_get_profile_request(request_id: int):
             "jefe_nuevo": "jefe",
             "gerente1_nuevo": "gerente1",
             "gerente2_nuevo": "gerente2",
+            "sector": "sector",
+            "centros": "centros",
+            "almacenes": "almacenes",
+            "rol": "rol",
         }
 
         for key, db_field in field_mapping.items():
-            if key in payload:
+            if key in payload or key == tipo_cambio:
                 current_val = row_dict.get(db_field, "")
                 # Parse JSON si es necesario
                 if isinstance(current_val, str) and current_val.startswith("["):
