@@ -398,28 +398,28 @@ export default function BudgetRequests() {
       {msg && <Alert variant="success" onDismiss={() => setMsg("")}>{msg}</Alert>}
 
       {/* Main Tabs: Historial / Solicitudes */}
-      <div className="flex items-center gap-2 border-b border-slate-200">
+      <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30 w-fit">
         <button
           onClick={() => setMainTab("historial")}
-          className={`px-4 py-3 text-sm font-medium border-b-2 transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
             mainTab === "historial"
-              ? "border-blue-500 text-blue-600"
-              : "border-transparent text-slate-500 hover:text-slate-700"
+              ? "bg-white shadow-sm text-blue-600"
+              : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
           }`}
         >
-          <TrendingUp className="w-4 h-4 inline mr-2" />
-          {t("bur_main_historial", "Historial de Movimientos")}
+          <TrendingUp className="w-4 h-4" />
+          {t("bur_main_historial", "Historial")}
         </button>
         <button
           onClick={() => setMainTab("solicitudes")}
-          className={`px-4 py-3 text-sm font-medium border-b-2 transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
             mainTab === "solicitudes"
-              ? "border-blue-500 text-blue-600"
-              : "border-transparent text-slate-500 hover:text-slate-700"
+              ? "bg-white shadow-sm text-blue-600"
+              : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
           }`}
         >
-          <FileText className="w-4 h-4 inline mr-2" />
-          {t("bur_main_solicitudes", "Solicitudes BUR")}
+          <FileText className="w-4 h-4" />
+          {t("bur_main_solicitudes", "Incorporaciones")}
         </button>
       </div>
 

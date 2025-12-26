@@ -213,7 +213,8 @@ class PresupuestoService:
                     LIMIT ? OFFSET ?""",
                 params,
             )
-            return [LedgerEntry.from_row(dict(row)) for row in _fetchall(cur)]
+            rows = _fetchall(cur)
+            return [LedgerEntry.from_row(row if isinstance(row, dict) else dict(row)) for row in rows]
         finally:
             conn.close()
 

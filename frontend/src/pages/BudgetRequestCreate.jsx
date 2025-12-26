@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { budget } from "../services/spm";
 import api from "../services/api";
 import { Button } from "../components/ui/Button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/Card";
+import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Alert } from "../components/ui/Alert";
 import { useI18n } from "../context/i18n";
@@ -145,11 +145,7 @@ export default function BudgetRequestCreate() {
         {/* Form */}
         <div className="lg:col-span-2">
           <Card>
-            <CardHeader>
-              <CardTitle>{t("bur_create_title", "Nueva Solicitud de Presupuesto")}</CardTitle>
-              <CardDescription>{t("bur_create_subtitle", "Solicita un aumento de presupuesto para un centro/sector")}</CardDescription>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Centro */}
                 <div className="space-y-2">
