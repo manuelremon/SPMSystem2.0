@@ -200,6 +200,14 @@ def get_db_stats():
     except ImportError:
         from core.db import get_db_path
 
+    # Whitelist de tablas permitidas (defensa en profundidad)
+    ALLOWED_TABLES = {
+        "usuarios", "solicitudes", "notificaciones", "mensajes", "presupuestos",
+        "solpeds", "purchase_orders", "foro_posts", "stock", "consumo_historico",
+        "materiales_bbdd", "pedidos", "reservas", "equivalencias",
+        "materiales_equivalentes", "materiales", "grupos", "categorias"
+    }
+
     def get_table_counts(db_name, tables):
         """Obtiene conteo de registros de tablas especificadas."""
         try:
@@ -211,6 +219,10 @@ def get_db_stats():
             cursor = conn.cursor()
             counts = {}
             for table in tables:
+                # Validar tabla contra whitelist
+                if table not in ALLOWED_TABLES:
+                    counts[table] = -1  # Tabla no permitida
+                    continue
                 try:
                     cursor.execute(f"SELECT COUNT(*) FROM {table}")
                     counts[table] = cursor.fetchone()[0]

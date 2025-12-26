@@ -3,7 +3,7 @@
  * Translucent navigation with blur effect
  */
 
-import React, { useState } from "react";
+import React, { useState, memo, useCallback } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import clsx from "clsx";
 import {
@@ -246,7 +246,7 @@ const adminNavHierarchy = [
   },
 ];
 
-export default function Sidebar({ collapsed, onToggle, isConnected = false }) {
+function Sidebar({ collapsed, onToggle, isConnected = false }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useI18n();
@@ -257,11 +257,11 @@ export default function Sidebar({ collapsed, onToggle, isConnected = false }) {
   // Obtener unreadCount directamente del store (reactivo)
   const unreadCount = useRealtimeStore((state) => state.unreadCount);
 
-  // Handle logout
-  const handleLogout = () => {
+  // Handle logout (memoizado para evitar re-renders)
+  const handleLogout = useCallback(() => {
     logout();
     navigate("/login");
-  };
+  }, [logout, navigate]);
 
   // Role helpers
   const getUserRoles = () => {
@@ -297,9 +297,9 @@ export default function Sidebar({ collapsed, onToggle, isConnected = false }) {
   // Get main nav items with role-based filtering
   const mainNavItems = getMainNavItems(canApprove);
 
-  const toggleMenu = (key) => {
+  const toggleMenu = useCallback((key) => {
     setExpandedMenus((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+  }, []);
 
   const isPathActive = (path) => location.pathname === path || location.pathname.startsWith(path + "/");
 
@@ -706,3 +706,6 @@ export default function Sidebar({ collapsed, onToggle, isConnected = false }) {
     </aside>
   );
 }
+
+// Memoizar para evitar re-renders innecesarios cuando cambian props no relacionadas
+export default memo(Sidebar);

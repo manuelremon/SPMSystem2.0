@@ -83,6 +83,18 @@ desktop.ini
 .env.*.local
 !.env.example
 
+# Produccion y staging - CRITICO
+.env.production
+.env.staging
+infra/.env.production
+infra/.env.staging
+frontend/.env.production
+frontend/.env.staging
+
+# VAPID keys para push notifications
+data/vapid/
+data/vapid_*
+
 # =============================================================================
 # Temporary files
 # =============================================================================
@@ -110,16 +122,12 @@ data/*.db-wal
 # Data directory (Excel backups)
 data/xlsx/
 
-# Staging environment (local only)
-.env.staging
-
 # =============================================================================
 # Seguridad - Claves y certificados
 # =============================================================================
 *.key
 *.pem
 vapid_*.json
-data/vapid_*
 
 # =============================================================================
 # Archivos temporales adicionales
