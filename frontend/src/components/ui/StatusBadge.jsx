@@ -24,9 +24,27 @@ export default function StatusBadge({
 
   // Construir lineas del tooltip
   const tooltipLines = [];
-  if (tooltipInfo) {
-    const estadoLower = (estado || "").toLowerCase();
+  const estadoLower = (estado || "").toLowerCase();
 
+  // Tooltip por defecto para estados (sin necesidad de tooltipInfo)
+  if (!tooltipInfo) {
+    if (["pendiente", "pendiente_de_aprobacion", "enviada", "submitted"].includes(estadoLower)) {
+      tooltipLines.push("Esperando aprobación de un coordinador");
+    } else if (["borrador", "draft"].includes(estadoLower)) {
+      tooltipLines.push("Borrador - No enviada aún");
+    } else if (["aprobada", "approved"].includes(estadoLower)) {
+      tooltipLines.push("Aprobada - Pendiente de planificación");
+    } else if (["en_planificacion", "planificacion", "in_planning"].includes(estadoLower)) {
+      tooltipLines.push("En proceso de planificación");
+    } else if (["rechazada", "rejected"].includes(estadoLower)) {
+      tooltipLines.push("Solicitud rechazada");
+    } else if (["despachada", "dispatched", "completada", "completed"].includes(estadoLower)) {
+      tooltipLines.push("Solicitud completada");
+    }
+  }
+
+  // Tooltip con info adicional (si se proporciona tooltipInfo)
+  if (tooltipInfo) {
     // Fecha y aprobador (para estados aprobados)
     if (tooltipInfo.aprobador && ["aprobada", "approved", "en_planificacion", "planificacion"].includes(estadoLower)) {
       const fechaAprobacion = tooltipInfo.fechaAprobacion
