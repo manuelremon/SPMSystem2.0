@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { admin } from "../services/spm";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/Card";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
@@ -250,9 +250,6 @@ export default function AdminCrudTemplate({
         {!hideCardTitle && (
           <CardHeader className="px-6 pt-6 pb-3">
             <CardTitle>{title}</CardTitle>
-            <CardDescription>
-              {t("crud_total_records", "Total de registros:")} {filtered.length}
-            </CardDescription>
           </CardHeader>
         )}
 
