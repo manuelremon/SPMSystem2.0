@@ -72,20 +72,61 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(null);
 
-  // Extraer request_id del mensaje de notificación
+  // Extraer request_id de múltiples fuentes
   const extractRequestId = () => {
-    const match = notif.mensaje?.match(/#(\d+)/);
-    return match ? parseInt(match[1]) : null;
+    // 1. Buscar en solicitud_id directo
+    if (notif.solicitud_id) return notif.solicitud_id;
+
+    // 2. Buscar en el mensaje con patrón #N
+    const msgMatch = notif.mensaje?.match(/#(\d+)/);
+    if (msgMatch) return parseInt(msgMatch[1]);
+
+    // 3. Buscar en el asunto
+    const asuntoMatch = notif.asunto?.match(/#(\d+)/);
+    if (asuntoMatch) return parseInt(asuntoMatch[1]);
+
+    // 4. Buscar patrón "perfil #N" o "perfil N"
+    const perfilMatch = (notif.mensaje || notif.asunto || "").match(/perfil\s*#?(\d+)/i);
+    if (perfilMatch) return parseInt(perfilMatch[1]);
+
+    return null;
   };
 
-  const requestId = extractRequestId();
+  const [requestId, setRequestId] = useState(extractRequestId());
+  const [pendingRequests, setPendingRequests] = useState([]);
 
+  // Si no hay requestId, cargar solicitudes pendientes para seleccionar
   useEffect(() => {
     if (requestId) {
       loadRequestData();
     } else {
-      setError("No se pudo identificar la solicitud");
+      loadPendingRequests();
+    }
+  }, [requestId]);
+
+  const loadPendingRequests = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("/mi-cuenta/admin/profile-requests?estado=pendiente");
+      if (res.data?.ok && res.data.requests?.length > 0) {
+        setPendingRequests(res.data.requests);
+        // Si solo hay una, seleccionarla automáticamente
+        if (res.data.requests.length === 1) {
+          setRequestId(res.data.requests[0].id);
+        }
+      } else {
+        setError("No hay solicitudes de perfil pendientes");
+      }
+    } catch (err) {
+      setError("Error al cargar solicitudes pendientes");
+    } finally {
       setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (requestId && !requestData) {
+      loadRequestData();
     }
   }, [requestId]);
 
@@ -211,7 +252,8 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
         <div className="flex items-start justify-between p-6 border-b border-gray-100">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
-              {t("profile_req_action_title", "Solicitud de Cambio de Perfil")} #{requestId}
+              {t("profile_req_action_title", "Solicitud de Cambio de Perfil")}
+              {requestId ? ` #${requestId}` : ""}
             </h2>
             {requestData && (
               <p className="text-sm text-gray-500 mt-1">
@@ -232,6 +274,34 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+            </div>
+          ) : !requestId && pendingRequests.length > 0 ? (
+            /* Selector de solicitudes pendientes */
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Selecciona la solicitud de cambio de perfil que deseas gestionar:
+              </p>
+              <div className="space-y-2">
+                {pendingRequests.map((req) => (
+                  <button
+                    key={req.id}
+                    onClick={() => setRequestId(req.id)}
+                    className="w-full text-left p-4 bg-gray-50 hover:bg-blue-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-all"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {req.solicitante?.nombre || `Usuario ${req.usuario_id}`}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Solicitud #{req.id} • {formatDateTime(req.created_at)}
+                        </p>
+                      </div>
+                      <Badge className="bg-amber-100 text-amber-700">Pendiente</Badge>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           ) : error && !requestData ? (
             <Alert variant="error">{error}</Alert>
