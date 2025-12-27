@@ -796,8 +796,10 @@ def enviar_solicitud(solicitud_id):
 @bp.route("/<int:solicitud_id>/aprobar", methods=["PUT", "POST"])
 def aprobar_solicitud(solicitud_id):
     """Aprobar solicitud validando presupuesto - Usa FSM centralizado"""
+    logger.info(f"[APROBAR-DEBUG] Inicio aprobar_solicitud({solicitud_id})")
     # 1. Validar autenticacion
     user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
+    logger.info(f"[APROBAR-DEBUG] Token decoded: {type(user_payload)}, user_id={user_payload.get('user_id') if isinstance(user_payload, dict) else 'N/A'}")
     if isinstance(user_payload, tuple):
         return user_payload
 
