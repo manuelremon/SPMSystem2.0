@@ -838,9 +838,7 @@ def aprobar_solicitud(solicitud_id):
         cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (aprobador_id,))
         row = cur.fetchone()
         user_rol = _row_to_dict(row, cur).get("rol", "") if row else ""
-        print(f"[APROBAR-DEBUG] aprobador_id={aprobador_id!r} (type={type(aprobador_id).__name__}), row={row}, user_rol={user_rol!r}", flush=True)
 
-    print(f"[APROBAR-DEBUG] is_admin({user_rol!r}) = {is_admin(user_rol)}", flush=True)
     logger.info(f"[APROBAR] Usuario {aprobador_id} rol={user_rol!r}, is_admin={is_admin(user_rol)}")
 
     if aprobador_asignado and str(aprobador_asignado) != str(aprobador_id):
