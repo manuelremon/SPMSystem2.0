@@ -838,12 +838,15 @@ def aprobar_solicitud(solicitud_id):
         cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (aprobador_id,))
         row = cur.fetchone()
         user_rol = _row_to_dict(row, cur).get("rol", "") if row else ""
+        print(f"[APROBAR-DEBUG] aprobador_id={aprobador_id!r} (type={type(aprobador_id).__name__}), row={row}, user_rol={user_rol!r}", flush=True)
 
+    print(f"[APROBAR-DEBUG] is_admin({user_rol!r}) = {is_admin(user_rol)}", flush=True)
     logger.info(f"[APROBAR] Usuario {aprobador_id} rol={user_rol!r}, is_admin={is_admin(user_rol)}")
 
     if aprobador_asignado and str(aprobador_asignado) != str(aprobador_id):
         # Verificar si es admin (admins pueden aprobar cualquier solicitud)
         if not is_admin(user_rol):
+            print(f"[APROBAR-DEBUG] FORBIDDEN - aprobador_asignado={aprobador_asignado!r}, aprobador_id={aprobador_id!r}, user_rol={user_rol!r}, is_admin={is_admin(user_rol)}", flush=True)
             return (
                 jsonify(
                     {
@@ -852,6 +855,10 @@ def aprobar_solicitud(solicitud_id):
                             "code": "forbidden",
                             "message": "Solo el aprobador asignado puede aprobar esta solicitud",
                             "aprobador_asignado": str(aprobador_asignado),
+                            # DEBUG: temporalmente incluir info para diagnóstico
+                            "_debug_user_rol": user_rol,
+                            "_debug_is_admin": is_admin(user_rol),
+                            "_debug_aprobador_id": aprobador_id,
                         },
                     }
                 ),
