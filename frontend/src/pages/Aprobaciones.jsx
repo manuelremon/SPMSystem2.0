@@ -37,17 +37,23 @@ export default function Aprobaciones() {
   const [refreshing, setRefreshing] = useState(false);
   const [detailModal, setDetailModal] = useState({ open: false, solicitud: null });
 
-  // Load pending approvals - filtered by current user as aprobador
+  // Check if user is admin (can see all pending approvals)
+  const isAdmin = useMemo(() => {
+    const rol = (user?.rol || '').toLowerCase();
+    return rol.includes('admin') || rol.includes('administrador');
+  }, [user?.rol]);
+
+  // Load pending approvals - Admin sees all, others see only assigned to them
   const loadPendientes = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      // Filtrar por estado "Enviada" y por aprobador_id = usuario actual
-      // user.id viene de format_user_response (que usa id_spm internamente)
-      const res = await solicitudes.listar({
-        estado: "Enviada",
-        aprobador_id: user?.id
-      });
+      // Admin ve todas las solicitudes pendientes, otros solo las asignadas a ellos
+      const params = { estado: "Enviada" };
+      if (!isAdmin) {
+        params.aprobador_id = user?.id;
+      }
+      const res = await solicitudes.listar(params);
       const data = res.data.solicitudes || res.data.results || [];
       setItems(data);
     } catch (err) {
@@ -55,7 +61,7 @@ export default function Aprobaciones() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, isAdmin]);
 
   // Load approval history
   const loadHistorial = useCallback(async () => {
