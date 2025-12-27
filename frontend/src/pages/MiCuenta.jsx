@@ -562,9 +562,11 @@ export default function MiCuenta() {
               <Field label="Solicitar cambio de Jefe">
                 <Select value={pendingChanges.jefe_nuevo} onChange={(e) => setPendingChanges((prev) => ({ ...prev, jefe_nuevo: e.target.value }))}>
                   <option value="">Sin cambio</option>
-                  {(catalogos.usuarios || []).map((u) => (
-                    <option key={u.id} value={u.id}>{`${u.nombre || u.username || u.id}`}</option>
-                  ))}
+                  {(catalogos.usuarios || [])
+                    .filter((u) => (u.posicion || '').toLowerCase().includes('jefe') || (u.posicion || '').toLowerCase().includes('gerente'))
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>{`${u.nombre || u.username || u.id}`}</option>
+                    ))}
                 </Select>
               </Field>
 
@@ -574,9 +576,11 @@ export default function MiCuenta() {
               <Field label="Solicitar cambio Gerente 1">
                 <Select value={pendingChanges.gerente1_nuevo} onChange={(e) => setPendingChanges((prev) => ({ ...prev, gerente1_nuevo: e.target.value }))}>
                   <option value="">Sin cambio</option>
-                  {(catalogos.usuarios || []).map((u) => (
-                    <option key={u.id} value={u.id}>{`${u.nombre || u.username || u.id}`}</option>
-                  ))}
+                  {(catalogos.usuarios || [])
+                    .filter((u) => (u.posicion || '').toLowerCase().includes('gerente'))
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>{`${u.nombre || u.username || u.id}`}</option>
+                    ))}
                 </Select>
               </Field>
 
@@ -586,9 +590,11 @@ export default function MiCuenta() {
               <Field label="Solicitar cambio Gerente 2">
                 <Select value={pendingChanges.gerente2_nuevo} onChange={(e) => setPendingChanges((prev) => ({ ...prev, gerente2_nuevo: e.target.value }))}>
                   <option value="">Sin cambio</option>
-                  {(catalogos.usuarios || []).map((u) => (
-                    <option key={u.id} value={u.id}>{`${u.nombre || u.username || u.id}`}</option>
-                  ))}
+                  {(catalogos.usuarios || [])
+                    .filter((u) => (u.posicion || '').toLowerCase().includes('gerente'))
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>{`${u.nombre || u.username || u.id}`}</option>
+                    ))}
                 </Select>
               </Field>
 

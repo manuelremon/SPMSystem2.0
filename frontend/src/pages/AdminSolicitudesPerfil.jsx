@@ -385,7 +385,7 @@ export default function AdminSolicitudesPerfil() {
       >
         <div className="space-y-4">
           <p className="text-sm text-slate-500">
-            {t("profile_req_aprobar_desc", "Los cambios se aplicaran automaticamente al perfil del usuario.")}
+            {t("profile_req_aprobar_desc", "Los cambios se aplicarán automáticamente al perfil del usuario.")}
           </p>
           <div>
             <label className="text-sm font-medium text-slate-800">

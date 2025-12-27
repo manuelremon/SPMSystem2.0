@@ -228,7 +228,7 @@ export default function BudgetRequestCreate() {
                     className="w-full px-4 py-3 rounded-lg border border-white/30 bg-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all resize-none"
                   />
                   <p className="text-xs text-slate-500">
-                    {(form.justificacion || "").length}/10 {t("common_minimo", "minimo")}
+                    {(form.justificacion || "").length}/10 {t("common_minimo", "mínimo")}
                   </p>
                 </div>
 

@@ -99,10 +99,11 @@ def _almacenes():
 @cached(catalog_cache, "usuarios", ttl=300)  # 5 min TTL (changes more often)
 def _usuarios():
     return _fetch(
-        "SELECT id_spm, nombre, apellido, mail FROM usuarios WHERE estado_registro='Activo'",
+        "SELECT id_spm, nombre, apellido, mail, posicion FROM usuarios WHERE estado_registro='Activo'",
         lambda r: {
             "id": r["id_spm"],
             "nombre": f"{r['nombre']} {r['apellido']}",
             "mail": r["mail"] or "",
+            "posicion": r.get("posicion") or "",
         },
     )

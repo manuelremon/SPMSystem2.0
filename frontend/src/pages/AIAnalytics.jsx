@@ -123,7 +123,7 @@ export default function AIAnalytics() {
       <div className="space-y-6">
         <PageHeader
           title={t('ai_dashboard', 'Analytics IA')}
-          subtitle={t('ai_subtitle', 'Inteligencia artificial y aprendizaje automatico')}
+          subtitle={t('ai_subtitle', 'Inteligencia artificial y aprendizaje automático')}
         />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1, 2, 3].map(i => (
@@ -144,7 +144,7 @@ export default function AIAnalytics() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <PageHeader
           title={t('ai_dashboard', 'Analytics IA')}
-          subtitle={t('ai_subtitle', 'Inteligencia artificial y aprendizaje automatico')}
+          subtitle={t('ai_subtitle', 'Inteligencia artificial y aprendizaje automático')}
         />
 
         <div className="flex items-center gap-3">
@@ -312,7 +312,7 @@ export default function AIAnalytics() {
                 <CheckCircle className="w-12 h-12 mx-auto mb-3 text-emerald-500" />
                 <p>{t('ai_no_alertas', 'Sin alertas detectadas')}</p>
                 <p className="text-xs mt-1 text-slate-400">
-                  {t('ai_alertas_hint', 'Los modelos ML analizan patrones automaticamente')}
+                  {t('ai_alertas_hint', 'Los modelos ML analizan patrones automáticamente')}
                 </p>
               </div>
             ) : (

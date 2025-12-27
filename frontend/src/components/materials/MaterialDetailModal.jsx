@@ -71,7 +71,7 @@ export function MaterialDetailModal({
           {/* Descripcion larga */}
           <div className="p-4 bg-[var(--bg-soft)] border border-[var(--border)] rounded-lg">
             <p className="text-xs uppercase font-semibold text-[var(--fg-muted)] mb-2">
-              {t('materials_desc_larga', 'Descripcion larga')}
+              {t('materials_desc_larga', 'Descripción larga')}
             </p>
             <p className="text-[var(--fg)]">
               {selectedMaterial.descripcion_larga || 'N/D'}
@@ -81,7 +81,7 @@ export function MaterialDetailModal({
           {/* Info general */}
           <div className="p-4 bg-[var(--bg-soft)] border border-[var(--border)] rounded-lg space-y-2">
             <InfoRow
-              label={t('materials_unidad', 'Unidad')}
+              label={t('materials_unidad', 'Unidad de medida')}
               value={selectedMaterial.unidad_medida || selectedMaterial.unidad || 'N/D'}
             />
             <InfoRow
@@ -151,11 +151,11 @@ export function MaterialDetailModal({
           {/* MRP */}
           <div className="p-4 bg-[var(--warning-bg)] border border-[var(--warning-border)] rounded-lg space-y-2">
             <p className="text-xs uppercase font-semibold text-[var(--fg-muted)] mb-2">
-              {t('materials_mrp', 'MRP / Reposicion automatica')}
+              {t('materials_mrp', 'MRP / Reposición automática')}
             </p>
             <InfoRow
               label={t('materials_planificado_mrp', 'Planificado MRP')}
-              value={detail?.mrp?.planificado_mrp ? 'Si' : 'No'}
+              value={detail?.mrp?.planificado_mrp ? 'Sí' : 'No'}
             />
             <InfoRow
               label={t('materials_sector', 'Sector')}
@@ -170,7 +170,7 @@ export function MaterialDetailModal({
               value={detail?.mrp?.punto_pedido ?? 'N/D'}
             />
             <InfoRow
-              label={t('materials_stock_maximo', 'Stock maximo')}
+              label={t('materials_stock_maximo', 'Stock máximo')}
               value={detail?.mrp?.stock_maximo ?? 'N/D'}
             />
           </div>
@@ -178,7 +178,7 @@ export function MaterialDetailModal({
           {/* Consumo historico */}
           <div className="p-4 bg-[var(--info-bg)] border border-[var(--info-border)] rounded-lg space-y-2">
             <p className="text-xs uppercase font-semibold text-[var(--fg-muted)] mb-2">
-              {t('materials_consumo', 'Consumo historico')}
+              {t('materials_consumo', 'Consumo histórico')}
             </p>
             <InfoRow
               label={t('materials_total_consumo', 'Total consumo')}

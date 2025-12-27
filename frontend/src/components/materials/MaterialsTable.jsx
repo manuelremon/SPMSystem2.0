@@ -2,10 +2,12 @@
  * MaterialsTable - Table component for displaying added materials
  * Handles quantity editing, comments, and deletion
  */
+import { useState } from 'react'
 import { useI18n } from '../../context/i18n'
 import { formatCurrency } from '../../utils/formatters'
 import { MessageSquare, Trash2 } from '../ui/Icons'
 import { Button } from '../ui/Button'
+import { ConfirmModal } from '../ui/ConfirmModal'
 
 export function MaterialsTable({
   items,
@@ -14,6 +16,7 @@ export function MaterialsTable({
   onOpenComment,
 }) {
   const { t } = useI18n()
+  const [deleteConfirm, setDeleteConfirm] = useState({ show: false, codigo: null, descripcion: '' })
 
   return (
     <div className="overflow-x-auto border border-[var(--border)] rounded-lg">
@@ -21,10 +24,10 @@ export function MaterialsTable({
         <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
           <tr>
             <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
-              {t('materials_col_codigo', 'Codigo')}
+              {t('materials_col_codigo', 'Código')}
             </th>
             <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
-              {t('materials_col_descripcion', 'Descripcion')}
+              {t('materials_col_descripcion', 'Descripción')}
             </th>
             <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
               {t('materials_col_unidad', 'Unidad')}
@@ -109,7 +112,7 @@ export function MaterialsTable({
                   <Button
                     variant="icon-danger"
                     size="icon-sm"
-                    onClick={() => onDelete(it.codigo)}
+                    onClick={() => setDeleteConfirm({ show: true, codigo: it.codigo, descripcion: it.descripcion })}
                     title={t('materials_eliminar', 'Eliminar')}
                     aria-label={`${t('materials_eliminar', 'Eliminar')} ${it.codigo}`}
                   >
@@ -121,6 +124,21 @@ export function MaterialsTable({
           })}
         </tbody>
       </table>
+
+      {/* Modal de confirmación de eliminación */}
+      <ConfirmModal
+        isOpen={deleteConfirm.show}
+        onClose={() => setDeleteConfirm({ show: false, codigo: null, descripcion: '' })}
+        onConfirm={() => {
+          onDelete(deleteConfirm.codigo)
+          setDeleteConfirm({ show: false, codigo: null, descripcion: '' })
+        }}
+        title={t('materials_confirmar_eliminar', '¿Eliminar material?')}
+        message={`${t('materials_confirmar_eliminar_msg', '¿Está seguro que desea eliminar el material')} ${deleteConfirm.codigo} - ${deleteConfirm.descripcion}?`}
+        confirmText={t('materials_eliminar', 'Eliminar')}
+        cancelText={t('common_cancelar', 'Cancelar')}
+        variant="danger"
+      />
     </div>
   )
 }

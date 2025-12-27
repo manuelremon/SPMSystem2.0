@@ -297,9 +297,9 @@ function SearchSection({ m, t }) {
             value={m.searchCodigo}
             onChange={(e) => m.setSearchCodigo(e.target.value)}
             onKeyDown={m.handleSearchKeyDown}
-            placeholder={t('materials_codigo_sap', 'Codigo SAP')}
+            placeholder={t('materials_codigo_sap', 'Código SAP')}
             className="font-mono"
-            aria-label={t('materials_codigo_sap', 'Codigo SAP')}
+            aria-label={t('materials_codigo_sap', 'Código SAP')}
           />
         </div>
         {/* Descripcion */}
@@ -310,8 +310,8 @@ function SearchSection({ m, t }) {
               value={m.searchDesc}
               onChange={(e) => m.setSearchDesc(e.target.value)}
               onKeyDown={m.handleSearchKeyDown}
-              placeholder={t('materials_buscar_desc', 'Buscar por descripcion...')}
-              aria-label={t('materials_descripcion', 'Descripcion')}
+              placeholder={t('materials_buscar_desc', 'Buscar por descripción...')}
+              aria-label={t('materials_descripcion', 'Descripción')}
             />
             {/* Indicators */}
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">

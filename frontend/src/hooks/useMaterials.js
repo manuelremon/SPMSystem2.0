@@ -435,7 +435,7 @@ export function useMaterials() {
       })
       setSol(res.data.solicitud || res.data)
       setActionMsg(t('materials_submitted', 'Solicitud enviada para aprobación. Redirigiendo...'))
-      setTimeout(() => navigate('/mis-solicitudes'), 1500)
+      setTimeout(() => navigate('/mis-solicitudes'), 4000)
     } catch (err) {
       setError(err.response?.data?.error?.message || err.message)
     } finally {
