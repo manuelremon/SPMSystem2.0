@@ -332,8 +332,12 @@ def puede_aprobar(
         rol_usuario = (user_row["rol"] or "").lower()
         posicion_usuario = (user_row["posicion"] or "").lower()
 
-        # Admin siempre puede aprobar (por posicion)
-        if posicion_usuario in ["admin", "administrador"]:
+        # Admin siempre puede aprobar (por posicion o por rol)
+        # Acepta posiciones como "admin", "administrador", "administrador general", etc.
+        es_admin_posicion = "admin" in posicion_usuario
+        es_admin_rol = "admin" in rol_usuario or "administrador" in rol_usuario
+
+        if es_admin_posicion or es_admin_rol:
             return {
                 "puede_aprobar": True,
                 "posicion_usuario": posicion_usuario,
