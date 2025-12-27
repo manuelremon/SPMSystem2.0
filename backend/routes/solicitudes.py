@@ -829,14 +829,18 @@ def aprobar_solicitud(solicitud_id):
     # 2.5 SEGURIDAD: Validar que el aprobador sea el asignado (si hay uno asignado)
     aprobador_asignado = solicitud.get("aprobador_id") or solicitud.get("aprobador_asignado")
     logger.info(f"[APROBAR] Solicitud {solicitud_id}: aprobador_asignado={aprobador_asignado!r}, aprobador_id_token={aprobador_id!r}, match={str(aprobador_asignado) == str(aprobador_id)}")
+
+    # Obtener rol del usuario que intenta aprobar
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (aprobador_id,))
+        row = cur.fetchone()
+        user_rol = _row_to_dict(row, cur).get("rol", "") if row else ""
+
+    logger.info(f"[APROBAR] Usuario {aprobador_id} rol={user_rol!r}, is_admin={is_admin(user_rol)}")
+
     if aprobador_asignado and str(aprobador_asignado) != str(aprobador_id):
         # Verificar si es admin (admins pueden aprobar cualquier solicitud)
-        with get_db_connection() as conn:
-            cur = conn.cursor()
-            cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (aprobador_id,))
-            row = cur.fetchone()
-            user_rol = _row_to_dict(row, cur).get("rol", "") if row else ""
-
         if not is_admin(user_rol):
             return (
                 jsonify(
