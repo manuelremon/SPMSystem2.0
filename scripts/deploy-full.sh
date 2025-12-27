@@ -175,7 +175,7 @@ server_deploy() {
     print_header "SERVIDOR: DEPLOY EN $SERVER_IP"
 
     # Verificar si el directorio existe, si no, clonar
-    print_step "1/8" "Verificando repositorio en servidor..."
+    print_step "1/9" "Verificando repositorio en servidor..."
     if ! ssh_exec "test -d $REMOTE_DIR"; then
         print_info "Clonando repositorio por primera vez..."
         ssh_exec "git clone $GITHUB_REPO $REMOTE_DIR"
@@ -184,35 +184,42 @@ server_deploy() {
         print_success "Repositorio existe"
     fi
 
-    print_step "2/8" "Actualizando codigo (git pull)..."
+    print_step "2/9" "Actualizando codigo (git pull)..."
     ssh_exec "cd $REMOTE_DIR && git fetch origin && git reset --hard origin/main"
     print_success "Codigo actualizado"
 
-    print_step "3/8" "Verificando Node.js..."
+    print_step "3/9" "Verificando Node.js..."
     if ! ssh_exec "command -v node" &>/dev/null; then
         print_info "Instalando Node.js..."
         ssh_exec "curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt-get install -y nodejs"
     fi
     print_success "Node.js OK"
 
-    print_step "4/8" "Instalando dependencias frontend..."
+    print_step "4/9" "Instalando dependencias frontend..."
     ssh_exec "cd $REMOTE_DIR/frontend && npm ci --legacy-peer-deps 2>/dev/null || npm install --legacy-peer-deps"
     print_success "Dependencias instaladas"
 
-    print_step "5/8" "Construyendo frontend (React/Vite)..."
+    print_step "5/9" "Construyendo frontend (React/Vite)..."
     ssh_exec "cd $REMOTE_DIR/frontend && npm run build"
     print_success "Frontend build OK"
 
-    print_step "6/8" "Reconstruyendo contenedores Docker..."
+    print_step "6/9" "Reconstruyendo contenedores Docker..."
     ssh_exec "cd $REMOTE_DIR/infra && docker-compose -f docker-compose.prod.yml --env-file .env.production build"
     print_success "Docker build OK"
 
-    print_step "7/8" "Reiniciando servicios..."
+    print_step "7/9" "Reiniciando servicios..."
     ssh_exec "cd $REMOTE_DIR/infra && docker-compose -f docker-compose.prod.yml --env-file .env.production down 2>/dev/null || true"
     ssh_exec "cd $REMOTE_DIR/infra && docker-compose -f docker-compose.prod.yml --env-file .env.production up -d"
     print_success "Servicios reiniciados"
 
-    print_step "8/8" "Limpiando cache de nginx..."
+    print_step "8/9" "Ejecutando migraciones de base de datos..."
+    # Esperar que PostgreSQL este listo
+    sleep 5
+    # Ejecutar todas las migraciones SQL en orden
+    ssh_exec "cd $REMOTE_DIR && for f in infra/migrations/*.sql; do [ -f \"\$f\" ] && docker exec -i spm-postgres psql -U \${POSTGRES_USER:-spm} -d \${POSTGRES_DB:-spm_production} < \"\$f\" 2>/dev/null || true; done"
+    print_success "Migraciones ejecutadas"
+
+    print_step "9/9" "Limpiando cache de nginx..."
     ssh_exec "docker exec spm-nginx nginx -s reload 2>/dev/null || true"
     print_success "Cache de nginx limpiado"
 }

@@ -198,9 +198,10 @@ def get_status():
 @bp.route("/test", methods=["POST"])
 def send_test_notification():
     """
-    Envia una notificacion push de prueba.
+    Envia una notificacion push de prueba al usuario actual.
 
-    Disponible en desarrollo para todos, en produccion solo para admins.
+    Cualquier usuario autenticado puede enviar una prueba a si mismo.
+    Esto permite verificar que las notificaciones push funcionan correctamente.
 
     Body (opcional):
     {
@@ -215,11 +216,7 @@ def send_test_notification():
     if error:
         return error
 
-    # En produccion, solo admins pueden enviar test
-    if settings.ENV not in ("development", "dev", "local"):
-        if not _is_admin(user_id):
-            return jsonify({"ok": False, "error": "Solo disponible para administradores"}), 403
-
+    # Cualquier usuario puede enviar test a si mismo (no a otros)
     data = request.get_json(silent=True) or {}
     title = data.get("title", "Notificacion de prueba")
     body = data.get("body", "Esta es una notificacion de prueba del sistema SPM")

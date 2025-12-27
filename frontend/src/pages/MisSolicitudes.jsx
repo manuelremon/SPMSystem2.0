@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
-import { solicitudes, admin } from "../services/spm";
+import { solicitudes } from "../services/spm";
+import api from "../services/api";
 import { useAuthStore } from "../store/authStore";
 import { useDebounced } from "../hooks/useDebounced";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
@@ -107,11 +108,11 @@ export default function MisSolicitudes() {
     }
   }, [success]);
 
-  // Cargar sectores desde el backend
+  // Cargar sectores desde el backend (endpoint público)
   useEffect(() => {
     const fetchSectores = async () => {
       try {
-        const res = await admin.list('sectores');
+        const res = await api.get('/catalogos/sectores');
         const data = Array.isArray(res.data) ? res.data : [];
         setSectores(data);
       } catch (err) {
