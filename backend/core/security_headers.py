@@ -20,26 +20,37 @@ def init_security_headers(app: Flask):
     """
     Inicializa headers de seguridad OWASP.
 
-    En produccion aplica headers estrictos.
-    En desarrollo relaja algunos para facilitar pruebas.
+    En produccion con Docker/Nginx: NO duplica headers (Nginx los maneja).
+    En produccion directa (Render): Aplica headers estrictos.
+    En desarrollo: Relaja algunos para facilitar pruebas.
     """
     is_production = settings.ENV == "production"
 
-    # Detectar si estamos en Render u otro hosting
+    # Detectar si estamos en Render u otro hosting directo (sin Nginx)
     is_render = os.getenv("RENDER", "") == "true"
+
+    # Detectar si estamos detras de Nginx (Docker prod)
+    # Nginx ya maneja los security headers, evitar duplicacion
+    is_behind_nginx = is_production and not is_render
 
     @app.after_request
     def set_security_headers(response):
-        # Prevent MIME sniffing - siempre
+        # En produccion con Docker/Nginx, NO duplicar headers
+        # Nginx ya los configura en default.conf
+        if is_behind_nginx:
+            return response
+
+        # Prevent MIME sniffing - siempre (dev/Render)
         response.headers["X-Content-Type-Options"] = "nosniff"
 
-        # Referrer Policy - siempre
+        # Referrer Policy - siempre (dev/Render)
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
-        # Permissions Policy - siempre
+        # Permissions Policy - siempre (dev/Render)
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
 
-        if is_production or is_render:
+        if is_render:
+            # Render (produccion directa sin Nginx)
             # HSTS - Solo en produccion (requiere HTTPS)
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
 

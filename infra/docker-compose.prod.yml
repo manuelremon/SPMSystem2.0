@@ -53,6 +53,10 @@ services:
       - spm_uploads:/app/uploads
       - spm_logs:/app/logs
       - spm_vapid:/app/data/vapid
+      # SQLite databases (read-only) - Datos SAP
+      - ../data/sap_data.db:/app/data/sap_data.db:ro
+      - ../data/equivalentes.db:/app/data/equivalentes.db:ro
+      - ../data/catalogo_materiales.db:/app/data/catalogo_materiales.db:ro
     networks:
       - spm-network
     expose:

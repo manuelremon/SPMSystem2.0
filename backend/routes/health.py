@@ -23,9 +23,11 @@ from flask import Blueprint, jsonify, request
 try:
     from backend.core.config import settings
     from backend.core.db import get_db_path
+    from backend.core.auth_middleware import require_auth
 except ImportError:
     from core.config import settings
     from core.db import get_db_path
+    from core.auth_middleware import require_auth
 
 logger = logging.getLogger(__name__)
 
@@ -645,17 +647,17 @@ def _get_system_metrics() -> dict:
 
 
 @bp.route("/api/health/infrastructure", methods=["GET"])
+@require_auth
 def infrastructure_status():
     """
     Estado de infraestructura: Docker, Git, servicios del sistema.
 
     Requiere autenticación para no exponer información sensible.
+    Solo usuarios autenticados pueden acceder a esta información.
 
     Returns:
         JSON con estado de Docker, Git y servicios
     """
-    # Nota: En producción, agregar @require_auth cuando esté disponible
-    # Por ahora, solo verificamos que viene de admin (se puede mejorar)
 
     try:
         response = {
