@@ -18,16 +18,33 @@ import subprocess
 import time
 from datetime import datetime
 
-from flask import Blueprint, jsonify, request
+from functools import wraps
+
+from flask import Blueprint, g, jsonify, request
 
 try:
     from backend.core.config import settings
     from backend.core.db import get_db_path
-    from backend.core.auth_middleware import require_auth
 except ImportError:
     from core.config import settings
     from core.db import get_db_path
-    from core.auth_middleware import require_auth
+
+
+def require_auth(f):
+    """Decorator que requiere autenticacion para acceder al endpoint."""
+
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not hasattr(g, "user") or not g.user:
+            return (
+                jsonify(
+                    {"ok": False, "error": {"code": "unauthorized", "message": "No autenticado"}}
+                ),
+                401,
+            )
+        return f(*args, **kwargs)
+
+    return decorated
 
 logger = logging.getLogger(__name__)
 
