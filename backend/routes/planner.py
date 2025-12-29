@@ -2426,7 +2426,7 @@ def _actualizar_estado_decision(decision_id: int, nuevo_estado: str):
                 (nuevo_estado, decision_id),
             )
     except Exception as e:
-        print(f"Error actualizando estado decisión: {e}")
+        logger.error(f"Error actualizando estado decisión: {e}")
 
 
 def _enviar_notificacion_finalizacion(solicitud_id: int):

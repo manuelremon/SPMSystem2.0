@@ -118,7 +118,7 @@ class MessageService:
             return message_id
 
         except Exception as e:
-            print(f"Error al enviar mensaje: {e}")
+            logger.error(f"Error al enviar mensaje: {e}")
             conn.rollback()
             return None
         finally:
@@ -308,7 +308,7 @@ class MessageService:
             return thread
 
         except Exception as e:
-            print(f"Error al obtener thread: {e}")
+            logger.error(f"Error al obtener thread: {e}")
             return []
         finally:
             conn.close()
@@ -342,7 +342,7 @@ class MessageService:
             return cursor.rowcount > 0
 
         except Exception as e:
-            print(f"Error al marcar como leído: {e}")
+            logger.error(f"Error al marcar como leído: {e}")
             conn.rollback()
             return False
         finally:
@@ -373,7 +373,7 @@ class MessageService:
             return count
 
         except Exception as e:
-            print(f"Error al contar no leídos: {e}")
+            logger.error(f"Error al contar no leídos: {e}")
             return 0
         finally:
             conn.close()
@@ -406,7 +406,7 @@ class MessageService:
             return cursor.rowcount > 0
 
         except Exception as e:
-            print(f"Error al eliminar mensaje: {e}")
+            logger.error(f"Error al eliminar mensaje: {e}")
             conn.rollback()
             return False
         finally:
