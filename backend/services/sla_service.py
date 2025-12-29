@@ -610,6 +610,45 @@ def actualizar_sla_solicitud(
         return {"actualizado": cursor.rowcount > 0}
 
 
+def actualizar_sla_solicitudes_lote(
+    solicitud_ids: List[int], estado_sla: str
+) -> Dict[str, Any]:
+    """
+    FIX 3.10: Actualiza el estado SLA de múltiples solicitudes en lote.
+
+    Más eficiente que actualizar una por una cuando se procesan
+    muchas solicitudes (ej: job nocturno de recálculo SLA).
+
+    Args:
+        solicitud_ids: Lista de IDs de solicitudes
+        estado_sla: Nuevo estado SLA ('on_time', 'warning', 'breach')
+
+    Returns:
+        Dict con número de registros actualizados
+    """
+    if not solicitud_ids:
+        return {"actualizados": 0}
+
+    with get_db_transaction() as conn:
+        cursor = conn.cursor()
+
+        now_iso = datetime.now().isoformat()
+        placeholders = ",".join(["?"] * len(solicitud_ids))
+        params = [estado_sla, now_iso] + list(solicitud_ids)
+
+        cursor.execute(
+            f"""
+            UPDATE solicitudes
+            SET sla_estado = ?,
+                updated_at = ?
+            WHERE id IN ({placeholders})
+        """,
+            params,
+        )
+
+        return {"actualizados": cursor.rowcount}
+
+
 # =============================================================================
 # CRUD Configuracion SLA
 # =============================================================================

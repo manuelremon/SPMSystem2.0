@@ -137,6 +137,14 @@ export default function CreateSolicitud() {
   const onSubmit = useCallback(async (e) => {
     e.preventDefault()
     setError('')
+
+    // FIX 3.1: Validar fecha_necesidad >= hoy
+    const today = new Date().toISOString().slice(0, 10)
+    if (form.fecha_necesidad && form.fecha_necesidad < today) {
+      setError(t('create_fecha_pasada', 'La fecha de necesidad no puede ser anterior a hoy'))
+      return
+    }
+
     setSubmitting(true)
     try {
       let res

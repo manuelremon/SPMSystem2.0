@@ -2,12 +2,18 @@
 Cache centralizado para datos de SAP
 Encapsula carga y caché en memoria de stock, equivalencias y consumo
 Fuente: sap_data.db (migrado desde Excel)
+
+FIX 4.3: Añadido TTL para invalidar cache automáticamente
 """
 
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
 import pandas as pd
+
+# FIX 4.3: TTL por defecto para cache (60 minutos)
+DEFAULT_CACHE_TTL_MINUTES = 60
 
 try:
     from backend.core.db import get_db_connection
@@ -16,12 +22,26 @@ except ImportError:
 
 
 class DataCacheLoader:
-    """Gestor de caches con API simple - usa sap_data.db"""
+    """Gestor de caches con API simple - usa sap_data.db
 
-    def __init__(self):
+    FIX 4.3: Ahora con soporte de TTL para invalidación automática
+    """
+
+    def __init__(self, ttl_minutes: int = DEFAULT_CACHE_TTL_MINUTES):
         self._stock_cache: Optional[pd.DataFrame] = None
         self._equivalencias_cache: Optional[pd.DataFrame] = None
         self._consumo_cache: Optional[pd.DataFrame] = None
+        # FIX 4.3: Timestamps para TTL
+        self._stock_cache_time: Optional[datetime] = None
+        self._equivalencias_cache_time: Optional[datetime] = None
+        self._consumo_cache_time: Optional[datetime] = None
+        self._ttl = timedelta(minutes=ttl_minutes)
+
+    def _is_cache_valid(self, cache_time: Optional[datetime]) -> bool:
+        """FIX 4.3: Verifica si el cache sigue válido según TTL"""
+        if cache_time is None:
+            return False
+        return datetime.now() - cache_time < self._ttl
 
     @staticmethod
     def _norm_codigo(val: str) -> str:
@@ -33,7 +53,8 @@ class DataCacheLoader:
 
     def load_stock(self) -> pd.DataFrame:
         """Carga stock desde sap_data.db tabla 'stock'"""
-        if self._stock_cache is not None:
+        # FIX 4.3: Verificar TTL antes de retornar cache
+        if self._stock_cache is not None and self._is_cache_valid(self._stock_cache_time):
             return self._stock_cache
 
         try:
@@ -59,20 +80,24 @@ class DataCacheLoader:
             df["almacen_norm"] = df["almacen"].astype(str).apply(self._norm_codigo)
 
             self._stock_cache = df
+            self._stock_cache_time = datetime.now()  # FIX 4.3
             return self._stock_cache
 
         except Exception:
             self._stock_cache = pd.DataFrame()
+            self._stock_cache_time = datetime.now()  # FIX 4.3
             return self._stock_cache
 
     def load_equivalencias(self) -> pd.DataFrame:
         """Carga equivalencias desde docs/equivalencias_total_normalizado.xlsx"""
-        if self._equivalencias_cache is not None:
+        # FIX 4.3: Verificar TTL
+        if self._equivalencias_cache is not None and self._is_cache_valid(self._equivalencias_cache_time):
             return self._equivalencias_cache
 
         path = Path("docs/equivalencias_total_normalizado.xlsx")
         if not path.exists():
             self._equivalencias_cache = pd.DataFrame()
+            self._equivalencias_cache_time = datetime.now()  # FIX 4.3
             return self._equivalencias_cache
 
         df = pd.read_excel(path, sheet_name="Sheet1")
@@ -93,11 +118,13 @@ class DataCacheLoader:
         )
 
         self._equivalencias_cache = df
+        self._equivalencias_cache_time = datetime.now()  # FIX 4.3
         return self._equivalencias_cache
 
     def load_consumo(self) -> pd.DataFrame:
         """Carga consumo histórico desde sap_data.db tabla 'consumo_historico'"""
-        if self._consumo_cache is not None:
+        # FIX 4.3: Verificar TTL
+        if self._consumo_cache is not None and self._is_cache_valid(self._consumo_cache_time):
             return self._consumo_cache
 
         try:
@@ -125,10 +152,12 @@ class DataCacheLoader:
             df["almacen_norm"] = df["almacen"].astype(str).apply(self._norm_codigo)
 
             self._consumo_cache = df
+            self._consumo_cache_time = datetime.now()  # FIX 4.3
             return self._consumo_cache
 
         except Exception:
             self._consumo_cache = pd.DataFrame()
+            self._consumo_cache_time = datetime.now()  # FIX 4.3
             return self._consumo_cache
 
     def clear_all(self):
@@ -136,6 +165,10 @@ class DataCacheLoader:
         self._stock_cache = None
         self._equivalencias_cache = None
         self._consumo_cache = None
+        # FIX 4.3: También limpiar timestamps
+        self._stock_cache_time = None
+        self._equivalencias_cache_time = None
+        self._consumo_cache_time = None
 
 
 # Instancia global única

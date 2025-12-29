@@ -15,9 +15,14 @@ from typing import Any, Dict, List, Optional
 try:
     from backend.core.db import get_db_connection, get_db_transaction
     from backend.services.push_service import send_push_notification
+    from backend.services.sla_service import resolver_alertas_solicitud
 except ImportError:
     from core.db import get_db_connection, get_db_transaction
     from services.push_service import send_push_notification
+    try:
+        from services.sla_service import resolver_alertas_solicitud
+    except ImportError:
+        resolver_alertas_solicitud = None  # Fallback si no está disponible
 
 logger = logging.getLogger(__name__)
 
@@ -176,19 +181,49 @@ def normalizar_estado(estado: str) -> str:
     if not estado:
         return "draft"
 
-    # Si ya esta en formato nuevo, retornar
-    if estado in [e.value for e in EstadoSolicitud]:
-        return estado
+    estado_stripped = estado.strip()
+
+    # Si ya esta en formato nuevo (enum), retornar
+    if estado_stripped in [e.value for e in EstadoSolicitud]:
+        return estado_stripped
 
     # Advertir sobre estados ambiguos
-    if estado in ESTADOS_AMBIGUOS:
+    if estado_stripped in ESTADOS_AMBIGUOS:
         logger.warning(
-            f"[FSM] Estado ambiguo '{estado}' normalizado a '{ESTADO_LEGACY_A_NUEVO.get(estado)}'. "
+            f"[FSM] Estado ambiguo '{estado_stripped}' normalizado a '{ESTADO_LEGACY_A_NUEVO.get(estado_stripped)}'. "
             f"Se recomienda usar estados internos (snake_case) para evitar ambigüedad."
         )
 
-    # Buscar en mapeo legacy
-    return ESTADO_LEGACY_A_NUEVO.get(estado, estado)
+    # Buscar en mapeo legacy (exact match primero)
+    if estado_stripped in ESTADO_LEGACY_A_NUEVO:
+        return ESTADO_LEGACY_A_NUEVO[estado_stripped]
+
+    # FIX: Buscar case-insensitive para estados display comunes
+    # Esto evita que "enviada" (minúsculas) no se mapee a "submitted"
+    MAPEO_CASE_INSENSITIVE = {
+        "borrador": "draft",
+        "enviada": "submitted",
+        "en aprobación": "submitted",
+        "en aprobacion": "submitted",
+        "aprobada": "approved",
+        "rechazada": "rejected",
+        "en progreso": "in_planning",
+        "en tratamiento": "in_treatment",
+        "tratado": "treated",
+        "tratada": "treated",
+        "finalizada": "completed",
+        "completada": "completed",
+        "cancelada": "cancelled",
+        "pendiente": "submitted",
+    }
+
+    estado_lower = estado_stripped.lower()
+    if estado_lower in MAPEO_CASE_INSENSITIVE:
+        return MAPEO_CASE_INSENSITIVE[estado_lower]
+
+    # Si no se encuentra, retornar el estado como está (puede ser un estado nuevo desconocido)
+    logger.warning(f"[FSM] Estado desconocido '{estado}', retornando sin normalizar")
+    return estado_stripped
 
 
 def estado_para_display(estado: str) -> str:
@@ -413,6 +448,24 @@ def cambiar_estado(
             razon=razon,
             solicitud_data=dict(solicitud),
         )
+
+    # 6. FIX: Auto-resolver alertas SLA cuando la solicitud llega a estados finales
+    # Esto evita que las alertas queden activas indefinidamente
+    ESTADOS_FINALES_SLA = {"completed", "cancelled", "treated", "rejected"}
+    if nuevo_estado_str in ESTADOS_FINALES_SLA:
+        try:
+            if resolver_alertas_solicitud:
+                resolver_alertas_solicitud(
+                    solicitud_id=solicitud_id,
+                    resuelto_por="sistema_fsm",
+                )
+                logger.debug(
+                    f"[FSM] Alertas SLA auto-resueltas para solicitud {solicitud_id} "
+                    f"(estado: {nuevo_estado_str})"
+                )
+        except Exception as e:
+            # SLA es informativo, no debe bloquear el flujo principal
+            logger.warning(f"[FSM] Error auto-resolviendo alertas SLA: {e}")
 
     return {
         "success": True,

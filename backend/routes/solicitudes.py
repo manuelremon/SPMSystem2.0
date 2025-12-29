@@ -6,6 +6,7 @@ Refactorizado para usar FSM centralizado (Sprint 1.6)
 
 import json
 import logging
+import os
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -344,63 +345,142 @@ def create_solicitud():
             400,
         )
 
+    # FIX 3.1: Validar que centro y sector existan en catálogos
+    centro = data.get("centro", "").strip()
+    sector = data.get("sector", "").strip()
+
+    if centro or sector:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+
+            if centro:
+                cur.execute(
+                    "SELECT 1 FROM catalog_centros WHERE (codigo = ? OR nombre = ?) AND activo = 1",
+                    (centro, centro),
+                )
+                if not cur.fetchone():
+                    return (
+                        jsonify(
+                            {
+                                "ok": False,
+                                "error": {
+                                    "code": "invalid_centro",
+                                    "message": f"Centro '{centro}' no existe o no está activo",
+                                },
+                            }
+                        ),
+                        400,
+                    )
+
+            if sector:
+                cur.execute(
+                    "SELECT 1 FROM catalog_sectores WHERE nombre = ? AND activo = 1",
+                    (sector,),
+                )
+                if not cur.fetchone():
+                    return (
+                        jsonify(
+                            {
+                                "ok": False,
+                                "error": {
+                                    "code": "invalid_sector",
+                                    "message": f"Sector '{sector}' no existe o no está activo",
+                                },
+                            }
+                        ),
+                        400,
+                    )
+
     # Usar items validados y total calculado por el validador
     items_validos = [item.to_dict() for item in validacion["items"]]
     total = validacion["total"]
     now = datetime.utcnow().isoformat()
 
-    with get_db_transaction() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            """
-            INSERT INTO solicitudes (id_usuario, centro, sector, justificacion, centro_costos, almacen_virtual, criticidad, fecha_necesidad, data_json, status, total_monto, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
-            RETURNING id
-            """,
-            (
-                str(user_id),
-                data.get("centro") or data.get("centro_id") or "",
-                data.get("sector") or data.get("sector_id") or "",
-                data.get("justificacion") or "",
-                data.get("centro_costos") or "",
-                data.get("almacen_virtual") or data.get("almacen") or "",
-                data.get("criticidad") or "Normal",
-                data.get("fecha_necesidad") or "",
-                json.dumps({"items": items_validos, "archivos": []}),
-                "Borrador",
-                total,
-                now,
-                now,
-            ),
-        )
-        row = cur.fetchone()
-        new_id = row["id"] if isinstance(row, dict) else row[0]
-
-    # Procesar archivos adjuntos si los hay
+    # FIX: Procesar archivos ANTES de la transacción para incluirlos en el INSERT
+    # Esto evita race condition donde la solicitud se crea sin archivos
     archivos_metadata = []
+    archivos_guardados = []  # Para rollback si falla el INSERT
+
     if uploaded_files:
+        # Generar un ID temporal para guardar archivos (usaremos timestamp + random)
+        temp_prefix = f"temp_{uuid.uuid4().hex[:8]}"
+
         for file in uploaded_files:
             if file and file.filename:
-                metadata = _save_uploaded_file(file, new_id)
+                # Guardar archivo con prefijo temporal
+                metadata = _save_uploaded_file(file, temp_prefix)
                 if metadata:
                     archivos_metadata.append(metadata)
+                    archivos_guardados.append(metadata.get("path"))
 
-        # Actualizar data_json con metadata de archivos
-        if archivos_metadata:
-            with get_db_connection() as conn:
-                cur = conn.cursor()
-                cur.execute("SELECT data_json FROM solicitudes WHERE id = ?", (new_id,))
-                row = cur.fetchone()
-                data_json_raw = row["data_json"] if isinstance(row, dict) else row[0]
-                data_json = json.loads(data_json_raw) if row and data_json_raw else {"items": [], "archivos": []}
+    try:
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                INSERT INTO solicitudes (id_usuario, centro, sector, justificacion, centro_costos, almacen_virtual, criticidad, fecha_necesidad, data_json, status, total_monto, created_at, updated_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                RETURNING id
+                """,
+                (
+                    str(user_id),
+                    data.get("centro") or data.get("centro_id") or "",
+                    data.get("sector") or data.get("sector_id") or "",
+                    data.get("justificacion") or "",
+                    data.get("centro_costos") or "",
+                    data.get("almacen_virtual") or data.get("almacen") or "",
+                    data.get("criticidad") or "Normal",
+                    data.get("fecha_necesidad") or "",
+                    json.dumps({"items": items_validos, "archivos": archivos_metadata}),
+                    "Borrador",
+                    total,
+                    now,
+                    now,
+                ),
+            )
+            row = cur.fetchone()
+            new_id = row["id"] if isinstance(row, dict) else row[0]
 
-            data_json["archivos"] = archivos_metadata
-            with get_db_transaction() as conn:
-                cur = conn.cursor()
+            # Renombrar archivos con el ID real de la solicitud (dentro de la transacción lógica)
+            if archivos_guardados:
+                for i, old_path in enumerate(archivos_guardados):
+                    if old_path and os.path.exists(old_path):
+                        # Actualizar path en metadata
+                        new_path = old_path.replace(temp_prefix, str(new_id))
+                        try:
+                            os.rename(old_path, new_path)
+                            archivos_metadata[i]["path"] = new_path
+                            archivos_metadata[i]["solicitud_id"] = new_id
+                        except OSError as e:
+                            logger.warning(f"No se pudo renombrar archivo {old_path}: {e}")
+
+                # Actualizar data_json con paths correctos
                 cur.execute(
                     "UPDATE solicitudes SET data_json = ? WHERE id = ?",
-                    (json.dumps(data_json), new_id),
+                    (json.dumps({"items": items_validos, "archivos": archivos_metadata}), new_id),
                 )
+
+    except Exception as e:
+        # Rollback: limpiar archivos guardados si falla el INSERT
+        for path in archivos_guardados:
+            if path and os.path.exists(path):
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
+        logger.error(f"Error creando solicitud: {e}")
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "database_error",
+                        "message": "Error al crear la solicitud",
+                    },
+                }
+            ),
+            500,
+        )
 
     # Auditar creación
     try:
@@ -464,8 +544,17 @@ def eliminar_solicitud(solicitud_id):
             404,
         )
 
-    # Validar que el usuario sea el dueño de la solicitud
-    if str(solicitud.get("id_usuario")) != str(user_id):
+    # FIX 3.2: Obtener rol del usuario para validar permisos
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (user_id,))
+        user_row = cur.fetchone()
+        user_rol = (user_row["rol"] if user_row else "") or ""
+        es_admin = "admin" in user_rol.lower()
+
+    # Validar que el usuario sea el dueño de la solicitud o admin
+    es_owner = str(solicitud.get("id_usuario")) == str(user_id)
+    if not es_owner and not es_admin:
         return (
             jsonify(
                 {
@@ -479,8 +568,9 @@ def eliminar_solicitud(solicitud_id):
             403,
         )
 
-    estado = (solicitud.get("status") or "").lower()
-    if estado != "borrador":
+    # FIX 3.2: Admin puede eliminar cualquier solicitud, usuarios solo borradores
+    estado = normalizar_estado(solicitud.get("status") or "")
+    if estado != "draft" and not es_admin:
         return (
             jsonify(
                 {
@@ -793,6 +883,32 @@ def aprobar_solicitud(solicitud_id):
             404,
         )
 
+    # FIX 4.2: Validar que el usuario solicitante sigue activo
+    solicitante_id = solicitud.get("id_usuario")
+    if solicitante_id:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT estado_registro FROM usuarios WHERE id_spm = ?",
+                (str(solicitante_id),),
+            )
+            row = cur.fetchone()
+            if row:
+                estado_usuario = row["estado_registro"] if isinstance(row, dict) else row[0]
+                if estado_usuario and estado_usuario != "Activo":
+                    return (
+                        jsonify(
+                            {
+                                "ok": False,
+                                "error": {
+                                    "code": "user_inactive",
+                                    "message": "El usuario solicitante ya no está activo en el sistema",
+                                },
+                            }
+                        ),
+                        422,
+                    )
+
     # 2.5 SEGURIDAD: Validar que el aprobador sea el asignado (si hay uno asignado)
     aprobador_asignado = solicitud.get("aprobador_id") or solicitud.get("aprobador_asignado")
     logger.info(f"[APROBAR] Solicitud {solicitud_id}: aprobador_asignado={aprobador_asignado!r}, aprobador_id_token={aprobador_id!r}, match={str(aprobador_asignado) == str(aprobador_id)}")
@@ -918,13 +1034,13 @@ def aprobar_solicitud(solicitud_id):
     )
 
     # 7. Usar FSM para cambiar estado (registra historial y dispara notificaciones)
-    try:
-        # Calcular presupuesto consumido desde budget_result
-        budget_result = result.get("budget_result", {})
-        presupuesto_consumido = budget_result.get("saldo_anterior_cents", 0) - budget_result.get(
-            "saldo_posterior_cents", 0
-        )
+    # FIX: Si falla el FSM, revertir el presupuesto consumido (pattern de compensación)
+    budget_result = result.get("budget_result", {})
+    presupuesto_consumido = budget_result.get("saldo_anterior_cents", 0) - budget_result.get(
+        "saldo_posterior_cents", 0
+    )
 
+    try:
         resultado = cambiar_estado(
             solicitud_id=solicitud_id,
             nuevo_estado=EstadoSolicitud.APPROVED,
@@ -952,6 +1068,15 @@ def aprobar_solicitud(solicitud_id):
         # (cambiar_estado -> _disparar_notificaciones) - NO duplicar aquí
 
     except TransicionInvalidaError as e:
+        # FIX: Revertir presupuesto consumido si falla el cambio de estado
+        _revertir_presupuesto_aprobacion_fallida(
+            solicitud_id=solicitud_id,
+            solicitud=solicitud,
+            monto_cents=presupuesto_consumido,
+            aprobador_id=aprobador_id,
+            aprobador_rol=aprobador_rol,
+            razon=f"Compensación: FSM falló con error {str(e)}",
+        )
         return (
             jsonify(
                 {
@@ -960,6 +1085,26 @@ def aprobar_solicitud(solicitud_id):
                 }
             ),
             400,
+        )
+    except Exception as e:
+        # FIX: Cualquier otro error también debe revertir el presupuesto
+        logger.error(f"Error inesperado en aprobación de solicitud {solicitud_id}: {e}")
+        _revertir_presupuesto_aprobacion_fallida(
+            solicitud_id=solicitud_id,
+            solicitud=solicitud,
+            monto_cents=presupuesto_consumido,
+            aprobador_id=aprobador_id,
+            aprobador_rol=aprobador_rol,
+            razon=f"Compensación: Error inesperado {str(e)}",
+        )
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {"code": "internal_error", "message": "Error interno al aprobar"},
+                }
+            ),
+            500,
         )
 
     # Sprint 4.4: Resolver alertas SLA y calcular nuevo SLA para siguiente etapa
@@ -1246,17 +1391,26 @@ def get_transiciones_posibles(solicitud_id):
     Obtener las transiciones de estado posibles desde el estado actual.
 
     Útil para que el frontend muestre solo las acciones permitidas.
+    Incluye validación de permisos para cada transición.
     """
     # SEGURIDAD: Requiere autenticación
     user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
     if isinstance(user_payload, tuple):
         return user_payload
 
+    user_id = user_payload.get("sub") or user_payload.get("user_id")
+
     # Importar función del FSM
     try:
         from backend.core.fsm import get_transiciones_posibles as fsm_transiciones
     except ImportError:
         from core.fsm import get_transiciones_posibles as fsm_transiciones
+
+    # Importar servicio de aprobación para validar permisos
+    try:
+        from backend.services.approval_service import puede_aprobar
+    except ImportError:
+        from services.approval_service import puede_aprobar
 
     # Verificar que la solicitud existe
     solicitud = _get_raw(solicitud_id)
@@ -1269,7 +1423,98 @@ def get_transiciones_posibles(solicitud_id):
         )
 
     estado_actual = normalizar_estado(solicitud.get("status") or "")
-    transiciones = fsm_transiciones(estado_actual)
+    transiciones_raw = fsm_transiciones(estado_actual)
+
+    # Obtener información del usuario para validar permisos
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT rol, centro FROM usuarios WHERE id_spm = ?", (user_id,))
+        user_row = cur.fetchone()
+        user_rol = user_row["rol"] if user_row else ""
+        user_centro = user_row["centro"] if user_row else None
+
+    # FIX 2.1: Enriquecer transiciones con validación de permisos
+    transiciones_con_permisos = []
+    owner_id = str(solicitud.get("id_usuario", ""))
+    es_owner = str(user_id) == owner_id
+    es_admin = "admin" in (user_rol or "").lower()
+
+    # Calcular total de la solicitud para validar aprobación
+    items_json = solicitud.get("items") or "[]"
+    try:
+        items = json.loads(items_json) if isinstance(items_json, str) else items_json
+    except (json.JSONDecodeError, TypeError):
+        items = []
+    total_solicitud = _calcular_total(items)
+
+    for transicion in transiciones_raw:
+        estado_destino = transicion.get("estado") if isinstance(transicion, dict) else transicion
+        validacion = {
+            "estado": estado_destino,
+            "estado_display": estado_para_display(estado_destino),
+            "permitido": True,
+            "razon": None,
+        }
+
+        # Validar permisos específicos por tipo de transición
+        if estado_destino == "approved":
+            # Solo aprobadores pueden aprobar
+            permiso = puede_aprobar(
+                usuario_id=user_id,
+                monto_usd=total_solicitud,
+                centro=solicitud.get("centro"),
+                sector=solicitud.get("sector"),
+            )
+            if not permiso.get("puede_aprobar"):
+                validacion["permitido"] = False
+                validacion["razon"] = permiso.get("razon", "Sin permisos de aprobación")
+
+        elif estado_destino == "rejected":
+            # Solo aprobadores o admin pueden rechazar
+            es_aprobador = "aprobador" in (user_rol or "").lower() or "coordinador" in (user_rol or "").lower()
+            if not es_aprobador and not es_admin:
+                validacion["permitido"] = False
+                validacion["razon"] = "Solo aprobadores pueden rechazar solicitudes"
+
+        elif estado_destino == "cancelled":
+            # Solo el owner o admin pueden cancelar
+            if not es_owner and not es_admin:
+                validacion["permitido"] = False
+                validacion["razon"] = "Solo el solicitante o admin puede cancelar"
+
+        elif estado_destino == "in_planning":
+            # Solo planificadores o admin pueden mover a planificación
+            es_planner = "planner" in (user_rol or "").lower() or "planificador" in (user_rol or "").lower()
+            if not es_planner and not es_admin:
+                validacion["permitido"] = False
+                validacion["razon"] = "Solo planificadores pueden iniciar planificación"
+            else:
+                # FIX 4.1: Validar límite de retrocesos (in_treatment -> in_planning)
+                if estado_actual == "in_treatment":
+                    with get_db_connection() as conn_ret:
+                        cur_ret = conn_ret.cursor()
+                        cur_ret.execute(
+                            """
+                            SELECT COUNT(*) as retrocesos FROM solicitudes_historial_estados
+                            WHERE solicitud_id = ?
+                              AND estado_anterior = 'in_treatment'
+                              AND estado_nuevo = 'in_planning'
+                            """,
+                            (solicitud_id,),
+                        )
+                        row_ret = cur_ret.fetchone()
+                        retrocesos = row_ret["retrocesos"] if isinstance(row_ret, dict) else row_ret[0] if row_ret else 0
+                        if retrocesos >= 3:
+                            validacion["permitido"] = False
+                            validacion["razon"] = "Límite de 3 retrocesos alcanzado para esta solicitud"
+
+        elif estado_destino == "submitted":
+            # Solo el owner puede enviar (desde draft)
+            if estado_actual == "draft" and not es_owner and not es_admin:
+                validacion["permitido"] = False
+                validacion["razon"] = "Solo el solicitante puede enviar su solicitud"
+
+        transiciones_con_permisos.append(validacion)
 
     return (
         jsonify(
@@ -1278,7 +1523,7 @@ def get_transiciones_posibles(solicitud_id):
                 "solicitud_id": solicitud_id,
                 "estado_actual": estado_actual,
                 "estado_actual_display": estado_para_display(estado_actual),
-                "transiciones_posibles": transiciones,
+                "transiciones_posibles": transiciones_con_permisos,
             }
         ),
         200,
@@ -1337,6 +1582,62 @@ def _aprobador_por_monto(total, centro: str = None):
         monto = 0
 
     return obtener_aprobador_por_monto(monto, centro)
+
+
+def _revertir_presupuesto_aprobacion_fallida(
+    solicitud_id: int,
+    solicitud: dict,
+    monto_cents: int,
+    aprobador_id: str,
+    aprobador_rol: str,
+    razon: str,
+) -> None:
+    """
+    Revierte el presupuesto consumido si falla el cambio de estado FSM.
+    Implementa el patrón de compensación para mantener consistencia.
+    """
+    if monto_cents <= 0:
+        return  # Nada que revertir
+
+    try:
+        from backend.core.budget_transaction import AtomicBudgetTransaction, TransactionContext
+    except ImportError:
+        from core.budget_transaction import AtomicBudgetTransaction, TransactionContext
+
+    centro = solicitud.get("centro", "")
+    sector = solicitud.get("sector", "")
+
+    ctx = TransactionContext(
+        trace_id=str(uuid.uuid4()),
+        actor_id=aprobador_id,
+        actor_rol=aprobador_rol,
+        actor_ip="",
+    )
+
+    try:
+        with AtomicBudgetTransaction() as txn:
+            result = txn.revertir_consumo(
+                centro=centro,
+                sector=sector,
+                monto_cents=monto_cents,
+                solicitud_id=solicitud_id,
+                ctx=ctx,
+                razon=razon,
+            )
+            if result.success:
+                logger.info(
+                    f"[COMPENSACION] Presupuesto revertido para solicitud {solicitud_id}: "
+                    f"{monto_cents} cents devueltos a {centro}/{sector}"
+                )
+            else:
+                logger.error(
+                    f"[COMPENSACION] Fallo al revertir presupuesto para solicitud {solicitud_id}: "
+                    f"{result.error_message}"
+                )
+    except Exception as e:
+        logger.error(
+            f"[COMPENSACION] Excepcion al revertir presupuesto para solicitud {solicitud_id}: {e}"
+        )
 
 
 def _planificador_para(centro: str, sector: str) -> str:

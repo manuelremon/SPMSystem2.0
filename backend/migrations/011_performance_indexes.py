@@ -67,6 +67,27 @@ INDEXES_POSTGRESQL = [
     CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario_leida
     ON notificaciones(user_id, leida, created_at DESC)
     """,
+    # FIX 5.4: Indices adicionales para optimización
+    # Indice para notificaciones por destinatario (nombre alternativo de columna)
+    """
+    CREATE INDEX IF NOT EXISTS idx_notificaciones_destinatario
+    ON notificaciones(destinatario_id, leido)
+    """,
+    # Indice para ordenar notificaciones por fecha
+    """
+    CREATE INDEX IF NOT EXISTS idx_notificaciones_created
+    ON notificaciones(created_at DESC)
+    """,
+    # Indice para mensajes no leídos
+    """
+    CREATE INDEX IF NOT EXISTS idx_mensajes_destinatario_leido
+    ON mensajes(destinatario_id, leido, created_at DESC)
+    """,
+    # Indice para push subscriptions por usuario
+    """
+    CREATE INDEX IF NOT EXISTS idx_push_subs_last_used
+    ON push_subscriptions(last_used_at)
+    """,
 ]
 
 INDEXES_SQLITE = [
@@ -89,6 +110,27 @@ INDEXES_SQLITE = [
     """
     CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario_leida
     ON notificaciones(user_id, leida, created_at DESC)
+    """,
+    # FIX 5.4: Indices adicionales para optimización
+    # Indice para notificaciones por destinatario (nombre alternativo de columna)
+    """
+    CREATE INDEX IF NOT EXISTS idx_notificaciones_destinatario
+    ON notificaciones(destinatario_id, leido)
+    """,
+    # Indice para ordenar notificaciones por fecha
+    """
+    CREATE INDEX IF NOT EXISTS idx_notificaciones_created
+    ON notificaciones(created_at DESC)
+    """,
+    # Indice para mensajes no leídos
+    """
+    CREATE INDEX IF NOT EXISTS idx_mensajes_destinatario_leido
+    ON mensajes(destinatario_id, leido, created_at DESC)
+    """,
+    # Indice para push subscriptions por usuario
+    """
+    CREATE INDEX IF NOT EXISTS idx_push_subs_last_used
+    ON push_subscriptions(last_used_at)
     """,
 ]
 
@@ -158,6 +200,11 @@ def rollback(db_path: Path = DB_PATH) -> bool:
             "idx_solicitudes_usuario_fecha",
             "idx_historial_estados_solicitud",
             "idx_notificaciones_usuario_leida",
+            # FIX 5.4: Nuevos indices
+            "idx_notificaciones_destinatario",
+            "idx_notificaciones_created",
+            "idx_mensajes_destinatario_leido",
+            "idx_push_subs_last_used",
         ]
 
         for idx_name in indexes_to_drop:
@@ -207,6 +254,11 @@ def check_status(db_path: Path = DB_PATH) -> dict:
             "idx_solicitudes_usuario_fecha",
             "idx_historial_estados_solicitud",
             "idx_notificaciones_usuario_leida",
+            # FIX 5.4: Nuevos indices
+            "idx_notificaciones_destinatario",
+            "idx_notificaciones_created",
+            "idx_mensajes_destinatario_leido",
+            "idx_push_subs_last_used",
         ]
 
         found = [idx for idx in expected if idx in existing_indexes]

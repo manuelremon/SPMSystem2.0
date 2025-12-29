@@ -5,12 +5,47 @@ Tablero de Alertas y KPIs para planificadores
 
 import logging
 from datetime import datetime, timedelta
-from functools import wraps
-from typing import Dict, Optional, Tuple
+from functools import lru_cache, wraps
+from typing import Any, Dict, Optional, Tuple
 
 from flask import Blueprint, g, jsonify, request
 
 logger = logging.getLogger(__name__)
+
+# FIX 5.2: Cache simple para KPIs con TTL de 5 minutos
+_kpis_cache: Dict[str, Any] = {}
+_kpis_cache_time: Dict[str, datetime] = {}
+_KPIS_CACHE_TTL_SECONDS = 300  # 5 minutos
+
+
+def _get_kpis_cache_key(centro: str, periodo: str) -> str:
+    """Genera clave única para cache de KPIs."""
+    return f"{centro or 'ALL'}:{periodo}"
+
+
+def _is_kpis_cache_valid(key: str) -> bool:
+    """Verifica si el cache de KPIs sigue válido."""
+    if key not in _kpis_cache_time:
+        return False
+    elapsed = (datetime.now() - _kpis_cache_time[key]).total_seconds()
+    return elapsed < _KPIS_CACHE_TTL_SECONDS
+
+
+def _get_cached_kpis(centro: str, periodo: str) -> Optional[Dict[str, Any]]:
+    """Obtiene KPIs del cache si es válido."""
+    key = _get_kpis_cache_key(centro, periodo)
+    if _is_kpis_cache_valid(key):
+        logger.debug(f"[MRP] KPIs cache hit for {key}")
+        return _kpis_cache.get(key)
+    return None
+
+
+def _set_cached_kpis(centro: str, periodo: str, data: Dict[str, Any]) -> None:
+    """Guarda KPIs en cache."""
+    key = _get_kpis_cache_key(centro, periodo)
+    _kpis_cache[key] = data
+    _kpis_cache_time[key] = datetime.now()
+    logger.debug(f"[MRP] KPIs cached for {key}")
 
 from backend.core.db import get_db_connection, sql_now_minus, is_using_postgresql
 
@@ -211,6 +246,7 @@ def calcular_estado_material(
         return {
             "estado": "Quiebre de Stock",
             "estado_clase": "danger",
+            "severidad": "CRITICAL",  # FIX 4.4: Agregar severidad para filtros/ordenamiento
             "sugerencia": "Urgente: Reclamar pedido vencido o generar compra de emergencia",
         }
 
@@ -219,6 +255,7 @@ def calcular_estado_material(
         return {
             "estado": "Bajo Punto de Pedido",
             "estado_clase": "warning",
+            "severidad": "HIGH",  # FIX 4.4
             "sugerencia": "Generar solicitud de pedido",
         }
 
@@ -227,6 +264,7 @@ def calcular_estado_material(
         return {
             "estado": "Bajo Stock de Seguridad",
             "estado_clase": "warning",
+            "severidad": "MEDIUM",  # FIX 4.4
             "sugerencia": "Reclamar pedido vencido o acelerar entrega",
         }
 
@@ -235,6 +273,7 @@ def calcular_estado_material(
         return {
             "estado": "Sobrestock Crítico",
             "estado_clase": "info",
+            "severidad": "LOW",  # FIX 4.4
             "sugerencia": "Bajar parámetros y disponibilizar stock",
         }
 
@@ -243,6 +282,7 @@ def calcular_estado_material(
         return {
             "estado": "Exceso de Stock",
             "estado_clase": "info",
+            "severidad": "LOW",  # FIX 4.4
             "sugerencia": "Revisar parámetros MRP",
         }
 
@@ -253,18 +293,24 @@ def calcular_estado_material(
             return {
                 "estado": "Bajo Consumo",
                 "estado_clase": "info",
+                "severidad": "INFO",  # FIX 4.4
                 "sugerencia": "Evaluar obsolescencia o transferir a otro centro",
             }
 
     # Normal
-    return {"estado": "Normal", "estado_clase": "success", "sugerencia": ""}
+    return {"estado": "Normal", "estado_clase": "success", "severidad": "OK", "sugerencia": ""}
 
 
 def calcular_rotacion(consumo_anual: float, stock_promedio: float) -> float:
-    """Calcula la rotación del inventario"""
+    """
+    Calcula la rotación del inventario.
+
+    FIX 3.7: Cap a 500 para evitar valores absurdos con stock muy pequeño.
+    """
     if stock_promedio <= 0:
         return 0
-    return round(consumo_anual / stock_promedio, 2)
+    rotacion = consumo_anual / stock_promedio
+    return min(round(rotacion, 2), 500.0)  # Cap a máximo razonable
 
 
 def _generar_evolucion_alertas(hoy: datetime, materiales_riesgo: int, materiales_sobrestock: int) -> list:
@@ -531,6 +577,11 @@ def get_kpis():
     centro = request.args.get("centro", "").strip()
     periodo = request.args.get("periodo", "mes").strip()
 
+    # FIX 5.2: Verificar cache antes de calcular
+    cached = _get_cached_kpis(centro, periodo)
+    if cached is not None:
+        return jsonify({"ok": True, "cached": True, **cached}), 200
+
     # Calcular fechas segun periodo
     hoy = datetime.now()
     if periodo == "anio":
@@ -657,15 +708,30 @@ def get_kpis():
             cursor_sap.execute(query_riesgo, params_riesgo)
             materiales_riesgo_raw = cursor_sap.fetchall()
 
+            # FIX 2.5: Obtener consumo real de cada material desde consumo_historico
+            # Calcular consumo diario promedio por material (últimos 6 meses)
+            material_codes = [mat["codigo"] for mat in materiales_riesgo_raw]
+            consumo_por_material = {}
+            if material_codes:
+                placeholders = ",".join("?" * len(material_codes))
+                cursor_sap.execute(f"""
+                    SELECT material, SUM(cantidad) / 180.0 as consumo_diario
+                    FROM consumo_historico
+                    WHERE material IN ({placeholders})
+                    GROUP BY material
+                """, material_codes)
+                for row in cursor_sap.fetchall():
+                    consumo_por_material[row["material"]] = float(row["consumo_diario"] or 0)
+
             # Formatear resultados con cálculo correcto de días hasta quiebre
             top_materiales_riesgo = []
             for mat in materiales_riesgo_raw:
                 stock_actual = float(mat["stock_actual"] or 0)
                 punto_pedido = 10  # Default umbral de riesgo
 
-                # Cálculo correcto: días de cobertura basado en consumo promedio
-                # Asumimos consumo diario = 1 unidad si no hay datos
-                consumo_diario_estimado = 1.0
+                # FIX 2.5: Usar consumo real si disponible, fallback conservador si no
+                consumo_diario_real = consumo_por_material.get(mat["codigo"], 0)
+                consumo_diario_estimado = consumo_diario_real if consumo_diario_real > 0 else 1.0
                 dias_cobertura = int(stock_actual / consumo_diario_estimado) if consumo_diario_estimado > 0 else 999
 
                 # dias_sin_stock = días hasta quiebre (0 si ya hay quiebre)
@@ -678,6 +744,8 @@ def get_kpis():
                         "dias_sin_stock": dias_hasta_quiebre,
                         "stock_actual": stock_actual,
                         "punto_pedido": punto_pedido,
+                        "consumo_diario": round(consumo_diario_estimado, 2),
+                        "consumo_estimado": consumo_diario_real <= 0,  # Flag si es valor fallback
                     }
                 )
 
@@ -823,17 +891,18 @@ def get_kpis():
         "top_materiales_riesgo": top_materiales_riesgo,
     }
 
-    return jsonify(
-        {
-            "ok": True,
-            "kpis": kpis,
-            "graficos": graficos,
-            "periodo": periodo,
-            "fecha_inicio": fecha_inicio_str,
-            "fecha_fin": hoy.strftime("%Y-%m-%d"),
-            "total_materiales": total_materiales,
-        }
-    )
+    # FIX 5.2: Guardar en cache antes de retornar
+    response_data = {
+        "kpis": kpis,
+        "graficos": graficos,
+        "periodo": periodo,
+        "fecha_inicio": fecha_inicio_str,
+        "fecha_fin": hoy.strftime("%Y-%m-%d"),
+        "total_materiales": total_materiales,
+    }
+    _set_cached_kpis(centro, periodo, response_data)
+
+    return jsonify({"ok": True, "cached": False, **response_data})
 
 
 @bp.route("/catalogos", methods=["GET"])

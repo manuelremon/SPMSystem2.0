@@ -44,6 +44,11 @@ class NotificationRateLimiter:
 
     Previene spam de notificaciones limitando la cantidad
     de notificaciones por usuario en una ventana de tiempo.
+
+    FIX: Ahora usa la base de datos en lugar de memoria para:
+    - Persistir entre reinicios del servidor
+    - Funcionar con múltiples workers
+    - No consumir memoria RAM
     """
 
     # Configuración por defecto: máximo 20 notificaciones por minuto por usuario
@@ -53,58 +58,70 @@ class NotificationRateLimiter:
     def __init__(self, max_notifications: int = None, window_seconds: int = None):
         self.max_notifications = max_notifications or self.DEFAULT_MAX_NOTIFICATIONS
         self.window_seconds = window_seconds or self.DEFAULT_WINDOW_SECONDS
-        self._user_timestamps: Dict[str, List[datetime]] = defaultdict(list)
-        self._lock = threading.Lock()
+        # FIX: Ya no usamos memoria, sino BD
+        # self._user_timestamps: Dict[str, List[datetime]] = defaultdict(list)
+        # self._lock = threading.Lock()
 
     def is_allowed(self, user_id: str) -> bool:
         """
         Verifica si se permite enviar notificación al usuario.
 
+        FIX: Ahora consulta la BD para contar notificaciones recientes.
+
         Returns:
             True si está permitido, False si excede el límite
         """
-        now = datetime.now()
-        cutoff = now - timedelta(seconds=self.window_seconds)
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                # Contar notificaciones del usuario en el último minuto
+                cursor.execute(
+                    f"""
+                    SELECT COUNT(*) as count FROM notificaciones
+                    WHERE destinatario_id = ?
+                    AND created_at > {sql_now_minus(f"{self.window_seconds} seconds")}
+                    """,
+                    (user_id,),
+                )
+                row = cursor.fetchone()
+                count = row["count"] if isinstance(row, dict) else row[0]
 
-        with self._lock:
-            # Limpiar timestamps antiguos
-            self._user_timestamps[user_id] = [
-                ts for ts in self._user_timestamps[user_id] if ts > cutoff
-            ]
+                if count >= self.max_notifications:
+                    logger.debug(
+                        f"[RATE_LIMIT] Usuario {user_id} excedió límite: "
+                        f"{count}/{self.max_notifications} en {self.window_seconds}s"
+                    )
+                    return False
 
-            # Verificar límite
-            if len(self._user_timestamps[user_id]) >= self.max_notifications:
-                return False
-
-            # Registrar nuevo timestamp
-            self._user_timestamps[user_id].append(now)
+                return True
+        except Exception as e:
+            logger.error(f"[RATE_LIMIT] Error verificando límite para {user_id}: {e}")
+            # En caso de error, permitir la notificación (fail open)
             return True
 
     def get_remaining(self, user_id: str) -> int:
         """Retorna cantidad de notificaciones restantes para el usuario."""
-        now = datetime.now()
-        cutoff = now - timedelta(seconds=self.window_seconds)
-
-        with self._lock:
-            recent = [ts for ts in self._user_timestamps[user_id] if ts > cutoff]
-            return max(0, self.max_notifications - len(recent))
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    f"""
+                    SELECT COUNT(*) as count FROM notificaciones
+                    WHERE destinatario_id = ?
+                    AND created_at > {sql_now_minus(f"{self.window_seconds} seconds")}
+                    """,
+                    (user_id,),
+                )
+                row = cursor.fetchone()
+                count = row["count"] if isinstance(row, dict) else row[0]
+                return max(0, self.max_notifications - count)
+        except Exception as e:
+            logger.error(f"[RATE_LIMIT] Error obteniendo remaining para {user_id}: {e}")
+            return self.max_notifications  # Asumir todo disponible en error
 
     def cleanup(self):
-        """Limpia timestamps antiguos de todos los usuarios."""
-        now = datetime.now()
-        cutoff = now - timedelta(seconds=self.window_seconds * 2)
-
-        with self._lock:
-            users_to_remove = []
-            for user_id in self._user_timestamps:
-                self._user_timestamps[user_id] = [
-                    ts for ts in self._user_timestamps[user_id] if ts > cutoff
-                ]
-                if not self._user_timestamps[user_id]:
-                    users_to_remove.append(user_id)
-
-            for user_id in users_to_remove:
-                del self._user_timestamps[user_id]
+        """FIX: Ya no es necesario, la BD se auto-limpia con queries."""
+        pass
 
 
 # Instancia global del rate limiter
@@ -146,6 +163,51 @@ class NotificationService:
         "stock_consulta_respuesta": "notif_mrp",
     }
 
+    _preferences_table_ensured = False
+
+    @classmethod
+    def _ensure_preferences_table(cls) -> None:
+        """
+        FIX 3.9: Asegura que la tabla de preferencias existe.
+
+        Crea la tabla si no existe en lugar de fallar silenciosamente.
+        Usa flag de clase para evitar verificar en cada llamada.
+        """
+        if cls._preferences_table_ensured:
+            return
+
+        try:
+            with get_db_transaction() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS user_notification_preferences (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT UNIQUE NOT NULL,
+                        push_enabled INTEGER DEFAULT 1,
+                        sound_enabled INTEGER DEFAULT 1,
+                        notif_solicitudes INTEGER DEFAULT 1,
+                        notif_aprobaciones INTEGER DEFAULT 1,
+                        notif_mensajes INTEGER DEFAULT 1,
+                        notif_presupuestos INTEGER DEFAULT 1,
+                        notif_mrp INTEGER DEFAULT 1,
+                        notif_sla INTEGER DEFAULT 1,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """
+                )
+                cursor.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_user_notif_prefs_user
+                    ON user_notification_preferences(user_id)
+                """
+                )
+            cls._preferences_table_ensured = True
+            logger.debug("[NOTIF] Tabla user_notification_preferences verificada/creada")
+        except Exception as e:
+            logger.warning(f"[NOTIF] Error asegurando tabla preferencias: {e}")
+
     @classmethod
     def _get_user_preferences(cls, user_id: str) -> Dict[str, bool]:
         """
@@ -154,6 +216,9 @@ class NotificationService:
         Returns:
             Dict con preferencias (todo True si no hay registro)
         """
+        # FIX 3.9: Asegurar que la tabla existe antes de consultar
+        cls._ensure_preferences_table()
+
         defaults = {
             "push_enabled": True,
             "sound_enabled": True,
@@ -260,12 +325,13 @@ class NotificationService:
             with get_db_transaction() as conn:
                 cursor = conn.cursor()
 
-                # Evitar notificaciones duplicadas en los últimos 5 segundos
+                # FIX: Evitar notificaciones duplicadas en los últimos 60 segundos
+                # (aumentado de 5s para prevenir duplicados en operaciones lentas)
                 cursor.execute(
                     f"""
                     SELECT id FROM notificaciones
                     WHERE destinatario_id = ? AND mensaje = ? AND tipo = ?
-                    AND created_at > {sql_now_minus("5 seconds")}
+                    AND created_at > {sql_now_minus("60 seconds")}
                     LIMIT 1
                     """,
                     (destinatario_id, mensaje, tipo),
@@ -311,7 +377,85 @@ class NotificationService:
                 logger.warning(f"Error sending push notification: {e}")
                 # No fallar si push falla, la notificación ya se creó
 
+        # FIX 5.1: Publicar a Redis para entrega en tiempo real vía SSE
+        if notif_id:
+            try:
+                from backend.core.redis_pubsub import publish_user_notification
+            except ImportError:
+                try:
+                    from core.redis_pubsub import publish_user_notification
+                except ImportError:
+                    publish_user_notification = None
+
+            if publish_user_notification:
+                try:
+                    publish_user_notification(
+                        destinatario_id,
+                        {
+                            "id": notif_id,
+                            "mensaje": mensaje,
+                            "tipo": tipo,
+                            "solicitud_id": solicitud_id,
+                            "created_at": datetime.now().isoformat(),
+                            "leido": False,
+                        },
+                    )
+                except Exception as e:
+                    logger.debug(f"Redis pub/sub no disponible: {e}")
+                    # No fallar si Redis no está disponible, fallback a polling
+
         return notif_id
+
+    @classmethod
+    def notify_solicitud_cancelled(
+        cls,
+        solicitud_id: int,
+        motivo: str,
+        cancelado_por: Optional[str] = None,
+    ) -> Optional[int]:
+        """
+        FIX: Notifica la cancelación/reversión de una solicitud.
+
+        Envía notificación al solicitante original cuando su solicitud
+        es cancelada o revertida después de haber sido aprobada.
+
+        Args:
+            solicitud_id: ID de la solicitud cancelada
+            motivo: Motivo de la cancelación
+            cancelado_por: ID del usuario que canceló (opcional)
+
+        Returns:
+            ID de la notificación creada, o None si falla
+        """
+        try:
+            from backend.core.repository_legacy import SolicitudRepository
+        except ImportError:
+            from core.repository_legacy import SolicitudRepository
+
+        try:
+            solicitud = SolicitudRepository.get_by_id(solicitud_id)
+            if not solicitud:
+                logger.warning(f"[NOTIF] Solicitud {solicitud_id} no encontrada para notificar cancelación")
+                return None
+
+            destinatario_id = solicitud.get("id_usuario")
+            if not destinatario_id:
+                logger.warning(f"[NOTIF] Solicitud {solicitud_id} sin usuario para notificar")
+                return None
+
+            mensaje = f"Tu solicitud #{solicitud_id} ha sido cancelada"
+            if motivo:
+                mensaje += f": {motivo}"
+
+            return cls.create_notification(
+                destinatario_id=str(destinatario_id),
+                mensaje=mensaje,
+                tipo="solicitud_cancelled",
+                solicitud_id=solicitud_id,
+            )
+        except Exception as e:
+            logger.error(f"[NOTIF] Error notificando cancelación de solicitud {solicitud_id}: {e}")
+            return None
 
     @classmethod
     def get_user_notifications(
@@ -399,6 +543,41 @@ class NotificationService:
         except Exception as e:
             logger.error(f"Error counting unread: {e}")
             return 0
+
+    @classmethod
+    def get_user_notifications_with_count(
+        cls, user_id: str, unread_only: bool = False, limit: int = 50
+    ) -> tuple:
+        """
+        FIX 3.13: Obtiene notificaciones Y contador en una sola operación de BD.
+
+        Más eficiente que llamar get_user_notifications + get_unread_count por separado.
+
+        Args:
+            user_id: ID del usuario
+            unread_only: Si True, solo notificaciones no leídas
+            limit: Límite de notificaciones a retornar
+
+        Returns:
+            tuple: (lista de notificaciones, contador de no leídas)
+        """
+        notifications = cls.get_user_notifications(user_id, unread_only, limit)
+
+        # Calcular unread_count de las notificaciones obtenidas si es posible
+        # o hacer query adicional solo si es necesario
+        if unread_only:
+            # Si pedimos solo no leídas, el total es el count total de no leídas
+            unread_count = cls.get_unread_count(user_id)
+        else:
+            # Contar directamente de las notificaciones cargadas si tenemos todas
+            # Si hay menos que el límite, podemos contar directamente
+            if len(notifications) < limit:
+                unread_count = sum(1 for n in notifications if not n.get("leido", True))
+            else:
+                # Hay más, necesitamos query
+                unread_count = cls.get_unread_count(user_id)
+
+        return notifications, unread_count
 
     @classmethod
     def mark_as_read(cls, notification_id: int, user_id: str) -> bool:

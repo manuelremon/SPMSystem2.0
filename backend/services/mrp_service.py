@@ -91,6 +91,7 @@ def calcular_punto_reorden(
     stock_seguridad: float,
     variabilidad_demanda: float = 0.0,
     variabilidad_lead_time: float = 0.0,
+    consumo_minimo_estimado: float = 0.5,  # FIX: Nuevo parámetro para materiales sin histórico
 ) -> Dict[str, Any]:
     """
     Calcula el punto de reorden de un material.
@@ -104,32 +105,41 @@ def calcular_punto_reorden(
         stock_seguridad: Stock de seguridad base
         variabilidad_demanda: Coeficiente de variacion de demanda (0-1)
         variabilidad_lead_time: Coeficiente de variacion de lead time (0-1)
+        consumo_minimo_estimado: Consumo mínimo para materiales sin histórico (default 0.5/día)
 
     Returns:
         Dict con punto de reorden y componentes
     """
+    # FIX: Si no hay consumo histórico, usar un mínimo estimado
+    # Esto evita que materiales sin datos históricos tengan ROP muy bajo (=1)
+    consumo_efectivo = consumo_diario if consumo_diario > 0 else consumo_minimo_estimado
+    consumo_estimado = consumo_diario <= 0  # Flag para indicar si se usó estimación
+
     # Calculo basico
-    demanda_lead_time = lead_time_dias * consumo_diario
-    # Garantizar minimo de 1 para evitar ROP = 0 (material nunca se reordena)
-    punto_basico = max(demanda_lead_time + stock_seguridad, 1.0)
+    demanda_lead_time = lead_time_dias * consumo_efectivo
+
+    # FIX: Mínimo más razonable: al menos 5 unidades o 2 días de consumo estimado
+    minimo_razonable = max(consumo_efectivo * 2, 5.0)
+    punto_basico = max(demanda_lead_time + stock_seguridad, minimo_razonable)
 
     # Agregar factor de seguridad por variabilidad
     factor_seguridad = 1.0
     if variabilidad_demanda > 0 or variabilidad_lead_time > 0:
         # Factor z para 95% de nivel de servicio
         z = 1.65
-        # Desviacion combinada
-        sigma_demanda = consumo_diario * variabilidad_demanda
+        # Desviacion combinada - usar consumo_efectivo para cálculos
+        sigma_demanda = consumo_efectivo * variabilidad_demanda
         sigma_lead_time = lead_time_dias * variabilidad_lead_time
 
         # Stock de seguridad adicional
         ss_adicional = z * math.sqrt(
-            lead_time_dias * (sigma_demanda**2) + (consumo_diario**2) * (sigma_lead_time**2)
+            lead_time_dias * (sigma_demanda**2) + (consumo_efectivo**2) * (sigma_lead_time**2)
         )
         # punto_basico siempre > 0 por el max() anterior
         factor_seguridad = 1 + (ss_adicional / punto_basico)
 
-    punto_reorden = max(round(punto_basico * factor_seguridad), 1)
+    # FIX: Mínimo más alto para materiales sin histórico (5 unidades)
+    punto_reorden = max(round(punto_basico * factor_seguridad), 5 if consumo_estimado else 1)
 
     return {
         "punto_reorden": punto_reorden,
@@ -138,6 +148,8 @@ def calcular_punto_reorden(
         "factor_seguridad": round(factor_seguridad, 3),
         "lead_time_dias": lead_time_dias,
         "consumo_diario": consumo_diario,
+        "consumo_efectivo": consumo_efectivo,  # FIX: Incluir consumo usado en cálculo
+        "consumo_estimado": consumo_estimado,  # FIX: Flag si se usó estimación
     }
 
 
@@ -170,10 +182,21 @@ def calcular_cantidad_optima(
         Dict con cantidad optima y costos asociados
     """
     # Calcular EOQ
+    # FIX: Si no hay costo de mantenimiento, usar proxy del 20% anual del valor
+    # En lugar de pedir toda la demanda anual de una vez (incorrecto)
     if costo_mantenimiento_unitario <= 0:
-        eoq = demanda_anual  # Sin costo de mantenimiento, pedir todo
+        # Estimar costo de mantenimiento como 20% del costo de orden mensualizado
+        # Esto es una aproximación razonable para la industria
+        costo_mantenimiento_estimado = max(costo_orden * 0.2 / 12, 0.01)
+        eoq = math.sqrt(2 * demanda_anual * costo_orden / costo_mantenimiento_estimado)
+        logger.debug(
+            f"[MRP] EOQ calculado con costo mantenimiento estimado: {costo_mantenimiento_estimado:.4f}"
+        )
     else:
         eoq = math.sqrt(2 * demanda_anual * costo_orden / costo_mantenimiento_unitario)
+
+    # Asegurar un mínimo razonable (al menos 1 unidad)
+    eoq = max(eoq, 1.0)
 
     cantidad_optima = round(eoq)
     ajustado = False
@@ -318,6 +341,12 @@ def generar_ordenes_mrp(centro: str, solo_criticos: bool = False) -> Dict[str, A
             cantidad = eoq["cantidad_optima"]
         else:
             cantidad = mat["punto_pedido"] - mat["stock_actual"]
+
+        # FIX 3.11: Validar cantidad mínima de pedido
+        # Usar cantidad_minima_pedido del material o mínimo de 10 unidades
+        cantidad_minima = max(mat.get("cantidad_minima_pedido") or 1, 10)
+        if cantidad > 0 and cantidad < cantidad_minima:
+            cantidad = cantidad_minima
 
         if cantidad > 0:
             lead_time = mat["lead_time_dias"] or 15

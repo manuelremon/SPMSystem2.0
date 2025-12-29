@@ -144,6 +144,40 @@ def _check_cache() -> dict:
         return {"status": "error", "error": str(e)}
 
 
+def _check_redis() -> dict:
+    """
+    FIX 5.1: Verifica estado de Redis para SSE pub/sub.
+
+    Returns:
+        Estado de Redis
+    """
+    try:
+        from backend.core.redis_pubsub import redis_pubsub
+    except ImportError:
+        try:
+            from core.redis_pubsub import redis_pubsub
+        except ImportError:
+            return {"status": "unavailable", "error": "Redis module not found"}
+
+    try:
+        stats = redis_pubsub.get_stats()
+        if stats.get("available"):
+            return {
+                "status": "healthy",
+                "version": stats.get("version"),
+                "connected_clients": stats.get("connected_clients"),
+                "uptime_seconds": stats.get("uptime_seconds"),
+            }
+        else:
+            return {
+                "status": "unavailable",
+                "reason": stats.get("reason", "Not connected"),
+                "has_library": stats.get("has_redis_lib", False),
+            }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
 def _check_metrics() -> dict:
     """
     Verifica estado del sistema de metricas.
@@ -210,13 +244,13 @@ def health_check_detailed():
     Health check detallado con verificacion de dependencias.
 
     Query params:
-        - include: Componentes a incluir (db,cache,metrics) separados por coma
+        - include: Componentes a incluir (db,cache,metrics,redis) separados por coma
         - verbose: true para informacion extra
 
     Returns:
         JSON con estado detallado del sistema
     """
-    include = request.args.get("include", "db,cache,metrics").split(",")
+    include = request.args.get("include", "db,cache,metrics,redis").split(",")
     verbose = request.args.get("verbose", "false").lower() == "true"
 
     checks = {}
@@ -245,6 +279,14 @@ def health_check_detailed():
     # Metrics check
     if "metrics" in include:
         checks["metrics"] = _check_metrics()
+
+    # FIX 5.1: Redis check
+    if "redis" in include:
+        checks["redis"] = _check_redis()
+        # Redis es opcional - no degradar status si no está disponible
+        # Solo reportar si hay error (no "unavailable")
+        if checks["redis"].get("status") == "error":
+            overall_status = "degraded"
 
     response = {
         "ok": overall_status == "healthy",
@@ -320,6 +362,7 @@ def check_dependencies():
         },
         "cache": _check_cache(),
         "metrics": _check_metrics(),
+        "redis": _check_redis(),  # FIX 5.1: Estado de Redis pub/sub
     }
 
     # Determinar estado general

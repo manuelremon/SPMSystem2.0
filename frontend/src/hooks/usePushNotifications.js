@@ -7,6 +7,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/api';
 
+// FIX 3.5: Flag para debug - desactivar en producción
+const DEBUG_PUSH = false;
+
 // Estados posibles de permisos
 const PERMISSION_STATES = {
   DEFAULT: 'default',      // No se ha pedido permiso
@@ -81,7 +84,7 @@ export const usePushNotifications = () => {
           scope: '/'
         });
 
-        console.log('[Push] Service Worker registrado:', registration.scope);
+        DEBUG_PUSH && console.log('[Push] Service Worker registrado:', registration.scope);
         setSwRegistration(registration);
 
         // Esperar a que el SW esté activo
@@ -96,7 +99,7 @@ export const usePushNotifications = () => {
         // Verificar suscripción existente
         const subscription = await registration.pushManager.getSubscription();
         if (subscription) {
-          console.log('[Push] Suscripción existente encontrada');
+          DEBUG_PUSH && console.log('[Push] Suscripción existente encontrada');
           subscriptionRef.current = subscription;
           setIsSubscribed(true);
         }
@@ -190,7 +193,7 @@ export const usePushNotifications = () => {
         applicationServerKey
       });
 
-      console.log('[Push] Suscripción creada:', subscription.endpoint);
+      DEBUG_PUSH && console.log('[Push] Suscripción creada:', subscription.endpoint);
       subscriptionRef.current = subscription;
 
       // Enviar suscripción al servidor
@@ -208,7 +211,7 @@ export const usePushNotifications = () => {
       }
 
       setIsSubscribed(true);
-      console.log('[Push] Suscripción registrada en servidor');
+      DEBUG_PUSH && console.log('[Push] Suscripción registrada en servidor');
       return true;
 
     } catch (err) {
@@ -239,7 +242,7 @@ export const usePushNotifications = () => {
 
         subscriptionRef.current = null;
         setIsSubscribed(false);
-        console.log('[Push] Suscripción cancelada');
+        DEBUG_PUSH && console.log('[Push] Suscripción cancelada');
         return true;
       }
       return false;

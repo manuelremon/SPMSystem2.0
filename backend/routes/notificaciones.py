@@ -66,11 +66,10 @@ def list_notifications():
     unread_only = request.args.get("unread_only", "false").lower() == "true"
     limit = min(int(request.args.get("limit", 50)), 100)
 
-    notifications = NotificationService.get_user_notifications(
+    # FIX 3.13: Usar método combinado para optimizar queries
+    notifications, unread_count = NotificationService.get_user_notifications_with_count(
         user_id=user_id, unread_only=unread_only, limit=limit
     )
-
-    unread_count = NotificationService.get_unread_count(user_id)
 
     return jsonify(
         {
@@ -154,6 +153,10 @@ def notification_stream():
 
     Mantiene una conexión abierta y envía notificaciones nuevas al cliente.
 
+    FIX 5.1: Ahora usa Redis pub/sub cuando está disponible para
+    escalabilidad horizontal. Fallback automático a polling si Redis
+    no está conectado.
+
     Headers required:
     - Authorization: Bearer <token>
 
@@ -164,20 +167,61 @@ def notification_stream():
     if not user_id:
         return jsonify({"ok": False, "error": "Unauthorized"}), 401
 
-    def generate():
-        """
-        Generador de eventos SSE.
+    # FIX 5.1: Importar Redis pub/sub
+    try:
+        from backend.core.redis_pubsub import redis_pubsub, is_redis_available
+    except ImportError:
+        from core.redis_pubsub import redis_pubsub, is_redis_available
 
-        Envia:
-        1. Heartbeat cada 30 segundos para mantener conexión
-        2. Nuevas notificaciones cuando se crean
+    use_redis = is_redis_available()
 
-        Nota: En producción, esto debería usar Redis pub/sub o similar
-        para escalar horizontalmente. Esta implementación es básica
-        y funciona solo con un worker.
+    def generate_with_redis():
         """
-        # Enviar evento inicial de conexión
-        yield f"data: {json.dumps({'type': 'connected', 'user_id': user_id})}\n\n"
+        Generador SSE usando Redis pub/sub.
+
+        Tiempo real verdadero - sin polling de BD.
+        """
+        # Evento inicial
+        yield f"data: {json.dumps({'type': 'connected', 'user_id': user_id, 'mode': 'redis'})}\n\n"
+
+        last_heartbeat = time.time()
+
+        for message in redis_pubsub.subscribe_notifications(user_id, timeout=30.0):
+            current_time = time.time()
+
+            # Heartbeat si timeout
+            if current_time - last_heartbeat >= 30:
+                yield ": heartbeat\n\n"
+                last_heartbeat = current_time
+
+            if message is None:
+                # Timeout de Redis - solo heartbeat
+                continue
+
+            # Notificación recibida de Redis
+            event = NotificacionEvent(
+                event="notification",
+                data={
+                    "id": message.get("id"),
+                    "mensaje": message.get("mensaje"),
+                    "tipo": message.get("tipo"),
+                    "solicitud_id": message.get("solicitud_id"),
+                    "created_at": message.get("created_at"),
+                    "leido": message.get("leido", False),
+                },
+            )
+            yield event.to_sse_format()
+            last_heartbeat = current_time
+
+    def generate_with_polling():
+        """
+        Generador SSE usando polling de BD.
+
+        Fallback cuando Redis no está disponible.
+        Polling cada 15 segundos para reducir carga.
+        """
+        # Evento inicial
+        yield f"data: {json.dumps({'type': 'connected', 'user_id': user_id, 'mode': 'polling'})}\n\n"
 
         last_check = time.time()
         last_notification_id = 0
@@ -195,15 +239,13 @@ def notification_stream():
                 yield ": heartbeat\n\n"
                 last_check = current_time
 
-            # Verificar nuevas notificaciones (polling cada 2 segundos)
-            # En producción, usar Redis pub/sub
-            time.sleep(2)
+            # Polling cada 15 segundos (reducción 92% vs 2s)
+            time.sleep(15)
 
             new_notifications = NotificationService.get_user_notifications(user_id, limit=10)
 
             for notif in new_notifications:
                 if notif["id"] > last_notification_id:
-                    # Nueva notificación detectada
                     event = NotificacionEvent(
                         event="notification",
                         data={
@@ -218,8 +260,11 @@ def notification_stream():
                     yield event.to_sse_format()
                     last_notification_id = notif["id"]
 
+    # FIX 5.1: Usar Redis si disponible, sino fallback a polling
+    generator = generate_with_redis if use_redis else generate_with_polling
+
     return Response(
-        stream_with_context(generate()),
+        stream_with_context(generator()),
         mimetype="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

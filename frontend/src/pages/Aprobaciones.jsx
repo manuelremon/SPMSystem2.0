@@ -49,7 +49,8 @@ export default function Aprobaciones() {
     setError("");
     try {
       // Admin ve todas las solicitudes pendientes, otros solo las asignadas a ellos
-      const params = { estado: "Enviada" };
+      // FIX 2.2: Usar enum "submitted" en lugar de display "Enviada"
+      const params = { estado: "submitted" };
       if (!isAdmin) {
         params.aprobador_id = user?.id;
       }
@@ -68,9 +69,10 @@ export default function Aprobaciones() {
     setLoadingHistorial(true);
     try {
       // Cargar aprobadas y rechazadas
+      // FIX 2.2: Usar enums en lugar de display names
       const [resAprobadas, resRechazadas] = await Promise.all([
-        solicitudes.listar({ estado: "Aprobada" }),
-        solicitudes.listar({ estado: "Rechazada" }),
+        solicitudes.listar({ estado: "approved" }),
+        solicitudes.listar({ estado: "rejected" }),
       ]);
       const aprobadas = resAprobadas.data.solicitudes || resAprobadas.data.results || [];
       const rechazadas = resRechazadas.data.solicitudes || resRechazadas.data.results || [];
@@ -91,6 +93,18 @@ export default function Aprobaciones() {
     loadPendientes();
     loadHistorial();
   }, [loadPendientes, loadHistorial]);
+
+  // FIX 2.9: Auto-refresh cada 30 segundos para mantener lista actualizada
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      // Solo refrescar si no hay otra operación en progreso
+      if (!loading && !refreshing) {
+        await loadPendientes();
+      }
+    }, 30000); // 30 segundos
+
+    return () => clearInterval(interval);
+  }, [loadPendientes, loading, refreshing]);
 
   // Alias for backward compatibility
   const load = loadPendientes;

@@ -14,10 +14,14 @@ funcionalidades de IA/ML del sistema SPM.
 
 import logging
 import math
+import threading
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+# FIX 4.6: Lock global para prevenir entrenamientos concurrentes
+_training_lock = threading.Lock()
 
 
 def get_db_connection():
@@ -73,6 +77,7 @@ class AIService:
 
         self._pipelines_trained = False
         self._last_training_date: Optional[datetime] = None
+        self._is_training = False  # FIX 4.6: Flag para prevenir entrenamientos concurrentes
 
         # Cache simple para recomendaciones
         self._cache: Dict[str, Dict[str, Any]] = {}
@@ -102,6 +107,8 @@ class AIService:
         """
         Entrena todos los pipelines ML con datos historicos.
 
+        FIX 4.6: Usa lock para prevenir entrenamientos concurrentes.
+
         Args:
             solicitudes_data: Datos historicos de solicitudes
             materiales_data: Datos de materiales
@@ -109,54 +116,69 @@ class AIService:
         Returns:
             Resultado del entrenamiento de cada pipeline
         """
-        results = {
-            "status": "trained",
-            "clustering": {"status": "skipped"},
-            "forecast": {"status": "skipped"},
-            "errors": [],
-        }
+        # FIX 4.6: Prevenir entrenamientos concurrentes con lock
+        with _training_lock:
+            if self._is_training:
+                return {
+                    "ok": False,
+                    "status": "busy",
+                    "message": "Entrenamiento ya en progreso, intente más tarde",
+                }
 
-        # Entrenar clustering de materiales
+            self._is_training = True
+
         try:
-            if len(materiales_data) >= 3:
-                cluster_result = self.clustering.fit_material_clusters(materiales_data)
-                results["clustering"] = cluster_result
+            results = {
+                "status": "trained",
+                "clustering": {"status": "skipped"},
+                "forecast": {"status": "skipped"},
+                "errors": [],
+            }
+
+            # Entrenar clustering de materiales
+            try:
+                if len(materiales_data) >= 3:
+                    cluster_result = self.clustering.fit_material_clusters(materiales_data)
+                    results["clustering"] = cluster_result
+                else:
+                    results["clustering"] = {"status": "skipped", "reason": "insufficient_data"}
+            except Exception as e:
+                logger.warning(f"Error entrenando clustering: {e}")
+                results["clustering"] = {"status": "error", "error": str(e)}
+                results["errors"].append(f"clustering: {e}")
+
+            # Entrenar forecast de demanda
+            try:
+                if len(solicitudes_data) >= 10:
+                    forecast_result = self.forecast.fit(solicitudes_data)
+                    results["forecast"] = forecast_result
+                else:
+                    results["forecast"] = {"status": "skipped", "reason": "insufficient_data"}
+            except Exception as e:
+                logger.warning(f"Error entrenando forecast: {e}")
+                results["forecast"] = {"status": "error", "error": str(e)}
+                results["errors"].append(f"forecast: {e}")
+
+            # Determinar estado final
+            clustering_ok = results["clustering"].get("status") == "fitted"
+            forecast_ok = results["forecast"].get("status") == "fitted"
+
+            if results["errors"]:
+                if len(results["errors"]) == 2:
+                    results["status"] = "error"
+                else:
+                    results["status"] = "partial"
+            elif not clustering_ok and not forecast_ok:
+                # Ambos fueron saltados
+                results["status"] = "skipped"
             else:
-                results["clustering"] = {"status": "skipped", "reason": "insufficient_data"}
-        except Exception as e:
-            logger.warning(f"Error entrenando clustering: {e}")
-            results["clustering"] = {"status": "error", "error": str(e)}
-            results["errors"].append(f"clustering: {e}")
+                self._pipelines_trained = True
+                self._last_training_date = datetime.now(timezone.utc)
 
-        # Entrenar forecast de demanda
-        try:
-            if len(solicitudes_data) >= 10:
-                forecast_result = self.forecast.fit(solicitudes_data)
-                results["forecast"] = forecast_result
-            else:
-                results["forecast"] = {"status": "skipped", "reason": "insufficient_data"}
-        except Exception as e:
-            logger.warning(f"Error entrenando forecast: {e}")
-            results["forecast"] = {"status": "error", "error": str(e)}
-            results["errors"].append(f"forecast: {e}")
-
-        # Determinar estado final
-        clustering_ok = results["clustering"].get("status") == "fitted"
-        forecast_ok = results["forecast"].get("status") == "fitted"
-
-        if results["errors"]:
-            if len(results["errors"]) == 2:
-                results["status"] = "error"
-            else:
-                results["status"] = "partial"
-        elif not clustering_ok and not forecast_ok:
-            # Ambos fueron saltados
-            results["status"] = "skipped"
-        else:
-            self._pipelines_trained = True
-            self._last_training_date = datetime.now(timezone.utc)
-
-        return results
+            return results
+        finally:
+            # FIX 4.6: Siempre liberar el flag de entrenamiento
+            self._is_training = False
 
     # ========================================================================
     # RECOMENDACIONES

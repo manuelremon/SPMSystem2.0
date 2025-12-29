@@ -47,6 +47,9 @@ flask-shell-ipython==0.5.3
 # PostgreSQL (produccion)
 psycopg2-binary>=2.9.9
 
+# Redis (opcional - para SSE pub/sub escalable)
+redis>=5.0.0
+
 # Push Notifications
 pywebpush>=1.14.0
 

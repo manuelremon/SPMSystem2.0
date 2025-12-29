@@ -17,6 +17,8 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 const SSE_RECONNECT_BASE_DELAY = 1000 // 1 segundo inicial
 const SSE_RECONNECT_MAX_DELAY = 30000 // 30 segundos máximo
 const POLLING_INTERVAL = 30000 // 30 segundos para fallback polling
+// FIX 3.8: Timeout para detectar conexiones estancadas (60s, server envía heartbeat cada 30s)
+const HEARTBEAT_TIMEOUT = 60000
 
 /**
  * Hook para gestionar notificaciones en tiempo real
@@ -39,6 +41,9 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
   const reconnectAttempts = useRef(0)
   const pollingIntervalRef = useRef(null)
   const isMountedRef = useRef(true)
+  // FIX 3.8: Ref para heartbeat timeout
+  const heartbeatTimeoutRef = useRef(null)
+  const lastHeartbeatRef = useRef(Date.now())
 
   /**
    * Obtener notificaciones del servidor (polling/inicial)
@@ -153,16 +158,37 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
           setIsConnected(true)
           setError(null)
           reconnectAttempts.current = 0
+          lastHeartbeatRef.current = Date.now()
           // Detener polling si estaba activo
           if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current)
             pollingIntervalRef.current = null
           }
+          // FIX 3.8: Iniciar verificación de heartbeat
+          if (heartbeatTimeoutRef.current) {
+            clearInterval(heartbeatTimeoutRef.current)
+          }
+          heartbeatTimeoutRef.current = setInterval(() => {
+            const timeSinceLastHeartbeat = Date.now() - lastHeartbeatRef.current
+            if (timeSinceLastHeartbeat > HEARTBEAT_TIMEOUT) {
+              console.error('SSE heartbeat timeout - reconnecting')
+              eventSource.close()
+              eventSourceRef.current = null
+              clearInterval(heartbeatTimeoutRef.current)
+              heartbeatTimeoutRef.current = null
+              // Reconectar
+              if (isMountedRef.current && enabled) {
+                setTimeout(connectSSE, SSE_RECONNECT_BASE_DELAY)
+              }
+            }
+          }, 10000) // Verificar cada 10 segundos
         }
       }
 
       eventSource.onmessage = (event) => {
         if (!isMountedRef.current) return
+        // FIX 3.8: Actualizar timestamp de último mensaje recibido (incluye heartbeats)
+        lastHeartbeatRef.current = Date.now()
 
         try {
           const data = JSON.parse(event.data)
@@ -208,11 +234,21 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
           eventSource.close()
           eventSourceRef.current = null
 
-          // Reconectar con backoff exponencial
-          const delay = Math.min(
+          // FIX 3.8: Limpiar heartbeat interval
+          if (heartbeatTimeoutRef.current) {
+            clearInterval(heartbeatTimeoutRef.current)
+            heartbeatTimeoutRef.current = null
+          }
+
+          // FIX 4.7: Reconectar con backoff exponencial + jitter
+          // El jitter evita "thundering herd" cuando múltiples clientes reconectan
+          const baseDelay = Math.min(
             SSE_RECONNECT_BASE_DELAY * Math.pow(2, reconnectAttempts.current),
             SSE_RECONNECT_MAX_DELAY
           )
+          // Agregar jitter aleatorio de 0-1000ms para distribuir reconexiones
+          const jitter = Math.floor(Math.random() * 1000)
+          const delay = baseDelay + jitter
 
           reconnectAttempts.current++
 
@@ -275,6 +311,12 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current)
       pollingIntervalRef.current = null
+    }
+
+    // FIX 3.8: Limpiar heartbeat interval
+    if (heartbeatTimeoutRef.current) {
+      clearInterval(heartbeatTimeoutRef.current)
+      heartbeatTimeoutRef.current = null
     }
 
     setIsConnected(false)

@@ -307,6 +307,7 @@ def _validar_integridad_items(items: List[Dict[str, Any]]) -> List[Dict[str, Any
             )
 
         # Validación 4: Items duplicados
+        # FIX 2.4: Marcar duplicados como críticos - pueden causar problemas de planificación
         codigo_norm = norm_codigo(codigo)
         if codigo_norm in codigos_vistos:
             conflictos.append(
@@ -316,8 +317,8 @@ def _validar_integridad_items(items: List[Dict[str, Any]]) -> List[Dict[str, Any
                     "codigo": codigo,
                     "descripcion_material": descripcion or "Sin descripción",
                     "item_duplicado_idx": codigos_vistos[codigo_norm],
-                    "sugerencia": "Consolidar items duplicados en una sola línea",
-                    "impacto_critico": False,
+                    "sugerencia": "Consolidar items duplicados en una sola línea antes de continuar",
+                    "impacto_critico": True,  # FIX 2.4: Crítico - evita doble conteo
                     "descripcion": f"Item duplicado: {descripcion or codigo} - Ya existe en item {codigos_vistos[codigo_norm]}",
                 }
             )
@@ -837,6 +838,25 @@ def paso_3_guardar_tratamiento(
 ) -> Dict[str, Any]:
     """
     PASO 3: Guardar decisiones de tratamiento
+
+    FIX 2.6 DOCUMENTACIÓN DE CONSUMO DE PRESUPUESTO:
+    ================================================
+    El presupuesto se consume en el momento de APROBACIÓN de la solicitud
+    (ver backend/routes/solicitudes.py:_consumir_presupuesto_aprobacion).
+
+    Este paso (Paso 3) NO consume presupuesto adicional - solo registra
+    las decisiones de tratamiento (qué fuente usar, qué proveedor, etc).
+
+    Flujo de presupuesto:
+    1. Solicitud creada -> Sin consumo
+    2. Solicitud enviada -> Sin consumo
+    3. Solicitud APROBADA -> CONSUMO de presupuesto (atómico con cambio de estado)
+    4. Planificación (Pasos 1-3) -> Sin consumo adicional
+    5. Solicitud RECHAZADA/CANCELADA después de aprobada -> REVERSIÓN de presupuesto
+
+    La reversión de presupuesto post-aprobación se maneja en:
+    - _revertir_presupuesto_aprobacion_fallida() para errores en aprobación
+    - FSM.cambiar_estado() cuando pasa a estado cancelado/rechazado
     """
     if not decisiones:
         raise ValueError("Se requieren decisiones para guardar")
@@ -1135,7 +1155,45 @@ def guardar_decision_multifuente(
 
     Returns:
         Diccionario con la decisión guardada y sus fuentes
+
+    Raises:
+        ValueError: Si el presupuesto es insuficiente para las fuentes externas
     """
+    # FIX: Validar límite de fuentes (máximo 4 por item)
+    MAX_FUENTES_POR_ITEM = 4
+    if len(fuentes) > MAX_FUENTES_POR_ITEM:
+        raise ValueError(f"Máximo {MAX_FUENTES_POR_ITEM} fuentes permitidas por item")
+
+    # FIX: Validar presupuesto antes de guardar
+    # Calcular costo total de fuentes externas (stock no tiene costo)
+    total_costo_fuentes_externas = sum(
+        float(f.get("cantidad_asignada", 0)) * float(f.get("precio_unitario", 0))
+        for f in fuentes
+        if f.get("tipo") not in ("stock", "transferencia")  # Stock y transferencias no cuestan
+    )
+
+    if total_costo_fuentes_externas > 0:
+        # Obtener información de la solicitud para saber centro/sector
+        solicitud = SolicitudRepository.get_by_id(solicitud_id)
+        if solicitud:
+            centro = solicitud.get("centro", "")
+            sector = solicitud.get("sector", "")
+
+            # Verificar presupuesto disponible
+            presupuesto_info = PresupuestoRepository.get_disponible(centro, sector)
+            if presupuesto_info:
+                saldo_disponible = float(presupuesto_info.get("saldo_disponible", 0))
+                if total_costo_fuentes_externas > saldo_disponible:
+                    raise ValueError(
+                        f"Presupuesto insuficiente. Requerido: ${total_costo_fuentes_externas:.2f}, "
+                        f"Disponible: ${saldo_disponible:.2f}"
+                    )
+            else:
+                logger.warning(
+                    f"[PLANNER] No se encontró presupuesto para {centro}/{sector}, "
+                    f"continuando sin validación"
+                )
+
     # Crear o actualizar la cabecera de decisión
     decision_id = DecisionAbastecimientoRepository.crear_o_actualizar_decision(
         solicitud_id=solicitud_id,

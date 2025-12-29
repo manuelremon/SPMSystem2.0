@@ -182,6 +182,104 @@ def is_admin(user_id: str) -> bool:
 
 
 # =============================================================================
+# Response Helpers (FIX 3.3)
+# =============================================================================
+
+
+def error_response(
+    code: str,
+    message: str,
+    status_code: int = 400,
+    details: Dict[str, Any] | None = None,
+) -> tuple:
+    """
+    FIX 3.3: Genera respuesta de error estandarizada.
+
+    Formato consistente para todos los endpoints:
+    {
+        "ok": false,
+        "error": {
+            "code": "error_code",
+            "message": "Mensaje legible",
+            "details": {}
+        }
+    }
+
+    Args:
+        code: Código de error (snake_case, ej: "invalid_input")
+        message: Mensaje legible para el usuario
+        status_code: HTTP status code (default 400)
+        details: Detalles adicionales opcionales
+
+    Returns:
+        tuple: (jsonify response, status_code)
+    """
+    from flask import jsonify
+
+    response = {
+        "ok": False,
+        "error": {
+            "code": code,
+            "message": message,
+        },
+    }
+    if details:
+        response["error"]["details"] = details
+
+    return jsonify(response), status_code
+
+
+def success_response(data: Dict[str, Any] | None = None, message: str | None = None) -> dict:
+    """
+    Genera respuesta de éxito estandarizada.
+
+    Args:
+        data: Datos a incluir en la respuesta
+        message: Mensaje opcional
+
+    Returns:
+        dict: Respuesta con ok=True
+    """
+    response = {"ok": True}
+    if message:
+        response["message"] = message
+    if data:
+        response.update(data)
+    return response
+
+
+# =============================================================================
+# Timestamp Helpers (FIX 3.6)
+# =============================================================================
+
+
+def utc_now() -> str:
+    """
+    FIX 3.6: Retorna timestamp UTC actual en formato ISO 8601.
+
+    Uso centralizado para consistencia en toda la aplicación.
+
+    Returns:
+        str: Timestamp ISO 8601 (ej: "2025-12-29T10:30:00+00:00")
+    """
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).isoformat()
+
+
+def utc_now_naive() -> str:
+    """
+    Retorna timestamp UTC sin timezone (para SQLite).
+
+    Returns:
+        str: Timestamp sin TZ (ej: "2025-12-29 10:30:00")
+    """
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
+
+# =============================================================================
 # Aliases para compatibilidad con codigo existente
 # =============================================================================
 
@@ -192,3 +290,6 @@ _safe_json = safe_json
 _get_user_from_token = get_user_id_from_token
 _get_current_user = get_current_user
 _is_admin = is_admin
+_error_response = error_response
+_success_response = success_response
+_utc_now = utc_now

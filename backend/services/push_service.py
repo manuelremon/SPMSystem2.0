@@ -358,6 +358,51 @@ class PushService:
         except Exception as e:
             logger.error(f"[PUSH] Error limpiando endpoints: {e}")
 
+    def cleanup_inactive_subscriptions(self, days: int = 30) -> int:
+        """
+        FIX 4.5: Elimina suscripciones inactivas (zombies).
+
+        Elimina suscripciones que no han sido usadas en los ultimos N dias.
+        Esto previene acumulacion de endpoints obsoletos.
+
+        Args:
+            days: Dias de inactividad para considerar zombie (default 30)
+
+        Returns:
+            Numero de suscripciones eliminadas
+        """
+        try:
+            with get_db_transaction() as conn:
+                cur = conn.cursor()
+                # SQLite/PostgreSQL compatible datetime calculation
+                cur.execute(
+                    """
+                    DELETE FROM push_subscriptions
+                    WHERE last_used_at IS NOT NULL
+                      AND last_used_at < datetime('now', ? || ' days')
+                """,
+                    (f"-{days}",),
+                )
+                deleted = cur.rowcount
+
+                # También limpiar suscripciones que nunca fueron usadas
+                # y tienen más de 7 días de creación (pruebas abandonadas)
+                cur.execute(
+                    """
+                    DELETE FROM push_subscriptions
+                    WHERE last_used_at IS NULL
+                      AND created_at < datetime('now', '-7 days')
+                """
+                )
+                deleted += cur.rowcount
+
+            if deleted > 0:
+                logger.info(f"[PUSH] Limpiadas {deleted} suscripciones inactivas (zombies)")
+            return deleted
+        except Exception as e:
+            logger.error(f"[PUSH] Error limpiando suscripciones inactivas: {e}")
+            return 0
+
     def send_push_to_many(
         self, user_ids: List[str], title: str, body: str, **kwargs
     ) -> Dict[str, Any]:

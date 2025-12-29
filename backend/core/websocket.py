@@ -113,10 +113,66 @@ class WSClient:
     def join_room(self, room: str) -> None:
         """Une al cliente a una sala."""
         self.rooms.add(room)
+        # FIX: Persistir suscripción para recuperación tras reinicio
+        _persist_subscription(self.user_id, room)
 
     def leave_room(self, room: str) -> None:
         """Remueve al cliente de una sala."""
         self.rooms.discard(room)
+        # FIX: Remover suscripción persistida
+        _remove_subscription(self.user_id, room)
+
+
+# FIX: Funciones de persistencia de suscripciones WebSocket
+def _persist_subscription(user_id: Optional[int], room: str) -> None:
+    """Persiste una suscripción a sala en la BD para recuperación tras reinicio."""
+    if not user_id:
+        return
+    try:
+        from backend.core.db import get_db_transaction
+    except ImportError:
+        from core.db import get_db_transaction
+
+    try:
+        with get_db_transaction() as conn:
+            cursor = conn.cursor()
+            # Crear tabla si no existe
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS websocket_subscriptions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL,
+                    room TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id, room)
+                )
+            """)
+            # Insertar o ignorar si ya existe
+            cursor.execute(
+                "INSERT OR IGNORE INTO websocket_subscriptions (user_id, room) VALUES (?, ?)",
+                (str(user_id), room),
+            )
+    except Exception as e:
+        logger.warning(f"[WS] Error persistiendo suscripción: {e}")
+
+
+def _remove_subscription(user_id: Optional[int], room: str) -> None:
+    """Remueve una suscripción persistida de la BD."""
+    if not user_id:
+        return
+    try:
+        from backend.core.db import get_db_transaction
+    except ImportError:
+        from core.db import get_db_transaction
+
+    try:
+        with get_db_transaction() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "DELETE FROM websocket_subscriptions WHERE user_id = ? AND room = ?",
+                (str(user_id), room),
+            )
+    except Exception as e:
+        logger.warning(f"[WS] Error removiendo suscripción: {e}")
 
 
 class EventBus:

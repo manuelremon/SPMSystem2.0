@@ -523,6 +523,57 @@ def buscar_aprobador(
 # =============================================================================
 
 
+def _detectar_ciclo_delegacion(delegado_id: str, aprobador_original_id: str) -> bool:
+    """
+    FIX 2.7: Detecta si crear una delegación generaría un ciclo.
+
+    Verifica si existe un camino de delegaciones activas desde delegado_id
+    hasta aprobador_original_id (lo cual crearía un ciclo infinito).
+
+    Args:
+        delegado_id: ID del posible delegado
+        aprobador_original_id: ID del aprobador que quiere delegar
+
+    Returns:
+        True si crearía un ciclo, False si es seguro
+    """
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    visitados = set()
+    cola = [delegado_id]
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+
+        while cola:
+            actual = cola.pop(0)
+
+            if actual == aprobador_original_id:
+                return True  # ¡Ciclo detectado!
+
+            if actual in visitados:
+                continue
+            visitados.add(actual)
+
+            # Buscar a quién delega el usuario actual
+            cursor.execute(
+                """
+                SELECT delegado_id FROM aprobadores_delegados
+                WHERE aprobador_original_id = ?
+                    AND activo = 1
+                    AND fecha_inicio <= ?
+                    AND fecha_fin >= ?
+            """,
+                (actual, now, now),
+            )
+
+            for row in cursor.fetchall():
+                siguiente = row["delegado_id"]
+                if siguiente not in visitados:
+                    cola.append(siguiente)
+
+    return False
+
+
 def crear_delegacion(
     aprobador_original_id: str,
     delegado_id: str,
@@ -544,8 +595,21 @@ def crear_delegacion(
 
     Returns:
         Diccionario con ID de la delegacion creada
+
+    Raises:
+        ApprovalError: Si la delegación crearía un ciclo
     """
     validar_fechas_delegacion(fecha_inicio, fecha_fin)
+
+    # FIX 2.7: Validar que no se crea un ciclo de delegaciones
+    if aprobador_original_id == delegado_id:
+        raise ApprovalError("No puedes delegarte a ti mismo")
+
+    if _detectar_ciclo_delegacion(delegado_id, aprobador_original_id):
+        raise ApprovalError(
+            "Esta delegación crearía un ciclo infinito de aprobaciones. "
+            "El delegado ya tiene una cadena de delegaciones que regresa al aprobador original."
+        )
 
     with get_db_transaction() as conn:
         cursor = conn.cursor()
@@ -626,6 +690,80 @@ def obtener_delegaciones_como_delegado(delegado_id: str) -> List[Dict[str, Any]]
 
         rows = cursor.fetchall()
         return [dict(row) for row in rows] if rows else []
+
+
+# =============================================================================
+# FIX 2.8: Auditoría de Cambios en Reglas de Aprobación
+# =============================================================================
+
+
+def _ensure_audit_table_exists(cursor) -> None:
+    """Crea la tabla de auditoría de reglas si no existe."""
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS auditoria_reglas_aprobacion (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            regla_id INTEGER,
+            accion TEXT NOT NULL,
+            campo TEXT,
+            valor_anterior TEXT,
+            valor_nuevo TEXT,
+            actor_id TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (regla_id) REFERENCES reglas_aprobacion(id)
+        )
+    """)
+
+
+def _log_regla_audit(
+    cursor, regla_id: int, accion: str, actor_id: Optional[str],
+    campo: Optional[str] = None, valor_anterior: Optional[str] = None, valor_nuevo: Optional[str] = None
+) -> None:
+    """
+    Registra un cambio en las reglas de aprobación.
+
+    Args:
+        cursor: Cursor de la transacción
+        regla_id: ID de la regla afectada
+        accion: Tipo de acción (CREATE, UPDATE, DELETE, DEACTIVATE)
+        actor_id: ID del usuario que realizó el cambio
+        campo: Campo modificado (para UPDATE)
+        valor_anterior: Valor antes del cambio
+        valor_nuevo: Valor después del cambio
+    """
+    _ensure_audit_table_exists(cursor)
+    cursor.execute(
+        """
+        INSERT INTO auditoria_reglas_aprobacion
+            (regla_id, accion, campo, valor_anterior, valor_nuevo, actor_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (regla_id, accion, campo, str(valor_anterior) if valor_anterior is not None else None,
+         str(valor_nuevo) if valor_nuevo is not None else None, actor_id)
+    )
+
+
+def obtener_historial_regla(regla_id: int) -> List[Dict[str, Any]]:
+    """
+    Obtiene el historial de cambios de una regla de aprobación.
+
+    Args:
+        regla_id: ID de la regla
+
+    Returns:
+        Lista de cambios ordenados por fecha descendente
+    """
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        _ensure_audit_table_exists(cursor)
+        cursor.execute(
+            """
+            SELECT * FROM auditoria_reglas_aprobacion
+            WHERE regla_id = ?
+            ORDER BY created_at DESC
+            """,
+            (regla_id,)
+        )
+        return [dict(row) for row in cursor.fetchall()]
 
 
 # =============================================================================
@@ -729,15 +867,19 @@ def crear_regla(
             ),
         )
 
+        # FIX 2.8: Registrar en auditoría
+        _log_regla_audit(cursor, new_id, "CREATE", created_by, valor_nuevo=nombre)
+
         return {"id": new_id}
 
 
-def actualizar_regla(regla_id: int, **campos) -> Dict[str, Any]:
+def actualizar_regla(regla_id: int, updated_by: Optional[str] = None, **campos) -> Dict[str, Any]:
     """
     Actualiza una regla existente.
 
     Args:
         regla_id: ID de la regla
+        updated_by: Usuario que actualiza (para auditoría)
         **campos: Campos a actualizar
 
     Returns:
@@ -746,18 +888,25 @@ def actualizar_regla(regla_id: int, **campos) -> Dict[str, Any]:
     if not campos:
         return {"actualizado": False, "razon": "No hay campos para actualizar"}
 
-    # Construir SET clause
-    set_parts = []
-    values = []
-    for campo, valor in campos.items():
-        set_parts.append(f"{campo} = ?")
-        values.append(valor)
-
-    set_parts.append("updated_at = CURRENT_TIMESTAMP")
-    values.append(regla_id)
-
     with get_db_transaction() as conn:
         cursor = conn.cursor()
+
+        # FIX 2.8: Obtener valores actuales para auditoría
+        cursor.execute("SELECT * FROM reglas_aprobacion WHERE id = ?", (regla_id,))
+        regla_actual = cursor.fetchone()
+        if not regla_actual:
+            return {"actualizado": False, "razon": "Regla no encontrada"}
+        regla_actual = dict(regla_actual)
+
+        # Construir SET clause
+        set_parts = []
+        values = []
+        for campo, valor in campos.items():
+            set_parts.append(f"{campo} = ?")
+            values.append(valor)
+
+        set_parts.append("updated_at = CURRENT_TIMESTAMP")
+        values.append(regla_id)
 
         cursor.execute(
             f"""
@@ -768,15 +917,25 @@ def actualizar_regla(regla_id: int, **campos) -> Dict[str, Any]:
             values,
         )
 
+        # FIX 2.8: Registrar cada cambio en auditoría
+        for campo, valor_nuevo in campos.items():
+            valor_anterior = regla_actual.get(campo)
+            if str(valor_anterior) != str(valor_nuevo):
+                _log_regla_audit(
+                    cursor, regla_id, "UPDATE", updated_by,
+                    campo=campo, valor_anterior=valor_anterior, valor_nuevo=valor_nuevo
+                )
+
         return {"actualizado": cursor.rowcount > 0}
 
 
-def desactivar_regla(regla_id: int) -> Dict[str, Any]:
+def desactivar_regla(regla_id: int, deactivated_by: Optional[str] = None) -> Dict[str, Any]:
     """
     Desactiva una regla (soft delete).
 
     Args:
         regla_id: ID de la regla
+        deactivated_by: Usuario que desactiva (para auditoría)
 
     Returns:
         Diccionario con resultado
@@ -792,6 +951,13 @@ def desactivar_regla(regla_id: int) -> Dict[str, Any]:
         """,
             (regla_id,),
         )
+
+        # FIX 2.8: Registrar desactivación en auditoría
+        if cursor.rowcount > 0:
+            _log_regla_audit(
+                cursor, regla_id, "DEACTIVATE", deactivated_by,
+                campo="activo", valor_anterior="1", valor_nuevo="0"
+            )
 
         return {"desactivado": cursor.rowcount > 0}
 
