@@ -23,6 +23,9 @@ cd frontend && npm run dev
 | [DEPLOYMENT.md](./DEPLOYMENT.md) | Guia de despliegue (Docker, Render, AWS) |
 | [GUIA_RAPIDA_USAR_SERVICIOS.md](./GUIA_RAPIDA_USAR_SERVICIOS.md) | Referencia de servicios y endpoints |
 | [PRODUCTION_READINESS_CHECKLIST.md](./PRODUCTION_READINESS_CHECKLIST.md) | Checklist pre-produccion |
+| [PLAN_ESCALADO_SPM.md](./PLAN_ESCALADO_SPM.md) | Plan de escalado y roadmap |
+| [implementation_plan.md](./implementation_plan.md) | Plan de implementacion detallado |
+| [implementation_progress.md](./implementation_progress.md) | Progreso de implementacion |
 
 ## Guias de Desarrollo
 
@@ -46,4 +49,4 @@ El contenido permanece disponible en el historial de git para referencia.
 
 ---
 
-*Ultima actualizacion: 2025-12-08*
+*Ultima actualizacion: 2025-12-29*

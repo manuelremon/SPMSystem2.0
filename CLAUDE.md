@@ -2,17 +2,17 @@
 
 Guia para Claude Code (claude.ai/code) cuando trabaja con este repositorio.
 
-> **Ultima actualizacion**: 2025-12-23 (Auditoria completa)
+> **Ultima actualizacion**: 2025-12-29 (Auditoria y limpieza)
 
 ## Resumen del Proyecto
 
 | Metrica | Valor |
 |---------|-------|
-| **Backend** | 109 archivos Python, ~36,000 lineas |
-| **Frontend** | 46 paginas, 61 componentes, 8 hooks |
+| **Backend** | 111 archivos Python, ~36,000 lineas |
+| **Frontend** | 47 paginas, 75 componentes, 8 hooks |
 | **Endpoints API** | 194 endpoints en 24 modulos |
 | **Tests** | 969+ tests (792 unit, 25 E2E, 152 integration) |
-| **Base de Datos** | 3 SQLite + PostgreSQL (produccion) |
+| **Base de Datos** | 4 SQLite + PostgreSQL (produccion) |
 
 ## Comandos de Desarrollo
 
@@ -48,15 +48,15 @@ http://localhost:5173       http://localhost:5000     SQLite (data/)
 
 ```
 SPMv2.0/
-├── backend/                    # API Flask (109 archivos, ~36K lineas)
+├── backend/                    # API Flask (111 archivos, ~36K lineas)
 │   ├── routes/                 # 24 modulos, 194 endpoints
-│   ├── services/               # 10 servicios de negocio
+│   ├── services/               # 11 servicios de negocio
 │   ├── core/                   # 28 modulos de infraestructura
 │   ├── agent/                  # 30 archivos ML/IA (incluye forecast/)
 │   └── migrations/             # 9 migraciones de BD
 ├── frontend/src/
-│   ├── pages/                  # 36 paginas + 10 admin
-│   ├── components/             # 61 componentes
+│   ├── pages/                  # 37 paginas + 10 admin
+│   ├── components/             # 75 componentes
 │   ├── hooks/                  # 8 custom hooks
 │   ├── services/               # 11 servicios API
 │   ├── store/                  # 3 stores Zustand
@@ -98,7 +98,7 @@ SPMv2.0/
 | `kpis.py` | 1 | Dashboard KPIs |
 | `materiales_detalle.py` | 0 | Helpers de detalle materiales |
 
-### Services (10 servicios)
+### Services (11 servicios)
 
 | Servicio | Lineas | Proposito |
 |----------|--------|-----------|
@@ -112,6 +112,7 @@ SPMv2.0/
 | `push_service.py` | 350+ | Web Push notifications |
 | `notification_service.py` | 300+ | Notificaciones in-app |
 | `message_service.py` | 350+ | Sistema de mensajes |
+| `planner_service.py` | 400+ | Logica de planificacion |
 
 ### Core (28 modulos)
 
@@ -179,7 +180,7 @@ agent/
 | **MRP** | MRPTableroAlertas, MRPKPIs |
 | **Budget** | BudgetRequests, BudgetRequestCreate, BudgetRequestDetail |
 | **Catalogos** | CatalogoMateriales, CatalogoEquivalencias |
-| **Comunicacion** | Mensajes, Notificaciones, Foro, Ayuda |
+| **Comunicacion** | Mensajes, Notificaciones, Foro, Ayuda, CentroInteraccion |
 | **Usuario** | MiCuenta, Dashboard, DashboardShared |
 | **Dashboards por Rol** | DashboardAdmin, DashboardAprobador, DashboardSolicitante, DashboardPlanificador |
 | **Forecast** | ForecastIndividual, ForecastMasivo |
@@ -188,11 +189,11 @@ agent/
 | **Gamificacion** | Trivias |
 | **Admin** | AdminUsuarios, AdminRoles, AdminCentros, AdminSectores, AdminMateriales, AdminProveedores, AdminPresupuestos, AdminEstado, AdminPlanificadores, AdminPuestos, AdminAlmacenes, AdminSolicitudesPerfil |
 
-### Components (61 totales)
+### Components (75 totales)
 
 | Carpeta | Componentes | Proposito |
 |---------|-------------|-----------|
-| `ui/` | 32 | Primitivos (Button, Input, Card, Modal, Badge, PushNotificationToggle, etc.) |
+| `ui/` | 33 | Primitivos (Button, Input, Card, Modal, Badge, PushNotificationToggle, etc.) |
 | `features/DataTable/` | 1 | ModernDataTable con TanStack Table |
 | `materials/` | 3 | MaterialDetailModal, MaterialsTable, SearchDropdown |
 | `Planner/` | 6 | Wizard de 4 pasos + StockDetalleModal |
@@ -244,6 +245,7 @@ agent/
 | `data/spm.db` | Usuarios, solicitudes, auth, mensajes | ~500 |
 | `data/equivalentes.db` | Equivalencias de materiales SAP | 34,865 |
 | `data/sap_data.db` | Stock, consumo historico, pedidos | 178,338 |
+| `data/catalogo_materiales.db` | Catalogo completo de materiales SAP | ~28,000 |
 
 **Reimportacion de datos SAP:**
 ```bash
