@@ -541,6 +541,32 @@ Revision completa de 30 bugs identificados en FSM, Aprobaciones, Presupuestos, M
 - Exportacion: Inclusion de items y decisiones en reportes
 - Audit: Serializacion JSON para valores complejos
 
+## Auditoria Exhaustiva (2025-12-29)
+
+**Estadisticas actualizadas:**
+- Backend: 111 archivos Python, 47,855 lineas, 199+ endpoints
+- Frontend: 57 paginas, 73 componentes, 40,288 lineas
+- Tests: 1,044 funciones backend (excelente), 14 archivos frontend (gap critico)
+
+**Deuda tecnica identificada:**
+- `routes/planner.py`: 2,453 lineas (deberia dividirse en 4 modulos)
+- `core/repository_legacy.py`: 1,504 lineas, 12 clases (deberia modularizarse)
+- 132 imports try/except duplicados en 25 routes (DRY violation)
+- 346 print() statements (deberian usar logging)
+- 129 console.log en frontend (deberian removerse)
+
+**Seguridad corregida:**
+- Secretos removidos de Git (.env.staging, infra/.env.production, VAPID keys)
+- .gitignore actualizado con patrones de seguridad
+
+**Scripts eliminados (obsoletos):**
+- `scripts/utilities/conversion/` - migracion PostgreSQL completada
+- `scripts/validate_phase_5.py` - fase completada
+- `scripts/wizard_pasos_2_3_4.py` - testing legacy
+- `scripts/utilities/populate_complete_db.py` - rutas obsoletas
+- `scripts/utilities/create_test_solicitud_direct.py`
+- `scripts/utilities/create_planner_demo.py`
+
 ## Reorganizacion de Arquitectura (Sprint 18)
 
 **Fecha**: 2025-12-23
