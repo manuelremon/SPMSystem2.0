@@ -17,16 +17,10 @@ import jwt
 from flask import Blueprint, g, jsonify, request
 from jwt import InvalidTokenError
 
-try:
-    from backend.core.cache import user_cache
-    from backend.core.config import settings
-    from backend.core.db import get_db_connection
-    from backend.core.roles import format_user_response, is_admin, normalize_roles
-except ImportError:
-    from core.cache import user_cache
-    from core.config import settings
-    from core.db import get_db_connection
-    from core.roles import format_user_response, is_admin, normalize_roles
+from backend.core.cache import user_cache
+from backend.core.config import settings
+from backend.core.db import get_db_connection
+from backend.core.roles import format_user_response, is_admin, normalize_roles
 
 bp = Blueprint("auth", __name__)
 

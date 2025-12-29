@@ -14,12 +14,12 @@ export function Card({ className = "", children, hover = false, glow = false, in
     <div
       className={`
         relative
-        bg-white/70 dark:bg-slate-800/70
+        bg-[var(--card-glass)]
         backdrop-blur-md
-        border border-white/30 dark:border-white/10
-        rounded-[20px]
+        border border-[var(--border-glass)]
+        rounded-lg
         shadow-glass
-        ${shouldHover ? 'transition-all duration-300 hover:bg-white/85 dark:hover:bg-slate-700/80 hover:shadow-glow-primary' : ''}
+        ${shouldHover ? 'transition-all duration-300 ease-spring hover:bg-[var(--card-glass-strong)] hover:shadow-glow-primary' : ''}
         ${glow ? 'shadow-glow-primary' : ''}
         ${className}
       `}
@@ -44,7 +44,7 @@ export function CardHeader({ className = "", children, ...props }) {
 export function CardTitle({ className = "", children, ...props }) {
   return (
     <h3
-      className={`text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight ${className}`}
+      className={`text-lg font-bold text-[var(--text-primary)] tracking-tight ${className}`}
       {...props}
     >
       {children}
@@ -55,7 +55,7 @@ export function CardTitle({ className = "", children, ...props }) {
 export function CardDescription({ className = "", children, ...props }) {
   return (
     <p
-      className={`text-sm text-slate-500 dark:text-slate-400 mt-1 ${className}`}
+      className={`text-sm text-[var(--text-muted)] mt-1 ${className}`}
       {...props}
     >
       {children}

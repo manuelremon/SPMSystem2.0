@@ -66,6 +66,7 @@ export { default as ArrowUpCircle } from './svg/arrow_up_circle.svg?react';
 export { default as ArrowDownCircle } from './svg/arrow_down_circle.svg?react';
 export { default as ArrowLeftRight } from './svg/arrow_left_right.svg?react';
 export { default as ArrowRightRight } from './svg/arrow_right.svg?react';  // Alternativa
+export { default as Menu } from './svg/sidebar_left.svg?react';  // Hamburger menu
 
 // ============================================================================
 // TIEMPO

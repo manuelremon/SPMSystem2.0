@@ -6,29 +6,16 @@ Sprint 4.5 - Endpoints de metricas y configuracion SLA.
 
 from flask import Blueprint, jsonify, request
 
-try:
-    from backend.routes.auth import _decode_token
-    from backend.services.sla_service import (
-        actualizar_configuracion_sla,
-        crear_configuracion_sla,
-        eliminar_configuracion_sla,
-        listar_configuraciones_sla,
-        obtener_alertas_activas,
-        obtener_metricas_sla,
-        resolver_alerta_sla,
-    )
-except ImportError:
-    from services.sla_service import (
-        actualizar_configuracion_sla,
-        crear_configuracion_sla,
-        eliminar_configuracion_sla,
-        listar_configuraciones_sla,
-        obtener_alertas_activas,
-        obtener_metricas_sla,
-        resolver_alerta_sla,
-    )
-
-    from routes.auth import _decode_token
+from backend.routes.auth import _decode_token
+from backend.services.sla_service import (
+    actualizar_configuracion_sla,
+    crear_configuracion_sla,
+    eliminar_configuracion_sla,
+    listar_configuraciones_sla,
+    obtener_alertas_activas,
+    obtener_metricas_sla,
+    resolver_alerta_sla,
+)
 
 
 bp = Blueprint("sla", __name__, url_prefix="/api/sla")

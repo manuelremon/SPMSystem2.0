@@ -100,7 +100,7 @@ export function DataTable({
   }
 
   return (
-    <div className={`overflow-x-auto rounded-xl border border-white/30 ${className}`} role="region" aria-label="Tabla de datos">
+    <div className={`overflow-x-auto rounded-lg border border-[var(--border-glass)] ${className}`} role="region" aria-label="Tabla de datos">
       <table className="w-full text-sm" role="table">
         <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
           <tr>
@@ -134,8 +134,8 @@ export function DataTable({
                     px-4 py-3
                     text-center text-xs font-semibold uppercase tracking-wider
                     text-[var(--fg-muted)]
-                    border-r border-b border-slate-200 last:border-r-0
-                    ${col.sortAccessor ? 'cursor-pointer hover:text-[var(--primary)] hover:bg-[var(--bg-elevated)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-inset' : ''}
+                    border-r border-b border-[var(--border)] last:border-r-0
+                    ${col.sortAccessor ? 'cursor-pointer hover:text-[var(--primary)] hover:bg-[var(--bg-elevated)] transition-all duration-300 ease-spring focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-inset' : ''}
                   `}
                 >
                   <div className={`flex items-center gap-2 ${alignClass}`}>

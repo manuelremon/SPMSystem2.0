@@ -18,10 +18,7 @@ from functools import wraps
 
 from flask import Blueprint, g, jsonify, request
 
-try:
-    from backend.services.ai_service import AIService, get_ai_service
-except ImportError:
-    from services.ai_service import get_ai_service
+from backend.services.ai_service import AIService, get_ai_service
 
 
 def require_auth(f):

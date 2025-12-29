@@ -14,25 +14,25 @@ export const Input = React.forwardRef(({ className, error = false, ...props }, r
       ref={ref}
       className={clsx(
         // Glass base
-        "w-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm",
-        "rounded-xl",
+        "w-full bg-[var(--bg-glass)] backdrop-blur-sm",
+        "rounded-lg",
         "px-4 py-3",
         // Typography
-        "text-sm text-slate-800 dark:text-slate-200",
-        "placeholder:text-slate-400 dark:placeholder:text-slate-500",
+        "text-sm text-[var(--text-primary)]",
+        "placeholder:text-[var(--text-muted)]",
         // Focus state - Glass effect intensifies
-        "focus:bg-white/70 dark:focus:bg-slate-700/70",
+        "focus:bg-[var(--bg-glass-strong)]",
         "focus:outline-none",
         // Hover
-        "hover:bg-white/60 dark:hover:bg-slate-700/60",
+        "hover:bg-[var(--bg-glass-strong)]",
         // Disabled
-        "disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-white/30 dark:disabled:bg-slate-800/30",
+        "disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[var(--bg-glass-subtle)]",
         // Transition
-        "transition-all duration-200",
-        // Border - Blue (default) or Red (error)
+        "transition-all duration-300 ease-spring",
+        // Border - Primary (default) or Red (error)
         error
-          ? "border border-red-400 dark:border-red-500 ring-1 ring-red-100 dark:ring-red-900/30 focus:border-red-400 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-800/30"
-          : "border border-blue-300 dark:border-blue-600 ring-1 ring-blue-100 dark:ring-blue-900/30 focus:border-blue-400 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800/30 hover:border-blue-400 dark:hover:border-blue-500",
+          ? "border border-red-400 ring-1 ring-red-100 focus:border-red-400 focus:ring-2 focus:ring-red-200"
+          : "border border-[var(--border-colored)] ring-1 ring-[var(--primary-muted)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-muted)] hover:border-[var(--primary)]",
         className
       )}
       aria-invalid={error ? "true" : undefined}

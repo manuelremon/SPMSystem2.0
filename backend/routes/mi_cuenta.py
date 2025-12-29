@@ -12,19 +12,11 @@ from datetime import datetime
 import bcrypt
 from flask import Blueprint, jsonify, request
 
-try:
-    from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
-    from backend.core.rate_limit import rate_limit
-    from backend.core.roles import is_admin, normalize_roles
-    from backend.routes.auth import _decode_token
-    from backend.services.notification_service import NotificationService
-except ImportError:
-    from core.db import get_db_connection, get_db_transaction, insert_returning_id
-    from core.rate_limit import rate_limit
-    from core.roles import is_admin, normalize_roles
-    from services.notification_service import NotificationService
-
-    from routes.auth import _decode_token
+from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
+from backend.core.rate_limit import rate_limit
+from backend.core.roles import is_admin, normalize_roles
+from backend.routes.auth import _decode_token
+from backend.services.notification_service import NotificationService
 
 bp = Blueprint("mi_cuenta", __name__)
 logger = logging.getLogger(__name__)

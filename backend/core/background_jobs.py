@@ -539,10 +539,256 @@ def _register_default_tasks(queue: JobQueue) -> None:
 
     @task(name="send_email", retries=3, retry_delay=60)
     def send_email(to: str, subject: str, body: str, html: bool = False):
-        """Envia un email (placeholder - implementar con SMTP)."""
+        """Envia un email via SMTP.
+
+        Requiere configurar en .env:
+        - SMTP_ENABLED=true
+        - SMTP_HOST=smtp.gmail.com (o tu servidor)
+        - SMTP_PORT=587
+        - SMTP_USER=tu_email@gmail.com
+        - SMTP_PASSWORD=tu_app_password
+        - SMTP_FROM=SPM <noreply@tudominio.com>
+        """
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+
+        try:
+            from backend.core.config import settings
+        except ImportError:
+            from core.config import settings
+
         logger.info(f"Email task: to={to}, subject={subject}")
-        # TODO: Implementar envio real de email
-        return {"sent": True, "to": to, "subject": subject}
+
+        # Si SMTP no está habilitado, solo loguear
+        if not settings.SMTP_ENABLED:
+            logger.info(f"SMTP disabled - email not sent: {subject} -> {to}")
+            return {"sent": False, "reason": "SMTP disabled", "to": to, "subject": subject}
+
+        if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
+            logger.warning("SMTP credentials not configured")
+            return {"sent": False, "reason": "SMTP not configured", "to": to, "subject": subject}
+
+        try:
+            # Crear mensaje
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = settings.SMTP_FROM
+            msg["To"] = to
+
+            # Agregar cuerpo del mensaje
+            if html:
+                msg.attach(MIMEText(body, "html", "utf-8"))
+            else:
+                msg.attach(MIMEText(body, "plain", "utf-8"))
+
+            # Conectar y enviar
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+                server.starttls()
+                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                server.send_message(msg)
+
+            logger.info(f"Email sent successfully to {to}")
+            return {"sent": True, "to": to, "subject": subject}
+
+        except smtplib.SMTPAuthenticationError as e:
+            logger.error(f"SMTP authentication failed: {e}")
+            raise
+        except smtplib.SMTPException as e:
+            logger.error(f"SMTP error sending email: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error sending email: {e}")
+            raise
+
+    def _get_email_template(template_type: str, **kwargs) -> str:
+        """Genera HTML para emails de notificación.
+
+        Templates disponibles:
+        - approval: Notificación de aprobación de solicitud
+        - rejection: Notificación de rechazo de solicitud
+        - sla_alert: Alerta de SLA próximo a vencer
+        - password_reset: Recuperación de contraseña
+        """
+        base_style = """
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: #4a90d9; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+                .content { background: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+                .footer { text-align: center; padding: 15px; color: #888; font-size: 12px; }
+                .button { display: inline-block; background: #4a90d9; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0; }
+                .alert { background: #fff3cd; border: 1px solid #ffc107; padding: 12px; border-radius: 4px; margin: 10px 0; }
+                .success { background: #d4edda; border: 1px solid #28a745; padding: 12px; border-radius: 4px; margin: 10px 0; }
+                .error { background: #f8d7da; border: 1px solid #dc3545; padding: 12px; border-radius: 4px; margin: 10px 0; }
+            </style>
+        """
+
+        if template_type == "approval":
+            return f"""
+            <!DOCTYPE html>
+            <html>
+            <head>{base_style}</head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>Solicitud Aprobada</h1>
+                    </div>
+                    <div class="content">
+                        <p>Hola <strong>{kwargs.get('nombre', 'Usuario')}</strong>,</p>
+                        <div class="success">
+                            <p>Tu solicitud <strong>#{kwargs.get('solicitud_id', '')}</strong> ha sido <strong>aprobada</strong>.</p>
+                        </div>
+                        <p><strong>Detalles:</strong></p>
+                        <ul>
+                            <li>Fecha: {kwargs.get('fecha', '')}</li>
+                            <li>Aprobado por: {kwargs.get('aprobador', '')}</li>
+                            {f"<li>Notas: {kwargs.get('notas', '')}</li>" if kwargs.get('notas') else ""}
+                        </ul>
+                        <p>La solicitud ahora pasará a la etapa de planificación.</p>
+                        <a href="{kwargs.get('url', '#')}" class="button">Ver Solicitud</a>
+                    </div>
+                    <div class="footer">
+                        <p>SPM - Sistema de Planificación de Materiales</p>
+                        <p>Este es un mensaje automático, no responder.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+
+        elif template_type == "rejection":
+            return f"""
+            <!DOCTYPE html>
+            <html>
+            <head>{base_style}</head>
+            <body>
+                <div class="container">
+                    <div class="header" style="background: #dc3545;">
+                        <h1>Solicitud Rechazada</h1>
+                    </div>
+                    <div class="content">
+                        <p>Hola <strong>{kwargs.get('nombre', 'Usuario')}</strong>,</p>
+                        <div class="error">
+                            <p>Tu solicitud <strong>#{kwargs.get('solicitud_id', '')}</strong> ha sido <strong>rechazada</strong>.</p>
+                        </div>
+                        <p><strong>Motivo:</strong></p>
+                        <p style="background: #f0f0f0; padding: 12px; border-radius: 4px;">
+                            {kwargs.get('motivo', 'No especificado')}
+                        </p>
+                        <p>Puedes editar y reenviar la solicitud si lo consideras necesario.</p>
+                        <a href="{kwargs.get('url', '#')}" class="button" style="background: #6c757d;">Ver Solicitud</a>
+                    </div>
+                    <div class="footer">
+                        <p>SPM - Sistema de Planificación de Materiales</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+
+        elif template_type == "sla_alert":
+            return f"""
+            <!DOCTYPE html>
+            <html>
+            <head>{base_style}</head>
+            <body>
+                <div class="container">
+                    <div class="header" style="background: #ffc107; color: #333;">
+                        <h1>Alerta SLA</h1>
+                    </div>
+                    <div class="content">
+                        <p>Hola <strong>{kwargs.get('nombre', 'Usuario')}</strong>,</p>
+                        <div class="alert">
+                            <p><strong>Atención:</strong> La solicitud <strong>#{kwargs.get('solicitud_id', '')}</strong>
+                            está próxima a vencer su SLA.</p>
+                        </div>
+                        <p><strong>Detalles:</strong></p>
+                        <ul>
+                            <li>Tiempo restante: <strong>{kwargs.get('tiempo_restante', '')}</strong></li>
+                            <li>Estado actual: {kwargs.get('estado', '')}</li>
+                            <li>Criticidad: {kwargs.get('criticidad', '')}</li>
+                        </ul>
+                        <p>Por favor, toma las acciones necesarias para evitar el incumplimiento del SLA.</p>
+                        <a href="{kwargs.get('url', '#')}" class="button" style="background: #ffc107; color: #333;">Ver Solicitud</a>
+                    </div>
+                    <div class="footer">
+                        <p>SPM - Sistema de Planificación de Materiales</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+
+        elif template_type == "password_reset":
+            return f"""
+            <!DOCTYPE html>
+            <html>
+            <head>{base_style}</head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>Recuperar Contraseña</h1>
+                    </div>
+                    <div class="content">
+                        <p>Hola <strong>{kwargs.get('nombre', 'Usuario')}</strong>,</p>
+                        <p>Hemos recibido una solicitud para restablecer tu contraseña.</p>
+                        <p style="text-align: center;">
+                            <a href="{kwargs.get('reset_url', '#')}" class="button">Restablecer Contraseña</a>
+                        </p>
+                        <p><small>Este enlace expirará en {kwargs.get('expira_en', '1 hora')}.</small></p>
+                        <p>Si no solicitaste este cambio, puedes ignorar este mensaje.</p>
+                    </div>
+                    <div class="footer">
+                        <p>SPM - Sistema de Planificación de Materiales</p>
+                        <p>Por seguridad, nunca compartas este enlace.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+
+        else:
+            # Template genérico
+            return f"""
+            <!DOCTYPE html>
+            <html>
+            <head>{base_style}</head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>{kwargs.get('titulo', 'Notificación SPM')}</h1>
+                    </div>
+                    <div class="content">
+                        <p>Hola <strong>{kwargs.get('nombre', 'Usuario')}</strong>,</p>
+                        <p>{kwargs.get('mensaje', '')}</p>
+                        {f'<a href="{kwargs.get("url", "#")}" class="button">Ver Más</a>' if kwargs.get('url') else ''}
+                    </div>
+                    <div class="footer">
+                        <p>SPM - Sistema de Planificación de Materiales</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+
+    @task(name="send_notification_email", retries=3, retry_delay=60)
+    def send_notification_email(
+        to: str,
+        template_type: str,
+        subject: str,
+        **template_kwargs
+    ):
+        """Envia un email de notificación usando templates predefinidos.
+
+        Args:
+            to: Email del destinatario
+            template_type: Tipo de template (approval, rejection, sla_alert, password_reset)
+            subject: Asunto del email
+            **template_kwargs: Variables para el template
+        """
+        html_body = _get_email_template(template_type, **template_kwargs)
+        return send_email(to=to, subject=subject, body=html_body, html=True)
 
     @task(name="generate_report", retries=2, retry_delay=120)
     def generate_report(report_type: str, params: Dict[str, Any], user_id: int):

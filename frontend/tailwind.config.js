@@ -52,14 +52,14 @@ export default {
         },
       },
 
-      // Larger border radius for Glass style
+      // Glass style border radius - Synchronized with index.css --radius-*
       borderRadius: {
-        DEFAULT: "12px",
-        sm: "8px",
-        md: "12px",
-        lg: "16px",
-        xl: "20px",
-        "2xl": "24px",
+        DEFAULT: "16px",    // --radius (inputs, buttons, cards)
+        sm: "12px",         // --radius-sm (badges, tags)
+        md: "16px",         // --radius (default)
+        lg: "16px",         // --radius (inputs, buttons, cards)
+        xl: "20px",         // --radius-lg (modals, panels)
+        "2xl": "24px",      // --radius-xl (hero sections)
         "3xl": "32px",
       },
 

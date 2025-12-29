@@ -15,21 +15,14 @@ import logging
 
 from flask import Blueprint, jsonify, request
 
-try:
-    from backend.core.config import settings
-    from backend.core.db import get_db_connection
-    from backend.routes.auth import _decode_token
-    from backend.services.push_service import (
-        get_vapid_public_key,
-        push_service,
-        send_push_notification,
-    )
-except ImportError:
-    from core.config import settings
-    from core.db import get_db_connection
-    from services.push_service import get_vapid_public_key, push_service, send_push_notification
-
-    from routes.auth import _decode_token
+from backend.core.config import settings
+from backend.core.db import get_db_connection
+from backend.routes.auth import _decode_token
+from backend.services.push_service import (
+    get_vapid_public_key,
+    push_service,
+    send_push_notification,
+)
 
 logger = logging.getLogger(__name__)
 

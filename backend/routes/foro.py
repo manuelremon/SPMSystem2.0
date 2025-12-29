@@ -12,12 +12,8 @@ import jwt
 from flask import Blueprint, jsonify, request
 from jwt import InvalidTokenError
 
-try:
-    from backend.core.config import settings
-    from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id, is_using_postgresql
-except ImportError:
-    from core.config import settings
-    from core.db import get_db_connection, get_db_transaction, insert_returning_id, is_using_postgresql
+from backend.core.config import settings
+from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id, is_using_postgresql
 
 
 bp = Blueprint("foro", __name__)

@@ -167,15 +167,34 @@ const variants = {
 };
 
 const sizes = {
-  xs: "px-2 py-1 text-xs",
-  sm: "px-3 py-1.5 text-xs",
-  md: "px-4 py-2.5 text-sm",
+  xs: "px-2.5 py-1.5 text-xs",
+  sm: "px-3.5 py-2 text-xs",
+  md: "px-5 py-2.5 text-sm",
   lg: "px-6 py-3.5 text-base",
   // Para icon buttons (cuadrado)
   "icon-xs": "p-1",
   "icon-sm": "p-1.5",
   "icon-md": "p-2",
   "icon-lg": "p-2.5",
+};
+
+// Focus ring colors per variant
+const focusRings = {
+  primary: "focus-visible:ring-blue-400/50",
+  secondary: "focus-visible:ring-slate-400/50",
+  ghost: "focus-visible:ring-slate-400/50",
+  danger: "focus-visible:ring-red-400/50",
+  success: "focus-visible:ring-emerald-400/50",
+  info: "focus-visible:ring-sky-400/50",
+  warning: "focus-visible:ring-amber-400/50",
+  accent: "focus-visible:ring-pink-400/50",
+  outline: "focus-visible:ring-blue-400/50",
+  icon: "focus-visible:ring-slate-400/50",
+  "icon-primary": "focus-visible:ring-blue-400/50",
+  "icon-danger": "focus-visible:ring-red-400/50",
+  "icon-success": "focus-visible:ring-emerald-400/50",
+  "icon-warning": "focus-visible:ring-amber-400/50",
+  "primary-solid": "focus-visible:ring-blue-400/50",
 };
 
 export function Button({
@@ -199,9 +218,10 @@ export function Button({
       className={`
         inline-flex items-center justify-center gap-2
         font-medium
-        rounded-xl
+        rounded-lg
         transition-all duration-300 ease-spring
-        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 focus-visible:ring-offset-2
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+        ${focusRings[variant] || focusRings.primary}
         disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none
         ${variants[variant] || variants.primary}
         ${sizes[size] || sizes.md}

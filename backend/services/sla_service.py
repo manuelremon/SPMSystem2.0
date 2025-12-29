@@ -81,8 +81,104 @@ def obtener_configuracion_sla(
 
 
 # =============================================================================
+# Configuracion de Horas Laborales
+# =============================================================================
+
+# Horario laboral: 9:00 - 18:00 (9 horas por día)
+HORA_INICIO_LABORAL = 9
+HORA_FIN_LABORAL = 18
+HORAS_POR_DIA = HORA_FIN_LABORAL - HORA_INICIO_LABORAL  # 9 horas
+
+# Días laborales: Lunes (0) a Viernes (4)
+DIAS_LABORALES = {0, 1, 2, 3, 4}  # Monday = 0, Friday = 4
+
+
+def es_hora_laboral(dt: datetime) -> bool:
+    """Verifica si un datetime está dentro del horario laboral."""
+    return (
+        dt.weekday() in DIAS_LABORALES and
+        HORA_INICIO_LABORAL <= dt.hour < HORA_FIN_LABORAL
+    )
+
+
+def es_dia_laboral(dt: datetime) -> bool:
+    """Verifica si un datetime es un día laboral (L-V)."""
+    return dt.weekday() in DIAS_LABORALES
+
+
+def siguiente_hora_laboral(dt: datetime) -> datetime:
+    """
+    Retorna el siguiente momento laboral válido.
+    Si ya es hora laboral, retorna el mismo datetime.
+    """
+    # Si es fin de semana, avanzar al lunes
+    while dt.weekday() not in DIAS_LABORALES:
+        dt = dt.replace(hour=HORA_INICIO_LABORAL, minute=0, second=0, microsecond=0)
+        dt += timedelta(days=1)
+
+    # Si es antes del horario laboral, avanzar a las 9:00
+    if dt.hour < HORA_INICIO_LABORAL:
+        return dt.replace(hour=HORA_INICIO_LABORAL, minute=0, second=0, microsecond=0)
+
+    # Si es después del horario laboral, avanzar al siguiente día laboral
+    if dt.hour >= HORA_FIN_LABORAL:
+        dt = dt.replace(hour=HORA_INICIO_LABORAL, minute=0, second=0, microsecond=0)
+        dt += timedelta(days=1)
+        # Saltar fin de semana si es necesario
+        while dt.weekday() not in DIAS_LABORALES:
+            dt += timedelta(days=1)
+        return dt
+
+    return dt
+
+
+# =============================================================================
 # Calculo de Fechas
 # =============================================================================
+
+
+def calcular_horas_laborales(inicio: datetime, fin: datetime) -> float:
+    """
+    Calcula las horas laborales entre dos fechas.
+
+    Solo cuenta horas dentro del horario laboral (9:00-18:00, L-V).
+
+    Args:
+        inicio: Fecha y hora de inicio
+        fin: Fecha y hora de fin
+
+    Returns:
+        Número de horas laborales transcurridas
+    """
+    if fin <= inicio:
+        return 0.0
+
+    horas = 0.0
+    current = siguiente_hora_laboral(inicio)
+
+    while current < fin:
+        if es_hora_laboral(current):
+            # Calcular cuánto queda de hora laboral en este momento
+            fin_hora = current.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+
+            # No exceder el fin del día laboral
+            fin_dia = current.replace(hour=HORA_FIN_LABORAL, minute=0, second=0, microsecond=0)
+            fin_hora = min(fin_hora, fin_dia)
+
+            # No exceder el fin del período
+            fin_hora = min(fin_hora, fin)
+
+            # Calcular fracción de hora
+            if fin_hora > current:
+                delta = fin_hora - current
+                horas += delta.total_seconds() / 3600
+
+            current = fin_hora
+        else:
+            # Avanzar a la siguiente hora laboral
+            current = siguiente_hora_laboral(current)
+
+    return round(horas, 2)
 
 
 def calcular_fecha_limite(
@@ -94,7 +190,7 @@ def calcular_fecha_limite(
     Args:
         fecha_inicio: Fecha y hora de inicio
         horas: Horas a agregar (puede ser fraccionario)
-        solo_horas_laborales: Si True, solo cuenta horas laborales (9-18)
+        solo_horas_laborales: Si True, solo cuenta horas laborales (9-18, L-V)
 
     Returns:
         datetime con la fecha limite calculada
@@ -104,22 +200,47 @@ def calcular_fecha_limite(
         return fecha_inicio + timedelta(hours=horas)
 
     # Calculo con horas laborales (9:00 - 18:00, L-V)
-    # Por simplicidad inicial, implementamos version basica
-    # TODO: Implementar logica completa de horas laborales
-    return fecha_inicio + timedelta(hours=horas)
+    horas_restantes = horas
+    current = siguiente_hora_laboral(fecha_inicio)
+
+    while horas_restantes > 0:
+        if not es_hora_laboral(current):
+            current = siguiente_hora_laboral(current)
+            continue
+
+        # Calcular horas disponibles hasta el fin del día laboral
+        fin_dia = current.replace(hour=HORA_FIN_LABORAL, minute=0, second=0, microsecond=0)
+        horas_hasta_fin = (fin_dia - current).total_seconds() / 3600
+
+        if horas_restantes <= horas_hasta_fin:
+            # Alcanza para terminar hoy
+            return current + timedelta(hours=horas_restantes)
+        else:
+            # No alcanza, consumir el resto del día y pasar al siguiente
+            horas_restantes -= horas_hasta_fin
+            current = fin_dia + timedelta(seconds=1)
+            current = siguiente_hora_laboral(current)
+
+    return current
 
 
-def calcular_tiempo_respuesta(fecha_inicio: datetime, fecha_fin: datetime) -> float:
+def calcular_tiempo_respuesta(
+    fecha_inicio: datetime, fecha_fin: datetime, solo_horas_laborales: bool = False
+) -> float:
     """
     Calcula el tiempo de respuesta en horas entre dos fechas.
 
     Args:
         fecha_inicio: Fecha y hora de inicio
         fecha_fin: Fecha y hora de fin
+        solo_horas_laborales: Si True, solo cuenta horas laborales (9-18, L-V)
 
     Returns:
         Horas transcurridas (puede ser fraccionario)
     """
+    if solo_horas_laborales:
+        return calcular_horas_laborales(fecha_inicio, fecha_fin)
+
     delta = fecha_fin - fecha_inicio
     return round(delta.total_seconds() / 3600, 2)
 

@@ -12,12 +12,8 @@ import jwt
 from flask import Blueprint, jsonify, request
 from jwt import InvalidTokenError
 
-try:
-    from backend.core.config import settings
-    from backend.core.db import get_db_connection, get_db_transaction
-except ImportError:
-    from core.config import settings
-    from core.db import get_db_connection, get_db_transaction
+from backend.core.config import settings
+from backend.core.db import get_db_connection, get_db_transaction
 
 
 bp = Blueprint("trivias", __name__)
@@ -90,11 +86,16 @@ def get_rankings():
     """
     Get trivia rankings - top players by total score
     Supports filtering by game_mode query param
+    Also includes current user's stats (my_stats)
     """
     _ensure_trivias_table()
 
     game_mode = request.args.get("game_mode", None)
     limit = request.args.get("limit", 20, type=int)
+
+    # Get current user for my_stats
+    user = _get_current_user()
+    my_stats = {"total_score": 0, "games_played": 0}
 
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -142,6 +143,25 @@ def get_rankings():
 
         rows = cur.fetchall()
 
+        # Get current user's stats if authenticated
+        if user:
+            cur.execute(
+                """
+                SELECT
+                    COALESCE(SUM(score), 0) as total_score,
+                    COUNT(*) as games_played
+                FROM trivias_scores
+                WHERE user_id = ?
+            """,
+                (str(user["id"]),),
+            )
+            user_stats = cur.fetchone()
+            if user_stats:
+                my_stats = {
+                    "total_score": user_stats["total_score"] or 0,
+                    "games_played": user_stats["games_played"] or 0,
+                }
+
     rankings = []
     for idx, row in enumerate(rows, 1):
         rankings.append(
@@ -163,7 +183,13 @@ def get_rankings():
         )
 
     return (
-        jsonify({"ok": True, "rankings": rankings, "game_mode": game_mode, "total": len(rankings)}),
+        jsonify({
+            "ok": True,
+            "rankings": rankings,
+            "my_stats": my_stats,
+            "game_mode": game_mode,
+            "total": len(rankings)
+        }),
         200,
     )
 

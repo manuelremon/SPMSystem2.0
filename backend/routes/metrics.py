@@ -17,10 +17,7 @@ from functools import wraps
 
 from flask import Blueprint, g, jsonify
 
-try:
-    from backend.core.metrics import get_cache_metrics, get_db_pool_metrics, get_metrics_collector
-except ImportError:
-    from core.metrics import get_cache_metrics, get_db_pool_metrics, get_metrics_collector
+from backend.core.metrics import get_cache_metrics, get_db_pool_metrics, get_metrics_collector
 
 bp = Blueprint("metrics", __name__, url_prefix="/api/metrics")
 

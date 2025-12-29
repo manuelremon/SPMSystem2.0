@@ -12,10 +12,7 @@ import json
 
 from flask import Blueprint, Response, jsonify, render_template_string
 
-try:
-    from backend.core.openapi import API_TITLE, API_VERSION, generate_openapi_spec
-except ImportError:
-    from core.openapi import API_TITLE, API_VERSION, generate_openapi_spec
+from backend.core.openapi import API_TITLE, API_VERSION, generate_openapi_spec
 
 bp = Blueprint("docs", __name__, url_prefix="/api/docs")
 

@@ -14,17 +14,10 @@ Endpoints:
 
 from flask import Blueprint, jsonify, request
 
-try:
-    from backend.core.db import get_db_connection
-    from backend.routes.auth import _decode_token
-    from backend.services.message_service import MessageService
-    from backend.services.notification_service import NotificationService
-except ImportError:
-    from core.db import get_db_connection
-    from services.message_service import MessageService
-    from services.notification_service import NotificationService
-
-    from routes.auth import _decode_token
+from backend.core.db import get_db_connection
+from backend.routes.auth import _decode_token
+from backend.services.message_service import MessageService
+from backend.services.notification_service import NotificationService
 
 
 def _get_user_name(user_id: str) -> str:

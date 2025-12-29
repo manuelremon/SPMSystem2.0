@@ -181,17 +181,141 @@ export function exportToExcel(data, filename = "export.xls") {
 }
 
 /**
- * Exports table to PDF
- * Note: Requires jsPDF library. For now, provides basic implementation
+ * Exports table to PDF using browser print dialog
+ * Creates a styled HTML table and opens print dialog for PDF export
  * @param {Array} data - Array of objects to export
- * @param {string} filename - Name of the file to download
+ * @param {string} filename - Name of the file (used in title)
  * @param {string} title - Title for the PDF
+ * @param {Object} options - Additional options
+ * @param {Array} options.columns - Custom column definitions [{key, header, width}]
+ * @param {string} options.subtitle - Subtitle to display
  */
-export function exportToPDF(data, filename = "export.pdf", title = "Reporte") {
-  // Basic implementation - prints a formatted version
-  // TODO: Implement proper PDF generation with jsPDF
-  console.log("PDF export not yet implemented. Use CSV export instead.");
-  exportToCSV(data, filename.replace(".pdf", ".csv"));
+export function exportToPDF(data, filename = "export.pdf", title = "Reporte", options = {}) {
+  if (!data || data.length === 0) {
+    console.warn("No data to export");
+    return;
+  }
+
+  const { columns, subtitle } = options;
+  const headers = columns
+    ? columns.map(c => c.header || c.key)
+    : Object.keys(data[0]);
+  const keys = columns
+    ? columns.map(c => c.key)
+    : Object.keys(data[0]);
+
+  // Create print window
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    alert('Por favor permite ventanas emergentes para exportar a PDF');
+    return;
+  }
+
+  // Generate table HTML
+  const tableRows = data.map(row => {
+    const cells = keys.map(key => {
+      const val = row[key];
+      return `<td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${val ?? ''}</td>`;
+    }).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
+
+  const headerCells = headers.map(h =>
+    `<th style="border: 1px solid #ddd; padding: 8px; background: #4a90d9; color: white; text-align: left;">${h}</th>`
+  ).join('');
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>${title}</title>
+      <style>
+        @media print {
+          @page { margin: 1cm; size: landscape; }
+        }
+        body {
+          font-family: Arial, sans-serif;
+          padding: 20px;
+          color: #333;
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 20px;
+          padding-bottom: 10px;
+          border-bottom: 2px solid #4a90d9;
+        }
+        .header h1 {
+          margin: 0;
+          color: #2c5282;
+          font-size: 24px;
+        }
+        .header .subtitle {
+          color: #666;
+          font-size: 14px;
+          margin-top: 5px;
+        }
+        .header .date {
+          color: #888;
+          font-size: 12px;
+          margin-top: 5px;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 10px;
+          font-size: 11px;
+        }
+        th, td {
+          border: 1px solid #ddd;
+          padding: 6px 8px;
+          text-align: left;
+        }
+        th {
+          background: #4a90d9;
+          color: white;
+          font-weight: bold;
+        }
+        tr:nth-child(even) { background: #f9f9f9; }
+        tr:hover { background: #f0f7ff; }
+        .footer {
+          margin-top: 20px;
+          text-align: center;
+          font-size: 10px;
+          color: #888;
+        }
+        .stats {
+          margin-top: 10px;
+          font-size: 12px;
+          color: #666;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>${title}</h1>
+        ${subtitle ? `<div class="subtitle">${subtitle}</div>` : ''}
+        <div class="date">Generado: ${new Date().toLocaleString('es-ES')}</div>
+      </div>
+      <div class="stats">Total de registros: ${data.length}</div>
+      <table>
+        <thead><tr>${headerCells}</tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+      <div class="footer">
+        SPM System - ${new Date().getFullYear()}
+      </div>
+      <script>
+        window.onload = function() {
+          window.print();
+          setTimeout(() => window.close(), 500);
+        };
+      </script>
+    </body>
+    </html>
+  `;
+
+  printWindow.document.write(html);
+  printWindow.document.close();
 }
 
 /**

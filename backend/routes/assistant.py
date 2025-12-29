@@ -9,12 +9,8 @@ import logging
 
 from flask import Blueprint, jsonify, request
 
-try:
-    from backend.agent.tools.material_matcher import MaterialMatcher
-    from backend.agent.tools.nlp_processor import NLPProcessor
-except ImportError:
-    from agent.tools.material_matcher import MaterialMatcher
-    from agent.tools.nlp_processor import NLPProcessor
+from backend.agent.tools.material_matcher import MaterialMatcher
+from backend.agent.tools.nlp_processor import NLPProcessor
 
 
 logger = logging.getLogger(__name__)

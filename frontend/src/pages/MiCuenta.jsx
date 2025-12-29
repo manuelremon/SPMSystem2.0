@@ -442,7 +442,7 @@ export default function MiCuenta() {
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
+                  className="w-full px-4 py-3 rounded-lg bg-[var(--bg-glass)] backdrop-blur-sm border border-[var(--border-colored)] text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--primary-muted)] focus:border-[var(--primary)] outline-none transition-all duration-300 ease-spring"
                   placeholder="+34 600 000 000"
                 />
               </Field>
@@ -468,7 +468,7 @@ export default function MiCuenta() {
                   type="password"
                   value={passwordForm.nueva}
                   onChange={(e) => handlePasswordChange("nueva", e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
+                  className="w-full px-4 py-3 rounded-lg bg-[var(--bg-glass)] backdrop-blur-sm border border-[var(--border-colored)] text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--primary-muted)] focus:border-[var(--primary)] outline-none transition-all duration-300 ease-spring"
                   placeholder="Min 8 caracteres"
                 />
               </Field>
@@ -477,7 +477,7 @@ export default function MiCuenta() {
                   type="password"
                   value={passwordForm.repetir}
                   onChange={(e) => handlePasswordChange("repetir", e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
+                  className="w-full px-4 py-3 rounded-lg bg-[var(--bg-glass)] backdrop-blur-sm border border-[var(--border-colored)] text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--primary-muted)] focus:border-[var(--primary)] outline-none transition-all duration-300 ease-spring"
                   placeholder="Repite la contrasena"
                 />
               </Field>
@@ -486,7 +486,7 @@ export default function MiCuenta() {
                   type="email"
                   value={mailBackup}
                   onChange={(e) => setMailBackup(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
+                  className="w-full px-4 py-3 rounded-lg bg-[var(--bg-glass)] backdrop-blur-sm border border-[var(--border-colored)] text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--primary-muted)] focus:border-[var(--primary)] outline-none transition-all duration-300 ease-spring"
                   placeholder="ejemplo@respaldo.com"
                 />
               </Field>
@@ -510,7 +510,7 @@ export default function MiCuenta() {
               </Field>
               <Field label="Sector actual">
                 <input
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50/50 backdrop-blur-sm border border-white/50 text-sm text-slate-700"
+                  className="w-full px-4 py-3 rounded-lg bg-[var(--bg-glass-subtle)] backdrop-blur-sm border border-[var(--border-glass)] text-sm text-[var(--text-secondary)]"
                   value={profile.sector_actual || "-"}
                   readOnly
                 />
@@ -532,7 +532,7 @@ export default function MiCuenta() {
                   multiple
                   value={pendingChanges.centros_nuevos}
                   onChange={(e) => onMultiSelect(e, "centros_nuevos")}
-                  className="w-full px-4 py-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none h-28 transition-all"
+                  className="w-full px-4 py-3 rounded-lg bg-[var(--bg-glass)] backdrop-blur-sm border border-[var(--border-colored)] text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--primary-muted)] focus:border-[var(--primary)] outline-none h-28 transition-all duration-300 ease-spring"
                 >
                   {(catalogos.centros || []).map((c) => (
                     <option key={c.id} value={c.id}>{`${c.id} - ${c.nombre || c.descripcion || ""}`}</option>
@@ -548,7 +548,7 @@ export default function MiCuenta() {
                   multiple
                   value={pendingChanges.almacenes_nuevos}
                   onChange={(e) => onMultiSelect(e, "almacenes_nuevos")}
-                  className="w-full px-4 py-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none h-28 transition-all"
+                  className="w-full px-4 py-3 rounded-lg bg-[var(--bg-glass)] backdrop-blur-sm border border-[var(--border-colored)] text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--primary-muted)] focus:border-[var(--primary)] outline-none h-28 transition-all duration-300 ease-spring"
                 >
                   {(catalogos.almacenes || []).map((a) => (
                     <option key={a.id} value={a.id}>{`${a.id} - ${a.nombre || a.descripcion || ""}`}</option>
@@ -617,31 +617,31 @@ export default function MiCuenta() {
             <CardContent className="pt-1 space-y-3">
               {solicitudes.length === 0 && <p className="text-sm text-slate-500">Sin solicitudes pendientes.</p>}
               {solicitudes.length > 0 && (
-                <div className="overflow-x-auto rounded-xl border border-white/50">
+                <div className="overflow-x-auto rounded-lg border border-[var(--border-glass)]">
                   <table className="w-full text-sm">
                     <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
                       <tr>
-                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Fecha</th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Campos</th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Estado</th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Comentario</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-[var(--border)]">Fecha</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-[var(--border)]">Campos</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-[var(--border)]">Estado</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-[var(--border)]">Comentario</th>
                         <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
                       {solicitudes.map((s, idx) => (
-                        <tr key={s.id || s.fecha} className={idx % 2 ? "bg-white/30" : "bg-white/50"}>
-                          <td className="px-3 py-2 text-slate-700 border-b border-white/30 border-r border-b border-slate-200">{s.fecha || "-"}</td>
-                          <td className="px-3 py-2 text-slate-700 border-b border-white/30 border-r border-b border-slate-200">{(s.campos || []).join(", ") || "-"}</td>
-                          <td className="px-3 py-2 border-b border-white/30 border-r border-b border-slate-200">{renderEstadoBadge(s.estado)}</td>
-                          <td className="px-3 py-2 text-slate-700 border-b border-white/30 border-r border-b border-slate-200">{s.comentario || "-"}</td>
-                          <td className="px-3 py-2 border-b border-white/30">
+                        <tr key={s.id || s.fecha} className={idx % 2 ? "bg-[var(--bg-glass-subtle)]" : "bg-[var(--bg-glass)]"}>
+                          <td className="px-4 py-2.5 text-[var(--text-secondary)] border-b border-[var(--border)] border-r">{s.fecha || "-"}</td>
+                          <td className="px-4 py-2.5 text-[var(--text-secondary)] border-b border-[var(--border)] border-r">{(s.campos || []).join(", ") || "-"}</td>
+                          <td className="px-4 py-2.5 border-b border-[var(--border)] border-r">{renderEstadoBadge(s.estado)}</td>
+                          <td className="px-4 py-2.5 text-[var(--text-secondary)] border-b border-[var(--border)] border-r">{s.comentario || "-"}</td>
+                          <td className="px-4 py-2.5 border-b border-[var(--border)]">
                             <div className="flex items-center justify-center gap-2">
                               {s.estado === "pendiente" && (
                                 <button
                                   onClick={() => handleCancelRequest(s)}
                                   disabled={cancelingRequest === s.id}
-                                  className="p-2 rounded-lg hover:bg-red-50/70 text-slate-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                                  className="p-2 rounded-lg hover:bg-red-50/70 text-[var(--text-muted)] hover:text-red-600 transition-colors duration-300 disabled:opacity-50"
                                   title="Cancelar solicitud"
                                 >
                                   <X className="w-4 h-4" />
@@ -649,10 +649,10 @@ export default function MiCuenta() {
                               )}
                               <button
                                 onClick={() => handleOpenMessageModal(s)}
-                                className="p-2 rounded-lg hover:bg-blue-50/70 text-slate-400 hover:text-blue-600 transition-colors"
+                                className="p-2 rounded-lg hover:bg-[var(--primary-muted)] text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors duration-300"
                                 title="Enviar mensaje al admin"
                               >
-                                <MessageSquare className="w-4 h-4 text-violet-500" />
+                                <MessageSquare className="w-4 h-4" />
                               </button>
                             </div>
                           </td>
@@ -669,12 +669,12 @@ export default function MiCuenta() {
       {/* Modal para enviar mensaje al admin */}
       {messageModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white/80 backdrop-blur-md border border-white/50 rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4">
+          <div className="bg-[var(--card-glass-strong)] backdrop-blur-md border border-[var(--border-glass)] rounded-xl shadow-xl max-w-lg w-full p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-black text-slate-800">Mensaje al Administrador</h3>
+              <h3 className="text-lg font-black text-[var(--text-primary)]">Mensaje al Administrador</h3>
               <button
                 onClick={() => setMessageModalOpen(false)}
-                className="p-2 rounded-xl hover:bg-white/50 text-slate-400 hover:text-slate-700 transition-colors"
+                className="p-2 rounded-lg hover:bg-[var(--bg-glass)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors duration-300"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -738,8 +738,8 @@ function Field({ label, children }) {
 function ReadOnlyField({ label, value }) {
   return (
     <div className="flex flex-col gap-1">
-      {label && <p className="text-sm text-slate-500">{label}</p>}
-      <input className="w-full px-4 py-3 rounded-xl bg-slate-50/50 backdrop-blur-sm border border-white/50 text-sm text-slate-700" value={value} readOnly />
+      {label && <p className="text-sm text-[var(--text-muted)]">{label}</p>}
+      <input className="w-full px-4 py-3 rounded-lg bg-[var(--bg-glass-subtle)] backdrop-blur-sm border border-[var(--border-glass)] text-sm text-[var(--text-secondary)]" value={value} readOnly />
     </div>
   );
 }

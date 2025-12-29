@@ -7,10 +7,7 @@ from collections import Counter, defaultdict
 
 from flask import Blueprint, jsonify
 
-try:
-    from backend.core.db import get_db_connection
-except ImportError:
-    from core.db import get_db_connection
+from backend.core.db import get_db_connection
 
 
 def _row_to_dict(row, cursor):

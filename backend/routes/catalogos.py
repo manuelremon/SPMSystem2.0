@@ -1,11 +1,7 @@
 from flask import Blueprint, jsonify
 
-try:
-    from backend.core.cache import cached, catalog_cache
-    from backend.core.db import get_db_connection
-except ImportError:
-    from core.cache import cached, catalog_cache
-    from core.db import get_db_connection
+from backend.core.cache import cached, catalog_cache
+from backend.core.db import get_db_connection
 
 bp = Blueprint("catalogos", __name__)
 

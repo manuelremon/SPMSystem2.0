@@ -1,9 +1,10 @@
 /**
  * Sidebar Component - Glass Morphism Style
  * Translucent navigation with blur effect
+ * Mobile responsive with hamburger menu
  */
 
-import React, { useState, memo, useCallback } from "react";
+import React, { useState, memo, useCallback, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import clsx from "clsx";
 import {
@@ -44,6 +45,8 @@ import {
   WifiOff,
   BarChart2,
   LineChart,
+  Menu,
+  X,
   ICON_DEFAULT_COLORS,
   ICON_COLORS,
 } from "./ui/Icons";
@@ -253,9 +256,27 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
   const { user, logout } = useAuthStore();
   const [expandedMenus, setExpandedMenus] = useState({});
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   // Obtener unreadCount directamente del store (reactivo)
   const unreadCount = useRealtimeStore((state) => state.unreadCount);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
 
   // Handle logout (memoizado para evitar re-renders)
   const handleLogout = useCallback(() => {
@@ -419,17 +440,48 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
   };
 
   return (
-    <aside
-      className={clsx(
-        "fixed left-0 top-0 h-screen z-40",
-        // Glass effect
-        "bg-white/70 backdrop-blur-xl",
-        "border-r border-white/30",
-        "shadow-glass",
-        "flex flex-col transition-all duration-300 ease-spring",
-        collapsed ? "w-14" : "w-56"
+    <>
+      {/* Mobile hamburger button - visible only on small screens */}
+      <button
+        type="button"
+        onClick={() => setMobileOpen(!mobileOpen)}
+        className={clsx(
+          "fixed top-4 left-4 z-50 md:hidden",
+          "h-10 w-10 rounded-xl grid place-items-center",
+          "bg-white/80 backdrop-blur-lg shadow-lg border border-white/30",
+          "text-slate-600 hover:text-slate-800 hover:bg-white/90",
+          "transition-all duration-150"
+        )}
+        aria-label={mobileOpen ? t("menu_close", "Cerrar menú") : t("menu_open", "Abrir menú")}
+        aria-expanded={mobileOpen}
+      >
+        {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+      </button>
+
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden animate-fade-in"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
       )}
-    >
+
+      <aside
+        className={clsx(
+          "fixed left-0 top-0 h-screen z-40",
+          // Glass effect
+          "bg-white/70 backdrop-blur-xl",
+          "border-r border-white/30",
+          "shadow-glass",
+          "flex flex-col transition-all duration-300 ease-spring",
+          // Desktop width
+          collapsed ? "w-14" : "w-56",
+          // Mobile: hidden by default, slide in when open
+          "md:translate-x-0",
+          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        )}
+      >
       {/* Header / Logo - Glass style */}
       <div
         className={clsx(
@@ -704,6 +756,7 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
         )}
       </div>
     </aside>
+    </>
   );
 }
 

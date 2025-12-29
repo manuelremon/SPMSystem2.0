@@ -445,6 +445,25 @@ const translations = {
   common_item: { es: "item", en: "item" },
   common_items: { es: "items", en: "items" },
   common_optional: { es: "(opcional)", en: "(optional)" },
+  common_refresh: { es: "Actualizar", en: "Refresh" },
+  common_aprobar: { es: "Aprobar", en: "Approve" },
+  common_like: { es: "Me gusta", en: "Like" },
+  common_likes: { es: "Me gusta", en: "Likes" },
+  common_ranking: { es: "Ranking", en: "Ranking" },
+  common_posicion: { es: "Posición", en: "Position" },
+  common_puntos: { es: "Puntos", en: "Points" },
+
+  // Profile Requests (AdminSolicitudesPerfil)
+  profile_req_tab_pendientes: { es: "Pendientes", en: "Pending" },
+  profile_req_tab_aprobadas: { es: "Aprobadas", en: "Approved" },
+  profile_req_tab_rechazadas: { es: "Rechazadas", en: "Rejected" },
+  profile_req_tab_todas: { es: "Todas", en: "All" },
+  profile_req_aprobar: { es: "Aprobar", en: "Approve" },
+  profile_req_rechazar: { es: "Rechazar", en: "Reject" },
+  profile_req_mensaje: { es: "Mensaje", en: "Message" },
+  profile_req_tipo: { es: "Tipo de solicitud", en: "Request type" },
+  profile_req_usuario: { es: "Usuario", en: "User" },
+  profile_req_fecha: { es: "Fecha", en: "Date" },
 
   // Crear Solicitud - Archivos
   create_adjuntos: { es: "Archivos Adjuntos", en: "Attachments" },

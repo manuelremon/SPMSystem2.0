@@ -154,8 +154,8 @@ export function Modal({
         className={clsx(
           // Glass modal container
           "relative w-full",
-          "border border-white/50 dark:border-white/10",
-          "rounded-[var(--radius-xl)]",
+          "border border-[var(--border-glass)]",
+          "rounded-xl",
           "shadow-glass",
           "animate-scale-in",
           sizeClasses[size],
@@ -163,12 +163,12 @@ export function Modal({
         )}
       >
         {/* Header - Glass style */}
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-white/30 dark:border-white/10">
-          <h2 id="modal-title" className="text-xl font-semibold text-slate-800 dark:text-slate-100">{title}</h2>
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[var(--border-glass-subtle)]">
+          <h2 id="modal-title" className="text-xl font-semibold text-[var(--text-primary)]">{title}</h2>
           {showCloseButton && (
             <button
               onClick={onClose}
-              className="p-2 rounded-xl transition-all duration-200 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50"
+              className="p-2 rounded-lg transition-all duration-300 ease-spring text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-glass)]"
               aria-label="Close modal"
             >
               <X className="w-5 h-5" />
@@ -183,7 +183,7 @@ export function Modal({
 
         {/* Footer - Glass style */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 px-6 pb-6 pt-4 border-t border-white/30 dark:border-white/10">
+          <div className="flex items-center justify-end gap-3 px-6 pb-6 pt-4 border-t border-[var(--border-glass-subtle)]">
             {footer}
           </div>
         )}
@@ -227,7 +227,7 @@ export function ConfirmModal({
         </>
       }
     >
-      <p className="text-sm text-slate-700 dark:text-slate-300">{message}</p>
+      <p className="text-sm text-[var(--text-secondary)]">{message}</p>
     </Modal>
   );
 }
@@ -255,7 +255,7 @@ export function AlertModal({
         </Button>
       }
     >
-      <p className="text-sm text-slate-700 dark:text-slate-300">{message}</p>
+      <p className="text-sm text-[var(--text-secondary)]">{message}</p>
     </Modal>
   );
 }

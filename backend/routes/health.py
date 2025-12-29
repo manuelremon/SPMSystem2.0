@@ -22,12 +22,8 @@ from functools import wraps
 
 from flask import Blueprint, g, jsonify, request
 
-try:
-    from backend.core.config import settings
-    from backend.core.db import get_db_path
-except ImportError:
-    from core.config import settings
-    from core.db import get_db_path
+from backend.core.config import settings
+from backend.core.db import get_db_path
 
 
 def require_auth(f):

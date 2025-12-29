@@ -7,10 +7,7 @@ importados desde el catálogo Excel de SAP.
 
 from flask import Blueprint, jsonify, request
 
-try:
-    from backend.core.db import get_db_connection
-except ImportError:
-    from core.db import get_db_connection
+from backend.core.db import get_db_connection
 
 bp = Blueprint("materiales", __name__, url_prefix="/api/materiales")
 

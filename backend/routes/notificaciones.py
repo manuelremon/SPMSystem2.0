@@ -14,15 +14,9 @@ import time
 
 from flask import Blueprint, Response, jsonify, request, stream_with_context
 
-try:
-    from backend.core.notification_schemas import NotificacionEvent
-    from backend.routes.auth import _decode_token
-    from backend.services.notification_service import NotificationService
-except ImportError:
-    from core.notification_schemas import NotificacionEvent
-    from services.notification_service import NotificationService
-
-    from routes.auth import _decode_token
+from backend.core.notification_schemas import NotificacionEvent
+from backend.routes.auth import _decode_token
+from backend.services.notification_service import NotificationService
 
 
 bp = Blueprint("notificaciones", __name__, url_prefix="/api/notificaciones")

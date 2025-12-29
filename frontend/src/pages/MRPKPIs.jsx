@@ -50,10 +50,10 @@ function KPICard({ titulo, valor, unidad, tendencia, objetivo, descripcion, icon
   const TendenciaIcon = config.icon;
 
   return (
-    <Card className="hover:border-blue-400/50 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300">
+    <Card className="hover:border-[var(--primary)]/50 hover:shadow-lg hover:shadow-[var(--primary)]/10 transition-all duration-300 ease-spring">
       <CardContent className="p-5">
         <div className="flex items-start justify-between mb-3">
-          <div className={clsx("p-2.5 rounded-xl", config.bg)}>
+          <div className={clsx("p-2.5 rounded-lg", config.bg)}>
             <Icon className={clsx("w-5 h-5", config.color)} />
           </div>
           <div className={clsx("flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium", config.bg, config.color)}>
@@ -63,17 +63,17 @@ function KPICard({ titulo, valor, unidad, tendencia, objetivo, descripcion, icon
         </div>
 
         <div className="mb-2">
-          <span className="text-3xl font-bold text-slate-800">{valor}</span>
-          <span className="text-lg text-slate-500 ml-1">{unidad}</span>
+          <span className="text-3xl font-bold text-[var(--text-primary)]">{valor}</span>
+          <span className="text-lg text-[var(--text-muted)] ml-1">{unidad}</span>
         </div>
 
-        <h3 className="text-sm font-semibold text-slate-700 mb-1">{titulo}</h3>
-        <p className="text-xs text-slate-500">{descripcion}</p>
+        <h3 className="text-sm font-semibold text-[var(--text-secondary)] mb-1">{titulo}</h3>
+        <p className="text-xs text-[var(--text-muted)]">{descripcion}</p>
 
         {objetivo && (
-          <div className="mt-3 pt-3 border-t border-white/50">
+          <div className="mt-3 pt-3 border-t border-[var(--border-glass)]">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-500">{t("mrp_objetivo", "Objetivo:")}</span>
+              <span className="text-[var(--text-muted)]">{t("mrp_objetivo", "Objetivo:")}</span>
               <span className={clsx(
                 "font-medium",
                 valor <= objetivo ? "text-emerald-600" : "text-red-600"
@@ -321,9 +321,9 @@ export default function MRPKPIs() {
       {/* Período selector - Glass Morphism */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-blue-600" />
-          <span className="text-sm text-slate-500">{t("mrp_periodo", "Período:")}</span>
-          <div className="flex gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30" role="tablist">
+          <Calendar className="w-5 h-5 text-[var(--primary)]" />
+          <span className="text-sm text-[var(--text-muted)]">{t("mrp_periodo", "Período:")}</span>
+          <div className="flex gap-1 p-1 bg-[var(--bg-glass)] backdrop-blur-sm rounded-lg border border-[var(--border-glass)]" role="tablist">
             {periodos.map(p => (
               <button
                 key={p.value}
@@ -331,10 +331,10 @@ export default function MRPKPIs() {
                 aria-selected={periodo === p.value}
                 onClick={() => setPeriodo(p.value)}
                 className={clsx(
-                  "px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
+                  "px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-300 ease-spring",
                   periodo === p.value
                     ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25"
-                    : "text-slate-600 hover:bg-white/70"
+                    : "text-[var(--text-secondary)] hover:bg-[var(--bg-glass-strong)]"
                 )}
               >
                 {p.label}
@@ -344,7 +344,7 @@ export default function MRPKPIs() {
         </div>
         <button
           onClick={fetchKPIs}
-          className="flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm border border-white/50 rounded-xl text-slate-700 hover:bg-white/80 hover:border-blue-400/50 transition-all"
+          className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-glass)] backdrop-blur-sm border border-[var(--border-glass)] rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-glass-strong)] hover:border-[var(--primary)]/50 transition-all duration-300 ease-spring"
         >
           <RefreshCw className="w-4 h-4" />
           {t("mrp_actualizar", "Actualizar")}
@@ -353,10 +353,10 @@ export default function MRPKPIs() {
 
       {loading ? (
         <div className="flex items-center justify-center py-24">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" />
         </div>
       ) : error ? (
-        <div className="flex items-center justify-center py-24 text-red-600 bg-red-50/70 backdrop-blur-sm rounded-2xl border border-red-200/50">
+        <div className="flex items-center justify-center py-24 text-red-600 bg-red-50/70 backdrop-blur-sm rounded-xl border border-red-200/50">
           <AlertCircle className="w-6 h-6 mr-2" />
           {error}
         </div>
@@ -454,9 +454,9 @@ export default function MRPKPIs() {
                   <div
                     key={mat.codigo}
                     className={clsx(
-                      "flex items-center justify-between p-3 rounded-xl",
-                      "bg-white/50 backdrop-blur-sm border border-white/50",
-                      "hover:bg-white/70 hover:border-blue-400/30 transition-all"
+                      "flex items-center justify-between p-3 rounded-lg",
+                      "bg-[var(--bg-glass)] backdrop-blur-sm border border-[var(--border-glass)]",
+                      "hover:bg-[var(--bg-glass-strong)] hover:border-[var(--primary)]/30 transition-all duration-300 ease-spring"
                     )}
                   >
                     <div className="flex items-center gap-3">
@@ -464,18 +464,18 @@ export default function MRPKPIs() {
                         "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm backdrop-blur-sm",
                         idx === 0 ? "bg-red-50/70 text-red-600 border border-red-200/50" :
                         idx === 1 ? "bg-amber-50/70 text-amber-600 border border-amber-200/50" :
-                        "bg-blue-50/70 text-blue-600 border border-blue-200/50"
+                        "bg-[var(--primary-muted)] text-[var(--primary)] border border-[var(--border-colored)]"
                       )}>
                         {idx + 1}
                       </span>
                       <div>
-                        <p className="font-mono text-blue-600 font-medium">{mat.codigo}</p>
-                        <p className="text-sm text-slate-500">{mat.descripcion}</p>
+                        <p className="font-mono text-[var(--primary)] font-medium">{mat.codigo}</p>
+                        <p className="text-sm text-[var(--text-muted)]">{mat.descripcion}</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-red-600">{mat.dias_sin_stock} {t("mrp_dias", "días")}</p>
-                      <p className="text-xs text-slate-500">{t("mrp_sin_stock", "sin stock")}</p>
+                      <p className="text-xs text-[var(--text-muted)]">{t("mrp_sin_stock", "sin stock")}</p>
                     </div>
                   </div>
                 ))}
@@ -484,13 +484,13 @@ export default function MRPKPIs() {
           </Card>
 
           {/* Info footer - Glass style */}
-          <div className="mt-6 p-4 bg-white/50 backdrop-blur-sm rounded-xl border border-white/50">
-            <div className="flex items-center gap-4 text-sm text-slate-500">
+          <div className="mt-6 p-4 bg-[var(--bg-glass)] backdrop-blur-sm rounded-lg border border-[var(--border-glass)]">
+            <div className="flex items-center gap-4 text-sm text-[var(--text-muted)]">
               <span>
-                <strong className="text-slate-700">{t("mrp_periodo", "Período:")}</strong> {kpisData.fecha_inicio} a {kpisData.fecha_fin}
+                <strong className="text-[var(--text-secondary)]">{t("mrp_periodo", "Período:")}</strong> {kpisData.fecha_inicio} a {kpisData.fecha_fin}
               </span>
               <span>
-                <strong className="text-slate-700">{t("mrp_total_materiales", "Total materiales:")}</strong> {kpisData.total_materiales}
+                <strong className="text-[var(--text-secondary)]">{t("mrp_total_materiales", "Total materiales:")}</strong> {kpisData.total_materiales}
               </span>
             </div>
           </div>

@@ -7,10 +7,7 @@ from functools import wraps
 
 from flask import Blueprint, g, jsonify, request
 
-try:
-    from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
-except ImportError:
-    from core.db import get_db_connection, get_db_transaction, insert_returning_id
+from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
 
 bp = Blueprint("equivalencias", __name__, url_prefix="/api/equivalencias")
 

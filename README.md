@@ -2,7 +2,18 @@
 
 Sistema web profesional para gestionar solicitudes de materiales, construido con **Flask** (backend) + **React + Vite** (frontend).
 
-**Version:** 2.0 | **Estado:** Produccion | **Ultima actualizacion:** Diciembre 2025
+**Version:** 2.0 | **Estado:** Produccion | **Ultima actualizacion:** 29 Diciembre 2025
+
+---
+
+## Metricas del Proyecto
+
+| Area | Valor |
+|------|-------|
+| **Backend** | 125 archivos Python, ~48,000 lineas |
+| **Frontend** | 46 paginas, 68 componentes |
+| **Endpoints API** | 194 endpoints en 24 modulos |
+| **Tests** | 969+ tests (792 unit, 25 E2E, 152 integration) |
 
 ---
 
@@ -12,12 +23,17 @@ SPM es un sistema integral de gestion de solicitudes de materiales disenado para
 
 **Caracteristicas principales:**
 - Autenticacion segura basada en roles (Admin, Coordinador, Usuario, Planner, Jefe)
-- Flujo de aprobacion completo con notificaciones
+- Flujo de aprobacion completo con notificaciones push
 - Gestion de materiales y almacenes multiubicacion
 - Integracion con datos SAP (stock, consumo historico, pedidos)
 - Equivalencias de materiales automatizadas
+- Dashboard de KPIs y metricas SLA
+- Motor MRP con alertas de reposicion
+- Pronosticos de demanda con ML (ARIMA, Prophet, XGBoost)
+- WebSockets para actualizaciones en tiempo real
+- Sistema de gamificacion (Trivias)
 - Interfaz moderna con soporte i18n (ES/EN)
-- API REST documentada
+- API REST documentada con Swagger
 
 ---
 
@@ -71,26 +87,29 @@ cd frontend && npm run dev
 
 ```
 SPMv2.0/
-├── backend/                    # API Flask
-│   ├── routes/                 # Endpoints REST (14 modulos)
-│   ├── services/               # Logica de negocio
-│   ├── models/                 # Schemas Pydantic
-│   ├── core/                   # Config, DB, Auth, CSRF
-│   └── agent/                  # Modulo IA/ML
+├── backend/                    # API Flask (125 archivos)
+│   ├── routes/                 # Endpoints REST (24 modulos, 194 endpoints)
+│   ├── services/               # Logica de negocio (10 servicios)
+│   ├── core/                   # Config, DB, Auth, Cache, WebSocket
+│   ├── agent/                  # Modulo IA/ML (30 archivos)
+│   │   └── pipelines/forecast/ # Modelos de pronostico
+│   └── migrations/             # Migraciones de BD
 │
 ├── frontend/                   # React + Vite + Tailwind
-│   ├── src/pages/              # Paginas (31 componentes)
-│   ├── src/components/ui/      # Sistema de diseno (25 componentes)
+│   ├── src/pages/              # 46 paginas
+│   ├── src/components/         # 68 componentes
+│   │   ├── ui/                 # Sistema de diseno
+│   │   ├── forecast/           # Graficos y visualizaciones
+│   │   └── Planner/            # Wizard de planificacion
+│   ├── src/hooks/              # 8 custom hooks
 │   ├── src/context/            # Providers (Auth, i18n)
-│   └── src/services/           # Clientes API
+│   ├── src/services/           # 11 clientes API
+│   └── src/store/              # 3 stores Zustand
 │
 ├── data/                       # Bases de datos SQLite
-│   ├── spm.db                  # BD transaccional (usuarios, solicitudes)
-│   ├── equivalentes.db         # Equivalencias de materiales (34,865 registros)
-│   └── sap_data.db             # Datos SAP (178,338 registros)
-│
-├── scripts/                    # Scripts de utilidad
-├── tests/                      # Tests (unit, integration, e2e)
+├── infra/                      # Docker, nginx, migraciones SQL
+├── scripts/                    # Scripts de utilidad y deployment
+├── tests/                      # Tests (128 archivos, 969+ tests)
 ├── docs/                       # Documentacion tecnica
 │
 ├── wsgi.py                     # Entry point del servidor
@@ -150,9 +169,12 @@ python scripts/migrate_excel_to_db.py
 
 ## Documentacion
 
+- `CLAUDE.md` - Guia para Claude Code (inventario completo)
 - `docs/ARQUITECTURA_SPM_2_0.md` - Arquitectura completa
 - `docs/DEPLOYMENT.md` - Guia de despliegue
-- `docs/api.md` - Documentacion API
+- `docs/GUIA_RAPIDA_USAR_SERVICIOS.md` - Uso de servicios
+- `docs/implementation_progress.md` - Progreso de implementacion
+- `/api/docs` - Swagger UI (cuando el servidor esta corriendo)
 
 ---
 
@@ -192,4 +214,4 @@ python -m pytest tests/ --cov=backend --cov-report=html
 
 ---
 
-*Ultima actualizacion: 5 de Diciembre, 2025*
+*Ultima actualizacion: 29 de Diciembre, 2025*

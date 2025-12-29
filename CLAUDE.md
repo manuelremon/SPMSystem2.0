@@ -2,17 +2,17 @@
 
 Guia para Claude Code (claude.ai/code) cuando trabaja con este repositorio.
 
-> **Ultima actualizacion**: 2025-12-29 (Auditoria y limpieza)
+> **Ultima actualizacion**: 2025-12-29 (Auditoria completa y reorganizacion)
 
 ## Resumen del Proyecto
 
 | Metrica | Valor |
 |---------|-------|
-| **Backend** | 111 archivos Python, ~36,000 lineas |
-| **Frontend** | 47 paginas, 75 componentes, 8 hooks |
+| **Backend** | 125 archivos Python, ~48,000 lineas |
+| **Frontend** | 46 paginas, 68 componentes, 8 hooks |
 | **Endpoints API** | 194 endpoints en 24 modulos |
 | **Tests** | 969+ tests (792 unit, 25 E2E, 152 integration) |
-| **Base de Datos** | 4 SQLite + PostgreSQL (produccion) |
+| **Base de Datos** | 3 SQLite + PostgreSQL (produccion) |
 
 ## Comandos de Desarrollo
 
@@ -586,6 +586,30 @@ Revision completa de 30 bugs identificados en FSM, Aprobaciones, Presupuestos, M
 - Repositorios: `backend/core/repository_legacy.py` (12 clases)
 - Tests manuales: `tests/manual/` (scripts exploratorios)
 - Tests UI: `frontend/src/__tests__/ui/`
+
+## Reorganizacion de Arquitectura (Sprint 19)
+
+**Fecha**: 2025-12-29
+**Auditoria completa y limpieza profesional**
+
+| Fase | Cambios Realizados |
+|------|-------------------|
+| **Fase 1: Seguridad** | Verificado .gitignore correcto (VAPID, .env, __pycache__ ya excluidos) |
+| **Fase 2: Obsoletos** | Eliminados: `Icon.jsx`, `Radio.jsx`, `test/`, `docs/README.md`, `agent/models/` |
+| **Fase 3: Helpers** | Creado `backend/core/helpers.py` consolidando funciones duplicadas (migracion gradual) |
+| **Fase 4: Estructura** | SQLs movidos a `infra/migrations/`, `scripts/utils/` consolidado en `scripts/utilities/` |
+| **Fase 5: Docs** | Actualizados README.md y CLAUDE.md con metricas actuales |
+
+**Archivos Nuevos:**
+- `backend/core/helpers.py` - Funciones helper consolidadas (row_to_dict, get_current_user, is_admin, etc.)
+- `backend/routes/planner_helpers/` - Paquete modular para planner.py
+
+**Archivos Eliminados (obsoletos):**
+- `frontend/src/components/ui/Icon.jsx` (0 usos, reemplazado por iconMap.js)
+- `frontend/src/components/ui/Radio.jsx` (0 usos)
+- `frontend/src/test/` (directorio huerfano)
+- `docs/README.md` (redundante con raiz)
+- `backend/agent/models/` (directorio vacio)
 
 ## Documentacion
 

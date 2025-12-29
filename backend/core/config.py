@@ -70,6 +70,14 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_FILE: str = "logs/spm_backend.log"
 
+    # SMTP Email Configuration
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER: str = os.getenv("SMTP_USER", "")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
+    SMTP_FROM: str = os.getenv("SMTP_FROM", "SPM Notificaciones <noreply@planifica-materiales.com>")
+    SMTP_ENABLED: bool = os.getenv("SMTP_ENABLED", "false").lower() == "true"
+
     def get_cors_origins(self) -> List[str]:
         r"""Parse CORS_ORIGINS from comma-separated string
 

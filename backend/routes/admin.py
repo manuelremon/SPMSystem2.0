@@ -10,23 +10,13 @@ from flask import Blueprint, jsonify, request
 
 logger = logging.getLogger(__name__)
 
-try:
-    from backend.core.cache import get_cache_stats, invalidate_catalog_cache, invalidate_user_cache
-    from backend.core.config import settings
-    from backend.core.db import get_db_connection, get_db_transaction, get_spm_db_path
-    from backend.core.rate_limit import rate_limit
-    from backend.core.roles import is_admin, normalize_roles
-    from backend.core.user_helpers import get_user_by_id
-    from backend.routes.auth import _decode_token
-except ImportError:
-    from core.cache import get_cache_stats, invalidate_catalog_cache, invalidate_user_cache
-    from core.config import settings
-    from core.db import get_db_connection, get_db_transaction, get_spm_db_path
-    from core.rate_limit import rate_limit
-    from core.roles import is_admin, normalize_roles
-    from core.user_helpers import get_user_by_id
-
-    from routes.auth import _decode_token
+from backend.core.cache import get_cache_stats, invalidate_catalog_cache, invalidate_user_cache
+from backend.core.config import settings
+from backend.core.db import get_db_connection, get_db_transaction, get_spm_db_path
+from backend.core.rate_limit import rate_limit
+from backend.core.roles import is_admin, normalize_roles
+from backend.core.user_helpers import get_user_by_id
+from backend.routes.auth import _decode_token
 
 bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 

@@ -128,7 +128,17 @@
       "Bash(COMMIT_MSG=\"feat: unificar sidebar - Bandeja de Entrada reemplaza notificaciones y centro-interaccion\" ./scripts/deploy-full.sh:*)",
       "Bash(COMMIT_MSG=\"fix: corregir errores 403/500 - sectores usa catalogos, push test permitido, migracion user_profile_requests\" ./scripts/deploy-full.sh:*)",
       "Bash(COMMIT_MSG=\"fix: correcciones UX - toggle password, confirmación borrado, filtros Mi Cuenta, ortografía\" ./scripts/deploy-full.sh:*)",
-      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjY4MTExNjAsImV4cCI6MTc2NjgxNDc2MH0.Iqhp5-h3i0Sjk8B98hp_ar5MTcDigVsGzlZkKTyfOx4\" curl -s -X PUT https://planifica-materiales.com/api/solicitudes/64/aprobar -H \"Content-Type: application/json\" -H \"Authorization: Bearer $TOKEN\" -d '{\"\"\"\"notas\"\"\"\":\"\"\"\"prueba admin aprobando\"\"\"\"}')"
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjY4MTExNjAsImV4cCI6MTc2NjgxNDc2MH0.Iqhp5-h3i0Sjk8B98hp_ar5MTcDigVsGzlZkKTyfOx4\" curl -s -X PUT https://planifica-materiales.com/api/solicitudes/64/aprobar -H \"Content-Type: application/json\" -H \"Authorization: Bearer $TOKEN\" -d '{\"\"\"\"notas\"\"\"\":\"\"\"\"prueba admin aprobando\"\"\"\"}')",
+      "Bash(while read page)",
+      "Bash(do [ ! -f /home/manu/Documentos/GitHub/SPMSystem2.0/frontend/src/pages/$page.test.jsx ])",
+      "Bash(head:*)",
+      "Bash(git -C /home/manu/Documentos/GitHub/SPMSystem2.0 status --short)",
+      "Bash(git rm:*)",
+      "Bash(comm:*)",
+      "Bash(sort:*)",
+      "Bash(git checkout:*)",
+      "Bash(git -C /home/manu/Documentos/GitHub/SPMSystem2.0 log --oneline --all)",
+      "Bash(git ls-files:*)"
     ],
     "deny": [],
     "ask": []

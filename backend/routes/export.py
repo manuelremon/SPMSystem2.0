@@ -16,10 +16,7 @@ from functools import wraps
 
 from flask import Blueprint, Response, g, jsonify, request
 
-try:
-    from backend.services.reporting_service import get_reporting_service
-except ImportError:
-    from services.reporting_service import get_reporting_service
+from backend.services.reporting_service import get_reporting_service
 
 
 def require_auth(f):

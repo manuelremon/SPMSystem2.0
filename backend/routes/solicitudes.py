@@ -15,77 +15,42 @@ from werkzeug.utils import secure_filename
 
 logger = logging.getLogger(__name__)
 
-try:
-    from backend.core.db import get_db_connection, get_db_transaction
-    from backend.core.fsm import (
-        EstadoSolicitud,
-        SolicitudNoEncontradaError,
-        TransicionInvalidaError,
-        cambiar_estado,
-        estado_para_display,
-        normalizar_estado,
-        validar_transicion,
-    )
-    from backend.core.item_schemas import (
-        ItemValidationError,
-        SolicitudValidationError,
-        validar_items,
-        validar_solicitud_create,
-    )
-    from backend.core.rate_limit import rate_limit
-    from backend.core.roles import has_any_role, is_admin
-    from backend.routes.auth import _decode_token
-    from backend.services.approval_service import (
-        obtener_aprobador_por_monto,
-        obtener_regla_aprobacion,
-        puede_aprobar,
-    )
-    from backend.services.audit_service import (
-        auditar_aprobacion,
-        auditar_creacion_solicitud,
-        auditar_rechazo,
-    )
-    from backend.services.sla_service import (
-        actualizar_sla_solicitud,
-        calcular_fecha_limite,
-        obtener_configuracion_sla,
-        resolver_alertas_solicitud,
-    )
-    from backend.services.notification_service import NotificationService
-except ImportError:
-    from core.db import get_db_connection, get_db_transaction
-    from core.fsm import (
-        EstadoSolicitud,
-        SolicitudNoEncontradaError,
-        TransicionInvalidaError,
-        cambiar_estado,
-        estado_para_display,
-        normalizar_estado,
-        validar_transicion,
-    )
-    from core.item_schemas import (
-        validar_items,
-    )
-    from core.rate_limit import rate_limit
-    from core.roles import has_any_role, is_admin
-    from services.approval_service import (
-        obtener_aprobador_por_monto,
-        puede_aprobar,
-    )
-    from services.audit_service import (
-        auditar_aprobacion,
-        auditar_creacion_solicitud,
-        auditar_rechazo,
-    )
-    from services.sla_service import (
-        actualizar_sla_solicitud,
-        calcular_fecha_limite,
-        obtener_configuracion_sla,
-        resolver_alertas_solicitud,
-    )
-    from services.notification_service import NotificationService
-
-    from routes.auth import _decode_token
+from backend.core.db import get_db_connection, get_db_transaction
+from backend.core.fsm import (
+    EstadoSolicitud,
+    SolicitudNoEncontradaError,
+    TransicionInvalidaError,
+    cambiar_estado,
+    estado_para_display,
+    normalizar_estado,
+    validar_transicion,
+)
+from backend.core.item_schemas import (
+    ItemValidationError,
+    SolicitudValidationError,
+    validar_items,
+    validar_solicitud_create,
+)
+from backend.core.rate_limit import rate_limit
+from backend.core.roles import has_any_role, is_admin
+from backend.routes.auth import _decode_token
+from backend.services.approval_service import (
+    obtener_aprobador_por_monto,
+    obtener_regla_aprobacion,
+    puede_aprobar,
+)
+from backend.services.audit_service import (
+    auditar_aprobacion,
+    auditar_creacion_solicitud,
+    auditar_rechazo,
+)
+from backend.services.sla_service import (
+    actualizar_sla_solicitud,
+    calcular_fecha_limite,
+    obtener_configuracion_sla,
+    resolver_alertas_solicitud,
+)
+from backend.services.notification_service import NotificationService
 
 
 def _row_to_dict(row, cursor):

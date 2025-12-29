@@ -2,6 +2,9 @@
 Planner routes - Gestión de planificación de solicitudes
 
 Refactorizado para usar FSM centralizado (Sprint 1.7)
+Modularizado parcialmente en backend/routes/planner/ (Sprint 18)
+- helpers.py: _current_user, _require_planner_role, etc.
+- data_loaders.py: _load_stock_db, _stock_disponible, etc.
 """
 
 import json
@@ -12,67 +15,41 @@ from pathlib import Path
 import pandas as pd
 from flask import Blueprint, jsonify, request
 
-try:
-    from backend.core.db import get_db_connection, get_db_transaction
-    from backend.core.errors import (
-        api_error,
-        error_forbidden,
-        error_internal,
-        error_not_found,
-        error_validation,
-    )
-    from backend.core.fsm import (
-        EstadoSolicitud,
-        SolicitudNoEncontradaError,
-        TransicionInvalidaError,
-        cambiar_estado,
-        estado_para_display,
-        normalizar_estado,
-        validar_transicion,
-    )
-    from backend.core.repository_legacy import (
-        DecisionAbastecimientoRepository,
-        MrpRepository,
-        ProveedorPreciosRepository,
-    )
-    from backend.core.schemas import ResultadoPaso1, ResultadoPaso2, ResultadoPaso3
-    from backend.services.planner_service import (
-        # Nuevas funciones V2 multi-fuente
-        guardar_decision_multifuente,
-        obtener_resumen_decisiones,
-        paso_1_analizar_solicitud,
-        paso_2_opciones_abastecimiento,
-        paso_3_guardar_tratamiento,
-    )
-    from backend.core.user_helpers import get_user_by_id
-    from backend.routes.auth import _decode_token
-    from backend.services.audit_service import auditar_modificacion
-except ImportError:
-    from core.db import get_db_connection, get_db_transaction
-    from core.errors import error_forbidden, error_internal, error_not_found, error_validation
-    from core.fsm import (
-        EstadoSolicitud,
-        SolicitudNoEncontradaError,
-        TransicionInvalidaError,
-        cambiar_estado,
-        normalizar_estado,
-    )
-    from core.repository_legacy import (
-        DecisionAbastecimientoRepository,
-        MrpRepository,
-        ProveedorPreciosRepository,
-    )
-    from services.planner_service import (
-        # Nuevas funciones V2 multi-fuente
-        guardar_decision_multifuente,
-        obtener_resumen_decisiones,
-        paso_1_analizar_solicitud,
-        paso_2_opciones_abastecimiento,
-        paso_3_guardar_tratamiento,
-    )
-    from core.user_helpers import get_user_by_id
+from backend.core.db import get_db_connection, get_db_transaction
+from backend.core.errors import (
+    api_error,
+    error_forbidden,
+    error_internal,
+    error_not_found,
+    error_validation,
+)
+from backend.core.fsm import (
+    EstadoSolicitud,
+    SolicitudNoEncontradaError,
+    TransicionInvalidaError,
+    cambiar_estado,
+    estado_para_display,
+    normalizar_estado,
+    validar_transicion,
+)
+from backend.core.repository_legacy import (
+    DecisionAbastecimientoRepository,
+    MrpRepository,
+    ProveedorPreciosRepository,
+)
+from backend.core.schemas import ResultadoPaso1, ResultadoPaso2, ResultadoPaso3
+from backend.core.user_helpers import get_user_by_id
+from backend.routes.auth import _decode_token
+from backend.services.audit_service import auditar_modificacion
+from backend.services.planner_service import (
+    guardar_decision_multifuente,
+    obtener_resumen_decisiones,
+    paso_1_analizar_solicitud,
+    paso_2_opciones_abastecimiento,
+    paso_3_guardar_tratamiento,
+)
 
-    from routes.auth import _decode_token
+logger = logging.getLogger(__name__)
 
 # Blueprint histórico (/api/planner) con dashboard simple
 # TODO: [Refactor] Replace generic "except Exception" with specific exceptions

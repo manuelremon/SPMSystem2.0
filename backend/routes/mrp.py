@@ -6,16 +6,133 @@ Tablero de Alertas y KPIs para planificadores
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Dict
+from typing import Dict, Optional, Tuple
 
 from flask import Blueprint, g, jsonify, request
 
 logger = logging.getLogger(__name__)
 
-try:
-    from backend.core.db import get_db_connection, sql_now_minus, is_using_postgresql
-except ImportError:
-    from core.db import get_db_connection, sql_now_minus, is_using_postgresql
+from backend.core.db import get_db_connection, sql_now_minus, is_using_postgresql
+
+
+def _calcular_lead_time_promedio() -> Tuple[float, str]:
+    """
+    Calcula el lead time promedio en días desde datos reales.
+
+    Estrategia:
+    1. Intenta calcular desde solicitudes (submitted -> dispatched/closed)
+    2. Usa promedio de lead_time_dias de proveedores externos
+    3. Fallback a valor por defecto
+
+    Returns:
+        Tuple (lead_time_dias, fuente)
+    """
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Estrategia 1: Tiempo promedio de solicitudes completadas (últimos 90 días)
+            if is_using_postgresql():
+                cursor.execute("""
+                    SELECT AVG(EXTRACT(EPOCH FROM (updated_at::timestamp - created_at::timestamp)) / 86400)
+                    FROM solicitudes
+                    WHERE status IN ('dispatched', 'closed')
+                    AND created_at > NOW() - INTERVAL '90 days'
+                    AND updated_at > created_at
+                """)
+            else:
+                cursor.execute("""
+                    SELECT AVG(julianday(updated_at) - julianday(created_at))
+                    FROM solicitudes
+                    WHERE status IN ('dispatched', 'closed')
+                    AND created_at > datetime('now', '-90 days')
+                    AND updated_at > created_at
+                """)
+
+            row = cursor.fetchone()
+            if row and row[0] and row[0] > 0:
+                return (round(row[0], 1), "solicitudes_completadas")
+
+            # Estrategia 2: Promedio de lead_time_dias de proveedores
+            cursor.execute("""
+                SELECT AVG(lead_time_dias)
+                FROM proveedores_externos
+                WHERE lead_time_dias IS NOT NULL AND lead_time_dias > 0 AND activo = 1
+            """)
+            row = cursor.fetchone()
+            if row and row[0] and row[0] > 0:
+                return (round(row[0], 1), "proveedores_externos")
+
+    except Exception as e:
+        logger.warning(f"Error calculando lead time: {e}")
+
+    # Fallback
+    return (15.0, "estimado")
+
+
+def _calcular_velocidad_respuesta() -> Tuple[float, str]:
+    """
+    Calcula la velocidad de respuesta promedio en días.
+
+    Estrategia:
+    1. Tiempo promedio de resolución de alertas MRP
+    2. Tiempo promedio de aprobación de solicitudes
+    3. Fallback a valor por defecto
+
+    Returns:
+        Tuple (dias_respuesta, fuente)
+    """
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Estrategia 1: Alertas MRP resueltas
+            try:
+                if is_using_postgresql():
+                    cursor.execute("""
+                        SELECT AVG(EXTRACT(EPOCH FROM (fecha_resolucion - created_at)) / 86400)
+                        FROM alertas_mrp
+                        WHERE fecha_resolucion IS NOT NULL
+                        AND created_at > NOW() - INTERVAL '90 days'
+                    """)
+                else:
+                    cursor.execute("""
+                        SELECT AVG(julianday(fecha_resolucion) - julianday(created_at))
+                        FROM alertas_mrp
+                        WHERE fecha_resolucion IS NOT NULL
+                        AND created_at > datetime('now', '-90 days')
+                    """)
+                row = cursor.fetchone()
+                if row and row[0] and row[0] > 0:
+                    return (round(row[0], 1), "alertas_mrp")
+            except Exception:
+                pass  # Tabla puede no existir
+
+            # Estrategia 2: Tiempo de aprobación de solicitudes
+            if is_using_postgresql():
+                cursor.execute("""
+                    SELECT AVG(EXTRACT(EPOCH FROM (updated_at::timestamp - created_at::timestamp)) / 86400)
+                    FROM solicitudes
+                    WHERE status = 'approved'
+                    AND created_at > NOW() - INTERVAL '90 days'
+                """)
+            else:
+                cursor.execute("""
+                    SELECT AVG(julianday(updated_at) - julianday(created_at))
+                    FROM solicitudes
+                    WHERE status = 'approved'
+                    AND created_at > datetime('now', '-90 days')
+                """)
+
+            row = cursor.fetchone()
+            if row and row[0] and row[0] > 0:
+                return (round(row[0], 1), "tiempo_aprobacion")
+
+    except Exception as e:
+        logger.warning(f"Error calculando velocidad respuesta: {e}")
+
+    # Fallback
+    return (5.0, "estimado")
 
 bp = Blueprint("mrp", __name__, url_prefix="/api/mrp")
 
@@ -609,8 +726,8 @@ def get_kpis():
         return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
 
     # Calcular KPIs (fuera del with, datos ya recuperados)
-    # Lead time: usar default con nota (requiere tabla purchase_orders con fechas)
-    lead_time_promedio = 15  # días - TODO: calcular desde purchase_orders.received_at - created_at
+    # Lead time: calculado desde datos reales
+    lead_time_promedio, lead_time_fuente = _calcular_lead_time_promedio()
     lead_time_objetivo = 12  # días
 
     total_solpeds = solpeds_stats["total"] or 0
@@ -630,9 +747,8 @@ def get_kpis():
         (solpeds_completadas / total_solpeds * 100) if total_solpeds > 0 else 0, 1
     )
 
-    # Velocidad de respuesta - TODO: calcular desde alertas_mrp.resolved_at - created_at
-    # Por ahora usar estimación basada en ratio de alertas resueltas
-    velocidad_respuesta = 5.0  # días promedio estimado
+    # Velocidad de respuesta: calculada desde datos reales
+    velocidad_respuesta, velocidad_fuente = _calcular_velocidad_respuesta()
 
     kpis = {
         "materiales_en_riesgo": {
@@ -659,6 +775,7 @@ def get_kpis():
             "objetivo": lead_time_objetivo,
             "tendencia": "up" if lead_time_promedio > lead_time_objetivo else "down",
             "descripcion": "Tiempo promedio de entrega",
+            "fuente": lead_time_fuente,  # solicitudes_completadas, proveedores_externos, o estimado
         },
         "cumplimiento_mrp": {
             "valor": cumplimiento_mrp,
@@ -683,6 +800,7 @@ def get_kpis():
             "unidad": "días",
             "tendencia": "down" if velocidad_respuesta < 5 else "up",
             "descripcion": "Tiempo promedio para resolver alertas",
+            "fuente": velocidad_fuente,  # alertas_mrp, tiempo_aprobacion, o estimado
         },
     }
 

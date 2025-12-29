@@ -3,10 +3,7 @@ from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, jsonify, request
 
-try:
-    from backend.core.db import get_db_connection
-except ImportError:
-    from core.db import get_db_connection
+from backend.core.db import get_db_connection
 
 bp_detalle = Blueprint("materiales_detalle", __name__, url_prefix="/api/materiales")
 
