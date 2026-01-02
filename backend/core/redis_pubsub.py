@@ -56,8 +56,10 @@ class RedisPubSub:
         self._connected = False
         self._lock = threading.Lock()
         self._connection_attempts = 0
-        self._max_connection_attempts = 3
+        self._max_connection_attempts = 1  # FIX: Solo 1 intento, luego deshabilitar
         self._reconnect_delay = 5  # segundos
+        self._disabled_until = 0  # Timestamp hasta cuando Redis está deshabilitado
+        self._disable_duration = 3600  # FIX: Deshabilitar por 1 hora después de fallar
 
     def _get_redis_url(self) -> str:
         """Obtiene URL de Redis desde variables de entorno."""
@@ -70,6 +72,9 @@ class RedisPubSub:
         """
         Intenta conectar a Redis.
 
+        FIX: Implementa cooldown para evitar saturar logs cuando Redis no está disponible.
+        Después de fallar, deshabilita Redis por 1 hora.
+
         Returns:
             True si la conexión fue exitosa, False en caso contrario.
         """
@@ -77,6 +82,12 @@ class RedisPubSub:
             return False
 
         with self._lock:
+            # FIX: Verificar si Redis está en cooldown
+            current_time = time.time()
+            if current_time < self._disabled_until:
+                # Redis deshabilitado temporalmente, no intentar
+                return False
+
             if self._connected and self._client:
                 try:
                     self._client.ping()
@@ -85,7 +96,12 @@ class RedisPubSub:
                     self._connected = False
 
             if self._connection_attempts >= self._max_connection_attempts:
-                # Esperar antes de reintentar
+                # FIX: Deshabilitar por 1 hora y resetear contador
+                self._disabled_until = current_time + self._disable_duration
+                self._connection_attempts = 0
+                logger.info(
+                    f"[Redis] Deshabilitado por {self._disable_duration}s después de {self._max_connection_attempts} intentos fallidos"
+                )
                 return False
 
             try:
@@ -93,23 +109,24 @@ class RedisPubSub:
                 self._client = redis.from_url(
                     redis_url,
                     decode_responses=True,
-                    socket_timeout=5,
-                    socket_connect_timeout=5,
-                    retry_on_timeout=True
+                    socket_timeout=2,  # FIX: Reducir timeout
+                    socket_connect_timeout=2,
+                    retry_on_timeout=False  # FIX: No reintentar en timeout
                 )
                 # Test de conexión
                 self._client.ping()
                 self._connected = True
                 self._connection_attempts = 0
+                self._disabled_until = 0  # Limpiar cooldown
                 logger.info(f"Conectado a Redis: {redis_url}")
                 return True
 
             except Exception as e:
                 self._connection_attempts += 1
                 self._connected = False
-                logger.warning(
-                    f"Error conectando a Redis (intento {self._connection_attempts}): {e}"
-                )
+                # FIX: Solo loguear en el primer intento
+                if self._connection_attempts == 1:
+                    logger.debug(f"Redis no disponible: {e}")
                 return False
 
     def is_available(self) -> bool:

@@ -181,17 +181,39 @@ _pg_pool = None
 
 
 def _init_pg_pool():
-    """Inicializa el pool de conexiones PostgreSQL (singleton)"""
+    """
+    Inicializa el pool de conexiones PostgreSQL (singleton).
+
+    Usa ThreadedConnectionPool para ser thread-safe con Gunicorn workers.
+    """
     global _pg_pool
     if _pg_pool is None:
         import psycopg2.pool
 
-        _pg_pool = psycopg2.pool.SimpleConnectionPool(
+        # FIX: ThreadedConnectionPool es thread-safe (SimpleConnectionPool no lo es)
+        # Importante para Gunicorn con múltiples workers/threads
+        _pg_pool = psycopg2.pool.ThreadedConnectionPool(
             minconn=2,
-            maxconn=10,
+            maxconn=20,  # Aumentado para soportar 4 workers × 4 threads
             dsn=settings.DATABASE_URL,
         )
     return _pg_pool
+
+
+def reset_pg_pool():
+    """
+    Reinicia el pool de conexiones PostgreSQL.
+
+    Útil en hooks post_fork de Gunicorn para evitar compartir
+    conexiones entre procesos fork'd.
+    """
+    global _pg_pool
+    if _pg_pool:
+        try:
+            _pg_pool.closeall()
+        except Exception:
+            pass
+    _pg_pool = None
 
 
 def close_pg_pool():

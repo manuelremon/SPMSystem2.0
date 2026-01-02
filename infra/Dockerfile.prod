@@ -42,6 +42,9 @@ RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
 COPY --chown=spm:spm backend/ ./backend/
 COPY --chown=spm:spm wsgi.py ./
 
+# Copiar configuracion de gunicorn
+COPY --chown=spm:spm infra/gunicorn.conf.py ./gunicorn.conf.py
+
 # Nota: BDs de catalogo (equivalentes, sap_data, catalogo_materiales)
 # ahora estan en PostgreSQL. No se copian archivos SQLite.
 
@@ -57,5 +60,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 EXPOSE 5000
 
-# Comando de inicio con gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--threads", "4", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "wsgi:app"]
+# Comando de inicio con gunicorn usando archivo de configuracion
+# El archivo gunicorn.conf.py contiene hooks para reinicializar
+# el pool de PostgreSQL en cada worker (evita corruption)
+CMD ["gunicorn", "--config", "gunicorn.conf.py", "wsgi:app"]

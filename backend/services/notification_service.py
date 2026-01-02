@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 
 try:
     from backend.core.config import settings
-    from backend.core.db import get_db_connection, get_db_transaction, sql_now_minus
+    from backend.core.db import get_db_connection, get_db_transaction, sql_now_minus, is_using_postgresql
     from backend.core.notification_schemas import (
         Notificacion,
         NotificacionCreate,
@@ -27,7 +27,7 @@ try:
     )
     from backend.services.push_service import send_push_notification
 except ImportError:
-    from core.db import get_db_connection, get_db_transaction, sql_now_minus
+    from core.db import get_db_connection, get_db_transaction, sql_now_minus, is_using_postgresql
     from core.notification_schemas import Notificacion
 
     try:
@@ -172,6 +172,8 @@ class NotificationService:
 
         Crea la tabla si no existe en lugar de fallar silenciosamente.
         Usa flag de clase para evitar verificar en cada llamada.
+
+        FIX: Usa sintaxis compatible con PostgreSQL (SERIAL) y SQLite (AUTOINCREMENT).
         """
         if cls._preferences_table_ensured:
             return
@@ -179,24 +181,49 @@ class NotificationService:
         try:
             with get_db_transaction() as conn:
                 cursor = conn.cursor()
-                cursor.execute(
+
+                # FIX: Sintaxis diferente para PostgreSQL vs SQLite
+                if is_using_postgresql():
+                    # PostgreSQL: SERIAL para auto-increment
+                    cursor.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS user_notification_preferences (
+                            id SERIAL PRIMARY KEY,
+                            user_id TEXT UNIQUE NOT NULL,
+                            push_enabled INTEGER DEFAULT 1,
+                            sound_enabled INTEGER DEFAULT 1,
+                            notif_solicitudes INTEGER DEFAULT 1,
+                            notif_aprobaciones INTEGER DEFAULT 1,
+                            notif_mensajes INTEGER DEFAULT 1,
+                            notif_presupuestos INTEGER DEFAULT 1,
+                            notif_mrp INTEGER DEFAULT 1,
+                            notif_sla INTEGER DEFAULT 1,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
                     """
-                    CREATE TABLE IF NOT EXISTS user_notification_preferences (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        user_id TEXT UNIQUE NOT NULL,
-                        push_enabled INTEGER DEFAULT 1,
-                        sound_enabled INTEGER DEFAULT 1,
-                        notif_solicitudes INTEGER DEFAULT 1,
-                        notif_aprobaciones INTEGER DEFAULT 1,
-                        notif_mensajes INTEGER DEFAULT 1,
-                        notif_presupuestos INTEGER DEFAULT 1,
-                        notif_mrp INTEGER DEFAULT 1,
-                        notif_sla INTEGER DEFAULT 1,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
-                """
-                )
+                else:
+                    # SQLite: INTEGER PRIMARY KEY AUTOINCREMENT
+                    cursor.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS user_notification_preferences (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id TEXT UNIQUE NOT NULL,
+                            push_enabled INTEGER DEFAULT 1,
+                            sound_enabled INTEGER DEFAULT 1,
+                            notif_solicitudes INTEGER DEFAULT 1,
+                            notif_aprobaciones INTEGER DEFAULT 1,
+                            notif_mensajes INTEGER DEFAULT 1,
+                            notif_presupuestos INTEGER DEFAULT 1,
+                            notif_mrp INTEGER DEFAULT 1,
+                            notif_sla INTEGER DEFAULT 1,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """
+                    )
+
                 cursor.execute(
                     """
                     CREATE INDEX IF NOT EXISTS idx_user_notif_prefs_user

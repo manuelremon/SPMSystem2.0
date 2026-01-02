@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 from pywebpush import WebPushException, webpush
 
 try:
-    from backend.core.db import get_db_connection, get_db_transaction
+    from backend.core.db import get_db_connection, get_db_transaction, sql_now_minus
     from backend.core.push_config import (
         VAPID_PRIVATE_KEY_PATH,
         get_vapid_claims,
@@ -22,7 +22,7 @@ try:
         get_vapid_public_key_base64,
     )
 except ImportError:
-    from core.db import get_db_connection, get_db_transaction
+    from core.db import get_db_connection, get_db_transaction, sql_now_minus
     from core.push_config import (
         VAPID_PRIVATE_KEY_PATH,
         get_vapid_claims,
@@ -374,24 +374,23 @@ class PushService:
         try:
             with get_db_transaction() as conn:
                 cur = conn.cursor()
-                # SQLite/PostgreSQL compatible datetime calculation
+                # FIX: Usar sql_now_minus() para compatibilidad PostgreSQL/SQLite
                 cur.execute(
-                    """
+                    f"""
                     DELETE FROM push_subscriptions
                     WHERE last_used_at IS NOT NULL
-                      AND last_used_at < datetime('now', ? || ' days')
-                """,
-                    (f"-{days}",),
+                      AND last_used_at < {sql_now_minus(f"{days} days")}
+                """
                 )
                 deleted = cur.rowcount
 
                 # También limpiar suscripciones que nunca fueron usadas
                 # y tienen más de 7 días de creación (pruebas abandonadas)
                 cur.execute(
-                    """
+                    f"""
                     DELETE FROM push_subscriptions
                     WHERE last_used_at IS NULL
-                      AND created_at < datetime('now', '-7 days')
+                      AND created_at < {sql_now_minus("7 days")}
                 """
                 )
                 deleted += cur.rowcount
