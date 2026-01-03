@@ -105,9 +105,6 @@ export function DataTable({
         <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
           <tr>
             {columns.map((col) => {
-              const align = col.align || getColumnAlignment(col.key);
-              const alignClass = align === 'center' ? 'text-center justify-center' : align === 'right' ? 'text-right justify-end' : 'text-left justify-start';
-
               return (
                 <th
                   key={col.key}
@@ -138,7 +135,7 @@ export function DataTable({
                     ${col.sortAccessor ? 'cursor-pointer hover:text-[var(--primary)] hover:bg-[var(--bg-elevated)] transition-all duration-300 ease-spring focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-inset' : ''}
                   `}
                 >
-                  <div className={`flex items-center gap-2 ${alignClass}`}>
+                  <div className="flex items-center gap-2 justify-center">
                     {col.header}
                     {col.sortAccessor && <span aria-hidden="true">{getSortIcon(col.key)}</span>}
                   </div>

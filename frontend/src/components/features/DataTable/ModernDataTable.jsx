@@ -90,8 +90,6 @@ export function ModernDataTable({
               {headerGroup.headers.map((header) => {
                 const canSort = header.column.getCanSort();
                 const sorted = header.column.getIsSorted();
-                const alignClass = getAlignmentClass(header.column);
-
                 const minWidth = header.column.columnDef.meta?.minWidth;
 
                 return (
@@ -114,17 +112,13 @@ export function ModernDataTable({
                         : undefined
                     }
                     className={cn(
-                      alignClass,
+                      "text-center",
                       canSort && "cursor-pointer select-none",
                       canSort && "hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-inset"
                     )}
                     style={minWidth ? { minWidth: `${minWidth}px` } : undefined}
                   >
-                    <div className={cn("flex items-center gap-1", {
-                      "justify-center": alignClass === "text-center",
-                      "justify-end": alignClass === "text-right",
-                      "justify-start": alignClass === "text-left",
-                    })}>
+                    <div className="flex items-center gap-1 justify-center">
                       {flexRender(header.column.columnDef.header, header.getContext())}
                       {canSort && (
                         <span aria-hidden="true">
