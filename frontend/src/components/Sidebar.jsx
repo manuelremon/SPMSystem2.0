@@ -667,14 +667,10 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
 
       {/* Bottom fixed section: Theme toggle + Connection indicator + Foro + Logout */}
       <div className="border-t border-[var(--border-glass)] px-2 py-2 space-y-1">
-        {/* Theme toggle */}
-        {collapsed ? (
-          <Tooltip content={t("tooltip_tema", "Cambiar tema")} position="right" delay={0} className="w-full flex justify-center py-0.5">
-            <ThemeToggle collapsed size="md" />
-          </Tooltip>
-        ) : (
-          <ThemeToggle showLabel />
-        )}
+        {/* Theme toggle - siempre icono */}
+        <Tooltip content={t("tooltip_tema", "Cambiar tema")} position="right" delay={0} className={collapsed ? "w-full flex justify-center py-0.5" : ""}>
+          <ThemeToggle collapsed size="md" className={collapsed ? "" : "ml-2"} />
+        </Tooltip>
         {/* Connection indicator */}
         {collapsed ? (
           <Tooltip
