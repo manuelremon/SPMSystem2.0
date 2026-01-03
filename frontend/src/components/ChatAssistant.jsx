@@ -179,13 +179,14 @@ export default function ChatAssistant() {
             Asistente SPM
           </h3>
         </div>
-        <button
+        <Button
           onClick={closeChat}
-          className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50 transition-all"
+          variant="icon"
+          size="icon-sm"
           aria-label="Cerrar chat"
         >
           <X className="w-4 h-4" />
-        </button>
+        </Button>
       </div>
 
       {/* Messages Container */}

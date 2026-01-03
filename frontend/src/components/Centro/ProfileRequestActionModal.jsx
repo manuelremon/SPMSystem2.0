@@ -261,12 +261,13 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
               </p>
             )}
           </div>
-          <button
+          <Button
             onClick={onClose}
-            className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
+            variant="icon"
+            size="icon-md"
           >
             <X className="w-5 h-5" />
-          </button>
+          </Button>
         </div>
 
         {/* Content */}

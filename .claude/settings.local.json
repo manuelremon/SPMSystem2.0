@@ -182,7 +182,8 @@
       "Bash(npm install:*)",
       "Bash(npx husky:*)",
       "Bash(git reset:*)",
-      "Bash(COMMIT_MSG=\"fix: dropzone adjuntos minimalista en dark mode\" ./scripts/deploy-full.sh:*)"
+      "Bash(COMMIT_MSG=\"fix: dropzone adjuntos minimalista en dark mode\" ./scripts/deploy-full.sh:*)",
+      "Bash(COMMIT_MSG=\"refactor: unificar botones con componente Button estandarizado\" ./scripts/deploy-full.sh:*)"
     ],
     "deny": [],
     "ask": []

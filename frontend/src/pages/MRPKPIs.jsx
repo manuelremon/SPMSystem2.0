@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
+import { Button } from "../components/ui/Button";
 import { useI18n } from "../context/i18n";
 import api from "../services/api";
 import clsx from "clsx";
@@ -342,13 +343,13 @@ export default function MRPKPIs() {
             ))}
           </div>
         </div>
-        <button
+        <Button
           onClick={fetchKPIs}
-          className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-glass)] backdrop-blur-sm border border-[var(--border-glass)] rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-glass-strong)] hover:border-[var(--primary)]/50 transition-all duration-300 ease-spring"
+          variant="secondary"
         >
           <RefreshCw className="w-4 h-4" />
           {t("mrp_actualizar", "Actualizar")}
-        </button>
+        </Button>
       </div>
 
       {loading ? (

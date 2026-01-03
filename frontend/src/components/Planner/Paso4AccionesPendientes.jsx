@@ -13,6 +13,7 @@ import {
   FileText,
   UserCheck,
 } from "../ui/Icons";
+import { Button } from "../ui/Button";
 
 const ESTADO_CONFIG = {
   pendiente: {
@@ -457,13 +458,11 @@ export default function Paso4AccionesPendientes({
       {/* Boton de ejecutar */}
       {(totalAccionesPendientes > 0 || enviarResumenSolicitante) && (
         <div className="flex justify-center pt-4">
-          <button
+          <Button
             onClick={handleEjecutar}
             disabled={ejecutando}
-            className="flex items-center gap-2 px-8 py-3 rounded-xl font-medium text-white transition-all hover:opacity-90"
-            style={{
-              backgroundColor: ejecutando ? "var(--fg-muted)" : "var(--primary)",
-            }}
+            variant="primary"
+            size="lg"
           >
             {ejecutando ? (
               <>
@@ -479,7 +478,7 @@ export default function Paso4AccionesPendientes({
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
-          </button>
+          </Button>
         </div>
       )}
     </div>

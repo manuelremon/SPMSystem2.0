@@ -7,6 +7,7 @@
 import React from 'react';
 import LazyPlot from './LazyPlot';
 import { useI18n } from '../../context/i18n';
+import { Button } from '../ui/Button';
 
 const MODELOS_NOMBRES = {
   random_forest: 'Random Forest',
@@ -163,12 +164,13 @@ const ModelComparison = ({
                   <td className="px-3 py-2 text-right">{r.r2?.toFixed(4)}</td>
                   <td className="px-3 py-2 text-center">
                     {onSelectModel && (
-                      <button
+                      <Button
                         onClick={() => onSelectModel(r.modelo)}
-                        className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                        variant="outline"
+                        size="xs"
                       >
                         Usar
-                      </button>
+                      </Button>
                     )}
                   </td>
                 </tr>
