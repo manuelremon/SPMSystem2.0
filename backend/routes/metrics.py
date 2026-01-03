@@ -15,9 +15,10 @@ Endpoints:
 
 from functools import wraps
 
-from flask import Blueprint, g, jsonify
+from flask import Blueprint, g, jsonify, request
 
 from backend.core.metrics import get_cache_metrics, get_db_pool_metrics, get_metrics_collector
+from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
 
 bp = Blueprint("metrics", __name__, url_prefix="/api/metrics")
 
@@ -119,17 +120,98 @@ def get_endpoint_metrics():
 @require_auth
 def get_business_metrics():
     """
-    Obtiene metricas de negocio.
+    Obtiene metricas de negocio desde la base de datos.
 
     Requiere autenticacion.
 
     Returns:
-        Contadores y gauges de negocio
+        Contadores de solicitudes, usuarios, materiales
     """
-    collector = get_metrics_collector()
-    stats = collector.get_business_metrics()
+    # Helper SQL para compatibilidad PostgreSQL/SQLite
+    date_today = "CURRENT_DATE" if is_using_postgresql() else "DATE('now')"
+    date_1day_ago = "NOW() - INTERVAL '1 day'" if is_using_postgresql() else "datetime('now', '-1 day')"
+    date_30days_ago = "NOW() - INTERVAL '30 days'" if is_using_postgresql() else "datetime('now', '-30 days')"
 
-    return jsonify({"ok": True, "data": stats})
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+
+        # Solicitudes por estado
+        cur.execute("""
+            SELECT estado, COUNT(*) as cnt
+            FROM solicitudes
+            GROUP BY estado
+        """)
+        rows = cur.fetchall()
+        solicitudes_por_estado = {}
+        for row in rows:
+            estado = row["estado"] if isinstance(row, dict) else row[0]
+            cnt = row["cnt"] if isinstance(row, dict) else row[1]
+            solicitudes_por_estado[estado] = cnt
+
+        # Solicitudes hoy
+        cur.execute(f"""
+            SELECT COUNT(*) as cnt FROM solicitudes
+            WHERE DATE(created_at) = {date_today}
+        """)
+        row = cur.fetchone()
+        solicitudes_hoy = row["cnt"] if isinstance(row, dict) else row[0]
+
+        # Aprobaciones pendientes
+        cur.execute("""
+            SELECT COUNT(*) as cnt FROM solicitudes
+            WHERE estado IN ('Enviada', 'En Revisión', 'En Revision')
+        """)
+        row = cur.fetchone()
+        pendientes = row["cnt"] if isinstance(row, dict) else row[0]
+
+        # Usuarios activos (login últimas 24h) - desde audit_log
+        try:
+            cur.execute(f"""
+                SELECT COUNT(DISTINCT user_id) as cnt FROM audit_log
+                WHERE action = 'login'
+                AND timestamp > {date_1day_ago}
+            """)
+            row = cur.fetchone()
+            usuarios_activos = row["cnt"] if isinstance(row, dict) else row[0]
+        except Exception:
+            # Si audit_log no existe o falla, retornar 0
+            usuarios_activos = 0
+
+        # Total usuarios activos
+        cur.execute("SELECT COUNT(*) as cnt FROM usuarios WHERE activo = 1")
+        row = cur.fetchone()
+        total_usuarios = row["cnt"] if isinstance(row, dict) else row[0]
+
+        # Materiales únicos solicitados (último mes)
+        try:
+            cur.execute(f"""
+                SELECT COUNT(DISTINCT codigo_material) as cnt FROM solicitud_items si
+                JOIN solicitudes s ON si.solicitud_id = s.id
+                WHERE s.created_at > {date_30days_ago}
+            """)
+            row = cur.fetchone()
+            materiales_mes = row["cnt"] if isinstance(row, dict) else row[0]
+        except Exception:
+            materiales_mes = 0
+
+    return jsonify({
+        "ok": True,
+        "data": {
+            "solicitudes": {
+                "por_estado": solicitudes_por_estado,
+                "hoy": solicitudes_hoy,
+                "pendientes": pendientes,
+                "total": sum(solicitudes_por_estado.values())
+            },
+            "usuarios": {
+                "activos_24h": usuarios_activos,
+                "total": total_usuarios
+            },
+            "materiales": {
+                "unicos_mes": materiales_mes
+            }
+        }
+    })
 
 
 @bp.route("/system", methods=["GET"])
@@ -362,3 +444,254 @@ def prometheus_metrics():
                 )
 
     return "\n".join(lines), 200, {"Content-Type": "text/plain; charset=utf-8"}
+
+
+# =============================================================================
+# HISTÓRICO DE MÉTRICAS Y ALERTAS
+# =============================================================================
+
+
+@bp.route("/history", methods=["GET"])
+@require_auth
+def get_metrics_history():
+    """
+    Obtiene histórico de métricas para gráficos de tendencias.
+
+    Query params:
+        type: Tipo de métrica (cpu, memory, latency_p50, error_rate, cache_hit, all)
+        hours: Horas hacia atrás (default 24, max 168)
+
+    Returns:
+        Histórico agrupado por tipo de métrica
+    """
+    metric_type = request.args.get("type", "all")
+    hours = min(request.args.get("hours", 24, type=int), 168)  # Max 7 días
+
+    # Helper SQL para compatibilidad
+    if is_using_postgresql():
+        time_filter = f"timestamp > NOW() - INTERVAL '{hours} hours'"
+    else:
+        time_filter = f"timestamp > datetime('now', '-{hours} hours')"
+
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+
+            if metric_type == "all":
+                cur.execute(f"""
+                    SELECT metric_type, timestamp, metric_value
+                    FROM metrics_history
+                    WHERE {time_filter}
+                    ORDER BY timestamp ASC
+                """)
+            else:
+                cur.execute(f"""
+                    SELECT metric_type, timestamp, metric_value
+                    FROM metrics_history
+                    WHERE metric_type = ?
+                    AND {time_filter}
+                    ORDER BY timestamp ASC
+                """, (metric_type,))
+
+            rows = cur.fetchall()
+
+        # Agrupar por tipo de métrica
+        history = {}
+        for row in rows:
+            t = row["metric_type"] if isinstance(row, dict) else row[0]
+            ts = row["timestamp"] if isinstance(row, dict) else row[1]
+            val = row["metric_value"] if isinstance(row, dict) else row[2]
+
+            if t not in history:
+                history[t] = []
+
+            # Convertir timestamp a string ISO si es objeto datetime
+            ts_str = ts.isoformat() if hasattr(ts, "isoformat") else str(ts)
+            history[t].append({"timestamp": ts_str, "value": val})
+
+        return jsonify({"ok": True, "data": history})
+
+    except Exception as e:
+        # Si la tabla no existe aún, retornar datos vacíos
+        if "metrics_history" in str(e):
+            return jsonify({"ok": True, "data": {}, "message": "No hay datos históricos aún"})
+        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+
+
+@bp.route("/alerts", methods=["GET"])
+@require_auth
+def get_system_alerts():
+    """
+    Obtiene alertas del sistema.
+
+    Query params:
+        include_acknowledged: Incluir alertas ya reconocidas (default false)
+        limit: Número máximo de alertas (default 50, max 200)
+
+    Returns:
+        Lista de alertas ordenadas por timestamp descendente
+    """
+    include_acknowledged = request.args.get("include_acknowledged", "false") == "true"
+    limit = min(request.args.get("limit", 50, type=int), 200)
+
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+
+            if include_acknowledged:
+                cur.execute("""
+                    SELECT id, timestamp, alert_type, metric_name, threshold_value,
+                           actual_value, message, acknowledged, acknowledged_by,
+                           acknowledged_at, created_at
+                    FROM system_alerts
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                """, (limit,))
+            else:
+                cur.execute("""
+                    SELECT id, timestamp, alert_type, metric_name, threshold_value,
+                           actual_value, message, acknowledged, acknowledged_by,
+                           acknowledged_at, created_at
+                    FROM system_alerts
+                    WHERE acknowledged = FALSE
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                """, (limit,))
+
+            rows = cur.fetchall()
+
+        # Convertir a lista de diccionarios
+        alerts = []
+        for row in rows:
+            if isinstance(row, dict):
+                alert = dict(row)
+            else:
+                alert = {
+                    "id": row[0],
+                    "timestamp": row[1],
+                    "alert_type": row[2],
+                    "metric_name": row[3],
+                    "threshold_value": row[4],
+                    "actual_value": row[5],
+                    "message": row[6],
+                    "acknowledged": row[7],
+                    "acknowledged_by": row[8],
+                    "acknowledged_at": row[9],
+                    "created_at": row[10]
+                }
+            # Convertir timestamps a string si es necesario
+            for key in ["timestamp", "acknowledged_at", "created_at"]:
+                if alert.get(key) and hasattr(alert[key], "isoformat"):
+                    alert[key] = alert[key].isoformat()
+            alerts.append(alert)
+
+        return jsonify({"ok": True, "data": alerts, "total": len(alerts)})
+
+    except Exception as e:
+        # Si la tabla no existe aún, retornar lista vacía
+        if "system_alerts" in str(e):
+            return jsonify({"ok": True, "data": [], "total": 0, "message": "Sin alertas"})
+        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+
+
+@bp.route("/alerts/<int:alert_id>/acknowledge", methods=["POST"])
+@require_admin
+def acknowledge_alert(alert_id):
+    """
+    Marca una alerta como reconocida.
+
+    Solo usuarios admin pueden reconocer alertas.
+
+    Path params:
+        alert_id: ID de la alerta a reconocer
+
+    Returns:
+        Confirmación de reconocimiento
+    """
+    user_id = g.user.get("id") if hasattr(g, "user") and g.user else None
+
+    # SQL helper para timestamp actual
+    now_sql = "NOW()" if is_using_postgresql() else "datetime('now')"
+
+    try:
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+
+            # Verificar que la alerta existe
+            cur.execute("SELECT id, acknowledged FROM system_alerts WHERE id = ?", (alert_id,))
+            row = cur.fetchone()
+
+            if not row:
+                return jsonify({
+                    "ok": False,
+                    "error": {"code": "not_found", "message": "Alerta no encontrada"}
+                }), 404
+
+            acknowledged = row["acknowledged"] if isinstance(row, dict) else row[1]
+            if acknowledged:
+                return jsonify({
+                    "ok": False,
+                    "error": {"code": "already_acknowledged", "message": "Alerta ya fue reconocida"}
+                }), 400
+
+            # Marcar como reconocida
+            cur.execute(f"""
+                UPDATE system_alerts
+                SET acknowledged = TRUE,
+                    acknowledged_by = ?,
+                    acknowledged_at = {now_sql}
+                WHERE id = ?
+            """, (user_id, alert_id))
+
+        return jsonify({
+            "ok": True,
+            "data": {
+                "message": "Alerta reconocida",
+                "alert_id": alert_id,
+                "acknowledged_by": user_id
+            }
+        })
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+
+
+@bp.route("/alerts/acknowledge-all", methods=["POST"])
+@require_admin
+def acknowledge_all_alerts():
+    """
+    Marca todas las alertas pendientes como reconocidas.
+
+    Solo usuarios admin.
+
+    Returns:
+        Número de alertas reconocidas
+    """
+    user_id = g.user.get("id") if hasattr(g, "user") and g.user else None
+    now_sql = "NOW()" if is_using_postgresql() else "datetime('now')"
+
+    try:
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+
+            cur.execute(f"""
+                UPDATE system_alerts
+                SET acknowledged = TRUE,
+                    acknowledged_by = ?,
+                    acknowledged_at = {now_sql}
+                WHERE acknowledged = FALSE
+            """, (user_id,))
+
+            # Obtener número de filas afectadas
+            affected = cur.rowcount if hasattr(cur, "rowcount") else 0
+
+        return jsonify({
+            "ok": True,
+            "data": {
+                "message": f"{affected} alertas reconocidas",
+                "count": affected
+            }
+        })
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500

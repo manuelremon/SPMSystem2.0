@@ -44,6 +44,11 @@ import {
 } from '../../components/ui/Icons'
 import { useI18n } from '../../context/i18n'
 
+// Nuevos componentes para metricas historicas y alertas
+import { CpuMemoryChart, LatencyErrorChart, SingleMetricChart } from '../../components/admin/MetricsChart'
+import { AlertsPanel } from '../../components/admin/AlertsPanel'
+import { BusinessMetricsPanel } from '../../components/admin/BusinessMetricsPanel'
+
 // Umbrales de alertas
 const THRESHOLDS = {
   latency: { good: 100, warning: 500 },
@@ -112,24 +117,30 @@ export default function AdminEstado() {
   const [systemMetrics, setSystemMetrics] = useState(null)
   const [businessMetrics, setBusinessMetrics] = useState(null)
   const [infrastructure, setInfrastructure] = useState(null)
+  const [historyData, setHistoryData] = useState(null)
+  const [systemAlerts, setSystemAlerts] = useState([])
+  const [selectedHours, setSelectedHours] = useState(24)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [lastUpdate, setLastUpdate] = useState(null)
   const [resetting, setResetting] = useState(false)
+  const [acknowledging, setAcknowledging] = useState(null)
 
   const fetchData = useCallback(async () => {
     try {
       setError('')
-      const [healthRes, metricsRes, cacheRes, dbRes, dbStatsRes, sysRes, businessRes, infraRes] = await Promise.all([
+      const [healthRes, metricsRes, cacheRes, dbRes, dbStatsRes, sysRes, businessRes, infraRes, historyRes, alertsRes] = await Promise.all([
         system.health().catch(() => ({ data: null })),
         system.metricsRequests().catch(() => ({ data: null })),
         system.metricsCache().catch(() => ({ data: null })),
         system.metricsDb().catch(() => ({ data: null })),
         system.metricsDbStats().catch(() => ({ data: null })),
         system.metricsSystem().catch(() => ({ data: null })),
-        metricsService.getBusinessMetrics().catch(() => null),
-        system.infrastructure().catch(() => ({ data: null }))
+        system.businessMetrics().catch(() => ({ data: null })),
+        system.infrastructure().catch(() => ({ data: null })),
+        system.metricsHistory('all', selectedHours).catch(() => ({ data: null })),
+        system.alerts().catch(() => ({ data: null }))
       ])
 
       setHealth(healthRes.data)
@@ -138,15 +149,17 @@ export default function AdminEstado() {
       setDbMetrics(dbRes.data?.data)
       setDbStats(dbStatsRes.data?.data)
       setSystemMetrics(sysRes.data?.data)
-      setBusinessMetrics(businessRes)
+      setBusinessMetrics(businessRes.data?.data)
       setInfrastructure(infraRes.data)
+      setHistoryData(historyRes.data?.data || {})
+      setSystemAlerts(alertsRes.data?.data || [])
       setLastUpdate(new Date())
     } catch (e) {
       setError(e.response?.data?.error || e.message)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [selectedHours])
 
   useEffect(() => {
     fetchData()
@@ -188,6 +201,30 @@ export default function AdminEstado() {
     a.download = `system-status-${new Date().toISOString().split('T')[0]}.json`
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  const handleAcknowledgeAlert = async (alertId) => {
+    setAcknowledging(alertId)
+    try {
+      await system.acknowledgeAlert(alertId)
+      setSystemAlerts(prev => prev.filter(a => a.id !== alertId))
+    } catch (e) {
+      setError(e.response?.data?.error?.message || 'Error al reconocer alerta')
+    } finally {
+      setAcknowledging(null)
+    }
+  }
+
+  const handleAcknowledgeAllAlerts = async () => {
+    setAcknowledging('all')
+    try {
+      await system.acknowledgeAllAlerts()
+      setSystemAlerts([])
+    } catch (e) {
+      setError(e.response?.data?.error?.message || 'Error al reconocer alertas')
+    } finally {
+      setAcknowledging(null)
+    }
   }
 
   const errorRate = metrics?.total_requests > 0
@@ -243,6 +280,19 @@ export default function AdminEstado() {
       </div>
 
       {error && <Alert variant="destructive">{error}</Alert>}
+
+      {/* Panel de Alertas Activas (solo si hay alertas) */}
+      {systemAlerts && systemAlerts.length > 0 && (
+        <AlertsPanel
+          alerts={systemAlerts}
+          onAcknowledge={handleAcknowledgeAlert}
+          onAcknowledgeAll={handleAcknowledgeAllAlerts}
+          acknowledging={acknowledging}
+        />
+      )}
+
+      {/* Panel de Metricas de Negocio */}
+      <BusinessMetricsPanel data={businessMetrics} isLoading={loading} />
 
       {/* Panel de Estado General */}
       <Card>
@@ -361,6 +411,45 @@ export default function AdminEstado() {
           variant="info"
         />
       </div>
+
+      {/* Graficos de Tendencias */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <TrendingUp className="w-5 h-5 text-indigo-500" />
+              {t('trends', 'Tendencias')} ({selectedHours}h)
+            </CardTitle>
+            <div className="flex gap-1">
+              {[6, 12, 24].map(hours => (
+                <Button
+                  key={hours}
+                  variant={selectedHours === hours ? 'primary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setSelectedHours(hours)}
+                >
+                  {hours}h
+                </Button>
+              ))}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {historyData && Object.keys(historyData).length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <CpuMemoryChart data={historyData} height={200} />
+              <LatencyErrorChart data={historyData} height={200} />
+              <SingleMetricChart data={historyData} metricType="cache_hit" title="Cache Hit Rate" height={150} />
+            </div>
+          ) : (
+            <div className="text-center py-12 text-slate-400">
+              <TrendingUp className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>{t('no_history_data', 'Sin datos historicos')}</p>
+              <p className="text-sm mt-1">{t('history_hint', 'Los datos se recolectan automaticamente cada 5 minutos')}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Latencia */}
@@ -657,34 +746,6 @@ export default function AdminEstado() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Metricas de Negocio */}
-      {businessMetrics && Object.keys(businessMetrics).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-indigo-500" />
-              {t('business_metrics', 'Metricas de Negocio')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {Object.entries(businessMetrics)
-                .filter(([, value]) => typeof value !== 'object' || value === null)
-                .map(([key, value]) => (
-                <div key={key} className="text-center p-3 bg-slate-50 rounded-lg">
-                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">
-                    {key.replace(/_/g, ' ')}
-                  </p>
-                  <p className="text-xl font-bold text-slate-800">
-                    {typeof value === 'number' ? value.toLocaleString() : String(value ?? '--')}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Estadisticas de Base de Datos */}
       {dbStats && (

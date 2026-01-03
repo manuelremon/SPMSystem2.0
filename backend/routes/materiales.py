@@ -64,7 +64,7 @@ def search_materiales():
     query = f"""
         SELECT codigo, descripcion, descripcion_larga,
                grupo_articulos, unidad_medida, precio_usd
-        FROM cat_materiales
+        FROM materiales
         {where}
         ORDER BY codigo ASC
         LIMIT ?
@@ -85,7 +85,7 @@ def get_material(codigo: str):
     query = """
         SELECT codigo, descripcion, descripcion_larga,
                grupo_articulos, unidad_medida, precio_usd, activo
-        FROM cat_materiales
+        FROM materiales
         WHERE codigo = ?
     """
     rows = _fetch_catalogo(query, (codigo,))
@@ -118,18 +118,18 @@ def get_stats():
         def get_val(row, key, idx):
             return row[key] if isinstance(row, dict) else row[idx]
 
-        cur.execute("SELECT COUNT(*) as cnt FROM cat_materiales WHERE activo = 1")
+        cur.execute("SELECT COUNT(*) as cnt FROM materiales WHERE activo = 1")
         stats["total"] = get_val(cur.fetchone(), "cnt", 0)
 
-        cur.execute("SELECT COUNT(*) as cnt FROM cat_materiales WHERE precio_usd IS NOT NULL AND activo = 1")
+        cur.execute("SELECT COUNT(*) as cnt FROM materiales WHERE precio_usd IS NOT NULL AND activo = 1")
         stats["con_precio"] = get_val(cur.fetchone(), "cnt", 0)
 
-        cur.execute("SELECT MIN(precio_usd) as min_p, MAX(precio_usd) as max_p FROM cat_materiales WHERE activo = 1")
+        cur.execute("SELECT MIN(precio_usd) as min_p, MAX(precio_usd) as max_p FROM materiales WHERE activo = 1")
         row = cur.fetchone()
         stats["precio_min"] = get_val(row, "min_p", 0)
         stats["precio_max"] = get_val(row, "max_p", 1)
 
-        cur.execute("SELECT COUNT(DISTINCT grupo_articulos) as cnt FROM cat_materiales WHERE activo = 1")
+        cur.execute("SELECT COUNT(DISTINCT grupo_articulos) as cnt FROM materiales WHERE activo = 1")
         stats["grupos_unicos"] = get_val(cur.fetchone(), "cnt", 0)
 
     return jsonify({"ok": True, "data": stats}), 200

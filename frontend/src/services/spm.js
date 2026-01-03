@@ -77,4 +77,16 @@ export const system = {
   metricsDbStats: () => api.get('/metrics/db-stats'),
   metricsSystem: () => api.get('/metrics/system'),
   resetMetrics: () => api.post('/metrics/reset'),
+  // Business metrics (from DB)
+  businessMetrics: () => api.get('/metrics/business'),
+  // Historical metrics for charts
+  metricsHistory: (type = 'all', hours = 24) =>
+    api.get('/metrics/history', { params: { type, hours } }),
+  // System alerts
+  alerts: (includeAcknowledged = false) =>
+    api.get('/metrics/alerts', { params: { include_acknowledged: includeAcknowledged } }),
+  acknowledgeAlert: (alertId) =>
+    api.post(`/metrics/alerts/${alertId}/acknowledge`),
+  acknowledgeAllAlerts: () =>
+    api.post('/metrics/alerts/acknowledge-all'),
 }

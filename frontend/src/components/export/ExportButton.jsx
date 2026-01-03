@@ -9,6 +9,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Download, FileSpreadsheet, FileText, FileType, ChevronDown, Loader2 } from '../ui/Icons'
 import { Button } from '../ui/Button'
 
@@ -40,12 +41,30 @@ export function ExportButton({
   const [isOpen, setIsOpen] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [exportingFormat, setExportingFormat] = useState(null)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
+  const buttonRef = useRef(null)
   const dropdownRef = useRef(null)
+
+  // Calcular posicion del dropdown
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.right + window.scrollX - 192 // 192px = w-48
+      })
+    }
+  }, [isOpen])
 
   // Cerrar dropdown al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target)
+      ) {
         setIsOpen(false)
       }
     }
@@ -95,8 +114,43 @@ export function ExportButton({
     )
   }
 
+  // Renderizar dropdown via portal para evitar problemas de z-index
+  const dropdownMenu = isOpen && createPortal(
+    <div
+      ref={dropdownRef}
+      className="fixed w-48 bg-white border border-slate-200 rounded-lg shadow-xl py-1"
+      style={{
+        top: dropdownPosition.top,
+        left: dropdownPosition.left,
+        zIndex: 99999
+      }}
+    >
+      {availableOptions.map((option) => {
+        const Icon = option.icon
+        const isCurrentExporting = isExporting && exportingFormat === option.value
+
+        return (
+          <button
+            key={option.value}
+            onClick={() => handleExport(option.value)}
+            disabled={isExporting}
+            className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-3 disabled:opacity-50"
+          >
+            {isCurrentExporting ? (
+              <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+            ) : (
+              <Icon className={`w-4 h-4 ${option.color}`} />
+            )}
+            <span>{option.label}</span>
+          </button>
+        )
+      })}
+    </div>,
+    document.body
+  )
+
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative inline-block" ref={buttonRef}>
       <Button
         variant={variant}
         size={size}
@@ -113,31 +167,7 @@ export function ExportButton({
         <ChevronDown className={`w-4 h-4 ml-2 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </Button>
 
-      {/* Dropdown */}
-      {isOpen && (
-        <div className="absolute right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-[9999] py-1">
-          {availableOptions.map((option) => {
-            const Icon = option.icon
-            const isCurrentExporting = isExporting && exportingFormat === option.value
-
-            return (
-              <button
-                key={option.value}
-                onClick={() => handleExport(option.value)}
-                disabled={isExporting}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-3 disabled:opacity-50"
-              >
-                {isCurrentExporting ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-                ) : (
-                  <Icon className={`w-4 h-4 ${option.color}`} />
-                )}
-                <span>{option.label}</span>
-              </button>
-            )
-          })}
-        </div>
-      )}
+      {dropdownMenu}
     </div>
   )
 }

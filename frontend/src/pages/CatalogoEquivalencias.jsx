@@ -395,9 +395,11 @@ export default function CatalogoEquivalencias() {
                 )}
               </div>
             </div>
-            <Badge variant="primary">
-              {pagination.total} {t('common_resultados', 'resultados')}
-            </Badge>
+            {searchQuery && (
+              <Badge variant="primary">
+                {pagination.total} {t('common_resultados', 'resultados')}
+              </Badge>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -836,3 +836,230 @@ def _register_default_tasks(queue: JobQueue) -> None:
         except ImportError:
             logger.warning("AI module not available")
             return {"error": "AI not available"}
+
+    # ==================== Metrics Collection ====================
+
+    @task(name="collect_metrics_snapshot", retries=2, retry_delay=30)
+    def collect_metrics_snapshot():
+        """
+        Recoge métricas del sistema y las guarda en histórico.
+        Ejecutar cada 5 minutos via cron o scheduler.
+
+        Métricas recolectadas:
+        - cpu: Uso de CPU %
+        - memory: Uso de memoria %
+        - latency_p50: Latencia P50 en ms
+        - error_rate: Tasa de errores %
+        - cache_hit: Tasa de hits de cache %
+        """
+        import psutil
+        from backend.core.metrics import get_metrics_collector, get_cache_metrics
+        from backend.core.db import get_db_transaction, is_using_postgresql
+
+        logger.info("Collecting metrics snapshot")
+
+        try:
+            # Recolectar métricas de sistema
+            cpu = psutil.cpu_percent(interval=1)
+            memory = psutil.virtual_memory().percent
+
+            # Métricas de aplicación
+            collector = get_metrics_collector()
+            stats = collector.get_request_stats()
+
+            latency_p50 = stats.get("latency", {}).get("p50_ms", 0)
+            total_requests = stats.get("total_requests", 0)
+            total_errors = stats.get("total_errors", 0)
+            error_rate = (total_errors / total_requests * 100) if total_requests > 0 else 0
+
+            # Métricas de cache
+            cache_stats = get_cache_metrics()
+            cache_hit = 0
+            if isinstance(cache_stats, dict):
+                total_hits = sum(
+                    c.get("hits", 0) for c in cache_stats.values() if isinstance(c, dict)
+                )
+                total_misses = sum(
+                    c.get("misses", 0) for c in cache_stats.values() if isinstance(c, dict)
+                )
+                if total_hits + total_misses > 0:
+                    cache_hit = total_hits / (total_hits + total_misses) * 100
+
+            # Guardar en BD
+            metrics_to_save = [
+                ("cpu", round(cpu, 2)),
+                ("memory", round(memory, 2)),
+                ("latency_p50", round(latency_p50, 2)),
+                ("error_rate", round(error_rate, 4)),
+                ("cache_hit", round(cache_hit, 2)),
+            ]
+
+            now_sql = "NOW()" if is_using_postgresql() else "datetime('now')"
+
+            with get_db_transaction() as conn:
+                cur = conn.cursor()
+
+                for metric_type, value in metrics_to_save:
+                    if is_using_postgresql():
+                        cur.execute("""
+                            INSERT INTO metrics_history (metric_type, metric_value, timestamp)
+                            VALUES (%s, %s, NOW())
+                        """, (metric_type, value))
+                    else:
+                        cur.execute("""
+                            INSERT INTO metrics_history (metric_type, metric_value, timestamp)
+                            VALUES (?, ?, datetime('now'))
+                        """, (metric_type, value))
+
+                # Limpiar histórico > 7 días
+                if is_using_postgresql():
+                    cur.execute("""
+                        DELETE FROM metrics_history
+                        WHERE timestamp < NOW() - INTERVAL '7 days'
+                    """)
+                else:
+                    cur.execute("""
+                        DELETE FROM metrics_history
+                        WHERE timestamp < datetime('now', '-7 days')
+                    """)
+
+            logger.info(f"Metrics snapshot saved: CPU={cpu}%, Memory={memory}%")
+
+            # Verificar umbrales y generar alertas
+            _check_thresholds_and_alert(cpu, memory, latency_p50, error_rate, cache_hit)
+
+            return {
+                "collected": True,
+                "metrics": {m[0]: m[1] for m in metrics_to_save}
+            }
+
+        except Exception as e:
+            logger.error(f"Error collecting metrics: {e}")
+            raise
+
+
+def _check_thresholds_and_alert(
+    cpu: float,
+    memory: float,
+    latency_p50: float,
+    error_rate: float,
+    cache_hit: float
+) -> list:
+    """
+    Verifica métricas contra umbrales y genera alertas.
+
+    Umbrales críticos:
+    - CPU > 90%
+    - Memory > 90%
+    - Latency P50 > 500ms
+    - Error Rate > 5%
+    - Cache Hit < 50%
+
+    Umbrales warning:
+    - CPU > 75%
+    - Memory > 80%
+    - Latency P50 > 200ms
+    - Error Rate > 2%
+    - Cache Hit < 70%
+    """
+    from backend.core.db import get_db_transaction, is_using_postgresql
+
+    alerts_generated = []
+
+    # Definir umbrales
+    thresholds = [
+        # (metric_name, value, critical_threshold, warning_threshold, higher_is_worse)
+        ("cpu", cpu, 90, 75, True),
+        ("memory", memory, 90, 80, True),
+        ("latency_p50", latency_p50, 500, 200, True),
+        ("error_rate", error_rate, 5, 2, True),
+        ("cache_hit", cache_hit, 50, 70, False),  # Menor es peor para cache hit
+    ]
+
+    try:
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+
+            for metric_name, value, critical_thresh, warning_thresh, higher_is_worse in thresholds:
+                alert_type = None
+                threshold_value = None
+
+                if higher_is_worse:
+                    if value >= critical_thresh:
+                        alert_type = "critical"
+                        threshold_value = critical_thresh
+                    elif value >= warning_thresh:
+                        alert_type = "warning"
+                        threshold_value = warning_thresh
+                else:
+                    # Para cache_hit, menor es peor
+                    if value <= critical_thresh:
+                        alert_type = "critical"
+                        threshold_value = critical_thresh
+                    elif value <= warning_thresh:
+                        alert_type = "warning"
+                        threshold_value = warning_thresh
+
+                if alert_type:
+                    # Generar mensaje descriptivo
+                    if metric_name == "cpu":
+                        message = f"Uso de CPU elevado: {value}% (umbral: {threshold_value}%)"
+                    elif metric_name == "memory":
+                        message = f"Uso de memoria elevado: {value}% (umbral: {threshold_value}%)"
+                    elif metric_name == "latency_p50":
+                        message = f"Latencia alta: {value}ms (umbral: {threshold_value}ms)"
+                    elif metric_name == "error_rate":
+                        message = f"Tasa de errores alta: {value}% (umbral: {threshold_value}%)"
+                    elif metric_name == "cache_hit":
+                        message = f"Cache hit rate bajo: {value}% (umbral: {threshold_value}%)"
+                    else:
+                        message = f"{metric_name}: {value} (umbral: {threshold_value})"
+
+                    # Verificar si ya existe alerta reciente (últimos 30 min) para evitar spam
+                    if is_using_postgresql():
+                        cur.execute("""
+                            SELECT id FROM system_alerts
+                            WHERE metric_name = %s
+                            AND acknowledged = FALSE
+                            AND timestamp > NOW() - INTERVAL '30 minutes'
+                            LIMIT 1
+                        """, (metric_name,))
+                    else:
+                        cur.execute("""
+                            SELECT id FROM system_alerts
+                            WHERE metric_name = ?
+                            AND acknowledged = 0
+                            AND timestamp > datetime('now', '-30 minutes')
+                            LIMIT 1
+                        """, (metric_name,))
+
+                    existing = cur.fetchone()
+
+                    if not existing:
+                        # Crear nueva alerta
+                        if is_using_postgresql():
+                            cur.execute("""
+                                INSERT INTO system_alerts
+                                (alert_type, metric_name, threshold_value, actual_value, message)
+                                VALUES (%s, %s, %s, %s, %s)
+                            """, (alert_type, metric_name, threshold_value, value, message))
+                        else:
+                            cur.execute("""
+                                INSERT INTO system_alerts
+                                (alert_type, metric_name, threshold_value, actual_value, message)
+                                VALUES (?, ?, ?, ?, ?)
+                            """, (alert_type, metric_name, threshold_value, value, message))
+
+                        alerts_generated.append({
+                            "type": alert_type,
+                            "metric": metric_name,
+                            "value": value,
+                            "message": message
+                        })
+
+                        logger.warning(f"Alert generated: {alert_type} - {message}")
+
+    except Exception as e:
+        logger.error(f"Error checking thresholds: {e}")
+
+    return alerts_generated
