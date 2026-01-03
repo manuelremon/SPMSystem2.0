@@ -23,19 +23,19 @@ export default function AdminProveedores() {
       <ScrollReveal>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-black text-slate-800 uppercase">Proveedores</h1>
+            <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 uppercase">Proveedores</h1>
           </div>
         </div>
       </ScrollReveal>
 
       <ScrollReveal delay={100}>
-        <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30 w-fit">
+        <div className="flex items-center gap-1 p-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-white/30 dark:border-slate-700/30 w-fit">
           <button
             onClick={() => setTab("internos")}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
               tab === "internos"
-                ? "bg-white shadow-sm text-blue-600"
-                : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+                ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50"
             }`}
           >
             <Warehouse className="w-4 h-4 text-indigo-500" />
@@ -45,8 +45,8 @@ export default function AdminProveedores() {
             onClick={() => setTab("externos")}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
               tab === "externos"
-                ? "bg-white shadow-sm text-blue-600"
-                : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+                ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50"
             }`}
           >
             <Truck className="w-4 h-4 text-indigo-500" />
@@ -142,8 +142,8 @@ function ProveedoresInternos() {
     }
   };
 
-  if (loading) return <div className="text-slate-500">Cargando...</div>;
-  if (error) return <div className="text-red-500">{error}</div>;
+  if (loading) return <div className="text-slate-500 dark:text-slate-400">Cargando...</div>;
+  if (error) return <div className="text-red-500 dark:text-red-400">{error}</div>;
 
   return (
     <Card>
@@ -158,31 +158,31 @@ function ProveedoresInternos() {
       </CardHeader>
       <CardContent>
         {showAdd && (
-          <div className="mb-4 p-4 rounded-lg border border-white/30 bg-slate-100/70 space-y-3">
+          <div className="mb-4 p-4 rounded-lg border border-white/30 dark:border-slate-700/30 bg-slate-100/70 dark:bg-slate-800/70 space-y-3">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <input
                 placeholder="Centro *"
                 value={newForm.centro}
                 onChange={(e) => setNewForm({ ...newForm, centro: e.target.value })}
-                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               />
               <input
                 placeholder="Almacen *"
                 value={newForm.almacen}
                 onChange={(e) => setNewForm({ ...newForm, almacen: e.target.value })}
-                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               />
               <input
                 placeholder="Nombre Centro"
                 value={newForm.centro_nombre}
                 onChange={(e) => setNewForm({ ...newForm, centro_nombre: e.target.value })}
-                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               />
               <input
                 placeholder="Nombre Almacen"
                 value={newForm.almacen_nombre}
                 onChange={(e) => setNewForm({ ...newForm, almacen_nombre: e.target.value })}
-                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -190,19 +190,19 @@ function ProveedoresInternos() {
                 placeholder="Sector"
                 value={newForm.sector}
                 onChange={(e) => setNewForm({ ...newForm, sector: e.target.value })}
-                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               />
               <input
                 placeholder="Contacto (email)"
                 value={newForm.contacto_centro}
                 onChange={(e) => setNewForm({ ...newForm, contacto_centro: e.target.value })}
-                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               />
               <input
                 placeholder="Responsable"
                 value={newForm.responsable_centro}
                 onChange={(e) => setNewForm({ ...newForm, responsable_centro: e.target.value })}
-                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               />
             </div>
             <div className="flex gap-2">
@@ -212,17 +212,17 @@ function ProveedoresInternos() {
           </div>
         )}
 
-        <div className="overflow-x-auto rounded-xl border border-white/30">
+        <div className="overflow-x-auto rounded-xl border border-white/30 dark:border-slate-700/30">
           <table className="w-full text-sm">
             <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
               <tr>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Centro</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Almacen</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Centro Nombre</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Almacen Nombre</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Sector</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Responsable</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Activo</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Centro</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Almacen</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Centro Nombre</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Almacen Nombre</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Sector</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Responsable</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Activo</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">Acciones</th>
               </tr>
             </thead>
@@ -232,18 +232,18 @@ function ProveedoresInternos() {
                 const isEditing = editingId === key;
 
                 return (
-                  <tr key={key} className="border-b border-white/30 hover:bg-white/50">
-                    <td className="px-4 py-3 text-slate-800 font-mono">{prov.centro}</td>
-                    <td className="px-4 py-3 text-slate-800 font-mono">{prov.almacen}</td>
+                  <tr key={key} className="border-b border-white/30 dark:border-slate-700/30 hover:bg-white/50 dark:hover:bg-slate-700/50">
+                    <td className="px-4 py-3 text-slate-800 dark:text-slate-200 font-mono">{prov.centro}</td>
+                    <td className="px-4 py-3 text-slate-800 dark:text-slate-200 font-mono">{prov.almacen}</td>
                     <td className="px-4 py-3">
                       {isEditing ? (
                         <input
                           value={editForm.centro_nombre || ""}
                           onChange={(e) => setEditForm({ ...editForm, centro_nombre: e.target.value })}
-                          className="px-2 py-1 rounded border border-white/30 bg-white/50 text-slate-800 text-sm w-full"
+                          className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-sm w-full"
                         />
                       ) : (
-                        <span className="text-slate-800">{prov.centro_nombre || "-"}</span>
+                        <span className="text-slate-800 dark:text-slate-200">{prov.centro_nombre || "-"}</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -251,10 +251,10 @@ function ProveedoresInternos() {
                         <input
                           value={editForm.almacen_nombre || ""}
                           onChange={(e) => setEditForm({ ...editForm, almacen_nombre: e.target.value })}
-                          className="px-2 py-1 rounded border border-white/30 bg-white/50 text-slate-800 text-sm w-full"
+                          className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-sm w-full"
                         />
                       ) : (
-                        <span className="text-slate-800">{prov.almacen_nombre || "-"}</span>
+                        <span className="text-slate-800 dark:text-slate-200">{prov.almacen_nombre || "-"}</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -262,10 +262,10 @@ function ProveedoresInternos() {
                         <input
                           value={editForm.sector || ""}
                           onChange={(e) => setEditForm({ ...editForm, sector: e.target.value })}
-                          className="px-2 py-1 rounded border border-white/30 bg-white/50 text-slate-800 text-sm w-full"
+                          className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-sm w-full"
                         />
                       ) : (
-                        <span className="text-slate-800">{prov.sector || "-"}</span>
+                        <span className="text-slate-800 dark:text-slate-200">{prov.sector || "-"}</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -273,10 +273,10 @@ function ProveedoresInternos() {
                         <input
                           value={editForm.responsable_centro || ""}
                           onChange={(e) => setEditForm({ ...editForm, responsable_centro: e.target.value })}
-                          className="px-2 py-1 rounded border border-white/30 bg-white/50 text-slate-800 text-sm w-full"
+                          className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-sm w-full"
                         />
                       ) : (
-                        <span className="text-slate-800">{prov.responsable_centro || prov.referente_nombre || "-"}</span>
+                        <span className="text-slate-800 dark:text-slate-200">{prov.responsable_centro || prov.referente_nombre || "-"}</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -341,7 +341,7 @@ function ProveedoresInternos() {
               })}
               {proveedores.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={8} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                     No hay proveedores internos registrados
                   </td>
                 </tr>
@@ -374,11 +374,11 @@ function ProveedoresExternos() {
   });
 
   const calificacionOptions = [
-    { value: "sin_calificar", label: "Sin calificar", color: "bg-slate-100 text-slate-600" },
-    { value: "cumplidor", label: "Cumplidor", color: "bg-emerald-100 text-emerald-600" },
-    { value: "muy_cumplidor", label: "Muy cumplidor", color: "bg-green-100 text-green-600" },
-    { value: "incumplidor", label: "Incumplidor", color: "bg-amber-100 text-amber-600" },
-    { value: "muy_incumplidor", label: "Muy incumplidor", color: "bg-red-100 text-red-600" },
+    { value: "sin_calificar", label: "Sin calificar", color: "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400" },
+    { value: "cumplidor", label: "Cumplidor", color: "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400" },
+    { value: "muy_cumplidor", label: "Muy cumplidor", color: "bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400" },
+    { value: "incumplidor", label: "Incumplidor", color: "bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400" },
+    { value: "muy_incumplidor", label: "Muy incumplidor", color: "bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400" },
   ];
 
   const fetchData = useCallback(async () => {
@@ -449,8 +449,8 @@ function ProveedoresExternos() {
     );
   };
 
-  if (loading) return <div className="text-slate-500">Cargando...</div>;
-  if (error) return <div className="text-red-500">{error}</div>;
+  if (loading) return <div className="text-slate-500 dark:text-slate-400">Cargando...</div>;
+  if (error) return <div className="text-red-500 dark:text-red-400">{error}</div>;
 
   return (
     <Card>
@@ -465,32 +465,32 @@ function ProveedoresExternos() {
       </CardHeader>
       <CardContent>
         {showAdd && (
-          <div className="mb-4 p-4 rounded-lg border border-white/30 bg-slate-100/70 space-y-3">
+          <div className="mb-4 p-4 rounded-lg border border-white/30 dark:border-slate-700/30 bg-slate-100/70 dark:bg-slate-800/70 space-y-3">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <input
                 placeholder="CUIT *"
                 value={newForm.cuit}
                 onChange={(e) => setNewForm({ ...newForm, cuit: e.target.value })}
-                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               />
               <input
                 placeholder="Nombre *"
                 value={newForm.nombre}
                 onChange={(e) => setNewForm({ ...newForm, nombre: e.target.value })}
-                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               />
               <input
                 placeholder="Rubro"
                 value={newForm.rubro}
                 onChange={(e) => setNewForm({ ...newForm, rubro: e.target.value })}
-                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               />
               <input
                 type="number"
                 placeholder="Lead Time (dias)"
                 value={newForm.lead_time_dias}
                 onChange={(e) => setNewForm({ ...newForm, lead_time_dias: Number(e.target.value) })}
-                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -498,18 +498,18 @@ function ProveedoresExternos() {
                 placeholder="Direccion"
                 value={newForm.direccion}
                 onChange={(e) => setNewForm({ ...newForm, direccion: e.target.value })}
-                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               />
               <input
                 placeholder="Localidad"
                 value={newForm.localidad}
                 onChange={(e) => setNewForm({ ...newForm, localidad: e.target.value })}
-                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               />
               <select
                 value={newForm.origen}
                 onChange={(e) => setNewForm({ ...newForm, origen: e.target.value })}
-                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               >
                 <option value="local">Local</option>
                 <option value="importado">Importado</option>
@@ -517,7 +517,7 @@ function ProveedoresExternos() {
               <select
                 value={newForm.calificacion}
                 onChange={(e) => setNewForm({ ...newForm, calificacion: e.target.value })}
-                className="px-3 py-2 rounded-lg border border-white/30 bg-white/50 text-slate-800 text-sm"
+                className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               >
                 {calificacionOptions.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -531,17 +531,17 @@ function ProveedoresExternos() {
           </div>
         )}
 
-        <div className="overflow-x-auto rounded-xl border border-white/30">
+        <div className="overflow-x-auto rounded-xl border border-white/30 dark:border-slate-700/30">
           <table className="w-full text-sm">
             <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
               <tr>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">CUIT</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Nombre</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Localidad</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Rubro</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Lead Time</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Calificacion</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Activo</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">CUIT</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Nombre</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Localidad</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Rubro</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Lead Time</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Calificacion</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Activo</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">Acciones</th>
               </tr>
             </thead>
@@ -550,17 +550,17 @@ function ProveedoresExternos() {
                 const isEditing = editingId === prov.cuit;
 
                 return (
-                  <tr key={prov.cuit} className="border-b border-white/30 hover:bg-white/50">
-                    <td className="px-4 py-3 text-slate-800 font-mono text-xs">{prov.cuit}</td>
+                  <tr key={prov.cuit} className="border-b border-white/30 dark:border-slate-700/30 hover:bg-white/50 dark:hover:bg-slate-700/50">
+                    <td className="px-4 py-3 text-slate-800 dark:text-slate-200 font-mono text-xs">{prov.cuit}</td>
                     <td className="px-4 py-3">
                       {isEditing ? (
                         <input
                           value={editForm.nombre || ""}
                           onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })}
-                          className="px-2 py-1 rounded border border-white/30 bg-white/50 text-slate-800 text-sm w-full"
+                          className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-sm w-full"
                         />
                       ) : (
-                        <span className="text-slate-800 font-medium">{prov.nombre}</span>
+                        <span className="text-slate-800 dark:text-slate-200 font-medium">{prov.nombre}</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -568,10 +568,10 @@ function ProveedoresExternos() {
                         <input
                           value={editForm.localidad || ""}
                           onChange={(e) => setEditForm({ ...editForm, localidad: e.target.value })}
-                          className="px-2 py-1 rounded border border-white/30 bg-white/50 text-slate-800 text-sm w-full"
+                          className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-sm w-full"
                         />
                       ) : (
-                        <span className="text-slate-600 flex items-center gap-1">
+                        <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
                           <MapPin className="w-3 h-3 text-blue-500" /> {prov.localidad || "-"}
                         </span>
                       )}
@@ -581,10 +581,10 @@ function ProveedoresExternos() {
                         <input
                           value={editForm.rubro || ""}
                           onChange={(e) => setEditForm({ ...editForm, rubro: e.target.value })}
-                          className="px-2 py-1 rounded border border-white/30 bg-white/50 text-slate-800 text-sm w-full"
+                          className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-sm w-full"
                         />
                       ) : (
-                        <span className="text-slate-800">{prov.rubro || "-"}</span>
+                        <span className="text-slate-800 dark:text-slate-200">{prov.rubro || "-"}</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -593,10 +593,10 @@ function ProveedoresExternos() {
                           type="number"
                           value={editForm.lead_time_dias}
                           onChange={(e) => setEditForm({ ...editForm, lead_time_dias: Number(e.target.value) })}
-                          className="px-2 py-1 rounded border border-white/30 bg-white/50 text-slate-800 text-sm w-20 text-center"
+                          className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-sm w-20 text-center"
                         />
                       ) : (
-                        <span className="text-slate-800 flex items-center justify-center gap-1">
+                        <span className="text-slate-800 dark:text-slate-200 flex items-center justify-center gap-1">
                           <Clock className="w-3 h-3 text-cyan-500" /> {prov.lead_time_dias || "-"} dias
                         </span>
                       )}
@@ -606,7 +606,7 @@ function ProveedoresExternos() {
                         <select
                           value={editForm.calificacion}
                           onChange={(e) => setEditForm({ ...editForm, calificacion: e.target.value })}
-                          className="px-2 py-1 rounded border border-white/30 bg-white/50 text-slate-800 text-sm"
+                          className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-sm"
                         >
                           {calificacionOptions.map(opt => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -680,7 +680,7 @@ function ProveedoresExternos() {
               })}
               {proveedores.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={8} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                     No hay proveedores externos registrados
                   </td>
                 </tr>

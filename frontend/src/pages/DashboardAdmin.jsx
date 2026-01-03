@@ -80,8 +80,8 @@ function DonutChart({ data, colors, labels }) {
           })}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-bold text-slate-800">{total}</span>
-          <span className="text-xs text-slate-500 uppercase tracking-wider">Total</span>
+          <span className="text-3xl font-bold text-slate-800 dark:text-slate-100">{total}</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total</span>
         </div>
       </div>
       <div className="ml-6 space-y-3">
@@ -92,9 +92,9 @@ function DonutChart({ data, colors, labels }) {
               style={{ backgroundColor: colors[idx] }}
             />
             <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-600">{label}</span>
-              <span className="text-sm font-semibold text-slate-800">{data[idx]}</span>
-              <span className="text-xs text-slate-400">
+              <span className="text-sm text-slate-600 dark:text-slate-400">{label}</span>
+              <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{data[idx]}</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-500">
                 ({total > 0 ? Math.round((data[idx] / total) * 100) : 0}%)
               </span>
             </div>
@@ -192,7 +192,7 @@ function ProgressCircle({ percentage, color = "#3b82f6", size = "md" }) {
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className={`${s.text} font-bold text-slate-800`}>{percentage}%</span>
+        <span className={`${s.text} font-bold text-slate-800 dark:text-slate-100`}>{percentage}%</span>
       </div>
     </div>
   );
@@ -336,7 +336,7 @@ export default function DashboardAdmin() {
 
       {/* Header: Tabs + Nueva Solicitud button */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30">
+        <div className="flex items-center gap-1 p-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-white/30 dark:border-slate-700/30">
           {tabs.map((tab) => (
             <button
               key={tab.key}
@@ -345,8 +345,8 @@ export default function DashboardAdmin() {
               className={clsx(
                 "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                 activeTab === tab.key
-                  ? "bg-white shadow-sm text-blue-600"
-                  : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+                  ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50"
               )}
             >
               <span>{tab.label}</span>
@@ -354,8 +354,8 @@ export default function DashboardAdmin() {
                 className={clsx(
                   "px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums",
                   activeTab === tab.key
-                    ? "bg-blue-100 text-blue-600"
-                    : "bg-slate-100 text-slate-500"
+                    ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400"
+                    : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
                 )}
               >
                 {tab.count}
@@ -373,11 +373,11 @@ export default function DashboardAdmin() {
       {/* Tabla principal */}
       <Card>
         <CardContent className="p-0">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <h2 className="text-base font-semibold text-slate-800">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
               {getTableTitle()}
             </h2>
-            <span className="text-xs text-slate-500 tabular-nums">
+            <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
               {currentData.length} {t("dash_items", "items")}
             </span>
           </div>
@@ -431,17 +431,17 @@ export default function DashboardAdmin() {
           <ScrollReveal delay={100}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Total Solicitudes */}
-              <Card className="bg-white/70 backdrop-blur-md border-white/30">
+              <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                 <CardContent className="flex flex-col gap-2 py-4 px-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+                    <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Total Solicitudes
                     </p>
-                    <div className="h-8 w-8 rounded-lg bg-blue-50 grid place-items-center flex-shrink-0">
-                      <FileText className="w-4 h-4 text-blue-600" />
+                    <div className="h-8 w-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 grid place-items-center flex-shrink-0">
+                      <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     </div>
                   </div>
-                  <p className="text-2xl font-bold text-slate-800">{kpiData.solicitudes.total}</p>
+                  <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{kpiData.solicitudes.total}</p>
                   <div className="flex items-center gap-1.5 text-xs">
                     {kpiData.solicitudes.trendPercentage >= 0 ? (
                       <span className="flex items-center gap-0.5 text-emerald-600 font-medium">
@@ -454,7 +454,7 @@ export default function DashboardAdmin() {
                         {kpiData.solicitudes.trendPercentage}%
                       </span>
                     )}
-                    <span className="text-slate-400">vs mes anterior</span>
+                    <span className="text-slate-400 dark:text-slate-500">vs mes anterior</span>
                   </div>
                 </CardContent>
               </Card>
@@ -471,10 +471,10 @@ export default function DashboardAdmin() {
                 const valueColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
 
                 return (
-                  <Card className="bg-white/70 backdrop-blur-md border-white/30">
+                  <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                     <CardContent className="flex flex-col gap-2 py-4 px-4">
                       <div className="flex items-center justify-between">
-                        <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+                        <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                           Tasa de Aprobación
                         </p>
                         <div className={`h-8 w-8 rounded-lg ${bgColor} grid place-items-center flex-shrink-0`}>
@@ -482,7 +482,7 @@ export default function DashboardAdmin() {
                         </div>
                       </div>
                       <p className={`text-2xl font-bold ${valueColor}`}>{tasaAprobacion}%</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-slate-400 dark:text-slate-500">
                         {kpiData.solicitudes.aprobadas} aprobadas de {kpiData.solicitudes.total}
                       </p>
                     </CardContent>
@@ -501,10 +501,10 @@ export default function DashboardAdmin() {
                 const valueColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
 
                 return (
-                  <Card className="bg-white/70 backdrop-blur-md border-white/30">
+                  <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                     <CardContent className="flex flex-col gap-2 py-4 px-4">
                       <div className="flex items-center justify-between">
-                        <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+                        <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                           Tiempo Promedio
                         </p>
                         <div className={`h-8 w-8 rounded-lg ${bgColor} grid place-items-center flex-shrink-0`}>
@@ -541,10 +541,10 @@ export default function DashboardAdmin() {
                 const textColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
 
                 return (
-                  <Card className="bg-white/70 backdrop-blur-md border-white/30">
+                  <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                     <CardContent className="flex flex-col gap-2 py-4 px-4">
                       <div className="flex items-center justify-between">
-                        <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+                        <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                           Presupuesto Utilizado
                         </p>
                         <div className={`h-8 w-8 rounded-lg ${bgColor} grid place-items-center flex-shrink-0`}>
@@ -568,33 +568,33 @@ export default function DashboardAdmin() {
           {/* Tendencia + Donut Chart */}
           <ScrollReveal delay={200}>
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              <Card className="lg:col-span-3 h-[280px] bg-white/70 backdrop-blur-md border-white/30">
+              <Card className="lg:col-span-3 h-[280px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                 <CardHeader className="px-6 pt-5 pb-3 text-center">
                   <CardTitle className="text-base">Tendencia de Solicitudes</CardTitle>
                 </CardHeader>
                 <CardContent className="px-6 pb-5 flex flex-col justify-between h-[calc(100%-60px)]">
                   <div className="flex-1 flex flex-col justify-center">
                     <TrendLine data={kpiData.solicitudes.trend} />
-                    <div className="grid grid-cols-7 gap-1 text-xs text-slate-500 text-center mt-2">
+                    <div className="grid grid-cols-7 gap-1 text-xs text-slate-500 dark:text-slate-400 text-center mt-2">
                       {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((day) => (
                         <div key={day}>{day}</div>
                       ))}
                     </div>
                   </div>
-                  <div className="pt-3 border-t border-white/20 flex items-center justify-between text-sm">
-                    <span className="text-slate-500">Promedio semanal</span>
-                    <span className="font-semibold text-slate-800">
+                  <div className="pt-3 border-t border-white/20 dark:border-slate-700/50 flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">Promedio semanal</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-100">
                       {Math.round(kpiData.solicitudes.trend.reduce((a, b) => a + b, 0) / Math.max(kpiData.solicitudes.trend.length, 1))} solicitudes
                     </span>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="lg:col-span-2 h-[280px] bg-white/70 backdrop-blur-md border-white/30">
+              <Card className="lg:col-span-2 h-[280px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                 <CardHeader className="px-6 pt-4 pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">Distribución de Estados</CardTitle>
-                    <div className="flex items-center gap-1 p-0.5 bg-slate-100 rounded-md">
+                    <div className="flex items-center gap-1 p-0.5 bg-slate-100 dark:bg-slate-700 rounded-md">
                       {[
                         { key: "semana", label: "Sem" },
                         { key: "mes", label: "Mes" },
@@ -635,11 +635,11 @@ export default function DashboardAdmin() {
           <ScrollReveal delay={250}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Materiales Más Solicitados */}
-              <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
+              <Card className="h-[320px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                 <CardHeader className="px-5 pt-4 pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">Materiales Más Solicitados</CardTitle>
-                    <div className="flex items-center gap-1 p-0.5 bg-slate-100 rounded-md">
+                    <div className="flex items-center gap-1 p-0.5 bg-slate-100 dark:bg-slate-700 rounded-md">
                       {[
                         { key: "semana", label: "Sem" },
                         { key: "mes", label: "Mes" },
@@ -674,11 +674,11 @@ export default function DashboardAdmin() {
                                 <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500/10 grid place-items-center text-xs font-bold text-blue-600">
                                   {idx + 1}
                                 </div>
-                                <span className="text-sm text-slate-700 font-medium truncate" title={material.nombre}>
+                                <span className="text-sm text-slate-700 dark:text-slate-300 font-medium truncate" title={material.nombre}>
                                   {material.nombre}
                                 </span>
                               </div>
-                              <span className="text-xs font-semibold text-slate-800 tabular-nums flex-shrink-0 ml-2">
+                              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 tabular-nums flex-shrink-0 ml-2">
                                 {(material.cantidad || 0).toLocaleString()}
                               </span>
                             </div>
@@ -692,14 +692,14 @@ export default function DashboardAdmin() {
                         );
                       })
                     ) : (
-                      <p className="text-sm text-slate-500 text-center py-4">No hay datos disponibles</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No hay datos disponibles</p>
                     )}
                   </div>
                 </CardContent>
               </Card>
 
               {/* Presupuesto por Centro */}
-              <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
+              <Card className="h-[320px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                 <CardHeader className="px-5 pt-5 pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">Presupuesto por Centro</CardTitle>
@@ -715,10 +715,10 @@ export default function DashboardAdmin() {
                         return (
                           <div key={idx} className="group">
                             <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-sm text-slate-700 font-medium truncate flex-1" title={centro.nombre}>
+                              <span className="text-sm text-slate-700 dark:text-slate-300 font-medium truncate flex-1" title={centro.nombre}>
                                 {centro.nombre}
                               </span>
-                              <span className="text-xs font-semibold text-slate-800 tabular-nums flex-shrink-0 ml-2">
+                              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 tabular-nums flex-shrink-0 ml-2">
                                 {formatCurrency(centro.valor)}
                               </span>
                             </div>
@@ -732,7 +732,7 @@ export default function DashboardAdmin() {
                         );
                       })
                     ) : (
-                      <p className="text-sm text-slate-500 text-center py-4">No hay datos disponibles</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No hay datos disponibles</p>
                     )}
                   </div>
                 </CardContent>
@@ -742,7 +742,7 @@ export default function DashboardAdmin() {
 
           {/* Resumen de Presupuesto - Con gráficos circulares */}
           <ScrollReveal delay={300}>
-            <Card className="bg-white/70 backdrop-blur-md border-white/30">
+            <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
               <CardHeader className="px-5 pt-5 pb-3 text-center">
                 <CardTitle className="text-base">Resumen de Presupuesto</CardTitle>
               </CardHeader>
@@ -752,7 +752,7 @@ export default function DashboardAdmin() {
                   <div className="flex items-center gap-3">
                     <ProgressCircle percentage={100} size="sm" color="#3b82f6" />
                     <div>
-                      <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-0.5">
+                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">
                         Total
                       </p>
                       <p className="text-base font-bold text-slate-800">
@@ -764,7 +764,7 @@ export default function DashboardAdmin() {
                   <div className="flex items-center gap-3">
                     <ProgressCircle percentage={kpiData.presupuesto.percentage} size="sm" color="#f59e0b" />
                     <div>
-                      <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-0.5">
+                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">
                         Utilizado
                       </p>
                       <p className="text-base font-bold text-amber-500">
@@ -776,7 +776,7 @@ export default function DashboardAdmin() {
                   <div className="flex items-center gap-3">
                     <ProgressCircle percentage={100 - kpiData.presupuesto.percentage} size="sm" color="#10b981" />
                     <div>
-                      <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-0.5">
+                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">
                         Disponible
                       </p>
                       <p className="text-base font-bold text-emerald-500">

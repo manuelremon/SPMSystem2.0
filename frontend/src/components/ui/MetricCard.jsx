@@ -45,23 +45,23 @@ export function MetricCard({
         className={clsx(
           // Glass base
           "flex items-center gap-3 px-4 py-3",
-          "bg-white/60 backdrop-blur-md",
-          "border border-white/40",
+          "bg-white/60 dark:bg-slate-800/60 backdrop-blur-md",
+          "border border-white/40 dark:border-slate-700/40",
           "rounded-[16px]",
           "shadow-glass-sm",
           // Highlight mode
-          highlight && "ring-2 ring-amber-400/50 bg-amber-50/50",
+          highlight && "ring-2 ring-amber-400/50 bg-amber-50/50 dark:bg-amber-900/30",
           // Interactive states
           "transition-all duration-300",
-          onClick ? "cursor-pointer hover:bg-white/80 hover:shadow-glow-primary" : "cursor-default"
+          onClick ? "cursor-pointer hover:bg-white/80 dark:hover:bg-slate-700/80 hover:shadow-glow-primary" : "cursor-default"
         )}
       >
         <div className={clsx("p-2 rounded-xl", highlight ? "bg-amber-500/10" : styles.iconBg)}>
           <Icon className={clsx("w-4 h-4", highlight ? "text-amber-600" : styles.iconColor)} />
         </div>
         <div className="text-left">
-          <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">{label}</p>
-          <p className={clsx("text-lg font-bold tabular-nums", highlight ? "text-amber-700" : "text-slate-800")}>
+          <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide font-medium">{label}</p>
+          <p className={clsx("text-lg font-bold tabular-nums", highlight ? "text-amber-700 dark:text-amber-400" : "text-slate-800 dark:text-slate-100")}>
             {value}
           </p>
         </div>
@@ -77,22 +77,22 @@ export function MetricCard({
       className={clsx(
         // Glass base
         "w-full",
-        "bg-white/60 backdrop-blur-md",
+        "bg-white/60 dark:bg-slate-800/60 backdrop-blur-md",
         "border",
         "rounded-[20px]",
         "shadow-glass-sm",
         // Active/default border
-        active ? styles.activeBorder : "border-white/40",
+        active ? styles.activeBorder : "border-white/40 dark:border-slate-700/40",
         // Interactive states
         "transition-all duration-300",
-        onClick ? "cursor-pointer hover:bg-white/80 hover:shadow-glow-primary" : "cursor-default"
+        onClick ? "cursor-pointer hover:bg-white/80 dark:hover:bg-slate-700/80 hover:shadow-glow-primary" : "cursor-default"
       )}
     >
       <div className="px-6 py-6">
         <div className="flex items-center justify-between">
           <div className="text-left">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{label}</p>
-            <p className="text-2xl font-bold text-slate-800 mt-1 tabular-nums">{value}</p>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</p>
+            <p className="text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1 tabular-nums">{value}</p>
           </div>
           <div
             className={clsx(

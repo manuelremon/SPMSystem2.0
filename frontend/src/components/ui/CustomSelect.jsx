@@ -50,32 +50,32 @@ export function CustomSelect({
             className={clsx(
               // Glass base
               "relative w-full cursor-pointer",
-              "bg-white/50 backdrop-blur-sm",
+              "bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm",
               "rounded-xl",
               "px-4 py-3 pr-10 text-left",
               // Typography
-              "text-sm text-slate-800",
+              "text-sm text-slate-800 dark:text-slate-200",
               // Transitions
               "transition-all duration-200",
               // Focus
               "focus:outline-none",
-              "focus:bg-white/70",
+              "focus:bg-white/70 dark:focus:bg-slate-700/70",
               // Disabled
-              disabled && "opacity-50 cursor-not-allowed bg-white/30",
+              disabled && "opacity-50 cursor-not-allowed bg-white/30 dark:bg-slate-800/30",
               // Border - Always blue (or red for error)
               error
-                ? "border border-red-400 ring-1 ring-red-100 focus:border-red-400 focus:ring-2 focus:ring-red-200"
-                : "border border-blue-300 ring-1 ring-blue-100 focus:border-blue-400 focus:ring-2 focus:ring-blue-200",
+                ? "border border-red-400 ring-1 ring-red-100 dark:ring-red-900/30 focus:border-red-400 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-900/50"
+                : "border border-blue-300 dark:border-blue-600 ring-1 ring-blue-100 dark:ring-blue-900/30 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800/50",
               // Hover
-              !error && "hover:bg-white/60 hover:border-blue-400",
+              !error && "hover:bg-white/60 dark:hover:bg-slate-700/60 hover:border-blue-400",
               // Open state
-              open && !error && "ring-2 ring-blue-200 border-blue-400 bg-white/70"
+              open && !error && "ring-2 ring-blue-200 dark:ring-blue-800/50 border-blue-400 bg-white/70 dark:bg-slate-700/70"
             )}
           >
             <span
               className={clsx(
                 "block truncate selected-text",
-                !selectedOption && "text-slate-400"
+                !selectedOption && "text-slate-400 dark:text-slate-500"
               )}
             >
               {selectedOption?.label || placeholder}
@@ -83,7 +83,7 @@ export function CustomSelect({
             <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
               <ChevronDown
                 className={clsx(
-                  "w-4 h-4 text-slate-500",
+                  "w-4 h-4 text-slate-500 dark:text-slate-400",
                   "transition-transform duration-200",
                   open && "rotate-180"
                 )}
@@ -103,8 +103,8 @@ export function CustomSelect({
               className={clsx(
                 // Glass dropdown
                 "absolute z-[9999] mt-2 w-full max-h-60 overflow-auto",
-                "bg-white/90 backdrop-blur-xl",
-                "border border-white/50",
+                "bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl",
+                "border border-white/50 dark:border-slate-700/50",
                 "rounded-xl",
                 "shadow-glass",
                 "focus:outline-none",
@@ -112,7 +112,7 @@ export function CustomSelect({
               )}
             >
               {options.length === 0 ? (
-                <li className="px-4 py-3 text-sm text-slate-500 text-center">
+                <li className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400 text-center">
                   No hay opciones disponibles
                 </li>
               ) : (
@@ -130,9 +130,9 @@ export function CustomSelect({
                         "animate-menu-item-reveal",
                         `menu-item-stagger-${Math.min(idx + 1, 7)}`,
                         option.disabled && "opacity-50 cursor-not-allowed",
-                        active && "bg-blue-50/70 text-blue-600",
-                        selected && !active && "text-blue-600",
-                        !active && !selected && "text-slate-700"
+                        active && "bg-blue-50/70 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400",
+                        selected && !active && "text-blue-600 dark:text-blue-400",
+                        !active && !selected && "text-slate-700 dark:text-slate-300"
                       )
                     }
                   >

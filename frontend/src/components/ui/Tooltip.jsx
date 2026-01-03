@@ -86,7 +86,7 @@ export function Tooltip({ children, content, position = "top", delay = 200, clas
             "fixed z-[9999] pointer-events-none",
             // Glass style
             "px-3 py-1.5 rounded-md",
-            "bg-slate-900 text-white",
+            "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900",
             "shadow-lg",
             // Text
             "text-xs font-medium whitespace-nowrap",

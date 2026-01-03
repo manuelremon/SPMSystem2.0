@@ -534,16 +534,30 @@ table thead th:hover {
 
 /* Asegurar que el borde inferior sea visible */
 table thead tr {
-  border-bottom: 2px solid rgb(203 213 225 / 0.8) !important;
+  border-bottom: 2px solid var(--border-glass-strong) !important;
+}
+
+/* Dark mode: ajustar borde del header */
+[data-theme="dark"] table thead tr {
+  border-bottom: 2px solid rgba(148, 163, 184, 0.3) !important; /* slate-400 with opacity */
 }
 
 /* Estilos para tbody - mejorar contraste */
 table tbody tr {
-  border-bottom: 1px solid rgb(226 232 240 / 0.6) !important; /* slate-200 */
+  border-bottom: 1px solid var(--border) !important;
 }
 
 table tbody tr:hover {
-  background-color: rgb(248 250 252 / 0.8) !important; /* slate-50 */
+  background-color: var(--bg-soft) !important;
+}
+
+/* Dark mode table adjustments */
+[data-theme="dark"] table tbody tr {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15) !important;
+}
+
+[data-theme="dark"] table tbody tr:hover {
+  background-color: rgba(51, 65, 85, 0.5) !important; /* slate-700/50 */
 }
 
 

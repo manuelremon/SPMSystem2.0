@@ -59,8 +59,8 @@ function DonutChart({ data, colors, labels }) {
           })}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-bold text-slate-800">{total}</span>
-          <span className="text-xs text-slate-500 uppercase tracking-wider">Total</span>
+          <span className="text-3xl font-bold text-slate-800 dark:text-slate-100">{total}</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total</span>
         </div>
       </div>
       <div className="ml-6 space-y-3">
@@ -68,9 +68,9 @@ function DonutChart({ data, colors, labels }) {
           <div key={idx} className="flex items-center gap-3">
             <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: colors[idx] }} />
             <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-600">{label}</span>
-              <span className="text-sm font-semibold text-slate-800">{data[idx]}</span>
-              <span className="text-xs text-slate-400">({total > 0 ? Math.round((data[idx] / total) * 100) : 0}%)</span>
+              <span className="text-sm text-slate-600 dark:text-slate-400">{label}</span>
+              <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{data[idx]}</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500">({total > 0 ? Math.round((data[idx] / total) * 100) : 0}%)</span>
             </div>
           </div>
         ))}
@@ -126,7 +126,7 @@ function ProgressCircle({ percentage, color = "#3b82f6" }) {
           strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-500" />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-xl font-bold text-slate-800">{percentage}%</span>
+        <span className="text-xl font-bold text-slate-800 dark:text-slate-100">{percentage}%</span>
       </div>
     </div>
   );
@@ -214,14 +214,14 @@ export default function DashboardAprobador() {
     <div className="space-y-6">
       {/* Header: Tabs + Button */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30">
+        <div className="flex items-center gap-1 p-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-white/30 dark:border-slate-700/30">
           {tabs.map((tab) => (
             <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)}
               className={clsx("flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                activeTab === tab.key ? "bg-white shadow-sm text-blue-600" : "text-slate-600 hover:text-slate-800 hover:bg-white/50")}>
+                activeTab === tab.key ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50")}>
               <span>{tab.label}</span>
               <span className={clsx("px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums",
-                activeTab === tab.key ? "bg-blue-100 text-blue-600" : "bg-slate-100 text-slate-500")}>{tab.count}</span>
+                activeTab === tab.key ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400" : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400")}>{tab.count}</span>
             </button>
           ))}
         </div>
@@ -234,9 +234,9 @@ export default function DashboardAprobador() {
       {/* Tabla principal */}
       <Card>
         <CardContent className="p-0">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <h2 className="text-base font-semibold text-slate-800">{getTableTitle()}</h2>
-            <span className="text-xs text-slate-500 tabular-nums">{currentData.length} {t("dash_items", "items")}</span>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">{getTableTitle()}</h2>
+            <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">{currentData.length} {t("dash_items", "items")}</span>
           </div>
           <div className="p-4">
             {loading ? (
@@ -244,7 +244,7 @@ export default function DashboardAprobador() {
             ) : currentData.length === 0 ? (
               <div className="py-16 text-center">
                 <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto mb-4 opacity-60" />
-                <p className="text-slate-500 text-sm">
+                <p className="text-slate-500 dark:text-slate-400 text-sm">
                   {activeTab === "pendientes" ? t("dash_no_pending_approval", "No hay solicitudes pendientes de aprobación") : t("dash_no_requests_category", "No hay solicitudes en esta categoría")}
                 </p>
               </div>
@@ -263,12 +263,12 @@ export default function DashboardAprobador() {
           {/* Métricas principales */}
           <ScrollReveal delay={100}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
+              <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                 <CardContent className="h-full flex flex-col justify-between py-5">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Total Solicitudes</p>
-                      <p className="text-3xl font-bold text-slate-800">{kpiData.solicitudes.total}</p>
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Total Solicitudes</p>
+                      <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{kpiData.solicitudes.total}</p>
                     </div>
                     <div className="h-12 w-12 rounded-2xl bg-blue-500/10 grid place-items-center"><FileText className="w-6 h-6 text-blue-600" /></div>
                   </div>
@@ -278,7 +278,7 @@ export default function DashboardAprobador() {
                     ) : (
                       <div className="flex items-center gap-1 text-red-600"><TrendingDown className="w-4 h-4" /><span className="font-semibold">{kpiData.solicitudes.trendPercentage}%</span></div>
                     )}
-                    <span className="text-slate-500">vs mes anterior</span>
+                    <span className="text-slate-500 dark:text-slate-400">vs mes anterior</span>
                   </div>
                 </CardContent>
               </Card>
@@ -291,16 +291,16 @@ export default function DashboardAprobador() {
                 const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
                 const IconComp = isGood ? CheckCircle2 : isWarning ? Clock : XCircle;
                 return (
-                  <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
+                  <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                     <CardContent className="h-full flex flex-col justify-between py-5">
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Tasa de Aprobación</p>
+                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Tasa de Aprobación</p>
                           <p className={`text-3xl font-bold ${isGood ? 'text-emerald-600' : isWarning ? 'text-amber-600' : 'text-red-600'}`}>{tasaAprobacion}%</p>
                         </div>
                         <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><IconComp className={`w-6 h-6 ${iconColor}`} /></div>
                       </div>
-                      <div className="text-sm text-slate-500">{kpiData.solicitudes.aprobadas} aprobadas de {kpiData.solicitudes.total}</div>
+                      <div className="text-sm text-slate-500 dark:text-slate-400">{kpiData.solicitudes.aprobadas} aprobadas de {kpiData.solicitudes.total}</div>
                     </CardContent>
                   </Card>
                 );
@@ -315,11 +315,11 @@ export default function DashboardAprobador() {
                 const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
                 const valueColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
                 return (
-                  <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
+                  <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                     <CardContent className="h-full flex flex-col justify-between py-5">
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Tiempo Promedio</p>
+                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Tiempo Promedio</p>
                           <p className={`text-3xl font-bold ${valueColor}`}>{promedio} días</p>
                         </div>
                         <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><Clock className={`w-6 h-6 ${iconColor}`} /></div>
@@ -327,7 +327,7 @@ export default function DashboardAprobador() {
                       <div className="flex items-center gap-2 text-sm">
                         {isGood ? <div className="flex items-center gap-1 text-emerald-600"><TrendingDown className="w-4 h-4" /><span className="font-semibold">Bajo meta</span></div>
                           : <div className="flex items-center gap-1 text-amber-600"><TrendingUp className="w-4 h-4" /><span className="font-semibold">Sobre meta</span></div>}
-                        <span className="text-slate-500">Meta: {meta} días</span>
+                        <span className="text-slate-500 dark:text-slate-400">Meta: {meta} días</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -342,16 +342,16 @@ export default function DashboardAprobador() {
                 const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
                 const textColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
                 return (
-                  <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
+                  <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                     <CardContent className="h-full flex flex-col justify-between py-5">
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Presupuesto</p>
-                          <p className="text-2xl font-bold text-slate-800">{formatCurrency(kpiData.presupuesto.utilizado)}</p>
+                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Presupuesto</p>
+                          <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(kpiData.presupuesto.utilizado)}</p>
                         </div>
                         <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><DollarSign className={`w-6 h-6 ${iconColor}`} /></div>
                       </div>
-                      <div className="text-sm"><span className={`font-semibold ${textColor}`}>{percentage}%</span><span className="text-slate-500"> de {formatCurrency(kpiData.presupuesto.total)}</span></div>
+                      <div className="text-sm"><span className={`font-semibold ${textColor}`}>{percentage}%</span><span className="text-slate-500 dark:text-slate-400"> de {formatCurrency(kpiData.presupuesto.total)}</span></div>
                     </CardContent>
                   </Card>
                 );
@@ -362,20 +362,20 @@ export default function DashboardAprobador() {
           {/* Tendencia + Donut */}
           <ScrollReveal delay={200}>
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              <Card className="lg:col-span-3 h-[280px] bg-white/70 backdrop-blur-md border-white/30">
+              <Card className="lg:col-span-3 h-[280px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                 <CardHeader className="px-6 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Tendencia de Solicitudes</CardTitle><BarChart3 className="w-5 h-5 text-blue-600" /></div></CardHeader>
                 <CardContent className="px-6 pb-5 flex flex-col justify-between h-[calc(100%-60px)]">
                   <div className="flex-1 flex flex-col justify-center">
                     <TrendLine data={kpiData.solicitudes.trend} />
-                    <div className="grid grid-cols-7 gap-1 text-xs text-slate-500 text-center mt-2">{["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((day) => <div key={day}>{day}</div>)}</div>
+                    <div className="grid grid-cols-7 gap-1 text-xs text-slate-500 dark:text-slate-400 text-center mt-2">{["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((day) => <div key={day}>{day}</div>)}</div>
                   </div>
-                  <div className="pt-3 border-t border-white/20 flex items-center justify-between text-sm">
-                    <span className="text-slate-500">Promedio semanal</span>
-                    <span className="font-semibold text-slate-800">{Math.round(kpiData.solicitudes.trend.reduce((a, b) => a + b, 0) / Math.max(kpiData.solicitudes.trend.length, 1))} solicitudes</span>
+                  <div className="pt-3 border-t border-white/20 dark:border-slate-700/50 flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">Promedio semanal</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-100">{Math.round(kpiData.solicitudes.trend.reduce((a, b) => a + b, 0) / Math.max(kpiData.solicitudes.trend.length, 1))} solicitudes</span>
                   </div>
                 </CardContent>
               </Card>
-              <Card className="lg:col-span-2 h-[280px] bg-white/70 backdrop-blur-md border-white/30">
+              <Card className="lg:col-span-2 h-[280px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                 <CardHeader className="px-6 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Distribución de Estados</CardTitle><BarChart3 className="w-5 h-5 text-blue-600" /></div></CardHeader>
                 <CardContent className="px-6 pb-5 flex items-center justify-center h-[calc(100%-60px)]">
                   <DonutChart data={[kpiData.solicitudes.aprobadas, kpiData.solicitudes.rechazadas, kpiData.solicitudes.pendientes]} colors={["#10b981", "#ef4444", "#f59e0b"]} labels={["Aprobadas", "Rechazadas", "Pendientes"]} />
@@ -387,7 +387,7 @@ export default function DashboardAprobador() {
           {/* Materiales | Presupuesto */}
           <ScrollReveal delay={250}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
+              <Card className="h-[320px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                 <CardHeader className="px-5 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Materiales Más Solicitados</CardTitle><Package className="w-5 h-5 text-blue-600" /></div></CardHeader>
                 <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
                   <div className="space-y-3">
@@ -396,18 +396,18 @@ export default function DashboardAprobador() {
                       return (
                         <div key={idx} className="group">
                           <div className="flex items-center justify-between mb-1.5">
-                            <div className="flex items-center gap-2 min-w-0 flex-1"><div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500/10 grid place-items-center text-xs font-bold text-blue-600">{idx + 1}</div><span className="text-sm text-slate-700 font-medium truncate" title={m.nombre}>{m.nombre}</span></div>
-                            <span className="text-xs font-semibold text-slate-800 tabular-nums flex-shrink-0 ml-2">{(m.cantidad || 0).toLocaleString()}</span>
+                            <div className="flex items-center gap-2 min-w-0 flex-1"><div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500/10 grid place-items-center text-xs font-bold text-blue-600 dark:text-blue-400">{idx + 1}</div><span className="text-sm text-slate-700 dark:text-slate-300 font-medium truncate" title={m.nombre}>{m.nombre}</span></div>
+                            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 tabular-nums flex-shrink-0 ml-2">{(m.cantidad || 0).toLocaleString()}</span>
                           </div>
-                          <div className="h-2.5 bg-slate-100/70 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-500 group-hover:from-blue-600 group-hover:to-blue-500" style={{ width: `${(m.cantidad / maxC) * 100}%` }} /></div>
+                          <div className="h-2.5 bg-slate-100/70 dark:bg-slate-700/70 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-500 group-hover:from-blue-600 group-hover:to-blue-500" style={{ width: `${(m.cantidad / maxC) * 100}%` }} /></div>
                         </div>
                       );
-                    }) : <p className="text-sm text-slate-500 text-center py-4">No hay datos disponibles</p>}
+                    }) : <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No hay datos disponibles</p>}
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
+              <Card className="h-[320px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                 <CardHeader className="px-5 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Presupuesto por Centro</CardTitle><DollarSign className="w-5 h-5 text-emerald-600" /></div></CardHeader>
                 <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
                   <div className="space-y-3">
@@ -415,11 +415,11 @@ export default function DashboardAprobador() {
                       const maxV = Math.max(...kpiData.presupuesto.porCentro.map(x => x.valor), 1);
                       return (
                         <div key={idx} className="group">
-                          <div className="flex items-center justify-between mb-1.5"><span className="text-sm text-slate-700 font-medium truncate flex-1" title={c.nombre}>{c.nombre}</span><span className="text-xs font-semibold text-slate-800 tabular-nums flex-shrink-0 ml-2">{formatCurrency(c.valor)}</span></div>
-                          <div className="h-2.5 bg-slate-100/70 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500 group-hover:from-emerald-600 group-hover:to-emerald-500" style={{ width: `${(c.valor / maxV) * 100}%` }} /></div>
+                          <div className="flex items-center justify-between mb-1.5"><span className="text-sm text-slate-700 dark:text-slate-300 font-medium truncate flex-1" title={c.nombre}>{c.nombre}</span><span className="text-xs font-semibold text-slate-800 dark:text-slate-200 tabular-nums flex-shrink-0 ml-2">{formatCurrency(c.valor)}</span></div>
+                          <div className="h-2.5 bg-slate-100/70 dark:bg-slate-700/70 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500 group-hover:from-emerald-600 group-hover:to-emerald-500" style={{ width: `${(c.valor / maxV) * 100}%` }} /></div>
                         </div>
                       );
-                    }) : <p className="text-sm text-slate-500 text-center py-4">No hay datos disponibles</p>}
+                    }) : <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No hay datos disponibles</p>}
                   </div>
                 </CardContent>
               </Card>
@@ -428,15 +428,15 @@ export default function DashboardAprobador() {
 
           {/* Resumen Presupuesto */}
           <ScrollReveal delay={300}>
-            <Card className="bg-white/70 backdrop-blur-md border-white/30">
+            <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
               <CardHeader className="px-6 pt-6 pb-4"><CardTitle>Resumen de Presupuesto</CardTitle></CardHeader>
               <CardContent className="px-6 pb-6">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-8">
                   <div className="flex-shrink-0"><ProgressCircle percentage={kpiData.presupuesto.percentage} /></div>
                   <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
-                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Presupuesto Total</p><p className="text-2xl font-bold text-slate-800">{formatCurrency(kpiData.presupuesto.total)}</p></div>
-                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Utilizado</p><p className="text-2xl font-bold text-amber-500">{formatCurrency(kpiData.presupuesto.utilizado)}</p></div>
-                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Disponible</p><p className="text-2xl font-bold text-emerald-500">{formatCurrency(kpiData.presupuesto.disponible)}</p></div>
+                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Presupuesto Total</p><p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(kpiData.presupuesto.total)}</p></div>
+                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Utilizado</p><p className="text-2xl font-bold text-amber-500 dark:text-amber-400">{formatCurrency(kpiData.presupuesto.utilizado)}</p></div>
+                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Disponible</p><p className="text-2xl font-bold text-emerald-500 dark:text-emerald-400">{formatCurrency(kpiData.presupuesto.disponible)}</p></div>
                   </div>
                 </div>
               </CardContent>

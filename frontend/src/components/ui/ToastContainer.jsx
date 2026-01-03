@@ -19,17 +19,17 @@ import {
   MessageSquare
 } from "./Icons";
 
-// Mapeo de tipos a iconos y colores
+// Mapeo de tipos a iconos y colores (con soporte dark mode)
 const toastConfig = {
-  info: { icon: Info, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" },
-  success: { icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200" },
-  warning: { icon: AlertCircle, color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200" },
-  error: { icon: XCircle, color: "text-red-600", bg: "bg-red-50", border: "border-red-200" },
-  solicitud_created: { icon: FileText, color: "text-cyan-600", bg: "bg-cyan-50", border: "border-cyan-200" },
-  solicitud_approved: { icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200" },
-  solicitud_rejected: { icon: XCircle, color: "text-red-600", bg: "bg-red-50", border: "border-red-200" },
-  solicitud_planned: { icon: Clock, color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200" },
-  mensaje_nuevo: { icon: MessageSquare, color: "text-indigo-600", bg: "bg-indigo-50", border: "border-indigo-200" },
+  info: { icon: Info, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-900/40", border: "border-blue-200 dark:border-blue-700" },
+  success: { icon: CheckCircle, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/40", border: "border-emerald-200 dark:border-emerald-700" },
+  warning: { icon: AlertCircle, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/40", border: "border-amber-200 dark:border-amber-700" },
+  error: { icon: XCircle, color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-900/40", border: "border-red-200 dark:border-red-700" },
+  solicitud_created: { icon: FileText, color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50 dark:bg-cyan-900/40", border: "border-cyan-200 dark:border-cyan-700" },
+  solicitud_approved: { icon: CheckCircle, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/40", border: "border-emerald-200 dark:border-emerald-700" },
+  solicitud_rejected: { icon: XCircle, color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-900/40", border: "border-red-200 dark:border-red-700" },
+  solicitud_planned: { icon: Clock, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/40", border: "border-amber-200 dark:border-amber-700" },
+  mensaje_nuevo: { icon: MessageSquare, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-900/40", border: "border-indigo-200 dark:border-indigo-700" },
 };
 
 function getConfig(type) {
@@ -62,11 +62,11 @@ function Toast({ toast, onClose, onClick }) {
 
       {/* Contenido */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-slate-800 line-clamp-2">
+        <p className="text-sm font-medium text-slate-800 dark:text-slate-100 line-clamp-2">
           {toast.message}
         </p>
         {toast.solicitudId && (
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Solicitud #{toast.solicitudId}
           </p>
         )}
@@ -78,7 +78,7 @@ function Toast({ toast, onClose, onClick }) {
           e.stopPropagation();
           onClose(toast.id);
         }}
-        className="flex-shrink-0 p-1 rounded-lg hover:bg-white/50 text-slate-400 hover:text-slate-600 transition-colors"
+        className="flex-shrink-0 p-1 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
       >
         <X className="w-4 h-4" />
       </button>
