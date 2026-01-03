@@ -22,11 +22,11 @@ export function PageHeader({
       <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           {displayBadge && (
-            <span className="inline-flex items-center px-2.5 py-1 mb-2 text-[10px] font-semibold uppercase tracking-wider text-blue-600 bg-blue-50/70 rounded-full border border-blue-200/50">
+            <span className="inline-flex items-center px-2.5 py-1 mb-2 text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50/70 dark:bg-blue-900/30 rounded-full border border-blue-200/50 dark:border-blue-700/50">
               {displayBadge}
             </span>
           )}
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight uppercase">
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">
             {title}
           </h1>
         </div>

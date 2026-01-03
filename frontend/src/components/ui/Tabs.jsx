@@ -44,7 +44,7 @@ export function TabsList({ children, className, ...props }) {
   const { variant } = useContext(TabsContext);
 
   const variantStyles = {
-    default: "bg-white/50 backdrop-blur-sm p-1 rounded-xl border border-white/30 gap-1",
+    default: "bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm p-1 rounded-xl border border-white/30 dark:border-white/10 gap-1",
     pills: "gap-2",
     underline: "border-b border-white/30 gap-0",
   };
@@ -83,20 +83,20 @@ export function TabsTrigger({ children, value, className, disabled = false, ...p
     default: clsx(
       "px-4 py-2 rounded-lg",
       isActive
-        ? "bg-white shadow-sm text-blue-600"
-        : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+        ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400"
+        : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50"
     ),
     pills: clsx(
       "px-4 py-2 rounded-full border",
       isActive
         ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-500/50 shadow-lg"
-        : "bg-white/50 backdrop-blur-sm text-slate-600 border-white/30 hover:border-white/50 hover:text-slate-800"
+        : "bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm text-slate-600 dark:text-slate-400 border-white/30 dark:border-white/10 hover:border-white/50 dark:hover:border-white/20 hover:text-slate-800 dark:hover:text-slate-200"
     ),
     underline: clsx(
       "px-4 py-3 border-b-2 -mb-px",
       isActive
-        ? "text-blue-600 border-blue-600"
-        : "text-slate-600 border-transparent hover:text-slate-800 hover:border-slate-200"
+        ? "text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400"
+        : "text-slate-600 dark:text-slate-400 border-transparent hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-200 dark:hover:border-slate-600"
     ),
   };
 
