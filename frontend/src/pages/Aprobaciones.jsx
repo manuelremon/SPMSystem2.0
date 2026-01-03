@@ -12,7 +12,7 @@ import { Alert } from "../components/ui/Alert";
 import { TableSkeleton } from "../components/ui/Skeleton";
 import { ScrollReveal } from "../components/ui/ScrollReveal";
 import { useI18n } from "../context/i18n";
-import { formatCurrency, formatAlmacen } from "../utils/formatters";
+import { formatCurrency, formatAlmacen, formatDate } from "../utils/formatters";
 import { useDebounced } from "../hooks/useDebounced";
 import { Modal } from "../components/ui/Modal";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/Tabs";
@@ -195,16 +195,11 @@ export default function Aprobaciones() {
       key: "fecha_creacion",
       header: t("aprov_fecha_creacion", "Fecha"),
       sortAccessor: (row) => row.created_at || "",
-      render: (row) => {
-        const fecha = row.created_at;
-        if (!fecha) return <span className="text-sm text-slate-500">-</span>;
-        const d = new Date(fecha);
-        return (
-          <span className="text-sm text-slate-700">
-            {d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit" })}
-          </span>
-        );
-      },
+      render: (row) => (
+        <span className="text-sm text-slate-700 dark:text-slate-300">
+          {formatDate(row.created_at)}
+        </span>
+      ),
     },
     {
       key: "solicitante",
@@ -247,16 +242,11 @@ export default function Aprobaciones() {
       key: "fecha_necesidad",
       header: t("aprov_fecha_necesidad", "F. Necesidad"),
       sortAccessor: (row) => row.fecha_necesidad || "",
-      render: (row) => {
-        const fecha = row.fecha_necesidad;
-        if (!fecha) return <span className="text-sm text-slate-500">-</span>;
-        const d = new Date(fecha);
-        return (
-          <span className="text-sm text-slate-700">
-            {d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit" })}
-          </span>
-        );
-      },
+      render: (row) => (
+        <span className="text-sm text-slate-700 dark:text-slate-300">
+          {formatDate(row.fecha_necesidad)}
+        </span>
+      ),
     },
     {
       key: "criticidad",

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useI18n } from "../../context/i18n";
 import { getEstadoConfig } from "../../utils/styleConfig";
+import { formatDate } from "../../utils/formatters";
 
 /**
  * StatusBadge con icono y texto coloreado (estilo consistente con criticidad)
@@ -153,18 +154,9 @@ export default function StatusBadge({
   );
 }
 
-// Helper para formatear fecha corta
+// Helper para formatear fecha corta - usa formatDate de formatters
 function formatDateShort(dateStr) {
   if (!dateStr) return "";
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return "";
-    return date.toLocaleDateString("es-AR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "2-digit"
-    });
-  } catch {
-    return "";
-  }
+  const result = formatDate(dateStr);
+  return result === "N/D" ? "" : result;
 }

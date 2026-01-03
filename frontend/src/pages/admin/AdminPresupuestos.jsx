@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { admin } from '../../services/spm'
-import { formatCurrency } from '../../utils/formatters'
+import { formatCurrency, formatDateTime } from '../../utils/formatters'
 import { Card, CardContent } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { PageHeader } from '../../components/ui/PageHeader'
@@ -236,16 +236,12 @@ export default function AdminPresupuestos() {
     {
       key: 'created_at',
       header: 'Fecha',
-      render: (row) => {
-        if (!row.created_at) return '-'
-        const date = new Date(row.created_at)
-        return (
-          <span className="text-xs text-slate-500 flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            {date.toLocaleDateString('es-AR')} {date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-          </span>
-        )
-      }
+      render: (row) => (
+        <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 tabular-nums">
+          <Clock className="w-3 h-3" />
+          {formatDateTime(row.created_at)}
+        </span>
+      )
     },
   ]
 

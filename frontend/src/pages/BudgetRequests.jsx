@@ -12,7 +12,7 @@ import { PageHeader } from "../components/ui/PageHeader";
 import { Alert } from "../components/ui/Alert";
 import { TableSkeleton } from "../components/ui/Skeleton";
 import { useI18n } from "../context/i18n";
-import { formatCurrency } from "../utils/formatters";
+import { formatCurrency, formatDateTime } from "../utils/formatters";
 import { useDebounced } from "../hooks/useDebounced";
 import { Modal } from "../components/ui/Modal";
 import { XCircle, CheckCircle, RefreshCw, Plus, Eye, TrendingUp, TrendingDown, FileText } from "../components/ui/Icons";
@@ -258,17 +258,11 @@ export default function BudgetRequests() {
       key: "created_at",
       header: t("ledger_col_fecha", "Fecha"),
       sortAccessor: (row) => row.created_at || "",
-      render: (row) => {
-        const date = new Date(row.created_at);
-        return (
-          <span className="text-sm text-slate-600">
-            {date.toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
-            <span className="text-xs text-slate-400 ml-1">
-              {date.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
-            </span>
-          </span>
-        );
-      },
+      render: (row) => (
+        <span className="text-sm text-slate-600 dark:text-slate-400 tabular-nums">
+          {formatDateTime(row.created_at)}
+        </span>
+      ),
     },
     {
       key: "tipo_movimiento",

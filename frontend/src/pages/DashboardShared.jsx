@@ -1,6 +1,6 @@
 import React from "react";
 import StatusBadge from "../components/ui/StatusBadge";
-import { formatCurrency, formatAlmacen } from "../utils/formatters";
+import { formatCurrency, formatAlmacen, formatDate } from "../utils/formatters";
 import { withSpmAlignments } from "../utils/tableAlignments";
 import { getCriticidadConfig } from "../utils/styleConfig";
 
@@ -37,15 +37,11 @@ export function getTableColumns(t) {
       key: "fecha_creacion",
       header: t("dash_table_fecha", "Fecha"),
       sortAccessor: (row) => new Date(row.created_at).getTime() || 0,
-      render: (row) => {
-        if (!row.created_at) return <span className="text-xs text-slate-400">-</span>;
-        const date = new Date(row.created_at);
-        return (
-          <span className="text-xs text-slate-500 tabular-nums">
-            {date.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit" })}
-          </span>
-        );
-      },
+      render: (row) => (
+        <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+          {formatDate(row.created_at)}
+        </span>
+      ),
     },
     {
       key: "estado",
