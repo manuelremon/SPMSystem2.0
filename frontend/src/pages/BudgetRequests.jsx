@@ -47,9 +47,12 @@ export default function BudgetRequests() {
   const [mainTab, setMainTab] = useState("historial"); // "solicitudes" | "historial"
   const [tab, setTab] = useState("todas");
 
-  // Ledger state
+  // Ledger state with pagination (SPRINT 3.1)
   const [ledgerEntries, setLedgerEntries] = useState([]);
   const [ledgerLoading, setLedgerLoading] = useState(false);
+  const [ledgerPage, setLedgerPage] = useState(1);
+  const [ledgerTotal, setLedgerTotal] = useState(0);
+  const LEDGER_PAGE_SIZE = 50;
 
   // Modals
   const [approveModal, setApproveModal] = useState({ open: false, id: null, comentario: "" });
@@ -74,18 +77,20 @@ export default function BudgetRequests() {
     }
   }, [tab]);
 
-  const loadLedger = useCallback(async () => {
+  const loadLedger = useCallback(async (page = ledgerPage) => {
     setLedgerLoading(true);
     setError("");
     try {
-      const res = await budget.getLedger({ limit: 100 });
+      const offset = (page - 1) * LEDGER_PAGE_SIZE;
+      const res = await budget.getLedger({ limit: LEDGER_PAGE_SIZE, offset });
       setLedgerEntries(res.data.entries || []);
+      setLedgerTotal(res.data.total || res.data.entries?.length || 0);
     } catch (err) {
       setError(err.response?.data?.error?.message || err.message);
     } finally {
       setLedgerLoading(false);
     }
-  }, []);
+  }, [ledgerPage]);
 
   useEffect(() => {
     if (mainTab === "solicitudes") {
@@ -130,13 +135,15 @@ export default function BudgetRequests() {
       await budget.aprobar(approveModal.id, approveModal.comentario);
       setMsg(t("bur_aprobada_msg", "Solicitud de presupuesto aprobada"));
       setTimeout(() => setMsg(""), 3000);
-      load();
+      // SPRINT 3.2: Sync ambas tabs después de aprobar
+      await Promise.all([load(), loadLedger(1)]);
+      setLedgerPage(1); // Reset a primera página
     } catch (err) {
       setError(err.response?.data?.error?.message || err.message);
     } finally {
       setApproveModal({ open: false, id: null, comentario: "" });
     }
-  }, [approveModal.id, approveModal.comentario, load, t]);
+  }, [approveModal.id, approveModal.comentario, load, loadLedger, t]);
 
   const openRejectModal = useCallback((id) => {
     setRejectModal({ open: true, id, motivo: "" });
@@ -155,13 +162,15 @@ export default function BudgetRequests() {
       await budget.rechazar(rejectModal.id, motivo);
       setMsg(t("bur_rechazada_msg", "Solicitud de presupuesto rechazada"));
       setTimeout(() => setMsg(""), 3000);
-      load();
+      // SPRINT 3.2: Sync ambas tabs después de rechazar
+      await Promise.all([load(), loadLedger(1)]);
+      setLedgerPage(1);
     } catch (err) {
       setError(err.response?.data?.error?.message || err.message);
     } finally {
       setRejectModal({ open: false, id: null, motivo: "" });
     }
-  }, [rejectModal.id, rejectModal.motivo, load, t]);
+  }, [rejectModal.id, rejectModal.motivo, load, loadLedger, t]);
 
   const columns = useMemo(() => withSpmAlignments([
     {
@@ -435,11 +444,51 @@ export default function BudgetRequests() {
             {ledgerLoading ? (
               <TableSkeleton rows={5} columns={8} />
             ) : (
-              <DataTable
-                columns={ledgerColumns}
-                rows={ledgerEntries}
-                emptyMessage={t("ledger_empty", "No hay movimientos de presupuesto")}
-              />
+              <>
+                <DataTable
+                  columns={ledgerColumns}
+                  rows={ledgerEntries}
+                  emptyMessage={t("ledger_empty", "No hay movimientos de presupuesto")}
+                />
+                {/* SPRINT 3.1: Paginación */}
+                {ledgerTotal > LEDGER_PAGE_SIZE && (
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <span className="text-sm text-slate-500 dark:text-slate-400">
+                      {t("ledger_mostrando", "Mostrando")} {((ledgerPage - 1) * LEDGER_PAGE_SIZE) + 1}-
+                      {Math.min(ledgerPage * LEDGER_PAGE_SIZE, ledgerTotal)} {t("ledger_de", "de")} {ledgerTotal}
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={ledgerPage === 1 || ledgerLoading}
+                        onClick={() => {
+                          const newPage = ledgerPage - 1;
+                          setLedgerPage(newPage);
+                          loadLedger(newPage);
+                        }}
+                      >
+                        {t("common_anterior", "Anterior")}
+                      </Button>
+                      <span className="flex items-center px-3 text-sm text-slate-600 dark:text-slate-400">
+                        {ledgerPage} / {Math.ceil(ledgerTotal / LEDGER_PAGE_SIZE)}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={ledgerPage >= Math.ceil(ledgerTotal / LEDGER_PAGE_SIZE) || ledgerLoading}
+                        onClick={() => {
+                          const newPage = ledgerPage + 1;
+                          setLedgerPage(newPage);
+                          loadLedger(newPage);
+                        }}
+                      >
+                        {t("common_siguiente", "Siguiente")}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
@@ -492,7 +541,7 @@ export default function BudgetRequests() {
         </Card>
       )}
 
-      {/* Modal de aprobacion */}
+      {/* Modal de aprobacion - SPRINT 3.4: Con impacto visible */}
       <Modal
         isOpen={approveModal.open}
         onClose={() => setApproveModal({ open: false, id: null, comentario: "" })}
@@ -513,6 +562,50 @@ export default function BudgetRequests() {
           </>
         }
       >
+        {/* SPRINT 3.4: Mostrar impacto de la aprobación */}
+        {(() => {
+          const selectedBur = items.find(b => b.id === approveModal.id);
+          if (!selectedBur) return null;
+          const saldoActual = selectedBur.saldo_actual_usd || 0;
+          const montoSolicitado = selectedBur.monto_solicitado_usd || 0;
+          const nuevoSaldo = saldoActual + montoSolicitado;
+          return (
+            <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-slate-500 dark:text-slate-400">{t("bur_col_centro", "Centro")}:</span>
+                  <span className="ml-2 font-medium text-slate-800 dark:text-slate-200">{selectedBur.centro}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 dark:text-slate-400">{t("bur_col_sector", "Sector")}:</span>
+                  <span className="ml-2 font-medium text-slate-800 dark:text-slate-200">{selectedBur.sector}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 dark:text-slate-400">{t("bur_col_monto", "Monto")}:</span>
+                  <span className="ml-2 font-mono font-medium text-emerald-600 dark:text-emerald-400">
+                    +{formatCurrency(montoSolicitado)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500 dark:text-slate-400">{t("bur_saldo_actual", "Saldo actual")}:</span>
+                  <span className="ml-2 font-mono font-medium text-slate-800 dark:text-slate-200">
+                    {formatCurrency(saldoActual)}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                    {t("bur_nuevo_saldo", "Nuevo saldo")}:
+                  </span>
+                  <span className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(nuevoSaldo)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
         <div className="space-y-2">
           <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             {t("bur_comentario_aprobacion", "Comentario (opcional)")}
@@ -556,9 +649,24 @@ export default function BudgetRequests() {
             value={rejectModal.motivo}
             onChange={(e) => setRejectModal((prev) => ({ ...prev, motivo: e.target.value }))}
             rows={3}
-            className="w-full px-3 py-2.5 rounded-xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/50 dark:border-slate-700/50 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all resize-none"
+            className={`w-full px-3 py-2.5 rounded-xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all resize-none ${
+              rejectModal.motivo.length > 0 && rejectModal.motivo.length < 5
+                ? "border-red-400 dark:border-red-500"
+                : "border-white/50 dark:border-slate-700/50"
+            }`}
             placeholder={t("bur_motivo_placeholder", "Indica el motivo del rechazo...")}
           />
+          {/* SPRINT 3.3: Validación en tiempo real */}
+          <div className="flex justify-between text-xs">
+            <span className={rejectModal.motivo.length > 0 && rejectModal.motivo.length < 5 ? "text-red-500" : "text-slate-400"}>
+              {rejectModal.motivo.length > 0 && rejectModal.motivo.length < 5
+                ? t("bur_motivo_min", "Mínimo 5 caracteres")
+                : ""}
+            </span>
+            <span className="text-slate-400 dark:text-slate-500">
+              {rejectModal.motivo.length}/5 min
+            </span>
+          </div>
         </div>
       </Modal>
     </div>
