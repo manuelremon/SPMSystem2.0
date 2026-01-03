@@ -13,6 +13,11 @@ vi.mock('../../store/authStore', () => ({
   useAuthStore: vi.fn(),
 }))
 
+// Mock de SEO para evitar HelmetProvider
+vi.mock('../../components/SEO', () => ({
+  default: () => null,
+}))
+
 // Mock de los dashboards especificos
 vi.mock('../DashboardSolicitante', () => ({
   default: () => <div data-testid="dashboard-solicitante">Dashboard Solicitante</div>,

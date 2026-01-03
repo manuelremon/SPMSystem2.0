@@ -227,5 +227,97 @@ class TestIntegracionRolesMontos:
         assert BURService.puede_aprobar_bur(roles, "ADMIN") is False
 
 
+class TestBURServiceRevertir:
+    """Tests para BURService.revertir()"""
+
+    @pytest.fixture
+    def mock_bur_aprobado(self):
+        """Mock de un BUR aprobado"""
+        from unittest.mock import MagicMock
+        bur = MagicMock()
+        bur.id = 1
+        bur.estado = "aprobado"
+        bur.centro = "Centro A"
+        bur.sector = "Sector 1"
+        bur.monto_solicitado_cents = 500_000  # $5K
+        return bur
+
+    @pytest.fixture
+    def mock_presupuesto(self):
+        """Mock de presupuesto con saldo suficiente"""
+        from unittest.mock import MagicMock
+        presupuesto = MagicMock()
+        presupuesto.saldo_cents = 1_000_000  # $10K
+        return presupuesto
+
+    def test_revertir_bur_no_encontrado(self, monkeypatch):
+        """Revertir BUR inexistente retorna error"""
+        monkeypatch.setattr(BURService, "get_by_id", lambda x: None)
+
+        result = BURService.revertir(999, "admin1", "Test motivo")
+
+        assert result["ok"] is False
+        assert result["code"] == "not_found"
+
+    def test_revertir_bur_no_aprobado_falla(self, monkeypatch, mock_bur_aprobado):
+        """Revertir BUR no aprobado retorna error"""
+        mock_bur_aprobado.estado = "pendiente"
+        monkeypatch.setattr(BURService, "get_by_id", lambda x: mock_bur_aprobado)
+
+        result = BURService.revertir(1, "admin1", "Test motivo")
+
+        assert result["ok"] is False
+        assert result["code"] == "invalid_state"
+        assert "aprobados" in result["error"].lower()
+
+    def test_revertir_bur_sin_presupuesto_falla(self, monkeypatch, mock_bur_aprobado):
+        """Revertir BUR sin presupuesto existente retorna error"""
+        from services.budget_service import PresupuestoService
+        monkeypatch.setattr(BURService, "get_by_id", lambda x: mock_bur_aprobado)
+        monkeypatch.setattr(PresupuestoService, "get_info", lambda c, s: None)
+
+        result = BURService.revertir(1, "admin1", "Test motivo")
+
+        assert result["ok"] is False
+        assert result["code"] == "presupuesto_not_found"
+
+    def test_revertir_bur_saldo_insuficiente_falla(self, monkeypatch, mock_bur_aprobado, mock_presupuesto):
+        """Revertir BUR con saldo insuficiente retorna error"""
+        from services.budget_service import PresupuestoService
+        mock_presupuesto.saldo_cents = 100_000  # $1K < $5K del BUR
+        monkeypatch.setattr(BURService, "get_by_id", lambda x: mock_bur_aprobado)
+        monkeypatch.setattr(PresupuestoService, "get_info", lambda c, s: mock_presupuesto)
+
+        result = BURService.revertir(1, "admin1", "Test motivo")
+
+        assert result["ok"] is False
+        assert result["code"] == "saldo_insuficiente"
+
+    def test_revertir_bur_aprobado_exitoso(self, monkeypatch, mock_bur_aprobado, mock_presupuesto):
+        """Revertir BUR aprobado con saldo suficiente funciona"""
+        from unittest.mock import MagicMock
+        from services.budget_service import PresupuestoService
+
+        monkeypatch.setattr(BURService, "get_by_id", lambda x: mock_bur_aprobado)
+        monkeypatch.setattr(PresupuestoService, "get_info", lambda c, s: mock_presupuesto)
+
+        # Mock de conexión BD
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        import services.budget_service as bs
+        monkeypatch.setattr(bs, "_connect", lambda: mock_conn)
+        monkeypatch.setattr(bs, "_execute", lambda cur, sql, params: None)
+
+        result = BURService.revertir(1, "admin1", "Test reversion")
+
+        assert result["ok"] is True
+        assert "revertido" in result["message"].lower()
+        assert result["nuevo_saldo_cents"] == 500_000  # 1M - 500K
+        assert result["monto_revertido_cents"] == 500_000
+        mock_conn.commit.assert_called_once()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
