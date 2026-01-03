@@ -114,11 +114,11 @@ export default function TodasLasSolicitudes() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
           >
-            <ArrowLeft className="w-5 h-5 text-slate-600" />
+            <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
           </button>
-          <h1 className="text-2xl font-bold text-slate-800 uppercase">Todas las Solicitudes</h1>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 uppercase">Todas las Solicitudes</h1>
         </div>
 
         <Button as={Link} to="/solicitudes/nueva">
@@ -128,7 +128,7 @@ export default function TodasLasSolicitudes() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30 w-fit">
+      <div className="flex items-center gap-1 p-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-white/30 dark:border-slate-700/30 w-fit">
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -137,8 +137,8 @@ export default function TodasLasSolicitudes() {
             className={clsx(
               "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
               activeTab === tab.key
-                ? "bg-white shadow-sm text-blue-600"
-                : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+                ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400"
+                : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
             )}
           >
             <span>{tab.label}</span>
@@ -146,8 +146,8 @@ export default function TodasLasSolicitudes() {
               className={clsx(
                 "px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums",
                 activeTab === tab.key
-                  ? "bg-blue-100 text-blue-600"
-                  : "bg-slate-100 text-slate-500"
+                  ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                  : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
               )}
             >
               {tab.count}
@@ -159,11 +159,11 @@ export default function TodasLasSolicitudes() {
       {/* Tabla */}
       <Card>
         <CardContent className="p-0">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <h2 className="text-base font-semibold text-slate-800">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
               {getTableTitle()}
             </h2>
-            <span className="text-xs text-slate-500 tabular-nums">
+            <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
               {currentData.length} {t("dash_items", "items")}
             </span>
           </div>
@@ -174,7 +174,7 @@ export default function TodasLasSolicitudes() {
             ) : currentData.length === 0 ? (
               <div className="py-16 text-center">
                 <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto mb-4 opacity-60" />
-                <p className="text-slate-500 text-sm">
+                <p className="text-slate-500 dark:text-slate-400 text-sm">
                   {activeTab === "pendientes"
                     ? t("dash_no_pending", "No hay solicitudes pendientes de revision")
                     : t("dash_no_requests_category", "No hay solicitudes en esta categoria")}

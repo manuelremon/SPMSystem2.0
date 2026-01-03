@@ -89,7 +89,7 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
 
         {/* Acciones especiales (solo si hay conflictos) */}
         {(tieneConflictosCriticos || tieneConflictos) && (
-          <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-200">
+          <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
             {tieneConflictosCriticos && onReject && (
               <Button variant="danger" onClick={onReject} type="button">
                 Rechazar solicitud
@@ -133,11 +133,11 @@ function PresupuestoCard({ resumen, solicitud, onPresupuestoInsuficiente }) {
   const alcanza = diferencia >= 0;
 
   return (
-    <div className="p-4 md:p-5 rounded-xl border border-slate-200 bg-white space-y-4">
+    <div className="p-4 md:p-5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 space-y-4">
       <div className="flex items-center gap-2">
         <DollarSign className="w-5 h-5 text-[var(--primary)]" />
         <p
-          className="text-xs uppercase font-bold tracking-[0.08em] text-slate-700"
+          className="text-xs uppercase font-bold tracking-[0.08em] text-slate-700 dark:text-slate-300"
           title="Análisis del presupuesto disponible vs costo de la solicitud"
         >
           Balance Presupuesto
@@ -146,17 +146,17 @@ function PresupuestoCard({ resumen, solicitud, onPresupuestoInsuficiente }) {
 
       <div className="space-y-3">
         <div className="flex justify-between items-baseline gap-2">
-          <span className="text-sm text-slate-700" title="Presupuesto disponible en el centro/sector">
+          <span className="text-sm text-slate-700 dark:text-slate-300" title="Presupuesto disponible en el centro/sector">
             Presupuesto Disponible
           </span>
-          <span className="text-base font-bold text-slate-900">{formatCurrency(disponible)}</span>
+          <span className="text-base font-bold text-slate-900 dark:text-slate-100">{formatCurrency(disponible)}</span>
         </div>
 
         <div className="flex justify-between items-baseline gap-2">
-          <span className="text-sm text-slate-700" title={`Suma de (Precio Unitario × Cantidad) de ${items.length} ${items.length === 1 ? 'item' : 'items'}`}>
+          <span className="text-sm text-slate-700 dark:text-slate-300" title={`Suma de (Precio Unitario × Cantidad) de ${items.length} ${items.length === 1 ? 'item' : 'items'}`}>
             Costo de la Solicitud
           </span>
-          <span className="text-base font-bold text-slate-900">{formatCurrency(costoTotal)}</span>
+          <span className="text-base font-bold text-slate-900 dark:text-slate-100">{formatCurrency(costoTotal)}</span>
         </div>
 
         <div
@@ -165,7 +165,7 @@ function PresupuestoCard({ resumen, solicitud, onPresupuestoInsuficiente }) {
           onClick={() => !alcanza && onPresupuestoInsuficiente && onPresupuestoInsuficiente()}
         >
           <div className="flex justify-between items-baseline gap-2">
-            <span className="text-sm font-semibold text-slate-900">Balance</span>
+            <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">Balance</span>
             <span className={`text-lg font-black ${alcanza ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
               {diferencia >= 0 ? '+' : ''}{formatCurrency(diferencia)} {alcanza ? '✓' : '⚠️'}
             </span>
@@ -180,11 +180,11 @@ function BadgeListCompact({ title, items, emptyLabel, count, icon, colorBg, colo
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className={`p-3 rounded-lg border ${colorBorder} ${colorBg}`}>
+    <div className={`p-3 rounded-lg border ${colorBorder} ${colorBg} dark:bg-opacity-20`}>
       <div className="flex items-center justify-between gap-1 mb-2">
         <div className="flex items-center gap-1.5">
           {icon}
-          <span className="text-[10px] uppercase font-bold tracking-wide text-slate-700">{title}</span>
+          <span className="text-[10px] uppercase font-bold tracking-wide text-slate-700 dark:text-slate-300">{title}</span>
         </div>
         <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${colorBadge}`}>
           {count}
@@ -192,14 +192,14 @@ function BadgeListCompact({ title, items, emptyLabel, count, icon, colorBg, colo
       </div>
 
       {count === 0 ? (
-        <p className="text-[11px] text-slate-500">{emptyLabel}</p>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400">{emptyLabel}</p>
       ) : (
         <>
           <div className="space-y-1.5 max-h-24 overflow-y-auto">
             {(expanded ? items : items.slice(0, 2)).map((it, idx) => (
-              <div key={idx} className="text-[11px] text-slate-700 leading-tight">
+              <div key={idx} className="text-[11px] text-slate-700 dark:text-slate-300 leading-tight">
                 <span className="font-semibold">{it.label}</span>
-                {it.detail && <span className="block text-slate-600 truncate">{it.detail}</span>}
+                {it.detail && <span className="block text-slate-600 dark:text-slate-400 truncate">{it.detail}</span>}
               </div>
             ))}
           </div>
@@ -207,7 +207,7 @@ function BadgeListCompact({ title, items, emptyLabel, count, icon, colorBg, colo
             <button
               type="button"
               onClick={() => setExpanded(!expanded)}
-              className="mt-1.5 text-[10px] font-semibold text-blue-600 hover:text-blue-700"
+              className="mt-1.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
             >
               {expanded ? "Ver menos" : `+${items.length - 2} más`}
             </button>
@@ -322,16 +322,16 @@ function MaterialesList({ materiales, solicitud }) {
       }));
 
   return (
-    <div className="p-4 md:p-5 rounded-xl border border-slate-200 bg-white space-y-3">
+    <div className="p-4 md:p-5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Package className="w-5 h-5 text-[var(--primary)]" />
-          <p className="text-xs uppercase font-bold tracking-[0.08em] text-slate-700">
+          <p className="text-xs uppercase font-bold tracking-[0.08em] text-slate-700 dark:text-slate-300">
             Materiales Solicitados
           </p>
         </div>
         <span
-          className="text-sm font-bold text-slate-900"
+          className="text-sm font-bold text-slate-900 dark:text-slate-100"
           title={`Total de materiales en la solicitud`}
         >
           {items.length} {items.length === 1 ? 'item' : 'items'}
@@ -339,7 +339,7 @@ function MaterialesList({ materiales, solicitud }) {
       </div>
 
       {items.length === 0 ? (
-        <p className="text-sm text-slate-700 text-center py-8">Sin materiales en la solicitud</p>
+        <p className="text-sm text-slate-700 dark:text-slate-300 text-center py-8">Sin materiales en la solicitud</p>
       ) : (
         <MaterialesTable items={items} />
       )}

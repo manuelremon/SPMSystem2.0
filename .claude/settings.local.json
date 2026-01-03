@@ -181,7 +181,8 @@
       "Bash(pip-audit:*)",
       "Bash(npm install:*)",
       "Bash(npx husky:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(COMMIT_MSG=\"fix: dropzone adjuntos minimalista en dark mode\" ./scripts/deploy-full.sh:*)"
     ],
     "deny": [],
     "ask": []

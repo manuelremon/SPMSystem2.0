@@ -385,16 +385,18 @@ export default function CreateSolicitud() {
                     <span className="text-slate-400 normal-case font-normal ml-1">(opcional)</span>
                   </label>
 
-                  {/* Drop Zone Compacta */}
+                  {/* Drop Zone Compacta - Minimalista en dark mode */}
                   <label
                     htmlFor="file-upload"
                     className={clsx(
                       "flex flex-col items-center justify-center cursor-pointer",
-                      "h-[130px] rounded-xl transition-all duration-200",
+                      "rounded-xl transition-all duration-200",
                       "border-2 border-dashed",
+                      // Altura: normal en light, compacta en dark
+                      "h-[130px] dark:h-[80px]",
                       form.archivos.length > 0
-                        ? "border-blue-300 bg-blue-50/50"
-                        : "border-slate-300 bg-white/30 hover:border-blue-400 hover:bg-blue-50/30"
+                        ? "border-blue-300 dark:border-blue-500/50 bg-blue-50/50 dark:bg-blue-900/20"
+                        : "border-slate-300 dark:border-slate-600/50 bg-white/30 dark:bg-transparent hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/30 dark:hover:bg-blue-900/10"
                     )}
                   >
                     <input
@@ -414,18 +416,19 @@ export default function CreateSolicitud() {
 
                     {form.archivos.length === 0 ? (
                       <>
-                        <Paperclip className="w-6 h-6 text-blue-500 mb-2" />
-                        <span className="text-sm font-medium text-slate-600">Arrastra o Clic</span>
-                        <span className="text-[10px] text-slate-400 mt-1">Máx 5 archivos</span>
+                        <Paperclip className="w-6 h-6 text-blue-500 dark:text-blue-400 dark:mb-0 mb-2" />
+                        {/* Textos solo visibles en light mode */}
+                        <span className="text-sm font-medium text-slate-600 dark:hidden">Arrastra o Clic</span>
+                        <span className="text-[10px] text-slate-400 mt-1 dark:hidden">Máx 5 archivos</span>
                       </>
                     ) : (
                       <div className="w-full px-3 space-y-1.5 overflow-auto max-h-[110px]">
                         {form.archivos.map((file, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center justify-between gap-2 px-2 py-1.5 bg-white/70 rounded-lg text-xs"
+                            className="flex items-center justify-between gap-2 px-2 py-1.5 bg-white/70 dark:bg-slate-700/70 rounded-lg text-xs"
                           >
-                            <span className="truncate flex-1 text-slate-700">{file.name}</span>
+                            <span className="truncate flex-1 text-slate-700 dark:text-slate-200">{file.name}</span>
                             <button
                               type="button"
                               onClick={(e) => {
@@ -436,7 +439,7 @@ export default function CreateSolicitud() {
                                   archivos: prev.archivos.filter((_, i) => i !== idx)
                                 }))
                               }}
-                              className="p-0.5 hover:bg-red-100 rounded text-slate-400 hover:text-red-500 transition-colors"
+                              className="p-0.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-slate-400 dark:text-slate-500 hover:text-red-500 transition-colors"
                             >
                               <X className="w-4 h-4 text-red-500" />
                             </button>

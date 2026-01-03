@@ -18,11 +18,11 @@ import {
 } from '../../components/ui/Icons'
 
 const TIPO_CAMBIO_ICONS = {
-  creacion: { icon: PlusCircle, color: 'text-blue-600', bg: 'bg-blue-100' },
-  aumento: { icon: ArrowUpCircle, color: 'text-emerald-600', bg: 'bg-emerald-100' },
-  reduccion: { icon: ArrowDownCircle, color: 'text-amber-600', bg: 'bg-amber-100' },
-  ajuste: { icon: RefreshCw, color: 'text-slate-600', bg: 'bg-slate-100' },
-  eliminacion: { icon: MinusCircle, color: 'text-red-600', bg: 'bg-red-100' },
+  creacion: { icon: PlusCircle, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/30' },
+  aumento: { icon: ArrowUpCircle, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
+  reduccion: { icon: ArrowDownCircle, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-100 dark:bg-amber-900/30' },
+  ajuste: { icon: RefreshCw, color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-100 dark:bg-slate-700' },
+  eliminacion: { icon: MinusCircle, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-100 dark:bg-red-900/30' },
 }
 
 export default function AdminPresupuestos() {
@@ -263,13 +263,13 @@ export default function AdminPresupuestos() {
       {success && <Alert variant="success" onDismiss={() => setSuccess('')}>{success}</Alert>}
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-slate-100/70 backdrop-blur-sm rounded-xl w-fit">
+      <div className="flex gap-1 p-1 bg-slate-100/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl w-fit">
         <button
           onClick={() => setTab('presupuestos')}
           className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
             tab === 'presupuestos'
               ? 'bg-blue-600 text-white shadow-sm'
-              : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50'
           }`}
         >
           Presupuestos
@@ -279,7 +279,7 @@ export default function AdminPresupuestos() {
           className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
             tab === 'historial'
               ? 'bg-blue-600 text-white shadow-sm'
-              : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50'
           }`}
         >
           <History className="w-4 h-4" />
@@ -380,7 +380,7 @@ export default function AdminPresupuestos() {
           </>
         }
       >
-        <p className="text-slate-600">
+        <p className="text-slate-600 dark:text-slate-300">
           ¿Eliminar presupuesto de <strong>{deleteModal.row?.centro}</strong> - <strong>{deleteModal.row?.sector}</strong>?
         </p>
       </Modal>

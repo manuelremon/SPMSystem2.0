@@ -22,7 +22,7 @@ export default function HistorialAprobaciones() {
         </CardHeader>
         <CardContent className="px-6 pb-6">
           <div className="text-center py-12">
-            <p className="text-slate-500">
+            <p className="text-slate-500 dark:text-slate-400">
               {t("historial_coming_soon", "Vista de historial de aprobaciones próximamente...")}
             </p>
           </div>

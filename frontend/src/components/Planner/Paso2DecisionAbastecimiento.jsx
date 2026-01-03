@@ -526,17 +526,17 @@ export default function Paso2DecisionAbastecimiento({
                 </p>
                 <div className="flex items-center gap-2">
                   {excedente > 0 ? (
-                    <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">
+                    <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold">
                       <AlertTriangle className="w-4 h-4" />
                       Excede +{excedente} un.
                     </span>
                   ) : itemCompleto ? (
-                    <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">
+                    <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold">
                       <CheckCircle className="w-4 h-4" />
                       Completo
                     </span>
                   ) : (
-                    <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold">
+                    <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold">
                       <AlertTriangle className="w-4 h-4" />
                       Faltan {faltante} un.
                     </span>
@@ -816,8 +816,8 @@ export default function Paso2DecisionAbastecimiento({
                 {!hayStockCategorizado && opcionesStock.length > 0 && (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 px-1">
-                      <Warehouse className="w-4 h-4 text-emerald-600" />
-                      <h4 className="text-sm font-bold text-slate-700">Stock Disponible</h4>
+                      <Warehouse className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">Stock Disponible</h4>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                       {opcionesStock.map((op) => (
@@ -836,8 +836,8 @@ export default function Paso2DecisionAbastecimiento({
                 {opcionesNoStock.length > 0 && (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 px-1">
-                      <Truck className="w-4 h-4 text-slate-600" />
-                      <h4 className="text-sm font-bold text-slate-700">PROVEEDORES EXTERNOS</h4>
+                      <Truck className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                      <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">PROVEEDORES EXTERNOS</h4>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                       {opcionesNoStock.map((op) => (
@@ -875,26 +875,21 @@ export default function Paso2DecisionAbastecimiento({
           }}
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-white/50 p-6 space-y-4"
-            style={{
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(24px)',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            }}
+            className="w-full max-w-md rounded-2xl border border-white/50 dark:border-slate-700/50 p-6 space-y-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-glass"
           >
             <div className="flex items-start gap-4">
-              <div className="h-12 w-12 rounded-full bg-amber-100 grid place-items-center flex-shrink-0">
-                <AlertTriangle className="w-6 h-6 text-amber-600" />
+              <div className="h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900/30 grid place-items-center flex-shrink-0">
+                <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-bold text-slate-800">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
                   Cantidad excede lo solicitado
                 </h3>
-                <p className="text-sm text-slate-600 mt-1">
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                   Has asignado más unidades de las solicitadas en uno o más ítems.
                   Esto puede generar stock de reserva adicional.
                 </p>
-                <p className="text-sm text-slate-700 mt-2 font-medium">
+                <p className="text-sm text-slate-700 dark:text-slate-300 mt-2 font-medium">
                   ¿Deseas continuar con esta asignación?
                 </p>
               </div>
@@ -966,11 +961,11 @@ function StockCategoriaCard({
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Icono className={`w-5 h-5 ${colorIcono}`} />
-            <h4 className="text-sm font-bold text-slate-800">{titulo}</h4>
+            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">{titulo}</h4>
           </div>
           <div className="flex items-center gap-2">
             {hasSelection && (
-              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
+              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400">
                 {selectedCount} sel.
               </span>
             )}
@@ -979,12 +974,12 @@ function StockCategoriaCard({
             </span>
           </div>
         </div>
-        <p className="text-xs text-slate-600">{subtitulo}</p>
+        <p className="text-xs text-slate-600 dark:text-slate-400">{subtitulo}</p>
         <div className="flex items-center justify-between mt-2">
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-slate-500 dark:text-slate-400">
             {ubicaciones.length} ubicación{ubicaciones.length !== 1 ? "es" : ""}
           </span>
-          <span className="text-xs text-blue-600 font-medium">
+          <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
             {expanded ? "▲ Colapsar" : "▼ Ver ubicaciones"}
           </span>
         </div>
@@ -992,7 +987,7 @@ function StockCategoriaCard({
 
       {/* Lista de ubicaciones expandida */}
       {expanded && (
-        <div className="border-t border-slate-200 bg-white/60 max-h-48 overflow-y-auto">
+        <div className="border-t border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 max-h-48 overflow-y-auto">
           {ubicaciones.map((u, idx) => {
             const isSelected = isUbicacionSelected(u);
             const esMismoCentro = String(u.centro || "") === centroSolicitud;
@@ -1002,10 +997,10 @@ function StockCategoriaCard({
                 key={idx}
                 type="button"
                 onClick={() => onToggleUbicacion(u)}
-                className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition border-b border-slate-100 last:border-b-0 ${
+                className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition border-b border-slate-100 dark:border-slate-700 last:border-b-0 ${
                   isSelected
-                    ? "bg-blue-50 hover:bg-blue-100"
-                    : "hover:bg-slate-50"
+                    ? "bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                    : "hover:bg-slate-50 dark:hover:bg-slate-700/50"
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -1013,7 +1008,7 @@ function StockCategoriaCard({
                   <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition ${
                     isSelected
                       ? "bg-[var(--primary)] border-[var(--primary)]"
-                      : "border-slate-300 bg-white"
+                      : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
                   }`}>
                     {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
                   </div>
@@ -1021,25 +1016,25 @@ function StockCategoriaCard({
                   {/* Info ubicación */}
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-semibold text-slate-800">
+                      <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                         {u.centro}/{String(u.almacen || "").padStart(4, "0")}
                       </span>
                       {esMismoCentro && (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400">
                           MISMO CENTRO
                         </span>
                       )}
                     </div>
                     {u.nombre_almacen && (
-                      <p className="text-xs text-slate-500">{u.nombre_almacen}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{u.nombre_almacen}</p>
                     )}
                   </div>
                 </div>
 
                 {/* Cantidad */}
                 <div className="text-right">
-                  <span className="text-sm font-bold text-slate-800">{u.cantidad}</span>
-                  <span className="text-xs text-slate-500 ml-1">un.</span>
+                  <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{u.cantidad}</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 ml-1">un.</span>
                 </div>
               </button>
             );

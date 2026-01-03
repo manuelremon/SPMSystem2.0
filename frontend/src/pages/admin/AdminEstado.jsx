@@ -264,7 +264,7 @@ export default function AdminEstado() {
 
         <div className="flex items-center gap-3">
           {lastUpdate && (
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
               {t('updated', 'Actualizado')}: {lastUpdate.toLocaleTimeString()}
             </span>
           )}
@@ -316,11 +316,11 @@ export default function AdminEstado() {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {/* SPM Database */}
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+            <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
               <StatusDot status={health?.checks?.database?.spm?.status} />
               <div>
-                <p className="text-xs text-slate-500 uppercase font-medium">SPM</p>
-                <p className="text-sm font-semibold text-slate-800">
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-medium">SPM</p>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                   {health?.checks?.database?.spm?.latency_ms
                     ? `${health.checks.database.spm.latency_ms.toFixed(1)}ms`
                     : '--'}
@@ -329,11 +329,11 @@ export default function AdminEstado() {
             </div>
 
             {/* SAP Database */}
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+            <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
               <StatusDot status={health?.checks?.database?.sap_data?.status} />
               <div>
-                <p className="text-xs text-slate-500 uppercase font-medium">SAP</p>
-                <p className="text-sm font-semibold text-slate-800">
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-medium">SAP</p>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                   {health?.checks?.database?.sap_data?.latency_ms
                     ? `${health.checks.database.sap_data.latency_ms.toFixed(1)}ms`
                     : '--'}
@@ -342,11 +342,11 @@ export default function AdminEstado() {
             </div>
 
             {/* Equiv Database */}
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+            <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
               <StatusDot status={health?.checks?.database?.equivalentes?.status} />
               <div>
-                <p className="text-xs text-slate-500 uppercase font-medium">EQUIV</p>
-                <p className="text-sm font-semibold text-slate-800">
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-medium">EQUIV</p>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                   {health?.checks?.database?.equivalentes?.latency_ms
                     ? `${health.checks.database.equivalentes.latency_ms.toFixed(1)}ms`
                     : '--'}
@@ -355,11 +355,11 @@ export default function AdminEstado() {
             </div>
 
             {/* Catalogo Materiales Database */}
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+            <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
               <StatusDot status={health?.checks?.database?.catalogo_materiales?.status} />
               <div>
-                <p className="text-xs text-slate-500 uppercase font-medium">CATALOGO</p>
-                <p className="text-sm font-semibold text-slate-800">
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-medium">CATALOGO</p>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                   {health?.checks?.database?.catalogo_materiales?.latency_ms
                     ? `${health.checks.database.catalogo_materiales.latency_ms.toFixed(1)}ms`
                     : '--'}
@@ -368,11 +368,11 @@ export default function AdminEstado() {
             </div>
 
             {/* Cache Status */}
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+            <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
               <StatusDot status={overallCacheHit >= 90 ? 'healthy' : overallCacheHit >= 70 ? 'warning' : 'error'} />
               <div>
-                <p className="text-xs text-slate-500 uppercase font-medium">Cache</p>
-                <p className="text-sm font-semibold text-slate-800">
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-medium">Cache</p>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                   {overallCacheHit.toFixed(0)}% hit
                 </p>
               </div>
@@ -442,7 +442,7 @@ export default function AdminEstado() {
               <SingleMetricChart data={historyData} metricType="cache_hit" title="Cache Hit Rate" height={150} />
             </div>
           ) : (
-            <div className="text-center py-12 text-slate-400">
+            <div className="text-center py-12 text-slate-400 dark:text-slate-500">
               <TrendingUp className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>{t('no_history_data', 'Sin datos historicos')}</p>
               <p className="text-sm mt-1">{t('history_hint', 'Los datos se recolectan automaticamente cada 5 minutos')}</p>
@@ -464,8 +464,8 @@ export default function AdminEstado() {
             <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-slate-600">P50</span>
-                  <span className="text-lg font-bold text-slate-800">
+                  <span className="text-sm text-slate-600 dark:text-slate-400">P50</span>
+                  <span className="text-lg font-bold text-slate-800 dark:text-slate-100">
                     {Math.round(metrics?.latency?.p50_ms || 0)}ms
                   </span>
                 </div>
@@ -479,8 +479,8 @@ export default function AdminEstado() {
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-slate-600">P95</span>
-                  <span className="text-lg font-bold text-slate-800">
+                  <span className="text-sm text-slate-600 dark:text-slate-400">P95</span>
+                  <span className="text-lg font-bold text-slate-800 dark:text-slate-100">
                     {Math.round(metrics?.latency?.p95_ms || 0)}ms
                   </span>
                 </div>
@@ -494,8 +494,8 @@ export default function AdminEstado() {
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-slate-600">P99</span>
-                  <span className="text-lg font-bold text-slate-800">
+                  <span className="text-sm text-slate-600 dark:text-slate-400">P99</span>
+                  <span className="text-lg font-bold text-slate-800 dark:text-slate-100">
                     {Math.round(metrics?.latency?.p99_ms || 0)}ms
                   </span>
                 </div>
@@ -510,8 +510,8 @@ export default function AdminEstado() {
 
             {/* Status codes */}
             {metrics?.status_codes && (
-              <div className="border-t pt-4 mt-4">
-                <p className="text-sm font-medium text-slate-600 mb-3">{t('by_status', 'Por Status')}</p>
+              <div className="border-t dark:border-slate-700 pt-4 mt-4">
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3">{t('by_status', 'Por Status')}</p>
                 <div className="space-y-2">
                   {Object.entries(metrics.status_codes).map(([status, count]) => (
                     <div key={status} className="flex justify-between text-sm">
@@ -554,7 +554,7 @@ export default function AdminEstado() {
                 {Object.entries(cacheMetrics.caches).map(([name, cache]) => (
                   <div key={name}>
                     <div className="flex items-center justify-between text-sm mb-1">
-                      <span className="text-slate-600 truncate">{name.replace(/_/g, ' ')}</span>
+                      <span className="text-slate-600 dark:text-slate-400 truncate">{name.replace(/_/g, ' ')}</span>
                       <span className="font-medium">{(cache.hit_rate || 0).toFixed(1)}%</span>
                     </div>
                     <ProgressBar
@@ -570,23 +570,23 @@ export default function AdminEstado() {
 
             {/* Database Pool */}
             {dbMetrics && (
-              <div className="border-t pt-4 mt-4">
-                <p className="text-sm font-medium text-slate-600 mb-3 flex items-center gap-2">
+              <div className="border-t dark:border-slate-700 pt-4 mt-4">
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3 flex items-center gap-2">
                   <Database className="w-4 h-4 text-emerald-500" />
                   {t('connection_pool', 'Pool de Conexiones')}
                 </p>
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
-                    <span className="text-slate-500">{t('active', 'Activas')}</span>
-                    <p className="font-semibold text-slate-800">{dbMetrics.active_connections || 0}</p>
+                    <span className="text-slate-500 dark:text-slate-400">{t('active', 'Activas')}</span>
+                    <p className="font-semibold text-slate-800 dark:text-slate-100">{dbMetrics.active_connections || 0}</p>
                   </div>
                   <div>
-                    <span className="text-slate-500">Max</span>
-                    <p className="font-semibold text-slate-800">{dbMetrics.max_connections || '--'}</p>
+                    <span className="text-slate-500 dark:text-slate-400">Max</span>
+                    <p className="font-semibold text-slate-800 dark:text-slate-100">{dbMetrics.max_connections || '--'}</p>
                   </div>
                   <div>
-                    <span className="text-slate-500">{t('total_queries', 'Queries')}</span>
-                    <p className="font-semibold text-slate-800">{(dbMetrics.total_queries || 0).toLocaleString()}</p>
+                    <span className="text-slate-500 dark:text-slate-400">{t('total_queries', 'Queries')}</span>
+                    <p className="font-semibold text-slate-800 dark:text-slate-100">{(dbMetrics.total_queries || 0).toLocaleString()}</p>
                   </div>
                 </div>
               </div>
@@ -608,11 +608,11 @@ export default function AdminEstado() {
                 {/* System-wide metrics */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <div className="flex items-center gap-2 text-slate-600 mb-2">
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 mb-2">
                       <Cpu className="w-4 h-4 text-blue-500" />
                       <span className="text-sm">CPU Sistema</span>
                     </div>
-                    <p className="text-2xl font-bold text-slate-800">
+                    <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">
                       {systemMetrics.system.cpu_percent?.toFixed(1) || '--'}%
                     </p>
                     <ProgressBar
@@ -623,11 +623,11 @@ export default function AdminEstado() {
                     />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2 text-slate-600 mb-2">
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 mb-2">
                       <HardDrive className="w-4 h-4" />
                       <span className="text-sm">{t('memory', 'Memoria')} Sistema</span>
                     </div>
-                    <p className="text-2xl font-bold text-slate-800">
+                    <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">
                       {systemMetrics.system.memory_percent?.toFixed(1) || '--'}%
                     </p>
                     <ProgressBar
@@ -641,46 +641,46 @@ export default function AdminEstado() {
 
                 {/* Process metrics */}
                 {systemMetrics.process && (
-                  <div className="border-t pt-4">
-                    <p className="text-sm font-medium text-slate-600 mb-3">{t('process_metrics', 'Proceso SPM')}</p>
+                  <div className="border-t dark:border-slate-700 pt-4">
+                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3">{t('process_metrics', 'Proceso SPM')}</p>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
-                        <span className="text-slate-500">CPU</span>
-                        <p className="font-semibold text-slate-800">{systemMetrics.process.cpu_percent?.toFixed(1) || '--'}%</p>
+                        <span className="text-slate-500 dark:text-slate-400">CPU</span>
+                        <p className="font-semibold text-slate-800 dark:text-slate-100">{systemMetrics.process.cpu_percent?.toFixed(1) || '--'}%</p>
                       </div>
                       <div>
-                        <span className="text-slate-500">{t('memory', 'Memoria')}</span>
-                        <p className="font-semibold text-slate-800">{systemMetrics.process.memory_mb?.toFixed(0) || '--'} MB</p>
+                        <span className="text-slate-500 dark:text-slate-400">{t('memory', 'Memoria')}</span>
+                        <p className="font-semibold text-slate-800 dark:text-slate-100">{systemMetrics.process.memory_mb?.toFixed(0) || '--'} MB</p>
                       </div>
                       <div>
-                        <span className="text-slate-500">Threads</span>
-                        <p className="font-semibold text-slate-800">{systemMetrics.process.threads || '--'}</p>
+                        <span className="text-slate-500 dark:text-slate-400">Threads</span>
+                        <p className="font-semibold text-slate-800 dark:text-slate-100">{systemMetrics.process.threads || '--'}</p>
                       </div>
                       <div>
-                        <span className="text-slate-500">{t('open_files', 'Archivos')}</span>
-                        <p className="font-semibold text-slate-800">{systemMetrics.process.open_files || '--'}</p>
+                        <span className="text-slate-500 dark:text-slate-400">{t('open_files', 'Archivos')}</span>
+                        <p className="font-semibold text-slate-800 dark:text-slate-100">{systemMetrics.process.open_files || '--'}</p>
                       </div>
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="text-center text-slate-500 py-8">
+              <div className="text-center text-slate-500 dark:text-slate-400 py-8">
                 <Server className="w-12 h-12 mx-auto mb-2 opacity-50" />
                 <p>{t('no_system_metrics', 'Sin metricas de sistema')}</p>
               </div>
             )}
 
             {health && (
-              <div className="border-t mt-4 pt-4">
-                <p className="text-sm font-medium text-slate-600 mb-3">{t('server_info', 'Informacion del Servidor')}</p>
+              <div className="border-t dark:border-slate-700 mt-4 pt-4">
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3">{t('server_info', 'Informacion del Servidor')}</p>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-slate-500">{t('version', 'Version')}</span>
+                    <span className="text-slate-500 dark:text-slate-400">{t('version', 'Version')}</span>
                     <span className="font-medium">{health.version || 'SPM 2.0'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">{t('environment', 'Entorno')}</span>
+                    <span className="text-slate-500 dark:text-slate-400">{t('environment', 'Entorno')}</span>
                     <Badge variant="default">{health.environment || 'development'}</Badge>
                   </div>
                 </div>
@@ -738,8 +738,8 @@ export default function AdminEstado() {
               </Button>
             </div>
 
-            <div className="border-t pt-4">
-              <p className="text-xs text-slate-500">
+            <div className="border-t dark:border-slate-700 pt-4">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {t('auto_refresh_info', 'Auto-refresh cada 30 segundos cuando esta activado. Las metricas se acumulan desde el ultimo reinicio del servidor.')}
               </p>
             </div>

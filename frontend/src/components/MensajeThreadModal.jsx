@@ -102,13 +102,7 @@ export default function MensajeThreadModal({ message, isOpen, onClose }) {
       }}
     >
       <div
-        className="relative w-full max-w-3xl max-h-[90vh] rounded-2xl border border-white/50 flex flex-col overflow-hidden"
-        style={{
-          background: 'rgba(255, 255, 255, 0.92)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.6)',
-        }}
+        className="relative w-full max-w-3xl max-h-[90vh] rounded-2xl border border-white/50 dark:border-slate-700/50 flex flex-col overflow-hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-glass"
       >
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-[var(--border)]">

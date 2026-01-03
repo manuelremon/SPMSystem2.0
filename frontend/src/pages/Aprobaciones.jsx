@@ -189,7 +189,7 @@ export default function Aprobaciones() {
       key: "id",
       header: "ID",
       sortAccessor: (row) => Number(row.id) || 0,
-      render: (row) => <span className="font-semibold text-slate-700">{row.id}</span>,
+      render: (row) => <span className="font-semibold text-slate-700 dark:text-slate-300">{row.id}</span>,
     },
     {
       key: "fecha_creacion",
@@ -208,7 +208,7 @@ export default function Aprobaciones() {
       render: (row) => {
         const nombre = `${row.solicitante_nombre || ""} ${row.solicitante_apellido || ""}`.trim();
         return (
-          <span className="text-slate-700" title={nombre}>
+          <span className="text-slate-700 dark:text-slate-300" title={nombre}>
             {nombre || "-"}
           </span>
         );
@@ -273,7 +273,7 @@ export default function Aprobaciones() {
       header: t("aprov_monto", "Monto"),
       sortAccessor: (row) => Number(row.total_monto || 0),
       render: (row) => (
-        <span className="whitespace-nowrap font-mono text-sm text-slate-700">
+        <span className="whitespace-nowrap font-mono text-sm text-slate-700 dark:text-slate-300">
           {formatCurrency(row.total_monto)}
         </span>
       ),
@@ -283,7 +283,7 @@ export default function Aprobaciones() {
       header: t("aprov_items", "Items"),
       sortAccessor: (row) => (row.items?.length || 0),
       render: (row) => (
-        <span className="text-sm font-semibold text-slate-700">
+        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           {row.items?.length || 0}
         </span>
       ),
@@ -366,7 +366,7 @@ export default function Aprobaciones() {
                   <CheckCircle className={`w-4 h-4 ${ICON_COLORS.success}`} />
                   {t("aprov_tab_pendientes", "Pendientes")}
                   {items.length > 0 && (
-                    <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-600 rounded-full">
+                    <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-full">
                       {items.length}
                     </span>
                   )}
@@ -377,7 +377,7 @@ export default function Aprobaciones() {
                 </TabsTrigger>
               </TabsList>
               {(loading || loadingHistorial) && (
-                <div className="text-xs font-bold uppercase tracking-[0.05em] text-slate-500">
+                <div className="text-xs font-bold uppercase tracking-[0.05em] text-slate-500 dark:text-slate-400">
                   {t("aprov_loading", "Cargando...")}
                 </div>
               )}
@@ -463,7 +463,7 @@ export default function Aprobaciones() {
         }
       >
         <div className="space-y-2">
-          <label htmlFor="reject-motivo" className="text-sm text-slate-500">
+          <label htmlFor="reject-motivo" className="text-sm text-slate-500 dark:text-slate-400">
             {t("aprov_motivo", "Motivo de rechazo")}
           </label>
           <textarea
@@ -471,7 +471,7 @@ export default function Aprobaciones() {
             value={rejectModal.motivo}
             onChange={(e) => setRejectModal((prev) => ({ ...prev, motivo: e.target.value }))}
             rows={3}
-            className="w-full px-4 py-3 rounded-xl border border-white/50 bg-white/50 backdrop-blur-sm text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
+            className="w-full px-4 py-3 rounded-xl border border-white/50 dark:border-slate-700/50 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm text-sm text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
             placeholder={t("planner_rechazar_placeholder", "Explica brevemente el motivo del rechazo...")}
             aria-label={t("aprov_motivo", "Motivo de rechazo")}
           />
@@ -520,23 +520,23 @@ export default function Aprobaciones() {
         {detailModal.solicitud && (
           <div className="space-y-6">
             {/* Información general */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50/50 rounded-xl border border-slate-200/50">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
               <div>
-                <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Solicitante</p>
-                <p className="text-sm text-slate-700">
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold mb-1">Solicitante</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300">
                   {`${detailModal.solicitud.solicitante_nombre || ""} ${detailModal.solicitud.solicitante_apellido || ""}`.trim() || "-"}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Centro</p>
-                <p className="text-sm text-slate-700 font-mono">{detailModal.solicitud.centro || "-"}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold mb-1">Centro</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300 font-mono">{detailModal.solicitud.centro || "-"}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Sector</p>
-                <p className="text-sm text-slate-700">{detailModal.solicitud.sector || "-"}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold mb-1">Sector</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300">{detailModal.solicitud.sector || "-"}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Criticidad</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold mb-1">Criticidad</p>
                 <div className="flex items-center gap-1">
                   {(() => {
                     const config = getCriticidadConfig(detailModal.solicitud.criticidad);
@@ -557,8 +557,8 @@ export default function Aprobaciones() {
             {/* Justificación */}
             {detailModal.solicitud.justificacion && (
               <div>
-                <p className="text-xs text-slate-500 uppercase font-semibold mb-2">Justificación</p>
-                <p className="text-sm text-slate-700 p-3 bg-slate-50/50 rounded-xl border border-slate-200/50">
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold mb-2">Justificación</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300 p-3 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
                   {detailModal.solicitud.justificacion}
                 </p>
               </div>
@@ -568,26 +568,26 @@ export default function Aprobaciones() {
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Package className={`w-5 h-5 ${ICON_COLORS.logistics}`} />
-                <p className="text-sm font-semibold text-slate-700">
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                   {t("aprov_materiales_titulo", "Materiales Solicitados")} ({detailModal.solicitud.items?.length || 0})
                 </p>
               </div>
 
               {detailModal.solicitud.items && detailModal.solicitud.items.length > 0 ? (
-                <div className="overflow-x-auto rounded-xl border border-slate-200/50">
+                <div className="overflow-x-auto rounded-xl border border-slate-200/50 dark:border-slate-700/50">
                   <table className="w-full text-sm">
                     <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
                       <tr>
-                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">
                           Código SAP
                         </th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">
                           Descripción
                         </th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">
                           Cantidad
                         </th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">
                           P. Unit.
                         </th>
                         <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">
@@ -595,33 +595,33 @@ export default function Aprobaciones() {
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200/50">
+                    <tbody className="divide-y divide-slate-200/50 dark:divide-slate-700/50">
                       {detailModal.solicitud.items.map((item, idx) => (
-                        <tr key={idx} className={idx % 2 === 0 ? "bg-transparent" : "bg-slate-50/30"}>
-                          <td className="px-4 py-3 font-mono text-sm text-slate-700 border-r border-b border-slate-200">
+                        <tr key={idx} className={idx % 2 === 0 ? "bg-transparent" : "bg-slate-50/30 dark:bg-slate-800/30"}>
+                          <td className="px-4 py-3 font-mono text-sm text-slate-700 dark:text-slate-300 border-r border-b border-slate-200 dark:border-slate-700">
                             {item.codigo_sap || item.material_id || "-"}
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-700 border-r border-b border-slate-200">
+                          <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 border-r border-b border-slate-200 dark:border-slate-700">
                             {item.descripcion || item.nombre || "-"}
                           </td>
-                          <td className="px-4 py-3 text-center text-sm text-slate-700 border-r border-b border-slate-200">
+                          <td className="px-4 py-3 text-center text-sm text-slate-700 dark:text-slate-300 border-r border-b border-slate-200 dark:border-slate-700">
                             {item.cantidad || 0} {item.unidad_medida || item.uom || "UN"}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono text-sm text-slate-700 border-r border-b border-slate-200">
+                          <td className="px-4 py-3 text-right font-mono text-sm text-slate-700 dark:text-slate-300 border-r border-b border-slate-200 dark:border-slate-700">
                             {formatCurrency(item.precio_unitario || item.precio || 0)}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono text-sm font-semibold text-slate-700">
+                          <td className="px-4 py-3 text-right font-mono text-sm font-semibold text-slate-700 dark:text-slate-300">
                             {formatCurrency((item.cantidad || 0) * (item.precio_unitario || item.precio || 0))}
                           </td>
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot className="bg-slate-100/70 border-t-2 border-slate-200/50">
+                    <tfoot className="bg-slate-100/70 dark:bg-slate-800/70 border-t-2 border-slate-200/50 dark:border-slate-700/50">
                       <tr>
-                        <td colSpan={4} className="px-4 py-3 text-right text-sm font-bold uppercase text-slate-700">
+                        <td colSpan={4} className="px-4 py-3 text-right text-sm font-bold uppercase text-slate-700 dark:text-slate-300">
                           Total:
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-base font-bold text-blue-600">
+                        <td className="px-4 py-3 text-right font-mono text-base font-bold text-blue-600 dark:text-blue-400">
                           {formatCurrency(detailModal.solicitud.total_monto)}
                         </td>
                       </tr>
@@ -629,7 +629,7 @@ export default function Aprobaciones() {
                   </table>
                 </div>
               ) : (
-                <p className="text-sm text-slate-500 text-center py-6 bg-slate-50/50 rounded-xl border border-slate-200/50">
+                <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-6 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
                   {t("aprov_sin_materiales", "No hay materiales en esta solicitud")}
                 </p>
               )}

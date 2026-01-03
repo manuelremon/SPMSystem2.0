@@ -43,22 +43,22 @@ const filterOptions = [
 
 // Mapeo de tipos de notificacion a iconos y colores - Glass style
 const notificationConfig = {
-  info: { icon: Info, color: "text-blue-600", bg: "bg-blue-50/70 backdrop-blur-sm" },
-  success: { icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50/70 backdrop-blur-sm" },
-  warning: { icon: AlertCircle, color: "text-amber-600", bg: "bg-amber-50/70 backdrop-blur-sm" },
-  error: { icon: XCircle, color: "text-red-600", bg: "bg-red-50/70 backdrop-blur-sm" },
-  profile_request: { icon: User, color: "text-purple-600", bg: "bg-purple-50/70 backdrop-blur-sm" },
-  profile_approved: { icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50/70 backdrop-blur-sm" },
-  profile_rejected: { icon: XCircle, color: "text-red-600", bg: "bg-red-50/70 backdrop-blur-sm" },
-  solicitud_created: { icon: FileText, color: "text-cyan-600", bg: "bg-cyan-50/70 backdrop-blur-sm" },
-  solicitud_approved: { icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50/70 backdrop-blur-sm" },
-  solicitud_rejected: { icon: XCircle, color: "text-red-600", bg: "bg-red-50/70 backdrop-blur-sm" },
-  solicitud_planned: { icon: Clock, color: "text-amber-600", bg: "bg-amber-50/70 backdrop-blur-sm" },
-  solicitud_to_plan: { icon: Clock, color: "text-orange-600", bg: "bg-orange-50/70 backdrop-blur-sm" },
-  mensaje_nuevo: { icon: MessageSquare, color: "text-indigo-600", bg: "bg-indigo-50/70 backdrop-blur-sm" },
+  info: { icon: Info, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50/70 dark:bg-blue-900/30 backdrop-blur-sm" },
+  success: { icon: CheckCircle, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50/70 dark:bg-emerald-900/30 backdrop-blur-sm" },
+  warning: { icon: AlertCircle, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50/70 dark:bg-amber-900/30 backdrop-blur-sm" },
+  error: { icon: XCircle, color: "text-red-600 dark:text-red-400", bg: "bg-red-50/70 dark:bg-red-900/30 backdrop-blur-sm" },
+  profile_request: { icon: User, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50/70 dark:bg-purple-900/30 backdrop-blur-sm" },
+  profile_approved: { icon: CheckCircle, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50/70 dark:bg-emerald-900/30 backdrop-blur-sm" },
+  profile_rejected: { icon: XCircle, color: "text-red-600 dark:text-red-400", bg: "bg-red-50/70 dark:bg-red-900/30 backdrop-blur-sm" },
+  solicitud_created: { icon: FileText, color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50/70 dark:bg-cyan-900/30 backdrop-blur-sm" },
+  solicitud_approved: { icon: CheckCircle, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50/70 dark:bg-emerald-900/30 backdrop-blur-sm" },
+  solicitud_rejected: { icon: XCircle, color: "text-red-600 dark:text-red-400", bg: "bg-red-50/70 dark:bg-red-900/30 backdrop-blur-sm" },
+  solicitud_planned: { icon: Clock, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50/70 dark:bg-amber-900/30 backdrop-blur-sm" },
+  solicitud_to_plan: { icon: Clock, color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-50/70 dark:bg-orange-900/30 backdrop-blur-sm" },
+  mensaje_nuevo: { icon: MessageSquare, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50/70 dark:bg-indigo-900/30 backdrop-blur-sm" },
   // Consultas de stock
-  stock_consulta: { icon: Package, color: "text-orange-600", bg: "bg-orange-50/70 backdrop-blur-sm" },
-  stock_consulta_respuesta: { icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50/70 backdrop-blur-sm" },
+  stock_consulta: { icon: Package, color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-50/70 dark:bg-orange-900/30 backdrop-blur-sm" },
+  stock_consulta_respuesta: { icon: CheckCircle, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50/70 dark:bg-emerald-900/30 backdrop-blur-sm" },
 };
 
 function formatTimeAgo(dateStr) {
@@ -245,15 +245,15 @@ export default function Notificaciones() {
   const renderNotificationList = (notifs) => {
     if (notifs.length === 0) {
       return (
-        <div className="text-center py-12 text-slate-500">
-          <Inbox className="w-12 h-12 mx-auto mb-4 opacity-30 text-slate-500" />
+        <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+          <Inbox className="w-12 h-12 mx-auto mb-4 opacity-30 text-slate-500 dark:text-slate-400" />
           <p className="text-lg font-medium">
             {activeTab === "unread"
               ? t("notif_empty_unread", "No tienes notificaciones pendientes")
               : t("notif_empty_read", "No tienes notificaciones leidas")
             }
           </p>
-          <p className="text-sm mt-1 text-slate-400">
+          <p className="text-sm mt-1 text-slate-400 dark:text-slate-500">
             {activeTab === "unread"
               ? t("notif_empty_unread_desc", "¡Estas al dia!")
               : t("notif_empty_read_desc", "Las notificaciones leidas apareceran aqui")
@@ -264,7 +264,7 @@ export default function Notificaciones() {
     }
 
     return (
-      <div className="divide-y divide-white/30">
+      <div className="divide-y divide-white/30 dark:divide-slate-700/30">
         {notifs.map((notif) => {
           const config = getNotifConfig(notif.tipo);
           const IconComponent = config.icon;
@@ -272,8 +272,8 @@ export default function Notificaciones() {
           return (
             <div
               key={notif.id}
-              className={`flex items-start gap-4 p-4 transition-colors cursor-pointer hover:bg-white/50 ${
-                !notif.leido ? "bg-blue-50/30" : ""
+              className={`flex items-start gap-4 p-4 transition-colors cursor-pointer hover:bg-white/50 dark:hover:bg-slate-700/50 ${
+                !notif.leido ? "bg-blue-50/30 dark:bg-blue-900/20" : ""
               }`}
               onClick={() => handleNotificationClick(notif)}
             >
@@ -284,18 +284,18 @@ export default function Notificaciones() {
 
               {/* Contenido */}
               <div className="flex-1 min-w-0">
-                <p className={`text-sm ${!notif.leido ? "font-semibold text-slate-800" : "text-slate-500"}`}>
+                <p className={`text-sm ${!notif.leido ? "font-semibold text-slate-800 dark:text-slate-100" : "text-slate-500 dark:text-slate-400"}`}>
                   {notif.mensaje}
                 </p>
                 <div className="flex items-center gap-2 mt-1">
-                  <Clock className="w-3 h-3 text-cyan-500" />
-                  <span className="text-xs text-slate-400">
+                  <Clock className="w-3 h-3 text-cyan-500 dark:text-cyan-400" />
+                  <span className="text-xs text-slate-400 dark:text-slate-500">
                     {formatTimeAgo(notif.created_at)}
                   </span>
                   {notif.solicitud_id && (
                     <>
-                      <span className="text-slate-400">•</span>
-                      <span className="text-xs text-blue-600">
+                      <span className="text-slate-400 dark:text-slate-500">•</span>
+                      <span className="text-xs text-blue-600 dark:text-blue-400">
                         #{notif.solicitud_id}
                       </span>
                     </>
@@ -345,31 +345,31 @@ export default function Notificaciones() {
             {/* Push notifications toggle */}
             <PushNotificationToggle />
 
-            <div className="h-4 w-px bg-slate-300" />
+            <div className="h-4 w-px bg-slate-300 dark:bg-slate-600" />
 
             {/* Connection status indicator */}
             <div className="flex items-center gap-1.5 text-xs">
               {isConnected ? (
                 <>
                   <Wifi className="w-3.5 h-3.5 text-emerald-500" />
-                  <span className="text-emerald-600">{t("realtime_live", "En vivo")}</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">{t("realtime_live", "En vivo")}</span>
                 </>
               ) : (
                 <>
-                  <WifiOff className="w-3.5 h-3.5 text-slate-500" />
-                  <span className="text-slate-500">{t("realtime_polling", "Actualizacion periodica")}</span>
+                  <WifiOff className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                  <span className="text-slate-500 dark:text-slate-400">{t("realtime_polling", "Actualizacion periodica")}</span>
                 </>
               )}
             </div>
 
-            <div className="h-4 w-px bg-slate-300" />
+            <div className="h-4 w-px bg-slate-300 dark:bg-slate-600" />
 
             <Button
               variant="ghost"
               onClick={refresh}
               disabled={isLoading}
             >
-              <RefreshCw className={`w-4 h-4 text-slate-600 ${isLoading ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-4 h-4 text-slate-600 dark:text-slate-400 ${isLoading ? "animate-spin" : ""}`} />
               {t("common_refresh", "Actualizar")}
             </Button>
             {unreadCount > 0 && (
@@ -387,21 +387,21 @@ export default function Notificaciones() {
 
       <Card>
         {/* Tabs y Filtros */}
-        <div className="p-4 border-b border-white/30">
+        <div className="p-4 border-b border-white/30 dark:border-slate-700/30">
           <div className="flex flex-wrap items-center justify-between gap-4">
             {/* Tabs */}
-            <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30 w-fit">
+            <div className="flex items-center gap-1 p-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-white/30 dark:border-slate-700/30 w-fit">
               <button
                 onClick={() => setActiveTab("unread")}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   activeTab === "unread"
-                    ? "bg-white shadow-sm text-blue-600"
-                    : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+                    ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
                 }`}
               >
                 <span>{t("notif_tab_unread", "No Leidas")}</span>
                 {unreadCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums bg-blue-100 text-blue-600">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
                     {unreadCount}
                   </span>
                 )}
@@ -410,13 +410,13 @@ export default function Notificaciones() {
                 onClick={() => setActiveTab("read")}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   activeTab === "read"
-                    ? "bg-white shadow-sm text-blue-600"
-                    : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+                    ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
                 }`}
               >
                 <span>{t("notif_tab_read", "Leidas")}</span>
                 {readCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums bg-slate-100 text-slate-500">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
                     {readCount}
                   </span>
                 )}
@@ -427,11 +427,11 @@ export default function Notificaciones() {
             <div className="flex items-center gap-3">
               {/* Filtro por tipo */}
               <div className="relative flex items-center">
-                <Filter className="absolute left-3 w-4 h-4 text-slate-400" />
+                <Filter className="absolute left-3 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="pl-9 pr-4 py-2 text-sm bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl text-slate-700 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none appearance-none cursor-pointer min-w-[120px]"
+                  className="pl-9 pr-4 py-2 text-sm bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/50 dark:border-slate-700/50 rounded-xl text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none appearance-none cursor-pointer min-w-[120px]"
                 >
                   {filterOptions.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -441,18 +441,18 @@ export default function Notificaciones() {
 
               {/* Busqueda */}
               <div className="relative flex items-center">
-                <Search className="absolute left-3 w-4 h-4 text-slate-400" />
+                <Search className="absolute left-3 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input
                   type="text"
                   placeholder={t("notif_search", "Buscar...")}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 pr-4 py-2 text-sm bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl text-slate-700 placeholder-slate-400 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none w-48"
+                  className="pl-9 pr-4 py-2 text-sm bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/50 dark:border-slate-700/50 rounded-xl text-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none w-48"
                 />
                 {searchTerm && (
                   <button
                     onClick={() => setSearchTerm("")}
-                    className="absolute right-2 p-1 text-slate-400 hover:text-slate-600"
+                    className="absolute right-2 p-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
                   >
                     <XCircle className="w-4 h-4" />
                   </button>
@@ -464,8 +464,8 @@ export default function Notificaciones() {
 
         <CardContent className="pt-4">
           {isLoading && notifications.length === 0 ? (
-            <div className="text-center py-12 text-slate-500">
-              <RefreshCw className="w-8 h-8 mx-auto mb-3 animate-spin text-blue-600" />
+            <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+              <RefreshCw className="w-8 h-8 mx-auto mb-3 animate-spin text-blue-600 dark:text-blue-400" />
               <p>{t("common_cargando", "Cargando...")}</p>
             </div>
           ) : (

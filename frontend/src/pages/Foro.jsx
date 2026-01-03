@@ -159,7 +159,7 @@ export default function Foro() {
       {/* Header con busqueda */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2 uppercase">
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 uppercase">
             <MessageCircle className="w-6 h-6 text-violet-500" />
             Foro SPM
           </h1>
@@ -172,18 +172,18 @@ export default function Foro() {
 
       {/* Barra de busqueda */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Buscar publicaciones por título, contenido o autor..."
-          className="w-full pl-10 pr-4 py-3 rounded-lg bg-slate-50/70 border border-white/30 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
+          className="w-full pl-10 pr-4 py-3 rounded-lg bg-slate-50/70 dark:bg-slate-800/70 border border-white/30 dark:border-slate-700/30 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
         />
         {searchQuery && (
           <button
             onClick={() => setSearchQuery("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-800 transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
           >
             <span className="text-lg">&times;</span>
           </button>
@@ -197,7 +197,7 @@ export default function Foro() {
           <Card className="sticky top-4">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
-                <Filter className="w-4 h-4 text-slate-500" />
+                <Filter className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                 Categorías
               </CardTitle>
             </CardHeader>
@@ -208,15 +208,15 @@ export default function Foro() {
                   onClick={() => setSelectedCategoria(null)}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
                     selectedCategoria === null
-                      ? "bg-blue-600/10 text-blue-600 font-medium"
-                      : "text-slate-500 hover:bg-slate-100/70 hover:text-slate-800"
+                      ? "bg-blue-600/10 text-blue-600 dark:text-blue-400 font-medium"
+                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-700/70 hover:text-slate-800 dark:hover:text-slate-200"
                   }`}
                 >
                   <span className="flex items-center gap-2">
                     <Hash className="w-4 h-4" />
                     Todos
                   </span>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100/70">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100/70 dark:bg-slate-700/70">
                     {posts.length}
                   </span>
                 </button>
@@ -229,7 +229,7 @@ export default function Foro() {
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
                       selectedCategoria === cat.id
                         ? "font-medium"
-                        : "text-slate-500 hover:bg-slate-100/70 hover:text-slate-800"
+                        : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-700/70 hover:text-slate-800 dark:hover:text-slate-200"
                     }`}
                     style={{
                       backgroundColor: selectedCategoria === cat.id ? `${cat.color}15` : undefined,
@@ -243,7 +243,7 @@ export default function Foro() {
                       />
                       {cat.label}
                     </span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100/70">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100/70 dark:bg-slate-700/70">
                       {getCategoriaCount(cat.id)}
                     </span>
                   </button>
@@ -264,7 +264,7 @@ export default function Foro() {
               <CardContent>
                 <form onSubmit={handleCreatePost} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-500 mb-1">
+                    <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
                       Título
                     </label>
                     <input
@@ -272,13 +272,13 @@ export default function Foro() {
                       value={newPost.titulo}
                       onChange={(e) => setNewPost({ ...newPost, titulo: e.target.value })}
                       placeholder="Escribe un título descriptivo..."
-                      className="w-full px-4 py-2.5 rounded-lg bg-slate-50/70 border border-white/30 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
+                      className="w-full px-4 py-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/70 border border-white/30 dark:border-slate-700/30 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                       maxLength={100}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-500 mb-1">
+                    <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
                       Categoría
                     </label>
                     <div className="flex flex-wrap gap-2">
@@ -290,7 +290,7 @@ export default function Foro() {
                           className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
                             newPost.categoria === cat.id
                               ? "border-transparent text-white"
-                              : "border-white/30 text-slate-500 hover:border-blue-500"
+                              : "border-white/30 dark:border-slate-700/30 text-slate-500 dark:text-slate-400 hover:border-blue-500"
                           }`}
                           style={{
                             backgroundColor: newPost.categoria === cat.id ? cat.color : "transparent",
@@ -303,7 +303,7 @@ export default function Foro() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-500 mb-1">
+                    <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
                       Contenido
                     </label>
                     <textarea
@@ -311,7 +311,7 @@ export default function Foro() {
                       onChange={(e) => setNewPost({ ...newPost, contenido: e.target.value })}
                       placeholder="Describe tu pregunta, idea o comentario..."
                       rows={4}
-                      className="w-full px-4 py-2.5 rounded-lg bg-slate-50/70 border border-white/30 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 transition-colors resize-none"
+                      className="w-full px-4 py-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/70 border border-white/30 dark:border-slate-700/30 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition-colors resize-none"
                       maxLength={2000}
                     />
                   </div>
@@ -333,13 +333,13 @@ export default function Foro() {
           {loading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mx-auto"></div>
-              <p className="text-slate-500 mt-4">Cargando publicaciones...</p>
+              <p className="text-slate-500 dark:text-slate-400 mt-4">Cargando publicaciones...</p>
             </div>
           ) : error ? (
             <Card className="border-red-500/30">
               <CardContent className="py-8 text-center">
                 <AlertCircle className="w-12 h-12 mx-auto mb-3 text-amber-500" />
-                <p className="text-slate-500">{error}</p>
+                <p className="text-slate-500 dark:text-slate-400">{error}</p>
                 <Button variant="outline" onClick={loadPosts} className="mt-4">
                   Reintentar
                 </Button>
@@ -349,10 +349,10 @@ export default function Foro() {
             <Card>
               <CardContent className="py-12 text-center">
                 <MessageCircle className="w-16 h-16 mx-auto mb-4 text-violet-500 opacity-50" />
-                <h3 className="text-lg font-semibold text-slate-800 mb-2">
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">
                   {posts.length === 0 ? "No hay publicaciones aún" : "No se encontraron resultados"}
                 </h3>
-                <p className="text-slate-500 mb-4">
+                <p className="text-slate-500 dark:text-slate-400 mb-4">
                   {posts.length === 0
                     ? "Sé el primero en iniciar una conversación!"
                     : "Intenta con otros términos de búsqueda o categoría"}
@@ -385,7 +385,7 @@ export default function Foro() {
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
                     selectedCategoria === null
                       ? "bg-blue-600 text-white border-transparent"
-                      : "border-white/30 text-slate-500 hover:border-blue-500"
+                      : "border-white/30 dark:border-slate-700/30 text-slate-500 dark:text-slate-400 hover:border-blue-500"
                   }`}
                 >
                   Todos ({posts.length})
@@ -397,7 +397,7 @@ export default function Foro() {
                     className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
                       selectedCategoria === cat.id
                         ? "border-transparent text-white"
-                        : "border-white/30 text-slate-500 hover:border-blue-500"
+                        : "border-white/30 dark:border-slate-700/30 text-slate-500 dark:text-slate-400 hover:border-blue-500"
                     }`}
                     style={{
                       backgroundColor: selectedCategoria === cat.id ? cat.color : "transparent",
@@ -410,7 +410,7 @@ export default function Foro() {
 
               {/* Results count */}
               {(searchQuery || selectedCategoria) && (
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
                   {filteredPosts.length} resultado{filteredPosts.length !== 1 ? "s" : ""}
                   {selectedCategoria && ` en ${getCategoriaLabel(selectedCategoria)}`}
                   {searchQuery && ` para "${searchQuery}"`}
@@ -434,7 +434,7 @@ export default function Foro() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-slate-800">{post.autor_nombre}</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">{post.autor_nombre}</span>
                             <span
                               className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
                               style={{
@@ -444,26 +444,26 @@ export default function Foro() {
                             >
                               {getCategoriaLabel(post.categoria)}
                             </span>
-                            <span className="text-xs text-slate-400 flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-cyan-500" />
+                            <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-cyan-500 dark:text-cyan-400" />
                               {formatDate(post.created_at)}
                             </span>
                           </div>
-                          <h3 className="font-semibold text-slate-800 mt-1">{post.titulo}</h3>
-                          <p className="text-sm text-slate-500 mt-2 whitespace-pre-wrap">
+                          <h3 className="font-semibold text-slate-800 dark:text-slate-200 mt-1">{post.titulo}</h3>
+                          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 whitespace-pre-wrap">
                             {post.contenido}
                           </p>
                         </div>
                       </div>
 
                       {/* Acciones del post */}
-                      <div className="flex items-center gap-4 mt-4 pt-3 border-t border-white/30">
+                      <div className="flex items-center gap-4 mt-4 pt-3 border-t border-white/30 dark:border-slate-700/30">
                         <button
                           onClick={() => handleLike(post.id)}
                           className={`flex items-center gap-1.5 text-sm transition-colors ${
                             post.user_liked
-                              ? "text-blue-600"
-                              : "text-slate-500 hover:text-blue-600"
+                              ? "text-blue-600 dark:text-blue-400"
+                              : "text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
                           }`}
                         >
                           <ThumbsUp className="w-4 h-4" />
@@ -471,7 +471,7 @@ export default function Foro() {
                         </button>
                         <button
                           onClick={() => toggleExpand(post.id)}
-                          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-blue-600 transition-colors"
+                          className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                         >
                           <MessageSquare className="w-4 h-4 text-violet-500" />
                           <span>{post.respuestas?.length || 0} respuestas</span>
@@ -483,19 +483,19 @@ export default function Foro() {
 
                       {/* Respuestas */}
                       {isExpanded && (
-                        <div className="mt-4 pt-4 border-t border-white/30 space-y-4">
+                        <div className="mt-4 pt-4 border-t border-white/30 dark:border-slate-700/30 space-y-4">
                           {/* Lista de respuestas */}
                           {post.respuestas?.map((resp) => (
-                            <div key={resp.id} className="flex gap-3 pl-4 border-l-2 border-white/30">
-                              <div className="w-8 h-8 rounded-full bg-slate-100/70 grid place-items-center flex-shrink-0 text-slate-500 text-xs font-bold">
+                            <div key={resp.id} className="flex gap-3 pl-4 border-l-2 border-white/30 dark:border-slate-700/30">
+                              <div className="w-8 h-8 rounded-full bg-slate-100/70 dark:bg-slate-700/70 grid place-items-center flex-shrink-0 text-slate-500 dark:text-slate-400 text-xs font-bold">
                                 {resp.autor_nombre?.[0]?.toUpperCase() || "U"}
                               </div>
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-sm font-semibold text-slate-800">{resp.autor_nombre}</span>
-                                  <span className="text-xs text-slate-400">{formatDate(resp.created_at)}</span>
+                                  <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{resp.autor_nombre}</span>
+                                  <span className="text-xs text-slate-400 dark:text-slate-500">{formatDate(resp.created_at)}</span>
                                 </div>
-                                <p className="text-sm text-slate-500 mt-1">{resp.contenido}</p>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{resp.contenido}</p>
                               </div>
                             </div>
                           ))}
@@ -507,7 +507,7 @@ export default function Foro() {
                               value={replyContent[post.id] || ""}
                               onChange={(e) => setReplyContent({ ...replyContent, [post.id]: e.target.value })}
                               placeholder="Escribe una respuesta..."
-                              className="flex-1 px-3 py-2 rounded-lg bg-slate-50/70 border border-white/30 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
+                              className="flex-1 px-3 py-2 rounded-lg bg-slate-50/70 dark:bg-slate-800/70 border border-white/30 dark:border-slate-700/30 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                               onKeyDown={(e) => {
                                 if (e.key === "Enter" && !e.shiftKey) {
                                   e.preventDefault();

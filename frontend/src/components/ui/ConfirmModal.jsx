@@ -30,18 +30,18 @@ export function ConfirmModal({
 
   const variantStyles = {
     danger: {
-      iconBg: "bg-red-100",
-      iconColor: "text-red-600",
+      iconBg: "bg-red-100 dark:bg-red-900/30",
+      iconColor: "text-red-600 dark:text-red-400",
       buttonVariant: "primary",
     },
     warning: {
-      iconBg: "bg-blue-100",
-      iconColor: "text-blue-600",
+      iconBg: "bg-blue-100 dark:bg-blue-900/30",
+      iconColor: "text-blue-600 dark:text-blue-400",
       buttonVariant: "primary",
     },
     info: {
-      iconBg: "bg-blue-100",
-      iconColor: "text-blue-600",
+      iconBg: "bg-blue-100 dark:bg-blue-900/30",
+      iconColor: "text-blue-600 dark:text-blue-400",
       buttonVariant: "primary",
     },
   };
@@ -73,17 +73,17 @@ export function ConfirmModal({
             <IconComponent className={`w-6 h-6 ${styles.iconColor}`} />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-slate-800">
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
               {title}
             </h3>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               {description}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="h-8 w-8 grid place-items-center rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all flex-shrink-0"
+            className="h-8 w-8 grid place-items-center rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all flex-shrink-0"
           >
             <X className="w-4 h-4" />
           </button>

@@ -168,7 +168,7 @@ export default function BudgetRequests() {
       key: "id",
       header: t("bur_col_id", "ID"),
       sortAccessor: (row) => Number(row.id) || 0,
-      render: (row) => <span className="font-semibold text-slate-800">#{row.id}</span>,
+      render: (row) => <span className="font-semibold text-slate-800 dark:text-slate-200">#{row.id}</span>,
     },
     {
       key: "centro",
@@ -187,7 +187,7 @@ export default function BudgetRequests() {
       header: t("bur_col_monto", "Monto"),
       sortAccessor: (row) => Number(row.monto_solicitado_usd || 0),
       render: (row) => (
-        <span className="font-mono text-sm text-slate-800">
+        <span className="font-mono text-sm text-slate-800 dark:text-slate-200">
           {formatCurrency(row.monto_solicitado_usd)}
         </span>
       ),
@@ -197,7 +197,7 @@ export default function BudgetRequests() {
       header: t("bur_col_nivel", "Nivel"),
       sortAccessor: (row) => row.nivel_aprobacion_requerido || "",
       render: (row) => (
-        <span className="text-xs px-2 py-1 rounded bg-slate-100/70 text-slate-500">
+        <span className="text-xs px-2 py-1 rounded bg-slate-100/70 dark:bg-slate-700/70 text-slate-500 dark:text-slate-400">
           {nivelLabels[row.nivel_aprobacion_requerido] || row.nivel_aprobacion_requerido}
         </span>
       ),
@@ -282,9 +282,9 @@ export default function BudgetRequests() {
               <FileText className="w-4 h-4 text-slate-400" />
             )}
             <span className={`text-xs px-2 py-1 rounded ${
-              isConsumo ? "bg-red-50 text-red-700" :
-              isIncorporacion ? "bg-green-50 text-green-700" :
-              "bg-slate-100 text-slate-600"
+              isConsumo ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400" :
+              isIncorporacion ? "bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400" :
+              "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
             }`}>
               {tipo.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
             </span>
@@ -313,7 +313,7 @@ export default function BudgetRequests() {
         const monto = montoCents / 100;
         const isNegative = montoCents < 0;
         return (
-          <span className={`font-mono text-sm ${isNegative ? "text-red-600" : "text-green-600"}`}>
+          <span className={`font-mono text-sm ${isNegative ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}>
             {isNegative ? "-" : "+"}{formatCurrency(Math.abs(monto))}
           </span>
         );
@@ -326,7 +326,7 @@ export default function BudgetRequests() {
       render: (row) => {
         const saldo = (row.saldo_posterior_cents || 0) / 100;
         return (
-          <span className="font-mono text-sm text-slate-800">
+          <span className="font-mono text-sm text-slate-800 dark:text-slate-200">
             {formatCurrency(saldo)}
           </span>
         );
@@ -352,14 +352,14 @@ export default function BudgetRequests() {
             </Button>
           );
         }
-        return <span className="text-xs text-slate-500">{tipo} #{row.referencia_id}</span>;
+        return <span className="text-xs text-slate-500 dark:text-slate-400">{tipo} #{row.referencia_id}</span>;
       },
     },
     {
       key: "motivo",
       header: t("ledger_col_motivo", "Motivo"),
       render: (row) => (
-        <span className="text-sm text-slate-600 line-clamp-1" title={row.motivo}>
+        <span className="text-sm text-slate-600 dark:text-slate-400 line-clamp-1" title={row.motivo}>
           {row.motivo || "-"}
         </span>
       ),
@@ -377,7 +377,7 @@ export default function BudgetRequests() {
               onClick={handleRefresh}
               disabled={refreshing || loading || ledgerLoading}
             >
-              <RefreshCw className={`w-4 h-4 text-slate-600 ${refreshing ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-4 h-4 text-slate-600 dark:text-slate-400 ${refreshing ? "animate-spin" : ""}`} />
               {t("common_refresh", "Actualizar")}
             </Button>
             <Button onClick={() => navigate("/presupuestos/nueva")}>
@@ -392,13 +392,13 @@ export default function BudgetRequests() {
       {msg && <Alert variant="success" onDismiss={() => setMsg("")}>{msg}</Alert>}
 
       {/* Main Tabs: Historial / Solicitudes */}
-      <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30 w-fit">
+      <div className="flex items-center gap-1 p-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-white/30 dark:border-slate-700/30 w-fit">
         <button
           onClick={() => setMainTab("historial")}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
             mainTab === "historial"
-              ? "bg-white shadow-sm text-blue-600"
-              : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+              ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400"
+              : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
           }`}
         >
           <TrendingUp className="w-4 h-4" />
@@ -408,8 +408,8 @@ export default function BudgetRequests() {
           onClick={() => setMainTab("solicitudes")}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
             mainTab === "solicitudes"
-              ? "bg-white shadow-sm text-blue-600"
-              : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+              ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400"
+              : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
           }`}
         >
           <FileText className="w-4 h-4" />
@@ -422,11 +422,11 @@ export default function BudgetRequests() {
         <Card>
           <CardContent className="space-y-4 pt-6">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 {t("ledger_descripcion", "Movimientos de presupuesto por aprobaciones y ajustes")}
               </p>
               {ledgerLoading && (
-                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   {t("bur_loading", "Cargando...")}
                 </div>
               )}
@@ -447,15 +447,15 @@ export default function BudgetRequests() {
         <Card>
           <CardContent className="space-y-4 pt-6">
             {/* Sub-tabs for BUR */}
-            <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30 w-fit">
+            <div className="flex items-center gap-1 p-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-white/30 dark:border-slate-700/30 w-fit">
               {tabs.map((tabItem) => (
                 <button
                   key={tabItem.key}
                   onClick={() => setTab(tabItem.key)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     tab === tabItem.key
-                      ? "bg-white shadow-sm text-blue-600"
-                      : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+                      ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400"
+                      : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
                   }`}
                 >
                   {tabItem.label}
@@ -472,7 +472,7 @@ export default function BudgetRequests() {
                 className="md:max-w-md"
               />
               {loading && (
-                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   {t("bur_loading", "Cargando...")}
                 </div>
               )}
@@ -514,14 +514,14 @@ export default function BudgetRequests() {
         }
       >
         <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             {t("bur_comentario_aprobacion", "Comentario (opcional)")}
           </label>
           <textarea
             value={approveModal.comentario}
             onChange={(e) => setApproveModal((prev) => ({ ...prev, comentario: e.target.value }))}
             rows={3}
-            className="w-full px-3 py-2.5 rounded-xl bg-white/50 backdrop-blur-sm border border-white/50 text-sm text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all resize-none"
+            className="w-full px-3 py-2.5 rounded-xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/50 dark:border-slate-700/50 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all resize-none"
             placeholder={t("bur_comentario_aprobacion", "Comentario (opcional)")}
           />
         </div>
@@ -549,14 +549,14 @@ export default function BudgetRequests() {
         }
       >
         <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             {t("bur_motivo_rechazo", "Motivo de rechazo")} *
           </label>
           <textarea
             value={rejectModal.motivo}
             onChange={(e) => setRejectModal((prev) => ({ ...prev, motivo: e.target.value }))}
             rows={3}
-            className="w-full px-3 py-2.5 rounded-xl bg-white/50 backdrop-blur-sm border border-white/50 text-sm text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all resize-none"
+            className="w-full px-3 py-2.5 rounded-xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/50 dark:border-slate-700/50 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all resize-none"
             placeholder={t("bur_motivo_placeholder", "Indica el motivo del rechazo...")}
           />
         </div>
