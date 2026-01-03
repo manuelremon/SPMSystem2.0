@@ -52,9 +52,15 @@ export function adaptLegacyColumns(legacyColumns) {
         }
       : undefined,
 
+    // Size (ancho de columna)
+    size: col.width,
+    minSize: col.minWidth,
+    maxSize: col.maxWidth,
+
     // Metadata (alineación, etc.)
     meta: {
       align: col.align || 'center',
+      minWidth: col.minWidth,
     },
   }));
 }

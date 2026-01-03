@@ -45,7 +45,7 @@ export default function Layout({ children }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-slate-100 to-pink-100 text-slate-800">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-200">
       {/* Sidebar - Pass real-time state */}
       <Sidebar
         collapsed={sidebarCollapsed}

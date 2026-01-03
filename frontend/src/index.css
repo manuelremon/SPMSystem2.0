@@ -259,6 +259,12 @@ svg {
   --spacing-group: var(--space-4);     /* 16px - Entre grupos */
   --spacing-section: var(--space-6);   /* 24px - Entre secciones */
   --spacing-page: var(--space-8);      /* 32px - Márgenes de página */
+
+  /* === SEMANTIC ALIASES - Para componentes === */
+  --text-primary: var(--fg);
+  --text-secondary: var(--fg-muted);
+  --sidebar-bg: rgba(255, 255, 255, 0.7);
+  --bg-glass: rgba(255, 255, 255, 0.5);
 }
 
 /* ============================================
@@ -358,6 +364,12 @@ svg {
     /* === GRADIENTS === */
     --gradient-glass: linear-gradient(135deg, hsl(222 47% 15%) 0%, hsl(222 47% 10%) 50%, hsl(330 30% 12%) 100%);
     --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(217 91% 50%) 100%);
+
+    /* === SEMANTIC ALIASES === */
+    --text-primary: var(--fg);
+    --text-secondary: var(--fg-muted);
+    --sidebar-bg: rgba(30, 41, 59, 0.8);
+    --bg-glass: rgba(51, 65, 85, 0.5);
   }
 }
 
@@ -452,6 +464,12 @@ svg {
   /* === GRADIENTS === */
   --gradient-glass: linear-gradient(135deg, hsl(222 47% 15%) 0%, hsl(222 47% 10%) 50%, hsl(330 30% 12%) 100%);
   --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(217 91% 50%) 100%);
+
+  /* === SEMANTIC ALIASES === */
+  --text-primary: var(--fg);
+  --text-secondary: var(--fg-muted);
+  --sidebar-bg: rgba(30, 41, 59, 0.8);
+  --bg-glass: rgba(51, 65, 85, 0.5);
 }
 
 /* ============================================
@@ -489,19 +507,24 @@ svg {
    ============================================ */
 table thead,
 table thead tr {
-  background-color: rgb(241 245 249 / 0.9) !important; /* slate-100 con opacidad */
+  background-color: var(--bg-glass) !important;
   backdrop-filter: blur(4px);
+}
+
+[data-theme="dark"] table thead,
+[data-theme="dark"] table thead tr {
+  background-color: var(--bg-glass) !important;
 }
 
 table thead th {
   background-color: transparent !important;
-  color: rgb(71 85 105) !important; /* slate-600 */
+  color: var(--text-secondary) !important;
   font-size: 0.75rem !important; /* 12px */
   font-weight: 600 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.05em !important;
   padding: 0.875rem 1rem !important; /* 14px 16px */
-  border-bottom: 2px solid rgb(203 213 225 / 0.8) !important; /* slate-300 */
+  border-bottom: 2px solid var(--border-glass-strong) !important;
   white-space: nowrap;
 }
 

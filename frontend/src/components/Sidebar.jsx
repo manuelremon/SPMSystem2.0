@@ -50,6 +50,7 @@ import {
   ICON_DEFAULT_COLORS,
   ICON_COLORS,
 } from "./ui/Icons";
+import { ThemeToggle } from "./ui/ThemeToggle";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
 import { useRealtimeStore } from "../store/realtimeStore";
@@ -448,8 +449,8 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
         className={clsx(
           "fixed top-4 left-4 z-50 md:hidden",
           "h-10 w-10 rounded-xl grid place-items-center",
-          "bg-white/80 backdrop-blur-lg shadow-lg border border-white/30",
-          "text-slate-600 hover:text-slate-800 hover:bg-white/90",
+          "bg-[var(--sidebar-bg)] backdrop-blur-lg shadow-lg border border-[var(--border-glass)]",
+          "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-glass)]",
           "transition-all duration-150"
         )}
         aria-label={mobileOpen ? t("menu_close", "Cerrar menú") : t("menu_open", "Abrir menú")}
@@ -470,9 +471,9 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
       <aside
         className={clsx(
           "fixed left-0 top-0 h-screen z-40",
-          // Glass effect
-          "bg-white/70 backdrop-blur-xl",
-          "border-r border-white/30",
+          // Glass effect - usando variables CSS para dark mode
+          "bg-[var(--sidebar-bg)] backdrop-blur-xl",
+          "border-r border-[var(--border-glass)]",
           "shadow-glass",
           "flex flex-col transition-all duration-300 ease-spring",
           // Desktop width
@@ -485,7 +486,7 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
       {/* Header / Logo - Glass style */}
       <div
         className={clsx(
-          "h-16 flex items-center border-b border-white/30",
+          "h-16 flex items-center border-b border-[var(--border-glass)]",
           collapsed ? "justify-center px-2" : "justify-between px-4"
         )}
       >
@@ -517,7 +518,7 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
       </div>
 
       {/* User Menu - Top - Accordion style like other nav items */}
-      <div className="border-b border-white/30 px-2 py-2">
+      <div className="border-b border-[var(--border-glass)] px-2 py-2">
         {collapsed ? (
           // Collapsed: show only avatar with tooltip
           <Tooltip content={user?.nombre || t("user_default", "Usuario")} position="right" className="w-full flex justify-center">
@@ -664,8 +665,16 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
 
       </nav>
 
-      {/* Bottom fixed section: Connection indicator + Foro + Logout */}
-      <div className="border-t border-white/30 px-2 py-2 space-y-1">
+      {/* Bottom fixed section: Theme toggle + Connection indicator + Foro + Logout */}
+      <div className="border-t border-[var(--border-glass)] px-2 py-2 space-y-1">
+        {/* Theme toggle */}
+        {collapsed ? (
+          <Tooltip content={t("tooltip_tema", "Cambiar tema")} position="right" delay={0} className="w-full flex justify-center py-0.5">
+            <ThemeToggle collapsed size="md" />
+          </Tooltip>
+        ) : (
+          <ThemeToggle showLabel />
+        )}
         {/* Connection indicator */}
         {collapsed ? (
           <Tooltip

@@ -98,8 +98,9 @@ export function getTableColumns(t) {
       key: "monto",
       header: "Monto",
       className: "text-right",
+      minWidth: 120,
       render: (row) => (
-        <span className="font-mono text-xs tabular-nums font-medium text-right block">
+        <span className="font-mono text-xs tabular-nums font-medium text-right block whitespace-nowrap">
           {formatCurrency(row.total_monto || 0)}
         </span>
       ),

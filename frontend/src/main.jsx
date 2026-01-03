@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react'
 import App from './App.jsx'
 import './index.css'
 import { I18nProvider } from './context/i18n'
+import { ThemeProvider } from './context/ThemeContext'
 
 // Initialize Sentry for production error tracking
 if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
@@ -25,22 +26,33 @@ if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
   })
 }
 
-// Asegurar tema antes de renderizar: claro por defecto
-const storedTheme = typeof window !== 'undefined' ? localStorage.getItem('theme') : null
-const initialTheme = storedTheme || 'light'
-if (typeof document !== 'undefined') {
-  document.documentElement.setAttribute('data-theme', initialTheme)
-  if (!storedTheme) {
-    localStorage.setItem('theme', initialTheme)
+// Aplicar tema inicial antes del primer render para evitar flash
+// El ThemeProvider se encargara de mantener sincronizado el estado
+const THEME_KEY = 'spm-theme'
+const getInitialTheme = () => {
+  if (typeof window === 'undefined') return 'light'
+  const stored = localStorage.getItem(THEME_KEY)
+  if (stored === 'dark' || stored === 'light') return stored
+  // Migrar key viejo si existe
+  const oldTheme = localStorage.getItem('theme')
+  if (oldTheme) {
+    localStorage.setItem(THEME_KEY, oldTheme)
+    localStorage.removeItem('theme')
+    return oldTheme
   }
+  if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) return 'dark'
+  return 'light'
 }
+document.documentElement.setAttribute('data-theme', getInitialTheme())
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <HelmetProvider>
-      <I18nProvider>
-        <App />
-      </I18nProvider>
+      <ThemeProvider>
+        <I18nProvider>
+          <App />
+        </I18nProvider>
+      </ThemeProvider>
     </HelmetProvider>
   </React.StrictMode>,
 )

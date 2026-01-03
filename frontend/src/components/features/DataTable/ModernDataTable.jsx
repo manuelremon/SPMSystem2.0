@@ -92,6 +92,8 @@ export function ModernDataTable({
                 const sorted = header.column.getIsSorted();
                 const alignClass = getAlignmentClass(header.column);
 
+                const minWidth = header.column.columnDef.meta?.minWidth;
+
                 return (
                   <TableHead
                     key={header.id}
@@ -116,6 +118,7 @@ export function ModernDataTable({
                       canSort && "cursor-pointer select-none",
                       canSort && "hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-inset"
                     )}
+                    style={minWidth ? { minWidth: `${minWidth}px` } : undefined}
                   >
                     <div className={cn("flex items-center gap-1", {
                       "justify-center": alignClass === "text-center",
@@ -146,9 +149,14 @@ export function ModernDataTable({
             >
               {row.getVisibleCells().map((cell) => {
                 const alignClass = getAlignmentClass(cell.column);
+                const minWidth = cell.column.columnDef.meta?.minWidth;
 
                 return (
-                  <TableCell key={cell.id} align={cell.column.columnDef.meta?.align}>
+                  <TableCell
+                    key={cell.id}
+                    align={cell.column.columnDef.meta?.align}
+                    style={minWidth ? { minWidth: `${minWidth}px` } : undefined}
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 );
