@@ -12,7 +12,7 @@ import { PageHeader } from "../components/ui/PageHeader";
 import { Alert } from "../components/ui/Alert";
 import { TableSkeleton } from "../components/ui/Skeleton";
 import { useI18n } from "../context/i18n";
-import { formatCurrency, formatDateTime } from "../utils/formatters";
+import { formatCurrency, formatDate } from "../utils/formatters";
 import { useDebounced } from "../hooks/useDebounced";
 import { Modal } from "../components/ui/Modal";
 import { XCircle, CheckCircle, RefreshCw, Plus, Eye, TrendingUp, TrendingDown, FileText } from "../components/ui/Icons";
@@ -260,7 +260,7 @@ export default function BudgetRequests() {
       sortAccessor: (row) => row.created_at || "",
       render: (row) => (
         <span className="text-sm text-slate-600 dark:text-slate-400 tabular-nums">
-          {formatDateTime(row.created_at)}
+          {formatDate(row.created_at)}
         </span>
       ),
     },

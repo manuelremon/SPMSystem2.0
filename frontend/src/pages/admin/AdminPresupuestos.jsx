@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { admin } from '../../services/spm'
-import { formatCurrency, formatDateTime } from '../../utils/formatters'
+import { formatCurrency, formatDate } from '../../utils/formatters'
 import { Card, CardContent } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { PageHeader } from '../../components/ui/PageHeader'
@@ -239,7 +239,7 @@ export default function AdminPresupuestos() {
       render: (row) => (
         <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 tabular-nums">
           <Clock className="w-3 h-3" />
-          {formatDateTime(row.created_at)}
+          {formatDate(row.created_at)}
         </span>
       )
     },
