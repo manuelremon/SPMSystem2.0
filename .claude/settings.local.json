@@ -187,7 +187,10 @@
       "Bash(pip3 install:*)",
       "Bash(/tmp/test-venv/bin/pip install:*)",
       "Bash(/tmp/test-venv/bin/python -m pytest tests/unit/test_budget_service.py -v --tb=short)",
-      "Bash(/tmp/test-venv/bin/python -m pytest:*)"
+      "Bash(/tmp/test-venv/bin/python -m pytest:*)",
+      "Bash(timeout 60 npm test -- --run --reporter=verbose)",
+      "Bash(timeout 120 npm test -- --run)",
+      "Bash(timeout 30 npm test:*)"
     ],
     "deny": [],
     "ask": []

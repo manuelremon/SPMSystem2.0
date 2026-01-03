@@ -1,21 +1,42 @@
 {
-  "version": "1.0",
+  "version": "2.0",
   "created": "2026-01-03",
+  "updated": "2026-01-03",
   "description": "Mapeo de materiales a imagenes para el catalogo SPM",
+  "dimension": "300x300",
   "stats": {
-    "total_imagenes": 48,
-    "imagenes_reales": 24,
+    "total_imagenes": 101,
+    "imagenes_reales": 77,
     "iconos_svg": 24
   },
   "fuentes": {
-    "fseal.com": "Juntas espiraladas, camperfiladas, empaquetaduras, PTFE",
-    "generado": "Iconos SVG para categorias sin imagen disponible"
+    "fseal.com": "Juntas espiraladas, camperfiladas, empaquetaduras, PTFE, materiales, expansion",
+    "valbol.com.ar": "Valvulas esfericas, esclusas, actuadores",
+    "esferomatic.com.ar": "Valvulas bridadas, mariposa, control, cuchilla",
+    "dallasdeca.com.ar": "Valvulas de control, reguladores, controladores neumaticos",
+    "rodinar.com.ar": "Rodamientos, soportes, retenes, tensores, correas",
+    "bairesrodamientos.com.ar": "Rodamientos, poleas, pinones, acoplamientos",
+    "parkest.com.ar": "Filtros hidraulicos Parker",
+    "refil.com.ar": "Filtros industriales",
+    "generado": "Iconos SVG para categorias sin imagen real"
   },
   "categorias": {
     "V.": {
       "nombre": "Valvulas",
-      "imagen": "defaults/valvula.svg",
-      "cantidad": 2660
+      "imagen": "defaults/valvula_esferica_valbol.jpg",
+      "cantidad": 2660,
+      "variantes": {
+        "esf": "defaults/valvula_esferica_valbol.jpg",
+        "bola": "defaults/valvula_esferica_valbol.jpg",
+        "globo": "defaults/valvula_control_dallas.jpg",
+        "control": "defaults/valvula_control.jpg",
+        "mariposa": "defaults/valvula_mariposa.jpg",
+        "cuchilla": "defaults/valvula_cuchilla.jpg",
+        "escl": "defaults/valvula_esclusa.jpg",
+        "ret": "defaults/valvula_giro_excentrico.jpg",
+        "bridada": "defaults/valvula_bridada.jpg",
+        "actuador": "defaults/valvula_actuador.jpg"
+      }
     },
     "JUNT.": {
       "nombre": "Juntas",
@@ -26,30 +47,39 @@
         "espiral": "defaults/junta_espiralada.jpg",
         "espiromet": "defaults/junta_espiralada.jpg",
         "camperfilada": "defaults/junta_camperfilada.jpg",
-        "enchaquetada": "defaults/junta_enchaquetada.jpg"
+        "kammprofile": "defaults/junta_camperfilada.jpg",
+        "enchaquetada": "defaults/junta_enchaquetada.jpg",
+        "expansion": "defaults/junta_expansion_wmax.jpg",
+        "aislante": "defaults/junta_aislante_clasica.jpg",
+        "electra": "defaults/junta_electra_sg.jpg"
       }
     },
     "CONJ.": {
       "nombre": "Conjuntos",
-      "imagen": "defaults/conjunto.svg",
+      "imagen": "defaults/kit_aislamiento.jpg",
       "cantidad": 1246
     },
     "JGO.": {
       "nombre": "Juegos",
-      "imagen": "defaults/conjunto.svg",
+      "imagen": "defaults/kit_aislamiento.jpg",
       "cantidad": 1107
     },
     "ROD.": {
       "nombre": "Rodamientos",
-      "imagen": "defaults/rodamiento.svg",
-      "cantidad": 893
+      "imagen": "defaults/rodamiento_bola.jpg",
+      "cantidad": 893,
+      "variantes": {
+        "bola": "defaults/rodamiento_bola.jpg",
+        "lineal": "defaults/rodamiento_lineal.jpg"
+      }
     },
     "ANILL.": {
       "nombre": "Anillos",
-      "imagen": "defaults/anillo.svg",
+      "imagen": "defaults/ring_joint.jpg",
       "cantidad": 863,
       "variantes": {
-        "junt": "defaults/ring_joint.jpg"
+        "junt": "defaults/ring_joint.jpg",
+        "rtj": "defaults/ring_joint.jpg"
       }
     },
     "NIPL.": {
@@ -59,12 +89,12 @@
     },
     "BRIDA": {
       "nombre": "Bridas",
-      "imagen": "defaults/brida.svg",
+      "imagen": "defaults/protector_brida.jpg",
       "cantidad": 710
     },
     "CAÑO": {
       "nombre": "Tuberias",
-      "imagen": "defaults/cano.svg",
+      "imagen": "defaults/tubo_aislante.jpg",
       "cantidad": 684
     },
     "CABL.": {
@@ -83,7 +113,8 @@
       "cantidad": 591,
       "variantes": {
         "grafito": "defaults/sello_anillo_grafito.jpg",
-        "ptfe": "defaults/empaquetadura_ptfe.jpg"
+        "ptfe": "defaults/empaquetadura_ptfe.jpg",
+        "reten": "defaults/reten_viton.jpg"
       }
     },
     "ESPARR.": {
@@ -93,8 +124,15 @@
     },
     "FILTR.": {
       "nombre": "Filtros",
-      "imagen": "defaults/filtro.svg",
-      "cantidad": 516
+      "imagen": "defaults/filtro_7000psi.jpg",
+      "cantidad": 516,
+      "variantes": {
+        "hidraulico": "defaults/filtro_7000psi.jpg",
+        "aceite": "defaults/filtro_rf7.jpg",
+        "portatil": "defaults/filtro_portatil.jpg",
+        "placas": "defaults/filtro_placas.jpg",
+        "canasto": "defaults/filtro_canasto.jpg"
+      }
     },
     "SEC.": {
       "nombre": "Secciones",
@@ -168,17 +206,41 @@
     },
     "TRANSM.": {
       "nombre": "Transmision",
-      "imagen": "defaults/correa.svg",
+      "imagen": "defaults/correa_automotriz.jpg",
       "cantidad": 279,
       "variantes": {
-        "correa": "defaults/correa.svg",
-        "polea": "defaults/polea.svg"
+        "correa": "defaults/correa_automotriz.jpg",
+        "polea": "defaults/polea_baires.jpg",
+        "pinon": "defaults/pinon_cadena.jpg",
+        "cadena": "defaults/pinon_cadena.jpg",
+        "tensor": "defaults/tensor_distribucion.jpg",
+        "acoplamiento": "defaults/acoplamiento.jpg"
       }
     },
     "CAMIS.": {
       "nombre": "Camisas",
       "imagen": "defaults/camisa.svg",
       "cantidad": 276
+    },
+    "SOPORT.": {
+      "nombre": "Soportes",
+      "imagen": "defaults/soporte_autocentrante.jpg",
+      "cantidad": 200
+    },
+    "RETEN": {
+      "nombre": "Retenes",
+      "imagen": "defaults/reten_viton.jpg",
+      "cantidad": 150
+    },
+    "REGUL.": {
+      "nombre": "Reguladores",
+      "imagen": "defaults/regulador_presion.jpg",
+      "cantidad": 100
+    },
+    "CONTROL": {
+      "nombre": "Controladores",
+      "imagen": "defaults/controlador_neumatico.jpg",
+      "cantidad": 80
     }
   },
   "palabras_clave": {
@@ -199,7 +261,33 @@
     "goma": "defaults/goma_laminado.jpg",
     "rubber": "defaults/goma_laminado.jpg",
     "sealon": "defaults/ptfe_expandido.jpg",
-    "expandido": "defaults/ptfe_expandido.jpg"
+    "expandido": "defaults/ptfe_expandido.jpg",
+    "expansion": "defaults/junta_expansion_wmax.jpg",
+    "aislante": "defaults/junta_aislante_clasica.jpg",
+    "isoflat": "defaults/junta_aislante_isoflat.jpg",
+    "electra": "defaults/junta_electra_sg.jpg",
+    "esferica": "defaults/valvula_esferica_valbol.jpg",
+    "bola": "defaults/valvula_esferica_valbol.jpg",
+    "mariposa": "defaults/valvula_mariposa.jpg",
+    "globo": "defaults/valvula_control_dallas.jpg",
+    "control": "defaults/valvula_control.jpg",
+    "cuchilla": "defaults/valvula_cuchilla.jpg",
+    "esclusa": "defaults/valvula_esclusa.jpg",
+    "actuador": "defaults/valvula_actuador.jpg",
+    "rodamiento": "defaults/rodamiento_bola.jpg",
+    "ruleman": "defaults/rodamiento_bola.jpg",
+    "reten": "defaults/reten_viton.jpg",
+    "viton": "defaults/reten_viton.jpg",
+    "filtro": "defaults/filtro_7000psi.jpg",
+    "hidraulico": "defaults/filtro_7000psi.jpg",
+    "correa": "defaults/correa_automotriz.jpg",
+    "polea": "defaults/polea_baires.jpg",
+    "pinon": "defaults/pinon_cadena.jpg",
+    "cadena": "defaults/pinon_cadena.jpg",
+    "tensor": "defaults/tensor_distribucion.jpg",
+    "soporte": "defaults/soporte_autocentrante.jpg",
+    "regulador": "defaults/regulador_presion.jpg",
+    "neumatico": "defaults/controlador_neumatico.jpg"
   },
   "estilos_junta_espiralada": {
     "CW": "defaults/junta_espiralada_CW.jpg",
@@ -208,16 +296,52 @@
     "WI": "defaults/junta_espiralada_WI.jpg",
     "X2": "defaults/junta_espiralada_X2.jpg",
     "HT": "defaults/junta_espiralada_HT.jpg",
-    "HTV": "defaults/junta_espiralada_HTV.png",
+    "HTV": "defaults/junta_espiralada_HTV.jpg",
     "TC": "defaults/junta_espiralada_TC.jpg",
     "LS": "defaults/junta_espiralada_LS.jpg",
     "HFA": "defaults/junta_espiralada_HFA.jpg",
-    "VMX": "defaults/junta_espiralada_VMX.png"
+    "VMX": "defaults/junta_espiralada_VMX.jpg"
+  },
+  "tipos_valvula": {
+    "esferica": "defaults/valvula_esferica_valbol.jpg",
+    "bola": "defaults/valvula_esferica_valbol.jpg",
+    "globo": "defaults/valvula_control_dallas.jpg",
+    "control": "defaults/valvula_control.jpg",
+    "mariposa": "defaults/valvula_mariposa.jpg",
+    "cuchilla": "defaults/valvula_cuchilla.jpg",
+    "esclusa": "defaults/valvula_esclusa.jpg",
+    "compuerta": "defaults/valvula_esclusa.jpg",
+    "bridada": "defaults/valvula_bridada.jpg",
+    "actuador": "defaults/valvula_actuador.jpg",
+    "electrico": "defaults/valvula_actuador_electrico.jpg",
+    "tres_vias": "defaults/valvula_tres_vias.jpg",
+    "giro_excentrico": "defaults/valvula_giro_excentrico.jpg"
+  },
+  "tipos_filtro": {
+    "hidraulico": "defaults/filtro_7000psi.jpg",
+    "alta_presion": "defaults/filtro_7000psi.jpg",
+    "aceite": "defaults/filtro_rf7.jpg",
+    "portatil": "defaults/filtro_portatil.jpg",
+    "placas": "defaults/filtro_placas.jpg",
+    "tubular": "defaults/filtro_tubular.jpg",
+    "canasto": "defaults/filtro_canasto.jpg",
+    "strainer": "defaults/filtro_strainer.jpg",
+    "vacio": "defaults/filtro_vacio.jpg",
+    "elemento": "defaults/filtro_parfit.jpg"
+  },
+  "tipos_material": {
+    "2032": "defaults/material_2032.jpg",
+    "2037": "defaults/material_2037.jpg",
+    "2039": "defaults/material_2039.jpg",
+    "sigra": "defaults/material_grafito_sigra.jpg",
+    "figra": "defaults/material_grafito_figra.jpg",
+    "tigra": "defaults/material_grafito_tigra.jpg"
   },
   "imagen_default": "defaults/elemento.svg",
   "notas": [
-    "Las imagenes de fseal.com son de productos reales de juntas industriales",
-    "Los iconos SVG fueron generados para categorias sin imagen real disponible",
-    "Para obtener la imagen de un material: 1) buscar por codigo en materiales{}, 2) buscar palabra clave, 3) usar prefijo de categoria, 4) usar imagen_default"
+    "Todas las imagenes estan en formato 300x300 pixeles",
+    "77 imagenes reales de productos de fabricantes industriales",
+    "24 iconos SVG generados para categorias sin imagen real",
+    "Para obtener la imagen de un material: 1) buscar por codigo, 2) buscar palabra clave, 3) usar prefijo de categoria, 4) usar imagen_default"
   ]
 }
