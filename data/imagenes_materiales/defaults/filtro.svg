@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="200" height="200">
+  <!-- Filtro industrial -->
+  <defs>
+    <linearGradient id="filter" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4080c0"/>
+      <stop offset="100%" style="stop-color:#206090"/>
+    </linearGradient>
+  </defs>
+  <!-- Carcasa -->
+  <rect x="25" y="15" width="50" height="70" rx="5" fill="url(#filter)" stroke="#333" stroke-width="2"/>
+  <!-- Tapa -->
+  <rect x="20" y="10" width="60" height="12" rx="3" fill="#444"/>
+  <!-- Base -->
+  <rect x="20" y="78" width="60" height="12" rx="3" fill="#444"/>
+  <!-- Elemento filtrante (líneas) -->
+  <line x1="35" y1="30" x2="35" y2="72" stroke="#90c0e0" stroke-width="2"/>
+  <line x1="45" y1="30" x2="45" y2="72" stroke="#90c0e0" stroke-width="2"/>
+  <line x1="55" y1="30" x2="55" y2="72" stroke="#90c0e0" stroke-width="2"/>
+  <line x1="65" y1="30" x2="65" y2="72" stroke="#90c0e0" stroke-width="2"/>
+  <!-- Conexiones -->
+  <circle cx="50" cy="5" r="5" fill="#666"/>
+  <circle cx="50" cy="95" r="5" fill="#666"/>
+</svg>

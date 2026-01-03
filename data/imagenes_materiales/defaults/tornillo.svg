@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="200" height="200">
+  <!-- Tornillo hexagonal -->
+  <defs>
+    <linearGradient id="boltSteel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a0a0a0"/>
+      <stop offset="50%" style="stop-color:#d0d0d0"/>
+      <stop offset="100%" style="stop-color:#707070"/>
+    </linearGradient>
+  </defs>
+  <!-- Cabeza hexagonal -->
+  <polygon points="50,10 65,18 65,32 50,40 35,32 35,18" fill="url(#boltSteel)" stroke="#444" stroke-width="1.5"/>
+  <!-- Vástago -->
+  <rect x="44" y="40" width="12" height="50" fill="url(#boltSteel)" stroke="#444" stroke-width="1"/>
+  <!-- Roscas -->
+  <line x1="44" y1="50" x2="56" y2="50" stroke="#888" stroke-width="0.8"/>
+  <line x1="44" y1="55" x2="56" y2="55" stroke="#888" stroke-width="0.8"/>
+  <line x1="44" y1="60" x2="56" y2="60" stroke="#888" stroke-width="0.8"/>
+  <line x1="44" y1="65" x2="56" y2="65" stroke="#888" stroke-width="0.8"/>
+  <line x1="44" y1="70" x2="56" y2="70" stroke="#888" stroke-width="0.8"/>
+  <line x1="44" y1="75" x2="56" y2="75" stroke="#888" stroke-width="0.8"/>
+  <line x1="44" y1="80" x2="56" y2="80" stroke="#888" stroke-width="0.8"/>
+  <line x1="44" y1="85" x2="56" y2="85" stroke="#888" stroke-width="0.8"/>
+</svg>

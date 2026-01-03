@@ -183,7 +183,11 @@
       "Bash(npx husky:*)",
       "Bash(git reset:*)",
       "Bash(COMMIT_MSG=\"fix: dropzone adjuntos minimalista en dark mode\" ./scripts/deploy-full.sh:*)",
-      "Bash(COMMIT_MSG=\"refactor: unificar botones con componente Button estandarizado\" ./scripts/deploy-full.sh:*)"
+      "Bash(COMMIT_MSG=\"refactor: unificar botones con componente Button estandarizado\" ./scripts/deploy-full.sh:*)",
+      "Bash(pip3 install:*)",
+      "Bash(/tmp/test-venv/bin/pip install:*)",
+      "Bash(/tmp/test-venv/bin/python -m pytest tests/unit/test_budget_service.py -v --tb=short)",
+      "Bash(/tmp/test-venv/bin/python -m pytest:*)"
     ],
     "deny": [],
     "ask": []

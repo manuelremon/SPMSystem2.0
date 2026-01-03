@@ -1,0 +1,223 @@
+{
+  "version": "1.0",
+  "created": "2026-01-03",
+  "description": "Mapeo de materiales a imagenes para el catalogo SPM",
+  "stats": {
+    "total_imagenes": 48,
+    "imagenes_reales": 24,
+    "iconos_svg": 24
+  },
+  "fuentes": {
+    "fseal.com": "Juntas espiraladas, camperfiladas, empaquetaduras, PTFE",
+    "generado": "Iconos SVG para categorias sin imagen disponible"
+  },
+  "categorias": {
+    "V.": {
+      "nombre": "Valvulas",
+      "imagen": "defaults/valvula.svg",
+      "cantidad": 2660
+    },
+    "JUNT.": {
+      "nombre": "Juntas",
+      "imagen": "defaults/junta_espiralada.jpg",
+      "cantidad": 1538,
+      "variantes": {
+        "espiralada": "defaults/junta_espiralada.jpg",
+        "espiral": "defaults/junta_espiralada.jpg",
+        "espiromet": "defaults/junta_espiralada.jpg",
+        "camperfilada": "defaults/junta_camperfilada.jpg",
+        "enchaquetada": "defaults/junta_enchaquetada.jpg"
+      }
+    },
+    "CONJ.": {
+      "nombre": "Conjuntos",
+      "imagen": "defaults/conjunto.svg",
+      "cantidad": 1246
+    },
+    "JGO.": {
+      "nombre": "Juegos",
+      "imagen": "defaults/conjunto.svg",
+      "cantidad": 1107
+    },
+    "ROD.": {
+      "nombre": "Rodamientos",
+      "imagen": "defaults/rodamiento.svg",
+      "cantidad": 893
+    },
+    "ANILL.": {
+      "nombre": "Anillos",
+      "imagen": "defaults/anillo.svg",
+      "cantidad": 863,
+      "variantes": {
+        "junt": "defaults/ring_joint.jpg"
+      }
+    },
+    "NIPL.": {
+      "nombre": "Niples",
+      "imagen": "defaults/niple.svg",
+      "cantidad": 742
+    },
+    "BRIDA": {
+      "nombre": "Bridas",
+      "imagen": "defaults/brida.svg",
+      "cantidad": 710
+    },
+    "CAÑO": {
+      "nombre": "Tuberias",
+      "imagen": "defaults/cano.svg",
+      "cantidad": 684
+    },
+    "CABL.": {
+      "nombre": "Cables",
+      "imagen": "defaults/cable.svg",
+      "cantidad": 654
+    },
+    "MODUL.": {
+      "nombre": "Modulos",
+      "imagen": "defaults/modulo.svg",
+      "cantidad": 601
+    },
+    "SELL.": {
+      "nombre": "Sellos",
+      "imagen": "defaults/sello_anillo_grafito.jpg",
+      "cantidad": 591,
+      "variantes": {
+        "grafito": "defaults/sello_anillo_grafito.jpg",
+        "ptfe": "defaults/empaquetadura_ptfe.jpg"
+      }
+    },
+    "ESPARR.": {
+      "nombre": "Esparragos",
+      "imagen": "defaults/esparrago.svg",
+      "cantidad": 564
+    },
+    "FILTR.": {
+      "nombre": "Filtros",
+      "imagen": "defaults/filtro.svg",
+      "cantidad": 516
+    },
+    "SEC.": {
+      "nombre": "Secciones",
+      "imagen": "defaults/elemento.svg",
+      "cantidad": 475
+    },
+    "TAP.": {
+      "nombre": "Tapones",
+      "imagen": "defaults/tapon.svg",
+      "cantidad": 464
+    },
+    "B.": {
+      "nombre": "Bulones",
+      "imagen": "defaults/tornillo.svg",
+      "cantidad": 462
+    },
+    "MOT.": {
+      "nombre": "Motores",
+      "imagen": "defaults/motor.svg",
+      "cantidad": 412
+    },
+    "CODO": {
+      "nombre": "Codos",
+      "imagen": "defaults/codo.svg",
+      "cantidad": 406
+    },
+    "TUERC.": {
+      "nombre": "Tuercas",
+      "imagen": "defaults/tuerca.svg",
+      "cantidad": 371
+    },
+    "INTERR.": {
+      "nombre": "Interruptores",
+      "imagen": "defaults/interruptor.svg",
+      "cantidad": 354
+    },
+    "O-RING": {
+      "nombre": "O-Rings",
+      "imagen": "defaults/oring.svg",
+      "cantidad": 331
+    },
+    "TORN.": {
+      "nombre": "Tornillos",
+      "imagen": "defaults/tornillo.svg",
+      "cantidad": 315
+    },
+    "RED.": {
+      "nombre": "Reducciones",
+      "imagen": "defaults/reduccion.svg",
+      "cantidad": 315
+    },
+    "CAJ.": {
+      "nombre": "Cajas",
+      "imagen": "defaults/modulo.svg",
+      "cantidad": 312
+    },
+    "ARAND.": {
+      "nombre": "Arandelas",
+      "imagen": "defaults/arandela.svg",
+      "cantidad": 303
+    },
+    "ASIENT.": {
+      "nombre": "Asientos",
+      "imagen": "defaults/elemento.svg",
+      "cantidad": 301
+    },
+    "ELEM.": {
+      "nombre": "Elementos",
+      "imagen": "defaults/elemento.svg",
+      "cantidad": 290
+    },
+    "TRANSM.": {
+      "nombre": "Transmision",
+      "imagen": "defaults/correa.svg",
+      "cantidad": 279,
+      "variantes": {
+        "correa": "defaults/correa.svg",
+        "polea": "defaults/polea.svg"
+      }
+    },
+    "CAMIS.": {
+      "nombre": "Camisas",
+      "imagen": "defaults/camisa.svg",
+      "cantidad": 276
+    }
+  },
+  "palabras_clave": {
+    "espiralada": "defaults/junta_espiralada.jpg",
+    "espirometalica": "defaults/junta_espiralada.jpg",
+    "espiral": "defaults/junta_espiralada.jpg",
+    "camperfilada": "defaults/junta_camperfilada.jpg",
+    "kammprofile": "defaults/junta_camperfilada.jpg",
+    "enchaquetada": "defaults/junta_enchaquetada.jpg",
+    "ring joint": "defaults/ring_joint.jpg",
+    "rtj": "defaults/ring_joint.jpg",
+    "ptfe": "defaults/material_ptfe.jpg",
+    "teflon": "defaults/material_ptfe.jpg",
+    "grafito": "defaults/empaquetadura_grafito.jpg",
+    "graphite": "defaults/empaquetadura_grafito.jpg",
+    "aramida": "defaults/empaquetadura_aramida.jpg",
+    "kevlar": "defaults/empaquetadura_aramida.jpg",
+    "goma": "defaults/goma_laminado.jpg",
+    "rubber": "defaults/goma_laminado.jpg",
+    "sealon": "defaults/ptfe_expandido.jpg",
+    "expandido": "defaults/ptfe_expandido.jpg"
+  },
+  "estilos_junta_espiralada": {
+    "CW": "defaults/junta_espiralada_CW.jpg",
+    "CWI": "defaults/junta_espiralada_CWI.jpg",
+    "W": "defaults/junta_espiralada_W.jpg",
+    "WI": "defaults/junta_espiralada_WI.jpg",
+    "X2": "defaults/junta_espiralada_X2.jpg",
+    "HT": "defaults/junta_espiralada_HT.jpg",
+    "HTV": "defaults/junta_espiralada_HTV.png",
+    "TC": "defaults/junta_espiralada_TC.jpg",
+    "LS": "defaults/junta_espiralada_LS.jpg",
+    "HFA": "defaults/junta_espiralada_HFA.jpg",
+    "VMX": "defaults/junta_espiralada_VMX.png"
+  },
+  "imagen_default": "defaults/elemento.svg",
+  "notas": [
+    "Las imagenes de fseal.com son de productos reales de juntas industriales",
+    "Los iconos SVG fueron generados para categorias sin imagen real disponible",
+    "Para obtener la imagen de un material: 1) buscar por codigo en materiales{}, 2) buscar palabra clave, 3) usar prefijo de categoria, 4) usar imagen_default"
+  ]
+}
