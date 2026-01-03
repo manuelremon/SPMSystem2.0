@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { useAuthStore } from "../store/authStore";
+import SEO from "../components/SEO";
 import DashboardSolicitante from "./DashboardSolicitante";
 import DashboardAprobador from "./DashboardAprobador";
 import DashboardPlanificador from "./DashboardPlanificador";
@@ -38,15 +39,17 @@ export default function Dashboard() {
   }, [user]);
 
   // Delegar al dashboard especifico segun el rol de mayor prioridad
-  switch (userRole) {
-    case 'admin':
-      return <DashboardAdmin />;
-    case 'planificador':
-      return <DashboardPlanificador />;
-    case 'aprobador':
-      return <DashboardAprobador />;
-    case 'solicitante':
-    default:
-      return <DashboardSolicitante />;
-  }
+  const DashboardComponent = {
+    admin: DashboardAdmin,
+    planificador: DashboardPlanificador,
+    aprobador: DashboardAprobador,
+    solicitante: DashboardSolicitante
+  }[userRole] || DashboardSolicitante;
+
+  return (
+    <>
+      <SEO title="Dashboard" description="Panel principal del Sistema de Planificación de Materiales" />
+      <DashboardComponent />
+    </>
+  );
 }

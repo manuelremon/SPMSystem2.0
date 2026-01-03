@@ -1,10 +1,12 @@
 import React from "react";
+import * as Sentry from "@sentry/react";
 import { AlertTriangle, RefreshCw, Home } from "./ui/Icons";
 import { Button } from "./ui/Button";
 
 /**
  * ErrorBoundary - Catches JavaScript errors in child components
  * Prevents the entire app from crashing and shows a fallback UI
+ * Integrates with Sentry for production error tracking
  */
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -23,10 +25,16 @@ class ErrorBoundary extends React.Component {
     });
 
     // Log error to console in development
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    if (process.env.NODE_ENV === "development") {
+      console.error("ErrorBoundary caught an error:", error, errorInfo);
+    }
 
-    // Here you could also send to an error tracking service
-    // e.g., Sentry, LogRocket, etc.
+    // Send to Sentry in production
+    Sentry.captureException(error, {
+      extra: {
+        componentStack: errorInfo?.componentStack,
+      },
+    });
   }
 
   handleReload = () => {

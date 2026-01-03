@@ -8,7 +8,10 @@ identificar el servidor que envia las notificaciones push.
 """
 
 import json
+import logging
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -28,7 +31,7 @@ def _ensure_vapid_keys():
     VAPID_KEYS_DIR.mkdir(parents=True, exist_ok=True)
 
     if not VAPID_PRIVATE_KEY_PATH.exists():
-        print("[PUSH] Generando nuevas claves VAPID...")
+        logger.info("Generando nuevas claves VAPID...")
 
         # Generar par de claves EC usando cryptography directamente
         private_key = ec.generate_private_key(ec.SECP256R1())
@@ -55,7 +58,7 @@ def _ensure_vapid_keys():
         with open(VAPID_CLAIMS_PATH, "w") as f:
             json.dump(VAPID_CLAIMS, f)
 
-        print(f"[PUSH] Claves VAPID generadas en {VAPID_KEYS_DIR}")
+        logger.info("Claves VAPID generadas en %s", VAPID_KEYS_DIR)
 
 
 def get_vapid_private_key() -> str:

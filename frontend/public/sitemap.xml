@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- SPM 2.0 Sitemap - Solo páginas públicas -->
+
+  <!-- Página principal (redirige a login si no autenticado) -->
+  <url>
+    <loc>https://planifica-materiales.com/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Login -->
+  <url>
+    <loc>https://planifica-materiales.com/login</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>

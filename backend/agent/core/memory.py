@@ -7,7 +7,10 @@ Implementa dos tipos de memoria:
 """
 
 import json
+import logging
 from collections import deque
+
+logger = logging.getLogger(__name__)
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -158,7 +161,7 @@ class Memory:
                 self.facts = data.get("facts", {})
                 self.rules = data.get("rules", {})
         except (json.JSONDecodeError, IOError) as e:
-            print(f"Warning: No se pudo cargar memoria persistente: {e}")
+            logger.warning("No se pudo cargar memoria persistente: %s", e)
 
     def __repr__(self) -> str:
         return (

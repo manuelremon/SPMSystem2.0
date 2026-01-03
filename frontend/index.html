@@ -6,23 +6,14 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="SPM" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SPM - Sistema de Gestión de Solicitudes</title>
-    <script>
-      // Clear any old service workers and caches
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          for (let registration of registrations) {
-            registration.unregister();
-          }
-        });
-      }
-      if ('caches' in window) {
-        caches.keys().then(function(names) {
-          for (let name of names) caches.delete(name);
-        });
-      }
-    </script>
+    <script src="/js/sw-cleanup.js"></script>
     <!-- Inter - Single font for entire system -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,16 +22,7 @@
   <body>
     <div id="root"></div>
     <!-- GitHub Pages SPA redirect handler -->
-    <script>
-      (function() {
-        var redirect = sessionStorage.getItem('redirect');
-        if (redirect) {
-          sessionStorage.removeItem('redirect');
-          // Navegar a la ruta guardada
-          window.history.replaceState(null, null, redirect);
-        }
-      })();
-    </script>
+    <script src="/js/spa-redirect.js"></script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

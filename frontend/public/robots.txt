@@ -1,0 +1,12 @@
+# SPM 2.0 - robots.txt
+# Sistema interno - no indexar contenido sensible
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /planificador/
+Disallow: /presupuestos/
+
+# Sitemap
+Sitemap: https://planifica-materiales.com/sitemap.xml

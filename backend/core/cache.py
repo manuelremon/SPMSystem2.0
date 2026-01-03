@@ -140,14 +140,17 @@ class TTLCache:
 # Global cache instances with different TTLs
 # =============================================================================
 
-# Catalog cache: Long TTL (10 minutes) - data rarely changes
-catalog_cache = TTLCache(default_ttl=600, max_size=500)
+# Catalog cache: Long TTL (30 minutes) - data rarely changes
+# P3-1: Increased from 600s to 1800s for better hit rate
+catalog_cache = TTLCache(default_ttl=1800, max_size=500)
 
-# User cache: Medium TTL (2 minutes) - balance freshness vs performance
-user_cache = TTLCache(default_ttl=120, max_size=200)
+# User cache: Medium TTL (5 minutes) - balance freshness vs performance
+# P3-1: Increased from 120s to 300s
+user_cache = TTLCache(default_ttl=300, max_size=200)
 
-# Query cache: Short TTL (30 seconds) - for expensive queries
-query_cache = TTLCache(default_ttl=30, max_size=100)
+# Query cache: Short TTL (60 seconds) - for expensive queries
+# P3-1: Increased from 30s to 60s
+query_cache = TTLCache(default_ttl=60, max_size=100)
 
 
 # =============================================================================
