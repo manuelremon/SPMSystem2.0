@@ -148,7 +148,9 @@ class AtomicBudgetTransaction:
                 success=False, error_code="invalid_amount", error_message="Monto debe ser positivo"
             )
 
-        idem_key = idempotency_key or f"consumo_{solicitud_id}_{ctx.timestamp}"
+        # SPRINT 1.4: Idempotencia mejorada - usar solicitud_id + monto en lugar de timestamp
+        # Esto previene duplicados cuando se reintenta la misma operación
+        idem_key = idempotency_key or f"approval_{solicitud_id}_{monto_cents}"
 
         # Verificar idempotencia (operacion ya ejecutada?)
         self._execute(
@@ -301,7 +303,8 @@ class AtomicBudgetTransaction:
         Returns:
             BudgetOperationResult con el resultado
         """
-        idem_key = f"reversion_{solicitud_id}_{ctx.timestamp}"
+        # SPRINT 1.4: Idempotencia mejorada - usar solicitud_id + monto en lugar de timestamp
+        idem_key = f"reversion_{solicitud_id}_{monto_cents}"
 
         # Verificar que exista el consumo original
         self._execute(

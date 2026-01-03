@@ -31,6 +31,7 @@ try:
     from backend.core.config import settings
     from backend.core.db import get_db_connection
     from backend.core.roles import is_admin, normalize_roles
+    from backend.core.helpers import resolve_sector_name as _resolve_sector_name_helper
 except ImportError:
     from core.budget_schemas import (
         UMBRAL_L2_CENTS,
@@ -46,12 +47,30 @@ except ImportError:
     from core.budget_transaction import AtomicBudgetTransaction
     from core.config import settings
     from core.db import get_db_connection
+    from core.helpers import resolve_sector_name as _resolve_sector_name_helper
 
 
 def _connect():
-    """Crea conexion a BD PostgreSQL"""
-    import psycopg2
-    conn = psycopg2.connect(settings.DATABASE_URL)
+    """
+    SPRINT 2.1: Conexion a BD usando get_db_connection.
+    Soporta tanto PostgreSQL como SQLite.
+
+    NOTA: Esta función retorna una conexión que debe cerrarse con .close()
+    para mantener compatibilidad con el código existente.
+    """
+    # get_db_connection es un context manager, entramos y obtenemos la conexión
+    ctx = get_db_connection()
+    conn = ctx.__enter__()
+    # Guardamos referencia al context manager para poder hacer cleanup
+    conn._ctx_manager = ctx
+    # Override close para hacer cleanup apropiado
+    original_close = conn.close if hasattr(conn, 'close') else lambda: None
+    def new_close():
+        try:
+            ctx.__exit__(None, None, None)
+        except:
+            pass
+    conn.close = new_close
     return conn
 
 
@@ -100,25 +119,10 @@ def _fetchall(cursor):
 
 def _resolve_sector_name(sector_value: str) -> str:
     """
+    SPRINT 2.2: Wrapper que delega al helper centralizado.
     Resuelve el nombre del sector dado un ID o nombre.
-    Si es numerico, busca en catalog_sectores.
-    Si no encuentra, devuelve el valor original.
     """
-    if not sector_value:
-        return sector_value
-
-    # Si es numerico, intentar buscar por ID
-    if str(sector_value).isdigit():
-        conn = _connect()
-        cur = conn.cursor()
-        _execute(cur, "SELECT nombre FROM catalog_sectores WHERE id = ?", (int(sector_value),))
-        row = _fetchone(cur)
-        conn.close()
-        if row:
-            # row puede ser dict (PostgreSQL) o Row (SQLite)
-            return row.get("nombre") if isinstance(row, dict) else row[0]
-
-    return sector_value
+    return _resolve_sector_name_helper(sector_value)
 
 
 # ============================================================================
@@ -531,6 +535,115 @@ class BURService:
             )
             conn.commit()
             return {"ok": True, "message": "BUR rechazado"}
+        except Exception as e:
+            return {"ok": False, "error": str(e), "code": "db_error"}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def revertir(bur_id: int, revertido_por: str, motivo: str) -> Dict[str, Any]:
+        """
+        SPRINT 2.3: Revierte un BUR aprobado (solo admin).
+        Resta el monto del presupuesto y marca el BUR como revertido.
+
+        Args:
+            bur_id: ID del BUR a revertir
+            revertido_por: ID del usuario que revierte (debe ser admin)
+            motivo: Razón de la reversión
+
+        Returns:
+            Dict con resultado de la operación
+        """
+        from backend.core.budget_schemas import TipoMovimiento
+
+        bur = BURService.get_by_id(bur_id)
+        if not bur:
+            return {"ok": False, "error": "BUR no encontrado", "code": "not_found"}
+
+        if bur.estado != EstadoBUR.APROBADO.value:
+            return {
+                "ok": False,
+                "error": f"Solo se pueden revertir BURs aprobados. Estado actual: {bur.estado}",
+                "code": "invalid_state",
+            }
+
+        now = datetime.utcnow().isoformat() + "Z"
+
+        # Obtener info actual del presupuesto
+        info = PresupuestoService.get_info(bur.centro, bur.sector)
+        if not info:
+            return {
+                "ok": False,
+                "error": f"No existe presupuesto para {bur.centro}/{bur.sector}",
+                "code": "presupuesto_not_found",
+            }
+
+        # Verificar que hay suficiente saldo para revertir
+        if info.saldo_cents < bur.monto_solicitado_cents:
+            return {
+                "ok": False,
+                "error": f"Saldo insuficiente para revertir: disponible={info.saldo_cents/100:.2f}, "
+                         f"a revertir={bur.monto_solicitado_cents/100:.2f}",
+                "code": "saldo_insuficiente",
+            }
+
+        conn = _connect()
+        try:
+            cur = conn.cursor()
+
+            # Restar del presupuesto
+            nuevo_saldo = info.saldo_cents - bur.monto_solicitado_cents
+            _execute(
+                cur,
+                """UPDATE presupuestos
+                   SET saldo_cents = ?, saldo_usd = ?, version = version + 1, updated_by = ?
+                   WHERE centro = ? AND sector = ?""",
+                (nuevo_saldo, nuevo_saldo / 100, revertido_por, bur.centro, bur.sector),
+            )
+
+            # Registrar en ledger
+            _execute(
+                cur,
+                """INSERT INTO presupuesto_ledger
+                   (idempotency_key, centro, sector, tipo_movimiento, monto_cents,
+                    saldo_anterior_cents, saldo_posterior_cents, referencia_tipo, referencia_id,
+                    actor_id, actor_rol, motivo)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    f"bur_reversion_{bur_id}_{now}",
+                    bur.centro,
+                    bur.sector,
+                    TipoMovimiento.BUR_REVERTIDO.value,
+                    -bur.monto_solicitado_cents,  # Negativo porque es débito
+                    info.saldo_cents,
+                    nuevo_saldo,
+                    "bur",
+                    bur_id,
+                    revertido_por,
+                    "admin",
+                    motivo,
+                ),
+            )
+
+            # Actualizar estado del BUR
+            _execute(
+                cur,
+                """UPDATE budget_update_requests
+                   SET estado = ?, rechazado_por = ?, motivo_rechazo = ?,
+                       fecha_rechazo = ?, updated_at = ?
+                   WHERE id = ?""",
+                ("revertido", revertido_por, f"[REVERTIDO] {motivo}", now, now, bur_id),
+            )
+
+            conn.commit()
+
+            return {
+                "ok": True,
+                "message": f"BUR #{bur_id} revertido. ${bur.monto_solicitado_cents/100:.2f} restados del presupuesto.",
+                "nuevo_saldo_cents": nuevo_saldo,
+                "monto_revertido_cents": bur.monto_solicitado_cents,
+            }
+
         except Exception as e:
             return {"ok": False, "error": str(e), "code": "db_error"}
         finally:

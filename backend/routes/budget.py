@@ -511,6 +511,92 @@ def rechazar_budget_request(bur_id):
     return jsonify(result), 200
 
 
+@bp.route("/budget-requests/<int:bur_id>/revertir", methods=["POST"])
+def revertir_budget_request(bur_id):
+    """
+    SPRINT 2.3: Revertir un BUR aprobado (solo admin).
+    Resta el monto del presupuesto y marca el BUR como revertido.
+    """
+    payload, err = _require_auth()
+    if err:
+        return err
+
+    user_id = str(payload.get("user_id"))
+    user = _get_user(user_id)
+    if not user:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {"code": "user_not_found", "message": "Usuario no encontrado"},
+                }
+            ),
+            404,
+        )
+
+    user_roles = normalize_roles(user.get("rol", ""))
+
+    # Solo admin puede revertir BURs
+    if not any(r in user_roles for r in ["admin", "administrador", "superadmin"]):
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "forbidden",
+                        "message": "Solo administradores pueden revertir BURs aprobados",
+                    },
+                }
+            ),
+            403,
+        )
+
+    data = request.get_json(silent=True) or {}
+    motivo = data.get("motivo", "").strip()
+
+    if len(motivo) < 5:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "motivo_required",
+                        "message": "Debe proporcionar un motivo de reversión (mínimo 5 caracteres)",
+                    },
+                }
+            ),
+            400,
+        )
+
+    result = BURService.revertir(bur_id=bur_id, revertido_por=user_id, motivo=motivo)
+
+    if not result["ok"]:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": result.get("code", "error"),
+                        "message": result.get("error", "Error"),
+                    },
+                }
+            ),
+            400,
+        )
+
+    # Obtener BUR para notificar
+    bur = BURService.get_by_id(bur_id)
+    if bur:
+        monto_usd = bur.monto_solicitado_cents / 100
+        NotificationService.create_notification(
+            destinatario_id=bur.solicitante_id,
+            mensaje=f"Tu solicitud de presupuesto por ${monto_usd:,.2f} para {bur.centro}/{bur.sector} fue REVERTIDA por un administrador. Motivo: {motivo}",
+            tipo="warning",
+        )
+
+    return jsonify(result), 200
+
+
 # ============================================================================
 # Pendientes para aprobador
 # ============================================================================

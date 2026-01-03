@@ -124,7 +124,8 @@ export default function BudgetRequestDetail() {
     });
   };
 
-  const canApprove = bur?.estado === "pendiente";
+  // SPRINT 2.4: Permitir aprobar estados intermedios (aprobado_l1, aprobado_l2)
+  const canApprove = ["pendiente", "aprobado_l1", "aprobado_l2"].includes(bur?.estado);
   const nuevoSaldo = presupuestoInfo && bur
     ? (presupuestoInfo.saldo_usd || 0) + (bur.monto_solicitado_usd || 0)
     : null;

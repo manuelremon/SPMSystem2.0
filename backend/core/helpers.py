@@ -280,6 +280,48 @@ def utc_now_naive() -> str:
 
 
 # =============================================================================
+# Catalog Helpers (SPRINT 2.2)
+# =============================================================================
+
+
+def resolve_sector_name(sector_value: str) -> str:
+    """
+    SPRINT 2.2: Resuelve el nombre del sector dado un ID o nombre.
+
+    Centraliza la normalización de sector ID -> nombre para
+    consistencia en todo el sistema de presupuestos.
+
+    Si es numérico, busca en catalog_sectores.
+    Si no encuentra, devuelve el valor original.
+
+    Args:
+        sector_value: ID numérico o nombre del sector
+
+    Returns:
+        str: Nombre del sector o valor original si no se encuentra
+    """
+    if not sector_value:
+        return sector_value
+
+    # Si es numérico, intentar buscar por ID
+    if str(sector_value).isdigit():
+        try:
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT nombre FROM catalog_sectores WHERE id = ?",
+                    (int(sector_value),)
+                )
+                row = cur.fetchone()
+                if row:
+                    return row.get("nombre") if isinstance(row, dict) else row[0]
+        except Exception as e:
+            logger.warning(f"Error resolviendo sector {sector_value}: {e}")
+
+    return sector_value
+
+
+# =============================================================================
 # Aliases para compatibilidad con codigo existente
 # =============================================================================
 
@@ -293,3 +335,4 @@ _is_admin = is_admin
 _error_response = error_response
 _success_response = success_response
 _utc_now = utc_now
+_resolve_sector_name = resolve_sector_name

@@ -986,6 +986,30 @@ def aprobar_solicitud(solicitud_id):
             403,
         )
 
+    # 4.6 SPRINT 1.2: Validar que no haya consumo previo sin revertir
+    # Esto previene doble consumo cuando una solicitud se reenvía
+    balanceado, consumos, reversiones = _validar_consumo_previo_balanceado(solicitud_id)
+    if not balanceado:
+        logger.error(
+            f"[DOBLE_CONSUMO] Solicitud {solicitud_id} tiene consumos no balanceados: "
+            f"consumos={consumos}, reversiones={reversiones}"
+        )
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "unbalanced_budget_entries",
+                        "message": "Esta solicitud tiene consumos de presupuesto previos no revertidos. "
+                                   "Contacte al administrador.",
+                        "consumos": consumos,
+                        "reversiones": reversiones,
+                    },
+                }
+            ),
+            422,
+        )
+
     # 5. Validar y consumir presupuesto
     try:
         from backend.services.budget_service import aprobar_solicitud_con_presupuesto
@@ -1235,6 +1259,24 @@ def rechazar_solicitud(solicitud_id):
     data = request.get_json(silent=True) or {}
     motivo = data.get("motivo") or ""
 
+    # SPRINT 1.1: Revertir presupuesto si la solicitud estaba APPROVED
+    # Esto previene fuga de dinero cuando se rechaza una solicitud ya aprobada
+    if estado_actual == EstadoSolicitud.APPROVED.value or estado_actual == "approved":
+        monto_consumido = _obtener_monto_consumo_solicitud(solicitud_id)
+        if monto_consumido > 0:
+            logger.info(
+                f"[REVERSION_RECHAZO] Revirtiendo ${monto_consumido/100:.2f} para solicitud {solicitud_id} "
+                f"(estado previo: approved)"
+            )
+            _revertir_presupuesto_aprobacion_fallida(
+                solicitud_id=solicitud_id,
+                solicitud=solicitud,
+                monto_cents=monto_consumido,
+                aprobador_id=actor_id,
+                aprobador_rol=actor_rol,
+                razon=f"Reversion por rechazo de solicitud aprobada. Motivo: {motivo or 'No especificado'}",
+            )
+
     # Usar FSM para cambiar estado (registra historial y dispara notificaciones)
     try:
         resultado = cambiar_estado(
@@ -1273,6 +1315,152 @@ def rechazar_solicitud(solicitud_id):
     except Exception:
         # SLA es informativo, no debe bloquear el flujo principal
         pass
+
+    return get_solicitud(solicitud_id)
+
+
+@bp.route("/<int:solicitud_id>/cancelar", methods=["PUT", "POST"])
+def cancelar_solicitud(solicitud_id):
+    """
+    SPRINT 1.3: Cancelar solicitud con reversión automática de presupuesto.
+    Solo el solicitante o admin pueden cancelar.
+    Si la solicitud estaba APPROVED, el presupuesto consumido se revierte.
+    """
+    # 1. Validar autenticación
+    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
+    if isinstance(user_payload, tuple):
+        return user_payload
+
+    actor_id = str(user_payload.get("user_id", "system"))
+    if not actor_id or actor_id == "system":
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "unauthorized",
+                        "message": "Usuario no identificado en token",
+                    },
+                }
+            ),
+            401,
+        )
+
+    # 2. Obtener rol del actor
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (actor_id,))
+        user_row = cur.fetchone()
+    actor_rol = _row_to_dict(user_row, cur).get("rol", "") if user_row else ""
+
+    # 3. Obtener solicitud
+    solicitud = _get_raw(solicitud_id)
+    if not solicitud:
+        return (
+            jsonify(
+                {"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}
+            ),
+            404,
+        )
+
+    # 4. SEGURIDAD: Solo el owner o admin pueden cancelar
+    owner_id = str(solicitud.get("id_usuario") or solicitud.get("solicitante_id") or "")
+    es_owner = str(actor_id) == owner_id
+    es_admin_user = is_admin(actor_rol)
+
+    if not es_owner and not es_admin_user:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "forbidden",
+                        "message": "Solo el solicitante o admin puede cancelar esta solicitud",
+                    },
+                }
+            ),
+            403,
+        )
+
+    # 5. Validar transición con FSM
+    estado_actual = normalizar_estado(solicitud.get("status") or "")
+    if not validar_transicion(estado_actual, EstadoSolicitud.CANCELLED):
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "invalid_transition",
+                        "message": f"Solicitud no puede cancelarse desde estado '{estado_para_display(estado_actual)}'",
+                        "estado_actual": estado_actual,
+                    },
+                }
+            ),
+            400,
+        )
+
+    # 6. Obtener motivo de cancelación (requerido)
+    data = request.get_json(silent=True) or {}
+    motivo = data.get("motivo") or data.get("motivo_cancelacion") or ""
+    if not motivo.strip():
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "motivo_required",
+                        "message": "El motivo de cancelación es requerido",
+                    },
+                }
+            ),
+            400,
+        )
+
+    # 7. SPRINT 1.3: Revertir presupuesto si la solicitud estaba APPROVED
+    if estado_actual == EstadoSolicitud.APPROVED.value or estado_actual == "approved":
+        monto_consumido = _obtener_monto_consumo_solicitud(solicitud_id)
+        if monto_consumido > 0:
+            logger.info(
+                f"[REVERSION_CANCELACION] Revirtiendo ${monto_consumido/100:.2f} para solicitud {solicitud_id} "
+                f"(estado previo: approved)"
+            )
+            _revertir_presupuesto_aprobacion_fallida(
+                solicitud_id=solicitud_id,
+                solicitud=solicitud,
+                monto_cents=monto_consumido,
+                aprobador_id=actor_id,
+                aprobador_rol=actor_rol,
+                razon=f"Reversion por cancelacion de solicitud. Motivo: {motivo}",
+            )
+
+    # 8. Usar FSM para cambiar estado
+    try:
+        resultado = cambiar_estado(
+            solicitud_id=solicitud_id,
+            nuevo_estado=EstadoSolicitud.CANCELLED,
+            actor_id=actor_id,
+            razon=motivo,
+            metadata={"motivo_cancelacion": motivo, "cancelado_por": actor_id},
+        )
+        logger.info(f"[CANCELACION] Solicitud {solicitud_id} cancelada por usuario {actor_id}")
+
+    except TransicionInvalidaError as e:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {"code": "invalid_transition", "message": str(e)},
+                }
+            ),
+            400,
+        )
+
+    # 9. Resolver alertas SLA
+    try:
+        resolver_alertas_solicitud(solicitud_id=solicitud_id, resuelto_por=actor_id)
+        actualizar_sla_solicitud(solicitud_id=solicitud_id, fecha_limite=None, estado_sla="closed")
+    except Exception:
+        pass  # SLA es informativo
 
     return get_solicitud(solicitud_id)
 
@@ -1582,6 +1770,91 @@ def _aprobador_por_monto(total, centro: str = None):
         monto = 0
 
     return obtener_aprobador_por_monto(monto, centro)
+
+
+def _validar_consumo_previo_balanceado(solicitud_id: int) -> tuple:
+    """
+    SPRINT 1.2: Valida que los consumos previos estén balanceados con reversiones.
+    Previene doble consumo cuando una solicitud se reenvía.
+
+    Returns:
+        Tuple (balanceado: bool, consumos: int, reversiones: int)
+    """
+    try:
+        from backend.core.budget_schemas import TipoMovimiento
+    except ImportError:
+        from core.budget_schemas import TipoMovimiento
+
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            # Contar consumos
+            cur.execute(
+                """
+                SELECT COUNT(*) as cnt FROM presupuesto_ledger
+                WHERE referencia_tipo = 'solicitud'
+                AND referencia_id = ?
+                AND tipo_movimiento = ?
+                """,
+                (solicitud_id, TipoMovimiento.CONSUMO_APROBACION.value),
+            )
+            row = cur.fetchone()
+            consumos = row["cnt"] if isinstance(row, dict) else row[0]
+
+            # Contar reversiones
+            cur.execute(
+                """
+                SELECT COUNT(*) as cnt FROM presupuesto_ledger
+                WHERE referencia_tipo = 'solicitud'
+                AND referencia_id = ?
+                AND tipo_movimiento = ?
+                """,
+                (solicitud_id, TipoMovimiento.REVERSION_RECHAZO.value),
+            )
+            row = cur.fetchone()
+            reversiones = row["cnt"] if isinstance(row, dict) else row[0]
+
+            return (consumos == reversiones, consumos, reversiones)
+    except Exception as e:
+        logger.error(f"Error validando consumo previo para solicitud {solicitud_id}: {e}")
+        # En caso de error, asumir balanceado para no bloquear
+        return (True, 0, 0)
+
+
+def _obtener_monto_consumo_solicitud(solicitud_id: int) -> int:
+    """
+    Obtiene el monto del consumo de presupuesto original para una solicitud.
+    Busca en el ledger el movimiento de tipo CONSUMO_APROBACION.
+
+    Returns:
+        Monto en centavos (positivo) o 0 si no hay consumo registrado.
+    """
+    try:
+        from backend.core.budget_schemas import TipoMovimiento
+    except ImportError:
+        from core.budget_schemas import TipoMovimiento
+
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT monto_cents FROM presupuesto_ledger
+                WHERE referencia_tipo = 'solicitud'
+                AND referencia_id = ?
+                AND tipo_movimiento = ?
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                (solicitud_id, TipoMovimiento.CONSUMO_APROBACION.value),
+            )
+            row = cur.fetchone()
+            if row:
+                # monto_cents está guardado como negativo (débito)
+                return abs(row["monto_cents"])
+    except Exception as e:
+        logger.error(f"Error buscando consumo para solicitud {solicitud_id}: {e}")
+    return 0
 
 
 def _revertir_presupuesto_aprobacion_fallida(

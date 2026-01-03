@@ -24,6 +24,7 @@ class TipoMovimiento(str, Enum):
     REVERSION_RECHAZO = "reversion_rechazo"
     AJUSTE_MANUAL = "ajuste_manual"
     BUR_APROBADO = "bur_aprobado"
+    BUR_REVERTIDO = "bur_revertido"  # SPRINT 2.3
 
 
 class NivelAprobacion(str, Enum):
