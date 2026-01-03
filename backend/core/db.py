@@ -264,11 +264,14 @@ def get_db_connection(db_name: str = "spm") -> Generator:
         # conn se cierra automáticamente aquí
     """
     conn = None
+    # Bases de datos auxiliares que siempre usan SQLite (datos SAP importados)
+    sqlite_only_dbs = {"equivalentes", "sap_data", "catalogo_materiales"}
+
     try:
-        # PostgreSQL: TODAS las conexiones van a PostgreSQL en produccion
-        if is_using_postgresql():
+        # PostgreSQL solo para BD principal (spm)
+        if is_using_postgresql() and db_name not in sqlite_only_dbs:
             conn = _get_postgres_connection()
-        # SQLite: Desarrollo local
+        # SQLite: Desarrollo local O bases de datos auxiliares
         else:
             db_path = get_db_path(db_name)
             conn = sqlite3.connect(db_path)
@@ -300,11 +303,14 @@ def get_db_transaction(db_name: str = "spm") -> Generator:
         # commit automático si no hay error
     """
     conn = None
+    # Bases de datos auxiliares que siempre usan SQLite (datos SAP importados)
+    sqlite_only_dbs = {"equivalentes", "sap_data", "catalogo_materiales"}
+
     try:
-        # PostgreSQL: TODAS las conexiones van a PostgreSQL en produccion
-        if is_using_postgresql():
+        # PostgreSQL solo para BD principal (spm)
+        if is_using_postgresql() and db_name not in sqlite_only_dbs:
             conn = _get_postgres_connection()
-        # SQLite: Desarrollo local
+        # SQLite: Desarrollo local O bases de datos auxiliares
         else:
             db_path = get_db_path(db_name)
             conn = sqlite3.connect(db_path)
