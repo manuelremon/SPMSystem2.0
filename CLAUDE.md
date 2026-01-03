@@ -611,6 +611,48 @@ Revision completa de 30 bugs identificados en FSM, Aprobaciones, Presupuestos, M
 - `docs/README.md` (redundante con raiz)
 - `backend/agent/models/` (directorio vacio)
 
+## Sprint 20: Sistema de Presupuestos (2026-01-03)
+
+**Fecha**: 2026-01-03
+**Mejoras completas al sistema de Budget Update Requests (BUR)**
+
+### Bugs Criticos Corregidos (Sprint 1-2)
+| Bug | Descripcion | Archivo |
+|-----|-------------|---------|
+| Reversion rechazo | Rechazar solicitud aprobada no revertia presupuesto | `solicitudes.py` |
+| Doble consumo | Reenvio de solicitud rechazada consumia doble | `fsm.py` |
+| Cancelacion | Cancelar en estado APPROVED no revertia | `fsm.py` |
+| Idempotencia | Clave basada en timestamp permitia duplicados | `budget_transaction.py` |
+| _connect() bug | Funcion no definida en budget_service | `budget_service.py` |
+| canApprove | Frontend no permitia aprobar estados intermedios | `BudgetRequestDetail.jsx` |
+
+### Mejoras UX (Sprint 3)
+| Feature | Descripcion | Archivo |
+|---------|-------------|---------|
+| Paginacion ledger | 50 entradas por pagina con controles | `BudgetRequests.jsx` |
+| Sync tabs | Refrescar ambas tabs al aprobar/rechazar | `BudgetRequests.jsx` |
+| Validacion motivo | Tiempo real, minimo 5 caracteres | `BudgetRequests.jsx` |
+| Modal impacto | Mostrar nuevo saldo antes de aprobar | `BudgetRequests.jsx` |
+| Exportacion CSV | Exportar historial y BURs a CSV | `BudgetRequests.jsx` |
+
+### Tests Agregados (Sprint 4)
+| Archivo | Tests | Cobertura |
+|---------|-------|-----------|
+| `BudgetRequests.test.jsx` | 36 | Paginacion, sync, validacion, modales |
+| `BudgetRequestDetail.test.jsx` | 22 | Detalle, aprobacion, rechazo, estados |
+| `test_budget_integration.py` | 18 | Flujo completo BUR, autorizacion, ledger |
+
+**Total nuevos tests: 76**
+
+### Sistema de Presupuestos
+- **Backend:** `routes/budget.py`, `services/budget_service.py`, `core/budget_schemas.py`
+- **Frontend:** `BudgetRequests.jsx`, `BudgetRequestDetail.jsx`, `BudgetRequestCreate.jsx`
+- **Endpoints:** `/api/budget-requests`, `/api/budget/ledger`, `/api/budget/info`
+- **Niveles de Aprobacion:**
+  - L1: hasta $200,000 USD
+  - L2: hasta $1,000,000 USD
+  - ADMIN: mas de $1,000,000 USD
+
 ## Documentacion
 
 - `docs/ARQUITECTURA_SPM_2_0.md` - Arquitectura completa

@@ -15,9 +15,33 @@ import { useI18n } from "../context/i18n";
 import { formatCurrency, formatDate } from "../utils/formatters";
 import { useDebounced } from "../hooks/useDebounced";
 import { Modal } from "../components/ui/Modal";
-import { XCircle, CheckCircle, RefreshCw, Plus, Eye, TrendingUp, TrendingDown, FileText } from "../components/ui/Icons";
+import { XCircle, CheckCircle, RefreshCw, Plus, Eye, TrendingUp, TrendingDown, FileText, Download } from "../components/ui/Icons";
+import { ExportButton } from "../components/export";
 
 const DEBOUNCE_MS = 300;
+
+// Utilidad para exportar a CSV
+const exportToCSV = (data, columns, filename) => {
+  const headers = columns.map(c => c.header).join(',');
+  const rows = data.map(row =>
+    columns.map(c => {
+      let val = c.exportValue ? c.exportValue(row) : (row[c.key] || '');
+      // Escapar comillas y envolver en comillas si contiene comas
+      if (typeof val === 'string' && (val.includes(',') || val.includes('"'))) {
+        val = `"${val.replace(/"/g, '""')}"`;
+      }
+      return val;
+    }).join(',')
+  ).join('\n');
+
+  const csv = `${headers}\n${rows}`;
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+};
 
 const estadoToBadge = {
   pendiente: "Pendiente",
@@ -375,12 +399,56 @@ export default function BudgetRequests() {
     },
   ]), [t, navigate]);
 
+  // SPRINT 3.5: Columnas para exportación
+  const burExportColumns = useMemo(() => [
+    { key: "id", header: "ID", exportValue: (row) => row.id },
+    { key: "centro", header: "Centro", exportValue: (row) => row.centro || "" },
+    { key: "sector", header: "Sector", exportValue: (row) => row.sector || "" },
+    { key: "monto_solicitado_usd", header: "Monto (USD)", exportValue: (row) => row.monto_solicitado_usd || 0 },
+    { key: "nivel_aprobacion_requerido", header: "Nivel", exportValue: (row) => nivelLabels[row.nivel_aprobacion_requerido] || row.nivel_aprobacion_requerido },
+    { key: "estado", header: "Estado", exportValue: (row) => estadoToBadge[row.estado] || row.estado },
+    { key: "justificacion", header: "Justificacion", exportValue: (row) => row.justificacion || "" },
+    { key: "created_at", header: "Fecha Creacion", exportValue: (row) => row.created_at || "" },
+  ], []);
+
+  const ledgerExportColumns = useMemo(() => [
+    { key: "id", header: "ID", exportValue: (row) => row.id },
+    { key: "created_at", header: "Fecha", exportValue: (row) => row.created_at || "" },
+    { key: "tipo_movimiento", header: "Tipo", exportValue: (row) => row.tipo_movimiento || "" },
+    { key: "centro", header: "Centro", exportValue: (row) => row.centro || "" },
+    { key: "sector", header: "Sector", exportValue: (row) => row.sector || "" },
+    { key: "monto_usd", header: "Monto (USD)", exportValue: (row) => (row.monto_cents || 0) / 100 },
+    { key: "saldo_usd", header: "Saldo (USD)", exportValue: (row) => (row.saldo_posterior_cents || 0) / 100 },
+    { key: "referencia", header: "Referencia", exportValue: (row) => row.referencia_id ? `${row.referencia_tipo} #${row.referencia_id}` : "" },
+    { key: "motivo", header: "Motivo", exportValue: (row) => row.motivo || "" },
+  ], []);
+
+  // SPRINT 3.5: Handlers de exportación
+  const handleExportBUR = useCallback((formato) => {
+    if (formato === 'csv') {
+      exportToCSV(filtered, burExportColumns, "incorporaciones_presupuesto");
+    }
+    // Para xlsx/pdf se podría integrar con backend en el futuro
+  }, [filtered, burExportColumns]);
+
+  const handleExportLedger = useCallback((formato) => {
+    if (formato === 'csv') {
+      exportToCSV(ledgerEntries, ledgerExportColumns, "historial_presupuesto");
+    }
+  }, [ledgerEntries, ledgerExportColumns]);
+
   return (
     <div className="space-y-6">
       <PageHeader
         title={t("bur_title", "PRESUPUESTOS").toUpperCase()}
         actions={
           <div className="flex gap-2">
+            <ExportButton
+              onExport={mainTab === "historial" ? handleExportLedger : handleExportBUR}
+              label={t("common_exportar", "Exportar")}
+              formats={["csv"]}
+              disabled={mainTab === "historial" ? ledgerLoading : loading}
+            />
             <Button
               variant="ghost"
               onClick={handleRefresh}
