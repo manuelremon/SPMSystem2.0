@@ -189,12 +189,13 @@ export function useMaterials() {
   }, [dropdownOpen])
 
   // Calcular posición del dropdown cuando se abre
+  // Nota: position:fixed usa coordenadas del viewport, getBoundingClientRect ya las da
   useEffect(() => {
     if (dropdownOpen && searchContainerRef.current) {
       const rect = searchContainerRef.current.getBoundingClientRect()
       setDropdownPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX,
+        top: rect.bottom + 4,  // 4px de gap debajo del input
+        left: rect.left,
         width: rect.width
       })
     }

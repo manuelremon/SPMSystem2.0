@@ -295,6 +295,7 @@ const translations = {
   materials_contexto: { es: "Contexto", en: "Context" },
   materials_saldo_disponible: { es: "Saldo disponible", en: "Available balance" },
   materials_suggestions_loaded: { es: "material(es) sugeridos agregados", en: "suggested material(s) added" },
+  materials_intenta_otro_termino: { es: "Intenta con otro término de búsqueda", en: "Try a different search term" },
 
   // Assistant (NLP)
   assistant_title: { es: "Asistente IA", en: "AI Assistant" },

@@ -1,6 +1,12 @@
 /**
  * SearchDropdown - Dropdown component for material search results
  * Rendered as a portal to avoid z-index issues
+ *
+ * UX Improvements (2026-01):
+ * - Better highlight colors for dark/light mode
+ * - Two-line descriptions with line-clamp
+ * - Organized grid layout for price alignment
+ * - Professional typography and spacing
  */
 import { createPortal } from 'react-dom'
 import { useI18n } from '../../context/i18n'
@@ -16,6 +22,7 @@ function escapeRegex(str) {
 
 /**
  * Highlight matching text in search results
+ * Uses cyan/sky color that works well in both light and dark modes
  */
 function highlight(text, query) {
   if (!query) return text
@@ -25,7 +32,10 @@ function highlight(text, query) {
     .split(regex)
     .map((part, idx) =>
       regex.test(part) ? (
-        <mark key={idx} className="bg-[var(--warning)] text-[var(--on-primary)] rounded px-0.5">
+        <mark
+          key={idx}
+          className="bg-sky-400/30 text-[var(--fg-strong)] rounded-sm px-0.5 font-semibold"
+        >
           {part}
         </mark>
       ) : (
@@ -55,89 +65,146 @@ export function SearchDropdown({
   return createPortal(
     <div
       ref={dropdownRef}
-      className="fixed bg-[var(--card)] border-2 border-[var(--border-strong)] rounded-xl shadow-elevated overflow-hidden animate-scale-in"
+      className="fixed bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-elevated overflow-hidden animate-scale-in"
       style={{
         top: dropdownPosition.top,
         left: dropdownPosition.left,
         width: dropdownPosition.width,
+        minWidth: '320px',
         zIndex: 9999,
-        maxHeight: '320px',
+        maxHeight: '380px',
       }}
       role="listbox"
       aria-label={t('materials_resultados', 'Resultados de busqueda')}
     >
-      {/* Header del dropdown */}
-      <div className="sticky top-0 bg-[var(--bg-elevated)] border-b border-[var(--border-strong)] px-4 py-2 flex items-center justify-between">
-        <span className="text-xs font-medium text-[var(--fg-muted)]">
+      {/* Header del dropdown - Sticky con blur */}
+      <div className="sticky top-0 z-10 bg-[var(--bg-elevated)]/95 backdrop-blur-sm border-b border-[var(--border)] px-4 py-2.5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
           {loadingSearch ? (
-            <span className="flex items-center gap-2">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              {t('common_buscando', 'Buscando...')}
-            </span>
+            <>
+              <Loader2 className="h-4 w-4 animate-spin text-[var(--primary)]" />
+              <span className="text-sm font-medium text-[var(--fg-muted)]">
+                {t('common_buscando', 'Buscando...')}
+              </span>
+            </>
           ) : (
-            `${results.length} ${results.length !== 1 ? t('common_resultados', 'resultados') : t('common_resultado', 'resultado')}`
+            <>
+              <span className="text-sm font-semibold text-[var(--fg)]">
+                {results.length}
+              </span>
+              <span className="text-sm text-[var(--fg-muted)]">
+                {results.length !== 1 ? t('common_resultados', 'resultados') : t('common_resultado', 'resultado')}
+              </span>
+            </>
           )}
-        </span>
+        </div>
         <button
           type="button"
           onClick={onClose}
-          className="p-1 hover:bg-[var(--bg-soft)] rounded transition-colors"
+          className="p-1.5 hover:bg-[var(--bg-soft)] rounded-lg transition-colors group"
           aria-label={t('common_cerrar', 'Cerrar')}
         >
-          <X className="h-4 w-4 text-[var(--fg-muted)]" />
+          <X className="h-4 w-4 text-[var(--fg-muted)] group-hover:text-[var(--fg)]" />
         </button>
       </div>
 
       {/* Lista de resultados */}
-      <div className="overflow-y-auto" style={{ maxHeight: '280px' }}>
+      <div className="overflow-y-auto" style={{ maxHeight: '320px' }}>
+        {/* Estado vacio */}
         {!loadingSearch && results.length === 0 && (
-          <div className="p-6 text-center">
-            <Search className="h-8 w-8 text-[var(--fg-muted)]/40 mx-auto mb-2" />
-            <p className="text-sm text-[var(--fg-muted)]">
+          <div className="p-8 text-center">
+            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[var(--bg-soft)] flex items-center justify-center">
+              <Search className="h-6 w-6 text-[var(--fg-muted)]" />
+            </div>
+            <p className="text-sm font-medium text-[var(--fg)]">
               {t('materials_sin_resultados', 'No se encontraron materiales')}
+            </p>
+            <p className="text-xs text-[var(--fg-muted)] mt-1">
+              {t('materials_intenta_otro_termino', 'Intenta con otro termino de busqueda')}
             </p>
           </div>
         )}
+
+        {/* Items de resultado */}
         {!loadingSearch &&
-          results.map((m, idx) => (
-            <button
-              key={m.codigo}
-              role="option"
-              aria-selected={selectedMaterial?.codigo === m.codigo}
-              className={`
-                w-full text-left px-4 py-3 flex items-center gap-3
-                border-b border-[var(--border)]/50 last:border-b-0
-                transition-all duration-100
-                ${selectedMaterial?.codigo === m.codigo
-                  ? 'bg-[var(--primary)]/10 border-l-2 border-l-[var(--primary)]'
-                  : 'border-l-2 border-l-transparent'}
-                ${highlightedIndex === idx
-                  ? 'bg-[var(--primary-muted)]'
-                  : 'hover:bg-[var(--bg-soft)]'}
-              `}
-              onClick={() => onSelect(m)}
-              onMouseEnter={() => setHighlightedIndex(idx)}
-              type="button"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm font-semibold text-[var(--primary)]">
-                    {highlight(m.codigo, debouncedCodigo)}
-                  </span>
-                  {selectedMaterial?.codigo === m.codigo && (
-                    <Check className="h-4 w-4 text-[var(--primary)]" />
-                  )}
+          results.map((m, idx) => {
+            const isSelected = selectedMaterial?.codigo === m.codigo
+            const isHighlighted = highlightedIndex === idx
+
+            return (
+              <button
+                key={m.codigo}
+                role="option"
+                aria-selected={isSelected}
+                className={`
+                  w-full text-left px-4 py-3
+                  border-b border-[var(--border)]/40 last:border-b-0
+                  transition-all duration-150 ease-out
+                  ${isSelected
+                    ? 'bg-[var(--primary)]/10 border-l-[3px] border-l-[var(--primary)]'
+                    : 'border-l-[3px] border-l-transparent'}
+                  ${isHighlighted
+                    ? 'bg-[var(--primary)]/5'
+                    : 'hover:bg-[var(--bg-soft)]/70'}
+                `}
+                onClick={() => onSelect(m)}
+                onMouseEnter={() => setHighlightedIndex(idx)}
+                type="button"
+              >
+                {/* Grid layout para mejor alineacion */}
+                <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
+                  {/* Columna izquierda: Codigo + Descripcion */}
+                  <div className="min-w-0">
+                    {/* Codigo SAP con badge de seleccion */}
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-mono text-sm font-semibold text-[var(--primary)]">
+                        {highlight(m.codigo, debouncedCodigo)}
+                      </span>
+                      {isSelected && (
+                        <span className="flex items-center gap-1 text-xs font-medium text-[var(--primary)] bg-[var(--primary)]/10 px-1.5 py-0.5 rounded-full">
+                          <Check className="h-3 w-3" />
+                          <span>Seleccionado</span>
+                        </span>
+                      )}
+                    </div>
+                    {/* Descripcion en 2 lineas con line-clamp */}
+                    <p className="text-sm text-[var(--fg)] leading-snug line-clamp-2">
+                      {highlight(m.descripcion, debouncedDesc)}
+                    </p>
+                  </div>
+
+                  {/* Columna derecha: Precio alineado */}
+                  <div className="text-right shrink-0 pt-0.5">
+                    <span className="inline-block text-sm font-mono font-semibold text-[var(--fg-strong)] bg-[var(--bg-soft)] px-2.5 py-1 rounded-lg">
+                      {formatCurrency(m.precio_usd || 0)}
+                    </span>
+                  </div>
                 </div>
-                <p className="text-sm text-[var(--fg)] truncate mt-0.5">
-                  {highlight(m.descripcion, debouncedDesc)}
-                </p>
-              </div>
-              <span className="text-xs font-mono text-[var(--fg-muted)] bg-[var(--bg-soft)] px-2 py-1 rounded shrink-0">
-                {formatCurrency(m.precio_usd || 0)}
-              </span>
-            </button>
-          ))}
+              </button>
+            )
+          })}
       </div>
+
+      {/* Footer con hint de teclado */}
+      {results.length > 0 && (
+        <div className="sticky bottom-0 bg-[var(--bg-elevated)]/95 backdrop-blur-sm border-t border-[var(--border)] px-4 py-2">
+          <div className="flex items-center justify-between text-xs text-[var(--fg-muted)]">
+            <span>
+              <kbd className="px-1.5 py-0.5 bg-[var(--bg-soft)] rounded text-[10px] font-mono mr-1">↑</kbd>
+              <kbd className="px-1.5 py-0.5 bg-[var(--bg-soft)] rounded text-[10px] font-mono mr-1">↓</kbd>
+              navegar
+            </span>
+            <span>
+              <kbd className="px-1.5 py-0.5 bg-[var(--bg-soft)] rounded text-[10px] font-mono mr-1">Enter</kbd>
+              seleccionar
+            </span>
+            <span>
+              <kbd className="px-1.5 py-0.5 bg-[var(--bg-soft)] rounded text-[10px] font-mono mr-1">Esc</kbd>
+              cerrar
+            </span>
+          </div>
+        </div>
+      )}
     </div>,
     document.body
   )

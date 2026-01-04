@@ -190,7 +190,12 @@
       "Bash(/tmp/test-venv/bin/python -m pytest:*)",
       "Bash(timeout 60 npm test -- --run --reporter=verbose)",
       "Bash(timeout 120 npm test -- --run)",
-      "Bash(timeout 30 npm test:*)"
+      "Bash(timeout 30 npm test:*)",
+      "Bash(for estado in \"En Progreso\" \"Enviada\" \"Aprobada\")",
+      "Bash(do echo \"Testing estado=$estado\")",
+      "Bash(for i in 1 2 3 4 5)",
+      "Bash(do echo \"Request $i:\")",
+      "Bash(COMMIT_MSG=\"fix\\(ux\\): mejorar dropdown búsqueda materiales - posición correcta, highlight cyan, line-clamp-2\" ./scripts/deploy-full.sh:*)"
     ],
     "deny": [],
     "ask": []
