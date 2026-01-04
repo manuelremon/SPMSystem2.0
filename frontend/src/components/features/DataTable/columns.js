@@ -61,7 +61,6 @@ export function adaptLegacyColumns(legacyColumns) {
     meta: {
       align: col.align || 'center',
       minWidth: col.minWidth,
-      maxWidth: col.maxWidth,
     },
   }));
 }
