@@ -112,7 +112,7 @@ export default function Planner() {
             title={t("planner_tratar_tooltip", "Tratar solicitud")}
           >
             <Play className={`w-4 h-4 ${ICON_COLORS.success}`} />
-            <span className="text-xs font-medium text-emerald-600">{t("planner_tratar", "Tratar")}</span>
+            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">{t("planner_tratar", "Tratar")}</span>
           </button>
         </div>
       ),
@@ -180,7 +180,7 @@ export default function Planner() {
               e.stopPropagation();
               alert(text);
             }}
-            className="text-left text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+            className="text-left text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline cursor-pointer"
             title={t("planner_ver_completo", "Click para ver completo")}
           >
             {truncated}
@@ -195,7 +195,7 @@ export default function Planner() {
       key: "total_monto",
       header: t("planner_monto", "Monto"),
       render: (row) => (
-        <span className="whitespace-nowrap font-mono text-sm text-slate-800">
+        <span className="whitespace-nowrap font-mono text-sm text-[var(--fg)]">
           {formatCurrency(row.total_monto || 0)}
         </span>
       ),
@@ -253,7 +253,7 @@ export default function Planner() {
         <div className="flex flex-wrap items-end gap-4">
           {/* General Search */}
           <div className="flex-1 min-w-[200px] max-w-[300px]">
-            <label htmlFor="planner-search" className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1.5">
+            <label htmlFor="planner-search" className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wide block mb-1.5">
               {t("planner_busqueda_general", "Buscar")}
             </label>
             <Input
@@ -267,7 +267,7 @@ export default function Planner() {
 
           {/* Centro Filter */}
           <div className="w-[130px]">
-            <label htmlFor="planner-centro" className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1.5">
+            <label htmlFor="planner-centro" className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wide block mb-1.5">
               {t("planner_centro", "Centro")}
             </label>
             <Select
@@ -285,7 +285,7 @@ export default function Planner() {
 
           {/* Sector Filter */}
           <div className="w-[160px]">
-            <label htmlFor="planner-sector" className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1.5">
+            <label htmlFor="planner-sector" className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wide block mb-1.5">
               {t("planner_sector", "Sector")}
             </label>
             <Select
@@ -308,7 +308,7 @@ export default function Planner() {
 
           {/* Estado Filter */}
           <div className="w-[140px]">
-            <label htmlFor="planner-estado" className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1.5">
+            <label htmlFor="planner-estado" className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wide block mb-1.5">
               {t("planner_estado", "Estado")}
             </label>
             <Select
@@ -327,7 +327,7 @@ export default function Planner() {
 
           {/* Criticidad Filter */}
           <div className="w-[120px]">
-            <label htmlFor="planner-criticidad" className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1.5">
+            <label htmlFor="planner-criticidad" className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wide block mb-1.5">
               {t("planner_criticidad", "Criticidad")}
             </label>
             <Select
@@ -372,7 +372,7 @@ export default function Planner() {
       <Card>
         {/* Status Tabs */}
         <div className="px-6 pt-4">
-          <div className="flex border-b border-slate-200">
+          <div className="flex border-b border-[var(--border)]">
             <TabButton
               active={activeTab === "pendientes"}
               onClick={() => setActiveTab("pendientes")}
@@ -399,7 +399,7 @@ export default function Planner() {
               icon={<CheckCircle className={`w-4 h-4 ${ICON_COLORS.success}`} />}
               label={t("planner_tab_finalizadas", "Finalizadas")}
               count={tabCounts.finalizadas}
-              countColor="bg-slate-100 text-slate-500"
+              countColor="bg-[var(--bg-soft)] text-[var(--fg-muted)]"
               activeColor="text-emerald-600"
               borderColor="bg-emerald-600"
             />
@@ -469,14 +469,14 @@ export default function Planner() {
         }
       >
         <div className="space-y-2">
-          <p className="text-sm text-slate-500">
-            {t("planner_rechazar_motivo_label", "Motivo del rechazo")} <span className="text-red-600">*</span>
+          <p className="text-sm text-[var(--fg-muted)]">
+            {t("planner_rechazar_motivo_label", "Motivo del rechazo")} <span className="text-red-500">*</span>
           </p>
           <textarea
             value={rejectModal.motivo}
             onChange={(e) => updateRejectMotivo(e.target.value)}
             rows={3}
-            className="w-full px-4 py-3 rounded-xl border border-blue-300 ring-1 ring-blue-100 bg-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
+            className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--card)] text-sm text-[var(--fg)] placeholder:text-[var(--fg-muted)] focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]/50 outline-none transition-all"
             placeholder={t("planner_rechazar_placeholder", "Explica brevemente el motivo del rechazo...")}
           />
         </div>
@@ -501,7 +501,7 @@ function TabButton({ active, onClick, icon, label, count, countColor, activeColo
     <button
       onClick={onClick}
       className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
-        active ? activeColor : "text-slate-500 hover:text-slate-700"
+        active ? activeColor : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
       }`}
     >
       <span className="flex items-center gap-2">
@@ -539,8 +539,8 @@ function HistorialModal({ isOpen, onClose, solicitud, t }) {
     >
       <div className="space-y-4">
         {/* Current State */}
-        <div className="p-4 rounded-lg bg-slate-50/70 border border-white/30">
-          <h4 className="text-xs uppercase font-bold tracking-[0.08em] text-slate-500 mb-2">
+        <div className="p-4 rounded-lg bg-[var(--bg-soft)] border border-[var(--border)]">
+          <h4 className="text-xs uppercase font-bold tracking-[0.08em] text-[var(--fg-muted)] mb-2">
             {t("planner_historial_estado_actual", "Estado Actual")}
           </h4>
           <div className="flex items-center gap-2" style={{ color: config.color }}>
@@ -613,13 +613,13 @@ function HistorialModal({ isOpen, onClose, solicitud, t }) {
  */
 function TimelineItem({ icon, iconBg, title, subtitle }) {
   return (
-    <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50/70 border border-white/30">
+    <div className="flex items-start gap-3 p-3 rounded-lg bg-[var(--bg-soft)] border border-[var(--border)]">
       <div className={`w-8 h-8 rounded-full ${iconBg} flex items-center justify-center flex-shrink-0`}>
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-slate-800">{title}</p>
-        {subtitle && <p className="text-xs text-slate-500 mt-1">{subtitle}</p>}
+        <p className="text-sm font-medium text-[var(--fg)]">{title}</p>
+        {subtitle && <p className="text-xs text-[var(--fg-muted)] mt-1">{subtitle}</p>}
       </div>
     </div>
   );
