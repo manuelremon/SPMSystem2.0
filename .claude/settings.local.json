@@ -197,7 +197,11 @@
       "Bash(do echo \"Request $i:\")",
       "Bash(COMMIT_MSG=\"fix\\(ux\\): mejorar dropdown búsqueda materiales - posición correcta, highlight cyan, line-clamp-2\" ./scripts/deploy-full.sh:*)",
       "Bash(COMMIT_MSG=\"fix: posicionar dropdown debajo de inputs de búsqueda\" ./scripts/deploy-full.sh:*)",
-      "Bash(COMMIT_MSG=\"fix\\(ux\\): corregir colores material seleccionado para dark mode\" ./scripts/deploy-full.sh:*)"
+      "Bash(COMMIT_MSG=\"fix\\(ux\\): corregir colores material seleccionado para dark mode\" ./scripts/deploy-full.sh:*)",
+      "Bash(COMMIT_MSG=\"fix\\(ux\\): reducir ancho columnas Centro/Almacén en MisSolicitudes\" ./scripts/deploy-full.sh:*)",
+      "Bash(git revert:*)",
+      "Bash(git stash:*)",
+      "Bash(COMMIT_MSG=\"already reverted\" ./scripts/deploy-full.sh)"
     ],
     "deny": [],
     "ask": []
