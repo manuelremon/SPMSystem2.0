@@ -488,7 +488,7 @@ export default function MisSolicitudes() {
         const tooltipInfo = getTooltipInfo();
 
         return (
-          <InfoTooltip title={tooltipInfo.title} lines={tooltipInfo.lines} position="top">
+          <InfoTooltip title={tooltipInfo.title} lines={tooltipInfo.lines} position="bottom">
             <StatusBadge estado={estado} />
           </InfoTooltip>
         );
