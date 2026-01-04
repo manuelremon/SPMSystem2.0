@@ -641,7 +641,7 @@ export default function MisSolicitudes() {
             <TabsTrigger value="todas" className="flex items-center gap-2">
               <FileText className={`w-4 h-4 ${ICON_COLORS.info}`} />
               <span>{t("mis_stats_total", "Todas")}</span>
-              <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
+              <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-[var(--bg-soft)] text-[var(--fg-muted)]">
                 {stats.total}
               </span>
             </TabsTrigger>
@@ -649,7 +649,7 @@ export default function MisSolicitudes() {
               <Edit3 className={`w-4 h-4 ${ICON_COLORS.primary}`} />
               <span>{t("mis_stats_borradores", "Borradores")}</span>
               {stats.borradores > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
+                <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-[var(--bg-soft)] text-[var(--fg-muted)]">
                   {stats.borradores}
                 </span>
               )}
@@ -658,7 +658,7 @@ export default function MisSolicitudes() {
               <Clock className={`w-4 h-4 ${ICON_COLORS.time}`} />
               <span>{t("mis_stats_enviadas", "Enviadas")}</span>
               {stats.enviadas > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
+                <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-[var(--bg-soft)] text-[var(--fg-muted)]">
                   {stats.enviadas}
                 </span>
               )}
@@ -667,7 +667,7 @@ export default function MisSolicitudes() {
               <CheckCircle2 className={`w-4 h-4 ${ICON_COLORS.success}`} />
               <span>{t("mis_stats_aprobadas", "Aprobadas")}</span>
               {stats.aprobadas > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
+                <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-[var(--bg-soft)] text-[var(--fg-muted)]">
                   {stats.aprobadas}
                 </span>
               )}
@@ -676,7 +676,7 @@ export default function MisSolicitudes() {
               <XCircle className={`w-4 h-4 ${ICON_COLORS.danger}`} />
               <span>{t("mis_stats_rechazadas", "Rechazadas")}</span>
               {stats.rechazadas > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/70 text-slate-600">
+                <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-[var(--bg-soft)] text-[var(--fg-muted)]">
                   {stats.rechazadas}
                 </span>
               )}
