@@ -133,7 +133,7 @@ export default function MensajesInline({ onUpdate }) {
 
         {/* Error */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
+          <div className="mb-4 p-3 bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg text-sm border border-red-500/20">
             {error}
           </div>
         )}
@@ -141,11 +141,11 @@ export default function MensajesInline({ onUpdate }) {
         {/* Lista */}
         {loading ? (
           <div className="flex justify-center py-8">
-            <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
+            <RefreshCw className="w-6 h-6 animate-spin text-[var(--fg-muted)]" />
           </div>
         ) : mensajes.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <MessageSquare className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+          <div className="text-center py-8 text-[var(--fg-muted)]">
+            <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p>{t("centro_sin_mensajes", "No tienes mensajes")}</p>
           </div>
         ) : (
@@ -164,16 +164,16 @@ export default function MensajesInline({ onUpdate }) {
                   key={mensaje.id}
                   onClick={() => handleMensajeClick(mensaje)}
                   className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all
-                    border border-transparent hover:border-gray-200 hover:shadow-sm
-                    ${mensaje.leido ? "bg-white" : "bg-purple-50/50"}`}
+                    border border-transparent hover:border-[var(--border)] hover:shadow-sm
+                    ${mensaje.leido ? "bg-[var(--card)]" : "bg-purple-100/50 dark:bg-purple-900/20"}`}
                 >
                   {/* Avatar */}
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0
                       ${
                         mensaje.leido
-                          ? "bg-gray-100 text-gray-600"
-                          : "bg-purple-100 text-purple-700"
+                          ? "bg-[var(--bg-soft)] text-[var(--fg-muted)]"
+                          : "bg-purple-200 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300"
                       }`}
                   >
                     {initials}
@@ -186,20 +186,20 @@ export default function MensajesInline({ onUpdate }) {
                         <p
                           className={`text-sm ${
                             mensaje.leido
-                              ? "text-gray-700"
-                              : "text-gray-900 font-semibold"
+                              ? "text-[var(--fg)]"
+                              : "text-[var(--fg)] font-semibold"
                           }`}
                         >
                           {nombreCompleto || "Usuario"}
                         </p>
                         {mensaje.remitente_rol && (
-                          <span className="text-xs text-gray-500 uppercase tracking-wider">
+                          <span className="text-xs text-[var(--fg-muted)] uppercase tracking-wider">
                             {mensaje.remitente_rol}
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-[var(--fg-muted)]">
                           {formatTimeAgo(mensaje.created_at)}
                         </span>
                         {!mensaje.leido && (
@@ -211,14 +211,14 @@ export default function MensajesInline({ onUpdate }) {
                     {/* Asunto */}
                     <p
                       className={`text-sm mt-1 ${
-                        mensaje.leido ? "text-gray-600" : "text-gray-800 font-medium"
+                        mensaje.leido ? "text-[var(--fg-muted)]" : "text-[var(--fg)] font-medium"
                       }`}
                     >
                       {mensaje.asunto}
                     </p>
 
                     {/* Preview del mensaje */}
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                    <p className="text-xs text-[var(--fg-muted)] mt-1 line-clamp-1">
                       {truncateText(mensaje.mensaje || mensaje.contenido, 80)}
                     </p>
 
@@ -226,8 +226,8 @@ export default function MensajesInline({ onUpdate }) {
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
                       {mensaje.solicitud_id && (
                         <div className="flex items-center gap-1">
-                          <FileText className="w-3 h-3 text-blue-500" />
-                          <span className="text-xs text-blue-600">
+                          <FileText className="w-3 h-3 text-[var(--primary)]" />
+                          <span className="text-xs text-[var(--primary)]">
                             Solicitud #{mensaje.solicitud_id}
                           </span>
                         </div>

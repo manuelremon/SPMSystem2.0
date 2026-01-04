@@ -39,14 +39,14 @@ const tipoLabels = {
 };
 
 const tipoColors = {
-  notificacion: "bg-blue-100 text-blue-700",
-  mensaje: "bg-purple-100 text-purple-700",
-  stock_consulta: "bg-orange-100 text-orange-700",
-  solicitud_approved: "bg-green-100 text-green-700",
-  solicitud_rejected: "bg-red-100 text-red-700",
-  solicitud_planned: "bg-cyan-100 text-cyan-700",
-  warning: "bg-amber-100 text-amber-700",
-  info: "bg-gray-100 text-gray-700",
+  notificacion: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
+  mensaje: "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300",
+  stock_consulta: "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300",
+  solicitud_approved: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300",
+  solicitud_rejected: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300",
+  solicitud_planned: "bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300",
+  warning: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300",
+  info: "bg-[var(--bg-soft)] text-[var(--fg-muted)]",
 };
 
 function formatDateTime(dateStr) {
@@ -97,25 +97,18 @@ export default function TimelineDetailModal({ item, onClose }) {
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg rounded-2xl border border-white/50 overflow-hidden"
-        style={{
-          background: "rgba(255, 255, 255, 0.95)",
-          backdropFilter: "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
-          boxShadow:
-            "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.6)",
-        }}
+        className="relative w-full max-w-lg rounded-2xl border border-[var(--border)] overflow-hidden bg-[var(--card)] shadow-elevated"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-gray-100">
+        <div className="flex items-start justify-between p-6 border-b border-[var(--border)]">
           <div className="flex items-center gap-4">
             <div className={`p-3 rounded-xl ${colorClass}`}>
               <IconComponent className="w-6 h-6" />
             </div>
             <div>
               <Badge className={colorClass}>{label}</Badge>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-[var(--fg-muted)] mt-1">
                 {formatDateTime(item.created_at)}
               </p>
             </div>
@@ -132,14 +125,14 @@ export default function TimelineDetailModal({ item, onClose }) {
 
         {/* Content */}
         <div className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">
+          <h3 className="text-lg font-semibold text-[var(--fg)] mb-3">
             {t("centro_timeline_detalle", "Detalle de Actividad")}
           </h3>
-          <p className="text-gray-700 leading-relaxed">{item.descripcion}</p>
+          <p className="text-[var(--fg)] leading-relaxed">{item.descripcion}</p>
 
           {item.solicitud_id && (
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-              <p className="text-sm text-blue-700 font-medium">
+            <div className="mt-4 p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
+              <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
                 {t("centro_solicitud_relacionada", "Solicitud relacionada")}:{" "}
                 <span className="font-bold">#{item.solicitud_id}</span>
               </p>
@@ -148,7 +141,7 @@ export default function TimelineDetailModal({ item, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between gap-3 p-6 border-t border-gray-100 bg-gray-50/50">
+        <div className="flex items-center justify-between gap-3 p-6 border-t border-[var(--border)] bg-[var(--bg-soft)]/50">
           <Button variant="outline" size="sm" onClick={handleIrAModulo}>
             <ExternalLink className="w-4 h-4 mr-2" />
             {item.tipo === "mensaje"

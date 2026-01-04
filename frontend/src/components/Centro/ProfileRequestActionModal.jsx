@@ -43,15 +43,15 @@ function ValueComparison({ label, current, requested, icon: Icon }) {
   if (!hasChange) return null;
 
   return (
-    <div className="p-3 bg-gray-50 rounded-lg">
-      <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+    <div className="p-3 bg-[var(--bg-soft)] rounded-lg">
+      <div className="flex items-center gap-2 text-sm font-medium text-[var(--fg)] mb-2">
         {Icon && <Icon className="w-4 h-4" />}
         <span>{label}</span>
       </div>
       <div className="flex items-center gap-2 text-sm">
-        <span className="text-gray-500 line-through">{currentDisplay}</span>
-        <ArrowRight className="w-4 h-4 text-gray-400" />
-        <span className="text-green-600 font-medium">{requestedDisplay}</span>
+        <span className="text-[var(--fg-muted)] line-through">{currentDisplay}</span>
+        <ArrowRight className="w-4 h-4 text-[var(--fg-muted)]" />
+        <span className="text-green-600 dark:text-green-400 font-medium">{requestedDisplay}</span>
       </div>
     </div>
   );
@@ -239,24 +239,18 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl max-h-[90vh] rounded-2xl border border-white/50 overflow-hidden flex flex-col"
-        style={{
-          background: "rgba(255, 255, 255, 0.98)",
-          backdropFilter: "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-        }}
+        className="relative w-full max-w-2xl max-h-[90vh] rounded-2xl border border-[var(--border)] overflow-hidden flex flex-col bg-[var(--card)] shadow-elevated"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-gray-100">
+        <div className="flex items-start justify-between p-6 border-b border-[var(--border)]">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-[var(--fg)]">
               {t("profile_req_action_title", "Solicitud de Cambio de Perfil")}
               {requestId ? ` #${requestId}` : ""}
             </h2>
             {requestData && (
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-[var(--fg-muted)] mt-1">
                 {formatDateTime(requestData.created_at)}
               </p>
             )}
@@ -279,7 +273,7 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
           ) : !requestId && pendingRequests.length > 0 ? (
             /* Selector de solicitudes pendientes */
             <div className="space-y-4">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-[var(--fg-muted)]">
                 Selecciona la solicitud de cambio de perfil que deseas gestionar:
               </p>
               <div className="space-y-2">
@@ -287,18 +281,18 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
                   <button
                     key={req.id}
                     onClick={() => setRequestId(req.id)}
-                    className="w-full text-left p-4 bg-gray-50 hover:bg-blue-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-all"
+                    className="w-full text-left p-4 bg-[var(--bg-soft)] hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg border border-[var(--border)] hover:border-blue-400 dark:hover:border-blue-600 transition-all"
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium text-gray-900">
+                        <p className="font-medium text-[var(--fg)]">
                           {req.solicitante?.nombre || `Usuario ${req.usuario_id}`}
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-[var(--fg-muted)]">
                           Solicitud #{req.id} • {formatDateTime(req.created_at)}
                         </p>
                       </div>
-                      <Badge className="bg-amber-100 text-amber-700">Pendiente</Badge>
+                      <Badge className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">Pendiente</Badge>
                     </div>
                   </button>
                 ))}
@@ -308,10 +302,10 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
             <Alert variant="error">{error}</Alert>
           ) : success ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <Check className="w-8 h-8 text-green-600" />
+              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
+                <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
               </div>
-              <p className="text-lg font-medium text-green-700">{success}</p>
+              <p className="text-lg font-medium text-green-700 dark:text-green-300">{success}</p>
             </div>
           ) : requestData ? (
             <>
@@ -319,28 +313,28 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
               {activeView === "detail" && (
                 <div className="space-y-6">
                   {/* Solicitante */}
-                  <div className="flex items-start gap-4 p-4 bg-blue-50 rounded-xl">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <User className="w-6 h-6 text-blue-600" />
+                  <div className="flex items-start gap-4 p-4 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
+                    <div className="w-12 h-12 bg-blue-200 dark:bg-blue-800/50 rounded-full flex items-center justify-center">
+                      <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-[var(--fg)]">
                         {requestData.solicitante?.nombre || "Usuario"}
                       </p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-[var(--fg)]">
                         {requestData.solicitante?.mail}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-[var(--fg-muted)]">
                         {requestData.solicitante?.posicion} • {requestData.solicitante?.sector}
                       </p>
                     </div>
                     <Badge
                       className={`ml-auto ${
                         requestData.estado === "pendiente"
-                          ? "bg-amber-100 text-amber-700"
+                          ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
                           : requestData.estado === "aprobado"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
+                          ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                          : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
                       }`}
                     >
                       {requestData.estado}
@@ -349,7 +343,7 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
 
                   {/* Cambios solicitados */}
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wider">
+                    <h3 className="text-sm font-semibold text-[var(--fg-muted)] mb-3 uppercase tracking-wider">
                       {t("profile_req_cambios", "Cambios Solicitados")}
                     </h3>
                     <div className="space-y-2">
@@ -385,8 +379,8 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
 
                   {/* Advertencia si ya fue procesada */}
                   {!isPending && (
-                    <div className="p-4 bg-gray-100 rounded-lg">
-                      <p className="text-sm text-gray-600">
+                    <div className="p-4 bg-[var(--bg-soft)] rounded-lg border border-[var(--border)]">
+                      <p className="text-sm text-[var(--fg-muted)]">
                         Esta solicitud ya fue <strong>{requestData.estado}</strong> y no puede modificarse.
                       </p>
                     </div>
@@ -397,20 +391,20 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
               {/* Vista de aprobar */}
               {activeView === "approve" && (
                 <div className="space-y-4">
-                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                    <p className="text-sm text-green-800">
+                  <div className="p-4 bg-green-100 dark:bg-green-900/30 rounded-lg border border-green-300 dark:border-green-700">
+                    <p className="text-sm text-green-800 dark:text-green-200">
                       Los cambios se aplicarán automáticamente al perfil del usuario.
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-[var(--fg)] mb-2">
                       {t("profile_req_comentario", "Comentario (opcional)")}
                     </label>
                     <textarea
                       value={comentario}
                       onChange={(e) => setComentario(e.target.value)}
                       placeholder="Agregar un comentario..."
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                      className="w-full px-4 py-3 border border-[var(--border)] rounded-lg bg-[var(--card)] text-[var(--fg)] placeholder:text-[var(--fg-muted)] focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
                       rows={3}
                     />
                   </div>
@@ -421,20 +415,20 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
               {/* Vista de rechazar */}
               {activeView === "reject" && (
                 <div className="space-y-4">
-                  <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                    <p className="text-sm text-red-800">
+                  <div className="p-4 bg-red-100 dark:bg-red-900/30 rounded-lg border border-red-300 dark:border-red-700">
+                    <p className="text-sm text-red-800 dark:text-red-200">
                       El solicitante será notificado del rechazo con el motivo indicado.
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-[var(--fg)] mb-2">
                       {t("profile_req_motivo", "Motivo del rechazo")} <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       value={motivo}
                       onChange={(e) => setMotivo(e.target.value)}
                       placeholder="Indicar el motivo del rechazo..."
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                      className="w-full px-4 py-3 border border-[var(--border)] rounded-lg bg-[var(--card)] text-[var(--fg)] placeholder:text-[var(--fg-muted)] focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
                       rows={3}
                       required
                     />
@@ -446,20 +440,20 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
               {/* Vista de mensaje */}
               {activeView === "message" && (
                 <div className="space-y-4">
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-sm text-blue-800">
+                  <div className="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-lg border border-blue-300 dark:border-blue-700">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
                       El mensaje será enviado a la bandeja de entrada del solicitante.
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-[var(--fg)] mb-2">
                       {t("profile_req_mensaje_label", "Mensaje")}
                     </label>
                     <textarea
                       value={mensaje}
                       onChange={(e) => setMensaje(e.target.value)}
                       placeholder="Escribir mensaje..."
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      className="w-full px-4 py-3 border border-[var(--border)] rounded-lg bg-[var(--card)] text-[var(--fg)] placeholder:text-[var(--fg-muted)] focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                       rows={4}
                     />
                   </div>
@@ -472,7 +466,7 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
 
         {/* Footer con acciones */}
         {requestData && !success && (
-          <div className="p-6 border-t border-gray-100 bg-gray-50/50">
+          <div className="p-6 border-t border-[var(--border)] bg-[var(--bg-soft)]/50">
             {activeView === "detail" && isPending && (
               <div className="flex flex-wrap gap-3">
                 <Button

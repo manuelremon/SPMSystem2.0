@@ -36,17 +36,17 @@ const tipoIcons = {
 };
 
 const tipoColors = {
-  solicitud_approved: "text-green-600 bg-green-50",
-  solicitud_rejected: "text-red-600 bg-red-50",
-  solicitud_to_plan: "text-blue-600 bg-blue-50",
-  stock_consulta: "text-orange-600 bg-orange-50",
-  mensaje_nuevo: "text-purple-600 bg-purple-50",
-  budget_approved: "text-green-600 bg-green-50",
-  budget_rejected: "text-red-600 bg-red-50",
-  profile_request: "text-indigo-600 bg-indigo-50",
-  profile_approved: "text-green-600 bg-green-50",
-  profile_rejected: "text-red-600 bg-red-50",
-  default: "text-gray-600 bg-gray-50",
+  solicitud_approved: "text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30",
+  solicitud_rejected: "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30",
+  solicitud_to_plan: "text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30",
+  stock_consulta: "text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30",
+  mensaje_nuevo: "text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30",
+  budget_approved: "text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30",
+  budget_rejected: "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30",
+  profile_request: "text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/30",
+  profile_approved: "text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30",
+  profile_rejected: "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30",
+  default: "text-[var(--fg-muted)] bg-[var(--bg-soft)]",
 };
 
 // Tipos que requieren respuesta del usuario
@@ -149,32 +149,25 @@ function NotificacionDetailModal({ notif, onClose, onMarcarLeida }) {
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg rounded-2xl border border-white/50 overflow-hidden"
-        style={{
-          background: "rgba(255, 255, 255, 0.95)",
-          backdropFilter: "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
-          boxShadow:
-            "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.6)",
-        }}
+        className="relative w-full max-w-lg rounded-2xl border border-[var(--border)] overflow-hidden bg-[var(--card)] shadow-elevated"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-gray-100">
+        <div className="flex items-start justify-between p-6 border-b border-[var(--border)]">
           <div className="flex items-center gap-4">
             <div className={`p-3 rounded-xl ${colorClass}`}>
               <IconComponent className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-900">
+                <span className="text-sm font-medium text-[var(--fg)]">
                   {t("centro_notificacion", "Notificacion")}
                 </span>
                 {!notif.leido && (
                   <span className="w-2 h-2 bg-blue-500 rounded-full" />
                 )}
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-[var(--fg-muted)] mt-1">
                 {formatDateTime(notif.created_at)}
               </p>
             </div>
@@ -191,13 +184,13 @@ function NotificacionDetailModal({ notif, onClose, onMarcarLeida }) {
 
         {/* Advertencia si requiere respuesta */}
         {requiereRespuesta && (
-          <div className="mx-6 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="mx-6 mt-4 p-3 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-amber-800">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
                 {t("centro_requiere_respuesta", "Esta notificacion requiere tu respuesta")}
               </p>
-              <p className="text-xs text-amber-600 mt-1">
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                 {notif.tipo === "stock_consulta"
                   ? t("centro_responder_consulta", "Hay una consulta de stock pendiente")
                   : t("centro_responder_mensaje", "Tienes un mensaje sin responder")}
@@ -208,11 +201,11 @@ function NotificacionDetailModal({ notif, onClose, onMarcarLeida }) {
 
         {/* Content */}
         <div className="p-6">
-          <p className="text-gray-700 leading-relaxed">{notif.mensaje}</p>
+          <p className="text-[var(--fg)] leading-relaxed">{notif.mensaje}</p>
 
           {notif.solicitud_id && (
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-              <p className="text-sm text-blue-700 font-medium">
+            <div className="mt-4 p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
+              <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
                 {t("centro_solicitud_relacionada", "Solicitud relacionada")}:{" "}
                 <span className="font-bold">#{notif.solicitud_id}</span>
               </p>
@@ -221,7 +214,7 @@ function NotificacionDetailModal({ notif, onClose, onMarcarLeida }) {
         </div>
 
         {/* Footer */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-6 border-t border-gray-100 bg-gray-50/50">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-6 border-t border-[var(--border)] bg-[var(--bg-soft)]/50">
           <div className="flex gap-2">
             {!notif.leido && (
               <Button
@@ -349,7 +342,7 @@ export default function NotificacionesInline({ onUpdate }) {
 
         {/* Error */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
+          <div className="mb-4 p-3 bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg text-sm border border-red-500/20">
             {error}
           </div>
         )}
@@ -357,11 +350,11 @@ export default function NotificacionesInline({ onUpdate }) {
         {/* Lista */}
         {loading ? (
           <div className="flex justify-center py-8">
-            <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
+            <RefreshCw className="w-6 h-6 animate-spin text-[var(--fg-muted)]" />
           </div>
         ) : notificaciones.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+          <div className="text-center py-8 text-[var(--fg-muted)]">
+            <Bell className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p>{t("centro_sin_notificaciones", "No tienes notificaciones")}</p>
           </div>
         ) : (
@@ -376,8 +369,8 @@ export default function NotificacionesInline({ onUpdate }) {
                   key={notif.id}
                   onClick={() => setSelectedNotif(notif)}
                   className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all
-                    border border-transparent hover:border-gray-200 hover:shadow-sm
-                    ${notif.leido ? "bg-white" : "bg-blue-50/50"}`}
+                    border border-transparent hover:border-[var(--border)] hover:shadow-sm
+                    ${notif.leido ? "bg-[var(--card)]" : "bg-blue-100/50 dark:bg-blue-900/20"}`}
                 >
                   <div className={`p-2 rounded-lg ${colorClass}`}>
                     <IconComponent className="w-4 h-4" />
@@ -386,7 +379,7 @@ export default function NotificacionesInline({ onUpdate }) {
                     <div className="flex items-start justify-between gap-2">
                       <p
                         className={`text-sm line-clamp-2 ${
-                          notif.leido ? "text-gray-600" : "text-gray-900 font-medium"
+                          notif.leido ? "text-[var(--fg-muted)]" : "text-[var(--fg)] font-medium"
                         }`}
                       >
                         {notif.mensaje}
@@ -396,11 +389,11 @@ export default function NotificacionesInline({ onUpdate }) {
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-[var(--fg-muted)]">
                         {formatTimeAgo(notif.created_at)}
                       </span>
                       {notif.solicitud_id && (
-                        <span className="text-xs text-blue-600">
+                        <span className="text-xs text-[var(--primary)]">
                           #{notif.solicitud_id}
                         </span>
                       )}
