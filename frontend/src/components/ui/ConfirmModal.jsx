@@ -59,13 +59,7 @@ export function ConfirmModal({
       }}
     >
       <div
-        className="w-full max-w-md border border-white/50 rounded-2xl p-6 animate-in zoom-in-95 duration-200"
-        style={{
-          background: 'rgba(255, 255, 255, 0.92)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.6)',
-        }}
+        className="w-full max-w-md bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 animate-in zoom-in-95 duration-200 shadow-elevated"
       >
         {/* Header */}
         <div className="flex items-start gap-4">
