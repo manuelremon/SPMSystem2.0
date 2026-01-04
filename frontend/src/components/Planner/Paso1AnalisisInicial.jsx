@@ -37,7 +37,7 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
             {/* Conflictos, Avisos y Recomendaciones en 3 columnas */}
             <div className="grid grid-cols-3 gap-2">
               <BadgeListCompact
-                icon={<AlertOctagon className="w-4 h-4 text-red-600" />}
+                icon={<AlertOctagon className="w-4 h-4 text-red-600 dark:text-red-400" />}
                 title="Conflictos"
                 emptyLabel="Sin conflictos"
                 count={conflictos.length}
@@ -46,12 +46,12 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
                   detail: c.descripcion || `Item ${c.item_idx}`,
                   tone: c.impacto_critico ? "danger" : "warning",
                 }))}
-                colorBg="bg-red-50"
-                colorBorder="border-red-200"
-                colorBadge="bg-red-100 text-red-700"
+                colorBg="bg-red-50 dark:bg-red-900/20"
+                colorBorder="border-red-200 dark:border-red-800"
+                colorBadge="bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"
               />
               <BadgeListCompact
-                icon={<Info className="w-4 h-4 text-amber-600" />}
+                icon={<Info className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
                 title="Avisos"
                 emptyLabel="Sin avisos"
                 count={avisos.length}
@@ -60,12 +60,12 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
                   detail: a.mensaje || "",
                   tone: a.nivel === "warning" ? "warning" : "info",
                 }))}
-                colorBg="bg-amber-50"
-                colorBorder="border-amber-200"
-                colorBadge="bg-amber-100 text-amber-700"
+                colorBg="bg-amber-50 dark:bg-amber-900/20"
+                colorBorder="border-amber-200 dark:border-amber-800"
+                colorBadge="bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300"
               />
               <BadgeListCompact
-                icon={<Lightbulb className="w-4 h-4 text-blue-600" />}
+                icon={<Lightbulb className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
                 title="Recomendaciones"
                 emptyLabel="Sin recomendaciones"
                 count={recomendaciones.length}
@@ -74,9 +74,9 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
                   detail: r.razon,
                   tone: r.prioridad === "muy_alta" ? "danger" : r.prioridad === "alta" ? "warning" : "info",
                 }))}
-                colorBg="bg-blue-50"
-                colorBorder="border-blue-200"
-                colorBadge="bg-blue-100 text-blue-700"
+                colorBg="bg-blue-50 dark:bg-blue-900/20"
+                colorBorder="border-blue-200 dark:border-blue-800"
+                colorBadge="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
               />
             </div>
           </div>
@@ -486,13 +486,7 @@ function PresupuestoInsuficienteModal({ solicitud, isOpen, onClose }) {
       }}
     >
       <div
-        className="relative w-full max-w-lg rounded-2xl border border-white/50"
-        style={{
-          background: 'rgba(255, 255, 255, 0.92)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.6)',
-        }}
+        className="relative w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-elevated"
       >
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-[var(--border)]">

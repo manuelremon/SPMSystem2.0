@@ -210,7 +210,8 @@
       "Bash(COMMIT_MSG=\"fix\\(ux\\): cambiar tooltip de estado a position bottom para evitar overlap con header\" ./scripts/deploy-full.sh:*)",
       "Bash(COMMIT_MSG=\"fix\\(ux\\): eliminar tooltip duplicado en StatusBadge con prop disableTooltip\" ./scripts/deploy-full.sh:*)",
       "Bash(COMMIT_MSG=\"fix\\(ux\\): corregir CentroInteraccion para dark mode - tabs, timeline, errores\" ./scripts/deploy-full.sh:*)",
-      "Bash(COMMIT_MSG=\"fix\\(ux\\): corregir dark mode en subcomponentes CentroInteraccion\" ./scripts/deploy-full.sh:*)"
+      "Bash(COMMIT_MSG=\"fix\\(ux\\): corregir dark mode en subcomponentes CentroInteraccion\" ./scripts/deploy-full.sh:*)",
+      "Bash(COMMIT_MSG=\"fix\\(ux\\): corregir dark mode en Paso1 y Paso2 del planificador\" ./scripts/deploy-full.sh:*)"
     ],
     "deny": [],
     "ask": []
