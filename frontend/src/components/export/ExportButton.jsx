@@ -45,13 +45,13 @@ export function ExportButton({
   const buttonRef = useRef(null)
   const dropdownRef = useRef(null)
 
-  // Calcular posicion del dropdown
+  // Calcular posicion del dropdown (position:fixed usa coordenadas del viewport)
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect()
       setDropdownPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.right + window.scrollX - 192 // 192px = w-48
+        top: rect.bottom + 4,
+        left: rect.right - 192 // 192px = w-48
       })
     }
   }, [isOpen])
@@ -118,7 +118,7 @@ export function ExportButton({
   const dropdownMenu = isOpen && createPortal(
     <div
       ref={dropdownRef}
-      className="fixed w-48 bg-white border border-slate-200 rounded-lg shadow-xl py-1"
+      className="fixed w-48 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-elevated py-1"
       style={{
         top: dropdownPosition.top,
         left: dropdownPosition.left,
@@ -134,10 +134,10 @@ export function ExportButton({
             key={option.value}
             onClick={() => handleExport(option.value)}
             disabled={isExporting}
-            className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-3 disabled:opacity-50"
+            className="w-full px-4 py-2 text-left text-sm text-[var(--fg)] hover:bg-[var(--bg-soft)] flex items-center gap-3 disabled:opacity-50 transition-colors"
           >
             {isCurrentExporting ? (
-              <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+              <Loader2 className="w-4 h-4 animate-spin text-[var(--fg-muted)]" />
             ) : (
               <Icon className={`w-4 h-4 ${option.color}`} />
             )}
