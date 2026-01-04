@@ -352,33 +352,33 @@ function SearchSection({ m, t }) {
 function SelectedMaterialSection({ m, t }) {
   return (
     <div className="flex flex-col">
-      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+      <p className="text-xs font-semibold text-[var(--fg-muted)] uppercase tracking-wider mb-3">
         {t('materials_selected', 'Material seleccionado')}
       </p>
       {m.selectedMaterial ? (
-        <div className="p-3 bg-slate-50/70 backdrop-blur-sm border border-blue-200/50 rounded-lg flex-1">
+        <div className="p-3 bg-[var(--bg-soft)] border border-[var(--primary)]/30 rounded-lg flex-1">
           <div className="flex items-center gap-2 mb-2">
             {m.detailViewed && <Check className="h-4 w-4 text-emerald-500" />}
-            <span className="font-mono text-sm text-blue-600 font-medium">
+            <span className="font-mono text-sm text-[var(--primary)] font-medium">
               {m.selectedMaterial.codigo}
             </span>
           </div>
-          <p className="text-sm text-slate-800 font-medium mb-1 line-clamp-2">
+          <p className="text-sm text-[var(--fg)] font-medium mb-1 line-clamp-2">
             {m.selectedMaterial.descripcion}
           </p>
           {m.selectedMaterial.precio_usd > 0 && (
-            <p className="text-sm text-slate-500">
-              {t('materials_precio', 'Precio')}: <span className="font-mono font-medium">{formatCurrency(m.selectedMaterial.precio_usd)}</span>
+            <p className="text-sm text-[var(--fg-muted)]">
+              {t('materials_precio', 'Precio')}: <span className="font-mono font-medium text-[var(--fg)]">{formatCurrency(m.selectedMaterial.precio_usd)}</span>
             </p>
           )}
           {!m.detailViewed && (
-            <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+            <p className="text-xs text-amber-500 mt-2 flex items-center gap-1">
               <span className="inline-block w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
               {t('materials_view_detail_first', 'Ver detalles antes de agregar')}
             </p>
           )}
           {/* Actions */}
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/50">
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--border)]">
             <Button
               size="sm"
               variant="outline"
@@ -390,7 +390,7 @@ function SelectedMaterialSection({ m, t }) {
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  <Eye className="h-4 w-4 text-blue-500" />
+                  <Eye className="h-4 w-4 text-[var(--primary)]" />
                   {t('materials_mas_detalles', 'Ver detalles')}
                 </>
               )}
@@ -406,8 +406,8 @@ function SelectedMaterialSection({ m, t }) {
           </div>
         </div>
       ) : (
-        <div className="p-4 border border-dashed border-slate-300/50 rounded-lg flex-1 flex items-center justify-center">
-          <p className="text-sm text-slate-500 text-center">
+        <div className="p-4 border border-dashed border-[var(--border)] rounded-lg flex-1 flex items-center justify-center">
+          <p className="text-sm text-[var(--fg-muted)] text-center">
             {t('materials_busca_selecciona', 'Busca y selecciona un material')}
           </p>
         </div>

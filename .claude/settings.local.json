@@ -196,7 +196,8 @@
       "Bash(for i in 1 2 3 4 5)",
       "Bash(do echo \"Request $i:\")",
       "Bash(COMMIT_MSG=\"fix\\(ux\\): mejorar dropdown búsqueda materiales - posición correcta, highlight cyan, line-clamp-2\" ./scripts/deploy-full.sh:*)",
-      "Bash(COMMIT_MSG=\"fix: posicionar dropdown debajo de inputs de búsqueda\" ./scripts/deploy-full.sh:*)"
+      "Bash(COMMIT_MSG=\"fix: posicionar dropdown debajo de inputs de búsqueda\" ./scripts/deploy-full.sh:*)",
+      "Bash(COMMIT_MSG=\"fix\\(ux\\): corregir colores material seleccionado para dark mode\" ./scripts/deploy-full.sh:*)"
     ],
     "deny": [],
     "ask": []
