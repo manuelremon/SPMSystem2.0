@@ -204,7 +204,8 @@
       "Bash(COMMIT_MSG=\"already reverted\" ./scripts/deploy-full.sh)",
       "Bash(COMMIT_MSG=\"fix\\(ux\\): corregir dropdown exportación para dark mode\" ./scripts/deploy-full.sh:*)",
       "Bash(COMMIT_MSG=\"fix\\(ux\\): corregir badges numéricos para dark mode en MisSolicitudes\" ./scripts/deploy-full.sh:*)",
-      "Bash(COMMIT_MSG=\"fix\\(ux\\): corregir badge notificaciones sidebar para dark mode\" ./scripts/deploy-full.sh:*)"
+      "Bash(COMMIT_MSG=\"fix\\(ux\\): corregir badge notificaciones sidebar para dark mode\" ./scripts/deploy-full.sh:*)",
+      "Bash(COMMIT_MSG=\"fix\\(ux\\): aumentar tamaño badge notificaciones sidebar\" ./scripts/deploy-full.sh:*)"
     ],
     "deny": [],
     "ask": []

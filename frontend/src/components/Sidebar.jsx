@@ -378,7 +378,7 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
           <Icon className={clsx("w-4 h-4 flex-shrink-0", !isActive && iconColor, hasNotifications && "animate-notification-blink")} />
           <span className="truncate">{label}</span>
           {hasNotifications && (
-            <span className="ml-auto min-w-[16px] h-4 px-1 flex items-center justify-center text-[10px] font-bold text-[var(--primary)] bg-[var(--card)] border-2 border-[var(--primary)] rounded-full">
+            <span className="ml-auto min-w-[20px] h-5 px-1.5 flex items-center justify-center text-[11px] font-bold text-[var(--primary)] bg-[var(--card)] border-2 border-[var(--primary)] rounded-full">
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
