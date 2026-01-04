@@ -135,13 +135,13 @@ export default function CentroInteraccion() {
       />
 
       {error && (
-        <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+        <div className="bg-red-500/10 text-red-500 p-3 rounded-lg text-sm border border-red-500/20">
           {error}
         </div>
       )}
 
       {/* Tabs con contadores */}
-      <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30 w-fit">
+      <div className="flex items-center gap-1 p-1 bg-[var(--bg-soft)]/50 backdrop-blur-sm rounded-xl border border-[var(--border)] w-fit">
         {tabs.map((tab) => {
           const IconComponent = tab.icon;
           const isActive = activeTab === tab.id;
@@ -151,8 +151,8 @@ export default function CentroInteraccion() {
               onClick={() => handleTabClick(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? "bg-white shadow-sm text-blue-600"
-                  : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+                  ? "bg-[var(--card)] shadow-sm text-[var(--primary)]"
+                  : "text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--bg-soft)]"
               }`}
             >
               <IconComponent className="w-4 h-4" />
@@ -209,21 +209,21 @@ export default function CentroInteraccion() {
                   <div
                     key={idx}
                     onClick={() => setSelectedTimelineItem(item)}
-                    className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50
+                    className="flex items-start gap-3 p-3 rounded-lg hover:bg-[var(--bg-soft)]
                                cursor-pointer transition-colors border border-transparent
-                               hover:border-gray-200 hover:shadow-sm"
+                               hover:border-[var(--border)] hover:shadow-sm"
                   >
-                    <div className="p-2 bg-gray-100 rounded-full">
+                    <div className="p-2 bg-[var(--bg-soft)] rounded-full">
                       <IconComponent className={`w-4 h-4 ${ICON_COLORS.default}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-800 line-clamp-2">
+                      <p className="text-sm text-[var(--fg)] line-clamp-2">
                         {item.descripcion}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-[var(--fg-muted)] mt-1">
                         {formatTimeAgo(item.created_at)}
                         {item.solicitud_id && (
-                          <span className="ml-2 text-blue-600">
+                          <span className="ml-2 text-[var(--primary)]">
                             #{item.solicitud_id}
                           </span>
                         )}
@@ -234,7 +234,7 @@ export default function CentroInteraccion() {
               })}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-[var(--fg-muted)]">
               {t("centro_sin_actividad", "No hay actividad reciente")}
             </div>
           )}
