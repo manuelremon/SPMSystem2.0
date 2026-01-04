@@ -89,7 +89,7 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
 
         {/* Acciones especiales (solo si hay conflictos) */}
         {(tieneConflictosCriticos || tieneConflictos) && (
-          <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex flex-wrap gap-2 pt-4 border-t border-[var(--border)]">
             {tieneConflictosCriticos && onReject && (
               <Button variant="danger" onClick={onReject} type="button">
                 Rechazar solicitud
@@ -133,11 +133,11 @@ function PresupuestoCard({ resumen, solicitud, onPresupuestoInsuficiente }) {
   const alcanza = diferencia >= 0;
 
   return (
-    <div className="p-4 md:p-5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 space-y-4">
+    <div className="p-4 md:p-5 rounded-xl border border-[var(--border)] bg-[var(--card)] space-y-4">
       <div className="flex items-center gap-2">
         <DollarSign className="w-5 h-5 text-[var(--primary)]" />
         <p
-          className="text-xs uppercase font-bold tracking-[0.08em] text-slate-700 dark:text-slate-300"
+          className="text-xs uppercase font-bold tracking-[0.08em] text-[var(--fg-muted)]"
           title="Análisis del presupuesto disponible vs costo de la solicitud"
         >
           Balance Presupuesto
@@ -146,26 +146,26 @@ function PresupuestoCard({ resumen, solicitud, onPresupuestoInsuficiente }) {
 
       <div className="space-y-3">
         <div className="flex justify-between items-baseline gap-2">
-          <span className="text-sm text-slate-700 dark:text-slate-300" title="Presupuesto disponible en el centro/sector">
+          <span className="text-sm text-[var(--fg-muted)]" title="Presupuesto disponible en el centro/sector">
             Presupuesto Disponible
           </span>
-          <span className="text-base font-bold text-slate-900 dark:text-slate-100">{formatCurrency(disponible)}</span>
+          <span className="text-base font-bold text-[var(--fg)]">{formatCurrency(disponible)}</span>
         </div>
 
         <div className="flex justify-between items-baseline gap-2">
-          <span className="text-sm text-slate-700 dark:text-slate-300" title={`Suma de (Precio Unitario × Cantidad) de ${items.length} ${items.length === 1 ? 'item' : 'items'}`}>
+          <span className="text-sm text-[var(--fg-muted)]" title={`Suma de (Precio Unitario × Cantidad) de ${items.length} ${items.length === 1 ? 'item' : 'items'}`}>
             Costo de la Solicitud
           </span>
-          <span className="text-base font-bold text-slate-900 dark:text-slate-100">{formatCurrency(costoTotal)}</span>
+          <span className="text-base font-bold text-[var(--fg)]">{formatCurrency(costoTotal)}</span>
         </div>
 
         <div
-          className={`p-3 rounded-lg border-2 ${alcanza ? 'border-[var(--success)] bg-[rgba(52,211,153,0.06)]' : 'border-[var(--danger)] bg-[rgba(239,68,68,0.06)] cursor-pointer hover:bg-[rgba(239,68,68,0.12)] transition-all'}`}
+          className={`p-3 rounded-lg border-2 ${alcanza ? 'border-[var(--success)] bg-emerald-500/10' : 'border-[var(--danger)] bg-red-500/10 cursor-pointer hover:bg-red-500/20 transition-all'}`}
           title={alcanza ? "El presupuesto disponible es suficiente" : "Click para notificar al solicitante sobre presupuesto insuficiente"}
           onClick={() => !alcanza && onPresupuestoInsuficiente && onPresupuestoInsuficiente()}
         >
           <div className="flex justify-between items-baseline gap-2">
-            <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">Balance</span>
+            <span className="text-sm font-semibold text-[var(--fg)]">Balance</span>
             <span className={`text-lg font-black ${alcanza ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
               {diferencia >= 0 ? '+' : ''}{formatCurrency(diferencia)} {alcanza ? '✓' : '⚠️'}
             </span>
@@ -180,11 +180,11 @@ function BadgeListCompact({ title, items, emptyLabel, count, icon, colorBg, colo
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className={`p-3 rounded-lg border ${colorBorder} ${colorBg} dark:bg-opacity-20`}>
+    <div className={`p-3 rounded-lg border ${colorBorder} ${colorBg}`}>
       <div className="flex items-center justify-between gap-1 mb-2">
         <div className="flex items-center gap-1.5">
           {icon}
-          <span className="text-[10px] uppercase font-bold tracking-wide text-slate-700 dark:text-slate-300">{title}</span>
+          <span className="text-[10px] uppercase font-bold tracking-wide text-[var(--fg)]">{title}</span>
         </div>
         <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${colorBadge}`}>
           {count}
@@ -192,14 +192,14 @@ function BadgeListCompact({ title, items, emptyLabel, count, icon, colorBg, colo
       </div>
 
       {count === 0 ? (
-        <p className="text-[11px] text-slate-500 dark:text-slate-400">{emptyLabel}</p>
+        <p className="text-[11px] text-[var(--fg-muted)]">{emptyLabel}</p>
       ) : (
         <>
           <div className="space-y-1.5 max-h-24 overflow-y-auto">
             {(expanded ? items : items.slice(0, 2)).map((it, idx) => (
-              <div key={idx} className="text-[11px] text-slate-700 dark:text-slate-300 leading-tight">
+              <div key={idx} className="text-[11px] text-[var(--fg)] leading-tight">
                 <span className="font-semibold">{it.label}</span>
-                {it.detail && <span className="block text-slate-600 dark:text-slate-400 truncate">{it.detail}</span>}
+                {it.detail && <span className="block text-[var(--fg-muted)] truncate">{it.detail}</span>}
               </div>
             ))}
           </div>
@@ -207,7 +207,7 @@ function BadgeListCompact({ title, items, emptyLabel, count, icon, colorBg, colo
             <button
               type="button"
               onClick={() => setExpanded(!expanded)}
-              className="mt-1.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+              className="mt-1.5 text-[10px] font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)]"
             >
               {expanded ? "Ver menos" : `+${items.length - 2} más`}
             </button>
@@ -322,16 +322,16 @@ function MaterialesList({ materiales, solicitud }) {
       }));
 
   return (
-    <div className="p-4 md:p-5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 space-y-3">
+    <div className="p-4 md:p-5 rounded-xl border border-[var(--border)] bg-[var(--card)] space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Package className="w-5 h-5 text-[var(--primary)]" />
-          <p className="text-xs uppercase font-bold tracking-[0.08em] text-slate-700 dark:text-slate-300">
+          <p className="text-xs uppercase font-bold tracking-[0.08em] text-[var(--fg-muted)]">
             Materiales Solicitados
           </p>
         </div>
         <span
-          className="text-sm font-bold text-slate-900 dark:text-slate-100"
+          className="text-sm font-bold text-[var(--fg)]"
           title={`Total de materiales en la solicitud`}
         >
           {items.length} {items.length === 1 ? 'item' : 'items'}
@@ -339,7 +339,7 @@ function MaterialesList({ materiales, solicitud }) {
       </div>
 
       {items.length === 0 ? (
-        <p className="text-sm text-slate-700 dark:text-slate-300 text-center py-8">Sin materiales en la solicitud</p>
+        <p className="text-sm text-[var(--fg-muted)] text-center py-8">Sin materiales en la solicitud</p>
       ) : (
         <MaterialesTable items={items} />
       )}
