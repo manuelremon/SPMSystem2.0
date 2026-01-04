@@ -275,7 +275,7 @@ export default function Materials() {
 
 function SearchSection({ m, t }) {
   return (
-    <div ref={m.searchContainerRef} className="space-y-3">
+    <div className="space-y-3">
       <div className="flex items-center gap-4">
         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
           {t('materials_buscar', 'Buscar material')}
@@ -289,7 +289,8 @@ function SearchSection({ m, t }) {
           {t('materials_asistente_ia', 'Asistente IA')}
         </button>
       </div>
-      <div className="flex flex-col sm:flex-row gap-3">
+      {/* Ref en la fila de inputs para posicionar el dropdown correctamente */}
+      <div ref={m.searchContainerRef} className="flex flex-col sm:flex-row gap-3">
         {/* Codigo SAP */}
         <div className="relative w-full sm:w-36 shrink-0">
           <Input
