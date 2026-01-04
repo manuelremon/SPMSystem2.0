@@ -91,6 +91,7 @@ export function ModernDataTable({
                 const canSort = header.column.getCanSort();
                 const sorted = header.column.getIsSorted();
                 const minWidth = header.column.columnDef.meta?.minWidth;
+                const maxWidth = header.column.columnDef.meta?.maxWidth;
 
                 return (
                   <TableHead
@@ -116,7 +117,10 @@ export function ModernDataTable({
                       canSort && "cursor-pointer select-none",
                       canSort && "hover:text-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-inset"
                     )}
-                    style={minWidth ? { minWidth: `${minWidth}px` } : undefined}
+                    style={{
+                      ...(minWidth && { minWidth: `${minWidth}px` }),
+                      ...(maxWidth && { maxWidth: `${maxWidth}px` }),
+                    }}
                   >
                     <div className="flex items-center gap-1 justify-center">
                       {flexRender(header.column.columnDef.header, header.getContext())}
@@ -144,12 +148,16 @@ export function ModernDataTable({
               {row.getVisibleCells().map((cell) => {
                 const alignClass = getAlignmentClass(cell.column);
                 const minWidth = cell.column.columnDef.meta?.minWidth;
+                const maxWidth = cell.column.columnDef.meta?.maxWidth;
 
                 return (
                   <TableCell
                     key={cell.id}
                     align={cell.column.columnDef.meta?.align}
-                    style={minWidth ? { minWidth: `${minWidth}px` } : undefined}
+                    style={{
+                      ...(minWidth && { minWidth: `${minWidth}px` }),
+                      ...(maxWidth && { maxWidth: `${maxWidth}px` }),
+                    }}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>

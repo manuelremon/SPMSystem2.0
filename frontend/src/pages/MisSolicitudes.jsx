@@ -346,12 +346,14 @@ export default function MisSolicitudes() {
       header: t("mis_col_centro", "Centro"),
       sortAccessor: (row) => row.centro || row.centro_id || "",
       render: (row) => row.centro || row.centro_id || "-",
+      maxWidth: 70,
     },
     {
       key: "almacen",
       header: t("mis_col_almacen", "Almacén"),
       sortAccessor: (row) => row.almacen_virtual || row.almacen || "",
       render: (row) => formatAlmacen(row.almacen_virtual || row.almacen) || "-",
+      maxWidth: 70,
     },
     {
       key: "sector",
