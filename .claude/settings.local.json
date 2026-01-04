@@ -207,7 +207,8 @@
       "Bash(COMMIT_MSG=\"fix\\(ux\\): corregir badge notificaciones sidebar para dark mode\" ./scripts/deploy-full.sh:*)",
       "Bash(COMMIT_MSG=\"fix\\(ux\\): aumentar tamaño badge notificaciones sidebar\" ./scripts/deploy-full.sh:*)",
       "Bash(COMMIT_MSG=\"fix\\(ux\\): corregir ConfirmModal para dark mode\" ./scripts/deploy-full.sh:*)",
-      "Bash(COMMIT_MSG=\"fix\\(ux\\): cambiar tooltip de estado a position bottom para evitar overlap con header\" ./scripts/deploy-full.sh:*)"
+      "Bash(COMMIT_MSG=\"fix\\(ux\\): cambiar tooltip de estado a position bottom para evitar overlap con header\" ./scripts/deploy-full.sh:*)",
+      "Bash(COMMIT_MSG=\"fix\\(ux\\): eliminar tooltip duplicado en StatusBadge con prop disableTooltip\" ./scripts/deploy-full.sh:*)"
     ],
     "deny": [],
     "ask": []

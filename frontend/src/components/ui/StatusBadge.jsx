@@ -10,13 +10,15 @@ import { formatDate } from "../../utils/formatters";
  * @param {boolean} showIcon - Mostrar icono (default: true)
  * @param {boolean} uppercase - Texto en mayúsculas (default: true)
  * @param {object} tooltipInfo - Info para el tooltip
+ * @param {boolean} disableTooltip - Desactivar tooltip interno (default: false)
  */
 export default function StatusBadge({
   estado,
   className = "",
   showIcon = true,
   uppercase = true,
-  tooltipInfo = null
+  tooltipInfo = null,
+  disableTooltip = false
 }) {
   const { t } = useI18n();
   const config = getEstadoConfig(estado);
@@ -89,7 +91,7 @@ export default function StatusBadge({
     }
   }
 
-  const hasTooltip = tooltipLines.length > 0;
+  const hasTooltip = !disableTooltip && tooltipLines.length > 0;
 
   // Obtener label traducida
   const getLabel = () => {

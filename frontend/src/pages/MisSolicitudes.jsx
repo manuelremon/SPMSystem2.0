@@ -489,7 +489,7 @@ export default function MisSolicitudes() {
 
         return (
           <InfoTooltip title={tooltipInfo.title} lines={tooltipInfo.lines} position="bottom">
-            <StatusBadge estado={estado} />
+            <StatusBadge estado={estado} disableTooltip />
           </InfoTooltip>
         );
       },
