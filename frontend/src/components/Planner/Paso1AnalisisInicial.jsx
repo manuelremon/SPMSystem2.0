@@ -37,7 +37,7 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
             {/* Conflictos, Avisos y Recomendaciones en 3 columnas */}
             <div className="grid grid-cols-3 gap-2">
               <BadgeListCompact
-                icon={<AlertOctagon className="w-4 h-4 text-red-600 dark:text-red-400" />}
+                icon={<AlertOctagon className="w-4 h-4 text-red-500" />}
                 title="Conflictos"
                 emptyLabel="Sin conflictos"
                 count={conflictos.length}
@@ -46,12 +46,11 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
                   detail: c.descripcion || `Item ${c.item_idx}`,
                   tone: c.impacto_critico ? "danger" : "warning",
                 }))}
-                colorBg="bg-red-50 dark:bg-red-950/60"
-                colorBorder="border-red-200 dark:border-red-700"
-                colorBadge="bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-100"
+                accentColor="border-l-red-500"
+                badgeColor="bg-red-500 text-white"
               />
               <BadgeListCompact
-                icon={<Info className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
+                icon={<Info className="w-4 h-4 text-amber-500" />}
                 title="Avisos"
                 emptyLabel="Sin avisos"
                 count={avisos.length}
@@ -60,12 +59,11 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
                   detail: a.mensaje || "",
                   tone: a.nivel === "warning" ? "warning" : "info",
                 }))}
-                colorBg="bg-amber-50 dark:bg-amber-950/60"
-                colorBorder="border-amber-200 dark:border-amber-700"
-                colorBadge="bg-amber-100 dark:bg-amber-800 text-amber-700 dark:text-amber-100"
+                accentColor="border-l-amber-500"
+                badgeColor="bg-amber-500 text-white"
               />
               <BadgeListCompact
-                icon={<Lightbulb className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />}
+                icon={<Lightbulb className="w-4 h-4 text-blue-500" />}
                 title="Recomendaciones"
                 emptyLabel="Sin recomendaciones"
                 count={recomendaciones.length}
@@ -74,9 +72,8 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
                   detail: r.razon,
                   tone: r.prioridad === "muy_alta" ? "danger" : r.prioridad === "alta" ? "warning" : "info",
                 }))}
-                colorBg="bg-cyan-50 dark:bg-cyan-950/60"
-                colorBorder="border-cyan-200 dark:border-cyan-700"
-                colorBadge="bg-cyan-100 dark:bg-cyan-800 text-cyan-700 dark:text-cyan-100"
+                accentColor="border-l-blue-500"
+                badgeColor="bg-blue-500 text-white"
               />
             </div>
           </div>
@@ -176,17 +173,17 @@ function PresupuestoCard({ resumen, solicitud, onPresupuestoInsuficiente }) {
   );
 }
 
-function BadgeListCompact({ title, items, emptyLabel, count, icon, colorBg, colorBorder, colorBadge }) {
+function BadgeListCompact({ title, items, emptyLabel, count, icon, accentColor, badgeColor }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className={`p-3 rounded-lg border ${colorBorder} ${colorBg}`}>
+    <div className={`p-3 rounded-lg border-l-4 ${accentColor} bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700`}>
       <div className="flex items-center justify-between gap-1 mb-2">
         <div className="flex items-center gap-1.5">
           {icon}
-          <span className="text-[10px] uppercase font-bold tracking-wide text-slate-700 dark:text-slate-100">{title}</span>
+          <span className="text-[10px] uppercase font-bold tracking-wide text-slate-700 dark:text-slate-200">{title}</span>
         </div>
-        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${colorBadge}`}>
+        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${badgeColor}`}>
           {count}
         </span>
       </div>
@@ -197,9 +194,9 @@ function BadgeListCompact({ title, items, emptyLabel, count, icon, colorBg, colo
         <>
           <div className="space-y-1.5 max-h-24 overflow-y-auto">
             {(expanded ? items : items.slice(0, 2)).map((it, idx) => (
-              <div key={idx} className="text-[11px] text-slate-800 dark:text-slate-100 leading-tight">
+              <div key={idx} className="text-[11px] text-slate-700 dark:text-slate-200 leading-tight">
                 <span className="font-semibold">{it.label}</span>
-                {it.detail && <span className="block text-slate-600 dark:text-slate-300 truncate">{it.detail}</span>}
+                {it.detail && <span className="block text-slate-500 dark:text-slate-400 truncate">{it.detail}</span>}
               </div>
             ))}
           </div>
