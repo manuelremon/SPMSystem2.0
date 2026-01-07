@@ -37,7 +37,7 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
             {/* Conflictos, Avisos y Recomendaciones en 3 columnas */}
             <div className="grid grid-cols-3 gap-2">
               <BadgeListCompact
-                icon={<AlertOctagon className="w-4 h-4 text-red-500" />}
+                icon={<AlertOctagon className="w-4 h-4 text-red-600 dark:text-red-400" />}
                 title="Conflictos"
                 emptyLabel="Sin conflictos"
                 count={conflictos.length}
@@ -46,11 +46,12 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
                   detail: c.descripcion || `Item ${c.item_idx}`,
                   tone: c.impacto_critico ? "danger" : "warning",
                 }))}
-                accentColor="border-l-red-500"
-                badgeColor="bg-red-500 text-white"
+                colorBg="bg-red-50 dark:bg-slate-800"
+                colorBorder="border-red-200 dark:border-red-800"
+                colorBadge="bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"
               />
               <BadgeListCompact
-                icon={<Info className="w-4 h-4 text-amber-500" />}
+                icon={<Info className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
                 title="Avisos"
                 emptyLabel="Sin avisos"
                 count={avisos.length}
@@ -59,11 +60,12 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
                   detail: a.mensaje || "",
                   tone: a.nivel === "warning" ? "warning" : "info",
                 }))}
-                accentColor="border-l-amber-500"
-                badgeColor="bg-amber-500 text-white"
+                colorBg="bg-amber-50 dark:bg-slate-800"
+                colorBorder="border-amber-200 dark:border-amber-800"
+                colorBadge="bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300"
               />
               <BadgeListCompact
-                icon={<Lightbulb className="w-4 h-4 text-blue-500" />}
+                icon={<Lightbulb className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
                 title="Recomendaciones"
                 emptyLabel="Sin recomendaciones"
                 count={recomendaciones.length}
@@ -72,8 +74,9 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
                   detail: r.razon,
                   tone: r.prioridad === "muy_alta" ? "danger" : r.prioridad === "alta" ? "warning" : "info",
                 }))}
-                accentColor="border-l-blue-500"
-                badgeColor="bg-blue-500 text-white"
+                colorBg="bg-blue-50 dark:bg-slate-800"
+                colorBorder="border-blue-200 dark:border-blue-800"
+                colorBadge="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
               />
             </div>
           </div>
@@ -173,17 +176,17 @@ function PresupuestoCard({ resumen, solicitud, onPresupuestoInsuficiente }) {
   );
 }
 
-function BadgeListCompact({ title, items, emptyLabel, count, icon, accentColor, badgeColor }) {
+function BadgeListCompact({ title, items, emptyLabel, count, icon, colorBg, colorBorder, colorBadge }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className={`p-3 rounded-lg border-l-4 ${accentColor} bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700`}>
+    <div className={`p-3 rounded-lg border ${colorBorder} ${colorBg}`}>
       <div className="flex items-center justify-between gap-1 mb-2">
         <div className="flex items-center gap-1.5">
           {icon}
           <span className="text-[10px] uppercase font-bold tracking-wide text-slate-700 dark:text-slate-200">{title}</span>
         </div>
-        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${badgeColor}`}>
+        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${colorBadge}`}>
           {count}
         </span>
       </div>
