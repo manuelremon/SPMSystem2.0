@@ -15,7 +15,7 @@ export default function AdminSectores() {
           render: (row) => {
             const isActivo = row.activo === 1 || row.activo === true;
             return (
-              <Badge variant={isActivo ? 'success' : 'neutral'} className="uppercase text-xs">
+              <Badge variant={isActivo ? 'success' : 'default'} className="uppercase text-[10px]">
                 {isActivo ? 'Activo' : 'Inactivo'}
               </Badge>
             );

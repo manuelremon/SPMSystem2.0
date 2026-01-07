@@ -216,7 +216,7 @@ export default function AdminPresupuestos() {
         const diff = row.diferencia_usd || 0
         const isPositive = diff > 0
         return (
-          <span className={`font-mono flex items-center gap-1 ${isPositive ? 'text-emerald-600' : diff < 0 ? 'text-red-600' : 'text-slate-500'}`}>
+          <span className={`font-mono flex items-center gap-1 ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : diff < 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
             {isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : diff < 0 ? <TrendingDown className="w-3.5 h-3.5" /> : null}
             {isPositive ? '+' : ''}{formatCurrency(diff)}
           </span>

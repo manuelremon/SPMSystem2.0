@@ -170,15 +170,15 @@ export default function AdminSolicitudesPerfil() {
       {msg && <Alert variant="success" onDismiss={() => setMsg("")}>{msg}</Alert>}
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30 w-fit">
+      <div className="flex items-center gap-1 p-1 bg-slate-100/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl w-fit">
         {tabs.map((tabItem) => (
           <button
             key={tabItem.key}
             onClick={() => setTab(tabItem.key)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
               tab === tabItem.key
-                ? "bg-white shadow-sm text-blue-600"
-                : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
             }`}
           >
             {tabItem.label}
@@ -191,40 +191,40 @@ export default function AdminSolicitudesPerfil() {
 
           {/* Lista */}
           {loading ? (
-            <div className="text-center py-16 text-slate-500">
-              <RefreshCw className="w-8 h-8 mx-auto mb-3 animate-spin text-blue-600" />
+            <div className="text-center py-16 text-slate-500 dark:text-slate-400">
+              <RefreshCw className="w-8 h-8 mx-auto mb-3 animate-spin text-blue-600 dark:text-blue-400" />
               <p>{t("common_cargando", "Cargando...")}</p>
             </div>
           ) : requests.length === 0 ? (
-            <div className="text-center py-16 text-slate-500">
-              <User className="w-12 h-12 mx-auto mb-4 opacity-30 text-slate-400" />
+            <div className="text-center py-16 text-slate-500 dark:text-slate-400">
+              <User className="w-12 h-12 mx-auto mb-4 opacity-30 text-slate-400 dark:text-slate-500" />
               <p className="text-sm">{t("profile_req_empty", "No hay solicitudes")}</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
               {requests.map((req) => (
                 <div
                   key={req.id}
-                  className="flex items-center gap-4 p-4 hover:bg-slate-50/70 cursor-pointer transition-colors"
+                  className="flex items-center gap-4 p-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
                   onClick={() => openDetail(req)}
                 >
                   {/* Avatar */}
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-50/70 flex items-center justify-center">
-                    <User className="w-5 h-5 text-blue-600" />
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-50/70 dark:bg-blue-900/30 flex items-center justify-center">
+                    <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   </div>
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-slate-800">
+                      <span className="font-semibold text-slate-800 dark:text-slate-100">
                         {req.solicitante?.nombre || req.usuario_id}
                       </span>
                       <StatusBadge estado={estadoToBadge[req.estado] || req.estado} />
                     </div>
-                    <div className="text-sm text-slate-500 mt-1">
+                    <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                       Solicita cambiar: {Object.keys(req.cambios_solicitados || {}).map(k => fieldLabels[k] || k).join(", ")}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
+                    <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 mt-1">
                       <Clock className="w-3 h-3" />
                       {formatDate(req.created_at)}
                     </div>
@@ -304,16 +304,16 @@ export default function AdminSolicitudesPerfil() {
         {detailModal.detail ? (
           <div className="space-y-6">
             {/* Solicitante */}
-            <div className="p-4 rounded-lg bg-slate-50/70">
-              <h4 className="text-sm font-semibold text-slate-500 mb-2">Solicitante</h4>
+            <div className="p-4 rounded-lg bg-slate-50/70 dark:bg-slate-800/50">
+              <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-2">Solicitante</h4>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-blue-50/70 flex items-center justify-center">
-                  <User className="w-6 h-6 text-blue-600" />
+                <div className="w-12 h-12 rounded-full bg-blue-50/70 dark:bg-blue-900/30 flex items-center justify-center">
+                  <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <div className="font-semibold text-slate-800">{detailModal.detail.solicitante?.nombre}</div>
-                  <div className="text-sm text-slate-500">{detailModal.detail.solicitante?.mail}</div>
-                  <div className="text-xs text-slate-400">
+                  <div className="font-semibold text-slate-800 dark:text-slate-100">{detailModal.detail.solicitante?.nombre}</div>
+                  <div className="text-sm text-slate-500 dark:text-slate-400">{detailModal.detail.solicitante?.mail}</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500">
                     {detailModal.detail.solicitante?.posicion} - {detailModal.detail.solicitante?.sector}
                   </div>
                 </div>
@@ -322,26 +322,26 @@ export default function AdminSolicitudesPerfil() {
 
             {/* Cambios solicitados */}
             <div>
-              <h4 className="text-sm font-semibold text-slate-500 mb-3">Cambios Solicitados</h4>
+              <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-3">Cambios Solicitados</h4>
               <div className="space-y-3">
                 {Object.entries(detailModal.detail.requested_values || {}).map(([field, newValue]) => {
                   const currentValue = detailModal.detail.current_values?.[field];
                   return (
-                    <div key={field} className="p-3 rounded-lg border border-white/30 bg-white/50">
-                      <div className="text-xs font-semibold text-slate-500 uppercase mb-2">
+                    <div key={field} className="p-3 rounded-lg border border-slate-200/50 dark:border-slate-700/50 bg-white/50 dark:bg-slate-800/30">
+                      <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-2">
                         {fieldLabels[`${field}_nuevo`] || field}
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="flex-1 p-2 rounded bg-slate-50/70 text-sm">
-                          <span className="text-slate-400">Actual: </span>
-                          <span className="text-slate-800">
+                        <div className="flex-1 p-2 rounded bg-slate-50/70 dark:bg-slate-800/50 text-sm">
+                          <span className="text-slate-400 dark:text-slate-500">Actual: </span>
+                          <span className="text-slate-800 dark:text-slate-200">
                             {Array.isArray(currentValue) ? currentValue.join(", ") : currentValue || "-"}
                           </span>
                         </div>
-                        <ArrowRight className="w-5 h-5 text-blue-600" />
-                        <div className="flex-1 p-2 rounded bg-blue-50/70 text-sm">
-                          <span className="text-slate-400">Nuevo: </span>
-                          <span className="font-semibold text-blue-600">
+                        <ArrowRight className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <div className="flex-1 p-2 rounded bg-blue-50/70 dark:bg-blue-900/30 text-sm">
+                          <span className="text-slate-400 dark:text-slate-500">Nuevo: </span>
+                          <span className="font-semibold text-blue-600 dark:text-blue-400">
                             {Array.isArray(newValue) ? newValue.join(", ") : newValue || "-"}
                           </span>
                         </div>
@@ -353,14 +353,14 @@ export default function AdminSolicitudesPerfil() {
             </div>
 
             {/* Fecha */}
-            <div className="text-xs text-slate-400 flex items-center gap-2">
+            <div className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-2">
               <Clock className="w-3 h-3" />
               Solicitado el {formatDate(detailModal.detail.created_at)}
             </div>
           </div>
         ) : (
           <div className="text-center py-8">
-            <RefreshCw className="w-6 h-6 mx-auto animate-spin text-slate-500" />
+            <RefreshCw className="w-6 h-6 mx-auto animate-spin text-slate-500 dark:text-slate-400" />
           </div>
         )}
       </Modal>
@@ -384,18 +384,18 @@ export default function AdminSolicitudesPerfil() {
         }
       >
         <div className="space-y-4">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             {t("profile_req_aprobar_desc", "Los cambios se aplicarán automáticamente al perfil del usuario.")}
           </p>
           <div>
-            <label className="text-sm font-medium text-slate-800">
+            <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
               {t("profile_req_comentario", "Comentario (opcional)")}
             </label>
             <textarea
               value={approveModal.comentario}
               onChange={(e) => setApproveModal(prev => ({ ...prev, comentario: e.target.value }))}
               rows={3}
-              className="w-full mt-2 px-4 py-3 rounded-lg border border-white/30 bg-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
+              className="w-full mt-2 px-4 py-3 rounded-lg border border-slate-200/50 dark:border-slate-700/50 bg-white/50 dark:bg-slate-800/50 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
               placeholder="Mensaje opcional para el solicitante..."
             />
           </div>
@@ -421,18 +421,18 @@ export default function AdminSolicitudesPerfil() {
         }
       >
         <div className="space-y-4">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             {t("profile_req_rechazar_desc", "El solicitante sera notificado del rechazo.")}
           </p>
           <div>
-            <label className="text-sm font-medium text-slate-800">
+            <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
               {t("profile_req_motivo", "Motivo del rechazo")} *
             </label>
             <textarea
               value={rejectModal.motivo}
               onChange={(e) => setRejectModal(prev => ({ ...prev, motivo: e.target.value }))}
               rows={3}
-              className="w-full mt-2 px-4 py-3 rounded-lg border border-white/30 bg-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
+              className="w-full mt-2 px-4 py-3 rounded-lg border border-slate-200/50 dark:border-slate-700/50 bg-white/50 dark:bg-slate-800/50 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
               placeholder="Indica el motivo del rechazo..."
             />
           </div>
@@ -458,18 +458,18 @@ export default function AdminSolicitudesPerfil() {
         }
       >
         <div className="space-y-4">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             {t("profile_req_mensaje_desc", "El mensaje sera enviado a la bandeja de entrada del solicitante.")}
           </p>
           <div>
-            <label className="text-sm font-medium text-slate-800">
+            <label className="text-sm font-medium text-slate-800 dark:text-slate-200">
               {t("profile_req_mensaje_contenido", "Mensaje")} *
             </label>
             <textarea
               value={messageModal.mensaje}
               onChange={(e) => setMessageModal(prev => ({ ...prev, mensaje: e.target.value }))}
               rows={4}
-              className="w-full mt-2 px-4 py-3 rounded-lg border border-white/30 bg-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
+              className="w-full mt-2 px-4 py-3 rounded-lg border border-slate-200/50 dark:border-slate-700/50 bg-white/50 dark:bg-slate-800/50 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
               placeholder="Escribe tu mensaje..."
             />
           </div>

@@ -1,4 +1,5 @@
 import AdminCrudTemplate from '../../components/AdminCrudTemplate'
+import { Badge } from '../../components/ui/Badge'
 import { admin } from '../../services/spm'
 
 const parseAsignaciones = (text) => {
@@ -44,7 +45,11 @@ export default function AdminPlanificadores() {
       columns={[
         { key: 'usuario_id', label: 'Usuario' },
         { key: 'nombre', label: 'Nombre' },
-        { key: 'activo', label: 'Activo', render: (r) => (r.activo ? 'Sí' : 'No') },
+        { key: 'activo', label: 'Estado', render: (r) => (
+          <Badge variant={r.activo ? 'success' : 'default'} className="uppercase text-[10px]">
+            {r.activo ? 'Activo' : 'Inactivo'}
+          </Badge>
+        ) },
         { key: 'asignaciones_text', label: 'Asignaciones' }
       ]}
       transformSubmit={(form) => ({
