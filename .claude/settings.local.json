@@ -214,7 +214,8 @@
       "Bash(COMMIT_MSG=\"fix\\(ux\\): corregir dark mode en Paso1 y Paso2 del planificador\" ./scripts/deploy-full.sh:*)",
       "Bash(COMMIT_MSG=\"fix\\(ux\\): corregir dark mode en Paso1 y tabla de materiales\" ./scripts/deploy-full.sh:*)",
       "Bash(npx eslint:*)",
-      "Bash(COMMIT_MSG=\"fix\\(ux\\): tooltips en AdminEstado + unificar tabs y tabla en Dashboard\" ./scripts/deploy-full.sh:*)"
+      "Bash(COMMIT_MSG=\"fix\\(ux\\): tooltips en AdminEstado + unificar tabs y tabla en Dashboard\" ./scripts/deploy-full.sh:*)",
+      "Bash(COMMIT_MSG=\"feat\\(dashboard\\): reemplazar grafico Tendencia por KPI+Sparkline compacto\" ./scripts/deploy-full.sh:*)"
     ],
     "deny": [],
     "ask": []
