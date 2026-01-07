@@ -7,6 +7,7 @@ y selección automática del mejor modelo.
 Adaptado de ForecastDemandaMateriales para SPM v2.0
 """
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 import pandas as pd
@@ -19,6 +20,9 @@ import time
 warnings.filterwarnings('ignore')
 
 logger = logging.getLogger(__name__)
+
+# Número máximo de workers para paralelización
+MAX_WORKERS = 4
 
 # Importaciones sklearn
 try:
@@ -278,38 +282,24 @@ class AutoModelSelector:
         self,
         X: np.ndarray,
         y: np.ndarray,
-        criterio: str = 'mae'
+        criterio: str = 'mae',
+        paralelo: bool = True
     ) -> AutoSelectResult:
-        """Selecciona el mejor modelo automáticamente."""
-        logger.info(f"Auto-selección de modelo entre {len(self.modelos)} candidatos")
+        """
+        Selecciona el mejor modelo automáticamente.
 
-        comparacion = {}
-        for modelo in self.modelos:
-            try:
-                logger.info(f"  Evaluando {modelo}...")
+        Args:
+            X: Features de entrenamiento
+            y: Target de entrenamiento
+            criterio: Criterio de selección ('mae', 'rmse', 'r2')
+            paralelo: Si True, evalúa modelos en paralelo (default True)
+        """
+        logger.info(f"Auto-selección de modelo entre {len(self.modelos)} candidatos (paralelo={paralelo})")
 
-                if self.optimizar_params:
-                    result = self.tuner.optimizar(
-                        X, y, modelo,
-                        n_iter=self.n_iter_tuning,
-                        rapido=True
-                    )
-                    metricas = self.tuner.evaluar_modelo(
-                        X, y, modelo, result.mejores_params
-                    )
-                    metricas['mejores_params'] = result.mejores_params
-                    metricas['tiempo_tuning'] = result.tiempo_busqueda
-                else:
-                    metricas = self.tuner.evaluar_modelo(X, y, modelo)
-                    metricas['mejores_params'] = {}
-                    metricas['tiempo_tuning'] = 0
-
-                comparacion[modelo] = metricas
-                logger.info(f"    MAE: {metricas['mae_mean']:.2f} (±{metricas['mae_std']:.2f})")
-
-            except Exception as e:
-                logger.warning(f"Error evaluando {modelo}: {e}")
-                comparacion[modelo] = {'error': str(e)}
+        if paralelo and len(self.modelos) > 1:
+            comparacion = self._seleccionar_paralelo(X, y)
+        else:
+            comparacion = self._seleccionar_secuencial(X, y)
 
         modelos_validos = {k: v for k, v in comparacion.items() if 'error' not in v}
 
@@ -336,6 +326,61 @@ class AutoModelSelector:
             ranking=ranking,
             recomendacion=recomendacion
         )
+
+    def _seleccionar_secuencial(self, X: np.ndarray, y: np.ndarray) -> Dict[str, Any]:
+        """Evalúa modelos secuencialmente."""
+        comparacion = {}
+        for modelo in self.modelos:
+            try:
+                logger.info(f"  Evaluando {modelo}...")
+                metricas = self._evaluar_un_modelo(X, y, modelo)
+                comparacion[modelo] = metricas
+                logger.info(f"    MAE: {metricas['mae_mean']:.2f} (±{metricas['mae_std']:.2f})")
+            except Exception as e:
+                logger.warning(f"Error evaluando {modelo}: {e}")
+                comparacion[modelo] = {'error': str(e)}
+        return comparacion
+
+    def _seleccionar_paralelo(self, X: np.ndarray, y: np.ndarray) -> Dict[str, Any]:
+        """
+        Evalúa modelos en paralelo usando ThreadPoolExecutor.
+
+        ThreadPoolExecutor es apropiado porque sklearn libera el GIL
+        durante operaciones intensivas.
+        """
+        def evaluar_modelo(modelo):
+            try:
+                logger.info(f"  Evaluando {modelo}...")
+                metricas = self._evaluar_un_modelo(X, y, modelo)
+                logger.info(f"    MAE: {metricas['mae_mean']:.2f} (±{metricas['mae_std']:.2f})")
+                return modelo, metricas
+            except Exception as e:
+                logger.warning(f"Error evaluando {modelo}: {e}")
+                return modelo, {'error': str(e)}
+
+        # Ejecutar en paralelo
+        n_workers = min(MAX_WORKERS, len(self.modelos))
+        with ThreadPoolExecutor(max_workers=n_workers) as executor:
+            results = list(executor.map(evaluar_modelo, self.modelos))
+
+        return dict(results)
+
+    def _evaluar_un_modelo(self, X: np.ndarray, y: np.ndarray, modelo: str) -> Dict[str, Any]:
+        """Evalúa un modelo individual."""
+        if self.optimizar_params:
+            result = self.tuner.optimizar(
+                X, y, modelo,
+                n_iter=self.n_iter_tuning,
+                rapido=True
+            )
+            metricas = self.tuner.evaluar_modelo(X, y, modelo, result.mejores_params)
+            metricas['mejores_params'] = result.mejores_params
+            metricas['tiempo_tuning'] = result.tiempo_busqueda
+        else:
+            metricas = self.tuner.evaluar_modelo(X, y, modelo)
+            metricas['mejores_params'] = {}
+            metricas['tiempo_tuning'] = 0
+        return metricas
 
     def _crear_ranking(
         self,

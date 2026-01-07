@@ -2,11 +2,15 @@
 Pipeline para sistema de puntuación y priorización.
 
 Calcula puntuaciones para solicitudes y materiales.
+
+Optimizado con vectorización numpy para ranking masivo.
 """
 
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -168,7 +172,7 @@ class ScoringPipeline:
 
     def rank_solicitudes(self, solicitudes: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
-        Rankea múltiples solicitudes.
+        Rankea múltiples solicitudes usando vectorización numpy.
 
         Args:
             solicitudes: Lista de solicitudes
@@ -177,8 +181,22 @@ class ScoringPipeline:
             Solicitudes rankeadas
         """
         try:
-            scored_solicitudes = []
+            if not solicitudes:
+                return {
+                    "total_solicitudes": 0,
+                    "solicitudes_rankeadas": [],
+                    "criterios": self.weights,
+                    "fecha_ranking": datetime.now().isoformat(),
+                }
 
+            n = len(solicitudes)
+
+            # Usar vectorización para lotes grandes (>10 solicitudes)
+            if n > 10:
+                return self._rank_solicitudes_vectorizado(solicitudes)
+
+            # Para lotes pequeños, usar método original (menor overhead)
+            scored_solicitudes = []
             for solicitud in solicitudes:
                 score_result = self.score_solicitud(solicitud)
                 scored_solicitudes.append(score_result)
@@ -202,6 +220,101 @@ class ScoringPipeline:
         except Exception as e:
             logger.error(f"Error rankeando solicitudes: {e}")
             raise
+
+    def _rank_solicitudes_vectorizado(self, solicitudes: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Versión vectorizada de rank_solicitudes para mejor rendimiento.
+
+        Usa numpy para calcular scores en batch, significativamente más rápido
+        para >100 solicitudes.
+        """
+        n = len(solicitudes)
+
+        # Pre-extraer valores en arrays numpy
+        criticidades = np.array([
+            1.0 if s.get("criticidad") == "Alta" else 0.5
+            for s in solicitudes
+        ])
+
+        urgencias = np.array([
+            self._urgency_score(self._calcular_dias_restantes(s.get("fecha_necesidad")))
+            for s in solicitudes
+        ])
+
+        montos = np.array([
+            min(float(s.get("total_monto", 0)) / 100000.0, 1.0)
+            for s in solicitudes
+        ])
+
+        complejidades = np.array([
+            min(len(s.get("data_json", {}).get("items", [])) / 20.0, 1.0)
+            for s in solicitudes
+        ])
+
+        # Impacto default
+        impactos = np.full(n, 0.5)
+
+        # Construir matriz de scores (n, 5)
+        scores_matrix = np.column_stack([
+            criticidades,
+            urgencias,
+            montos,
+            complejidades,
+            impactos
+        ])
+
+        # Pesos como vector (mismo orden que scores_matrix)
+        weights = np.array([
+            self.weights["criticidad"],
+            self.weights["fecha_urgencia"],
+            self.weights["monto"],
+            self.weights["complejidad"],
+            self.weights["impacto"]
+        ])
+
+        # Producto punto vectorizado - UNA operación para todos los scores
+        total_scores = scores_matrix @ weights
+
+        # Ranking vectorizado (índices ordenados descendente)
+        sorted_indices = np.argsort(-total_scores)
+
+        # Construir resultados
+        scored_solicitudes = []
+        for rank, idx in enumerate(sorted_indices, 1):
+            sol = solicitudes[idx]
+            scores = {
+                "criticidad": float(criticidades[idx]),
+                "fecha_urgencia": float(urgencias[idx]),
+                "monto": float(montos[idx]),
+                "complejidad": float(complejidades[idx]),
+                "impacto": float(impactos[idx])
+            }
+            scored_solicitudes.append({
+                "solicitud_id": sol.get("id"),
+                "scores": scores,
+                "total_score": float(total_scores[idx]),
+                "normalized_score": float(total_scores[idx]),
+                "priority_level": self._get_priority_level(total_scores[idx]),
+                "weights_used": self.weights,
+                "rank": rank
+            })
+
+        return {
+            "total_solicitudes": n,
+            "solicitudes_rankeadas": scored_solicitudes,
+            "criterios": self.weights,
+            "fecha_ranking": datetime.now().isoformat(),
+        }
+
+    def _calcular_dias_restantes(self, fecha_necesidad: Optional[str]) -> int:
+        """Calcula días restantes hasta fecha de necesidad."""
+        if not fecha_necesidad:
+            return 30  # Default: 30 días
+        try:
+            fecha_nec = datetime.fromisoformat(fecha_necesidad)
+            return (fecha_nec - datetime.now()).days
+        except (ValueError, TypeError):
+            return 30
 
     def rank_materiales(self, materiales: List[Dict[str, Any]]) -> Dict[str, Any]:
         """

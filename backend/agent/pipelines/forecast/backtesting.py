@@ -7,6 +7,7 @@ mediante simulación de predicciones históricas.
 Adaptado de ForecastDemandaMateriales para SPM v2.0
 """
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Tuple
 import pandas as pd
@@ -18,6 +19,9 @@ import warnings
 warnings.filterwarnings('ignore')
 
 logger = logging.getLogger(__name__)
+
+# Número máximo de workers para paralelización
+MAX_WORKERS = 4
 
 
 @dataclass
@@ -106,10 +110,23 @@ class Backtester:
         ventana_test: int = 30,
         n_pasos: int = 5,
         min_train: int = 60,
-        stride: Optional[int] = None
+        stride: Optional[int] = None,
+        paralelo: bool = True
     ) -> BacktestReport:
-        """Ejecuta backtesting walk-forward."""
-        logger.info(f"Iniciando backtesting: {n_pasos} pasos, ventana={ventana_test} días")
+        """
+        Ejecuta backtesting walk-forward.
+
+        Args:
+            df: DataFrame con datos históricos
+            columna_fecha: Nombre de columna de fecha
+            columna_cantidad: Nombre de columna de cantidad
+            ventana_test: Días por ventana de test
+            n_pasos: Número de pasos walk-forward
+            min_train: Mínimo de datos para entrenamiento
+            stride: Salto entre ventanas (default = ventana_test)
+            paralelo: Si True, ejecuta pasos en paralelo (default True)
+        """
+        logger.info(f"Iniciando backtesting: {n_pasos} pasos, ventana={ventana_test} días, paralelo={paralelo}")
 
         df_prep = self._preparar_datos(df, columna_fecha, columna_cantidad)
 
@@ -124,18 +141,15 @@ class Backtester:
             df_prep, columna_fecha, ventana_test, n_pasos, min_train, stride
         )
 
-        steps = []
-        for i, fecha_corte in enumerate(fechas_corte):
-            logger.debug(f"Paso {i+1}/{len(fechas_corte)}: corte en {fecha_corte}")
-
-            try:
-                step = self._ejecutar_paso(
-                    df_prep, fecha_corte, columna_fecha, columna_cantidad, ventana_test
-                )
-                steps.append(step)
-            except Exception as e:
-                logger.warning(f"Error en paso {i+1}: {e}")
-                continue
+        # Ejecutar pasos en paralelo o secuencial
+        if paralelo and len(fechas_corte) > 1:
+            steps = self._ejecutar_pasos_paralelo(
+                df_prep, fechas_corte, columna_fecha, columna_cantidad, ventana_test
+            )
+        else:
+            steps = self._ejecutar_pasos_secuencial(
+                df_prep, fechas_corte, columna_fecha, columna_cantidad, ventana_test
+            )
 
         if not steps:
             raise ValueError("No se completó ningún paso de backtesting")
@@ -156,6 +170,65 @@ class Backtester:
             metricas_agregadas=metricas_agregadas,
             metricas_por_periodo=metricas_por_periodo
         )
+
+    def _ejecutar_pasos_secuencial(
+        self,
+        df_prep: pd.DataFrame,
+        fechas_corte: List[datetime],
+        columna_fecha: str,
+        columna_cantidad: str,
+        ventana_test: int
+    ) -> List[BacktestStep]:
+        """Ejecuta pasos de backtesting secuencialmente."""
+        steps = []
+        for i, fecha_corte in enumerate(fechas_corte):
+            logger.debug(f"Paso {i+1}/{len(fechas_corte)}: corte en {fecha_corte}")
+            try:
+                step = self._ejecutar_paso(
+                    df_prep, fecha_corte, columna_fecha, columna_cantidad, ventana_test
+                )
+                steps.append(step)
+            except Exception as e:
+                logger.warning(f"Error en paso {i+1}: {e}")
+                continue
+        return steps
+
+    def _ejecutar_pasos_paralelo(
+        self,
+        df_prep: pd.DataFrame,
+        fechas_corte: List[datetime],
+        columna_fecha: str,
+        columna_cantidad: str,
+        ventana_test: int
+    ) -> List[BacktestStep]:
+        """
+        Ejecuta pasos de backtesting en paralelo con ThreadPoolExecutor.
+
+        ThreadPoolExecutor es apropiado porque sklearn libera el GIL durante
+        operaciones intensivas de cálculo.
+        """
+        def ejecutar_un_paso(args):
+            i, fecha_corte = args
+            try:
+                logger.debug(f"Paso {i+1}/{len(fechas_corte)}: corte en {fecha_corte}")
+                return self._ejecutar_paso(
+                    df_prep, fecha_corte, columna_fecha, columna_cantidad, ventana_test
+                )
+            except Exception as e:
+                logger.warning(f"Error en paso {i+1}: {e}")
+                return None
+
+        # Preparar argumentos
+        args_list = list(enumerate(fechas_corte))
+
+        # Ejecutar en paralelo
+        n_workers = min(MAX_WORKERS, len(fechas_corte))
+        with ThreadPoolExecutor(max_workers=n_workers) as executor:
+            results = list(executor.map(ejecutar_un_paso, args_list))
+
+        # Filtrar resultados None (errores)
+        steps = [step for step in results if step is not None]
+        return steps
 
     def _preparar_datos(
         self,
@@ -312,34 +385,31 @@ class ModelComparator:
         columna_fecha: str = 'fecha',
         columna_cantidad: str = 'cantidad',
         ventana_test: int = 30,
-        n_pasos: int = 3
+        n_pasos: int = 3,
+        paralelo: bool = True
     ) -> Dict[str, Any]:
-        """Compara múltiples modelos usando backtesting."""
-        logger.info(f"Comparando {len(modelos)} modelos")
+        """
+        Compara múltiples modelos usando backtesting.
 
-        resultados = {}
-        for modelo in modelos:
-            try:
-                backtester = Backtester(self.predictor_class, modelo)
-                report = backtester.ejecutar(
-                    df, columna_fecha, columna_cantidad,
-                    ventana_test, n_pasos
-                )
-                resultados[modelo] = {
-                    'mae_mean': report.mae_promedio,
-                    'mae_std': report.mae_std,
-                    'rmse_mean': report.metricas_agregadas['rmse_mean'],
-                    'r2_mean': report.metricas_agregadas['r2_mean'],
-                    'es_estable': report.es_estable,
-                    'report': report
-                }
-                logger.info(f"  {modelo}: MAE={report.mae_promedio:.2f}")
-            except Exception as e:
-                logger.warning(f"Error evaluando {modelo}: {e}")
-                resultados[modelo] = {
-                    'error': str(e),
-                    'mae_mean': np.inf
-                }
+        Args:
+            df: DataFrame con datos históricos
+            modelos: Lista de modelos a comparar
+            columna_fecha: Nombre de columna de fecha
+            columna_cantidad: Nombre de columna de cantidad
+            ventana_test: Días por ventana de test
+            n_pasos: Número de pasos walk-forward
+            paralelo: Si True, evalúa modelos en paralelo (default True)
+        """
+        logger.info(f"Comparando {len(modelos)} modelos (paralelo={paralelo})")
+
+        if paralelo and len(modelos) > 1:
+            resultados = self._comparar_paralelo(
+                df, modelos, columna_fecha, columna_cantidad, ventana_test, n_pasos
+            )
+        else:
+            resultados = self._comparar_secuencial(
+                df, modelos, columna_fecha, columna_cantidad, ventana_test, n_pasos
+            )
 
         modelos_validos = {k: v for k, v in resultados.items() if 'error' not in v}
         if modelos_validos:
@@ -355,6 +425,82 @@ class ModelComparator:
             'recomendacion': recomendacion,
             'ranking': self._crear_ranking(resultados)
         }
+
+    def _comparar_secuencial(
+        self,
+        df: pd.DataFrame,
+        modelos: List[str],
+        columna_fecha: str,
+        columna_cantidad: str,
+        ventana_test: int,
+        n_pasos: int
+    ) -> Dict[str, Any]:
+        """Compara modelos secuencialmente."""
+        resultados = {}
+        for modelo in modelos:
+            try:
+                backtester = Backtester(self.predictor_class, modelo)
+                report = backtester.ejecutar(
+                    df, columna_fecha, columna_cantidad,
+                    ventana_test, n_pasos, paralelo=False
+                )
+                resultados[modelo] = {
+                    'mae_mean': report.mae_promedio,
+                    'mae_std': report.mae_std,
+                    'rmse_mean': report.metricas_agregadas['rmse_mean'],
+                    'r2_mean': report.metricas_agregadas['r2_mean'],
+                    'es_estable': report.es_estable,
+                    'report': report
+                }
+                logger.info(f"  {modelo}: MAE={report.mae_promedio:.2f}")
+            except Exception as e:
+                logger.warning(f"Error evaluando {modelo}: {e}")
+                resultados[modelo] = {'error': str(e), 'mae_mean': np.inf}
+        return resultados
+
+    def _comparar_paralelo(
+        self,
+        df: pd.DataFrame,
+        modelos: List[str],
+        columna_fecha: str,
+        columna_cantidad: str,
+        ventana_test: int,
+        n_pasos: int
+    ) -> Dict[str, Any]:
+        """
+        Compara modelos en paralelo usando ThreadPoolExecutor.
+
+        Nota: Cada Backtester interno usa paralelo=False para evitar
+        anidación excesiva de threads.
+        """
+        def evaluar_modelo(modelo):
+            try:
+                backtester = Backtester(self.predictor_class, modelo)
+                # Backtester interno es secuencial para evitar exceso de threads
+                report = backtester.ejecutar(
+                    df, columna_fecha, columna_cantidad,
+                    ventana_test, n_pasos, paralelo=False
+                )
+                resultado = {
+                    'mae_mean': report.mae_promedio,
+                    'mae_std': report.mae_std,
+                    'rmse_mean': report.metricas_agregadas['rmse_mean'],
+                    'r2_mean': report.metricas_agregadas['r2_mean'],
+                    'es_estable': report.es_estable,
+                    'report': report
+                }
+                logger.info(f"  {modelo}: MAE={report.mae_promedio:.2f}")
+                return modelo, resultado
+            except Exception as e:
+                logger.warning(f"Error evaluando {modelo}: {e}")
+                return modelo, {'error': str(e), 'mae_mean': np.inf}
+
+        # Ejecutar en paralelo
+        n_workers = min(MAX_WORKERS, len(modelos))
+        with ThreadPoolExecutor(max_workers=n_workers) as executor:
+            results = list(executor.map(evaluar_modelo, modelos))
+
+        return dict(results)
 
     def _crear_ranking(self, resultados: Dict[str, Any]) -> List[Dict[str, Any]]:
         ranking = []

@@ -15,6 +15,7 @@ funcionalidades de IA/ML del sistema SPM.
 import logging
 import math
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -108,6 +109,7 @@ class AIService:
         Entrena todos los pipelines ML con datos historicos.
 
         FIX 4.6: Usa lock para prevenir entrenamientos concurrentes.
+        Optimizado: Usa ThreadPoolExecutor para entrenar clustering y forecast en paralelo.
 
         Args:
             solicitudes_data: Datos historicos de solicitudes
@@ -135,29 +137,43 @@ class AIService:
                 "errors": [],
             }
 
-            # Entrenar clustering de materiales
-            try:
-                if len(materiales_data) >= 3:
-                    cluster_result = self.clustering.fit_material_clusters(materiales_data)
-                    results["clustering"] = cluster_result
-                else:
-                    results["clustering"] = {"status": "skipped", "reason": "insufficient_data"}
-            except Exception as e:
-                logger.warning(f"Error entrenando clustering: {e}")
-                results["clustering"] = {"status": "error", "error": str(e)}
-                results["errors"].append(f"clustering: {e}")
+            # Funciones de entrenamiento para ejecutar en paralelo
+            def train_clustering():
+                try:
+                    if len(materiales_data) >= 3:
+                        return self.clustering.fit_material_clusters(materiales_data)
+                    return {"status": "skipped", "reason": "insufficient_data"}
+                except Exception as e:
+                    logger.warning(f"Error entrenando clustering: {e}")
+                    return {"status": "error", "error": str(e), "_exception": str(e)}
 
-            # Entrenar forecast de demanda
-            try:
-                if len(solicitudes_data) >= 10:
-                    forecast_result = self.forecast.fit(solicitudes_data)
-                    results["forecast"] = forecast_result
-                else:
-                    results["forecast"] = {"status": "skipped", "reason": "insufficient_data"}
-            except Exception as e:
-                logger.warning(f"Error entrenando forecast: {e}")
-                results["forecast"] = {"status": "error", "error": str(e)}
-                results["errors"].append(f"forecast: {e}")
+            def train_forecast():
+                try:
+                    if len(solicitudes_data) >= 10:
+                        return self.forecast.fit(solicitudes_data)
+                    return {"status": "skipped", "reason": "insufficient_data"}
+                except Exception as e:
+                    logger.warning(f"Error entrenando forecast: {e}")
+                    return {"status": "error", "error": str(e), "_exception": str(e)}
+
+            # Ejecutar entrenamientos EN PARALELO con ThreadPoolExecutor
+            # ThreadPoolExecutor es apropiado porque sklearn libera el GIL durante cálculos intensivos
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                future_clustering = executor.submit(train_clustering)
+                future_forecast = executor.submit(train_forecast)
+
+                # Obtener resultados
+                results["clustering"] = future_clustering.result()
+                results["forecast"] = future_forecast.result()
+
+            # Procesar errores de los resultados
+            if results["clustering"].get("_exception"):
+                results["errors"].append(f"clustering: {results['clustering']['_exception']}")
+                del results["clustering"]["_exception"]
+
+            if results["forecast"].get("_exception"):
+                results["errors"].append(f"forecast: {results['forecast']['_exception']}")
+                del results["forecast"]["_exception"]
 
             # Determinar estado final
             clustering_ok = results["clustering"].get("status") == "fitted"
