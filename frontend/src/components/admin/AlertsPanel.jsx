@@ -36,16 +36,16 @@ function AlertItem({ alert, onAcknowledge, isAcknowledging }) {
     <div
       className={`
         flex items-start gap-3 p-3 rounded-lg border
-        ${isCritical ? 'bg-red-50 border-red-200' : ''}
-        ${isWarning ? 'bg-amber-50 border-amber-200' : ''}
-        ${!isCritical && !isWarning ? 'bg-blue-50 border-blue-200' : ''}
+        ${isCritical ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800' : ''}
+        ${isWarning ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800' : ''}
+        ${!isCritical && !isWarning ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800' : ''}
       `}
     >
       <div className={`
         flex-shrink-0 mt-0.5
-        ${isCritical ? 'text-red-500' : ''}
-        ${isWarning ? 'text-amber-500' : ''}
-        ${!isCritical && !isWarning ? 'text-blue-500' : ''}
+        ${isCritical ? 'text-red-500 dark:text-red-400' : ''}
+        ${isWarning ? 'text-amber-500 dark:text-amber-400' : ''}
+        ${!isCritical && !isWarning ? 'text-blue-500 dark:text-blue-400' : ''}
       `}>
         {isCritical ? (
           <AlertTriangle className="w-5 h-5" />
@@ -68,10 +68,10 @@ function AlertItem({ alert, onAcknowledge, isAcknowledging }) {
           </span>
         </div>
 
-        <p className="text-sm text-slate-700">{alert.message}</p>
+        <p className="text-sm text-slate-700 dark:text-slate-200">{alert.message}</p>
 
         {alert.actual_value !== undefined && alert.threshold_value !== undefined && (
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Valor: <span className="font-medium">{alert.actual_value}</span>
             {' / '}
             Umbral: <span className="font-medium">{alert.threshold_value}</span>
@@ -109,13 +109,13 @@ export function AlertsPanel({
 
   if (!activeAlerts.length && !isLoading) {
     return (
-      <Card className="border-l-4 border-green-500">
+      <Card className="border-l-4 border-green-500 dark:border-green-400">
         <CardContent className="py-6">
-          <div className="flex items-center gap-3 text-green-600">
+          <div className="flex items-center gap-3 text-green-600 dark:text-green-400">
             <CheckCircle className="w-6 h-6" />
             <div>
               <p className="font-medium">Sistema Operando Normalmente</p>
-              <p className="text-sm text-slate-500">No hay alertas activas</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">No hay alertas activas</p>
             </div>
           </div>
         </CardContent>
@@ -150,12 +150,12 @@ export function AlertsPanel({
         {(criticalCount > 0 || warningCount > 0) && (
           <div className="flex gap-2 mt-2">
             {criticalCount > 0 && (
-              <span className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded">
+              <span className="text-xs text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/40 px-2 py-1 rounded">
                 {criticalCount} criticas
               </span>
             )}
             {warningCount > 0 && (
-              <span className="text-xs text-amber-600 bg-amber-100 px-2 py-1 rounded">
+              <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-2 py-1 rounded">
                 {warningCount} warnings
               </span>
             )}

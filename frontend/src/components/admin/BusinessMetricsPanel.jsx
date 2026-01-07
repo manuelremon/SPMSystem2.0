@@ -12,11 +12,11 @@ import { FileText, Clock, Users, Package, TrendingUp, CheckCircle } from '../ui/
  */
 function MetricCard({ title, value, icon: Icon, variant = 'default', subtitle }) {
   const variants = {
-    default: 'bg-slate-50 border-slate-200 text-slate-700',
-    primary: 'bg-blue-50 border-blue-200 text-blue-700',
-    success: 'bg-green-50 border-green-200 text-green-700',
-    warning: 'bg-amber-50 border-amber-200 text-amber-700',
-    danger: 'bg-red-50 border-red-200 text-red-700',
+    default: 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200',
+    primary: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
+    success: 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300',
+    warning: 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300',
+    danger: 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300',
   }
 
   return (
@@ -66,8 +66,8 @@ function EstadosChart({ estados }) {
 
   return (
     <div className="mt-4">
-      <p className="text-xs text-slate-500 mb-2">Distribucion por estado</p>
-      <div className="h-3 rounded-full overflow-hidden flex bg-slate-100">
+      <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Distribucion por estado</p>
+      <div className="h-3 rounded-full overflow-hidden flex bg-slate-100 dark:bg-slate-700">
         {Object.entries(estados).map(([estado, count]) => {
           const width = (count / total) * 100
           if (width < 1) return null
@@ -139,7 +139,7 @@ export function BusinessMetricsPanel({ data, isLoading = false }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-slate-500">No hay datos disponibles</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">No hay datos disponibles</p>
         </CardContent>
       </Card>
     )
@@ -189,10 +189,10 @@ export function BusinessMetricsPanel({ data, isLoading = false }) {
         <EstadosChart estados={solicitudes.por_estado} />
 
         {/* Resumen */}
-        <div className="mt-4 pt-4 border-t border-slate-100">
+        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-500">Total solicitudes:</span>
-            <span className="font-medium">{solicitudes.total || 0}</span>
+            <span className="text-slate-500 dark:text-slate-400">Total solicitudes:</span>
+            <span className="font-medium text-slate-800 dark:text-slate-100">{solicitudes.total || 0}</span>
           </div>
         </div>
       </CardContent>
