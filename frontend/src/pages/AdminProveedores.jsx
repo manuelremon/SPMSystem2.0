@@ -243,14 +243,14 @@ function ProveedoresInternos() {
           <table className="w-full text-sm table-fixed">
             <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
               <tr>
-                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '5%'}}>Centro</th>
-                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '5%'}}>Almacén</th>
-                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '14%'}}>Centro</th>
-                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '11%'}}>Almacén</th>
-                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '11%'}}>Sector</th>
-                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '13%'}}>Resp. Depósito</th>
-                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '12%'}}>Referente</th>
-                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '16%'}}>Contacto</th>
+                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '5%'}}>Cód.</th>
+                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '14%'}}>Centro</th>
+                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '5%'}}>Cód.</th>
+                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '11%'}}>Almacén</th>
+                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '11%'}}>Sector</th>
+                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '13%'}}>Resp. Depósito</th>
+                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '12%'}}>Referente</th>
+                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '16%'}}>Contacto</th>
                 <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '5%'}}>Activo</th>
                 <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]" style={{width: '8%'}}>Acciones</th>
               </tr>
@@ -262,8 +262,9 @@ function ProveedoresInternos() {
 
                 return (
                   <tr key={key} className="border-b border-white/30 dark:border-slate-700/30 hover:bg-white/50 dark:hover:bg-slate-700/50">
+                    {/* Cód. Centro */}
                     <td className="px-2 py-2 text-center text-slate-800 dark:text-slate-200 font-mono text-xs overflow-hidden">{prov.centro}</td>
-                    <td className="px-2 py-2 text-center text-slate-800 dark:text-slate-200 font-mono text-xs overflow-hidden">{prov.almacen}</td>
+                    {/* Centro (nombre) */}
                     <td className="px-2 py-2 overflow-hidden">
                       {isEditing ? (
                         <input
@@ -275,6 +276,9 @@ function ProveedoresInternos() {
                         <span className="text-slate-800 dark:text-slate-200 text-xs block truncate">{prov.centro_nombre || "-"}</span>
                       )}
                     </td>
+                    {/* Cód. Almacén */}
+                    <td className="px-2 py-2 text-center text-slate-800 dark:text-slate-200 font-mono text-xs overflow-hidden">{prov.almacen}</td>
+                    {/* Almacén (nombre) */}
                     <td className="px-2 py-2 overflow-hidden">
                       {isEditing ? (
                         <input
