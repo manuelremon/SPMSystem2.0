@@ -15,7 +15,7 @@ from pathlib import Path
 import pandas as pd
 from flask import Blueprint, jsonify, request
 
-from backend.core.db import get_db_connection, get_db_transaction
+from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
 from backend.core.errors import (
     api_error,
     error_forbidden,
@@ -2349,8 +2349,8 @@ def _enviar_consulta_stock(
     # 1. Responsable del almacén (config_almacenes.responsable_id)
     responsable_id = _get_responsable_almacen_config(centro, almacen)
 
-    # 2. Referente del centro (coordinador/jefe)
-    referente_id = _get_referente_centro(centro)
+    # 2. Referente del centro (desde proveedores_internos)
+    referente_id = _get_referente_centro(centro, almacen)
 
     # Notificar a ambos (sin duplicados)
     for user_id in set(filter(None, [responsable_id, referente_id])):
@@ -2368,24 +2368,50 @@ def _enviar_consulta_stock(
     return notificados
 
 
-def _get_referente_centro(centro: str) -> str | None:
-    """Busca el referente de un centro específico."""
+def _get_referente_centro(centro: str, almacen: str = None) -> str | None:
+    """Busca el referente de un centro desde proveedores_internos."""
     try:
         with get_db_connection() as conn:
             cur = conn.cursor()
-            # Buscar usuario con rol coordinador o jefe del centro
-            cur.execute(
+            placeholder = "%s" if is_using_postgresql() else "?"
+
+            # Buscar referente_email en proveedores_internos
+            if almacen:
+                sql = f"""
+                    SELECT pi.referente_email
+                    FROM proveedores_internos pi
+                    WHERE pi.centro = {placeholder} AND pi.almacen = {placeholder}
+                    AND pi.referente_email IS NOT NULL
+                    LIMIT 1
                 """
-                SELECT u.id_spm
-                FROM usuarios u
-                WHERE u.centro = ? AND (u.rol LIKE '%%coordinador%%' OR u.rol LIKE '%%jefe%%')
-                LIMIT 1
-                """,
-                (centro,),
-            )
+                cur.execute(sql, (centro, almacen))
+            else:
+                sql = f"""
+                    SELECT pi.referente_email
+                    FROM proveedores_internos pi
+                    WHERE pi.centro = {placeholder}
+                    AND pi.referente_email IS NOT NULL
+                    LIMIT 1
+                """
+                cur.execute(sql, (centro,))
+
             row = cur.fetchone()
-            return row["id_spm"] if row else None
-    except Exception:
+            if not row:
+                return None
+
+            referente_email = row["referente_email"] if isinstance(row, dict) else row[0]
+            if not referente_email:
+                return None
+
+            # Buscar usuario por email
+            sql_user = f"SELECT id_spm FROM usuarios WHERE mail = {placeholder}"
+            cur.execute(sql_user, (referente_email,))
+            user_row = cur.fetchone()
+            if user_row:
+                return user_row["id_spm"] if isinstance(user_row, dict) else user_row[0]
+            return None
+    except Exception as e:
+        logging.warning(f"Error buscando referente centro {centro}: {e}")
         return None
 
 
