@@ -4,7 +4,8 @@ import api from "../services/api";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { ScrollReveal } from "../components/ui/ScrollReveal";
-import { Warehouse, Truck, Plus, Edit2, Trash2, Check, X, MapPin, Phone, Mail, Star, Clock } from "../components/ui/Icons";
+import { Warehouse, Truck, Plus, Edit2, Trash2, Check, X, MapPin, Phone, Mail, Star, Clock, User } from "../components/ui/Icons";
+import { Tooltip } from "../components/ui/Tooltip";
 
 export default function AdminProveedores() {
   const [searchParams] = useSearchParams();
@@ -81,6 +82,8 @@ function ProveedoresInternos() {
     sector: "",
     contacto_centro: "",
     responsable_centro: "",
+    referente_nombre: "",
+    referente_email: "",
     notas: ""
   });
 
@@ -124,6 +127,8 @@ function ProveedoresInternos() {
         sector: "",
         contacto_centro: "",
         responsable_centro: "",
+        referente_nombre: "",
+        referente_email: "",
         notas: ""
       });
       fetchData();
@@ -185,7 +190,7 @@ function ProveedoresInternos() {
                 className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               />
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <input
                 placeholder="Sector"
                 value={newForm.sector}
@@ -193,15 +198,37 @@ function ProveedoresInternos() {
                 className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               />
               <input
-                placeholder="Contacto (email)"
+                placeholder="Resp. Depósito"
+                value={newForm.responsable_centro}
+                onChange={(e) => setNewForm({ ...newForm, responsable_centro: e.target.value })}
+                className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
+              />
+              <input
+                placeholder="Contacto Centro (email)"
+                type="email"
                 value={newForm.contacto_centro}
                 onChange={(e) => setNewForm({ ...newForm, contacto_centro: e.target.value })}
                 className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               />
               <input
-                placeholder="Responsable"
-                value={newForm.responsable_centro}
-                onChange={(e) => setNewForm({ ...newForm, responsable_centro: e.target.value })}
+                placeholder="Notas"
+                value={newForm.notas}
+                onChange={(e) => setNewForm({ ...newForm, notas: e.target.value })}
+                className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
+              />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
+              <input
+                placeholder="Referente (nombre)"
+                value={newForm.referente_nombre}
+                onChange={(e) => setNewForm({ ...newForm, referente_nombre: e.target.value })}
+                className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
+              />
+              <input
+                placeholder="Referente (email)"
+                type="email"
+                value={newForm.referente_email}
+                onChange={(e) => setNewForm({ ...newForm, referente_email: e.target.value })}
                 className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               />
             </div>
@@ -216,14 +243,16 @@ function ProveedoresInternos() {
           <table className="w-full text-sm">
             <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
               <tr>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Centro</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Almacen</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Centro Nombre</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Almacen Nombre</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Sector</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Responsable</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Activo</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">Acciones</th>
+                <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700 w-16">Centro</th>
+                <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700 w-16">Almacén</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Centro</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700 w-28">Almacén</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700 w-28">Sector</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700 w-32">Resp. Depósito</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700 w-36">Referente</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700 w-40">Contacto Centro</th>
+                <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700 w-16">Activo</th>
+                <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] w-20">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -233,9 +262,12 @@ function ProveedoresInternos() {
 
                 return (
                   <tr key={key} className="border-b border-white/30 dark:border-slate-700/30 hover:bg-white/50 dark:hover:bg-slate-700/50">
-                    <td className="px-4 py-3 text-slate-800 dark:text-slate-200 font-mono">{prov.centro}</td>
-                    <td className="px-4 py-3 text-slate-800 dark:text-slate-200 font-mono">{prov.almacen}</td>
-                    <td className="px-4 py-3">
+                    {/* Centro (código) */}
+                    <td className="px-2 py-2 text-center text-slate-800 dark:text-slate-200 font-mono text-xs">{prov.centro}</td>
+                    {/* Almacén (código) */}
+                    <td className="px-2 py-2 text-center text-slate-800 dark:text-slate-200 font-mono text-xs">{prov.almacen}</td>
+                    {/* Centro (nombre) */}
+                    <td className="px-3 py-2">
                       {isEditing ? (
                         <input
                           value={editForm.centro_nombre || ""}
@@ -243,10 +275,11 @@ function ProveedoresInternos() {
                           className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-sm w-full"
                         />
                       ) : (
-                        <span className="text-slate-800 dark:text-slate-200">{prov.centro_nombre || "-"}</span>
+                        <span className="text-slate-800 dark:text-slate-200 text-sm">{prov.centro_nombre || "-"}</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    {/* Almacén (nombre) */}
+                    <td className="px-3 py-2">
                       {isEditing ? (
                         <input
                           value={editForm.almacen_nombre || ""}
@@ -254,10 +287,11 @@ function ProveedoresInternos() {
                           className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-sm w-full"
                         />
                       ) : (
-                        <span className="text-slate-800 dark:text-slate-200">{prov.almacen_nombre || "-"}</span>
+                        <span className="text-slate-800 dark:text-slate-200 text-sm truncate block max-w-28">{prov.almacen_nombre || "-"}</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    {/* Sector */}
+                    <td className="px-3 py-2">
                       {isEditing ? (
                         <input
                           value={editForm.sector || ""}
@@ -265,10 +299,11 @@ function ProveedoresInternos() {
                           className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-sm w-full"
                         />
                       ) : (
-                        <span className="text-slate-800 dark:text-slate-200">{prov.sector || "-"}</span>
+                        <span className="text-slate-800 dark:text-slate-200 text-sm truncate block max-w-28">{prov.sector || "-"}</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    {/* Resp. Depósito */}
+                    <td className="px-3 py-2">
                       {isEditing ? (
                         <input
                           value={editForm.responsable_centro || ""}
@@ -276,13 +311,61 @@ function ProveedoresInternos() {
                           className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-sm w-full"
                         />
                       ) : (
-                        <span className="text-slate-800 dark:text-slate-200">{prov.responsable_centro || prov.referente_nombre || "-"}</span>
+                        <span className="text-slate-800 dark:text-slate-200 text-sm truncate block max-w-32">{prov.responsable_centro || "-"}</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    {/* Referente (con tooltip para email) */}
+                    <td className="px-3 py-2">
+                      {isEditing ? (
+                        <div className="space-y-1">
+                          <input
+                            value={editForm.referente_nombre || ""}
+                            onChange={(e) => setEditForm({ ...editForm, referente_nombre: e.target.value })}
+                            placeholder="Nombre"
+                            className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-xs w-full"
+                          />
+                          <input
+                            value={editForm.referente_email || ""}
+                            onChange={(e) => setEditForm({ ...editForm, referente_email: e.target.value })}
+                            placeholder="Email"
+                            type="email"
+                            className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-xs w-full"
+                          />
+                        </div>
+                      ) : prov.referente_nombre ? (
+                        <Tooltip content={prov.referente_email || "Sin email"} position="top">
+                          <span className="text-slate-800 dark:text-slate-200 text-sm flex items-center gap-1 cursor-help truncate max-w-36">
+                            <User className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                            {prov.referente_nombre}
+                          </span>
+                        </Tooltip>
+                      ) : (
+                        <span className="text-slate-400 dark:text-slate-500 text-sm">-</span>
+                      )}
+                    </td>
+                    {/* Contacto Centro */}
+                    <td className="px-3 py-2">
+                      {isEditing ? (
+                        <input
+                          value={editForm.contacto_centro || ""}
+                          onChange={(e) => setEditForm({ ...editForm, contacto_centro: e.target.value })}
+                          type="email"
+                          className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-sm w-full"
+                        />
+                      ) : prov.contacto_centro ? (
+                        <span className="text-slate-600 dark:text-slate-400 text-xs flex items-center gap-1 truncate max-w-40">
+                          <Mail className="w-3 h-3 text-cyan-500 flex-shrink-0" />
+                          {prov.contacto_centro}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 dark:text-slate-500 text-sm">-</span>
+                      )}
+                    </td>
+                    {/* Activo */}
+                    <td className="px-2 py-2 text-center">
                       {prov.activo ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(16,185,129,0.15)] text-emerald-600 text-xs font-semibold">
-                          <Check className="w-3 h-3" /> Si
+                          <Check className="w-3 h-3" /> Sí
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(239,68,68,0.15)] text-red-600 text-xs font-semibold">
@@ -290,9 +373,10 @@ function ProveedoresInternos() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    {/* Acciones */}
+                    <td className="px-2 py-2">
                       {isEditing ? (
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 justify-center">
                           <Button
                             variant="success"
                             size="icon-sm"
@@ -309,7 +393,7 @@ function ProveedoresInternos() {
                           </Button>
                         </div>
                       ) : (
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 justify-center">
                           <Button
                             variant="icon"
                             size="icon-sm"
@@ -320,6 +404,8 @@ function ProveedoresInternos() {
                                 almacen_nombre: prov.almacen_nombre,
                                 sector: prov.sector,
                                 responsable_centro: prov.responsable_centro,
+                                referente_nombre: prov.referente_nombre,
+                                referente_email: prov.referente_email,
                                 contacto_centro: prov.contacto_centro,
                               });
                             }}
@@ -341,7 +427,7 @@ function ProveedoresInternos() {
               })}
               {proveedores.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan={10} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                     No hay proveedores internos registrados
                   </td>
                 </tr>
