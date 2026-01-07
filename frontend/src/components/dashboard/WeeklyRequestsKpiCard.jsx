@@ -148,9 +148,9 @@ export function WeeklyRequestsKpiCard({
       className
     )}>
       <CardContent className="p-5">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          {/* Seccion KPI (izquierda) */}
-          <div className="flex-1">
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          {/* Seccion KPI (izquierda - 30%) */}
+          <div className="md:w-[30%] flex-shrink-0">
             {/* Titulo */}
             <div className="flex items-center gap-2 mb-3">
               <div className="h-8 w-8 rounded-lg bg-blue-500/10 dark:bg-blue-500/20 grid place-items-center">
@@ -198,18 +198,17 @@ export function WeeklyRequestsKpiCard({
             </p>
           </div>
 
-          {/* Seccion Sparkline (derecha) */}
-          <div className="w-full md:w-32 h-12 flex-shrink-0">
-            <Sparkline data={data} className="w-full h-full" />
-          </div>
-        </div>
-
-        {/* Labels de dias (opcional, muy sutil) */}
-        <div className="flex justify-end mt-2 md:mt-0">
-          <div className="flex gap-2 text-[10px] text-slate-400 dark:text-slate-500 w-32">
-            {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d, i) => (
-              <span key={i} className="flex-1 text-center">{d}</span>
-            ))}
+          {/* Seccion Sparkline (derecha - 70%) */}
+          <div className="w-full md:flex-1 flex flex-col">
+            <div className="h-16">
+              <Sparkline data={data} className="w-full h-full" />
+            </div>
+            {/* Labels de dias */}
+            <div className="flex gap-1 text-[10px] text-slate-400 dark:text-slate-500 mt-1 px-1">
+              {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d, i) => (
+                <span key={i} className="flex-1 text-center">{d}</span>
+              ))}
+            </div>
           </div>
         </div>
       </CardContent>

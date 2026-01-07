@@ -4,7 +4,7 @@
  * Usa recharts para mostrar graficos de linea con metricas historicas
  */
 
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import {
   LineChart,
   Line,
@@ -18,6 +18,33 @@ import {
   AreaChart,
 } from 'recharts'
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card'
+
+// Hook para detectar dark mode
+const useDarkMode = () => {
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.getAttribute('data-theme') === 'dark'
+  );
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.getAttribute('data-theme') === 'dark');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
+
+  return isDark;
+};
+
+// Colores adaptativos para dark mode
+const getChartColors = (isDark) => ({
+  grid: isDark ? '#334155' : '#e2e8f0',       // slate-700 vs slate-200
+  axis: isDark ? '#475569' : '#cbd5e1',       // slate-600 vs slate-300
+  tick: isDark ? '#94a3b8' : '#94a3b8',       // slate-400 (mismo)
+  tooltipBg: isDark ? '#1e293b' : 'white',    // slate-800 vs white
+  tooltipBorder: isDark ? '#334155' : '#e2e8f0', // slate-700 vs slate-200
+  tooltipText: isDark ? '#94a3b8' : '#64748b',   // slate-400 vs slate-500
+});
 
 // Configuracion de colores por tipo de metrica
 const METRIC_CONFIG = {
@@ -38,14 +65,22 @@ function formatTime(timestamp) {
 }
 
 /**
- * Tooltip personalizado
+ * Tooltip personalizado con soporte dark mode
  */
-function CustomTooltip({ active, payload, label }) {
+function CustomTooltip({ active, payload, label, colors }) {
   if (!active || !payload || !payload.length) return null
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg shadow-lg p-3">
-      <p className="text-xs text-slate-500 mb-1">{formatTime(label)}</p>
+    <div
+      className="rounded-lg shadow-lg p-3"
+      style={{
+        backgroundColor: colors?.tooltipBg || 'white',
+        border: `1px solid ${colors?.tooltipBorder || '#e2e8f0'}`
+      }}
+    >
+      <p className="text-xs mb-1" style={{ color: colors?.tooltipText || '#64748b' }}>
+        {formatTime(label)}
+      </p>
       {payload.map((entry, index) => (
         <p key={index} className="text-sm font-medium" style={{ color: entry.color }}>
           {entry.name}: {entry.value?.toFixed(2)}{entry.unit || ''}
@@ -59,6 +94,8 @@ function CustomTooltip({ active, payload, label }) {
  * Grafico simple de una metrica
  */
 export function SingleMetricChart({ data, metricType, title, height = 200 }) {
+  const isDarkMode = useDarkMode()
+  const chartColors = getChartColors(isDarkMode)
   const config = METRIC_CONFIG[metricType] || { color: '#64748b', name: metricType, unit: '' }
 
   const chartData = useMemo(() => {
@@ -76,7 +113,7 @@ export function SingleMetricChart({ data, metricType, title, height = 200 }) {
           <CardTitle className="text-sm">{title || config.name}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] flex items-center justify-center text-slate-400">
+          <div className="h-[200px] flex items-center justify-center text-slate-400 dark:text-slate-500">
             Sin datos historicos
           </div>
         </CardContent>
@@ -98,20 +135,20 @@ export function SingleMetricChart({ data, metricType, title, height = 200 }) {
                 <stop offset="95%" stopColor={config.color} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
             <XAxis
               dataKey="timestamp"
               tickFormatter={formatTime}
-              tick={{ fontSize: 10, fill: '#94a3b8' }}
-              stroke="#cbd5e1"
+              tick={{ fontSize: 10, fill: chartColors.tick }}
+              stroke={chartColors.axis}
             />
             <YAxis
-              tick={{ fontSize: 10, fill: '#94a3b8' }}
-              stroke="#cbd5e1"
+              tick={{ fontSize: 10, fill: chartColors.tick }}
+              stroke={chartColors.axis}
               unit={config.unit}
               domain={metricType === 'error_rate' ? [0, 'auto'] : ['auto', 'auto']}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip colors={chartColors} />} />
             <Area
               type="monotone"
               dataKey="value"
@@ -132,6 +169,9 @@ export function SingleMetricChart({ data, metricType, title, height = 200 }) {
  * Grafico combinado de CPU y Memoria
  */
 export function CpuMemoryChart({ data, height = 250 }) {
+  const isDarkMode = useDarkMode()
+  const chartColors = getChartColors(isDarkMode)
+
   const chartData = useMemo(() => {
     if (!data) return []
 
@@ -163,7 +203,7 @@ export function CpuMemoryChart({ data, height = 250 }) {
           <CardTitle className="text-sm">CPU y Memoria</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[250px] flex items-center justify-center text-slate-400">
+          <div className="h-[250px] flex items-center justify-center text-slate-400 dark:text-slate-500">
             Sin datos historicos
           </div>
         </CardContent>
@@ -179,20 +219,20 @@ export function CpuMemoryChart({ data, height = 250 }) {
       <CardContent>
         <ResponsiveContainer width="100%" height={height}>
           <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
             <XAxis
               dataKey="timestamp"
               tickFormatter={formatTime}
-              tick={{ fontSize: 10, fill: '#94a3b8' }}
-              stroke="#cbd5e1"
+              tick={{ fontSize: 10, fill: chartColors.tick }}
+              stroke={chartColors.axis}
             />
             <YAxis
-              tick={{ fontSize: 10, fill: '#94a3b8' }}
-              stroke="#cbd5e1"
+              tick={{ fontSize: 10, fill: chartColors.tick }}
+              stroke={chartColors.axis}
               unit="%"
               domain={[0, 100]}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip colors={chartColors} />} />
             <Legend
               wrapperStyle={{ fontSize: '12px' }}
               iconType="line"
@@ -226,6 +266,9 @@ export function CpuMemoryChart({ data, height = 250 }) {
  * Grafico de Latencia y Error Rate
  */
 export function LatencyErrorChart({ data, height = 250 }) {
+  const isDarkMode = useDarkMode()
+  const chartColors = getChartColors(isDarkMode)
+
   const chartData = useMemo(() => {
     if (!data) return []
 
@@ -256,7 +299,7 @@ export function LatencyErrorChart({ data, height = 250 }) {
           <CardTitle className="text-sm">Latencia y Errores</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[250px] flex items-center justify-center text-slate-400">
+          <div className="h-[250px] flex items-center justify-center text-slate-400 dark:text-slate-500">
             Sin datos historicos
           </div>
         </CardContent>
@@ -272,28 +315,28 @@ export function LatencyErrorChart({ data, height = 250 }) {
       <CardContent>
         <ResponsiveContainer width="100%" height={height}>
           <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
             <XAxis
               dataKey="timestamp"
               tickFormatter={formatTime}
-              tick={{ fontSize: 10, fill: '#94a3b8' }}
-              stroke="#cbd5e1"
+              tick={{ fontSize: 10, fill: chartColors.tick }}
+              stroke={chartColors.axis}
             />
             <YAxis
               yAxisId="left"
-              tick={{ fontSize: 10, fill: '#94a3b8' }}
-              stroke="#cbd5e1"
+              tick={{ fontSize: 10, fill: chartColors.tick }}
+              stroke={chartColors.axis}
               unit="ms"
             />
             <YAxis
               yAxisId="right"
               orientation="right"
-              tick={{ fontSize: 10, fill: '#94a3b8' }}
-              stroke="#cbd5e1"
+              tick={{ fontSize: 10, fill: chartColors.tick }}
+              stroke={chartColors.axis}
               unit="%"
               domain={[0, 'auto']}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip colors={chartColors} />} />
             <Legend
               wrapperStyle={{ fontSize: '12px' }}
               iconType="line"

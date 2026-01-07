@@ -19,12 +19,12 @@ const PredictionsTable = ({
 
   if (loading) {
     return (
-      <div className={`p-4 bg-white rounded-lg border ${className}`}>
+      <div className={`p-4 bg-white dark:bg-slate-800 rounded-lg border dark:border-slate-700 ${className}`}>
         <div className="animate-pulse">
-          <div className="h-5 bg-slate-200 rounded w-32 mb-4"></div>
+          <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-32 mb-4"></div>
           <div className="space-y-2">
             {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="h-10 bg-slate-100 rounded"></div>
+              <div key={i} className="h-10 bg-slate-100 dark:bg-slate-700 rounded"></div>
             ))}
           </div>
         </div>
@@ -34,8 +34,8 @@ const PredictionsTable = ({
 
   if (!predicciones || predicciones.length === 0) {
     return (
-      <div className={`p-6 bg-white rounded-lg border text-center ${className}`}>
-        <p className="text-slate-500">{t('forecast_sin_predicciones', 'No hay predicciones disponibles')}</p>
+      <div className={`p-6 bg-white dark:bg-slate-800 rounded-lg border dark:border-slate-700 text-center ${className}`}>
+        <p className="text-slate-500 dark:text-slate-400">{t('forecast_sin_predicciones', 'No hay predicciones disponibles')}</p>
       </div>
     );
   }
@@ -66,12 +66,12 @@ const PredictionsTable = ({
   };
 
   return (
-    <div className={`bg-white rounded-lg border overflow-hidden ${className}`}>
-      <div className="p-4 border-b bg-slate-50">
-        <h3 className="font-semibold text-slate-900">
+    <div className={`bg-white dark:bg-slate-800 rounded-lg border dark:border-slate-700 overflow-hidden ${className}`}>
+      <div className="p-4 border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+        <h3 className="font-semibold text-slate-900 dark:text-slate-100">
           {t('forecast_tabla_predicciones', 'Predicciones Detalladas')}
         </h3>
-        <p className="text-sm text-slate-500 mt-1">
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
           {predicciones.length} {t('forecast_dias', 'días')}
         </p>
       </div>
@@ -81,14 +81,14 @@ const PredictionsTable = ({
           <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)] sticky top-0">
             <tr>
               <th
-                className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 cursor-pointer hover:bg-slate-100"
+                className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"
                 onClick={() => handleSort('fecha')}
               >
                 {t('forecast_fecha', 'Fecha')}
                 <SortIcon field="fecha" />
               </th>
               <th
-                className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 cursor-pointer hover:bg-slate-100"
+                className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"
                 onClick={() => handleSort('prediccion')}
               >
                 {t('forecast_prediccion', 'Predicción')}
@@ -96,10 +96,10 @@ const PredictionsTable = ({
               </th>
               {showIntervalos && (
                 <>
-                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">
                     {t('forecast_minimo', 'Mínimo')}
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">
                     {t('forecast_maximo', 'Máximo')}
                   </th>
                 </>
@@ -118,26 +118,26 @@ const PredictionsTable = ({
               return (
                 <tr
                   key={i}
-                  className={`border-b border-slate-100 hover:bg-slate-50 ${
-                    esFinDeSemana ? 'bg-slate-50' : ''
+                  className={`border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 ${
+                    esFinDeSemana ? 'bg-slate-50 dark:bg-slate-800/50' : ''
                   }`}
                 >
-                  <td className="px-4 py-2 text-slate-900">
+                  <td className="px-4 py-2 text-slate-900 dark:text-slate-100">
                     {fecha.toLocaleDateString('es', {
                       day: '2-digit',
                       month: 'short',
                       year: 'numeric'
                     })}
                   </td>
-                  <td className="px-4 py-2 text-right font-medium text-blue-600">
+                  <td className="px-4 py-2 text-right font-medium text-blue-600 dark:text-blue-400">
                     {p.prediccion?.toFixed(1) || '-'}
                   </td>
                   {showIntervalos && (
                     <>
-                      <td className="px-4 py-2 text-right text-slate-500">
+                      <td className="px-4 py-2 text-right text-slate-500 dark:text-slate-400">
                         {p.limiteInferior?.toFixed(1) || '-'}
                       </td>
-                      <td className="px-4 py-2 text-right text-slate-500">
+                      <td className="px-4 py-2 text-right text-slate-500 dark:text-slate-400">
                         {p.limiteSuperior?.toFixed(1) || '-'}
                       </td>
                     </>
@@ -145,8 +145,8 @@ const PredictionsTable = ({
                   <td className="px-4 py-2 text-center">
                     <span className={`px-2 py-0.5 rounded text-xs ${
                       esFinDeSemana
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'bg-slate-100 text-slate-600'
+                        ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400'
+                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
                     }`}>
                       {diaSemana}
                     </span>
@@ -159,22 +159,22 @@ const PredictionsTable = ({
       </div>
 
       {/* Resumen */}
-      <div className="p-4 border-t bg-slate-50 grid grid-cols-3 gap-4 text-sm">
+      <div className="p-4 border-t dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 grid grid-cols-3 gap-4 text-sm">
         <div>
-          <span className="text-slate-500">Total:</span>
-          <span className="ml-2 font-medium">
+          <span className="text-slate-500 dark:text-slate-400">Total:</span>
+          <span className="ml-2 font-medium text-slate-900 dark:text-slate-100">
             {predicciones.reduce((sum, p) => sum + (p.prediccion || 0), 0).toFixed(0)}
           </span>
         </div>
         <div>
-          <span className="text-slate-500">Promedio:</span>
-          <span className="ml-2 font-medium">
+          <span className="text-slate-500 dark:text-slate-400">Promedio:</span>
+          <span className="ml-2 font-medium text-slate-900 dark:text-slate-100">
             {(predicciones.reduce((sum, p) => sum + (p.prediccion || 0), 0) / predicciones.length).toFixed(1)}
           </span>
         </div>
         <div>
-          <span className="text-slate-500">Máximo:</span>
-          <span className="ml-2 font-medium">
+          <span className="text-slate-500 dark:text-slate-400">Máximo:</span>
+          <span className="ml-2 font-medium text-slate-900 dark:text-slate-100">
             {Math.max(...predicciones.map(p => p.prediccion || 0)).toFixed(1)}
           </span>
         </div>

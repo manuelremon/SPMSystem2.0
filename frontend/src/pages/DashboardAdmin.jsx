@@ -17,8 +17,6 @@ import {
   Clock,
   DollarSign,
   Package,
-  Layers,
-  BarChart3,
   Loader2,
   ChevronRight,
 } from "../components/ui/Icons";
@@ -28,6 +26,7 @@ import { useAuthStore } from "../store/authStore";
 import { useNavigate, Link } from "react-router-dom";
 import { getTableColumns } from "./DashboardShared";
 import { Button } from "../components/ui/Button";
+import { WeeklyRequestsKpiCard } from "../components/dashboard/WeeklyRequestsKpiCard";
 import clsx from "clsx";
 
 // ============================================================================
@@ -101,64 +100,6 @@ function DonutChart({ data, colors, labels }) {
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-// Componente de línea de tendencia con relleno degradado
-function TrendLine({ data }) {
-  const safeData = data && data.length > 0 ? data : [0, 0, 0, 0, 0, 0, 0];
-  const max = Math.max(...safeData);
-  const min = Math.min(...safeData);
-  const padding = (max - min) * 0.2 || 1;
-  const adjustedMin = Math.max(0, min - padding);
-  const adjustedMax = max + padding;
-  const range = adjustedMax - adjustedMin || 1;
-
-  const points = safeData
-    .map((value, idx) => {
-      const x = (idx / (safeData.length - 1)) * 100;
-      const y = 100 - ((value - adjustedMin) / range) * 100;
-      return `${x},${y}`;
-    })
-    .join(" ");
-
-  return (
-    <div className="h-24 w-full">
-      <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="areaGradientDash" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-        <polygon points={`0,100 ${points} 100,100`} fill="url(#areaGradientDash)" />
-        <polyline
-          points={points}
-          fill="none"
-          stroke="#3b82f6"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
-        />
-        {safeData.map((value, idx) => {
-          const x = (idx / (safeData.length - 1)) * 100;
-          const y = 100 - ((value - adjustedMin) / range) * 100;
-          return (
-            <circle
-              key={idx}
-              cx={x}
-              cy={y}
-              r="3"
-              fill="white"
-              stroke="#3b82f6"
-              strokeWidth="2"
-              vectorEffect="non-scaling-stroke"
-            />
-          );
-        })}
-      </svg>
     </div>
   );
 }
@@ -331,50 +272,48 @@ export default function DashboardAdmin() {
   return (
     <div className="space-y-6">
       {/* ================================================================== */}
-      {/* SOLICITUDES SECTION */}
+      {/* SOLICITUDES SECTION - Contenedor unificado */}
       {/* ================================================================== */}
-
-      {/* Header: Tabs + Nueva Solicitud button */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1 p-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-white/30 dark:border-slate-700/30">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={clsx(
-                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                activeTab === tab.key
-                  ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50"
-              )}
-            >
-              <span>{tab.label}</span>
-              <span
-                className={clsx(
-                  "px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums",
-                  activeTab === tab.key
-                    ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400"
-                    : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
-                )}
-              >
-                {tab.count}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <Button as={Link} to="/solicitudes/nueva">
-          <Plus className="w-4 h-4" />
-          {t("dash_new_request", "Nueva Solicitud")}
-        </Button>
-      </div>
-
-      {/* Tabla principal */}
       <Card>
         <CardContent className="p-0">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700">
-            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+          {/* Header con tabs y botón */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-700">
+            <div className="flex items-center gap-1 p-1 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActiveTab(tab.key)}
+                  className={clsx(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
+                    activeTab === tab.key
+                      ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50"
+                  )}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    className={clsx(
+                      "px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums",
+                      activeTab === tab.key
+                        ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400"
+                        : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
+                    )}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <Button as={Link} to="/solicitudes/nueva" size="sm">
+              <Plus className="w-4 h-4" />
+              {t("dash_new_request", "Nueva Solicitud")}
+            </Button>
+          </div>
+
+          {/* Subtítulo con contador */}
+          <div className="flex items-center justify-between px-6 py-3 bg-slate-50/50 dark:bg-slate-800/30">
+            <h2 className="text-sm font-medium text-slate-700 dark:text-slate-300">
               {getTableTitle()}
             </h2>
             <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
@@ -382,13 +321,14 @@ export default function DashboardAdmin() {
             </span>
           </div>
 
+          {/* Tabla */}
           <div className="p-4">
             {loading ? (
               <TableSkeleton rows={5} columns={7} />
             ) : currentData.length === 0 ? (
               <div className="py-16 text-center">
                 <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-4 opacity-60" />
-                <p className="text-slate-500 text-sm">
+                <p className="text-slate-500 dark:text-slate-400 text-sm">
                   {activeTab === "pendientes"
                     ? t("dash_no_pending", "No hay solicitudes pendientes de revisión")
                     : t("dash_no_requests_category", "No hay solicitudes en esta categoría")}
@@ -407,10 +347,10 @@ export default function DashboardAdmin() {
             <div className="px-4 pb-4">
               <Link
                 to={`/solicitudes/todas?tab=${activeTab}`}
-                className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
               >
                 Ver todas las solicitudes ({currentData.length})
-                <ChevronRight className="w-4 h-4 text-slate-500" />
+                <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
           )}
@@ -565,32 +505,17 @@ export default function DashboardAdmin() {
             </div>
           </ScrollReveal>
 
-          {/* Tendencia + Donut Chart */}
+          {/* KPI Semanal + Donut Chart */}
           <ScrollReveal delay={200}>
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              <Card className="lg:col-span-3 h-[280px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                <CardHeader className="px-6 pt-5 pb-3 text-center">
-                  <CardTitle className="text-base">Tendencia de Solicitudes</CardTitle>
-                </CardHeader>
-                <CardContent className="px-6 pb-5 flex flex-col justify-between h-[calc(100%-60px)]">
-                  <div className="flex-1 flex flex-col justify-center">
-                    <TrendLine data={kpiData.solicitudes.trend} />
-                    <div className="grid grid-cols-7 gap-1 text-xs text-slate-500 dark:text-slate-400 text-center mt-2">
-                      {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((day) => (
-                        <div key={day}>{day}</div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="pt-3 border-t border-white/20 dark:border-slate-700/50 flex items-center justify-between text-sm">
-                    <span className="text-slate-500 dark:text-slate-400">Promedio semanal</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-100">
-                      {Math.round(kpiData.solicitudes.trend.reduce((a, b) => a + b, 0) / Math.max(kpiData.solicitudes.trend.length, 1))} solicitudes
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* KPI Card compacta con sparkline */}
+              <WeeklyRequestsKpiCard
+                data={kpiData.solicitudes.trend}
+                trendPercentage={kpiData.solicitudes.trendPercentage}
+              />
 
-              <Card className="lg:col-span-2 h-[280px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
+              {/* Distribución de Estados */}
+              <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                 <CardHeader className="px-6 pt-4 pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">Distribución de Estados</CardTitle>
@@ -606,8 +531,8 @@ export default function DashboardAdmin() {
                           onClick={() => setEstadosPeriodo(opt.key)}
                           className={`px-2 py-0.5 text-[10px] font-medium rounded transition-all ${
                             estadosPeriodo === opt.key
-                              ? "bg-white text-blue-600 shadow-sm"
-                              : "text-slate-500 hover:text-slate-700"
+                              ? "bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm"
+                              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
                           }`}
                         >
                           {opt.label}
@@ -616,7 +541,7 @@ export default function DashboardAdmin() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="px-6 pb-5 flex items-center justify-center h-[calc(100%-60px)]">
+                <CardContent className="px-6 pb-5 flex items-center justify-center">
                   <DonutChart
                     data={[
                       kpiData.solicitudes.aprobadas,

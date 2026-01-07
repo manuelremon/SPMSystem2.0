@@ -34,11 +34,14 @@ function DonutChart({ data, colors, labels }) {
   const radius = 70, strokeWidth = 24, innerRadius = radius - strokeWidth / 2;
   const circumference = 2 * Math.PI * innerRadius;
   let currentOffset = 0;
+  // Detectar dark mode para el color del fondo del círculo
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const bgStroke = isDark ? '#334155' : '#f1f5f9'; // slate-700 vs slate-100
   return (
     <div className="relative w-full flex items-center justify-center">
       <div className="relative w-48 h-48">
         <svg viewBox="0 0 160 160" className="w-full h-full -rotate-90">
-          <circle cx="80" cy="80" r={innerRadius} fill="none" stroke="#f1f5f9" strokeWidth={strokeWidth} />
+          <circle cx="80" cy="80" r={innerRadius} fill="none" stroke={bgStroke} strokeWidth={strokeWidth} />
           {data.map((value, idx) => {
             const pct = value / total, dashLength = pct * circumference, dashOffset = currentOffset;
             currentOffset += dashLength;
@@ -47,15 +50,15 @@ function DonutChart({ data, colors, labels }) {
           })}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-bold text-slate-800">{total}</span>
-          <span className="text-xs text-slate-500 uppercase tracking-wider">Total</span>
+          <span className="text-3xl font-bold text-slate-800 dark:text-slate-100">{total}</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total</span>
         </div>
       </div>
       <div className="ml-6 space-y-3">
         {labels.map((label, idx) => (
           <div key={idx} className="flex items-center gap-3">
             <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: colors[idx] }} />
-            <div className="flex items-center gap-2"><span className="text-sm text-slate-600">{label}</span><span className="text-sm font-semibold text-slate-800">{data[idx]}</span><span className="text-xs text-slate-400">({total > 0 ? Math.round((data[idx] / total) * 100) : 0}%)</span></div>
+            <div className="flex items-center gap-2"><span className="text-sm text-slate-600 dark:text-slate-300">{label}</span><span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{data[idx]}</span><span className="text-xs text-slate-400 dark:text-slate-500">({total > 0 ? Math.round((data[idx] / total) * 100) : 0}%)</span></div>
           </div>
         ))}
       </div>
@@ -65,10 +68,13 @@ function DonutChart({ data, colors, labels }) {
 
 function ProgressCircle({ percentage, color = "#3b82f6" }) {
   const radius = 40, circumference = 2 * Math.PI * radius, offset = circumference - (percentage / 100) * circumference;
+  // Detectar dark mode para el color del fondo del círculo
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const bgStroke = isDark ? '#334155' : '#e2e8f0'; // slate-700 vs slate-200
   return (
     <div className="relative w-24 h-24">
-      <svg className="w-full h-full -rotate-90"><circle cx="48" cy="48" r={radius} stroke="#e2e8f0" strokeWidth="8" fill="none" /><circle cx="48" cy="48" r={radius} stroke={color} strokeWidth="8" fill="none" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-500" /></svg>
-      <div className="absolute inset-0 flex items-center justify-center"><span className="text-xl font-bold text-slate-800">{percentage}%</span></div>
+      <svg className="w-full h-full -rotate-90"><circle cx="48" cy="48" r={radius} stroke={bgStroke} strokeWidth="8" fill="none" /><circle cx="48" cy="48" r={radius} stroke={color} strokeWidth="8" fill="none" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-500" /></svg>
+      <div className="absolute inset-0 flex items-center justify-center"><span className="text-xl font-bold text-slate-800 dark:text-slate-100">{percentage}%</span></div>
     </div>
   );
 }
@@ -189,11 +195,11 @@ export default function DashboardSolicitante() {
         <>
           <ScrollReveal delay={100}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
+              <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                 <CardContent className="h-full flex flex-col justify-between py-5">
                   <div className="flex items-start justify-between">
-                    <div><p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Total Solicitudes</p><p className="text-3xl font-bold text-slate-800">{kpiData.solicitudes.total}</p></div>
-                    <div className="h-12 w-12 rounded-2xl bg-blue-500/10 grid place-items-center"><FileText className={`w-6 h-6 ${ICON_COLORS.primary}`} /></div>
+                    <div><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Total Solicitudes</p><p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{kpiData.solicitudes.total}</p></div>
+                    <div className="h-12 w-12 rounded-2xl bg-blue-500/10 dark:bg-blue-500/20 grid place-items-center"><FileText className={`w-6 h-6 ${ICON_COLORS.primary}`} /></div>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     {kpiData.solicitudes.trendPercentage >= 0 ? <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><TrendingUp className="w-4 h-4" /><span className="font-semibold">+{kpiData.solicitudes.trendPercentage}%</span></div>
@@ -295,25 +301,25 @@ export default function DashboardSolicitante() {
 
           <ScrollReveal delay={250}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
+              <Card className="h-[320px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                 <CardHeader className="px-5 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Materiales Más Solicitados</CardTitle><Package className={`w-5 h-5 ${ICON_COLORS.logistics}`} /></div></CardHeader>
                 <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
                   <div className="space-y-3">
                     {(kpiData.materialesMasSolicitados || []).length > 0 ? kpiData.materialesMasSolicitados.map((m, i) => {
                       const maxC = Math.max(...kpiData.materialesMasSolicitados.map(x => x.cantidad), 1);
-                      return (<div key={i} className="group"><div className="flex items-center justify-between mb-1.5"><div className="flex items-center gap-2 min-w-0 flex-1"><div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500/10 grid place-items-center text-xs font-bold text-blue-600">{i + 1}</div><span className="text-sm text-slate-700 font-medium truncate" title={m.nombre}>{m.nombre}</span></div><span className="text-xs font-semibold text-slate-800 tabular-nums flex-shrink-0 ml-2">{(m.cantidad || 0).toLocaleString()}</span></div><div className="h-2.5 bg-slate-100/70 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-500 group-hover:from-blue-600 group-hover:to-blue-500" style={{ width: `${(m.cantidad / maxC) * 100}%` }} /></div></div>);
-                    }) : <p className="text-sm text-slate-500 text-center py-4">No hay datos disponibles</p>}
+                      return (<div key={i} className="group"><div className="flex items-center justify-between mb-1.5"><div className="flex items-center gap-2 min-w-0 flex-1"><div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500/10 dark:bg-blue-500/20 grid place-items-center text-xs font-bold text-blue-600 dark:text-blue-400">{i + 1}</div><span className="text-sm text-slate-700 dark:text-slate-300 font-medium truncate" title={m.nombre}>{m.nombre}</span></div><span className="text-xs font-semibold text-slate-800 dark:text-slate-200 tabular-nums flex-shrink-0 ml-2">{(m.cantidad || 0).toLocaleString()}</span></div><div className="h-2.5 bg-slate-100/70 dark:bg-slate-700/70 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-500 group-hover:from-blue-600 group-hover:to-blue-500" style={{ width: `${(m.cantidad / maxC) * 100}%` }} /></div></div>);
+                    }) : <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No hay datos disponibles</p>}
                   </div>
                 </CardContent>
               </Card>
-              <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
+              <Card className="h-[320px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                 <CardHeader className="px-5 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Presupuesto por Centro</CardTitle><DollarSign className={`w-5 h-5 ${ICON_COLORS.money}`} /></div></CardHeader>
                 <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
                   <div className="space-y-3">
                     {(kpiData.presupuesto.porCentro || []).length > 0 ? kpiData.presupuesto.porCentro.map((c, i) => {
                       const maxV = Math.max(...kpiData.presupuesto.porCentro.map(x => x.valor), 1);
-                      return (<div key={i} className="group"><div className="flex items-center justify-between mb-1.5"><span className="text-sm text-slate-700 font-medium truncate flex-1" title={c.nombre}>{c.nombre}</span><span className="text-xs font-semibold text-slate-800 tabular-nums flex-shrink-0 ml-2">{formatCurrency(c.valor)}</span></div><div className="h-2.5 bg-slate-100/70 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500 group-hover:from-emerald-600 group-hover:to-emerald-500" style={{ width: `${(c.valor / maxV) * 100}%` }} /></div></div>);
-                    }) : <p className="text-sm text-slate-500 text-center py-4">No hay datos disponibles</p>}
+                      return (<div key={i} className="group"><div className="flex items-center justify-between mb-1.5"><span className="text-sm text-slate-700 dark:text-slate-300 font-medium truncate flex-1" title={c.nombre}>{c.nombre}</span><span className="text-xs font-semibold text-slate-800 dark:text-slate-200 tabular-nums flex-shrink-0 ml-2">{formatCurrency(c.valor)}</span></div><div className="h-2.5 bg-slate-100/70 dark:bg-slate-700/70 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500 group-hover:from-emerald-600 group-hover:to-emerald-500" style={{ width: `${(c.valor / maxV) * 100}%` }} /></div></div>);
+                    }) : <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No hay datos disponibles</p>}
                   </div>
                 </CardContent>
               </Card>
@@ -321,15 +327,15 @@ export default function DashboardSolicitante() {
           </ScrollReveal>
 
           <ScrollReveal delay={300}>
-            <Card className="bg-white/70 backdrop-blur-md border-white/30">
+            <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
               <CardHeader className="px-6 pt-6 pb-4"><CardTitle>Resumen de Presupuesto</CardTitle></CardHeader>
               <CardContent className="px-6 pb-6">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-8">
                   <div className="flex-shrink-0"><ProgressCircle percentage={kpiData.presupuesto.percentage} /></div>
                   <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
-                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Presupuesto Total</p><p className="text-2xl font-bold text-slate-800">{formatCurrency(kpiData.presupuesto.total)}</p></div>
-                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Utilizado</p><p className="text-2xl font-bold text-amber-500">{formatCurrency(kpiData.presupuesto.utilizado)}</p></div>
-                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Disponible</p><p className="text-2xl font-bold text-emerald-500">{formatCurrency(kpiData.presupuesto.disponible)}</p></div>
+                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Presupuesto Total</p><p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(kpiData.presupuesto.total)}</p></div>
+                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Utilizado</p><p className="text-2xl font-bold text-amber-500 dark:text-amber-400">{formatCurrency(kpiData.presupuesto.utilizado)}</p></div>
+                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Disponible</p><p className="text-2xl font-bold text-emerald-500 dark:text-emerald-400">{formatCurrency(kpiData.presupuesto.disponible)}</p></div>
                   </div>
                 </div>
               </CardContent>

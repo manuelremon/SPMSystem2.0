@@ -456,7 +456,7 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
         aria-label={mobileOpen ? t("menu_close", "Cerrar menú") : t("menu_open", "Abrir menú")}
         aria-expanded={mobileOpen}
       >
-        {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        {mobileOpen ? <X className={`w-5 h-5 ${ICON_COLORS.danger}`} /> : <Menu className={`w-5 h-5 ${ICON_COLORS.subtle}`} />}
       </button>
 
       {/* Mobile overlay */}
@@ -512,7 +512,7 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
             title={collapsed ? t("tooltip_expandir", "Expandir") : t("tooltip_colapsar", "Colapsar")}
             aria-label={collapsed ? t("tooltip_expandir", "Expandir") : t("tooltip_colapsar", "Colapsar")}
           >
-            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            {collapsed ? <ChevronRight className={`w-4 h-4 ${ICON_COLORS.subtle}`} /> : <ChevronLeft className={`w-4 h-4 ${ICON_COLORS.subtle}`} />}
           </button>
         </div>
       </div>
@@ -575,7 +575,7 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
                       : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
                   )}
                 >
-                  <User className="w-4 h-4 flex-shrink-0" />
+                  <User className={clsx("w-4 h-4 flex-shrink-0", !isPathActive("/mi-cuenta") && ICON_COLORS.users)} />
                   <span className="truncate">{t("user_mi_cuenta", "Mi Cuenta")}</span>
                 </NavLink>
                 <NavLink
@@ -588,7 +588,7 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
                       : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
                   )}
                 >
-                  <Settings className="w-4 h-4 flex-shrink-0" />
+                  <Settings className={clsx("w-4 h-4 flex-shrink-0", !isPathActive("/ajustes") && ICON_COLORS.secondary)} />
                   <span className="truncate">{t("user_ajustes", "Ajustes")}</span>
                 </NavLink>
               </div>
@@ -629,7 +629,7 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
                     : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
                 )}
               >
-                <Wallet className="w-5 h-5 flex-shrink-0" />
+                <Wallet className={clsx("w-5 h-5 flex-shrink-0", !isPathActive("/presupuestos") && ICON_COLORS.money)} />
               </NavLink>
             </Tooltip>
           ) : (
@@ -643,7 +643,7 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
                   : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
               )}
             >
-              <Wallet className="w-4 h-4 flex-shrink-0" />
+              <Wallet className={clsx("w-4 h-4 flex-shrink-0", !isPathActive("/presupuestos") && ICON_COLORS.money)} />
               <span className="truncate">{t("nav_presupuesto", "Presupuesto")}</span>
             </NavLink>
           )
@@ -683,7 +683,7 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
               {isConnected ? (
                 <Wifi className={`w-4 h-4 ${ICON_COLORS.success}`} />
               ) : (
-                <WifiOff className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <WifiOff className={`w-4 h-4 ${ICON_COLORS.muted}`} />
               )}
             </div>
           </Tooltip>
@@ -696,8 +696,8 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
               </>
             ) : (
               <>
-                <WifiOff className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                <span className="text-slate-400 dark:text-slate-500 text-xs">{t("realtime_offline", "Sin conexion")}</span>
+                <WifiOff className={`w-4 h-4 ${ICON_COLORS.muted}`} />
+                <span className={`${ICON_COLORS.muted} text-xs`}>{t("realtime_offline", "Sin conexion")}</span>
               </>
             )}
           </div>
@@ -715,7 +715,7 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
                   : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
               )}
             >
-              <MessageSquare className="w-5 h-5" />
+              <MessageSquare className={clsx("w-5 h-5", !isPathActive("/foro") && ICON_COLORS.communication)} />
             </NavLink>
           </Tooltip>
         ) : (
@@ -729,7 +729,7 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
                 : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
             )}
           >
-            <MessageSquare className="w-4 h-4" />
+            <MessageSquare className={clsx("w-4 h-4", !isPathActive("/foro") && ICON_COLORS.communication)} />
             <span>{t("nav_foro", "Foro")}</span>
           </NavLink>
         )}

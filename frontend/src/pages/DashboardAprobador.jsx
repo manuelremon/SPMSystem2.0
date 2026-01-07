@@ -17,8 +17,6 @@ import {
   Clock,
   DollarSign,
   Package,
-  Layers,
-  BarChart3,
   Loader2,
 } from "../components/ui/Icons";
 import { useI18n } from "../context/i18n";
@@ -26,6 +24,7 @@ import { useAuthStore } from "../store/authStore";
 import { useNavigate, Link } from "react-router-dom";
 import { getTableColumns } from "./DashboardShared";
 import { Button } from "../components/ui/Button";
+import { WeeklyRequestsKpiCard } from "../components/dashboard/WeeklyRequestsKpiCard";
 import clsx from "clsx";
 
 // ============================================================================
@@ -75,41 +74,6 @@ function DonutChart({ data, colors, labels }) {
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-function TrendLine({ data }) {
-  const safeData = data && data.length > 0 ? data : [0, 0, 0, 0, 0, 0, 0];
-  const max = Math.max(...safeData);
-  const min = Math.min(...safeData);
-  const padding = (max - min) * 0.2 || 1;
-  const adjustedMin = Math.max(0, min - padding);
-  const adjustedMax = max + padding;
-  const range = adjustedMax - adjustedMin || 1;
-  const points = safeData.map((value, idx) => {
-    const x = (idx / (safeData.length - 1)) * 100;
-    const y = 100 - ((value - adjustedMin) / range) * 100;
-    return `${x},${y}`;
-  }).join(" ");
-
-  return (
-    <div className="h-24 w-full">
-      <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="areaGradientAprobador" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-        <polygon points={`0,100 ${points} 100,100`} fill="url(#areaGradientAprobador)" />
-        <polyline points={points} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-        {safeData.map((value, idx) => {
-          const x = (idx / (safeData.length - 1)) * 100;
-          const y = 100 - ((value - adjustedMin) / range) * 100;
-          return <circle key={idx} cx={x} cy={y} r="3" fill="white" stroke="#3b82f6" strokeWidth="2" vectorEffect="non-scaling-stroke" />;
-        })}
-      </svg>
     </div>
   );
 }
@@ -359,25 +323,18 @@ export default function DashboardAprobador() {
             </div>
           </ScrollReveal>
 
-          {/* Tendencia + Donut */}
+          {/* KPI Semanal + Donut */}
           <ScrollReveal delay={200}>
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              <Card className="lg:col-span-3 h-[280px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                <CardHeader className="px-6 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Tendencia de Solicitudes</CardTitle><BarChart3 className="w-5 h-5 text-blue-600" /></div></CardHeader>
-                <CardContent className="px-6 pb-5 flex flex-col justify-between h-[calc(100%-60px)]">
-                  <div className="flex-1 flex flex-col justify-center">
-                    <TrendLine data={kpiData.solicitudes.trend} />
-                    <div className="grid grid-cols-7 gap-1 text-xs text-slate-500 dark:text-slate-400 text-center mt-2">{["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((day) => <div key={day}>{day}</div>)}</div>
-                  </div>
-                  <div className="pt-3 border-t border-white/20 dark:border-slate-700/50 flex items-center justify-between text-sm">
-                    <span className="text-slate-500 dark:text-slate-400">Promedio semanal</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-100">{Math.round(kpiData.solicitudes.trend.reduce((a, b) => a + b, 0) / Math.max(kpiData.solicitudes.trend.length, 1))} solicitudes</span>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="lg:col-span-2 h-[280px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                <CardHeader className="px-6 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Distribución de Estados</CardTitle><BarChart3 className="w-5 h-5 text-blue-600" /></div></CardHeader>
-                <CardContent className="px-6 pb-5 flex items-center justify-center h-[calc(100%-60px)]">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <WeeklyRequestsKpiCard
+                data={kpiData.solicitudes.trend}
+                trendPercentage={kpiData.solicitudes.trendPercentage}
+              />
+              <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
+                <CardHeader className="px-6 pt-5 pb-3">
+                  <CardTitle className="text-base">Distribución de Estados</CardTitle>
+                </CardHeader>
+                <CardContent className="px-6 pb-5 flex items-center justify-center">
                   <DonutChart data={[kpiData.solicitudes.aprobadas, kpiData.solicitudes.rechazadas, kpiData.solicitudes.pendientes]} colors={["#10b981", "#ef4444", "#f59e0b"]} labels={["Aprobadas", "Rechazadas", "Pendientes"]} />
                 </CardContent>
               </Card>
