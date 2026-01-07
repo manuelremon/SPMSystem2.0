@@ -1,5 +1,7 @@
 import React from "react";
 import clsx from "clsx";
+import { Tooltip } from "./Tooltip";
+import { HelpCircle } from "./Icons";
 
 /**
  * MetricCard - Glass Morphism Style
@@ -13,6 +15,7 @@ import clsx from "clsx";
  * @param {boolean} active - Si la card esta seleccionada/activa
  * @param {string} size - Tamano: 'sm' (compacto) | 'lg' (grande con icono circular)
  * @param {string} variant - Color variante: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info'
+ * @param {string} tooltip - Texto explicativo opcional
  */
 export function MetricCard({
   icon: Icon,
@@ -22,7 +25,8 @@ export function MetricCard({
   highlight = false,
   active = false,
   size = "sm",
-  variant = "default"
+  variant = "default",
+  tooltip
 }) {
   // Glass variant colors for icon backgrounds
   const variantStyles = {
@@ -60,7 +64,14 @@ export function MetricCard({
           <Icon className={clsx("w-4 h-4", highlight ? "text-amber-600" : styles.iconColor)} />
         </div>
         <div className="text-left">
-          <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide font-medium">{label}</p>
+          <div className="flex items-center gap-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide font-medium">{label}</p>
+            {tooltip && (
+              <Tooltip content={tooltip} position="top">
+                <HelpCircle className="w-3 h-3 text-slate-400 dark:text-slate-500 cursor-help" />
+              </Tooltip>
+            )}
+          </div>
           <p className={clsx("text-lg font-bold tabular-nums", highlight ? "text-amber-700 dark:text-amber-400" : "text-slate-800 dark:text-slate-100")}>
             {value}
           </p>
@@ -91,7 +102,14 @@ export function MetricCard({
       <div className="px-6 py-6">
         <div className="flex items-center justify-between">
           <div className="text-left">
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</p>
+            <div className="flex items-center gap-1">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</p>
+              {tooltip && (
+                <Tooltip content={tooltip} position="top">
+                  <HelpCircle className="w-3 h-3 text-slate-400 dark:text-slate-500 cursor-help" />
+                </Tooltip>
+              )}
+            </div>
             <p className="text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1 tabular-nums">{value}</p>
           </div>
           <div

@@ -5,12 +5,13 @@
  */
 
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card'
-import { FileText, Clock, Users, Package, TrendingUp, CheckCircle } from '../ui/Icons'
+import { Tooltip } from '../ui/Tooltip'
+import { FileText, Clock, Users, Package, TrendingUp, CheckCircle, HelpCircle } from '../ui/Icons'
 
 /**
- * Tarjeta de metrica individual
+ * Tarjeta de metrica individual con tooltip
  */
-function MetricCard({ title, value, icon: Icon, variant = 'default', subtitle }) {
+function MetricCard({ title, value, icon: Icon, variant = 'default', subtitle, tooltip }) {
   const variants = {
     default: 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200',
     primary: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
@@ -23,9 +24,16 @@ function MetricCard({ title, value, icon: Icon, variant = 'default', subtitle })
     <div className={`border rounded-lg p-4 ${variants[variant]}`}>
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-medium opacity-70 uppercase tracking-wide">
-            {title}
-          </p>
+          <div className="flex items-center gap-1">
+            <p className="text-xs font-medium opacity-70 uppercase tracking-wide">
+              {title}
+            </p>
+            {tooltip && (
+              <Tooltip content={tooltip} position="top">
+                <HelpCircle className="w-3 h-3 opacity-50 cursor-help" />
+              </Tooltip>
+            )}
+          </div>
           <p className="text-2xl font-bold mt-1">
             {typeof value === 'number' ? value.toLocaleString() : value}
           </p>
@@ -162,6 +170,7 @@ export function BusinessMetricsPanel({ data, isLoading = false }) {
             value={solicitudes.hoy || 0}
             icon={FileText}
             variant="primary"
+            tooltip="Cantidad de solicitudes de materiales creadas en el dia actual"
           />
           <MetricCard
             title="Pendientes"
@@ -169,6 +178,7 @@ export function BusinessMetricsPanel({ data, isLoading = false }) {
             icon={Clock}
             variant={solicitudes.pendientes > 10 ? 'warning' : 'default'}
             subtitle={solicitudes.pendientes > 10 ? 'Requiere atencion' : null}
+            tooltip="Solicitudes en estado 'Enviada' esperando aprobacion o revision"
           />
           <MetricCard
             title="Usuarios Activos (24h)"
@@ -176,12 +186,14 @@ export function BusinessMetricsPanel({ data, isLoading = false }) {
             icon={Users}
             variant="success"
             subtitle={`${usuarios.total || 0} total`}
+            tooltip="Usuarios unicos que iniciaron sesion en las ultimas 24 horas"
           />
           <MetricCard
             title="Materiales (Mes)"
             value={materiales.unicos_mes || 0}
             icon={Package}
             subtitle="Unicos solicitados"
+            tooltip="Cantidad de materiales distintos (por codigo SAP) solicitados en los ultimos 30 dias"
           />
         </div>
 

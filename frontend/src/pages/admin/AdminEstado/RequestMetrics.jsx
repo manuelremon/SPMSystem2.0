@@ -34,12 +34,14 @@ export function RequestMetrics({ metrics, health, errorRate }) {
         label={t('total_requests', 'Total Requests')}
         value={metrics?.total_requests?.toLocaleString() || '0'}
         variant="primary"
+        tooltip="Total de peticiones HTTP procesadas desde el ultimo reinicio del servidor"
       />
       <MetricCard
         icon={AlertTriangle}
         label={t('errors', 'Errores')}
         value={`${metrics?.total_errors?.toLocaleString() || '0'} (${errorRate.toFixed(1)}%)`}
         variant={getVariantByMetric(errorRate, 'errorRate')}
+        tooltip="Peticiones que retornaron error (4xx o 5xx). Porcentaje respecto al total"
       />
       <MetricCard
         icon={Zap}
@@ -47,6 +49,7 @@ export function RequestMetrics({ metrics, health, errorRate }) {
         label={t('latency_p50', 'Latencia P50')}
         value={`${Math.round(metrics?.latency?.p50_ms || 0)}ms`}
         variant={getVariantByMetric(metrics?.latency?.p50_ms || 0, 'latency')}
+        tooltip="Tiempo de respuesta mediano (50% de requests son mas rapidas que este valor)"
       />
       <MetricCard
         icon={Clock}
@@ -54,6 +57,7 @@ export function RequestMetrics({ metrics, health, errorRate }) {
         label={t('uptime', 'Uptime')}
         value={formatUptime(health?.uptime_seconds)}
         variant="info"
+        tooltip="Tiempo desde el ultimo reinicio del servidor backend"
       />
     </div>
   )

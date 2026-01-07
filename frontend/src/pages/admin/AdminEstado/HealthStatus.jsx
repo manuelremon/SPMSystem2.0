@@ -6,7 +6,8 @@
 
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/Card'
 import { Badge } from '../../../components/ui/Badge'
-import { Activity, Clock } from '../../../components/ui/Icons'
+import { Tooltip } from '../../../components/ui/Tooltip'
+import { Activity, Clock, HelpCircle } from '../../../components/ui/Icons'
 import { useI18n } from '../../../context/i18n'
 
 /**
@@ -40,12 +41,19 @@ function formatUptime(seconds) {
 /**
  * Item individual de base de datos
  */
-function DatabaseItem({ name, status, latency }) {
+function DatabaseItem({ name, status, latency, tooltip }) {
   return (
     <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
       <StatusDot status={status} />
       <div>
-        <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-medium">{name}</p>
+        <div className="flex items-center gap-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-medium">{name}</p>
+          {tooltip && (
+            <Tooltip content={tooltip} position="top">
+              <HelpCircle className="w-3 h-3 text-slate-400 dark:text-slate-500 cursor-help" />
+            </Tooltip>
+          )}
+        </div>
         <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
           {latency ? `${latency.toFixed(1)}ms` : '--'}
         </p>
@@ -91,21 +99,25 @@ export function HealthStatus({ health, cacheHitRate = 0 }) {
             name="SPM"
             status={databases.spm?.status}
             latency={databases.spm?.latency_ms}
+            tooltip="Base de datos principal: usuarios, solicitudes, autenticacion"
           />
           <DatabaseItem
             name="SAP"
             status={databases.sap_data?.status}
             latency={databases.sap_data?.latency_ms}
+            tooltip="Datos importados de SAP: stock, consumo historico, pedidos"
           />
           <DatabaseItem
             name="EQUIV"
             status={databases.equivalentes?.status}
             latency={databases.equivalentes?.latency_ms}
+            tooltip="Equivalencias de materiales entre codigos SAP"
           />
           <DatabaseItem
             name="CATALOGO"
             status={databases.catalogo_materiales?.status}
             latency={databases.catalogo_materiales?.latency_ms}
+            tooltip="Catalogo completo de materiales SAP (~28,000 items)"
           />
 
           {/* Cache Status */}
@@ -114,7 +126,12 @@ export function HealthStatus({ health, cacheHitRate = 0 }) {
               status={cacheHitRate >= 90 ? 'healthy' : cacheHitRate >= 70 ? 'warning' : 'error'}
             />
             <div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-medium">Cache</p>
+              <div className="flex items-center gap-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-medium">Cache</p>
+                <Tooltip content="Porcentaje de consultas servidas desde cache en memoria" position="top">
+                  <HelpCircle className="w-3 h-3 text-slate-400 dark:text-slate-500 cursor-help" />
+                </Tooltip>
+              </div>
               <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                 {cacheHitRate.toFixed(0)}% hit
               </p>

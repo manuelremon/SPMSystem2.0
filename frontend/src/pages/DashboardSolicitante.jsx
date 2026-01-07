@@ -165,31 +165,36 @@ export default function DashboardSolicitante() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30">
-          {tabs.map((tab) => (
-            <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)}
-              className={clsx("flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                activeTab === tab.key ? "bg-white shadow-sm text-blue-600" : "text-slate-600 hover:text-slate-800 hover:bg-white/50")}>
-              <span>{tab.label}</span>
-              <span className={clsx("px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums", activeTab === tab.key ? "bg-blue-100 text-blue-600" : "bg-slate-100 text-slate-500")}>{tab.count}</span>
-            </button>
-          ))}
-        </div>
-        <Button as={Link} to="/solicitudes/nueva"><Plus className="w-4 h-4" />{t("dash_new_request", "Nueva Solicitud")}</Button>
-      </div>
-
+      {/* Contenedor unificado: Tabs + Tabla de Solicitudes */}
       <Card>
         <CardContent className="p-0">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <h2 className="text-base font-semibold text-slate-800">{getTableTitle()}</h2>
-            <span className="text-xs text-slate-500 tabular-nums">{currentData.length} {t("dash_items", "items")}</span>
+          {/* Header con tabs y botón */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-700">
+            <div className="flex items-center gap-1 p-1 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+              {tabs.map((tab) => (
+                <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)}
+                  className={clsx("flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
+                    activeTab === tab.key ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50")}>
+                  <span>{tab.label}</span>
+                  <span className={clsx("px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums", activeTab === tab.key ? "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400" : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400")}>{tab.count}</span>
+                </button>
+              ))}
+            </div>
+            <Button as={Link} to="/solicitudes/nueva" size="sm"><Plus className="w-4 h-4" />{t("dash_new_request", "Nueva Solicitud")}</Button>
           </div>
+
+          {/* Subtítulo con contador */}
+          <div className="flex items-center justify-between px-6 py-3 bg-slate-50/50 dark:bg-slate-800/30">
+            <h2 className="text-sm font-medium text-slate-700 dark:text-slate-300">{getTableTitle()}</h2>
+            <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">{currentData.length} {t("dash_items", "items")}</span>
+          </div>
+
+          {/* Tabla */}
           <div className="p-4">
             {loading ? <TableSkeleton rows={5} columns={7} /> : currentData.length === 0 ? (
               <div className="py-16 text-center">
                 <FileText className="w-12 h-12 text-slate-400 mx-auto mb-4 opacity-60" />
-                <p className="text-slate-500 text-sm mb-4">{stats.todas === 0 ? t("dash_no_requests_user", "No tienes solicitudes. Crea tu primera solicitud.") : t("dash_no_requests_category", "No hay solicitudes en esta categoría")}</p>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">{stats.todas === 0 ? t("dash_no_requests_user", "No tienes solicitudes. Crea tu primera solicitud.") : t("dash_no_requests_category", "No hay solicitudes en esta categoría")}</p>
                 {stats.todas === 0 && <Button as={Link} to="/solicitudes/nueva"><Plus className="w-4 h-4" />{t("dash_create_first", "Crear solicitud")}</Button>}
               </div>
             ) : <DataTable columns={columns} rows={currentData} emptyMessage={t("dash_no_requests", "No hay solicitudes")} onRowClick={(row) => navigate(`/solicitudes/${row.id}`)} />}
