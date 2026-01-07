@@ -1874,17 +1874,24 @@ def obtener_mis_consultas_pendientes():
                   AND f.tipo_fuente IN ('stock', 'transferencia', 'equivalencia')
                   AND d.estado = 'esperando_confirmacion'
                   AND (
-                      ca.responsable_id = ?
+                      ca.responsable_id = %s
                       OR EXISTS (
                           SELECT 1 FROM usuarios u2
-                          WHERE u2.id_spm = ?
+                          WHERE u2.id_spm = %s
                           AND f.centro_origen = ANY(string_to_array(u2.centros, ','))
                           AND (u2.rol LIKE '%%coordinador%%' OR u2.rol LIKE '%%jefe%%')
+                      )
+                      OR EXISTS (
+                          SELECT 1 FROM proveedores_internos pi
+                          JOIN usuarios u3 ON pi.referente_email = u3.mail
+                          WHERE u3.id_spm = %s
+                          AND pi.centro = f.centro_origen
+                          AND pi.almacen = f.almacen_origen
                       )
                   )
                 ORDER BY s.criticidad DESC, f.created_at ASC
                 """,
-                (user_id, user_id),
+                (user_id, user_id, user_id),
             )
 
             consultas = []

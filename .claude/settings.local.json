@@ -221,7 +221,8 @@
       "Bash(COMMIT_MSG=\"fix\\(ux\\): solo cambiar fondo dark mode en tarjetas Paso1 a slate-800\" ./scripts/deploy-full.sh:*)",
       "Bash(COMMIT_MSG=\"fix: corregir consulta proveedores_externos para PostgreSQL\" ./scripts/deploy-full.sh:*)",
       "Bash(COMMIT_MSG=\"fix: usar integer en lugar de boolean para columnas activo/es_principal\" ./scripts/deploy-full.sh:*)",
-      "Bash(COMMIT_MSG=\"fix: buscar referente centro desde proveedores_internos en lugar de usuarios.centro\" ./scripts/deploy-full.sh:*)"
+      "Bash(COMMIT_MSG=\"fix: buscar referente centro desde proveedores_internos en lugar de usuarios.centro\" ./scripts/deploy-full.sh:*)",
+      "Bash(COMMIT_MSG=\"fix: permitir referentes de proveedores_internos ver consultas de stock pendientes\" ./scripts/deploy-full.sh:*)"
     ],
     "deny": [],
     "ask": []
