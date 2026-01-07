@@ -12,10 +12,8 @@ const Table = React.forwardRef(({ className, ...props }, ref) => (
       ref={ref}
       className={cn(
         "w-full caption-bottom text-sm",
-        // Glass table container
-        "bg-[var(--card-glass)] backdrop-blur-md",
-        "border border-[var(--border-glass)]",
-        "rounded-[16px] overflow-hidden",
+        // Fondo transparente - hereda del contenedor padre
+        "bg-transparent",
         className
       )}
       {...props}
@@ -28,8 +26,8 @@ const TableHeader = React.forwardRef(({ className, ...props }, ref) => (
   <thead
     ref={ref}
     className={cn(
-      "bg-[var(--bg-soft)] backdrop-blur-sm",
-      "border-b-2 border-[var(--border)]",
+      "bg-slate-50/50 dark:bg-slate-800/50",
+      "border-b border-slate-200/50 dark:border-slate-700/50",
       className
     )}
     {...props}
@@ -50,7 +48,9 @@ const TableFooter = React.forwardRef(({ className, ...props }, ref) => (
   <tfoot
     ref={ref}
     className={cn(
-      "border-t border-[var(--border-glass)] bg-[var(--card-glass)] font-medium",
+      "border-t border-slate-200/50 dark:border-slate-700/50",
+      "bg-slate-50/30 dark:bg-slate-800/30",
+      "font-medium",
       className
     )}
     {...props}
@@ -62,10 +62,10 @@ const TableRow = React.forwardRef(({ className, ...props }, ref) => (
   <tr
     ref={ref}
     className={cn(
-      "border-b border-[var(--border)]",
+      "border-b border-slate-200/50 dark:border-slate-700/50",
       "transition-colors duration-200",
-      "hover:bg-[var(--bg-hover)]",
-      "data-[state=selected]:bg-[var(--primary-muted)]",
+      "hover:bg-slate-50/50 dark:hover:bg-slate-800/30",
+      "data-[state=selected]:bg-blue-50/50 dark:data-[state=selected]:bg-blue-900/20",
       className
     )}
     {...props}
@@ -81,18 +81,16 @@ const TableHead = React.forwardRef(({ className, ...props }, ref) => (
       "h-11 px-4 py-3",
       // Typography
       "text-xs font-semibold uppercase tracking-wider",
-      "text-[var(--fg-muted)]",
+      "text-slate-500 dark:text-slate-400",
       // Background - inherits from TableHeader
       "bg-transparent",
-      // Grid lines
-      "border-r border-b border-[var(--border)] last:border-r-0",
       // Sticky header
       "sticky top-0 z-10",
       // Alignment - Centrado global
       "text-center align-middle",
       // Sortable state
       "[&:has([role=button])]:cursor-pointer",
-      "[&:has([role=button])]:hover:text-[var(--primary)]",
+      "[&:has([role=button])]:hover:text-blue-600 dark:[&:has([role=button])]:hover:text-blue-400",
       className
     )}
     {...props}
@@ -114,9 +112,7 @@ const TableCell = React.forwardRef(({ className, align = "left", ...props }, ref
         // Spacing
         "px-4 py-3",
         // Typography
-        "text-sm text-[var(--fg)]",
-        // Grid lines
-        "border-r border-b border-[var(--border)] last:border-r-0",
+        "text-sm text-slate-700 dark:text-slate-200",
         // Alignment
         "align-middle",
         alignClass,

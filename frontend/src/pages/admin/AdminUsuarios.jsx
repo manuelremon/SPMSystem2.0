@@ -55,13 +55,13 @@ export default function AdminUsuarios() {
           key: 'roles',
           label: 'Roles',
           render: (row) => {
-            const rolMap = {
-              'administrador': { bg: '#dc2626', text: '#ffffff' },
-              'admin': { bg: '#dc2626', text: '#ffffff' },
-              'planificador': { bg: '#2563eb', text: '#ffffff' },
-              'solicitante': { bg: '#16a34a', text: '#ffffff' },
-              'aprobador_solicitudes': { bg: '#d97706', text: '#ffffff' },
-              'aprobador_presupuestos': { bg: '#0891b2', text: '#ffffff' },
+            const rolVariantMap = {
+              'administrador': 'danger',
+              'admin': 'danger',
+              'planificador': 'primary',
+              'solicitante': 'success',
+              'aprobador_solicitudes': 'warning',
+              'aprobador_presupuestos': 'info',
             };
 
             // Convertir roles a array si es string JSON
@@ -81,19 +81,19 @@ export default function AdminUsuarios() {
               <div className="flex flex-wrap gap-1">
                 {roles.length > 0 ? (
                   roles.map((rol, idx) => {
-                    const config = rolMap[rol?.toLowerCase()] || { bg: '#64748b', text: '#ffffff' };
+                    const variant = rolVariantMap[rol?.toLowerCase()] || 'default';
                     return (
                       <Badge
                         key={idx}
-                        style={{ backgroundColor: config.bg, color: config.text }}
-                        className="uppercase text-xs font-semibold"
+                        variant={variant}
+                        className="uppercase text-[10px]"
                       >
                         {rol}
                       </Badge>
                     );
                   })
                 ) : (
-                  <span className="text-xs text-slate-500">Sin roles</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">Sin roles</span>
                 )}
               </div>
             );
@@ -126,8 +126,8 @@ export default function AdminUsuarios() {
             const isActivo = row.estado_registro?.toLowerCase() === 'activo';
             return (
               <Badge
-                variant={isActivo ? 'success' : 'neutral'}
-                className="uppercase text-xs"
+                variant={isActivo ? 'success' : 'default'}
+                className="uppercase text-[10px]"
               >
                 {row.estado_registro || 'Inactivo'}
               </Badge>
