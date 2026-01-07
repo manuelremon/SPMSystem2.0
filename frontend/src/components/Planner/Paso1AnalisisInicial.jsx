@@ -46,7 +46,7 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
                   detail: c.descripcion || `Item ${c.item_idx}`,
                   tone: c.impacto_critico ? "danger" : "warning",
                 }))}
-                colorBg="bg-red-50 dark:bg-slate-800"
+                colorBg="bg-red-50 dark:bg-slate-800/50"
                 colorBorder="border-red-200 dark:border-red-800"
                 colorBadge="bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"
               />
@@ -60,7 +60,7 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
                   detail: a.mensaje || "",
                   tone: a.nivel === "warning" ? "warning" : "info",
                 }))}
-                colorBg="bg-amber-50 dark:bg-slate-800"
+                colorBg="bg-amber-50 dark:bg-slate-800/50"
                 colorBorder="border-amber-200 dark:border-amber-800"
                 colorBadge="bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300"
               />
@@ -74,7 +74,7 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
                   detail: r.razon,
                   tone: r.prioridad === "muy_alta" ? "danger" : r.prioridad === "alta" ? "warning" : "info",
                 }))}
-                colorBg="bg-blue-50 dark:bg-slate-800"
+                colorBg="bg-blue-50 dark:bg-slate-800/50"
                 colorBorder="border-blue-200 dark:border-blue-800"
                 colorBadge="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
               />
