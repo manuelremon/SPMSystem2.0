@@ -46,9 +46,9 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
                   detail: c.descripcion || `Item ${c.item_idx}`,
                   tone: c.impacto_critico ? "danger" : "warning",
                 }))}
-                colorBg="bg-red-50 dark:bg-red-900/20"
-                colorBorder="border-red-200 dark:border-red-800"
-                colorBadge="bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"
+                colorBg="bg-red-50 dark:bg-red-950/60"
+                colorBorder="border-red-200 dark:border-red-700"
+                colorBadge="bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-100"
               />
               <BadgeListCompact
                 icon={<Info className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
@@ -60,12 +60,12 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
                   detail: a.mensaje || "",
                   tone: a.nivel === "warning" ? "warning" : "info",
                 }))}
-                colorBg="bg-amber-50 dark:bg-amber-900/20"
-                colorBorder="border-amber-200 dark:border-amber-800"
-                colorBadge="bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300"
+                colorBg="bg-amber-50 dark:bg-amber-950/60"
+                colorBorder="border-amber-200 dark:border-amber-700"
+                colorBadge="bg-amber-100 dark:bg-amber-800 text-amber-700 dark:text-amber-100"
               />
               <BadgeListCompact
-                icon={<Lightbulb className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                icon={<Lightbulb className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />}
                 title="Recomendaciones"
                 emptyLabel="Sin recomendaciones"
                 count={recomendaciones.length}
@@ -74,9 +74,9 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
                   detail: r.razon,
                   tone: r.prioridad === "muy_alta" ? "danger" : r.prioridad === "alta" ? "warning" : "info",
                 }))}
-                colorBg="bg-blue-50 dark:bg-blue-900/20"
-                colorBorder="border-blue-200 dark:border-blue-800"
-                colorBadge="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
+                colorBg="bg-cyan-50 dark:bg-cyan-950/60"
+                colorBorder="border-cyan-200 dark:border-cyan-700"
+                colorBadge="bg-cyan-100 dark:bg-cyan-800 text-cyan-700 dark:text-cyan-100"
               />
             </div>
           </div>
@@ -184,7 +184,7 @@ function BadgeListCompact({ title, items, emptyLabel, count, icon, colorBg, colo
       <div className="flex items-center justify-between gap-1 mb-2">
         <div className="flex items-center gap-1.5">
           {icon}
-          <span className="text-[10px] uppercase font-bold tracking-wide text-[var(--fg)]">{title}</span>
+          <span className="text-[10px] uppercase font-bold tracking-wide text-slate-700 dark:text-slate-100">{title}</span>
         </div>
         <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${colorBadge}`}>
           {count}
@@ -192,14 +192,14 @@ function BadgeListCompact({ title, items, emptyLabel, count, icon, colorBg, colo
       </div>
 
       {count === 0 ? (
-        <p className="text-[11px] text-[var(--fg-muted)]">{emptyLabel}</p>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400">{emptyLabel}</p>
       ) : (
         <>
           <div className="space-y-1.5 max-h-24 overflow-y-auto">
             {(expanded ? items : items.slice(0, 2)).map((it, idx) => (
-              <div key={idx} className="text-[11px] text-[var(--fg)] leading-tight">
+              <div key={idx} className="text-[11px] text-slate-800 dark:text-slate-100 leading-tight">
                 <span className="font-semibold">{it.label}</span>
-                {it.detail && <span className="block text-[var(--fg-muted)] truncate">{it.detail}</span>}
+                {it.detail && <span className="block text-slate-600 dark:text-slate-300 truncate">{it.detail}</span>}
               </div>
             ))}
           </div>
