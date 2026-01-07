@@ -279,11 +279,11 @@ class ProveedorExternoRepository:
                 SELECT pe.cuit, pe.nombre, pe.direccion, pe.localidad, pe.pais, pe.origen,
                        pe.lead_time_dias, pe.rubro, pe.calificacion,
                        (SELECT email FROM proveedor_ext_emails
-                        WHERE cuit_proveedor = pe.cuit AND es_principal = true LIMIT 1) as email_principal,
+                        WHERE cuit_proveedor = pe.cuit AND es_principal = 1 LIMIT 1) as email_principal,
                        (SELECT telefono FROM proveedor_ext_telefonos
                         WHERE proveedor_id = pe.id LIMIT 1) as telefono_principal
                 FROM proveedores_externos pe
-                WHERE pe.activo = true
+                WHERE pe.activo = 1
                 ORDER BY pe.nombre
             """
             )

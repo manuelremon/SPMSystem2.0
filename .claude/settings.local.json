@@ -219,7 +219,8 @@
       "Bash(COMMIT_MSG=\"fix\\(ux\\): mejorar dark mode en Paso1 Planificador - tarjetas Conflictos/Avisos/Recomendaciones\" ./scripts/deploy-full.sh:*)",
       "Bash(COMMIT_MSG=\"fix\\(ux\\): tarjetas Conflictos/Avisos/Recomendaciones con estilo coherente del sistema\" ./scripts/deploy-full.sh)",
       "Bash(COMMIT_MSG=\"fix\\(ux\\): solo cambiar fondo dark mode en tarjetas Paso1 a slate-800\" ./scripts/deploy-full.sh:*)",
-      "Bash(COMMIT_MSG=\"fix: corregir consulta proveedores_externos para PostgreSQL\" ./scripts/deploy-full.sh:*)"
+      "Bash(COMMIT_MSG=\"fix: corregir consulta proveedores_externos para PostgreSQL\" ./scripts/deploy-full.sh:*)",
+      "Bash(COMMIT_MSG=\"fix: usar integer en lugar de boolean para columnas activo/es_principal\" ./scripts/deploy-full.sh:*)"
     ],
     "deny": [],
     "ask": []
