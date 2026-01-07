@@ -4,6 +4,7 @@ import api from "../services/api";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { ScrollReveal } from "../components/ui/ScrollReveal";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../components/ui/table";
 import { Warehouse, Truck, Plus, Edit2, Trash2, Check, X, MapPin, Phone, Mail, Star, Clock, User } from "../components/ui/Icons";
 import { Tooltip } from "../components/ui/Tooltip";
 
@@ -239,143 +240,138 @@ function ProveedoresInternos() {
           </div>
         )}
 
-        <div className="overflow-x-auto rounded-xl border border-white/30 dark:border-slate-700/30">
-          <table className="w-full text-sm table-fixed">
-            <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
-              <tr>
-                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '5%'}}>Cód.</th>
-                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '14%'}}>Centro</th>
-                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '5%'}}>Cód.</th>
-                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '11%'}}>Almacén</th>
-                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '11%'}}>Sector</th>
-                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '13%'}}>Resp. Depósito</th>
-                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '12%'}}>Referente</th>
-                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '16%'}}>Contacto</th>
-                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '5%'}}>Activo</th>
-                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]" style={{width: '8%'}}>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-14">Cód.</TableHead>
+              <TableHead>Centro</TableHead>
+              <TableHead className="w-14">Cód.</TableHead>
+              <TableHead>Almacén</TableHead>
+              <TableHead>Sector</TableHead>
+              <TableHead>Resp. Depósito</TableHead>
+              <TableHead>Referente</TableHead>
+              <TableHead>Contacto</TableHead>
+              <TableHead className="w-16">Activo</TableHead>
+              <TableHead className="w-24">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
               {proveedores.map((prov) => {
                 const key = `${prov.centro}_${prov.almacen}`;
                 const isEditing = editingId === key;
 
                 return (
-                  <tr key={key} className="border-b border-white/30 dark:border-slate-700/30 hover:bg-white/50 dark:hover:bg-slate-700/50">
-                    {/* Cód. Centro */}
-                    <td className="px-2 py-2 text-center text-slate-800 dark:text-slate-200 font-mono text-xs overflow-hidden">{prov.centro}</td>
-                    {/* Centro (nombre) */}
-                    <td className="px-2 py-2 overflow-hidden">
+                  <TableRow key={key}>
+                    <TableCell align="center" className="font-mono text-xs">{prov.centro}</TableCell>
+                    <TableCell>
                       {isEditing ? (
                         <input
                           value={editForm.centro_nombre || ""}
                           onChange={(e) => setEditForm({ ...editForm, centro_nombre: e.target.value })}
-                          className="px-1 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs w-full"
+                          className="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm w-full"
                         />
                       ) : (
-                        <span className="text-slate-800 dark:text-slate-200 text-xs block truncate">{prov.centro_nombre || "-"}</span>
+                        <span className="truncate block">{prov.centro_nombre || "-"}</span>
                       )}
-                    </td>
-                    {/* Cód. Almacén */}
-                    <td className="px-2 py-2 text-center text-slate-800 dark:text-slate-200 font-mono text-xs overflow-hidden">{prov.almacen}</td>
-                    {/* Almacén (nombre) */}
-                    <td className="px-2 py-2 overflow-hidden">
+                    </TableCell>
+                    <TableCell align="center" className="font-mono text-xs">{prov.almacen}</TableCell>
+                    <TableCell>
                       {isEditing ? (
                         <input
                           value={editForm.almacen_nombre || ""}
                           onChange={(e) => setEditForm({ ...editForm, almacen_nombre: e.target.value })}
-                          className="px-1 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs w-full"
+                          className="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm w-full"
                         />
                       ) : (
-                        <span className="text-slate-800 dark:text-slate-200 text-xs block truncate">{prov.almacen_nombre || "-"}</span>
+                        <span className="truncate block">{prov.almacen_nombre || "-"}</span>
                       )}
-                    </td>
-                    <td className="px-2 py-2 overflow-hidden">
+                    </TableCell>
+                    <TableCell>
                       {isEditing ? (
                         <input
                           value={editForm.sector || ""}
                           onChange={(e) => setEditForm({ ...editForm, sector: e.target.value })}
-                          className="px-1 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs w-full"
+                          className="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm w-full"
                         />
                       ) : (
-                        <span className="text-slate-800 dark:text-slate-200 text-xs block truncate">{prov.sector || "-"}</span>
+                        <span className="truncate block">{prov.sector || "-"}</span>
                       )}
-                    </td>
-                    <td className="px-2 py-2 overflow-hidden">
+                    </TableCell>
+                    <TableCell>
                       {isEditing ? (
                         <input
                           value={editForm.responsable_centro || ""}
                           onChange={(e) => setEditForm({ ...editForm, responsable_centro: e.target.value })}
-                          className="px-1 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs w-full"
+                          className="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm w-full"
                         />
                       ) : (
-                        <span className="text-slate-800 dark:text-slate-200 text-xs block truncate">{prov.responsable_centro || "-"}</span>
+                        <span className="truncate block">{prov.responsable_centro || "-"}</span>
                       )}
-                    </td>
-                    <td className="px-2 py-2 overflow-hidden">
+                    </TableCell>
+                    <TableCell>
                       {isEditing ? (
                         <div className="space-y-1">
                           <input
                             value={editForm.referente_nombre || ""}
                             onChange={(e) => setEditForm({ ...editForm, referente_nombre: e.target.value })}
                             placeholder="Nombre"
-                            className="px-1 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs w-full"
+                            className="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm w-full"
                           />
                           <input
                             value={editForm.referente_email || ""}
                             onChange={(e) => setEditForm({ ...editForm, referente_email: e.target.value })}
                             placeholder="Email"
                             type="email"
-                            className="px-1 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs w-full"
+                            className="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm w-full"
                           />
                         </div>
                       ) : prov.referente_nombre ? (
                         <Tooltip content={prov.referente_email || "Sin email"} position="top">
-                          <span className="text-slate-800 dark:text-slate-200 text-xs flex items-center gap-1 cursor-help">
-                            <User className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                          <span className="flex items-center gap-1 cursor-help">
+                            <User className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
                             <span className="truncate">{prov.referente_nombre}</span>
                           </span>
                         </Tooltip>
                       ) : (
-                        <span className="text-slate-400 dark:text-slate-500 text-xs">-</span>
+                        <span className="text-slate-400">-</span>
                       )}
-                    </td>
-                    <td className="px-2 py-2 overflow-hidden">
+                    </TableCell>
+                    <TableCell>
                       {isEditing ? (
                         <input
                           value={editForm.contacto_centro || ""}
                           onChange={(e) => setEditForm({ ...editForm, contacto_centro: e.target.value })}
                           type="email"
-                          className="px-1 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs w-full"
+                          className="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm w-full"
                         />
                       ) : prov.contacto_centro ? (
-                        <span className="text-slate-600 dark:text-slate-400 text-xs flex items-center gap-1">
-                          <Mail className="w-3 h-3 text-cyan-500 flex-shrink-0" />
+                        <span className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
+                          <Mail className="w-3.5 h-3.5 text-cyan-500 flex-shrink-0" />
                           <span className="truncate">{prov.contacto_centro}</span>
                         </span>
                       ) : (
-                        <span className="text-slate-400 dark:text-slate-500 text-xs">-</span>
+                        <span className="text-slate-400">-</span>
                       )}
-                    </td>
-                    <td className="px-2 py-2 text-center">
+                    </TableCell>
+                    <TableCell align="center">
                       {prov.activo ? (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
-                          <Check className="w-3 h-3" />
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
+                          <Check className="w-3.5 h-3.5" />
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-xs font-medium">
-                          <X className="w-3 h-3" />
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-xs font-medium">
+                          <X className="w-3.5 h-3.5" />
                         </span>
                       )}
-                    </td>
-                    <td className="px-2 py-2">
+                    </TableCell>
+                    <TableCell align="center">
                       {isEditing ? (
                         <div className="flex gap-1 justify-center">
                           <Button variant="success" size="icon-sm" onClick={() => handleSave(prov.centro, prov.almacen, editForm)}>
-                            <Check className="w-3.5 h-3.5" />
+                            <Check className="w-4 h-4" />
                           </Button>
                           <Button variant="icon" size="icon-sm" onClick={() => setEditingId(null)}>
-                            <X className="w-3.5 h-3.5" />
+                            <X className="w-4 h-4" />
                           </Button>
                         </div>
                       ) : (
@@ -396,27 +392,26 @@ function ProveedoresInternos() {
                               });
                             }}
                           >
-                            <Edit2 className="w-3.5 h-3.5" />
+                            <Edit2 className="w-4 h-4" />
                           </Button>
                           <Button variant="icon-danger" size="icon-sm" onClick={() => handleDelete(prov.centro, prov.almacen)}>
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
               {proveedores.length === 0 && (
-                <tr>
-                  <td colSpan={10} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                <TableRow>
+                  <TableCell colSpan={10} className="text-center py-8 text-slate-500 dark:text-slate-400">
                     No hay proveedores internos registrados
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
-        </div>
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
