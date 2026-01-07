@@ -240,19 +240,19 @@ function ProveedoresInternos() {
         )}
 
         <div className="overflow-x-auto rounded-xl border border-white/30 dark:border-slate-700/30">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-fixed">
             <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
               <tr>
-                <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700 w-16">Centro</th>
-                <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700 w-16">Almacén</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Centro</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700 w-28">Almacén</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700 w-28">Sector</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700 w-32">Resp. Depósito</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700 w-36">Referente</th>
-                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700 w-40">Contacto Centro</th>
-                <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700 w-16">Activo</th>
-                <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] w-20">Acciones</th>
+                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '50px'}}>Centro</th>
+                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '50px'}}>Almacén</th>
+                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '140px'}}>Centro</th>
+                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '100px'}}>Almacén</th>
+                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '100px'}}>Sector</th>
+                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '110px'}}>Resp. Depósito</th>
+                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '100px'}}>Referente</th>
+                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">Contacto</th>
+                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700" style={{width: '55px'}}>Activo</th>
+                <th className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]" style={{width: '70px'}}>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -262,134 +262,116 @@ function ProveedoresInternos() {
 
                 return (
                   <tr key={key} className="border-b border-white/30 dark:border-slate-700/30 hover:bg-white/50 dark:hover:bg-slate-700/50">
-                    {/* Centro (código) */}
                     <td className="px-2 py-2 text-center text-slate-800 dark:text-slate-200 font-mono text-xs">{prov.centro}</td>
-                    {/* Almacén (código) */}
                     <td className="px-2 py-2 text-center text-slate-800 dark:text-slate-200 font-mono text-xs">{prov.almacen}</td>
-                    {/* Centro (nombre) */}
-                    <td className="px-3 py-2">
+                    <td className="px-2 py-2">
                       {isEditing ? (
                         <input
                           value={editForm.centro_nombre || ""}
                           onChange={(e) => setEditForm({ ...editForm, centro_nombre: e.target.value })}
-                          className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-sm w-full"
+                          className="px-1 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs w-full"
                         />
                       ) : (
-                        <span className="text-slate-800 dark:text-slate-200 text-sm">{prov.centro_nombre || "-"}</span>
+                        <span className="text-slate-800 dark:text-slate-200 text-xs">{prov.centro_nombre || "-"}</span>
                       )}
                     </td>
-                    {/* Almacén (nombre) */}
-                    <td className="px-3 py-2">
+                    <td className="px-2 py-2">
                       {isEditing ? (
                         <input
                           value={editForm.almacen_nombre || ""}
                           onChange={(e) => setEditForm({ ...editForm, almacen_nombre: e.target.value })}
-                          className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-sm w-full"
+                          className="px-1 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs w-full"
                         />
                       ) : (
-                        <span className="text-slate-800 dark:text-slate-200 text-sm truncate block max-w-28">{prov.almacen_nombre || "-"}</span>
+                        <span className="text-slate-800 dark:text-slate-200 text-xs">{prov.almacen_nombre || "-"}</span>
                       )}
                     </td>
-                    {/* Sector */}
-                    <td className="px-3 py-2">
+                    <td className="px-2 py-2">
                       {isEditing ? (
                         <input
                           value={editForm.sector || ""}
                           onChange={(e) => setEditForm({ ...editForm, sector: e.target.value })}
-                          className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-sm w-full"
+                          className="px-1 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs w-full"
                         />
                       ) : (
-                        <span className="text-slate-800 dark:text-slate-200 text-sm truncate block max-w-28">{prov.sector || "-"}</span>
+                        <span className="text-slate-800 dark:text-slate-200 text-xs">{prov.sector || "-"}</span>
                       )}
                     </td>
-                    {/* Resp. Depósito */}
-                    <td className="px-3 py-2">
+                    <td className="px-2 py-2">
                       {isEditing ? (
                         <input
                           value={editForm.responsable_centro || ""}
                           onChange={(e) => setEditForm({ ...editForm, responsable_centro: e.target.value })}
-                          className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-sm w-full"
+                          className="px-1 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs w-full"
                         />
                       ) : (
-                        <span className="text-slate-800 dark:text-slate-200 text-sm truncate block max-w-32">{prov.responsable_centro || "-"}</span>
+                        <span className="text-slate-800 dark:text-slate-200 text-xs">{prov.responsable_centro || "-"}</span>
                       )}
                     </td>
-                    {/* Referente (con tooltip para email) */}
-                    <td className="px-3 py-2">
+                    <td className="px-2 py-2">
                       {isEditing ? (
                         <div className="space-y-1">
                           <input
                             value={editForm.referente_nombre || ""}
                             onChange={(e) => setEditForm({ ...editForm, referente_nombre: e.target.value })}
                             placeholder="Nombre"
-                            className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-xs w-full"
+                            className="px-1 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs w-full"
                           />
                           <input
                             value={editForm.referente_email || ""}
                             onChange={(e) => setEditForm({ ...editForm, referente_email: e.target.value })}
                             placeholder="Email"
                             type="email"
-                            className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-xs w-full"
+                            className="px-1 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs w-full"
                           />
                         </div>
                       ) : prov.referente_nombre ? (
                         <Tooltip content={prov.referente_email || "Sin email"} position="top">
-                          <span className="text-slate-800 dark:text-slate-200 text-sm flex items-center gap-1 cursor-help truncate max-w-36">
+                          <span className="text-slate-800 dark:text-slate-200 text-xs flex items-center gap-1 cursor-help">
                             <User className="w-3 h-3 text-blue-500 flex-shrink-0" />
-                            {prov.referente_nombre}
+                            <span className="truncate">{prov.referente_nombre}</span>
                           </span>
                         </Tooltip>
                       ) : (
-                        <span className="text-slate-400 dark:text-slate-500 text-sm">-</span>
+                        <span className="text-slate-400 dark:text-slate-500 text-xs">-</span>
                       )}
                     </td>
-                    {/* Contacto Centro */}
-                    <td className="px-3 py-2">
+                    <td className="px-2 py-2">
                       {isEditing ? (
                         <input
                           value={editForm.contacto_centro || ""}
                           onChange={(e) => setEditForm({ ...editForm, contacto_centro: e.target.value })}
                           type="email"
-                          className="px-2 py-1 rounded border border-white/30 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 text-sm w-full"
+                          className="px-1 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs w-full"
                         />
                       ) : prov.contacto_centro ? (
-                        <span className="text-slate-600 dark:text-slate-400 text-xs flex items-center gap-1 truncate max-w-40">
+                        <span className="text-slate-600 dark:text-slate-400 text-xs flex items-center gap-1">
                           <Mail className="w-3 h-3 text-cyan-500 flex-shrink-0" />
-                          {prov.contacto_centro}
+                          <span className="truncate">{prov.contacto_centro}</span>
                         </span>
                       ) : (
-                        <span className="text-slate-400 dark:text-slate-500 text-sm">-</span>
+                        <span className="text-slate-400 dark:text-slate-500 text-xs">-</span>
                       )}
                     </td>
-                    {/* Activo */}
                     <td className="px-2 py-2 text-center">
                       {prov.activo ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(16,185,129,0.15)] text-emerald-600 text-xs font-semibold">
-                          <Check className="w-3 h-3" /> Sí
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
+                          <Check className="w-3 h-3" />
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(239,68,68,0.15)] text-red-600 text-xs font-semibold">
-                          <X className="w-3 h-3" /> No
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-xs font-medium">
+                          <X className="w-3 h-3" />
                         </span>
                       )}
                     </td>
-                    {/* Acciones */}
                     <td className="px-2 py-2">
                       {isEditing ? (
                         <div className="flex gap-1 justify-center">
-                          <Button
-                            variant="success"
-                            size="icon-sm"
-                            onClick={() => handleSave(prov.centro, prov.almacen, editForm)}
-                          >
-                            <Check className="w-4 h-4" />
+                          <Button variant="success" size="icon-sm" onClick={() => handleSave(prov.centro, prov.almacen, editForm)}>
+                            <Check className="w-3.5 h-3.5" />
                           </Button>
-                          <Button
-                            variant="icon"
-                            size="icon-sm"
-                            onClick={() => setEditingId(null)}
-                          >
-                            <X className="w-4 h-4" />
+                          <Button variant="icon" size="icon-sm" onClick={() => setEditingId(null)}>
+                            <X className="w-3.5 h-3.5" />
                           </Button>
                         </div>
                       ) : (
@@ -410,14 +392,10 @@ function ProveedoresInternos() {
                               });
                             }}
                           >
-                            <Edit2 className="w-4 h-4" />
+                            <Edit2 className="w-3.5 h-3.5" />
                           </Button>
-                          <Button
-                            variant="icon-danger"
-                            size="icon-sm"
-                            onClick={() => handleDelete(prov.centro, prov.almacen)}
-                          >
-                            <Trash2 className="w-4 h-4" />
+                          <Button variant="icon-danger" size="icon-sm" onClick={() => handleDelete(prov.centro, prov.almacen)}>
+                            <Trash2 className="w-3.5 h-3.5" />
                           </Button>
                         </div>
                       )}
