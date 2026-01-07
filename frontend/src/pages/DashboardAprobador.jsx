@@ -287,8 +287,8 @@ export default function DashboardAprobador() {
                 const tasaAprobacion = kpiData.solicitudes.total > 0 ? Math.round((kpiData.solicitudes.aprobadas / kpiData.solicitudes.total) * 100) : 0;
                 const isGood = tasaAprobacion >= 70;
                 const isWarning = tasaAprobacion >= 40 && tasaAprobacion < 70;
-                const bgColor = isGood ? "bg-emerald-500/10" : isWarning ? "bg-amber-500/10" : "bg-red-500/10";
-                const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+                const bgColor = isGood ? "bg-emerald-500/10 dark:bg-emerald-500/20" : isWarning ? "bg-amber-500/10 dark:bg-amber-500/20" : "bg-red-500/10 dark:bg-red-500/20";
+                const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
                 const IconComp = isGood ? CheckCircle2 : isWarning ? Clock : XCircle;
                 return (
                   <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
@@ -296,7 +296,7 @@ export default function DashboardAprobador() {
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Tasa de Aprobación</p>
-                          <p className={`text-3xl font-bold ${isGood ? 'text-emerald-600' : isWarning ? 'text-amber-600' : 'text-red-600'}`}>{tasaAprobacion}%</p>
+                          <p className={`text-3xl font-bold ${isGood ? 'text-emerald-600 dark:text-emerald-400' : isWarning ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{tasaAprobacion}%</p>
                         </div>
                         <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><IconComp className={`w-6 h-6 ${iconColor}`} /></div>
                       </div>
@@ -311,9 +311,9 @@ export default function DashboardAprobador() {
                 const meta = kpiData.tiempoAprobacion.meta;
                 const isGood = promedio <= meta;
                 const isWarning = promedio > meta && promedio <= meta * 1.5;
-                const bgColor = isGood ? "bg-emerald-500/10" : isWarning ? "bg-amber-500/10" : "bg-red-500/10";
-                const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
-                const valueColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+                const bgColor = isGood ? "bg-emerald-500/10 dark:bg-emerald-500/20" : isWarning ? "bg-amber-500/10 dark:bg-amber-500/20" : "bg-red-500/10 dark:bg-red-500/20";
+                const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
+                const valueColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
                 return (
                   <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                     <CardContent className="h-full flex flex-col justify-between py-5">
@@ -325,8 +325,8 @@ export default function DashboardAprobador() {
                         <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><Clock className={`w-6 h-6 ${iconColor}`} /></div>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
-                        {isGood ? <div className="flex items-center gap-1 text-emerald-600"><TrendingDown className="w-4 h-4" /><span className="font-semibold">Bajo meta</span></div>
-                          : <div className="flex items-center gap-1 text-amber-600"><TrendingUp className="w-4 h-4" /><span className="font-semibold">Sobre meta</span></div>}
+                        {isGood ? <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><TrendingDown className="w-4 h-4" /><span className="font-semibold">Bajo meta</span></div>
+                          : <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400"><TrendingUp className="w-4 h-4" /><span className="font-semibold">Sobre meta</span></div>}
                         <span className="text-slate-500 dark:text-slate-400">Meta: {meta} días</span>
                       </div>
                     </CardContent>
@@ -338,9 +338,9 @@ export default function DashboardAprobador() {
                 const percentage = kpiData.presupuesto.percentage;
                 const isGood = percentage < 70;
                 const isWarning = percentage >= 70 && percentage <= 90;
-                const bgColor = isGood ? "bg-emerald-500/10" : isWarning ? "bg-amber-500/10" : "bg-red-500/10";
-                const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
-                const textColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+                const bgColor = isGood ? "bg-emerald-500/10 dark:bg-emerald-500/20" : isWarning ? "bg-amber-500/10 dark:bg-amber-500/20" : "bg-red-500/10 dark:bg-red-500/20";
+                const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
+                const textColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
                 return (
                   <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                     <CardContent className="h-full flex flex-col justify-between py-5">

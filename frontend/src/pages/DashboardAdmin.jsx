@@ -437,7 +437,7 @@ export default function DashboardAdmin() {
                     <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Total Solicitudes
                     </p>
-                    <div className="h-8 w-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 grid place-items-center flex-shrink-0">
+                    <div className="h-8 w-8 rounded-lg bg-blue-50/70 dark:bg-blue-900/30 grid place-items-center flex-shrink-0">
                       <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     </div>
                   </div>
@@ -466,9 +466,9 @@ export default function DashboardAdmin() {
                   : 0;
                 const isGood = tasaAprobacion >= 70;
                 const isWarning = tasaAprobacion >= 40 && tasaAprobacion < 70;
-                const bgColor = isGood ? "bg-emerald-50" : isWarning ? "bg-amber-50" : "bg-red-50";
-                const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
-                const valueColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+                const bgColor = isGood ? "bg-emerald-50/70 dark:bg-emerald-900/30" : isWarning ? "bg-amber-50/70 dark:bg-amber-900/30" : "bg-red-50/70 dark:bg-red-900/30";
+                const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
+                const valueColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
 
                 return (
                   <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
@@ -496,9 +496,9 @@ export default function DashboardAdmin() {
                 const meta = kpiData.tiempoAprobacion.meta;
                 const isGood = promedio <= meta;
                 const isWarning = promedio > meta && promedio <= meta * 1.5;
-                const bgColor = isGood ? "bg-emerald-50" : isWarning ? "bg-amber-50" : "bg-red-50";
-                const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
-                const valueColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+                const bgColor = isGood ? "bg-emerald-50/70 dark:bg-emerald-900/30" : isWarning ? "bg-amber-50/70 dark:bg-amber-900/30" : "bg-red-50/70 dark:bg-red-900/30";
+                const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
+                const valueColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
 
                 return (
                   <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
@@ -536,9 +536,9 @@ export default function DashboardAdmin() {
                 const percentage = kpiData.presupuesto.percentage;
                 const isGood = percentage < 70;
                 const isWarning = percentage >= 70 && percentage <= 90;
-                const bgColor = isGood ? "bg-emerald-50" : isWarning ? "bg-amber-50" : "bg-red-50";
-                const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
-                const textColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+                const bgColor = isGood ? "bg-emerald-50/70 dark:bg-emerald-900/30" : isWarning ? "bg-amber-50/70 dark:bg-amber-900/30" : "bg-red-50/70 dark:bg-red-900/30";
+                const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
+                const textColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
 
                 return (
                   <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">

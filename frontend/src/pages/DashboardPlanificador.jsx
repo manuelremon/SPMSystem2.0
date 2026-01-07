@@ -203,9 +203,9 @@ export default function DashboardPlanificador() {
                     <div className="h-12 w-12 rounded-2xl bg-blue-500/10 grid place-items-center"><FileText className="w-6 h-6 text-blue-600" /></div>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    {kpiData.solicitudes.trendPercentage >= 0 ? <div className="flex items-center gap-1 text-emerald-600"><TrendingUp className="w-4 h-4" /><span className="font-semibold">+{kpiData.solicitudes.trendPercentage}%</span></div>
-                      : <div className="flex items-center gap-1 text-red-600"><TrendingDown className="w-4 h-4" /><span className="font-semibold">{kpiData.solicitudes.trendPercentage}%</span></div>}
-                    <span className="text-slate-500">vs mes anterior</span>
+                    {kpiData.solicitudes.trendPercentage >= 0 ? <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><TrendingUp className="w-4 h-4" /><span className="font-semibold">+{kpiData.solicitudes.trendPercentage}%</span></div>
+                      : <div className="flex items-center gap-1 text-red-600 dark:text-red-400"><TrendingDown className="w-4 h-4" /><span className="font-semibold">{kpiData.solicitudes.trendPercentage}%</span></div>}
+                    <span className="text-slate-500 dark:text-slate-400">vs mes anterior</span>
                   </div>
                 </CardContent>
               </Card>
@@ -213,17 +213,17 @@ export default function DashboardPlanificador() {
               {(() => {
                 const tasa = kpiData.solicitudes.total > 0 ? Math.round((kpiData.solicitudes.aprobadas / kpiData.solicitudes.total) * 100) : 0;
                 const isGood = tasa >= 70, isWarning = tasa >= 40 && tasa < 70;
-                const bgColor = isGood ? "bg-emerald-500/10" : isWarning ? "bg-amber-500/10" : "bg-red-500/10";
-                const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+                const bgColor = isGood ? "bg-emerald-500/10 dark:bg-emerald-500/20" : isWarning ? "bg-amber-500/10 dark:bg-amber-500/20" : "bg-red-500/10 dark:bg-red-500/20";
+                const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
                 const Icon = isGood ? CheckCircle2 : isWarning ? Clock : XCircle;
                 return (
-                  <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
+                  <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                     <CardContent className="h-full flex flex-col justify-between py-5">
                       <div className="flex items-start justify-between">
-                        <div><p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Tasa de Aprobación</p><p className={`text-3xl font-bold ${isGood ? 'text-emerald-600' : isWarning ? 'text-amber-600' : 'text-red-600'}`}>{tasa}%</p></div>
+                        <div><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Tasa de Aprobación</p><p className={`text-3xl font-bold ${isGood ? 'text-emerald-600 dark:text-emerald-400' : isWarning ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{tasa}%</p></div>
                         <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><Icon className={`w-6 h-6 ${iconColor}`} /></div>
                       </div>
-                      <div className="text-sm text-slate-500">{kpiData.solicitudes.aprobadas} aprobadas de {kpiData.solicitudes.total}</div>
+                      <div className="text-sm text-slate-500 dark:text-slate-400">{kpiData.solicitudes.aprobadas} aprobadas de {kpiData.solicitudes.total}</div>
                     </CardContent>
                   </Card>
                 );
@@ -232,20 +232,20 @@ export default function DashboardPlanificador() {
               {(() => {
                 const prom = kpiData.tiempoAprobacion.promedio, meta = kpiData.tiempoAprobacion.meta;
                 const isGood = prom <= meta, isWarning = prom > meta && prom <= meta * 1.5;
-                const bgColor = isGood ? "bg-emerald-500/10" : isWarning ? "bg-amber-500/10" : "bg-red-500/10";
-                const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
-                const valueColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+                const bgColor = isGood ? "bg-emerald-500/10 dark:bg-emerald-500/20" : isWarning ? "bg-amber-500/10 dark:bg-amber-500/20" : "bg-red-500/10 dark:bg-red-500/20";
+                const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
+                const valueColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
                 return (
-                  <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
+                  <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                     <CardContent className="h-full flex flex-col justify-between py-5">
                       <div className="flex items-start justify-between">
-                        <div><p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Tiempo Promedio</p><p className={`text-3xl font-bold ${valueColor}`}>{prom} días</p></div>
+                        <div><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Tiempo Promedio</p><p className={`text-3xl font-bold ${valueColor}`}>{prom} días</p></div>
                         <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><Clock className={`w-6 h-6 ${iconColor}`} /></div>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
-                        {isGood ? <div className="flex items-center gap-1 text-emerald-600"><TrendingDown className="w-4 h-4" /><span className="font-semibold">Bajo meta</span></div>
-                          : <div className="flex items-center gap-1 text-amber-600"><TrendingUp className="w-4 h-4" /><span className="font-semibold">Sobre meta</span></div>}
-                        <span className="text-slate-500">Meta: {meta} días</span>
+                        {isGood ? <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><TrendingDown className="w-4 h-4" /><span className="font-semibold">Bajo meta</span></div>
+                          : <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400"><TrendingUp className="w-4 h-4" /><span className="font-semibold">Sobre meta</span></div>}
+                        <span className="text-slate-500 dark:text-slate-400">Meta: {meta} días</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -255,17 +255,17 @@ export default function DashboardPlanificador() {
               {(() => {
                 const pct = kpiData.presupuesto.percentage;
                 const isGood = pct < 70, isWarning = pct >= 70 && pct <= 90;
-                const bgColor = isGood ? "bg-emerald-500/10" : isWarning ? "bg-amber-500/10" : "bg-red-500/10";
-                const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
-                const textColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+                const bgColor = isGood ? "bg-emerald-500/10 dark:bg-emerald-500/20" : isWarning ? "bg-amber-500/10 dark:bg-amber-500/20" : "bg-red-500/10 dark:bg-red-500/20";
+                const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
+                const textColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
                 return (
-                  <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
+                  <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                     <CardContent className="h-full flex flex-col justify-between py-5">
                       <div className="flex items-start justify-between">
-                        <div><p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Presupuesto</p><p className="text-2xl font-bold text-slate-800">{formatCurrency(kpiData.presupuesto.utilizado)}</p></div>
+                        <div><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Presupuesto</p><p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(kpiData.presupuesto.utilizado)}</p></div>
                         <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><DollarSign className={`w-6 h-6 ${iconColor}`} /></div>
                       </div>
-                      <div className="text-sm"><span className={`font-semibold ${textColor}`}>{pct}%</span><span className="text-slate-500"> de {formatCurrency(kpiData.presupuesto.total)}</span></div>
+                      <div className="text-sm"><span className={`font-semibold ${textColor}`}>{pct}%</span><span className="text-slate-500 dark:text-slate-400"> de {formatCurrency(kpiData.presupuesto.total)}</span></div>
                     </CardContent>
                   </Card>
                 );

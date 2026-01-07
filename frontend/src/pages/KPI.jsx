@@ -349,19 +349,19 @@ export default function KPI() {
             const isWarning = tasaAprobacion >= 40 && tasaAprobacion < 70;
             const isBad = tasaAprobacion < 40;
 
-            const bgColor = isGood ? "bg-emerald-500/10" : isWarning ? "bg-amber-500/10" : "bg-red-500/10";
-            const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+            const bgColor = isGood ? "bg-emerald-500/10 dark:bg-emerald-500/20" : isWarning ? "bg-amber-500/10 dark:bg-amber-500/20" : "bg-red-500/10 dark:bg-red-500/20";
+            const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
             const IconComponent = isGood ? CheckCircle2 : isWarning ? Clock : XCircle;
 
             return (
-              <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
+              <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                 <CardContent className="h-full flex flex-col justify-between py-5">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
                         Tasa de Aprobación
                       </p>
-                      <p className={`text-3xl font-bold ${isGood ? 'text-emerald-600' : isWarning ? 'text-amber-600' : 'text-red-600'}`}>
+                      <p className={`text-3xl font-bold ${isGood ? 'text-emerald-600 dark:text-emerald-400' : isWarning ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
                         {tasaAprobacion}%
                       </p>
                     </div>
@@ -369,7 +369,7 @@ export default function KPI() {
                       <IconComponent className={`w-6 h-6 ${iconColor}`} />
                     </div>
                   </div>
-                  <div className="text-sm text-slate-500">
+                  <div className="text-sm text-slate-500 dark:text-slate-400">
                     {kpiData.solicitudes.aprobadas} aprobadas de {kpiData.solicitudes.total}
                   </div>
                 </CardContent>
@@ -386,16 +386,16 @@ export default function KPI() {
             const isWarning = promedio > meta && promedio <= meta * 1.5;
             const isBad = promedio > meta * 1.5;
 
-            const bgColor = isGood ? "bg-emerald-500/10" : isWarning ? "bg-amber-500/10" : "bg-red-500/10";
-            const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
-            const valueColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+            const bgColor = isGood ? "bg-emerald-500/10 dark:bg-emerald-500/20" : isWarning ? "bg-amber-500/10 dark:bg-amber-500/20" : "bg-red-500/10 dark:bg-red-500/20";
+            const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
+            const valueColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
 
             return (
-              <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
+              <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                 <CardContent className="h-full flex flex-col justify-between py-5">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
                         Tiempo Promedio
                       </p>
                       <p className={`text-3xl font-bold ${valueColor}`}>{promedio} días</p>
@@ -406,17 +406,17 @@ export default function KPI() {
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     {isGood ? (
-                      <div className="flex items-center gap-1 text-emerald-600">
-                        <TrendingDown className="w-4 h-4 text-emerald-500" />
+                      <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                        <TrendingDown className="w-4 h-4" />
                         <span className="font-semibold">Bajo meta</span>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1 text-amber-600">
-                        <TrendingUp className="w-4 h-4 text-amber-500" />
+                      <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                        <TrendingUp className="w-4 h-4" />
                         <span className="font-semibold">Sobre meta</span>
                       </div>
                     )}
-                    <span className="text-slate-500">Meta: {meta} días</span>
+                    <span className="text-slate-500 dark:text-slate-400">Meta: {meta} días</span>
                   </div>
                 </CardContent>
               </Card>
@@ -431,19 +431,19 @@ export default function KPI() {
             const isWarning = percentage >= 70 && percentage <= 90;
             const isBad = percentage > 90;
 
-            const bgColor = isGood ? "bg-emerald-500/10" : isWarning ? "bg-amber-500/10" : "bg-red-500/10";
-            const iconColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
-            const textColor = isGood ? "text-emerald-600" : isWarning ? "text-amber-600" : "text-red-600";
+            const bgColor = isGood ? "bg-emerald-500/10 dark:bg-emerald-500/20" : isWarning ? "bg-amber-500/10 dark:bg-amber-500/20" : "bg-red-500/10 dark:bg-red-500/20";
+            const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
+            const textColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
 
             return (
-              <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
+              <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                 <CardContent className="h-full flex flex-col justify-between py-5">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
                         Presupuesto
                       </p>
-                      <p className="text-2xl font-bold text-slate-800">
+                      <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">
                         {formatCurrency(kpiData.presupuesto.utilizado)}
                       </p>
                     </div>
@@ -453,7 +453,7 @@ export default function KPI() {
                   </div>
                   <div className="text-sm">
                     <span className={`font-semibold ${textColor}`}>{percentage}%</span>
-                    <span className="text-slate-500"> de {formatCurrency(kpiData.presupuesto.total)}</span>
+                    <span className="text-slate-500 dark:text-slate-400"> de {formatCurrency(kpiData.presupuesto.total)}</span>
                   </div>
                 </CardContent>
               </Card>
