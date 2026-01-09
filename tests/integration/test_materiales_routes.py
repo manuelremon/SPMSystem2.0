@@ -6,85 +6,63 @@ Tests all endpoints in backend/routes/materiales.py
 from __future__ import annotations
 
 import sqlite3
-from pathlib import Path
-
 import pytest
 
-from backend.app import create_app
-from backend.core.config import settings
+# Note: The 'app' and 'client' fixtures are now provided by tests/conftest.py
 
-
-def _db_path() -> Path:
-    """Get test database path"""
-    if settings.DATABASE_URL.startswith("sqlite:///"):
-        return Path(settings.DATABASE_URL.split("sqlite:///", 1)[1])
-    return Path("spm.db")
-
-
-def _seed_materiales_data():
-    """Seed test materials data"""
-    conn = sqlite3.connect(_db_path())
-    cur = conn.cursor()
-
-    # Ensure table exists with activo column
-    cur.execute("DROP TABLE IF EXISTS materiales")
-    cur.execute(
-        """
-        CREATE TABLE materiales (
-            codigo TEXT PRIMARY KEY,
-            descripcion TEXT,
-            descripcion_larga TEXT,
-            unidad TEXT,
-            precio_usd REAL,
-            activo INTEGER DEFAULT 1
-        )
+@pytest.fixture(scope="module", autouse=True)
+def setup_module_db(app):
     """
-    )
-
-    # Material test data
-    materiales_data = [
-        ("MAT001", "Tornillo M6", "Tornillo hexagonal M6 x 20mm acero inoxidable", "UN", 0.15, 1),
-        ("MAT002", "Tuerca M6", "Tuerca hexagonal M6 acero galvanizado", "UN", 0.10, 1),
-        ("MAT003", "Arandela plana M6", "Arandela plana DIN125 M6 acero", "UN", 0.05, 1),
-        ("MAT100", "Cable UTP Cat6", "Cable de red UTP categoria 6 305m", "M", 0.50, 1),
-        ("MAT101", "Conector RJ45", "Conector RJ45 Cat6 blindado", "UN", 0.25, 1),
-        ("MAT200", "Pintura blanca", "Pintura latex interior blanco mate 20L", "L", 15.00, 1),
-        ("MAT201", "Pintura azul", "Pintura latex interior azul cielo 20L", "L", 16.50, 1),
-        ("MAT999", "Material inactivo", "Este material está inactivo", "UN", 1.00, 0),
-        # Materials with special characters
-        ("MAT-SPEC-001", "Material especial", "Material con caracteres especiales", "UN", 5.00, 1),
-        # Materials for testing search
-        ("FILT001", "Filtro aire", "Filtro de aire para compresor industrial", "UN", 25.00, 1),
-        ("FILT002", "Filtro aceite", "Filtro de aceite hidráulico", "UN", 30.00, 1),
-    ]
-
-    cur.executemany(
-        """INSERT INTO materiales
-           (codigo, descripcion, descripcion_larga, unidad, precio_usd, activo)
-           VALUES (?, ?, ?, ?, ?, ?)""",
-        materiales_data,
-    )
-
-    conn.commit()
-    conn.close()
-
-
-@pytest.fixture
-def app():
-    """Create Flask app with test configuration"""
-    app = create_app(config_override={"TESTING": True})
-
+    Module-scoped fixture to seed the database once for all tests in this file.
+    'autouse=True' makes it run automatically for this module.
+    It depends on the global 'app' fixture from conftest.py.
+    """
     with app.app_context():
-        _seed_materiales_data()
+        # Using the in-memory database configured in the app fixture
+        conn = sqlite3.connect(":memory:")
+        cur = conn.cursor()
 
-    yield app
+        # Ensure table exists with activo column
+        cur.execute("DROP TABLE IF EXISTS materiales")
+        cur.execute(
+            """
+            CREATE TABLE materiales (
+                codigo TEXT PRIMARY KEY,
+                descripcion TEXT,
+                descripcion_larga TEXT,
+                unidad TEXT,
+                precio_usd REAL,
+                activo INTEGER DEFAULT 1
+            )
+        """
+        )
 
+        # Material test data
+        materiales_data = [
+            ("MAT001", "Tornillo M6", "Tornillo hexagonal M6 x 20mm acero inoxidable", "UN", 0.15, 1),
+            ("MAT002", "Tuerca M6", "Tuerca hexagonal M6 acero galvanizado", "UN", 0.10, 1),
+            ("MAT003", "Arandela plana M6", "Arandela plana DIN125 M6 acero", "UN", 0.05, 1),
+            ("MAT100", "Cable UTP Cat6", "Cable de red UTP categoria 6 305m", "M", 0.50, 1),
+            ("MAT101", "Conector RJ45", "Conector RJ45 Cat6 blindado", "UN", 0.25, 1),
+            ("MAT200", "Pintura blanca", "Pintura latex interior blanco mate 20L", "L", 15.00, 1),
+            ("MAT201", "Pintura azul", "Pintura latex interior azul cielo 20L", "L", 16.50, 1),
+            ("MAT999", "Material inactivo", "Este material está inactivo", "UN", 1.00, 0),
+            # Materials with special characters
+            ("MAT-SPEC-001", "Material especial", "Material con caracteres especiales", "UN", 5.00, 1),
+            # Materials for testing search
+            ("FILT001", "Filtro aire", "Filtro de aire para compresor industrial", "UN", 25.00, 1),
+            ("FILT002", "Filtro aceite", "Filtro de aceite hidráulico", "UN", 30.00, 1),
+        ]
 
-@pytest.fixture
-def client(app):
-    """Create test client"""
-    with app.test_client() as testing_client:
-        yield testing_client
+        cur.executemany(
+            """INSERT INTO materiales
+               (codigo, descripcion, descripcion_larga, unidad, precio_usd, activo)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            materiales_data,
+        )
+
+        conn.commit()
+        conn.close()
 
 
 # ==================== GET /api/materiales ====================

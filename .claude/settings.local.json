@@ -224,7 +224,10 @@
       "Bash(COMMIT_MSG=\"fix: buscar referente centro desde proveedores_internos en lugar de usuarios.centro\" ./scripts/deploy-full.sh:*)",
       "Bash(COMMIT_MSG=\"fix: permitir referentes de proveedores_internos ver consultas de stock pendientes\" ./scripts/deploy-full.sh:*)",
       "Bash(COMMIT_MSG=\"feat\\(ux\\): rediseñar modal respuesta consultas - 5 opciones + estilo sistema\" ./scripts/deploy-full.sh:*)",
-      "Bash(COMMIT_MSG=\"fix\\(ux\\): aumentar z-index de Modal a 9999 para estar sobre todos los elementos\" ./scripts/deploy-full.sh:*)"
+      "Bash(COMMIT_MSG=\"fix\\(ux\\): aumentar z-index de Modal a 9999 para estar sobre todos los elementos\" ./scripts/deploy-full.sh:*)",
+      "Bash(git update-index:*)",
+      "Bash(for file in backend/routes/*.py)",
+      "Bash(do python -m py_compile:*)"
     ],
     "deny": [],
     "ask": []

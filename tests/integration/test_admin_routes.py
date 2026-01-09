@@ -5,23 +5,7 @@ Sprint: Auditoría Técnica - Fase 2
 
 import pytest
 
-
-@pytest.fixture
-def client():
-    """Fixture para crear cliente de test"""
-    try:
-        from backend.app import create_app
-    except ImportError:
-        import sys
-
-        sys.path.insert(0, str(__file__).replace("tests/integration/test_admin_routes.py", ""))
-        from backend.app import create_app
-
-    app = create_app()
-    app.config["TESTING"] = True
-    with app.test_client() as client:
-        yield client
-
+# El fixture 'client' es provisto por 'tests/conftest.py'
 
 class TestAdminEndpoints:
     """Tests para endpoints de administración"""

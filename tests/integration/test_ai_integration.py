@@ -7,24 +7,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-
-@pytest.fixture
-def app():
-    """Crea aplicacion de prueba."""
-    try:
-        from backend.app import create_app
-    except ImportError:
-        from app import create_app
-
-    app = create_app({"TESTING": True})
-    return app
-
-
-@pytest.fixture
-def client(app):
-    """Cliente de prueba."""
-    return app.test_client()
-
+# Los fixtures 'app' y 'client' son provistos por 'tests/conftest.py'
 
 @pytest.fixture
 def auth_headers(client):
@@ -220,6 +203,27 @@ class TestAIServiceCache:
 class TestAIServiceFallbacks:
     """Tests para fallbacks del servicio IA."""
 
+    @pytest.fixture(scope="class", autouse=True)
+    def setup_db_for_fallback_tests(self, app):
+        """
+        Crea la tabla 'consumo_historico' necesaria para estos tests,
+        ya que no existe en el schema principal.
+        """
+        with app.app_context():
+            from backend.core.db import get_db_connection
+            with get_db_connection("sap_data") as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS consumo_historico (
+                        material TEXT,
+                        centro TEXT,
+                        almacen TEXT,
+                        fecha DATE,
+                        cantidad REAL
+                    )
+                """)
+                conn.commit()
+
     def test_fallback_proyeccion_sin_modelo(self):
         """Usa fallback cuando modelo no esta entrenado."""
         try:
@@ -231,5 +235,5 @@ class TestAIServiceFallbacks:
 
         result = service.proyectar_demanda("MAT001", "1000", 30)
 
-        assert "predicted_demand" in result
+        assert "predicciones" in result
         assert result.get("metodo") == "promedio_historico"

@@ -268,18 +268,304 @@ class TestBURIntegrationWithSolicitudes:
         pass
 
 
-class TestBURReversion:
-    """Test BUR reversion endpoint (Sprint 2.3).
 
-    Note: These tests may return 403 if the test JWT token doesn't have
-    the required roles format. That's still a valid test outcome showing
-    auth is working.
-    """
+Integration tests for Budget Update Request (BUR) flow.
+"""
+from __future__ import annotations
+
+import pytest
+from flask import Flask
+from flask.testing import FlaskClient
+
+from tests.integration.auth_utils import authenticate_client
+
+# Fixtures 'app' and 'client' are provided by tests/conftest.py
+
+# ==================== Test Data ====================
+
+USERS_DATA = {
+    "admin": {"id": "admin", "roles": ["admin"]},
+    "aprobador_l1": {"id": "aprobador_l1", "roles": ["coordinador"]},
+    "aprobador_l2": {"id": "aprobador_l2", "roles": ["jefe"]},
+    "usuario": {"id": "usuario1", "roles": ["usuario"]},
+}
+
+# ==================== Helper Fixtures ====================
+
+def _create_users(app: Flask, users: list[str]):
+    """Helper to insert users into the database."""
+    with app.app_context():
+        from backend.core.db import get_db_connection
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            # Clean table before inserting
+            cursor.execute("DELETE FROM usuarios")
+            for user_key in users:
+                user_info = USERS_DATA[user_key]
+                cursor.execute(
+                    "INSERT INTO usuarios (id_spm, rol) VALUES (?, ?)",
+                    (user_info["id"], ",".join(user_info["roles"])),
+                )
+            conn.commit()
+
+# ==================== Test Classes ====================
+
+class TestBudgetRequestLifecycle:
+    """Test complete BUR lifecycle."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, app: Flask, client: FlaskClient):
+        """Setup test data and authenticate as admin."""
+        self.app = app
+        self.client = client
+        _create_users(app, ["admin"])
+        authenticate_client(app, client, "admin", roles=["admin"])
+
+    def test_create_bur(self):
+        """Test creating a Budget Update Request."""
+        response = self.client.post(
+            "/api/budget-requests",
+            json={
+                "centro": "Centro Test",
+                "sector": "Sector Test",
+                "monto_solicitado_usd": 5000,
+                "justificacion": "Test budget increase request",
+            },
+        )
+        assert response.status_code == 201
+
+    def test_list_burs(self):
+        """Test listing Budget Update Requests."""
+        response = self.client.get("/api/budget-requests")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "requests" in data
+
+    def test_list_burs_with_estado_filter(self):
+        """Test listing BURs filtered by estado."""
+        response = self.client.get("/api/budget-requests?estado=pendiente")
+        assert response.status_code == 200
+
+    def test_get_budget_info(self):
+        """Test getting budget info for centro/sector."""
+        response = self.client.get(
+            "/api/budget/info",
+            query_string={"centro": "Centro Test", "sector": "Sector Test"},
+        )
+        assert response.status_code == 200
+
+    def test_get_ledger(self):
+        """Test getting budget ledger entries."""
+        response = self.client.get("/api/budget/ledger")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "entries" in data
+
+    def test_get_ledger_with_pagination(self):
+        """Test ledger pagination."""
+        response = self.client.get("/api/budget/ledger?limit=10&offset=0")
+        assert response.status_code == 200
+
+
+class TestBURApprovalFlow:
+    """Test BUR approval workflows."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, app: Flask, client: FlaskClient):
+        """Setup test data and authenticate as admin."""
+        self.app = app
+        self.client = client
+        _create_users(app, ["admin"])
+        authenticate_client(app, client, "admin", roles=["admin"])
+
+    def test_approve_without_bur_id_fails(self):
+        """Test that approving without BUR ID fails."""
+        response = self.client.put("/api/budget-requests//aprobar")
+        assert response.status_code == 404
+
+    def test_reject_requires_motivo(self):
+        """Test that rejection requires a motivo."""
+        response = self.client.put(
+            "/api/budget-requests/999999/rechazar",
+            json={"motivo": ""},
+        )
+        assert response.status_code == 400
+
+
+class TestBURAuthorizationLevels:
+    """Test approval level authorization."""
 
     @pytest.fixture(autouse=True)
     def setup(self, app: Flask, client: FlaskClient):
         self.app = app
         self.client = client
+        _create_users(app, ["aprobador_l1", "aprobador_l2", "admin"])
+
+    def test_l1_approval_level(self):
+        """Test L1 approval can access relevant BURs."""
+        authenticate_client(self.app, self.client, "aprobador_l1", roles=["coordinador"])
+        response = self.client.get("/api/budget-requests?estado=pendiente")
+        assert response.status_code == 200
+
+    def test_l2_approval_level(self):
+        """Test L2 approval can access relevant BURs."""
+        authenticate_client(self.app, self.client, "aprobador_l2", roles=["jefe"])
+        response = self.client.get("/api/budget-requests?estado=aprobado_l1")
+        assert response.status_code == 200
+
+    def test_admin_approval_level(self):
+        """Test admin approval can access all BURs."""
+        authenticate_client(self.app, self.client, "admin", roles=["admin"])
+        response = self.client.get("/api/budget-requests")
+        assert response.status_code == 200
+
+
+class TestBudgetLedgerOperations:
+    """Test budget ledger functionality."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, app: Flask, client: FlaskClient):
+        self.app = app
+        self.client = client
+        _create_users(app, ["admin"])
+        authenticate_client(app, client, "admin", roles=["admin"])
+        # Create a ledger entry to test
+        self.client.post(
+            "/api/budget-requests",
+            json={
+                "centro": "Centro Ledger", "sector": "Sector Ledger",
+                "monto_solicitado_usd": 100, "justificacion": "Ledger test",
+            },
+        )
+
+    def test_ledger_entries_structure(self):
+        """Test ledger entry structure."""
+        response = self.client.get("/api/budget/ledger?limit=1")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "entries" in data
+        if len(data["entries"]) > 0:
+            entry = data["entries"][0]
+            expected_fields = ["id", "tipo_movimiento", "monto_cents"]
+            for field in expected_fields:
+                assert field in entry
+
+    def test_ledger_pagination_params(self):
+        """Test ledger accepts pagination parameters."""
+        response = self.client.get("/api/budget/ledger?limit=50&offset=0")
+        assert response.status_code == 200
+
+    def test_ledger_returns_total(self):
+        """Test ledger returns total count for pagination."""
+        response = self.client.get("/api/budget/ledger")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "entries" in data
+        assert "total" in data
+
+
+class TestBURValidation:
+    """Test BUR validation rules."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, app: Flask, client: FlaskClient):
+        self.app = app
+        self.client = client
+        _create_users(app, ["admin"])
+        authenticate_client(app, client, "admin", roles=["admin"])
+
+    def test_create_bur_requires_centro(self):
+        """Test that creating BUR requires centro."""
+        response = self.client.post(
+            "/api/budget-requests",
+            json={
+                "sector": "Sector Test",
+                "monto_solicitado_usd": 5000,
+                "justificacion": "Test",
+            },
+        )
+        assert response.status_code == 400
+
+    def test_create_bur_requires_monto(self):
+        """Test that creating BUR requires monto."""
+        response = self.client.post(
+            "/api/budget-requests",
+            json={
+                "centro": "Centro Test",
+                "sector": "Sector Test",
+                "justificacion": "Test",
+            },
+        )
+        assert response.status_code == 400
+
+    def test_create_bur_monto_must_be_positive(self):
+        """Test that monto must be positive."""
+        response = self.client.post(
+            "/api/budget-requests",
+            json={
+                "centro": "Centro Test",
+                "sector": "Sector Test",
+                "monto_solicitado_usd": -1000,
+                "justificacion": "Test",
+            },
+        )
+        assert response.status_code == 400
+
+
+class TestBURStateTransitions:
+    """Test BUR state machine transitions."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, app: Flask, client: FlaskClient):
+        self.app = app
+        self.client = client
+        _create_users(app, ["admin"])
+        authenticate_client(app, client, "admin", roles=["admin"])
+
+    def test_cannot_approve_rejected_bur(self):
+        """Test that rejected BUR cannot be approved."""
+        response = self.client.put(
+            "/api/budget-requests/999999/aprobar",
+            json={"comentario": "Test"},
+        )
+        assert response.status_code == 404
+
+    def test_cannot_reject_approved_bur(self):
+        """Test that fully approved BUR cannot be rejected."""
+        response = self.client.put(
+            "/api/budget-requests/999999/rechazar",
+            json={"motivo": "Test motivo rechazo"},
+        )
+        assert response.status_code == 404
+
+
+class TestBURIntegrationWithSolicitudes:
+    """Test BUR integration with solicitudes (budget consumption)."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, app: Flask, client: FlaskClient):
+        self.app = app
+        self.client = client
+        _create_users(app, ["admin"])
+        authenticate_client(app, client, "admin", roles=["admin"])
+
+    def test_budget_consumed_on_solicitud_approval(self):
+        pass
+
+    def test_budget_reverted_on_solicitud_rejection(self):
+        pass
+
+
+class TestBURReversion:
+    """Test BUR reversion endpoint (Sprint 2.3)."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, app: Flask, client: FlaskClient):
+        self.app = app
+        self.client = client
+        # User creation will be handled per-test
+        _create_users(app, ["admin", "usuario"])
+
 
     def test_revertir_endpoint_requiere_autenticacion(self):
         """Revertir sin autenticación debe fallar."""
@@ -287,11 +573,10 @@ class TestBURReversion:
             "/api/budget-requests/1/revertir",
             json={"motivo": "Test reversion"},
         )
-        assert response.status_code in [401, 403]
+        assert response.status_code == 401
 
     def test_revertir_endpoint_solo_admin(self):
         """Solo admin puede revertir BUR."""
-        # Autenticar como usuario normal
         authenticate_client(self.app, self.client, "usuario1", roles=["usuario"])
         response = self.client.post(
             "/api/budget-requests/1/revertir",
@@ -304,10 +589,9 @@ class TestBURReversion:
         authenticate_client(self.app, self.client, "admin", roles=["admin"])
         response = self.client.post(
             "/api/budget-requests/999999/revertir",
-            json={"motivo": "Test reversion motivo largo"},
+            json={"motivo": "Test motivo de reversion"},
         )
-        # 404/400 = endpoint works, 403 = auth config issue (still valid test)
-        assert response.status_code in [404, 400, 403]
+        assert response.status_code == 404
 
     def test_revertir_endpoint_requiere_motivo(self):
         """Revertir requiere motivo con longitud mínima."""
@@ -316,7 +600,7 @@ class TestBURReversion:
             "/api/budget-requests/1/revertir",
             json={"motivo": "ab"},  # Muy corto
         )
-        assert response.status_code in [400, 404, 403]
+        assert response.status_code == 400
 
     def test_revertir_endpoint_sin_motivo_falla(self):
         """Revertir sin motivo debe fallar."""
@@ -325,7 +609,7 @@ class TestBURReversion:
             "/api/budget-requests/1/revertir",
             json={},
         )
-        assert response.status_code in [400, 404, 403]
+        assert response.status_code == 400
 
     def test_revertir_bur_inexistente(self):
         """Revertir BUR inexistente retorna error."""
@@ -334,5 +618,4 @@ class TestBURReversion:
             "/api/budget-requests/999999/revertir",
             json={"motivo": "Test motivo de reversion"},
         )
-        # 404/400 = BUR not found, 403 = auth issue
-        assert response.status_code in [404, 400, 403]
+        assert response.status_code == 404

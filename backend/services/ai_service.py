@@ -63,14 +63,9 @@ class AIService:
 
     def __init__(self):
         """Inicializa el servicio con todos los pipelines."""
-        try:
-            from backend.agent.pipelines.clustering import ClusteringPipeline
-            from backend.agent.pipelines.demand_forecast import DemandForecastPipeline
-            from backend.agent.pipelines.scoring import ScoringPipeline
-        except ImportError:
-            from agent.pipelines.clustering import ClusteringPipeline
-            from agent.pipelines.demand_forecast import DemandForecastPipeline
-            from agent.pipelines.scoring import ScoringPipeline
+        from backend.agent.pipelines.clustering import ClusteringPipeline
+        from backend.agent.pipelines.demand_forecast import DemandForecastPipeline
+        from backend.agent.pipelines.scoring import ScoringPipeline
 
         self.clustering = ClusteringPipeline()
         self.scoring = ScoringPipeline()
@@ -270,8 +265,8 @@ class AIService:
         """
         try:
             # Usar nuevo módulo de forecast
-            from agent.pipelines.forecast import DemandPredictor
-            from core.db import get_db_connection
+            from backend.agent.pipelines.forecast import DemandPredictor
+            from backend.core.db import get_db_connection
             import pandas as pd
 
             # Obtener datos históricos de consumo con filtros opcionales de centro y almacen
