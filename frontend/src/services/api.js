@@ -108,13 +108,20 @@ api.interceptors.response.use(
     return response
   },
   async error => {
-    // Log error response
+    // Log error response (unless silenced)
     const config = error.config || {}
     const status = error.response?.status || 'NETWORK'
     const duration = config._startTime
       ? (performance.now() - config._startTime).toFixed(0)
       : '?'
-    log.error(`${config.method?.toUpperCase()} ${config.url} -> ${status} (${duration}ms)`, error.response?.data || error.message)
+
+    // Allow silencing specific errors (e.g., expected 401s for optional endpoints)
+    const shouldSilence = config._silenceErrors === true ||
+                          (Array.isArray(config._silenceErrors) && config._silenceErrors.includes(status))
+
+    if (!shouldSilence) {
+      log.error(`${config.method?.toUpperCase()} ${config.url} -> ${status} (${duration}ms)`, error.response?.data || error.message)
+    }
 
     const originalRequest = error.config
     const responseStatus = error.response?.status
@@ -140,6 +147,11 @@ api.interceptors.response.use(
 
     // 401 Unauthorized - intentar refresh o redirigir a login
     if (responseStatus === 401) {
+      // Skip retry if explicitly disabled (e.g., optional admin endpoints)
+      if (originalRequest._skipAuthRetry) {
+        return Promise.reject(error)
+      }
+
       // Evitar loop: si /auth/me o /auth/refresh fallan, ir directo a login
       const isAuthEndpoint = originalRequest?.url?.includes('/auth/me') ||
                              originalRequest?.url?.includes('/auth/refresh')

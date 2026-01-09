@@ -15,11 +15,12 @@ export function TempDataBanner({ onStatusChange, variant = 'full' }) {
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(true)
   const [clearing, setClearing] = useState(false)
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, user } = useAuthStore()
 
-  // Cargar estado al montar (solo si está autenticado)
+  // Cargar estado al montar (solo si está autenticado Y hay usuario)
   const loadStatus = useCallback(async () => {
-    if (!isAuthenticated) {
+    // Doble verificación: isAuthenticated Y user deben existir
+    if (!isAuthenticated || !user) {
       setLoading(false)
       return
     }
@@ -32,12 +33,12 @@ export function TempDataBanner({ onStatusChange, variant = 'full' }) {
         }
       }
     } catch (err) {
-      // Si hay error, probablemente no hay permisos de admin
+      // Silenciar errores 401 - son esperados si no hay permisos
       setStatus(null)
     } finally {
       setLoading(false)
     }
-  }, [onStatusChange, isAuthenticated])
+  }, [onStatusChange, isAuthenticated, user])
 
   useEffect(() => {
     loadStatus()

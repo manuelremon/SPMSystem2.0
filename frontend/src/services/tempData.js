@@ -36,12 +36,25 @@ export async function importExcel(file) {
 
 /**
  * Obtiene el estado del modo temporal.
+ * Silencia errores 401/403 ya que son esperados para usuarios no admin.
  *
- * @returns {Promise<Object>} Estado con active, data (si activo)
+ * @returns {Promise<Object>} Estado con active, data (si activo), o {ok: false} si error
  */
 export async function getTempDataStatus() {
-  const response = await api.get(ENDPOINTS.STATUS)
-  return response.data
+  try {
+    // Silenciar errores 401/403 y no reintentar auth - es un endpoint opcional
+    const response = await api.get(ENDPOINTS.STATUS, {
+      _silenceErrors: [401, 403],
+      _skipAuthRetry: true
+    })
+    return response.data
+  } catch (err) {
+    // Silenciar errores de autenticación/autorización
+    if (err.response?.status === 401 || err.response?.status === 403) {
+      return { ok: false, active: false }
+    }
+    throw err
+  }
 }
 
 /**
