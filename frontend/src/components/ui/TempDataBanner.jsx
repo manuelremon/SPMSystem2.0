@@ -17,10 +17,11 @@ export function TempDataBanner({ onStatusChange, variant = 'full' }) {
   const [clearing, setClearing] = useState(false)
   const { isAuthenticated, user } = useAuthStore()
 
-  // Cargar estado al montar (solo si está autenticado Y hay usuario)
+  // Cargar estado al montar (solo si está autenticado Y es admin)
   const loadStatus = useCallback(async () => {
-    // Doble verificación: isAuthenticated Y user deben existir
-    if (!isAuthenticated || !user) {
+    // Triple verificación: isAuthenticated, user existe, Y es admin
+    const isAdmin = user?.rol === 'admin' || user?.rol === 'coordinador'
+    if (!isAuthenticated || !user || !isAdmin) {
       setLoading(false)
       return
     }
