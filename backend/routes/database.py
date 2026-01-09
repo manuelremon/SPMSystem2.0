@@ -118,6 +118,27 @@ def is_postgres() -> bool:
     return db_url.startswith("postgresql")
 
 
+def _get_value(row, key_or_index, default=None):
+    """
+    Extrae un valor de una fila que puede ser dict (PostgreSQL RealDictCursor) o tuple (SQLite).
+    key_or_index: nombre de columna (str) para dict, o indice (int) para tuple.
+    """
+    if row is None:
+        return default
+    if isinstance(row, dict):
+        # Para dict, key_or_index puede ser str (nombre) o int (posicion)
+        if isinstance(key_or_index, str):
+            return row.get(key_or_index, default)
+        # Si es int, obtener por posicion en los valores
+        values = list(row.values())
+        return values[key_or_index] if key_or_index < len(values) else default
+    # Para tuple/list
+    try:
+        return row[key_or_index]
+    except (IndexError, KeyError):
+        return default
+
+
 @bp.route("/overview", methods=["GET"])
 @require_auth
 @require_admin
@@ -151,11 +172,11 @@ def get_overview():
                         SELECT COUNT(*) FROM information_schema.tables
                         WHERE table_schema = 'public'
                     """)
-                    db_info["tables"] = cur.fetchone()[0]
+                    db_info["tables"] = _get_value(cur.fetchone(), 0, 0)
 
                     # Tamaño de la BD
                     cur.execute("SELECT pg_database_size(current_database())")
-                    db_info["size_mb"] = round(cur.fetchone()[0] / (1024 * 1024), 2)
+                    db_info["size_mb"] = round(_get_value(cur.fetchone(), 0, 0) / (1024 * 1024), 2)
 
                     db_info["status"] = "online"
             else:
@@ -228,9 +249,9 @@ def get_tables():
                     ORDER BY table_name
                 """)
                 for row in cur.fetchall():
-                    table_name = row[0]
-                    cur.execute(f"SELECT COUNT(*) FROM {table_name}")
-                    count = cur.fetchone()[0]
+                    table_name = _get_value(row, 'table_name') or _get_value(row, 0)
+                    cur.execute(f"SELECT COUNT(*) FROM \"{table_name}\"")
+                    count = _get_value(cur.fetchone(), 0, 0)
                     tables.append({"name": table_name, "records": count})
         else:
             db_path = get_sqlite_path(db_name)
@@ -290,10 +311,10 @@ def get_table_structure(table: str):
                 """, (table,))
                 for row in cur.fetchall():
                     columns.append({
-                        "name": row[0],
-                        "type": row[1],
-                        "nullable": row[2] == "YES",
-                        "default": row[3],
+                        "name": _get_value(row, 'column_name') or _get_value(row, 0),
+                        "type": _get_value(row, 'data_type') or _get_value(row, 1),
+                        "nullable": (_get_value(row, 'is_nullable') or _get_value(row, 2)) == "YES",
+                        "default": _get_value(row, 'column_default') or _get_value(row, 3),
                     })
 
                 # Indices
@@ -303,7 +324,10 @@ def get_table_structure(table: str):
                     WHERE tablename = %s
                 """, (table,))
                 for row in cur.fetchall():
-                    indexes.append({"name": row[0], "definition": row[1]})
+                    indexes.append({
+                        "name": _get_value(row, 'indexname') or _get_value(row, 0),
+                        "definition": _get_value(row, 'indexdef') or _get_value(row, 1),
+                    })
         else:
             db_path = get_sqlite_path(db_name)
             conn = sqlite3.connect(db_path)
@@ -372,16 +396,20 @@ def get_table_preview(table: str):
                     SELECT column_name FROM information_schema.columns
                     WHERE table_name = %s ORDER BY ordinal_position
                 """, (table,))
-                columns = [row[0] for row in cur.fetchall()]
+                columns = [_get_value(row, 'column_name') or _get_value(row, 0) for row in cur.fetchall()]
 
                 # Contar total
-                cur.execute(f"SELECT COUNT(*) FROM {table}")
-                total = cur.fetchone()[0]
+                cur.execute(f"SELECT COUNT(*) FROM \"{table}\"")
+                total = _get_value(cur.fetchone(), 0, 0)
 
                 # Obtener datos
-                cur.execute(f"SELECT * FROM {table} LIMIT %s OFFSET %s", (limit, offset))
+                cur.execute(f"SELECT * FROM \"{table}\" LIMIT %s OFFSET %s", (limit, offset))
                 for row in cur.fetchall():
-                    rows.append(dict(zip(columns, [str(v) if v is not None else None for v in row])))
+                    # RealDictCursor devuelve diccionarios directamente
+                    if isinstance(row, dict):
+                        rows.append({k: str(v) if v is not None else None for k, v in row.items()})
+                    else:
+                        rows.append(dict(zip(columns, [str(v) if v is not None else None for v in row])))
         else:
             db_path = get_sqlite_path(db_name)
             conn = sqlite3.connect(db_path)
