@@ -135,7 +135,7 @@ def notification_stream():
         SSE stream con eventos de notificaciones
     """
     # SSE requiere auth manual (EventSource no envía headers)
-    from backend.core.roles import _decode_token
+    from backend.core.auth_middleware import _decode_token
     payload = _decode_token("access", "spm_token")
     if isinstance(payload, tuple):
         return payload  # Error response
