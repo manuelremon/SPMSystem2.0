@@ -9,14 +9,20 @@ import React, { useState, useEffect, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { Button } from './Button'
 import { getTempDataStatus, clearTempData } from '../../services/tempData'
+import { useAuthStore } from '../../store/authStore'
 
 export function TempDataBanner({ onStatusChange, variant = 'full' }) {
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(true)
   const [clearing, setClearing] = useState(false)
+  const { isAuthenticated } = useAuthStore()
 
-  // Cargar estado al montar
+  // Cargar estado al montar (solo si está autenticado)
   const loadStatus = useCallback(async () => {
+    if (!isAuthenticated) {
+      setLoading(false)
+      return
+    }
     try {
       const result = await getTempDataStatus()
       if (result.ok) {
@@ -31,7 +37,7 @@ export function TempDataBanner({ onStatusChange, variant = 'full' }) {
     } finally {
       setLoading(false)
     }
-  }, [onStatusChange])
+  }, [onStatusChange, isAuthenticated])
 
   useEffect(() => {
     loadStatus()
