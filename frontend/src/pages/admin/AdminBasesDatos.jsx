@@ -23,7 +23,7 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
-  Table,
+  List,
   Search,
   Zap,
   Shield,
@@ -194,7 +194,7 @@ export default function AdminBasesDatos() {
 
   const tabs = [
     { id: "overview", label: t("db_overview", "Vista General"), icon: <Database className="w-4 h-4" /> },
-    { id: "tables", label: t("db_tables", "Tablas"), icon: <Table className="w-4 h-4" /> },
+    { id: "tables", label: t("db_tables", "Tablas"), icon: <List className="w-4 h-4" /> },
     { id: "tools", label: t("db_tools", "Herramientas"), icon: <Settings className="w-4 h-4" /> },
   ];
 
@@ -445,7 +445,7 @@ export default function AdminBasesDatos() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Table className={`w-5 h-5 ${ICON_COLORS.primary}`} />
+                  <List className={`w-5 h-5 ${ICON_COLORS.primary}`} />
                   Crear Indices
                 </CardTitle>
                 <CardDescription>Indices recomendados para rendimiento</CardDescription>
@@ -457,7 +457,7 @@ export default function AdminBasesDatos() {
                   disabled={operationLoading || isProduction && selectedDb === "spm"}
                   className="w-full"
                 >
-                  {operationLoading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Table className="w-4 h-4" />}
+                  {operationLoading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <List className="w-4 h-4" />}
                   Crear Indices
                 </Button>
               </CardContent>
