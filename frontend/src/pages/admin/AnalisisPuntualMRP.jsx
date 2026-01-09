@@ -44,17 +44,23 @@ export default function AnalisisPuntualMRP() {
     setLoading(true)
     setError(null)
     try {
-      const response = await api.get('/api/mrp/alertas', {
+      const response = await api.get('/mrp/alertas', {
         params: { use_temp_data: true, limit: 100 }
       })
       if (response.data.ok) {
         setAlertas(response.data.alertas || [])
         setResumen(response.data.resumen || {})
       } else {
-        setError(response.data.error || 'Error al cargar alertas')
+        const errData = response.data.error
+        setError(typeof errData === 'object' ? (errData?.message || 'Error') : (errData || 'Error al cargar alertas'))
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al cargar alertas MRP')
+      const errorData = err.response?.data?.error
+      // Handle error object or string
+      const errorMsg = typeof errorData === 'object'
+        ? (errorData?.message || JSON.stringify(errorData))
+        : (errorData || 'Error al cargar alertas MRP')
+      setError(errorMsg)
     } finally {
       setLoading(false)
     }

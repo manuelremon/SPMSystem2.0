@@ -51,7 +51,7 @@ export default function AnalisisPuntualForecast() {
   useEffect(() => {
     const fetchMateriales = async () => {
       try {
-        const response = await api.get('/api/admin/temp-data/materiales')
+        const response = await api.get('/admin/temp-data/materiales')
         if (response.data.ok) {
           setMaterialesDisponibles(response.data.materiales || [])
         }
@@ -79,7 +79,7 @@ export default function AnalisisPuntualForecast() {
     setForecastData(null)
 
     try {
-      const response = await api.post('/api/ai/forecast/individual', {
+      const response = await api.post('/ai/forecast/individual', {
         material: materialCodigo,
         modelo: modelo,
         dias: diasPrediccion,
@@ -89,10 +89,12 @@ export default function AnalisisPuntualForecast() {
       if (response.data.ok) {
         setForecastData(response.data)
       } else {
-        setError(response.data.error || 'Error al generar forecast')
+        const errData = response.data.error
+        setError(typeof errData === 'object' ? (errData?.message || 'Error') : (errData || 'Error al generar forecast'))
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al generar forecast')
+      const errData = err.response?.data?.error
+      setError(typeof errData === 'object' ? (errData?.message || 'Error') : (errData || 'Error al generar forecast'))
     } finally {
       setLoading(false)
     }
