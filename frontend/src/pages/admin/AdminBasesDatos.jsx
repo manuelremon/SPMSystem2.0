@@ -1,6 +1,6 @@
 /**
  * AdminBasesDatos - Administracion de Bases de Datos
- * Permite ver estado, explorar tablas, optimizar y exportar BDs
+ * Permite ver estado, explorar tablas, optimizar, exportar y CRUD de registros
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -12,6 +12,7 @@ import { Badge } from "../../components/ui/Badge";
 import { Select } from "../../components/ui/Select";
 import { Tabs } from "../../components/ui/Tabs";
 import { Modal } from "../../components/ui/Modal";
+import { Input } from "../../components/ui/Input";
 import { TableSkeleton } from "../../components/ui/Skeleton";
 import { useI18n } from "../../context/i18n";
 import api from "../../services/api";
@@ -30,6 +31,9 @@ import {
   HardDrive,
   Clock,
   FileText,
+  Plus,
+  Pencil,
+  Trash,
   ICON_COLORS,
 } from "../../components/ui/Icons";
 
@@ -52,10 +56,20 @@ export default function AdminBasesDatos() {
   const [poolStats, setPoolStats] = useState(null);
   const [isProduction, setIsProduction] = useState(false);
 
-  // Modales
+  // Modales existentes
   const [structureModal, setStructureModal] = useState({ open: false });
   const [previewModal, setPreviewModal] = useState({ open: false });
   const [operationLoading, setOperationLoading] = useState(false);
+
+  // CRUD - Nuevos estados
+  const [tableColumns, setTableColumns] = useState([]);
+  const [tablePk, setTablePk] = useState([]);
+  const [isReadOnly, setIsReadOnly] = useState(false);
+  const [addModal, setAddModal] = useState({ open: false });
+  const [editModal, setEditModal] = useState({ open: false, row: null });
+  const [deleteModal, setDeleteModal] = useState({ open: false, row: null });
+  const [formData, setFormData] = useState({});
+  const [crudLoading, setCrudLoading] = useState(false);
 
   // Cargar vista general
   const loadOverview = useCallback(async () => {
@@ -102,13 +116,30 @@ export default function AdminBasesDatos() {
     }
   };
 
+  // Cargar columnas para CRUD (filtra protegidas)
+  const loadTableColumnsForCrud = async (tableName) => {
+    try {
+      const res = await api.get(`/admin/database/tables/${tableName}/columns?db=${selectedDb}`);
+      if (res.data.ok) {
+        setTableColumns(res.data.columns);
+        setTablePk(res.data.primary_key || []);
+        setIsReadOnly(res.data.read_only || false);
+      }
+    } catch (err) {
+      console.error("Error loading columns for CRUD:", err);
+    }
+  };
+
   // Cargar preview de tabla
   const loadTablePreview = async (tableName) => {
     setSelectedTable(tableName);
     try {
-      const res = await api.get(`/admin/database/tables/${tableName}/preview?db=${selectedDb}&limit=50`);
-      if (res.data.ok) {
-        setTablePreview(res.data);
+      const [previewRes] = await Promise.all([
+        api.get(`/admin/database/tables/${tableName}/preview?db=${selectedDb}&limit=50`),
+        loadTableColumnsForCrud(tableName),
+      ]);
+      if (previewRes.data.ok) {
+        setTablePreview(previewRes.data);
         setPreviewModal({ open: true });
       }
     } catch (err) {
@@ -172,6 +203,159 @@ export default function AdminBasesDatos() {
   // Exportar tabla a CSV
   const exportTableCsv = (tableName) => {
     window.open(`/api/admin/database/tables/${tableName}/export-csv?db=${selectedDb}`, "_blank");
+  };
+
+  // ==================== CRUD OPERATIONS ====================
+
+  // Abrir modal de agregar
+  const openAddModal = () => {
+    if (isReadOnly) {
+      setError("Esta tabla es de solo lectura");
+      return;
+    }
+    // Inicializar formData con valores por defecto
+    const initialData = {};
+    tableColumns.forEach(col => {
+      if (!col.is_pk && !col.is_auto && col.editable) {
+        initialData[col.name] = col.default || "";
+      }
+    });
+    setFormData(initialData);
+    setAddModal({ open: true });
+  };
+
+  // Abrir modal de editar
+  const openEditModal = (row) => {
+    if (isReadOnly) {
+      setError("Esta tabla es de solo lectura");
+      return;
+    }
+    // Cargar datos actuales en el form
+    const editData = {};
+    tableColumns.forEach(col => {
+      if (col.editable) {
+        editData[col.name] = row[col.name] ?? "";
+      }
+    });
+    setFormData(editData);
+    setEditModal({ open: true, row });
+  };
+
+  // Abrir modal de eliminar
+  const openDeleteModal = (row) => {
+    if (isReadOnly) {
+      setError("Esta tabla es de solo lectura");
+      return;
+    }
+    setDeleteModal({ open: true, row });
+  };
+
+  // Crear registro
+  const handleCreate = async () => {
+    setCrudLoading(true);
+    setError("");
+    try {
+      const res = await api.post(`/admin/database/tables/${selectedTable}/rows`, {
+        db: selectedDb,
+        data: formData,
+      });
+      if (res.data.ok) {
+        setSuccess(res.data.message || "Registro creado");
+        setAddModal({ open: false });
+        // Recargar preview
+        loadTablePreview(selectedTable);
+        setTimeout(() => setSuccess(""), 5000);
+      }
+    } catch (err) {
+      setError(err.response?.data?.error?.message || "Error al crear registro");
+    } finally {
+      setCrudLoading(false);
+    }
+  };
+
+  // Actualizar registro
+  const handleUpdate = async () => {
+    setCrudLoading(true);
+    setError("");
+    try {
+      // Construir PK object
+      const pkData = {};
+      tablePk.forEach(pkCol => {
+        pkData[pkCol] = editModal.row[pkCol];
+      });
+
+      const res = await api.put(`/admin/database/tables/${selectedTable}/rows`, {
+        db: selectedDb,
+        pk: pkData,
+        data: formData,
+      });
+      if (res.data.ok) {
+        setSuccess(res.data.message || "Registro actualizado");
+        setEditModal({ open: false, row: null });
+        // Recargar preview
+        loadTablePreview(selectedTable);
+        setTimeout(() => setSuccess(""), 5000);
+      }
+    } catch (err) {
+      setError(err.response?.data?.error?.message || "Error al actualizar registro");
+    } finally {
+      setCrudLoading(false);
+    }
+  };
+
+  // Eliminar registro
+  const handleDelete = async (softDelete = false) => {
+    setCrudLoading(true);
+    setError("");
+    try {
+      // Construir PK object
+      const pkData = {};
+      tablePk.forEach(pkCol => {
+        pkData[pkCol] = deleteModal.row[pkCol];
+      });
+
+      const res = await api.delete(`/admin/database/tables/${selectedTable}/rows`, {
+        data: {
+          db: selectedDb,
+          pk: pkData,
+          soft_delete: softDelete,
+        },
+      });
+      if (res.data.ok) {
+        setSuccess(res.data.message || "Registro eliminado");
+        setDeleteModal({ open: false, row: null });
+        // Recargar preview
+        loadTablePreview(selectedTable);
+        setTimeout(() => setSuccess(""), 5000);
+      }
+    } catch (err) {
+      setError(err.response?.data?.error?.message || "Error al eliminar registro");
+    } finally {
+      setCrudLoading(false);
+    }
+  };
+
+  // Manejar cambio en form
+  const handleFormChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Obtener tipo de input segun tipo de columna
+  const getInputType = (colType) => {
+    const type = (colType || "").toLowerCase();
+    if (type.includes("int") || type.includes("real") || type.includes("numeric") || type.includes("decimal")) {
+      return "number";
+    }
+    if (type.includes("date")) {
+      return "date";
+    }
+    if (type.includes("time")) {
+      return "datetime-local";
+    }
+    if (type.includes("bool")) {
+      return "checkbox";
+    }
+    return "text";
   };
 
   // Efectos
@@ -589,7 +773,7 @@ export default function AdminBasesDatos() {
         )}
       </Modal>
 
-      {/* Modal de Preview */}
+      {/* Modal de Preview con CRUD */}
       <Modal
         isOpen={previewModal.open}
         onClose={() => setPreviewModal({ open: false })}
@@ -597,34 +781,227 @@ export default function AdminBasesDatos() {
         size="xl"
       >
         {tablePreview && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="bg-[var(--bg-soft)]">
-                <tr>
-                  {tablePreview.columns.map((col) => (
-                    <th key={col} className="px-2 py-2 text-left font-medium text-[var(--fg-muted)] whitespace-nowrap">
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {tablePreview.rows.map((row, i) => (
-                  <tr key={i} className="hover:bg-[var(--bg-soft)]/50">
+          <div className="space-y-4">
+            {/* Boton agregar */}
+            {!isReadOnly && (
+              <div className="flex justify-end">
+                <Button onClick={openAddModal} size="sm">
+                  <Plus className="w-4 h-4" />
+                  Agregar registro
+                </Button>
+              </div>
+            )}
+
+            {isReadOnly && (
+              <Alert variant="warning" className="py-2">
+                <Shield className="w-4 h-4" />
+                Esta tabla es de solo lectura
+              </Alert>
+            )}
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-[var(--bg-soft)]">
+                  <tr>
+                    {!isReadOnly && (
+                      <th className="px-2 py-2 text-center font-medium text-[var(--fg-muted)] w-20">
+                        Acciones
+                      </th>
+                    )}
                     {tablePreview.columns.map((col) => (
-                      <td key={col} className="px-2 py-1.5 font-mono whitespace-nowrap max-w-[200px] truncate">
-                        {row[col] ?? <span className="text-[var(--fg-muted)]">NULL</span>}
-                      </td>
+                      <th key={col} className="px-2 py-2 text-left font-medium text-[var(--fg-muted)] whitespace-nowrap">
+                        {col}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="text-xs text-[var(--fg-muted)] mt-3 text-center">
-              Mostrando {tablePreview.rows.length} de {tablePreview.total.toLocaleString()} registros
-            </p>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {tablePreview.rows.map((row, i) => (
+                    <tr key={i} className="hover:bg-[var(--bg-soft)]/50">
+                      {!isReadOnly && (
+                        <td className="px-2 py-1.5 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => openEditModal(row)}
+                              className="p-1 hover:bg-[var(--bg-soft)] rounded"
+                              title="Editar"
+                            >
+                              <Pencil className={`w-3.5 h-3.5 ${ICON_COLORS.info}`} />
+                            </button>
+                            <button
+                              onClick={() => openDeleteModal(row)}
+                              className="p-1 hover:bg-[var(--bg-soft)] rounded"
+                              title="Eliminar"
+                            >
+                              <Trash className={`w-3.5 h-3.5 ${ICON_COLORS.danger}`} />
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                      {tablePreview.columns.map((col) => (
+                        <td key={col} className="px-2 py-1.5 font-mono whitespace-nowrap max-w-[200px] truncate">
+                          {row[col] ?? <span className="text-[var(--fg-muted)]">NULL</span>}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="text-xs text-[var(--fg-muted)] mt-3 text-center">
+                Mostrando {tablePreview.rows.length} de {tablePreview.total.toLocaleString()} registros
+              </p>
+            </div>
           </div>
         )}
+      </Modal>
+
+      {/* Modal de Agregar Registro */}
+      <Modal
+        isOpen={addModal.open}
+        onClose={() => setAddModal({ open: false })}
+        title={`Agregar registro a ${selectedTable}`}
+        size="md"
+      >
+        <div className="space-y-4">
+          {tableColumns.filter(col => col.editable && !col.is_pk).map((col) => (
+            <div key={col.name}>
+              <label className="block text-sm font-medium text-[var(--fg)] mb-1">
+                {col.name}
+                {!col.nullable && <span className="text-red-500 ml-1">*</span>}
+              </label>
+              {getInputType(col.type) === "checkbox" ? (
+                <input
+                  type="checkbox"
+                  checked={formData[col.name] === "1" || formData[col.name] === true}
+                  onChange={(e) => handleFormChange(col.name, e.target.checked ? "1" : "0")}
+                  className="h-4 w-4"
+                />
+              ) : (
+                <Input
+                  type={getInputType(col.type)}
+                  value={formData[col.name] || ""}
+                  onChange={(e) => handleFormChange(col.name, e.target.value)}
+                  placeholder={col.type}
+                />
+              )}
+              <p className="text-xs text-[var(--fg-muted)] mt-1">
+                Tipo: {col.type} {col.default && `| Default: ${col.default}`}
+              </p>
+            </div>
+          ))}
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="ghost" onClick={() => setAddModal({ open: false })} disabled={crudLoading}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCreate} disabled={crudLoading}>
+              {crudLoading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              Crear registro
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal de Editar Registro */}
+      <Modal
+        isOpen={editModal.open}
+        onClose={() => setEditModal({ open: false, row: null })}
+        title={`Editar registro de ${selectedTable}`}
+        size="md"
+      >
+        <div className="space-y-4">
+          {/* Mostrar PK (solo lectura) */}
+          {tablePk.map((pkCol) => (
+            <div key={pkCol}>
+              <label className="block text-sm font-medium text-[var(--fg-muted)] mb-1">
+                {pkCol} (PK - Solo lectura)
+              </label>
+              <Input
+                value={editModal.row?.[pkCol] || ""}
+                disabled
+                className="bg-[var(--bg-soft)]"
+              />
+            </div>
+          ))}
+
+          {tableColumns.filter(col => col.editable && !col.is_pk).map((col) => (
+            <div key={col.name}>
+              <label className="block text-sm font-medium text-[var(--fg)] mb-1">
+                {col.name}
+                {!col.nullable && <span className="text-red-500 ml-1">*</span>}
+              </label>
+              {getInputType(col.type) === "checkbox" ? (
+                <input
+                  type="checkbox"
+                  checked={formData[col.name] === "1" || formData[col.name] === true || formData[col.name] === "true"}
+                  onChange={(e) => handleFormChange(col.name, e.target.checked ? "1" : "0")}
+                  className="h-4 w-4"
+                />
+              ) : (
+                <Input
+                  type={getInputType(col.type)}
+                  value={formData[col.name] || ""}
+                  onChange={(e) => handleFormChange(col.name, e.target.value)}
+                  placeholder={col.type}
+                />
+              )}
+            </div>
+          ))}
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="ghost" onClick={() => setEditModal({ open: false, row: null })} disabled={crudLoading}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdate} disabled={crudLoading}>
+              {crudLoading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}
+              Guardar cambios
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal de Eliminar Registro */}
+      <Modal
+        isOpen={deleteModal.open}
+        onClose={() => setDeleteModal({ open: false, row: null })}
+        title="Confirmar eliminacion"
+        size="md"
+      >
+        <div className="space-y-4">
+          <Alert variant="danger">
+            <AlertTriangle className="w-4 h-4" />
+            Esta accion no se puede deshacer. El registro sera eliminado permanentemente.
+          </Alert>
+
+          <div className="p-3 rounded-lg bg-[var(--bg-soft)] border border-[var(--border)]">
+            <p className="text-sm font-medium mb-2">Datos del registro:</p>
+            <div className="space-y-1 text-xs font-mono">
+              {deleteModal.row && Object.entries(deleteModal.row).slice(0, 8).map(([key, val]) => (
+                <div key={key} className="flex">
+                  <span className="text-[var(--fg-muted)] w-24">{key}:</span>
+                  <span className="truncate max-w-[200px]">{val ?? "NULL"}</span>
+                </div>
+              ))}
+              {deleteModal.row && Object.keys(deleteModal.row).length > 8 && (
+                <p className="text-[var(--fg-muted)]">... y {Object.keys(deleteModal.row).length - 8} campos mas</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="ghost" onClick={() => setDeleteModal({ open: false, row: null })} disabled={crudLoading}>
+              Cancelar
+            </Button>
+            <Button variant="secondary" onClick={() => handleDelete(true)} disabled={crudLoading}>
+              {crudLoading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+              Soft Delete
+            </Button>
+            <Button variant="danger" onClick={() => handleDelete(false)} disabled={crudLoading}>
+              {crudLoading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Trash className="w-4 h-4" />}
+              Eliminar
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
