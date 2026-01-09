@@ -34,6 +34,10 @@ import {
   Plus,
   Edit2,
   Trash2,
+  BarChart2,
+  Activity,
+  History,
+  Users,
   ICON_COLORS,
 } from "../../components/ui/Icons";
 
@@ -70,6 +74,15 @@ export default function AdminBasesDatos() {
   const [deleteModal, setDeleteModal] = useState({ open: false, row: null });
   const [formData, setFormData] = useState({});
   const [crudLoading, setCrudLoading] = useState(false);
+
+  // Herramientas avanzadas
+  const [tableStats, setTableStats] = useState(null);
+  const [statsModal, setStatsModal] = useState({ open: false, table: null });
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditModal, setAuditModal] = useState({ open: false });
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [connections, setConnections] = useState([]);
+  const [connectionsModal, setConnectionsModal] = useState({ open: false });
 
   // Cargar vista general
   const loadOverview = useCallback(async () => {
@@ -204,6 +217,66 @@ export default function AdminBasesDatos() {
   const exportTableCsv = (tableName) => {
     window.open(`/api/admin/database/tables/${tableName}/export-csv?db=${selectedDb}`, "_blank");
   };
+
+  // Ver estadisticas de tabla
+  const loadTableStats = async (tableName) => {
+    setOperationLoading(true);
+    setError("");
+    try {
+      const res = await api.get(`/admin/database/tables/${tableName}/stats?db=${selectedDb}`);
+      if (res.data.ok) {
+        setTableStats(res.data);
+        setStatsModal({ open: true, table: tableName });
+      }
+    } catch (err) {
+      setError(err.response?.data?.error?.message || "Error cargando estadisticas");
+    } finally {
+      setOperationLoading(false);
+    }
+  };
+
+  // Ver audit logs
+  const loadAuditLogs = async () => {
+    setAuditLoading(true);
+    setError("");
+    try {
+      const res = await api.get("/admin/database/audit-logs?days=7&limit=100");
+      if (res.data.ok) {
+        setAuditLogs(res.data.logs || []);
+        setAuditModal({ open: true });
+      }
+    } catch (err) {
+      setError(err.response?.data?.error?.message || "Error cargando audit logs");
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
+  // Ver conexiones activas (PostgreSQL)
+  const loadConnections = async () => {
+    setOperationLoading(true);
+    setError("");
+    try {
+      const res = await api.get("/admin/database/connections");
+      if (res.data.ok) {
+        setConnections(res.data.connections || []);
+        setConnectionsModal({ open: true });
+      }
+    } catch (err) {
+      if (err.response?.status === 400) {
+        setError("Solo disponible para PostgreSQL");
+      } else {
+        setError(err.response?.data?.error?.message || "Error cargando conexiones");
+      }
+    } finally {
+      setOperationLoading(false);
+    }
+  };
+
+  // Helper para determinar el tipo de BD seleccionada
+  const selectedDbInfo = databases.find(db => db.name === selectedDb);
+  const isPostgres = selectedDbInfo?.type === "postgresql";
+  const isSqlite = selectedDbInfo?.type === "sqlite";
 
   // ==================== CRUD OPERATIONS ====================
 
@@ -561,8 +634,10 @@ export default function AdminBasesDatos() {
                 onChange={(e) => setSelectedDb(e.target.value)}
                 label={t("db_select", "Base de datos")}
               >
-                {databases.filter(db => db.type === "sqlite").map((db) => (
-                  <option key={db.name} value={db.name}>{db.name}</option>
+                {databases.map((db) => (
+                  <option key={db.name} value={db.name}>
+                    {db.name} ({db.type === "postgresql" ? "PostgreSQL" : "SQLite"})
+                  </option>
                 ))}
               </Select>
             </div>
@@ -575,13 +650,16 @@ export default function AdminBasesDatos() {
                 <CardTitle className="flex items-center gap-2">
                   <Zap className={`w-5 h-5 ${ICON_COLORS.warning}`} />
                   Optimizar
+                  <Badge variant="success" className="ml-auto text-xs">All DBs</Badge>
                 </CardTitle>
-                <CardDescription>Crear indices, analizar y compactar</CardDescription>
+                <CardDescription>
+                  {isPostgres ? "VACUUM ANALYZE" : "Indices + ANALYZE + VACUUM"}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Button
                   onClick={() => runOperation("optimize", "BD optimizada")}
-                  disabled={operationLoading || isProduction && selectedDb === "spm"}
+                  disabled={operationLoading}
                   className="w-full"
                 >
                   {operationLoading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
@@ -596,6 +674,7 @@ export default function AdminBasesDatos() {
                 <CardTitle className="flex items-center gap-2">
                   <HardDrive className={`w-5 h-5 ${ICON_COLORS.info}`} />
                   VACUUM
+                  <Badge variant="success" className="ml-auto text-xs">All DBs</Badge>
                 </CardTitle>
                 <CardDescription>Compactar y liberar espacio</CardDescription>
               </CardHeader>
@@ -603,7 +682,7 @@ export default function AdminBasesDatos() {
                 <Button
                   variant="secondary"
                   onClick={() => runOperation("vacuum", "VACUUM completado")}
-                  disabled={operationLoading || isProduction && selectedDb === "spm"}
+                  disabled={operationLoading}
                   className="w-full"
                 >
                   {operationLoading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <HardDrive className="w-4 h-4" />}
@@ -618,6 +697,7 @@ export default function AdminBasesDatos() {
                 <CardTitle className="flex items-center gap-2">
                   <Clock className={`w-5 h-5 ${ICON_COLORS.success}`} />
                   ANALYZE
+                  <Badge variant="success" className="ml-auto text-xs">All DBs</Badge>
                 </CardTitle>
                 <CardDescription>Actualizar estadisticas de tablas</CardDescription>
               </CardHeader>
@@ -635,11 +715,12 @@ export default function AdminBasesDatos() {
             </Card>
 
             {/* Crear Indices */}
-            <Card>
+            <Card className={isPostgres ? "opacity-60" : ""}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <List className={`w-5 h-5 ${ICON_COLORS.primary}`} />
                   Crear Indices
+                  <Badge variant="warning" className="ml-auto text-xs">SQLite</Badge>
                 </CardTitle>
                 <CardDescription>Indices recomendados para rendimiento</CardDescription>
               </CardHeader>
@@ -647,12 +728,13 @@ export default function AdminBasesDatos() {
                 <Button
                   variant="secondary"
                   onClick={() => runOperation("create-indexes", "Indices creados")}
-                  disabled={operationLoading || isProduction && selectedDb === "spm"}
+                  disabled={operationLoading || isPostgres}
                   className="w-full"
                 >
                   {operationLoading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <List className="w-4 h-4" />}
                   Crear Indices
                 </Button>
+                {isPostgres && <p className="text-xs text-amber-600 mt-2">No disponible para PostgreSQL</p>}
               </CardContent>
             </Card>
 
@@ -662,14 +744,17 @@ export default function AdminBasesDatos() {
                 <CardTitle className="flex items-center gap-2">
                   <Shield className={`w-5 h-5 ${ICON_COLORS.danger}`} />
                   Verificar Integridad
+                  <Badge variant="success" className="ml-auto text-xs">All DBs</Badge>
                 </CardTitle>
-                <CardDescription>Comprobar consistencia de la BD</CardDescription>
+                <CardDescription>
+                  {isPostgres ? "Indices invalidos y fragmentacion" : "PRAGMA integrity_check"}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button
                   variant="secondary"
                   onClick={runIntegrityCheck}
-                  disabled={operationLoading || isProduction && selectedDb === "spm"}
+                  disabled={operationLoading}
                   className="w-full"
                 >
                   {operationLoading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
@@ -692,17 +777,23 @@ export default function AdminBasesDatos() {
                         {integrityResult.foreign_key_issues} problemas de FK
                       </p>
                     )}
+                    {integrityResult.bloated_tables?.length > 0 && (
+                      <p className="text-sm text-amber-600 mt-1">
+                        {integrityResult.bloated_tables.length} tablas con fragmentacion
+                      </p>
+                    )}
                   </div>
                 )}
               </CardContent>
             </Card>
 
             {/* Descargar Backup */}
-            <Card>
+            <Card className={isPostgres ? "opacity-60" : ""}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Download className={`w-5 h-5 ${ICON_COLORS.info}`} />
                   Backup
+                  <Badge variant="warning" className="ml-auto text-xs">SQLite</Badge>
                 </CardTitle>
                 <CardDescription>Descargar copia de la BD</CardDescription>
               </CardHeader>
@@ -710,20 +801,129 @@ export default function AdminBasesDatos() {
                 <Button
                   variant="secondary"
                   onClick={downloadDatabase}
-                  disabled={isProduction && selectedDb === "spm"}
+                  disabled={isPostgres}
                   className="w-full"
                 >
                   <Download className="w-4 h-4" />
                   Descargar {selectedDb}.db
                 </Button>
+                {isPostgres && <p className="text-xs text-amber-600 mt-2">Use pg_dump para PostgreSQL</p>}
+              </CardContent>
+            </Card>
+
+            {/* Estadisticas de Tabla */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart2 className={`w-5 h-5 ${ICON_COLORS.primary}`} />
+                  Estadisticas
+                  <Badge variant="success" className="ml-auto text-xs">All DBs</Badge>
+                </CardTitle>
+                <CardDescription>Ver tamaño, filas e indices de una tabla</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2">
+                  <Select
+                    value={selectedTable || ""}
+                    onChange={(e) => setSelectedTable(e.target.value)}
+                    className="flex-1"
+                  >
+                    <option value="">Seleccionar tabla...</option>
+                    {tables.map((t) => (
+                      <option key={t.name} value={t.name}>{t.name}</option>
+                    ))}
+                  </Select>
+                  <Button
+                    variant="secondary"
+                    onClick={() => selectedTable && loadTableStats(selectedTable)}
+                    disabled={operationLoading || !selectedTable}
+                  >
+                    <BarChart2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Audit Logs */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <History className={`w-5 h-5 ${ICON_COLORS.warning}`} />
+                  Audit Log
+                  <Badge variant="success" className="ml-auto text-xs">All DBs</Badge>
+                </CardTitle>
+                <CardDescription>Ver historial de operaciones CRUD</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  variant="secondary"
+                  onClick={loadAuditLogs}
+                  disabled={auditLoading}
+                  className="w-full"
+                >
+                  {auditLoading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <History className="w-4 h-4" />}
+                  Ver Ultimos 7 dias
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Conexiones Activas */}
+            <Card className={!isPostgres ? "opacity-60" : ""}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className={`w-5 h-5 ${ICON_COLORS.info}`} />
+                  Conexiones
+                  <Badge variant="info" className="ml-auto text-xs">PostgreSQL</Badge>
+                </CardTitle>
+                <CardDescription>Ver conexiones activas</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  variant="secondary"
+                  onClick={loadConnections}
+                  disabled={operationLoading || !isPostgres}
+                  className="w-full"
+                >
+                  {operationLoading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+                  Ver Conexiones
+                </Button>
+                {!isPostgres && <p className="text-xs text-amber-600 mt-2">Solo disponible para PostgreSQL</p>}
+              </CardContent>
+            </Card>
+
+            {/* Pool Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className={`w-5 h-5 ${ICON_COLORS.success}`} />
+                  Pool Stats
+                  <Badge variant="success" className="ml-auto text-xs">All DBs</Badge>
+                </CardTitle>
+                <CardDescription>Estadisticas del pool de conexiones</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {poolStats ? (
+                  <div className="space-y-2 text-sm">
+                    {Object.entries(poolStats).map(([pool, stats]) => (
+                      <div key={pool} className="p-2 bg-[var(--bg-soft)] rounded">
+                        <p className="font-medium">{pool}</p>
+                        <p className="text-xs text-[var(--fg-muted)]">
+                          Activas: {stats.active || 0} | Idle: {stats.idle || 0}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-[var(--fg-muted)]">Cargando...</p>
+                )}
               </CardContent>
             </Card>
           </div>
 
           {isProduction && (
-            <Alert variant="warning">
+            <Alert variant="info" className="mt-4">
               <AlertTriangle className="w-4 h-4" />
-              Algunas operaciones no estan disponibles para PostgreSQL en produccion
+              PostgreSQL en produccion: Algunas operaciones (VACUUM, Optimize) funcionan pero requieren permisos adecuados.
             </Alert>
           )}
         </div>
@@ -1010,6 +1210,153 @@ export default function AdminBasesDatos() {
               Eliminar
             </Button>
           </div>
+        </div>
+      </Modal>
+
+      {/* Modal de Estadisticas de Tabla */}
+      <Modal
+        isOpen={statsModal.open}
+        onClose={() => setStatsModal({ open: false, table: null })}
+        title={`Estadisticas: ${statsModal.table}`}
+        size="md"
+      >
+        {tableStats && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 rounded-lg bg-[var(--bg-soft)] border border-[var(--border)]">
+                <p className="text-sm text-[var(--fg-muted)]">Filas</p>
+                <p className="text-2xl font-bold">{tableStats.stats.actual_rows?.toLocaleString()}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-[var(--bg-soft)] border border-[var(--border)]">
+                <p className="text-sm text-[var(--fg-muted)]">Tamaño</p>
+                <p className="text-2xl font-bold">{tableStats.stats.total_size_mb} MB</p>
+              </div>
+              <div className="p-3 rounded-lg bg-[var(--bg-soft)] border border-[var(--border)]">
+                <p className="text-sm text-[var(--fg-muted)]">Indices</p>
+                <p className="text-2xl font-bold">{tableStats.stats.index_count}</p>
+              </div>
+              {tableStats.type === "postgresql" && (
+                <div className="p-3 rounded-lg bg-[var(--bg-soft)] border border-[var(--border)]">
+                  <p className="text-sm text-[var(--fg-muted)]">Fragmentacion</p>
+                  <p className={`text-2xl font-bold ${tableStats.stats.fragmentation_pct > 20 ? "text-amber-500" : "text-emerald-500"}`}>
+                    {tableStats.stats.fragmentation_pct}%
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {tableStats.type === "postgresql" && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-[var(--fg-muted)]">Ultimo Mantenimiento</h4>
+                <div className="text-sm space-y-1">
+                  <p><span className="text-[var(--fg-muted)]">VACUUM:</span> {tableStats.stats.last_vacuum || tableStats.stats.last_autovacuum || "Nunca"}</p>
+                  <p><span className="text-[var(--fg-muted)]">ANALYZE:</span> {tableStats.stats.last_analyze || tableStats.stats.last_autoanalyze || "Nunca"}</p>
+                </div>
+                <div className="text-sm mt-2">
+                  <p><span className="text-[var(--fg-muted)]">Live tuples:</span> {tableStats.stats.live_tuples?.toLocaleString()}</p>
+                  <p><span className="text-[var(--fg-muted)]">Dead tuples:</span> {tableStats.stats.dead_tuples?.toLocaleString()}</p>
+                </div>
+              </div>
+            )}
+
+            {tableStats.type === "sqlite" && (
+              <div className="text-sm space-y-1">
+                <p><span className="text-[var(--fg-muted)]">Paginas:</span> {tableStats.stats.page_count?.toLocaleString()}</p>
+                <p><span className="text-[var(--fg-muted)]">Tamaño pagina:</span> {tableStats.stats.page_size} bytes</p>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {/* Modal de Audit Logs */}
+      <Modal
+        isOpen={auditModal.open}
+        onClose={() => setAuditModal({ open: false })}
+        title="Audit Log - Ultimos 7 dias"
+        size="xl"
+      >
+        <div className="max-h-[60vh] overflow-auto">
+          {auditLogs.length === 0 ? (
+            <p className="text-[var(--fg-muted)] text-center py-8">No hay registros de auditoria</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-[var(--bg-soft)] sticky top-0">
+                <tr>
+                  <th className="px-3 py-2 text-left">Fecha</th>
+                  <th className="px-3 py-2 text-left">Accion</th>
+                  <th className="px-3 py-2 text-left">Entidad</th>
+                  <th className="px-3 py-2 text-left">Usuario</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border)]">
+                {auditLogs.map((log) => (
+                  <tr key={log.id} className="hover:bg-[var(--bg-soft)]">
+                    <td className="px-3 py-2 whitespace-nowrap text-xs">
+                      {new Date(log.created_at).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2">
+                      <Badge variant={
+                        log.action.includes("DELETE") ? "danger" :
+                        log.action.includes("CREATE") ? "success" :
+                        log.action.includes("UPDATE") ? "warning" : "default"
+                      }>
+                        {log.action}
+                      </Badge>
+                    </td>
+                    <td className="px-3 py-2 font-mono text-xs">{log.entity_type}</td>
+                    <td className="px-3 py-2 text-xs">{log.user_id}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </Modal>
+
+      {/* Modal de Conexiones Activas */}
+      <Modal
+        isOpen={connectionsModal.open}
+        onClose={() => setConnectionsModal({ open: false })}
+        title="Conexiones Activas - PostgreSQL"
+        size="xl"
+      >
+        <div className="max-h-[60vh] overflow-auto">
+          {connections.length === 0 ? (
+            <p className="text-[var(--fg-muted)] text-center py-8">No hay conexiones activas</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-[var(--bg-soft)] sticky top-0">
+                <tr>
+                  <th className="px-3 py-2 text-left">PID</th>
+                  <th className="px-3 py-2 text-left">Usuario</th>
+                  <th className="px-3 py-2 text-left">App</th>
+                  <th className="px-3 py-2 text-left">Estado</th>
+                  <th className="px-3 py-2 text-left">Duracion</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border)]">
+                {connections.map((conn) => (
+                  <tr key={conn.pid} className="hover:bg-[var(--bg-soft)]">
+                    <td className="px-3 py-2 font-mono">{conn.pid}</td>
+                    <td className="px-3 py-2">{conn.user}</td>
+                    <td className="px-3 py-2 text-xs">{conn.application || "-"}</td>
+                    <td className="px-3 py-2">
+                      <Badge variant={
+                        conn.state === "active" ? "success" :
+                        conn.state === "idle" ? "default" : "warning"
+                      }>
+                        {conn.state}
+                      </Badge>
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      {conn.query_duration_sec ? `${conn.query_duration_sec}s` : "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </Modal>
     </div>

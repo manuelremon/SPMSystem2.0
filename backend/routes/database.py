@@ -468,6 +468,7 @@ def get_table_preview(table: str):
 @bp.route("/optimize", methods=["POST"])
 @require_auth
 @require_admin
+@rate_limit(5, 60)  # 5 requests per minute - operacion costosa
 def run_optimize():
     """Ejecuta optimizacion completa (indices + analyze + vacuum)"""
     db_name = request.json.get("db", "spm") if request.json else "spm"
@@ -475,12 +476,20 @@ def run_optimize():
     if db_name not in ALLOWED_DATABASES:
         return jsonify({"ok": False, "error": {"code": "invalid_db", "message": f"BD no permitida"}}), 400
 
-    if is_postgres() and db_name == "spm":
-        return jsonify({"ok": False, "error": {"code": "not_supported", "message": "Optimizacion no disponible para PostgreSQL desde aqui"}}), 400
-
     try:
-        result = optimize_database(db_name)
-        return jsonify({"ok": True, "message": f"BD {db_name} optimizada", "result": result}), 200
+        if is_postgres() and db_name == "spm":
+            # PostgreSQL: VACUUM ANALYZE (equivalente a optimizacion completa)
+            with get_db_connection() as conn:
+                # PostgreSQL necesita autocommit para VACUUM
+                old_autocommit = conn.autocommit
+                conn.autocommit = True
+                cur = conn.cursor()
+                cur.execute("VACUUM ANALYZE")
+                conn.autocommit = old_autocommit
+            return jsonify({"ok": True, "message": f"PostgreSQL {db_name} optimizado (VACUUM ANALYZE)"}), 200
+        else:
+            result = optimize_database(db_name)
+            return jsonify({"ok": True, "message": f"BD {db_name} optimizada", "result": result}), 200
     except Exception as e:
         return jsonify({"ok": False, "error": {"code": "optimize_error", "message": str(e)}}), 500
 
@@ -488,6 +497,7 @@ def run_optimize():
 @bp.route("/vacuum", methods=["POST"])
 @require_auth
 @require_admin
+@rate_limit(5, 60)  # 5 requests per minute - operacion costosa
 def run_vacuum():
     """Ejecuta VACUUM para compactar la BD"""
     db_name = request.json.get("db", "spm") if request.json else "spm"
@@ -495,17 +505,24 @@ def run_vacuum():
     if db_name not in ALLOWED_DATABASES:
         return jsonify({"ok": False, "error": {"code": "invalid_db", "message": f"BD no permitida"}}), 400
 
-    if is_postgres() and db_name == "spm":
-        return jsonify({"ok": False, "error": {"code": "not_supported", "message": "VACUUM no disponible para PostgreSQL desde aqui"}}), 400
-
     try:
-        db_path = get_sqlite_path(db_name)
-        conn = sqlite3.connect(db_path)
-        conn.execute("VACUUM")
-        conn.close()
+        if is_postgres() and db_name == "spm":
+            # PostgreSQL VACUUM
+            with get_db_connection() as conn:
+                old_autocommit = conn.autocommit
+                conn.autocommit = True
+                cur = conn.cursor()
+                cur.execute("VACUUM")
+                conn.autocommit = old_autocommit
+            return jsonify({"ok": True, "message": "PostgreSQL VACUUM completado"}), 200
+        else:
+            db_path = get_sqlite_path(db_name)
+            conn = sqlite3.connect(db_path)
+            conn.execute("VACUUM")
+            conn.close()
 
-        new_size = os.path.getsize(db_path) / (1024 * 1024)
-        return jsonify({"ok": True, "message": f"VACUUM completado", "new_size_mb": round(new_size, 2)}), 200
+            new_size = os.path.getsize(db_path) / (1024 * 1024)
+            return jsonify({"ok": True, "message": f"VACUUM completado", "new_size_mb": round(new_size, 2)}), 200
     except Exception as e:
         return jsonify({"ok": False, "error": {"code": "vacuum_error", "message": str(e)}}), 500
 
@@ -513,6 +530,7 @@ def run_vacuum():
 @bp.route("/analyze", methods=["POST"])
 @require_auth
 @require_admin
+@rate_limit(10, 60)  # 10 requests per minute
 def run_analyze():
     """Ejecuta ANALYZE para actualizar estadisticas"""
     db_name = request.json.get("db", "spm") if request.json else "spm"
@@ -537,6 +555,7 @@ def run_analyze():
 @bp.route("/integrity-check", methods=["POST"])
 @require_auth
 @require_admin
+@rate_limit(5, 60)  # 5 requests per minute - operacion costosa
 def run_integrity_check():
     """Verifica integridad de la BD"""
     db_name = request.json.get("db", "spm") if request.json else "spm"
@@ -544,34 +563,67 @@ def run_integrity_check():
     if db_name not in ALLOWED_DATABASES:
         return jsonify({"ok": False, "error": {"code": "invalid_db", "message": f"BD no permitida"}}), 400
 
-    if is_postgres() and db_name == "spm":
-        return jsonify({"ok": False, "error": {"code": "not_supported", "message": "Integrity check no disponible para PostgreSQL"}}), 400
-
     try:
-        db_path = get_sqlite_path(db_name)
-        conn = sqlite3.connect(db_path)
-        cur = conn.cursor()
+        if is_postgres() and db_name == "spm":
+            # PostgreSQL: verificar estadisticas de tablas e indices invalidos
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+                # Verificar indices invalidos
+                cur.execute("""
+                    SELECT indexrelid::regclass AS index_name,
+                           indrelid::regclass AS table_name,
+                           indisvalid
+                    FROM pg_index
+                    WHERE NOT indisvalid
+                """)
+                invalid_indexes = cur.fetchall()
 
-        # Integrity check
-        cur.execute("PRAGMA integrity_check")
-        integrity_result = cur.fetchall()
+                # Verificar tablas con bloat (fragmentacion)
+                cur.execute("""
+                    SELECT relname, n_dead_tup, n_live_tup
+                    FROM pg_stat_user_tables
+                    WHERE n_dead_tup > 1000
+                    ORDER BY n_dead_tup DESC
+                    LIMIT 10
+                """)
+                bloated_tables = cur.fetchall()
 
-        # Foreign key check
-        cur.execute("PRAGMA foreign_key_check")
-        fk_result = cur.fetchall()
+                is_ok = len(invalid_indexes) == 0
 
-        conn.close()
+            return jsonify({
+                "ok": True,
+                "database": db_name,
+                "type": "postgresql",
+                "integrity_ok": is_ok,
+                "invalid_indexes": [{"index": str(r[0]), "table": str(r[1])} for r in invalid_indexes],
+                "bloated_tables": [{"table": r[0], "dead_tuples": r[1], "live_tuples": r[2]} for r in bloated_tables],
+            }), 200
+        else:
+            db_path = get_sqlite_path(db_name)
+            conn = sqlite3.connect(db_path)
+            cur = conn.cursor()
 
-        is_ok = len(integrity_result) == 1 and integrity_result[0][0] == "ok"
+            # Integrity check
+            cur.execute("PRAGMA integrity_check")
+            integrity_result = cur.fetchall()
 
-        return jsonify({
-            "ok": True,
-            "database": db_name,
-            "integrity_ok": is_ok,
-            "integrity_result": [r[0] for r in integrity_result],
-            "foreign_key_issues": len(fk_result),
-            "foreign_key_details": [{"table": r[0], "rowid": r[1], "parent": r[2]} for r in fk_result[:10]],
-        }), 200
+            # Foreign key check
+            cur.execute("PRAGMA foreign_key_check")
+            fk_result = cur.fetchall()
+
+            conn.close()
+
+            is_ok = len(integrity_result) == 1 and integrity_result[0][0] == "ok"
+
+            return jsonify({
+                "ok": True,
+                "database": db_name,
+                "type": "sqlite",
+                "integrity_ok": is_ok,
+                "integrity_result": [r[0] for r in integrity_result],
+                "foreign_key_issues": len(fk_result),
+                "foreign_key_details": [{"table": r[0], "rowid": r[1], "parent": r[2]} for r in fk_result[:10]],
+            }), 200
     except Exception as e:
         return jsonify({"ok": False, "error": {"code": "integrity_error", "message": str(e)}}), 500
 
@@ -579,6 +631,7 @@ def run_integrity_check():
 @bp.route("/create-indexes", methods=["POST"])
 @require_auth
 @require_admin
+@rate_limit(5, 60)  # 5 requests per minute - operacion costosa
 def run_create_indexes():
     """Crea indices recomendados"""
     db_name = request.json.get("db", "spm") if request.json else "spm"
@@ -1219,3 +1272,301 @@ def get_table_columns_for_crud(table: str):
         "primary_key": pk_columns,
         "read_only": _is_table_read_only(db_name, table),
     }), 200
+
+
+# ==================== STATISTICS & AUDIT ====================
+
+@bp.route("/tables/<table>/stats", methods=["GET"])
+@require_auth
+@require_admin
+@rate_limit(requests=30, window_seconds=60)
+def get_table_stats(table: str):
+    """Obtiene estadisticas detalladas de una tabla"""
+    db_name = request.args.get("db", "spm")
+
+    if db_name not in ALLOWED_DATABASES:
+        return jsonify({"ok": False, "error": {"code": "invalid_db", "message": "BD no permitida"}}), 400
+
+    allowed = ALLOWED_TABLES.get(db_name, [])
+    if table not in allowed:
+        return jsonify({"ok": False, "error": {"code": "forbidden", "message": f"Tabla no permitida: {table}"}}), 403
+
+    try:
+        if is_postgres() and db_name == "spm":
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+
+                # Tamaño de la tabla
+                cur.execute("""
+                    SELECT pg_total_relation_size(%s::regclass) as total_size,
+                           pg_relation_size(%s::regclass) as table_size,
+                           pg_indexes_size(%s::regclass) as index_size
+                """, (table, table, table))
+                size_row = cur.fetchone()
+
+                # Estadisticas de filas
+                cur.execute("""
+                    SELECT reltuples::bigint as estimated_rows,
+                           n_live_tup, n_dead_tup,
+                           last_vacuum, last_autovacuum,
+                           last_analyze, last_autoanalyze
+                    FROM pg_stat_user_tables
+                    WHERE relname = %s
+                """, (table,))
+                stats_row = cur.fetchone()
+
+                # Numero de indices
+                cur.execute("""
+                    SELECT COUNT(*) FROM pg_indexes WHERE tablename = %s
+                """, (table,))
+                index_count = cur.fetchone()[0]
+
+                # Conteo real de filas
+                cur.execute(f'SELECT COUNT(*) FROM "{table}"')
+                actual_rows = cur.fetchone()[0]
+
+            return jsonify({
+                "ok": True,
+                "table": table,
+                "database": db_name,
+                "type": "postgresql",
+                "stats": {
+                    "total_size_bytes": size_row[0] if size_row else 0,
+                    "table_size_bytes": size_row[1] if size_row else 0,
+                    "index_size_bytes": size_row[2] if size_row else 0,
+                    "total_size_mb": round((size_row[0] or 0) / (1024 * 1024), 2),
+                    "estimated_rows": stats_row[0] if stats_row else 0,
+                    "actual_rows": actual_rows,
+                    "live_tuples": stats_row[1] if stats_row else 0,
+                    "dead_tuples": stats_row[2] if stats_row else 0,
+                    "last_vacuum": stats_row[3].isoformat() if stats_row and stats_row[3] else None,
+                    "last_autovacuum": stats_row[4].isoformat() if stats_row and stats_row[4] else None,
+                    "last_analyze": stats_row[5].isoformat() if stats_row and stats_row[5] else None,
+                    "last_autoanalyze": stats_row[6].isoformat() if stats_row and stats_row[6] else None,
+                    "index_count": index_count,
+                    "fragmentation_pct": round(100 * (stats_row[2] or 0) / max((stats_row[1] or 0) + (stats_row[2] or 0), 1), 2) if stats_row else 0,
+                },
+            }), 200
+        else:
+            db_path = get_sqlite_path(db_name)
+            conn = sqlite3.connect(db_path)
+            cur = conn.cursor()
+
+            # Conteo de filas
+            cur.execute(f"SELECT COUNT(*) FROM [{table}]")
+            row_count = cur.fetchone()[0]
+
+            # Numero de indices
+            cur.execute(f"SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND tbl_name=?", (table,))
+            index_count = cur.fetchone()[0]
+
+            # Tamaño aproximado (paginas usadas)
+            cur.execute("PRAGMA page_count")
+            page_count = cur.fetchone()[0]
+            cur.execute("PRAGMA page_size")
+            page_size = cur.fetchone()[0]
+
+            conn.close()
+
+            # Tamaño del archivo
+            file_size = os.path.getsize(db_path)
+
+            return jsonify({
+                "ok": True,
+                "table": table,
+                "database": db_name,
+                "type": "sqlite",
+                "stats": {
+                    "total_size_bytes": file_size,
+                    "total_size_mb": round(file_size / (1024 * 1024), 2),
+                    "actual_rows": row_count,
+                    "index_count": index_count,
+                    "page_count": page_count,
+                    "page_size": page_size,
+                },
+            }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": {"code": "stats_error", "message": str(e)}}), 500
+
+
+@bp.route("/audit-logs", methods=["GET"])
+@require_auth
+@require_admin
+@rate_limit(requests=30, window_seconds=60)
+def get_audit_logs():
+    """Obtiene los logs de auditoria con filtros"""
+    table = request.args.get("table")
+    user_id = request.args.get("user_id", type=int)
+    operation = request.args.get("operation")  # CREATE, UPDATE, DELETE, DB_CREATE, etc.
+    days = request.args.get("days", 7, type=int)
+    limit = min(request.args.get("limit", 100, type=int), 500)
+    offset = request.args.get("offset", 0, type=int)
+
+    try:
+        if is_postgres():
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+
+                # Construir query con filtros
+                conditions = ["created_at >= CURRENT_DATE - INTERVAL '%s days'"]
+                params = [days]
+
+                if table:
+                    conditions.append("entity_type LIKE %s")
+                    params.append(f"%{table}%")
+                if user_id:
+                    conditions.append("user_id = %s")
+                    params.append(user_id)
+                if operation:
+                    conditions.append("action LIKE %s")
+                    params.append(f"%{operation}%")
+
+                where_clause = " AND ".join(conditions)
+
+                # Contar total
+                cur.execute(f"""
+                    SELECT COUNT(*) FROM audit_trail WHERE {where_clause}
+                """, params)
+                total = cur.fetchone()[0]
+
+                # Obtener logs
+                params.extend([limit, offset])
+                cur.execute(f"""
+                    SELECT id, user_id, action, entity_type, entity_id, details, created_at
+                    FROM audit_trail
+                    WHERE {where_clause}
+                    ORDER BY created_at DESC
+                    LIMIT %s OFFSET %s
+                """, params)
+
+                logs = []
+                for row in cur.fetchall():
+                    logs.append({
+                        "id": row[0],
+                        "user_id": row[1],
+                        "action": row[2],
+                        "entity_type": row[3],
+                        "entity_id": row[4],
+                        "details": row[5] if isinstance(row[5], dict) else (json.loads(row[5]) if row[5] else None),
+                        "created_at": row[6].isoformat() if row[6] else None,
+                    })
+
+            return jsonify({
+                "ok": True,
+                "logs": logs,
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+            }), 200
+        else:
+            # SQLite fallback
+            db_path = get_sqlite_path("spm")
+            conn = sqlite3.connect(db_path)
+            cur = conn.cursor()
+
+            # Verificar si la tabla audit_trail existe
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='audit_trail'")
+            if not cur.fetchone():
+                conn.close()
+                return jsonify({"ok": True, "logs": [], "total": 0, "message": "Tabla audit_trail no existe"}), 200
+
+            # Construir query
+            conditions = ["datetime(created_at) >= datetime('now', ?)"]
+            params = [f"-{days} days"]
+
+            if table:
+                conditions.append("entity_type LIKE ?")
+                params.append(f"%{table}%")
+            if user_id:
+                conditions.append("user_id = ?")
+                params.append(user_id)
+            if operation:
+                conditions.append("action LIKE ?")
+                params.append(f"%{operation}%")
+
+            where_clause = " AND ".join(conditions)
+
+            # Contar
+            cur.execute(f"SELECT COUNT(*) FROM audit_trail WHERE {where_clause}", params)
+            total = cur.fetchone()[0]
+
+            # Obtener logs
+            params.extend([limit, offset])
+            cur.execute(f"""
+                SELECT id, user_id, action, entity_type, entity_id, details, created_at
+                FROM audit_trail
+                WHERE {where_clause}
+                ORDER BY created_at DESC
+                LIMIT ? OFFSET ?
+            """, params)
+
+            logs = []
+            for row in cur.fetchall():
+                logs.append({
+                    "id": row[0],
+                    "user_id": row[1],
+                    "action": row[2],
+                    "entity_type": row[3],
+                    "entity_id": row[4],
+                    "details": json.loads(row[5]) if row[5] else None,
+                    "created_at": row[6],
+                })
+
+            conn.close()
+
+            return jsonify({
+                "ok": True,
+                "logs": logs,
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+            }), 200
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": {"code": "audit_error", "message": str(e)}}), 500
+
+
+@bp.route("/connections", methods=["GET"])
+@require_auth
+@require_admin
+@rate_limit(requests=30, window_seconds=60)
+def get_active_connections():
+    """Obtiene conexiones activas de PostgreSQL"""
+    if not is_postgres():
+        return jsonify({"ok": False, "error": {"code": "not_supported", "message": "Solo disponible para PostgreSQL"}}), 400
+
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT pid, usename, application_name, client_addr,
+                       state, query_start, state_change,
+                       EXTRACT(EPOCH FROM (now() - query_start))::int as query_duration_sec
+                FROM pg_stat_activity
+                WHERE datname = current_database()
+                  AND pid <> pg_backend_pid()
+                ORDER BY query_start DESC NULLS LAST
+                LIMIT 50
+            """)
+
+            connections = []
+            for row in cur.fetchall():
+                connections.append({
+                    "pid": row[0],
+                    "user": row[1],
+                    "application": row[2],
+                    "client_addr": str(row[3]) if row[3] else None,
+                    "state": row[4],
+                    "query_start": row[5].isoformat() if row[5] else None,
+                    "state_change": row[6].isoformat() if row[6] else None,
+                    "query_duration_sec": row[7],
+                })
+
+        return jsonify({
+            "ok": True,
+            "connections": connections,
+            "count": len(connections),
+        }), 200
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": {"code": "connections_error", "message": str(e)}}), 500
