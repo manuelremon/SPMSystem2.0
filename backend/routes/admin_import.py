@@ -22,16 +22,24 @@ bp = Blueprint("admin_import", __name__, url_prefix="/api/admin")
 def _get_user_id() -> str:
     """Obtiene el user_id del request context."""
     from flask import g
+    # El auth middleware setea g.user con los datos del usuario
+    user = getattr(g, "user", None)
+    if user:
+        return user.get("id_spm", "")
+    # Fallback a formatos legacy
     return getattr(g, "user_id", None) or getattr(g, "current_user", {}).get("id_spm", "")
 
 
 def _check_admin():
     """Verifica que el usuario sea admin. Retorna error response o None."""
-    user_id = _get_user_id()
-    if not user_id:
+    from flask import g
+
+    user = getattr(g, "user", None)
+    if not user:
         return jsonify({"ok": False, "error": "No autenticado"}), 401
 
-    if not is_admin(user_id):
+    user_rol = user.get("rol", "")
+    if not is_admin(user_rol):
         return jsonify({"ok": False, "error": "Acceso denegado. Se requiere rol admin."}), 403
 
     return None
