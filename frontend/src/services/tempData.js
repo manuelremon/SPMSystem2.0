@@ -137,9 +137,7 @@ export async function downloadTemplate() {
 
   try {
     const response = await api.get(ENDPOINTS.TEMPLATE, {
-      responseType: 'blob',
-      _silenceErrors: [401, 403],
-      _skipAuthRetry: true
+      responseType: 'blob'
     })
 
     // Crear URL temporal y descargar
@@ -155,9 +153,7 @@ export async function downloadTemplate() {
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
   } catch (err) {
-    if (err.response?.status === 401 || err.response?.status === 403) {
-      return
-    }
+    // Re-throw para que el componente pueda manejar el error
     throw err
   }
 }
