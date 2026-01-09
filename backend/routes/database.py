@@ -47,27 +47,46 @@ bp = Blueprint("database", __name__, url_prefix="/api/admin/database")
 ALLOWED_DATABASES = {"spm", "sap_data", "equivalentes", "catalogo_materiales"}
 
 # Whitelist de tablas por BD (para prevenir SQL injection)
-# Actualizado 2026-01-09 con tablas reales de produccion
+# Actualizado 2026-01-09 con TODAS las tablas de PostgreSQL produccion
 ALLOWED_TABLES = {
     "spm": [
-        # Core tables
-        "usuarios", "solicitudes", "solicitud_items_tratamiento", "decision_abastecimiento",
-        "presupuestos", "presupuesto_ledger", "budget_update_requests", "presupuesto_incorporaciones",
+        # Core - Solicitudes y workflow
+        "usuarios", "solicitudes", "solicitud_items_tratamiento", "solicitud_tratamiento_eventos",
+        "solicitud_tratamiento_log", "solicitudes_historial_estados",
+        # Decisiones y planificacion
+        "decision_abastecimiento", "decision_abastecimiento_fuentes", "ordenes_planificadas",
+        "planificador_asignaciones", "solpeds", "purchase_orders", "traslados",
+        # Presupuestos
+        "presupuestos", "presupuesto_ledger", "presupuesto_incorporaciones",
+        "budget_update_requests", "budget_history",
         # Proveedores
-        "proveedores", "proveedores_externos", "proveedor_ext_contactos",
-        "proveedor_ext_emails", "proveedor_ext_telefonos",
-        # Comunicacion
-        "mensajes", "notificaciones", "push_subscriptions",
+        "proveedores", "proveedores_externos", "proveedores_internos",
+        "proveedor_ext_contactos", "proveedor_ext_emails", "proveedor_ext_telefonos",
+        "proveedor_precios_negociados",
+        # Materiales y equivalencias
+        "materiales", "material_equivalencias", "cat_materiales", "cat_equivalencias",
+        # SAP data (migrada a PostgreSQL)
+        "sap_stock", "sap_consumo_historico", "sap_pedidos", "sap_materiales_bbdd",
         # Catalogos
-        "catalog_centros", "catalog_almacenes", "catalog_sectores", "catalog_roles",
-        "catalog_puestos", "materiales",
+        "catalog_centros", "catalog_almacenes", "catalog_sectores", "catalog_roles", "catalog_puestos",
+        # Comunicacion
+        "mensajes", "notificaciones", "push_subscriptions", "outbox_emails",
+        "user_notification_preferences",
+        # Foro
+        "foro_posts", "foro_respuestas", "foro_likes",
+        # Trivias
+        "trivias_scores",
         # Configuracion
-        "config_almacenes", "planificador_asignaciones", "reglas_aprobacion",
-        "sla_configuracion", "ordenes_planificadas",
-        # Usuarios
-        "user_profile_requests", "solicitudes_historial_estados",
+        "config_almacenes", "config_equivalencia_scores", "config_lotes_excluidos",
+        "reglas_aprobacion", "aprobadores_delegados",
+        # SLA y alertas
+        "sla_configuracion", "sla_alertas", "alertas_mrp", "system_alerts",
+        # Metricas
+        "metrics_history",
+        # Usuario
+        "user_profile_requests", "archivos_adjuntos",
         # Audit (read-only)
-        "audit_trail",
+        "audit_trail", "schema_migrations",
     ],
     "sap_data": ["stock", "consumo_historico", "pedidos_sap", "materiales_bbdd"],
     "equivalentes": ["equivalencias"],
@@ -76,7 +95,7 @@ ALLOWED_TABLES = {
 
 # Tablas protegidas (solo lectura - no se pueden modificar via CRUD)
 READ_ONLY_TABLES = {
-    "spm": ["audit_trail"],
+    "spm": ["audit_trail", "schema_migrations"],
 }
 
 # Columnas protegidas (nunca visibles ni editables)
