@@ -20,7 +20,9 @@ export function TempDataBanner({ onStatusChange, variant = 'full' }) {
   // Cargar estado al montar (solo si está autenticado Y es admin)
   const loadStatus = useCallback(async () => {
     // Triple verificación: isAuthenticated, user existe, Y es admin
-    const isAdmin = user?.rol === 'admin' || user?.rol === 'coordinador'
+    const ADMIN_ROLES = ['admin', 'administrador', 'administrator', 'superadmin', 'coordinador']
+    const userRol = String(user?.rol || '').toLowerCase().trim()
+    const isAdmin = ADMIN_ROLES.includes(userRol)
     if (!isAuthenticated || !user || !isAdmin) {
       setLoading(false)
       return

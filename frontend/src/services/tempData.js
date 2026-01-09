@@ -9,6 +9,45 @@ import api from './api'
 import { useAuthStore } from '../store/authStore'
 
 /**
+ * Roles que tienen acceso a endpoints admin de datos temporales
+ */
+const ADMIN_ROLES = new Set(['admin', 'administrador', 'administrator', 'superadmin', 'coordinador'])
+
+/**
+ * Normaliza roles del usuario a un array de strings en minúsculas
+ */
+function normalizeRoles(user) {
+  if (!user?.rol) return []
+
+  const rolStr = String(user.rol).trim()
+  if (!rolStr) return []
+
+  let roles = []
+
+  // Intentar parsear como JSON array
+  if (rolStr.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(rolStr)
+      roles = Array.isArray(parsed) ? parsed : [rolStr]
+    } catch {
+      roles = [rolStr]
+    }
+  }
+  // Separar por coma o punto y coma
+  else if (rolStr.includes(',') || rolStr.includes(';')) {
+    roles = rolStr.split(/[,;]/)
+  }
+  // String simple
+  else {
+    roles = [rolStr]
+  }
+
+  return roles
+    .map(r => String(r).trim().toLowerCase())
+    .filter(r => r.length > 0)
+}
+
+/**
  * Verifica si el usuario actual es admin/coordinador.
  * Previene llamadas innecesarias a endpoints admin.
  */
@@ -16,7 +55,9 @@ function isUserAdmin() {
   const state = useAuthStore.getState()
   const { isAuthenticated, user } = state
   if (!isAuthenticated || !user) return false
-  return user.rol === 'admin' || user.rol === 'coordinador'
+
+  const userRoles = normalizeRoles(user)
+  return userRoles.some(role => ADMIN_ROLES.has(role))
 }
 
 const ENDPOINTS = {
