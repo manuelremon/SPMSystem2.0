@@ -231,7 +231,8 @@
       "Bash(gemini --help:*)",
       "Bash(codex:*)",
       "Bash(bash:*)",
-      "Bash(TIMEOUT_SECONDS=10 LOG=1 ./tools/ask_helpers.sh:*)"
+      "Bash(TIMEOUT_SECONDS=10 LOG=1 ./tools/ask_helpers.sh:*)",
+      "Bash(gh workflow run:*)"
     ],
     "deny": [],
     "ask": []

@@ -129,6 +129,7 @@ export default function Login() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  autoComplete="username"
                   className="w-full pl-10 pr-3 py-3 bg-[var(--bg-glass)] backdrop-blur-sm border border-[var(--border-colored)] rounded-lg text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-muted)] focus:border-[var(--primary)] transition-all duration-300 ease-spring"
                   placeholder="usuario@empresa.com"
                 />
@@ -225,6 +226,7 @@ export default function Login() {
               value={recoverEmail}
               onChange={(e) => setRecoverEmail(e.target.value)}
               required
+              autoComplete="email"
               className="w-full px-4 py-3 bg-[var(--bg-glass)] backdrop-blur-sm border border-[var(--border-colored)] rounded-lg text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-muted)] focus:border-[var(--primary)] transition-all duration-300 ease-spring"
               placeholder="correo@empresa.com"
             />
@@ -263,6 +265,7 @@ export default function Login() {
               value={registerData.email}
               onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
               required
+              autoComplete="email"
               className="w-full px-4 py-3 bg-[var(--bg-glass)] backdrop-blur-sm border border-[var(--border-colored)] rounded-lg text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-muted)] focus:border-[var(--primary)] transition-all duration-300 ease-spring"
               placeholder="correo@empresa.com"
             />
@@ -276,6 +279,7 @@ export default function Login() {
               value={registerData.nombre}
               onChange={(e) => setRegisterData({ ...registerData, nombre: e.target.value })}
               required
+              autoComplete="name"
               className="w-full px-4 py-3 bg-[var(--bg-glass)] backdrop-blur-sm border border-[var(--border-colored)] rounded-lg text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-muted)] focus:border-[var(--primary)] transition-all duration-300 ease-spring"
               placeholder="Juan Pérez"
             />

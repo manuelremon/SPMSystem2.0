@@ -488,6 +488,7 @@ export default function MiCuenta() {
                   type="email"
                   value={mailBackup}
                   onChange={(e) => setMailBackup(e.target.value)}
+                  autoComplete="email"
                   className="w-full px-4 py-3 rounded-lg bg-[var(--bg-glass)] backdrop-blur-sm border border-[var(--border-colored)] text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--primary-muted)] focus:border-[var(--primary)] outline-none transition-all duration-300 ease-spring"
                   placeholder="ejemplo@respaldo.com"
                 />

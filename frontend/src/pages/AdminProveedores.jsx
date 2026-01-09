@@ -209,6 +209,7 @@ function ProveedoresInternos() {
                 type="email"
                 value={newForm.contacto_centro}
                 onChange={(e) => setNewForm({ ...newForm, contacto_centro: e.target.value })}
+                autoComplete="off"
                 className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               />
               <input
@@ -230,6 +231,7 @@ function ProveedoresInternos() {
                 type="email"
                 value={newForm.referente_email}
                 onChange={(e) => setNewForm({ ...newForm, referente_email: e.target.value })}
+                autoComplete="off"
                 className="px-3 py-2 rounded-lg border border-white/30 dark:border-slate-700/30 bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm"
               />
             </div>
@@ -322,6 +324,7 @@ function ProveedoresInternos() {
                             onChange={(e) => setEditForm({ ...editForm, referente_email: e.target.value })}
                             placeholder="Email"
                             type="email"
+                            autoComplete="off"
                             className="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm w-full"
                           />
                         </div>
@@ -342,6 +345,7 @@ function ProveedoresInternos() {
                           value={editForm.contacto_centro || ""}
                           onChange={(e) => setEditForm({ ...editForm, contacto_centro: e.target.value })}
                           type="email"
+                          autoComplete="off"
                           className="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm w-full"
                         />
                       ) : prov.contacto_centro ? (
