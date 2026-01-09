@@ -227,7 +227,11 @@
       "Bash(COMMIT_MSG=\"fix\\(ux\\): aumentar z-index de Modal a 9999 para estar sobre todos los elementos\" ./scripts/deploy-full.sh:*)",
       "Bash(git update-index:*)",
       "Bash(for file in backend/routes/*.py)",
-      "Bash(do python -m py_compile:*)"
+      "Bash(do python -m py_compile:*)",
+      "Bash(gemini --help:*)",
+      "Bash(codex:*)",
+      "Bash(bash:*)",
+      "Bash(TIMEOUT_SECONDS=10 LOG=1 ./tools/ask_helpers.sh:*)"
     ],
     "deny": [],
     "ask": []

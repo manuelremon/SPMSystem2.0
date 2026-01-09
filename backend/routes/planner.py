@@ -133,7 +133,8 @@ _get_user = get_user_by_id
 
 def _current_user():
     """Get current user from g.user (set by @require_auth decorator)."""
-    user_id = g.user.get("user_id") if hasattr(g, "user") and g.user else None
+    # Note: auth_middleware stores user with "id_spm" key, not "user_id"
+    user_id = g.user.get("id_spm") or g.user.get("user_id") if hasattr(g, "user") and g.user else None
     if not user_id:
         return (
             jsonify(

@@ -123,15 +123,9 @@ class AuthMiddleware:
         # Initialize g.user as None
         g.user = None
 
-        # DEBUG: Log cookies received
-        if request.path.startswith("/api/planificador"):
-            logger.warning(f"AUTH DEBUG [{request.path}]: cookies={list(request.cookies.keys())}, has_spm_token={'spm_token' in request.cookies}")
-
         # Try to get token
         token = _extract_token()
         if not token:
-            if request.path.startswith("/api/planificador"):
-                logger.warning(f"AUTH DEBUG [{request.path}]: No token found!")
             return
 
         # Try to decode token
