@@ -230,6 +230,18 @@ const adminNavHierarchy = [
       { trKey: "admin_estado", label: "Estado del Sistema", to: "/admin/estado", icon: Activity, iconName: "Activity" },
     ],
   },
+  {
+    key: "analisis-puntual",
+    trKey: "admin_cat_analisis_puntual",
+    label: "Analisis Puntual",
+    icon: BarChart2,
+    iconName: "BarChart2",
+    children: [
+      { trKey: "admin_ap_importar", label: "Importar Datos", to: "/admin/analisis-puntual", icon: Database, iconName: "Database" },
+      { trKey: "admin_ap_mrp", label: "MRP Temporal", to: "/admin/analisis-puntual/mrp", icon: AlertTriangle, iconName: "AlertTriangle" },
+      { trKey: "admin_ap_forecast", label: "Forecast Temporal", to: "/admin/analisis-puntual/forecast", icon: LineChart, iconName: "LineChart" },
+    ],
+  },
 ];
 
 function Sidebar({ collapsed, onToggle, isConnected = false }) {

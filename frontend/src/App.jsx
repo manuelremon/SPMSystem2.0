@@ -69,6 +69,11 @@ const AdminMateriales = lazy(() => import('./pages/admin/AdminMateriales'))
 const AdminProveedores = lazy(() => import('./pages/AdminProveedores'))
 const AdminBasesDatos = lazy(() => import('./pages/admin/AdminBasesDatos'))
 
+// Analisis Puntual (admin) - lazy loaded
+const AnalisisPuntualHome = lazy(() => import('./pages/admin/AnalisisPuntualHome'))
+const AnalisisPuntualMRP = lazy(() => import('./pages/admin/AnalisisPuntualMRP'))
+const AnalisisPuntualForecast = lazy(() => import('./pages/admin/AnalisisPuntualForecast'))
+
 function App() {
   const { user, isLoading, getCurrentUser } = useAuthStore()
   const [appLoading, setAppLoading] = useState(true)
@@ -142,6 +147,9 @@ function App() {
             <Route path="/admin/estado" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminEstado /></ProtectedRoute>} />
             <Route path="/admin/proveedores" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminProveedores /></ProtectedRoute>} />
             <Route path="/admin/bases-datos" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminBasesDatos /></ProtectedRoute>} />
+            <Route path="/admin/analisis-puntual" element={<ProtectedRoute roles={['administrador', 'admin']}><AnalisisPuntualHome /></ProtectedRoute>} />
+            <Route path="/admin/analisis-puntual/mrp" element={<ProtectedRoute roles={['administrador', 'admin']}><AnalisisPuntualMRP /></ProtectedRoute>} />
+            <Route path="/admin/analisis-puntual/forecast" element={<ProtectedRoute roles={['administrador', 'admin']}><AnalisisPuntualForecast /></ProtectedRoute>} />
             <Route path="/registro/completar" element={<ProtectedRoute><CompleteRegistration /></ProtectedRoute>} />
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="*" element={<Navigate to="/dashboard" />} />
