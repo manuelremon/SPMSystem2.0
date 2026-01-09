@@ -23,15 +23,19 @@ class ValidationResult:
     errors: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
 
-    # DataFrames parseados (si válido)
+    # DataFrames parseados (si válido) - 5 hojas
     stock_df: Optional[pd.DataFrame] = None
     consumo_df: Optional[pd.DataFrame] = None
+    solpeds_df: Optional[pd.DataFrame] = None
+    pedidos_df: Optional[pd.DataFrame] = None
     parametros_mrp_df: Optional[pd.DataFrame] = None
 
     # Resumen
     materiales_count: int = 0
     registros_stock: int = 0
     registros_consumo: int = 0
+    registros_solpeds: int = 0
+    registros_pedidos: int = 0
 
     def add_error(self, msg: str):
         """Agrega un error y marca como inválido."""
@@ -51,7 +55,9 @@ class ValidationResult:
             "resumen": {
                 "materiales": self.materiales_count,
                 "registros_stock": self.registros_stock,
-                "registros_consumo": self.registros_consumo
+                "registros_consumo": self.registros_consumo,
+                "registros_solpeds": self.registros_solpeds,
+                "registros_pedidos": self.registros_pedidos
             }
         }
 
@@ -63,18 +69,75 @@ class ExcelValidator:
     MAX_FILE_SIZE_MB = 50
     ALLOWED_EXTENSIONS = {".xlsx", ".xls"}
 
-    # Hojas requeridas
+    # Hojas requeridas y opcionales
     REQUIRED_SHEETS = ["stock", "consumo_historico"]
-    OPTIONAL_SHEETS = ["parametros_mrp"]
+    OPTIONAL_SHEETS = ["solpeds_en_curso", "pedidos_en_curso", "parametros_mrp"]
 
-    # Columnas requeridas por hoja
+    # Columnas requeridas por hoja - STOCK
     STOCK_REQUIRED_COLS = ["material", "descripcion", "centro", "almacen", "stock", "um"]
-    STOCK_OPTIONAL_COLS = ["precio_usd", "grupo_articulos", "ubicacion", "critico"]
+    STOCK_OPTIONAL_COLS = [
+        "precio_usd", "grupo_articulos", "ubicacion", "criticidad", "sector",
+        "nombre_proveedor", "area_pl_nec", "cap", "lp", "hem", "pzec", "vd", "clase_objeto"
+    ]
 
+    # Columnas - CONSUMO HISTORICO
     CONSUMO_REQUIRED_COLS = ["material", "fecha", "cantidad"]
-    CONSUMO_OPTIONAL_COLS = ["centro"]
+    CONSUMO_OPTIONAL_COLS = ["centro", "almacen"]
 
-    MRP_COLS = ["material", "stock_seguridad", "punto_pedido", "stock_maximo", "lead_time_dias"]
+    # Columnas - SOLPEDS EN CURSO (modelo SAP completo - 43 columnas)
+    SOLPED_REQUIRED_COLS = [
+        "solped", "posicion_solped", "material", "cantidad_solped", "um",
+        "fecha_creacion_solped", "centro"
+    ]
+    SOLPED_OPTIONAL_COLS = [
+        # Identificación
+        "grupo_compras", "clase_documento",
+        # Material
+        "descripcion_material", "grupo_articulos",
+        # Timeline Solped
+        "fecha_entrega_solped", "liberacion_solped", "fecha_liberacion_solped",
+        # Financiero Solped
+        "precio_unitario_solped", "importe_total_solped", "moneda_solped",
+        "centro_costos", "imputacion",
+        # Datos del Pedido (si existe)
+        "pedido", "posicion_pedido", "clase_pedido", "fecha_pedido",
+        "fecha_liberacion_pedido", "estrategia_liberacion_pedido", "fecha_entrega_pedido",
+        # Cantidades y Recepción
+        "cantidad_pedida", "cantidad_recepcionada", "fecha_recepcion",
+        # Valores Pedido
+        "valor_pedido", "valor_recibido", "moneda_pedido",
+        "valor_facturado", "moneda_facturada",
+        # Proveedor y Contrato
+        "proveedor", "nombre_proveedor", "contrato_marco", "posicion_contrato_marco",
+        # Usuarios
+        "creado_por", "solicitante", "num_necesidad", "concluida"
+    ]
+
+    # Columnas - PEDIDOS EN CURSO (modelo completo)
+    PEDIDO_REQUIRED_COLS = [
+        "pedido", "posicion_pedido", "material", "cantidad_pedida", "um",
+        "fecha_pedido", "centro"
+    ]
+    PEDIDO_OPTIONAL_COLS = [
+        # Identificación
+        "grupo_compras", "clase_pedido",
+        # Material
+        "descripcion_material", "grupo_articulos",
+        # Timeline
+        "fecha_liberacion_pedido", "estrategia_liberacion", "fecha_entrega_pedido", "fecha_recepcion",
+        # Cantidades
+        "cantidad_recepcionada",
+        # Valores
+        "valor_pedido", "valor_recibido", "moneda_pedido",
+        "valor_facturado", "moneda_facturada",
+        # Proveedor y Contrato
+        "proveedor", "nombre_proveedor", "contrato_marco", "posicion_contrato_marco",
+        # Solped Origen
+        "solped_origen", "posicion_solped"
+    ]
+
+    # Columnas - PARAMETROS MRP
+    MRP_COLS = ["material", "demanda_estimada_anual", "stock_seguridad", "punto_pedido", "stock_maximo", "lead_time_dias"]
 
     def validate_file(self, file_storage, filename: str) -> ValidationResult:
         """
@@ -146,7 +209,33 @@ class ExcelValidator:
             result.consumo_df = consumo_df
             result.registros_consumo = len(consumo_df)
 
-        # 7. Validar hoja opcional 'parametros_mrp'
+        # 7. Validar hoja opcional 'solpeds_en_curso'
+        if "solpeds_en_curso" in sheet_names:
+            solpeds_df, solped_errors, solped_warnings = self._validate_solpeds_sheet(excel)
+            for err in solped_errors:
+                result.add_error(err)
+            for warn in solped_warnings:
+                result.add_warning(warn)
+            if solpeds_df is not None:
+                result.solpeds_df = solpeds_df
+                result.registros_solpeds = len(solpeds_df)
+        else:
+            result.add_warning("Hoja 'solpeds_en_curso' no incluida. No se considerarán requisiciones pendientes.")
+
+        # 8. Validar hoja opcional 'pedidos_en_curso'
+        if "pedidos_en_curso" in sheet_names:
+            pedidos_df, pedido_errors, pedido_warnings = self._validate_pedidos_sheet(excel)
+            for err in pedido_errors:
+                result.add_error(err)
+            for warn in pedido_warnings:
+                result.add_warning(warn)
+            if pedidos_df is not None:
+                result.pedidos_df = pedidos_df
+                result.registros_pedidos = len(pedidos_df)
+        else:
+            result.add_warning("Hoja 'pedidos_en_curso' no incluida. No se considerarán órdenes de compra pendientes.")
+
+        # 9. Validar hoja opcional 'parametros_mrp'
         if "parametros_mrp" in sheet_names:
             mrp_df, mrp_errors, mrp_warnings = self._validate_mrp_sheet(excel)
             for err in mrp_errors:
@@ -157,7 +246,7 @@ class ExcelValidator:
         else:
             result.add_warning("Hoja 'parametros_mrp' no incluida. Se calcularán automáticamente.")
 
-        # 8. Validaciones cruzadas
+        # 10. Validaciones cruzadas
         if result.valid and result.stock_df is not None:
             result.materiales_count = result.stock_df["material"].nunique()
 
@@ -323,6 +412,144 @@ class ExcelValidator:
 
         except Exception as e:
             warnings.append(f"Error procesando hoja 'parametros_mrp': {str(e)} (se ignorará)")
+            return None, errors, warnings
+
+    def _validate_solpeds_sheet(self, excel: pd.ExcelFile) -> Tuple[Optional[pd.DataFrame], List[str], List[str]]:
+        """Valida la hoja de solicitudes de pedido (SOLPED) en curso."""
+        errors = []
+        warnings = []
+
+        try:
+            sheet_name = self._find_sheet_name(excel, "solpeds_en_curso")
+            df = pd.read_excel(excel, sheet_name=sheet_name)
+
+            df.columns = [c.lower().strip().replace(" ", "_") for c in df.columns]
+
+            # Verificar columnas requeridas
+            missing_cols = set(self.SOLPED_REQUIRED_COLS) - set(df.columns)
+            if missing_cols:
+                errors.append(f"Hoja 'solpeds_en_curso': Columnas faltantes: {', '.join(missing_cols)}")
+                return None, errors, warnings
+
+            if len(df) == 0:
+                warnings.append("Hoja 'solpeds_en_curso': No hay registros")
+                return pd.DataFrame(), errors, warnings
+
+            df_clean = df.copy()
+
+            # Material debe ser texto (código SAP)
+            df_clean["material"] = df_clean["material"].astype(str).str.strip()
+
+            # Solped y posición deben ser numéricos
+            df_clean["solped"] = pd.to_numeric(df_clean["solped"], errors="coerce")
+            df_clean["posicion_solped"] = pd.to_numeric(df_clean["posicion_solped"], errors="coerce")
+
+            invalid_solped = df_clean["solped"].isna().sum()
+            if invalid_solped > 0:
+                warnings.append(f"Hoja 'solpeds_en_curso': {invalid_solped} números de solped inválidos")
+
+            # Cantidad debe ser numérica
+            df_clean["cantidad_solped"] = pd.to_numeric(df_clean["cantidad_solped"], errors="coerce").fillna(0)
+
+            # Fechas (formato SAP DD.MM.YYYY o ISO)
+            df_clean["fecha_creacion"] = pd.to_datetime(df_clean["fecha_creacion"], dayfirst=True, errors="coerce")
+            invalid_dates = df_clean["fecha_creacion"].isna().sum()
+            if invalid_dates > 0:
+                warnings.append(f"Hoja 'solpeds_en_curso': {invalid_dates} fechas de creación inválidas")
+
+            if "fecha_entrega" in df_clean.columns:
+                df_clean["fecha_entrega"] = pd.to_datetime(df_clean["fecha_entrega"], dayfirst=True, errors="coerce")
+
+            if "fecha_liberacion" in df_clean.columns:
+                df_clean["fecha_liberacion"] = pd.to_datetime(df_clean["fecha_liberacion"], dayfirst=True, errors="coerce")
+
+            # Grupo artículos debe ser numérico
+            if "grupo_articulos" in df_clean.columns:
+                df_clean["grupo_articulos"] = pd.to_numeric(df_clean["grupo_articulos"], errors="coerce")
+
+            # Verificar estados de liberación válidos
+            if "liberacion" in df_clean.columns:
+                estados_validos = {"S/ EST.LIB", "LIBERADA", "BLOQUEADA", ""}
+                estados_encontrados = set(df_clean["liberacion"].dropna().unique())
+                estados_invalidos = estados_encontrados - estados_validos
+                if estados_invalidos:
+                    warnings.append(
+                        f"Hoja 'solpeds_en_curso': Estados de liberación no reconocidos: {estados_invalidos}"
+                    )
+
+            return df_clean, errors, warnings
+
+        except Exception as e:
+            errors.append(f"Error procesando hoja 'solpeds_en_curso': {str(e)}")
+            return None, errors, warnings
+
+    def _validate_pedidos_sheet(self, excel: pd.ExcelFile) -> Tuple[Optional[pd.DataFrame], List[str], List[str]]:
+        """Valida la hoja de pedidos (órdenes de compra) en curso."""
+        errors = []
+        warnings = []
+
+        try:
+            sheet_name = self._find_sheet_name(excel, "pedidos_en_curso")
+            df = pd.read_excel(excel, sheet_name=sheet_name)
+
+            df.columns = [c.lower().strip().replace(" ", "_") for c in df.columns]
+
+            # Verificar columnas requeridas
+            missing_cols = set(self.PEDIDO_REQUIRED_COLS) - set(df.columns)
+            if missing_cols:
+                errors.append(f"Hoja 'pedidos_en_curso': Columnas faltantes: {', '.join(missing_cols)}")
+                return None, errors, warnings
+
+            if len(df) == 0:
+                warnings.append("Hoja 'pedidos_en_curso': No hay registros")
+                return pd.DataFrame(), errors, warnings
+
+            df_clean = df.copy()
+
+            # Material debe ser texto (código SAP)
+            df_clean["material"] = df_clean["material"].astype(str).str.strip()
+
+            # Pedido y posición deben ser numéricos
+            df_clean["pedido"] = pd.to_numeric(df_clean["pedido"], errors="coerce")
+            df_clean["posicion_pedido"] = pd.to_numeric(df_clean["posicion_pedido"], errors="coerce")
+
+            invalid_pedido = df_clean["pedido"].isna().sum()
+            if invalid_pedido > 0:
+                warnings.append(f"Hoja 'pedidos_en_curso': {invalid_pedido} números de pedido inválidos")
+
+            # Cantidades deben ser numéricas
+            df_clean["cantidad_pedida"] = pd.to_numeric(df_clean["cantidad_pedida"], errors="coerce").fillna(0)
+
+            if "cantidad_recepcionada" in df_clean.columns:
+                df_clean["cantidad_recepcionada"] = pd.to_numeric(df_clean["cantidad_recepcionada"], errors="coerce").fillna(0)
+            else:
+                df_clean["cantidad_recepcionada"] = 0
+
+            # Verificar cantidades recepcionadas > pedidas
+            if "cantidad_recepcionada" in df_clean.columns:
+                excedidos = (df_clean["cantidad_recepcionada"] > df_clean["cantidad_pedida"]).sum()
+                if excedidos > 0:
+                    warnings.append(
+                        f"Hoja 'pedidos_en_curso': {excedidos} pedidos con cantidad recepcionada > pedida"
+                    )
+
+            # Fechas (formato SAP DD.MM.YYYY o ISO)
+            df_clean["fecha_pedido"] = pd.to_datetime(df_clean["fecha_pedido"], dayfirst=True, errors="coerce")
+            invalid_dates = df_clean["fecha_pedido"].isna().sum()
+            if invalid_dates > 0:
+                warnings.append(f"Hoja 'pedidos_en_curso': {invalid_dates} fechas de pedido inválidas")
+
+            if "fecha_entrega" in df_clean.columns:
+                df_clean["fecha_entrega"] = pd.to_datetime(df_clean["fecha_entrega"], dayfirst=True, errors="coerce")
+
+            # Valor pedido
+            if "valor_pedido" in df_clean.columns:
+                df_clean["valor_pedido"] = pd.to_numeric(df_clean["valor_pedido"], errors="coerce")
+
+            return df_clean, errors, warnings
+
+        except Exception as e:
+            errors.append(f"Error procesando hoja 'pedidos_en_curso': {str(e)}")
             return None, errors, warnings
 
     def _validate_cross_sheet(
