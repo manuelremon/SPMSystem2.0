@@ -4,8 +4,7 @@
  * Sprint: Technical Audit - Phase 2
  */
 
-import { useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useState } from "react";
 import { usePlanner, renderSolicitante } from "../hooks/usePlanner";
 import { Button } from "../components/ui/Button";
 import { Card, CardHeader, CardDescription, CardContent } from "../components/ui/Card";
@@ -18,6 +17,7 @@ import { Select } from "../components/ui/Select";
 import { Input } from "../components/ui/Input";
 import { TableSkeleton } from "../components/ui/Skeleton";
 import TratarSolicitudModal from "../components/Planner/TratarSolicitudModal";
+import SolicitudDetalleModal from "../components/Planner/SolicitudDetalleModal";
 import { Modal } from "../components/ui/Modal";
 import { useI18n } from "../context/i18n";
 import {
@@ -36,7 +36,9 @@ import { getCriticidadConfig, getEstadoConfig } from "../utils/styleConfig";
 
 export default function Planner() {
   const { t } = useI18n();
-  const navigate = useNavigate();
+
+  // Modal de detalle
+  const [detalleModal, setDetalleModal] = useState({ open: false, solicitud: null });
 
   // All state and logic extracted to usePlanner hook
   const {
@@ -79,6 +81,19 @@ export default function Planner() {
     clearSuccess,
   } = usePlanner({ t });
 
+  // Helper para mostrar códigos SAP de los items
+  const renderCodigosSAP = (row) => {
+    const items = row.items || [];
+    if (items.length === 0) return "-";
+    const codigos = items
+      .map(i => i.codigo || i.codigo_sap || i.material_id)
+      .filter(Boolean)
+      .slice(0, 3);
+    if (codigos.length === 0) return "-";
+    const display = codigos.join(", ");
+    return items.length > 3 ? `${display}...` : display;
+  };
+
   // Column definitions with SPM alignments
   const columns = useCallback(() => withSpmAlignments([
     {
@@ -95,7 +110,7 @@ export default function Planner() {
             className="p-1.5 rounded-md hover:bg-blue-500/10 transition-colors cursor-pointer"
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/solicitudes/${row.id}`);
+              setDetalleModal({ open: true, solicitud: row });
             }}
             type="button"
             title={t("planner_ver_tooltip", "Ver detalles")}
@@ -116,6 +131,16 @@ export default function Planner() {
           </button>
         </div>
       ),
+    },
+    {
+      key: "codigos_sap",
+      header: t("planner_codigo_sap", "Código SAP"),
+      render: (row) => (
+        <span className="font-mono text-xs text-[var(--primary)]">
+          {renderCodigosSAP(row)}
+        </span>
+      ),
+      sortAccessor: (row) => renderCodigosSAP(row),
     },
     {
       key: "created_at",
@@ -488,6 +513,13 @@ export default function Planner() {
         onClose={closeHistorialModal}
         solicitud={historialModal.solicitud}
         t={t}
+      />
+
+      {/* Detalle Modal */}
+      <SolicitudDetalleModal
+        isOpen={detalleModal.open}
+        onClose={() => setDetalleModal({ open: false, solicitud: null })}
+        solicitud={detalleModal.solicitud}
       />
     </div>
   );

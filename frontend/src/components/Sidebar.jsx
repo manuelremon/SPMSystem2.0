@@ -214,17 +214,9 @@ const adminNavHierarchy = [
       { trKey: "admin_puestos", label: "Puestos", to: "/admin/puestos", icon: Briefcase, iconName: "Briefcase" },
       { trKey: "admin_sectores", label: "Sectores", to: "/admin/sectores", icon: Building, iconName: "Building" },
       { trKey: "admin_presupuestos", label: "Presupuestos", to: "/admin/presupuestos", icon: ClipboardList, iconName: "ClipboardList" },
-    ],
-  },
-  {
-    key: "locaciones",
-    trKey: "admin_cat_locaciones",
-    label: "Locaciones",
-    icon: MapPin,
-    iconName: "MapPin",
-    children: [
       { trKey: "admin_centros", label: "Centros", to: "/admin/centros", icon: Building2, iconName: "Building2" },
       { trKey: "admin_almacenes", label: "Almacenes", to: "/admin/almacenes", icon: Boxes, iconName: "Boxes" },
+      { trKey: "admin_proveedores", label: "Proveedores", to: "/admin/proveedores", icon: Truck, iconName: "Truck" },
     ],
   },
   {
@@ -235,17 +227,6 @@ const adminNavHierarchy = [
     iconName: "Server",
     children: [
       { trKey: "admin_estado", label: "Estado del Sistema", to: "/admin/estado", icon: Activity, iconName: "Activity" },
-    ],
-  },
-  {
-    key: "proveedores",
-    trKey: "admin_cat_proveedores",
-    label: "Proveedores",
-    icon: Truck,
-    iconName: "Truck",
-    children: [
-      { trKey: "admin_proveedores_internos", label: "Internos", to: "/admin/proveedores?tab=internos", icon: Boxes, iconName: "Boxes" },
-      { trKey: "admin_proveedores_externos", label: "Externos", to: "/admin/proveedores?tab=externos", icon: Package, iconName: "Package" },
     ],
   },
 ];
