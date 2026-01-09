@@ -118,7 +118,6 @@ def delete_notification(notification_id):
 
 
 @bp.route("/stream", methods=["GET"])
-@require_auth
 def notification_stream():
     """
     Server-Sent Events endpoint para notificaciones en tiempo real.
@@ -129,13 +128,20 @@ def notification_stream():
     escalabilidad horizontal. Fallback automático a polling si Redis
     no está conectado.
 
-    Headers required:
-    - Authorization: Bearer <token>
+    NOTE: SSE no puede usar @require_auth porque EventSource no envía
+    headers de Authorization. Auth se maneja internamente.
 
     Returns:
         SSE stream con eventos de notificaciones
     """
-    user_id = g.user.get("user_id")
+    # SSE requiere auth manual (EventSource no envía headers)
+    from backend.core.roles import _decode_token
+    payload = _decode_token("access", "spm_token")
+    if isinstance(payload, tuple):
+        return payload  # Error response
+    user_id = payload.get("user_id")
+    if not user_id:
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
 
     # FIX 5.1: Importar Redis pub/sub
     try:
