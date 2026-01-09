@@ -13,41 +13,24 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-try:
-    from backend.core.budget_schemas import (
-        UMBRAL_L1_CENTS,
-        UMBRAL_L2_CENTS,
-        BudgetOperationResult,
-        BudgetUpdateRequest,
-        EstadoBUR,
-        LedgerEntry,
-        NivelAprobacion,
-        PresupuestoInfo,
-        TransactionContext,
-        ValidacionPresupuesto,
-        determinar_nivel_aprobacion,
-    )
-    from backend.core.budget_transaction import AtomicBudgetTransaction
-    from backend.core.config import settings
-    from backend.core.db import get_db_connection
-    from backend.core.roles import is_admin, normalize_roles
-    from backend.core.helpers import resolve_sector_name as _resolve_sector_name_helper
-except ImportError:
-    from core.budget_schemas import (
-        UMBRAL_L2_CENTS,
-        BudgetUpdateRequest,
-        EstadoBUR,
-        LedgerEntry,
-        NivelAprobacion,
-        PresupuestoInfo,
-        TransactionContext,
-        ValidacionPresupuesto,
-        determinar_nivel_aprobacion,
-    )
-    from core.budget_transaction import AtomicBudgetTransaction
-    from core.config import settings
-    from core.db import get_db_connection
-    from core.helpers import resolve_sector_name as _resolve_sector_name_helper
+from backend.core.budget_schemas import (
+    UMBRAL_L1_CENTS,
+    UMBRAL_L2_CENTS,
+    BudgetOperationResult,
+    BudgetUpdateRequest,
+    EstadoBUR,
+    LedgerEntry,
+    NivelAprobacion,
+    PresupuestoInfo,
+    TransactionContext,
+    ValidacionPresupuesto,
+    determinar_nivel_aprobacion,
+)
+from backend.core.budget_transaction import AtomicBudgetTransaction
+from backend.core.config import settings
+from backend.core.db import get_db_connection
+from backend.core.roles import is_admin, normalize_roles
+from backend.core.helpers import resolve_sector_name as _resolve_sector_name_helper, row_to_dict
 
 
 def _connect():
@@ -68,7 +51,7 @@ def _connect():
     def new_close():
         try:
             ctx.__exit__(None, None, None)
-        except:
+        except Exception:
             pass
     conn.close = new_close
     return conn

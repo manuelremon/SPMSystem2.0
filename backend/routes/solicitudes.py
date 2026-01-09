@@ -52,17 +52,7 @@ from backend.services.sla_service import (
     resolver_alertas_solicitud,
 )
 from backend.services.notification_service import NotificationService
-
-
-def _row_to_dict(row, cursor):
-    """Convierte una fila de BD a diccionario"""
-    if row is None:
-        return None
-    # PostgreSQL wrapper ya retorna dicts, SQLite retorna Row
-    if isinstance(row, dict):
-        return row
-    return dict(row)
-
+from backend.core.helpers import row_to_dict as _row_to_dict
 
 bp = Blueprint("solicitudes", __name__, url_prefix="/api/solicitudes")
 

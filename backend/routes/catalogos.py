@@ -6,16 +6,6 @@ from backend.core.db import get_db_connection
 bp = Blueprint("catalogos", __name__)
 
 
-def _row_to_dict(row, cursor):
-    """Convierte una fila de BD a diccionario"""
-    if row is None:
-        return None
-    # PostgreSQL wrapper ya retorna dicts, SQLite retorna Row
-    if isinstance(row, dict):
-        return row
-    return dict(row)
-
-
 def _fetch(query: str, mapper):
     """Ejecuta query y mapea resultados usando context manager"""
     with get_db_connection() as conn:

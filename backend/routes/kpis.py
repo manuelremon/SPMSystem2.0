@@ -8,21 +8,11 @@ from collections import Counter, defaultdict
 from flask import Blueprint, jsonify
 
 from backend.core.db import get_db_connection
-
-
-def _row_to_dict(row, cursor):
-    """Convierte una fila de BD a diccionario"""
-    if row is None:
-        return None
-    # El wrapper ya retorna dict para PostgreSQL
-    if isinstance(row, dict):
-        return row
-    return dict(row)
+from backend.core.helpers import row_to_dict as _row_to_dict
 
 
 def _rows_to_dicts(rows, cursor):
     """Convierte múltiples filas a diccionarios"""
-    # El wrapper ya retorna dicts para PostgreSQL
     return [row if isinstance(row, dict) else dict(row) for row in rows]
 
 
