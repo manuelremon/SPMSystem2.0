@@ -10,33 +10,15 @@ import logging
 from datetime import datetime
 
 import bcrypt
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 
 from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
 from backend.core.rate_limit import rate_limit
-from backend.core.roles import is_admin, normalize_roles
-from backend.routes.auth import _decode_token
+from backend.core.roles import is_admin, normalize_roles, require_auth, require_admin
 from backend.services.notification_service import NotificationService
 
 bp = Blueprint("mi_cuenta", __name__)
 logger = logging.getLogger(__name__)
-
-
-def _get_current_user_id():
-    """
-    Obtiene el ID del usuario autenticado desde el token JWT.
-    Retorna (user_id, error_response)
-    """
-    payload = _decode_token("access", "spm_token")
-    if isinstance(payload, tuple):
-        # Es una respuesta de error
-        return None, payload
-
-    user_id = payload.get("user_id")
-    if not user_id:
-        return None, (jsonify({"ok": False, "error": {"message": "Token inválido"}}), 401)
-
-    return user_id, None
 
 
 def _get_user_data(user_id: str) -> dict | None:
@@ -65,6 +47,7 @@ def _parse_json_field(value: str | None) -> list:
 
 
 @bp.route("/mi-cuenta", methods=["GET"])
+@require_auth
 def get_mi_cuenta():
     """
     Obtiene el perfil completo del usuario autenticado.
@@ -74,10 +57,7 @@ def get_mi_cuenta():
         401: No autenticado
         404: Usuario no encontrado
     """
-    # Verificar autenticación
-    user_id, error = _get_current_user_id()
-    if error:
-        return error
+    user_id = g.user.get("user_id")
 
     # Obtener datos del usuario
     user = _get_user_data(user_id)
@@ -137,6 +117,7 @@ def get_mi_cuenta():
 
 
 @bp.route("/mi-cuenta/password", methods=["PUT"])
+@require_auth
 @rate_limit(requests=5, window_seconds=300)  # 5 intentos cada 5 minutos (prevenir fuerza bruta)
 def update_password():
     """
@@ -151,10 +132,7 @@ def update_password():
         400: Datos inválidos
         401: No autenticado
     """
-    # Verificar autenticación
-    user_id, error = _get_current_user_id()
-    if error:
-        return error
+    user_id = g.user.get("user_id")
 
     data = request.get_json(silent=True) or {}
     password_nueva = data.get("password_nueva", "").strip()
@@ -209,6 +187,7 @@ def update_password():
 
 
 @bp.route("/mi-cuenta/contacto", methods=["PUT"])
+@require_auth
 def update_contacto():
     """
     Actualiza información de contacto del usuario (teléfono, mail respaldo).
@@ -222,10 +201,7 @@ def update_contacto():
         400: Datos inválidos
         401: No autenticado
     """
-    # Verificar autenticación
-    user_id, error = _get_current_user_id()
-    if error:
-        return error
+    user_id = g.user.get("user_id")
 
     data = request.get_json(silent=True) or {}
     telefono = data.get("telefono", "").strip()
@@ -312,6 +288,7 @@ def update_contacto():
 
 
 @bp.route("/mi-cuenta/solicitud-cambio-perfil", methods=["POST"])
+@require_auth
 def solicitar_cambio_perfil():
     """
     Registra una solicitud de cambio de perfil para aprobación administrativa.
@@ -329,10 +306,7 @@ def solicitar_cambio_perfil():
         400: Datos inválidos
         401: No autenticado
     """
-    # Verificar autenticación
-    user_id, error = _get_current_user_id()
-    if error:
-        return error
+    user_id = g.user.get("user_id")
 
     data = request.get_json(silent=True) or {}
 
@@ -412,6 +386,7 @@ def solicitar_cambio_perfil():
 
 
 @bp.route("/mi-cuenta/solicitudes-cambio-perfil", methods=["GET"])
+@require_auth
 def listar_cambios_perfil():
     """
     Lista las solicitudes de cambio de perfil del usuario autenticado.
@@ -420,10 +395,7 @@ def listar_cambios_perfil():
         200: Lista de solicitudes
         401: No autenticado
     """
-    # Verificar autenticación
-    user_id, error = _get_current_user_id()
-    if error:
-        return error
+    user_id = g.user.get("user_id")
 
     try:
         with get_db_connection() as conn:
@@ -485,6 +457,7 @@ def listar_cambios_perfil():
 
 
 @bp.route("/mi-cuenta/solicitudes-cambio-perfil/<int:request_id>/cancelar", methods=["POST"])
+@require_auth
 def cancelar_solicitud_cambio(request_id: int):
     """
     Cancela una solicitud de cambio de perfil pendiente.
@@ -496,9 +469,7 @@ def cancelar_solicitud_cambio(request_id: int):
         403: No autorizado (la solicitud no pertenece al usuario)
         404: Solicitud no encontrada
     """
-    user_id, error = _get_current_user_id()
-    if error:
-        return error
+    user_id = g.user.get("user_id")
 
     try:
         # Verificar que la solicitud existe y pertenece al usuario
@@ -543,6 +514,7 @@ def cancelar_solicitud_cambio(request_id: int):
 
 
 @bp.route("/mi-cuenta/solicitudes-cambio-perfil/<int:request_id>/mensaje", methods=["POST"])
+@require_auth
 def enviar_mensaje_solicitud(request_id: int):
     """
     Envía un mensaje al admin sobre una solicitud de cambio de perfil.
@@ -557,9 +529,7 @@ def enviar_mensaje_solicitud(request_id: int):
         403: No autorizado (la solicitud no pertenece al usuario)
         404: Solicitud no encontrada
     """
-    user_id, error = _get_current_user_id()
-    if error:
-        return error
+    user_id = g.user.get("user_id")
 
     data = request.get_json(silent=True) or {}
     mensaje = data.get("mensaje", "").strip()
@@ -648,21 +618,8 @@ def enviar_mensaje_solicitud(request_id: int):
 # ============================================================================
 
 
-def _is_admin(user_id: str) -> bool:
-    """Verifica si el usuario es administrador"""
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT rol FROM usuarios WHERE id_spm=?", (user_id,))
-        row = cur.fetchone()
-
-    if not row:
-        return False
-
-    # Usar módulo centralizado de roles
-    return is_admin(row["rol"] or "")
-
-
 @bp.route("/mi-cuenta/admin/profile-requests", methods=["GET"])
+@require_admin
 def admin_listar_profile_requests():
     """
     Lista todas las solicitudes de cambio de perfil (solo admins).
@@ -675,13 +632,6 @@ def admin_listar_profile_requests():
         401: No autenticado
         403: No autorizado
     """
-    user_id, error = _get_current_user_id()
-    if error:
-        return error
-
-    if not _is_admin(user_id):
-        return jsonify({"ok": False, "error": {"message": "No autorizado"}}), 403
-
     estado_filter = request.args.get("estado", "")
 
     try:
@@ -741,17 +691,11 @@ def admin_listar_profile_requests():
 
 
 @bp.route("/mi-cuenta/admin/profile-requests/<int:request_id>", methods=["GET"])
+@require_admin
 def admin_get_profile_request(request_id: int):
     """
     Obtiene detalle de una solicitud de cambio de perfil.
     """
-    user_id, error = _get_current_user_id()
-    if error:
-        return error
-
-    if not _is_admin(user_id):
-        return jsonify({"ok": False, "error": {"message": "No autorizado"}}), 403
-
     try:
         with get_db_connection() as conn:
             cur = conn.cursor()
@@ -831,6 +775,7 @@ def admin_get_profile_request(request_id: int):
 
 
 @bp.route("/mi-cuenta/admin/profile-requests/<int:request_id>/aprobar", methods=["POST"])
+@require_admin
 def admin_aprobar_profile_request(request_id: int):
     """
     Aprueba una solicitud de cambio de perfil y aplica los cambios.
@@ -838,13 +783,6 @@ def admin_aprobar_profile_request(request_id: int):
     Body:
         comentario (str, opcional): Comentario de aprobación
     """
-    user_id, error = _get_current_user_id()
-    if error:
-        return error
-
-    if not _is_admin(user_id):
-        return jsonify({"ok": False, "error": {"message": "No autorizado"}}), 403
-
     data = request.get_json(silent=True) or {}
     comentario = data.get("comentario", "")
 
@@ -963,6 +901,7 @@ def admin_aprobar_profile_request(request_id: int):
 
 
 @bp.route("/mi-cuenta/admin/profile-requests/<int:request_id>/rechazar", methods=["POST"])
+@require_admin
 def admin_rechazar_profile_request(request_id: int):
     """
     Rechaza una solicitud de cambio de perfil.
@@ -970,13 +909,6 @@ def admin_rechazar_profile_request(request_id: int):
     Body:
         motivo (str, requerido): Motivo del rechazo
     """
-    user_id, error = _get_current_user_id()
-    if error:
-        return error
-
-    if not _is_admin(user_id):
-        return jsonify({"ok": False, "error": {"message": "No autorizado"}}), 403
-
     data = request.get_json(silent=True) or {}
     motivo = data.get("motivo", "").strip()
 
@@ -1033,6 +965,7 @@ def admin_rechazar_profile_request(request_id: int):
 
 
 @bp.route("/mi-cuenta/admin/profile-requests/<int:request_id>/mensaje", methods=["POST"])
+@require_admin
 def admin_enviar_mensaje_profile_request(request_id: int):
     """
     Envía un mensaje al solicitante sobre su solicitud de cambio de perfil.
@@ -1040,12 +973,7 @@ def admin_enviar_mensaje_profile_request(request_id: int):
     Body:
         mensaje (str, requerido): Contenido del mensaje
     """
-    user_id, error = _get_current_user_id()
-    if error:
-        return error
-
-    if not _is_admin(user_id):
-        return jsonify({"ok": False, "error": {"message": "No autorizado"}}), 403
+    user_id = g.user.get("user_id")  # Necesario para registrar como remitente
 
     data = request.get_json(silent=True) or {}
     mensaje = data.get("mensaje", "").strip()
@@ -1100,6 +1028,7 @@ def admin_enviar_mensaje_profile_request(request_id: int):
 
 
 @bp.route("/mi-cuenta/notification-preferences", methods=["GET"])
+@require_auth
 def get_notification_preferences():
     """
     Obtiene las preferencias de notificacion del usuario.
@@ -1108,9 +1037,7 @@ def get_notification_preferences():
         200: Preferencias del usuario
         401: No autenticado
     """
-    user_id, error = _get_current_user_id()
-    if error:
-        return error
+    user_id = g.user.get("user_id")
 
     try:
         with get_db_connection() as conn:
@@ -1176,6 +1103,7 @@ def get_notification_preferences():
 
 
 @bp.route("/mi-cuenta/notification-preferences", methods=["PUT"])
+@require_auth
 def update_notification_preferences():
     """
     Actualiza las preferencias de notificacion del usuario.
@@ -1194,9 +1122,7 @@ def update_notification_preferences():
         200: Preferencias actualizadas
         401: No autenticado
     """
-    user_id, error = _get_current_user_id()
-    if error:
-        return error
+    user_id = g.user.get("user_id")
 
     data = request.get_json(silent=True) or {}
 

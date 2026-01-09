@@ -14,73 +14,11 @@ Endpoints:
 """
 
 import logging
-from functools import wraps
 
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, jsonify, request
 
+from backend.core.roles import require_auth, require_role
 from backend.services.ai_service import AIService, get_ai_service
-
-
-def require_auth(f):
-    """Decorator que requiere autenticacion"""
-
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not hasattr(g, "user") or not g.user:
-            return (
-                jsonify(
-                    {"ok": False, "error": {"code": "unauthorized", "message": "No autenticado"}}
-                ),
-                401,
-            )
-        return f(*args, **kwargs)
-
-    return decorated
-
-
-def require_role(roles):
-    """Decorator que requiere uno de los roles especificados"""
-
-    def decorator(f):
-        @wraps(f)
-        def decorated(*args, **kwargs):
-            if not hasattr(g, "user") or not g.user:
-                return (
-                    jsonify(
-                        {
-                            "ok": False,
-                            "error": {"code": "unauthorized", "message": "No autenticado"},
-                        }
-                    ),
-                    401,
-                )
-
-            user_role = g.user.get("rol", "").lower()
-            allowed = False
-            for role in roles:
-                if role.lower() in user_role:
-                    allowed = True
-                    break
-
-            if not allowed:
-                return (
-                    jsonify(
-                        {
-                            "ok": False,
-                            "error": {
-                                "code": "forbidden",
-                                "message": f"Requiere uno de estos roles: {', '.join(roles)}",
-                            },
-                        }
-                    ),
-                    403,
-                )
-
-            return f(*args, **kwargs)
-
-        return decorated
-
-    return decorator
 
 
 logger = logging.getLogger(__name__)

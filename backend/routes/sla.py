@@ -4,9 +4,9 @@ Rutas para gestion de SLA (Service Level Agreement).
 Sprint 4.5 - Endpoints de metricas y configuracion SLA.
 """
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 
-from backend.routes.auth import _decode_token
+from backend.core.roles import require_auth, require_role
 from backend.services.sla_service import (
     actualizar_configuracion_sla,
     crear_configuracion_sla,
@@ -27,6 +27,7 @@ bp = Blueprint("sla", __name__, url_prefix="/api/sla")
 
 
 @bp.route("/metricas", methods=["GET"])
+@require_auth
 def get_metricas_sla():
     """
     Obtener metricas de cumplimiento SLA.
@@ -43,10 +44,6 @@ def get_metricas_sla():
         - porcentaje_cumplimiento: % de cumplimiento
         - por_criticidad: Desglose (si se solicita)
     """
-    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    if isinstance(user_payload, tuple):
-        return user_payload
-
     periodo_dias = request.args.get("periodo_dias", 30, type=int)
     por_criticidad = request.args.get("por_criticidad", "false").lower() == "true"
 
@@ -56,6 +53,7 @@ def get_metricas_sla():
 
 
 @bp.route("/alertas", methods=["GET"])
+@require_auth
 def get_alertas_activas():
     """
     Obtener alertas SLA activas.
@@ -67,10 +65,6 @@ def get_alertas_activas():
     Returns:
         Lista de alertas activas
     """
-    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    if isinstance(user_payload, tuple):
-        return user_payload
-
     solicitud_id = request.args.get("solicitud_id", type=int)
     tipo = request.args.get("tipo")
 
@@ -80,6 +74,7 @@ def get_alertas_activas():
 
 
 @bp.route("/alertas/<int:alerta_id>/resolver", methods=["PUT", "POST"])
+@require_auth
 def resolver_alerta(alerta_id):
     """
     Resolver una alerta SLA.
@@ -90,11 +85,7 @@ def resolver_alerta(alerta_id):
     Returns:
         Resultado de la operacion
     """
-    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    if isinstance(user_payload, tuple):
-        return user_payload
-
-    user_id = str(user_payload.get("user_id", "system"))
+    user_id = str(g.user.get("user_id", "system"))
 
     resultado = resolver_alerta_sla(alerta_id=alerta_id, resuelto_por=user_id)
 
@@ -118,6 +109,7 @@ def resolver_alerta(alerta_id):
 
 
 @bp.route("/configuraciones", methods=["GET"])
+@require_auth
 def get_configuraciones():
     """
     Listar configuraciones SLA.
@@ -128,10 +120,6 @@ def get_configuraciones():
     Returns:
         Lista de configuraciones SLA
     """
-    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    if isinstance(user_payload, tuple):
-        return user_payload
-
     activo_param = request.args.get("activo")
     activo = None
     if activo_param:
@@ -143,6 +131,7 @@ def get_configuraciones():
 
 
 @bp.route("/configuraciones", methods=["POST"])
+@require_role(["admin", "gerente"])
 def create_configuracion():
     """
     Crear nueva configuracion SLA.
@@ -162,26 +151,6 @@ def create_configuracion():
     Returns:
         ID de la configuracion creada
     """
-    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    if isinstance(user_payload, tuple):
-        return user_payload
-
-    # Verificar rol admin
-    rol = user_payload.get("rol", "")
-    if rol not in ("admin", "gerente"):
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "forbidden",
-                        "message": "Solo administradores pueden crear configuraciones SLA",
-                    },
-                }
-            ),
-            403,
-        )
-
     data = request.get_json(silent=True) or {}
 
     # Validar campos requeridos
@@ -201,7 +170,7 @@ def create_configuracion():
             400,
         )
 
-    user_id = str(user_payload.get("user_id", "system"))
+    user_id = str(g.user.get("user_id", "system"))
 
     resultado = crear_configuracion_sla(
         nombre=data["nombre"],
@@ -228,6 +197,7 @@ def create_configuracion():
 
 
 @bp.route("/configuraciones/<int:config_id>", methods=["PUT"])
+@require_role(["admin", "gerente"])
 def update_configuracion(config_id):
     """
     Actualizar configuracion SLA existente.
@@ -241,26 +211,6 @@ def update_configuracion(config_id):
     Returns:
         Resultado de la operacion
     """
-    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    if isinstance(user_payload, tuple):
-        return user_payload
-
-    # Verificar rol admin
-    rol = user_payload.get("rol", "")
-    if rol not in ("admin", "gerente"):
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "forbidden",
-                        "message": "Solo administradores pueden modificar configuraciones SLA",
-                    },
-                }
-            ),
-            403,
-        )
-
     data = request.get_json(silent=True) or {}
 
     if not data:
@@ -297,6 +247,7 @@ def update_configuracion(config_id):
 
 
 @bp.route("/configuraciones/<int:config_id>", methods=["DELETE"])
+@require_role(["admin", "gerente"])
 def delete_configuracion(config_id):
     """
     Eliminar (desactivar) configuracion SLA.
@@ -307,26 +258,6 @@ def delete_configuracion(config_id):
     Returns:
         Resultado de la operacion
     """
-    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    if isinstance(user_payload, tuple):
-        return user_payload
-
-    # Verificar rol admin
-    rol = user_payload.get("rol", "")
-    if rol not in ("admin", "gerente"):
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "forbidden",
-                        "message": "Solo administradores pueden eliminar configuraciones SLA",
-                    },
-                }
-            ),
-            403,
-        )
-
     resultado = eliminar_configuracion_sla(config_id)
 
     if resultado.get("eliminado"):

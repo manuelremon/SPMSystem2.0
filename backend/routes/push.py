@@ -13,11 +13,9 @@ Endpoints:
 
 import logging
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 
-from backend.core.config import settings
-from backend.core.db import get_db_connection
-from backend.routes.auth import _decode_token
+from backend.core.roles import require_admin, require_auth
 from backend.services.push_service import (
     get_vapid_public_key,
     push_service,
@@ -27,29 +25,6 @@ from backend.services.push_service import (
 logger = logging.getLogger(__name__)
 
 bp = Blueprint("push", __name__, url_prefix="/api/push")
-
-
-def _get_current_user():
-    """Obtiene el usuario actual del token JWT."""
-    payload = _decode_token("access", "spm_token")
-    if isinstance(payload, tuple):
-        return None, payload
-    return payload.get("user_id"), None
-
-
-def _is_admin(user_id: str) -> bool:
-    """Verifica si el usuario tiene rol admin."""
-    try:
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (user_id,))
-            row = cursor.fetchone()
-            if row:
-                rol = row["rol"] if isinstance(row, dict) else row[0]
-                return "admin" in (rol or "").lower()
-    except Exception as e:
-        logger.error(f"[PUSH] Error verificando rol admin: {e}")
-    return False
 
 
 @bp.route("/vapid-key", methods=["GET"])
@@ -72,6 +47,7 @@ def get_vapid_key():
 
 
 @bp.route("/subscribe", methods=["POST"])
+@require_auth
 def subscribe():
     """
     Registra una suscripcion push.
@@ -88,9 +64,7 @@ def subscribe():
     Returns:
         {ok: bool, message: string}
     """
-    user_id, error = _get_current_user()
-    if error:
-        return error
+    user_id = g.user.get("user_id")
 
     data = request.get_json(silent=True) or {}
 
@@ -124,6 +98,7 @@ def subscribe():
 
 
 @bp.route("/unsubscribe", methods=["POST"])
+@require_auth
 def unsubscribe():
     """
     Cancela una suscripcion push.
@@ -138,9 +113,7 @@ def unsubscribe():
     Returns:
         {ok: bool, message: string}
     """
-    user_id, error = _get_current_user()
-    if error:
-        return error
+    user_id = g.user.get("user_id")
 
     data = request.get_json(silent=True) or {}
     endpoint = data.get("endpoint")
@@ -159,6 +132,7 @@ def unsubscribe():
 
 
 @bp.route("/status", methods=["GET"])
+@require_auth
 def get_status():
     """
     Obtiene el estado de suscripcion del usuario.
@@ -170,9 +144,7 @@ def get_status():
             subscriptionCount: int
         }
     """
-    user_id, error = _get_current_user()
-    if error:
-        return error
+    user_id = g.user.get("user_id")
 
     subscriptions = push_service.get_user_subscriptions(user_id)
 
@@ -189,6 +161,7 @@ def get_status():
 
 
 @bp.route("/test", methods=["POST"])
+@require_auth
 def send_test_notification():
     """
     Envia una notificacion push de prueba al usuario actual.
@@ -205,11 +178,8 @@ def send_test_notification():
     Returns:
         {ok: bool, results: {sent: int, failed: int}}
     """
-    user_id, error = _get_current_user()
-    if error:
-        return error
+    user_id = g.user.get("user_id")
 
-    # Cualquier usuario puede enviar test a si mismo (no a otros)
     data = request.get_json(silent=True) or {}
     title = data.get("title", "Notificacion de prueba")
     body = data.get("body", "Esta es una notificacion de prueba del sistema SPM")
@@ -222,6 +192,7 @@ def send_test_notification():
 
 
 @bp.route("/send", methods=["POST"])
+@require_admin
 def send_notification():
     """
     Envia una notificacion push a un usuario especifico.
@@ -237,19 +208,6 @@ def send_notification():
         "url": "/ruta" (opcional)
     }
     """
-    current_user_id, error = _get_current_user()
-    if error:
-        return error
-
-    # Verificar rol admin
-    if not _is_admin(current_user_id):
-        return (
-            jsonify(
-                {"ok": False, "error": {"code": "forbidden", "message": "Requiere rol admin"}}
-            ),
-            403,
-        )
-
     data = request.get_json(silent=True) or {}
     target_user_id = data.get("user_id")
     title = data.get("title")

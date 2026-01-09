@@ -19,51 +19,9 @@ from flask import Blueprint, g, jsonify, request
 
 from backend.core.metrics import get_cache_metrics, get_db_pool_metrics, get_metrics_collector
 from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+from backend.core.roles import require_auth, require_admin
 
 bp = Blueprint("metrics", __name__, url_prefix="/api/metrics")
-
-
-def require_auth(f):
-    """Decorator que requiere autenticacion."""
-
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not hasattr(g, "user") or not g.user:
-            return (
-                jsonify(
-                    {"ok": False, "error": {"code": "unauthorized", "message": "No autenticado"}}
-                ),
-                401,
-            )
-        return f(*args, **kwargs)
-
-    return decorated
-
-
-def require_admin(f):
-    """Decorator que requiere rol admin."""
-
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not hasattr(g, "user") or not g.user:
-            return (
-                jsonify(
-                    {"ok": False, "error": {"code": "unauthorized", "message": "No autenticado"}}
-                ),
-                401,
-            )
-
-        if "admin" not in g.user.get("rol", "").lower():
-            return (
-                jsonify(
-                    {"ok": False, "error": {"code": "forbidden", "message": "Requiere rol admin"}}
-                ),
-                403,
-            )
-
-        return f(*args, **kwargs)
-
-    return decorated
 
 
 @bp.route("", methods=["GET"])

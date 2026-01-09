@@ -33,8 +33,8 @@ from backend.core.item_schemas import (
     validar_solicitud_create,
 )
 from backend.core.rate_limit import rate_limit
-from backend.core.roles import has_any_role, is_admin
-from backend.routes.auth import _decode_token
+from backend.core.roles import has_any_role, is_admin, require_auth
+# Note: _decode_token is no longer imported directly - using @require_auth decorator instead
 from backend.services.approval_service import (
     obtener_aprobador_por_monto,
     obtener_regla_aprobacion,
@@ -106,13 +106,9 @@ def _save_uploaded_file(file, solicitud_id: int) -> dict:
 
 
 @bp.route("", methods=["GET"])
+@require_auth
 def list_solicitudes():
     """Listar solicitudes (permite filtrar por usuario y estado)"""
-    # SEGURIDAD: Verificar autenticacion
-    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    if isinstance(user_payload, tuple):
-        return user_payload
-
     # Validación de paginación con límites seguros
     page = max(1, request.args.get("page", 1, type=int))
     page_size = min(max(1, request.args.get("page_size", 10, type=int)), 100)  # Máximo 100
@@ -202,18 +198,12 @@ def list_solicitudes():
 
 
 @bp.route("/<int:solicitud_id>", methods=["GET"])
+@require_auth
 def get_solicitud(solicitud_id):
     """Obtener una solicitud específica"""
-    # SEGURIDAD: Verificar autenticacion
-    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    if isinstance(user_payload, tuple):
-        return user_payload
-
-    user_id = user_payload.get("user_id")
-    # Obtener rol de g.user (set by auth middleware) o de la BD si no está disponible
-    user_rol = ""
-    if hasattr(g, "user") and g.user:
-        user_rol = g.user.get("rol", "")
+    user_id = g.user.get("user_id")
+    # Obtener rol de g.user (set by @require_auth)
+    user_rol = g.user.get("rol", "")
     if not user_rol and user_id:
         # Fallback: buscar rol en BD
         with get_db_connection() as conn:
@@ -278,29 +268,11 @@ def get_solicitud(solicitud_id):
 
 
 @bp.route("", methods=["POST"])
+@require_auth
 # Rate limit removido temporalmente - usar rate limiting global
 def create_solicitud():
     """Crear una nueva solicitud (soporta JSON o multipart/form-data con archivos)"""
-    # SEGURIDAD: Requiere autenticación válida
-    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    if isinstance(user_payload, tuple):
-        # Token inválido o ausente - retornar error de autenticación
-        return user_payload
-
-    user_id = user_payload.get("user_id")
-    if not user_id:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "unauthorized",
-                        "message": "Usuario no identificado en token",
-                    },
-                }
-            ),
-            401,
-        )
+    user_id = g.user.get("user_id")
 
     # Soportar tanto JSON como multipart/form-data
     if request.content_type and "multipart/form-data" in request.content_type:
@@ -513,27 +485,10 @@ def create_solicitud():
 
 
 @bp.route("/<int:solicitud_id>", methods=["DELETE"])
+@require_auth
 def eliminar_solicitud(solicitud_id):
     """Eliminar una solicitud (solo borradores propios)"""
-    # Validar autenticación
-    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    if isinstance(user_payload, tuple):
-        return user_payload
-
-    user_id = user_payload.get("user_id")
-    if not user_id:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "unauthorized",
-                        "message": "Usuario no identificado en token",
-                    },
-                }
-            ),
-            401,
-        )
+    user_id = g.user.get("user_id")
 
     solicitud = _get_raw(solicitud_id)
     if not solicitud:
@@ -603,27 +558,10 @@ def eliminar_solicitud(solicitud_id):
 
 
 @bp.route("/<int:solicitud_id>/draft", methods=["PATCH"])
+@require_auth
 def guardar_borrador(solicitud_id):
     """Guardar borrador con items y total"""
-    # SEGURIDAD: Requiere autenticación
-    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    if isinstance(user_payload, tuple):
-        return user_payload
-
-    user_id = user_payload.get("user_id")
-    if not user_id:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "unauthorized",
-                        "message": "Usuario no identificado en token",
-                    },
-                }
-            ),
-            401,
-        )
+    user_id = g.user.get("user_id")
 
     # SEGURIDAD: Validar ownership - solo el dueño puede editar el borrador
     solicitud = _get_raw(solicitud_id)
@@ -687,27 +625,10 @@ def guardar_borrador(solicitud_id):
 
 
 @bp.route("/<int:solicitud_id>/enviar", methods=["PUT", "POST"])
+@require_auth
 def enviar_solicitud(solicitud_id):
     """Enviar solicitud para aprobación - Usa FSM centralizado"""
-    # SEGURIDAD: Requiere autenticación
-    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    if isinstance(user_payload, tuple):
-        return user_payload
-
-    user_id = str(user_payload.get("user_id", "system"))
-    if not user_id or user_id == "system":
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "unauthorized",
-                        "message": "Usuario no identificado en token",
-                    },
-                }
-            ),
-            401,
-        )
+    user_id = str(g.user.get("user_id", ""))
 
     # SEGURIDAD: Validar ownership - solo el dueño puede enviar la solicitud
     solicitud = _get_raw(solicitud_id)
@@ -849,29 +770,12 @@ def enviar_solicitud(solicitud_id):
 
 
 @bp.route("/<int:solicitud_id>/aprobar", methods=["PUT", "POST"])
+@require_auth
 def aprobar_solicitud(solicitud_id):
     """Aprobar solicitud validando presupuesto - Usa FSM centralizado"""
     logger.info(f"[APROBAR-DEBUG] Inicio aprobar_solicitud({solicitud_id})")
-    # 1. Validar autenticacion
-    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    logger.info(f"[APROBAR-DEBUG] Token decoded: {type(user_payload)}, user_id={user_payload.get('user_id') if isinstance(user_payload, dict) else 'N/A'}")
-    if isinstance(user_payload, tuple):
-        return user_payload
-
-    aprobador_id = str(user_payload.get("user_id"))
-    if not aprobador_id:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "unauthorized",
-                        "message": "Usuario no identificado en token",
-                    },
-                }
-            ),
-            401,
-        )
+    aprobador_id = str(g.user.get("user_id", ""))
+    logger.info(f"[APROBAR-DEBUG] aprobador_id={aprobador_id}")
 
     # 2. Obtener solicitud
     solicitud = _get_raw(solicitud_id)
@@ -1159,27 +1063,10 @@ def aprobar_solicitud(solicitud_id):
 
 
 @bp.route("/<int:solicitud_id>/rechazar", methods=["PUT", "POST"])
+@require_auth
 def rechazar_solicitud(solicitud_id):
     """Rechazar solicitud - Usa FSM centralizado"""
-    # SEGURIDAD: Requiere autenticación
-    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    if isinstance(user_payload, tuple):
-        return user_payload
-
-    actor_id = str(user_payload.get("user_id", "system"))
-    if not actor_id or actor_id == "system":
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "unauthorized",
-                        "message": "Usuario no identificado en token",
-                    },
-                }
-            ),
-            401,
-        )
+    actor_id = str(g.user.get("user_id", ""))
 
     # Obtener rol del actor ANTES de procesar (necesario para validar autorización)
     with get_db_connection() as conn:
@@ -1320,31 +1207,14 @@ def rechazar_solicitud(solicitud_id):
 
 
 @bp.route("/<int:solicitud_id>/cancelar", methods=["PUT", "POST"])
+@require_auth
 def cancelar_solicitud(solicitud_id):
     """
     SPRINT 1.3: Cancelar solicitud con reversión automática de presupuesto.
     Solo el solicitante o admin pueden cancelar.
     Si la solicitud estaba APPROVED, el presupuesto consumido se revierte.
     """
-    # 1. Validar autenticación
-    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    if isinstance(user_payload, tuple):
-        return user_payload
-
-    actor_id = str(user_payload.get("user_id", "system"))
-    if not actor_id or actor_id == "system":
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "unauthorized",
-                        "message": "Usuario no identificado en token",
-                    },
-                }
-            ),
-            401,
-        )
+    actor_id = str(g.user.get("user_id", ""))
 
     # 2. Obtener rol del actor
     with get_db_connection() as conn:
@@ -1466,14 +1336,10 @@ def cancelar_solicitud(solicitud_id):
 
 
 @bp.route("/<int:solicitud_id>/comentar", methods=["POST"])
+@require_auth
 def comentar_solicitud(solicitud_id):
     """Agregar comentario/notificación a una solicitud"""
-    # SEGURIDAD: Requiere autenticación
-    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    if isinstance(user_payload, tuple):
-        return user_payload
-
-    actor_id = str(user_payload.get("user_id") or "system")
+    actor_id = str(g.user.get("user_id") or "system")
 
     data = request.get_json(silent=True) or {}
     comentario = data.get("comentario", "").strip()
@@ -1523,17 +1389,13 @@ def comentar_solicitud(solicitud_id):
 
 
 @bp.route("/<int:solicitud_id>/historial-estados", methods=["GET"])
+@require_auth
 def get_historial_estados(solicitud_id):
     """
     Obtener historial de transiciones de estado de una solicitud.
 
     Endpoint v2 que usa el FSM centralizado.
     """
-    # SEGURIDAD: Requiere autenticación
-    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    if isinstance(user_payload, tuple):
-        return user_payload
-
     # Importar función del FSM
     try:
         from backend.core.fsm import estado_para_display, obtener_historial_estados
@@ -1574,6 +1436,7 @@ def get_historial_estados(solicitud_id):
 
 
 @bp.route("/<int:solicitud_id>/transiciones-posibles", methods=["GET"])
+@require_auth
 def get_transiciones_posibles(solicitud_id):
     """
     Obtener las transiciones de estado posibles desde el estado actual.
@@ -1581,12 +1444,7 @@ def get_transiciones_posibles(solicitud_id):
     Útil para que el frontend muestre solo las acciones permitidas.
     Incluye validación de permisos para cada transición.
     """
-    # SEGURIDAD: Requiere autenticación
-    user_payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    if isinstance(user_payload, tuple):
-        return user_payload
-
-    user_id = user_payload.get("sub") or user_payload.get("user_id")
+    user_id = g.user.get("user_id")
 
     # Importar función del FSM
     try:

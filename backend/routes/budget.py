@@ -11,13 +11,12 @@ Endpoints:
 - GET  /api/presupuesto/:centro/:sector  - Info de presupuesto
 """
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 
 from backend.core.budget_schemas import EstadoBUR, NivelAprobacion
 from backend.core.db import get_db_connection
-from backend.core.roles import is_admin, normalize_roles
+from backend.core.roles import is_admin, normalize_roles, require_auth
 from backend.core.user_helpers import get_user_by_id
-from backend.routes.auth import _decode_token
 from backend.services.budget_service import BURService, PresupuestoService
 from backend.services.notification_service import NotificationService
 
@@ -27,14 +26,6 @@ bp = Blueprint("budget", __name__, url_prefix="/api")
 
 # Alias para compatibilidad con código existente
 _get_user = get_user_by_id
-
-
-def _require_auth():
-    """Valida autenticacion y retorna payload o error"""
-    payload = _decode_token(expected_type="access", cookie_name="spm_token")
-    if isinstance(payload, tuple):
-        return None, payload
-    return payload, None
 
 
 def _get_approvers_for_level(nivel: str) -> list:
@@ -105,11 +96,9 @@ def _resolve_sector_name(sector_value: str) -> str:
 
 
 @bp.route("/presupuesto/<centro>/<sector>", methods=["GET"])
+@require_auth
 def get_presupuesto_info(centro, sector):
     """Obtiene informacion de presupuesto para centro/sector"""
-    payload, err = _require_auth()
-    if err:
-        return err
 
     # Resolver sector ID a nombre si es necesario
     sector_name = _resolve_sector_name(sector)
@@ -138,12 +127,9 @@ def get_presupuesto_info(centro, sector):
 
 
 @bp.route("/presupuesto-ledger", methods=["GET"])
+@require_auth
 def get_ledger():
     """Obtiene historial de movimientos de presupuesto"""
-    payload, err = _require_auth()
-    if err:
-        return err
-
     centro = request.args.get("centro")
     sector = request.args.get("sector")
     limit = min(request.args.get("limit", 50, type=int), 200)
@@ -172,12 +158,9 @@ def get_ledger():
 
 
 @bp.route("/budget-requests", methods=["GET"])
+@require_auth
 def list_budget_requests():
     """Lista Budget Update Requests"""
-    payload, err = _require_auth()
-    if err:
-        return err
-
     estado = request.args.get("estado")
     centro = request.args.get("centro")
     sector = request.args.get("sector")
@@ -197,13 +180,10 @@ def list_budget_requests():
 
 
 @bp.route("/budget-requests", methods=["POST"])
+@require_auth
 def create_budget_request():
     """Crear Budget Update Request (solo jefe/admin)"""
-    payload, err = _require_auth()
-    if err:
-        return err
-
-    user_id = str(payload.get("user_id"))
+    user_id = str(g.user.get("user_id"))
     user = _get_user(user_id)
     if not user:
         return (
@@ -314,12 +294,9 @@ def create_budget_request():
 
 
 @bp.route("/budget-requests/<int:bur_id>", methods=["GET"])
+@require_auth
 def get_budget_request(bur_id):
     """Obtiene detalle de Budget Update Request"""
-    payload, err = _require_auth()
-    if err:
-        return err
-
     bur = BURService.get_by_id(bur_id)
     if not bur:
         return (
@@ -331,13 +308,10 @@ def get_budget_request(bur_id):
 
 
 @bp.route("/budget-requests/<int:bur_id>/aprobar", methods=["POST"])
+@require_auth
 def aprobar_budget_request(bur_id):
     """Aprobar Budget Update Request"""
-    payload, err = _require_auth()
-    if err:
-        return err
-
-    user_id = str(payload.get("user_id"))
+    user_id = str(g.user.get("user_id"))
     user = _get_user(user_id)
     if not user:
         return (
@@ -422,13 +396,10 @@ def aprobar_budget_request(bur_id):
 
 
 @bp.route("/budget-requests/<int:bur_id>/rechazar", methods=["POST"])
+@require_auth
 def rechazar_budget_request(bur_id):
     """Rechazar Budget Update Request"""
-    payload, err = _require_auth()
-    if err:
-        return err
-
-    user_id = str(payload.get("user_id"))
+    user_id = str(g.user.get("user_id"))
     user = _get_user(user_id)
     if not user:
         return (
@@ -512,16 +483,13 @@ def rechazar_budget_request(bur_id):
 
 
 @bp.route("/budget-requests/<int:bur_id>/revertir", methods=["POST"])
+@require_auth
 def revertir_budget_request(bur_id):
     """
     SPRINT 2.3: Revertir un BUR aprobado (solo admin).
     Resta el monto del presupuesto y marca el BUR como revertido.
     """
-    payload, err = _require_auth()
-    if err:
-        return err
-
-    user_id = str(payload.get("user_id"))
+    user_id = str(g.user.get("user_id"))
     user = _get_user(user_id)
     if not user:
         return (
@@ -603,13 +571,10 @@ def revertir_budget_request(bur_id):
 
 
 @bp.route("/budget-requests/pendientes", methods=["GET"])
+@require_auth
 def get_bur_pendientes():
     """Obtiene BURs pendientes que el usuario actual puede aprobar"""
-    payload, err = _require_auth()
-    if err:
-        return err
-
-    user_id = str(payload.get("user_id"))
+    user_id = str(g.user.get("user_id"))
     user = _get_user(user_id)
     if not user:
         return (

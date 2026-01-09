@@ -157,6 +157,125 @@ def has_any_role(rol_value, required_roles: List[str]) -> bool:
     return bool(roles & required)
 
 
+# =============================================================================
+# Authorization Decorators
+# =============================================================================
+
+
+from functools import wraps
+
+from flask import g, jsonify
+
+
+def require_auth(f):
+    """
+    Decorator que verifica que el usuario este autenticado.
+
+    Uso:
+    @bp.route("/some-protected-route")
+    @require_auth
+    def some_protected_route():
+        # g.user esta garantizado que existe aqui
+        ...
+    """
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not hasattr(g, "user") or g.user is None:
+            return (
+                jsonify(
+                    {
+                        "ok": False,
+                        "error": {
+                            "code": "unauthorized",
+                            "message": "Authentication required for this resource.",
+                        },
+                    }
+                ),
+                401,
+            )
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def require_admin(f):
+    """
+    Decorator que verifica que el usuario sea administrador.
+
+    Implica @require_auth.
+    """
+
+    @wraps(f)
+    @require_auth  # Asegura que g.user existe primero
+    def decorated_function(*args, **kwargs):
+        user_roles = g.user.get("rol", "")
+        if not is_admin(user_roles):
+            return (
+                jsonify(
+                    {
+                        "ok": False,
+                        "error": {
+                            "code": "forbidden",
+                            "message": "Administrator privileges required for this resource.",
+                        },
+                    }
+                ),
+                403,
+            )
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def require_role(required_roles: List[str]):
+    """
+    Decorator que verifica que el usuario tenga al menos uno de los roles requeridos.
+
+    Implica @require_auth.
+
+    Uso:
+        @bp.route("/planner-only")
+        @require_role(["planificador", "admin"])
+        def planner_only():
+            ...
+
+    Args:
+        required_roles: Lista de roles permitidos (case-insensitive)
+    """
+
+    def decorator(f):
+        @wraps(f)
+        @require_auth
+        def decorated_function(*args, **kwargs):
+            user_roles = normalize_roles(g.user.get("rol", ""))
+            required = {r.lower().strip() for r in required_roles}
+
+            # Admin siempre tiene acceso
+            if any(r in ADMIN_ROLES for r in user_roles):
+                return f(*args, **kwargs)
+
+            # Verificar si tiene alguno de los roles requeridos
+            if not any(r in required for r in user_roles):
+                return (
+                    jsonify(
+                        {
+                            "ok": False,
+                            "error": {
+                                "code": "forbidden",
+                                "message": f"Se requiere uno de los siguientes roles: {', '.join(required_roles)}",
+                            },
+                        }
+                    ),
+                    403,
+                )
+            return f(*args, **kwargs)
+
+        return decorated_function
+
+    return decorator
+
+
 def format_user_response(user: dict) -> dict:
     """
     Formatea la respuesta de usuario con roles normalizados.

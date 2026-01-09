@@ -3,66 +3,12 @@ Rutas para gestión de equivalencias de materiales
 CRUD completo con permisos para Admin y Planificador
 """
 
-from functools import wraps
-
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, jsonify, request
 
 from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
+from backend.core.roles import require_auth, require_role
 
 bp = Blueprint("equivalencias", __name__, url_prefix="/api/equivalencias")
-
-
-def require_auth(f):
-    """Decorator que requiere autenticación"""
-
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not hasattr(g, "user") or not g.user:
-            return (
-                jsonify(
-                    {"ok": False, "error": {"code": "unauthorized", "message": "No autenticado"}}
-                ),
-                401,
-            )
-        return f(*args, **kwargs)
-
-    return decorated
-
-
-def require_admin_or_planner(f):
-    """Decorator que requiere rol Admin o Planificador"""
-
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not hasattr(g, "user") or not g.user:
-            return (
-                jsonify(
-                    {"ok": False, "error": {"code": "unauthorized", "message": "No autenticado"}}
-                ),
-                401,
-            )
-
-        roles = g.user.get("rol", "").lower()
-        is_admin = "admin" in roles
-        is_planner = "planificador" in roles
-
-        if not (is_admin or is_planner):
-            return (
-                jsonify(
-                    {
-                        "ok": False,
-                        "error": {
-                            "code": "forbidden",
-                            "message": "Requiere rol Admin o Planificador",
-                        },
-                    }
-                ),
-                403,
-            )
-
-        return f(*args, **kwargs)
-
-    return decorated
 
 
 @bp.route("", methods=["GET"])
@@ -216,7 +162,7 @@ def equivalencias_por_material(codigo):
 
 
 @bp.route("", methods=["POST"])
-@require_admin_or_planner
+@require_role(["admin", "planificador"])
 def crear_equivalencia():
     """
     Crea una nueva equivalencia de material.
@@ -388,7 +334,7 @@ def crear_equivalencia():
 
 
 @bp.route("/<int:id_equivalencia>", methods=["PUT"])
-@require_admin_or_planner
+@require_role(["admin", "planificador"])
 def actualizar_equivalencia(id_equivalencia):
     """
     Actualiza una equivalencia existente.
@@ -497,7 +443,7 @@ def actualizar_equivalencia(id_equivalencia):
 
 
 @bp.route("/<int:id_equivalencia>", methods=["DELETE"])
-@require_admin_or_planner
+@require_role(["admin", "planificador"])
 def eliminar_equivalencia(id_equivalencia):
     """
     Elimina (desactiva) una equivalencia.

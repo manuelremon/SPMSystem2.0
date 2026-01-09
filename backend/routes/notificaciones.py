@@ -12,42 +12,18 @@ Endpoints:
 import json
 import time
 
-from flask import Blueprint, Response, jsonify, request, stream_with_context
+from flask import Blueprint, Response, g, jsonify, request, stream_with_context
 
 from backend.core.notification_schemas import NotificacionEvent
-from backend.routes.auth import _decode_token
+from backend.core.roles import require_auth
 from backend.services.notification_service import NotificationService
 
 
 bp = Blueprint("notificaciones", __name__, url_prefix="/api/notificaciones")
 
 
-def _get_user_from_token():
-    """
-    Extract user_id from request using the standard _decode_token helper.
-
-    Supports both:
-    - Authorization: Bearer <token> header
-    - spm_token cookie
-
-    Returns:
-        str: user_id if valid token found
-        None: if no valid token
-    """
-    # _decode_token uses cookie_name to get token from either header or cookie
-    payload = _decode_token(expected_type="access", cookie_name="spm_token")
-
-    # _decode_token returns tuple (response, status_code) on error, dict on success
-    if isinstance(payload, tuple):
-        return None
-
-    if not isinstance(payload, dict):
-        return None
-
-    return payload.get("sub") or payload.get("user_id")
-
-
 @bp.route("", methods=["GET"])
+@require_auth
 def list_notifications():
     """
     Listar notificaciones del usuario autenticado.
@@ -59,9 +35,7 @@ def list_notifications():
     Returns:
         JSON con lista de notificaciones y contador de no leídas
     """
-    user_id = _get_user_from_token()
-    if not user_id:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    user_id = g.user.get("user_id")
 
     unread_only = request.args.get("unread_only", "false").lower() == "true"
     limit = min(int(request.args.get("limit", 50)), 100)
@@ -82,6 +56,7 @@ def list_notifications():
 
 
 @bp.route("/<int:notification_id>/marcar-leida", methods=["POST"])
+@require_auth
 def mark_as_read(notification_id):
     """
     Marcar una notificación como leída.
@@ -92,9 +67,7 @@ def mark_as_read(notification_id):
     Returns:
         JSON con confirmación
     """
-    user_id = _get_user_from_token()
-    if not user_id:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    user_id = g.user.get("user_id")
 
     success = NotificationService.mark_as_read(notification_id, user_id)
 
@@ -105,6 +78,7 @@ def mark_as_read(notification_id):
 
 
 @bp.route("/marcar-todas-leidas", methods=["POST"])
+@require_auth
 def mark_all_as_read():
     """
     Marcar todas las notificaciones del usuario como leídas.
@@ -112,9 +86,7 @@ def mark_all_as_read():
     Returns:
         JSON con cantidad de notificaciones marcadas
     """
-    user_id = _get_user_from_token()
-    if not user_id:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    user_id = g.user.get("user_id")
 
     count = NotificationService.mark_all_as_read(user_id)
 
@@ -124,6 +96,7 @@ def mark_all_as_read():
 
 
 @bp.route("/<int:notification_id>", methods=["DELETE"])
+@require_auth
 def delete_notification(notification_id):
     """
     Eliminar una notificación.
@@ -134,9 +107,7 @@ def delete_notification(notification_id):
     Returns:
         JSON con confirmación
     """
-    user_id = _get_user_from_token()
-    if not user_id:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    user_id = g.user.get("user_id")
 
     success = NotificationService.delete_notification(notification_id, user_id)
 
@@ -147,6 +118,7 @@ def delete_notification(notification_id):
 
 
 @bp.route("/stream", methods=["GET"])
+@require_auth
 def notification_stream():
     """
     Server-Sent Events endpoint para notificaciones en tiempo real.
@@ -163,9 +135,7 @@ def notification_stream():
     Returns:
         SSE stream con eventos de notificaciones
     """
-    user_id = _get_user_from_token()
-    if not user_id:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    user_id = g.user.get("user_id")
 
     # FIX 5.1: Importar Redis pub/sub
     try:
@@ -275,6 +245,7 @@ def notification_stream():
 
 
 @bp.route("/centro-interaccion", methods=["GET"])
+@require_auth
 def centro_interaccion():
     """
     Datos consolidados para el Centro de Interacción.
@@ -283,9 +254,7 @@ def centro_interaccion():
     - Contadores de notificaciones, consultas pendientes y mensajes
     - Timeline de actividad reciente
     """
-    user_id = _get_user_from_token()
-    if not user_id:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    user_id = g.user.get("user_id")
 
     try:
         from backend.core.db import get_db_connection

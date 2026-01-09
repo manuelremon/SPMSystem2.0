@@ -5,10 +5,12 @@ Tablero de Alertas y KPIs para planificadores
 
 import logging
 from datetime import datetime, timedelta
-from functools import lru_cache, wraps
+from functools import lru_cache
 from typing import Any, Dict, Optional, Tuple
 
 from flask import Blueprint, g, jsonify, request
+
+from backend.core.roles import require_auth, require_role
 
 logger = logging.getLogger(__name__)
 
@@ -172,59 +174,6 @@ def _calcular_velocidad_respuesta() -> Tuple[float, str]:
 bp = Blueprint("mrp", __name__, url_prefix="/api/mrp")
 
 
-def require_auth(f):
-    """Decorator que requiere autenticación"""
-
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not hasattr(g, "user") or not g.user:
-            return (
-                jsonify(
-                    {"ok": False, "error": {"code": "unauthorized", "message": "No autenticado"}}
-                ),
-                401,
-            )
-        return f(*args, **kwargs)
-
-    return decorated
-
-
-def require_planner_or_admin(f):
-    """Decorator que requiere rol Planificador o Admin"""
-
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not hasattr(g, "user") or not g.user:
-            return (
-                jsonify(
-                    {"ok": False, "error": {"code": "unauthorized", "message": "No autenticado"}}
-                ),
-                401,
-            )
-
-        roles = g.user.get("rol", "").lower()
-        is_admin = "admin" in roles
-        is_planner = "planificador" in roles
-
-        if not (is_admin or is_planner):
-            return (
-                jsonify(
-                    {
-                        "ok": False,
-                        "error": {
-                            "code": "forbidden",
-                            "message": "Requiere rol Admin o Planificador",
-                        },
-                    }
-                ),
-                403,
-            )
-
-        return f(*args, **kwargs)
-
-    return decorated
-
-
 def calcular_estado_material(
     stock_actual: float,
     stock_seguridad: float,
@@ -360,7 +309,7 @@ def _generar_evolucion_alertas(hoy: datetime, materiales_riesgo: int, materiales
 
 
 @bp.route("/alertas", methods=["GET"])
-@require_planner_or_admin
+@require_role(["admin", "planificador"])
 def get_alertas():
     """
     Obtiene el tablero de alertas MRP usando datos reales de sap_data.db.
@@ -565,7 +514,7 @@ def get_alertas():
 
 
 @bp.route("/kpis", methods=["GET"])
-@require_planner_or_admin
+@require_role(["admin", "planificador"])
 def get_kpis():
     """
     Obtiene los KPIs MRP usando datos reales de sap_data.db.
@@ -966,7 +915,7 @@ except ImportError:
 
 
 @bp.route("/analisis/<material_codigo>", methods=["GET"])
-@require_planner_or_admin
+@require_role(["admin", "planificador"])
 def get_analisis_material(material_codigo):
     """
     Analisis MRP completo de un material.
@@ -1010,7 +959,7 @@ def get_analisis_material(material_codigo):
 
 
 @bp.route("/analisis/centro/<centro>", methods=["GET"])
-@require_planner_or_admin
+@require_role(["admin", "planificador"])
 def get_analisis_centro(centro):
     """
     Analisis MRP de todos los materiales de un centro.
@@ -1036,7 +985,7 @@ def get_analisis_centro(centro):
 
 
 @bp.route("/forecast/<material_codigo>", methods=["GET"])
-@require_planner_or_admin
+@require_role(["admin", "planificador"])
 def get_forecast_demanda(material_codigo):
     """
     Obtiene proyeccion de demanda para un material.
@@ -1077,7 +1026,7 @@ def get_forecast_demanda(material_codigo):
 
 
 @bp.route("/alertas-mrp", methods=["GET"])
-@require_planner_or_admin
+@require_role(["admin", "planificador"])
 def get_alertas_mrp_activas():
     """
     Obtiene alertas MRP activas.
@@ -1102,7 +1051,7 @@ def get_alertas_mrp_activas():
 
 
 @bp.route("/alertas-mrp/<int:alerta_id>/resolver", methods=["PUT", "POST"])
-@require_planner_or_admin
+@require_role(["admin", "planificador"])
 def resolver_alerta_mrp_endpoint(alerta_id):
     """
     Resuelve una alerta MRP.

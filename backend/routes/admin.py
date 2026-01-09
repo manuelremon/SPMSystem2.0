@@ -6,7 +6,7 @@ Protegido: requiere rol admin (token access)
 import logging
 import sys
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +14,8 @@ from backend.core.cache import get_cache_stats, invalidate_catalog_cache, invali
 from backend.core.config import settings
 from backend.core.db import get_db_connection, get_db_transaction, get_spm_db_path
 from backend.core.rate_limit import rate_limit
-from backend.core.roles import is_admin, normalize_roles
+from backend.core.roles import is_admin, normalize_roles, require_admin
 from backend.core.user_helpers import get_user_by_id
-from backend.routes.auth import _decode_token
 
 bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
@@ -25,33 +24,10 @@ bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 _get_user = get_user_by_id
 
 
-def _require_admin():
-    payload = _decode_token("access", "spm_token")
-    if isinstance(payload, tuple):
-        return None, payload
-    return payload, None
-
-
-def _admin_guard():
-    payload, err = _require_admin()
-    if err:
-        return err
-    user = _get_user(payload.get("user_id"))
-
-    # Usar módulo centralizado de roles
-    if not is_admin((user or {}).get("rol", "")):
-        return jsonify({"ok": False, "error": "Requiere rol Administrador"}), 403
-
-    return None
-
-
 @bp.route("/centros", methods=["GET", "POST"])
+@require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_centros():
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
         if not data.get("codigo"):
@@ -72,12 +48,9 @@ def admin_centros():
 
 
 @bp.route("/centros/<centro_codigo>", methods=["PUT", "DELETE"])
+@require_admin
 @rate_limit(requests=20, window_seconds=60)
 def admin_centros_mod(centro_codigo):
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     with get_db_transaction() as conn:
         cur = conn.cursor()
         if request.method == "PUT":
@@ -94,12 +67,9 @@ def admin_centros_mod(centro_codigo):
 
 
 @bp.route("/almacenes", methods=["GET", "POST"])
+@require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_almacenes():
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
         if not data.get("codigo"):
@@ -120,12 +90,9 @@ def admin_almacenes():
 
 
 @bp.route("/almacenes/<almacen_codigo>", methods=["PUT", "DELETE"])
+@require_admin
 @rate_limit(requests=20, window_seconds=60)
 def admin_almacenes_mod(almacen_codigo):
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     with get_db_transaction() as conn:
         cur = conn.cursor()
         if request.method == "PUT":
@@ -142,12 +109,9 @@ def admin_almacenes_mod(almacen_codigo):
 
 
 @bp.route("/sectores", methods=["GET", "POST"])
+@require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_sectores():
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
         if not data.get("nombre"):
@@ -168,12 +132,9 @@ def admin_sectores():
 
 
 @bp.route("/sectores/<sector_nombre>", methods=["PUT", "DELETE"])
+@require_admin
 @rate_limit(requests=20, window_seconds=60)
 def admin_sectores_mod(sector_nombre):
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     with get_db_transaction() as conn:
         cur = conn.cursor()
         if request.method == "PUT":
@@ -191,12 +152,9 @@ def admin_sectores_mod(sector_nombre):
 
 # ======================== ROLES ========================
 @bp.route("/roles", methods=["GET", "POST"])
+@require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_roles():
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
         if not data.get("nombre"):
@@ -217,12 +175,9 @@ def admin_roles():
 
 
 @bp.route("/roles/<rol_nombre>", methods=["PUT", "DELETE"])
+@require_admin
 @rate_limit(requests=20, window_seconds=60)
 def admin_roles_mod(rol_nombre):
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     with get_db_transaction() as conn:
         cur = conn.cursor()
         if request.method == "PUT":
@@ -243,12 +198,9 @@ def admin_roles_mod(rol_nombre):
 
 # ======================== PUESTOS ========================
 @bp.route("/puestos", methods=["GET", "POST"])
+@require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_puestos():
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
         if not data.get("nombre"):
@@ -269,12 +221,9 @@ def admin_puestos():
 
 
 @bp.route("/puestos/<puesto_nombre>", methods=["PUT", "DELETE"])
+@require_admin
 @rate_limit(requests=20, window_seconds=60)
 def admin_puestos_mod(puesto_nombre):
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     with get_db_transaction() as conn:
         cur = conn.cursor()
         if request.method == "PUT":
@@ -294,12 +243,9 @@ def admin_puestos_mod(puesto_nombre):
 
 
 @bp.route("/usuarios", methods=["GET", "POST"])
+@require_admin
 @rate_limit(requests=30, window_seconds=60)  # Proteccion contra brute force
 def admin_usuarios():
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
 
@@ -358,12 +304,9 @@ def admin_usuarios():
 
 
 @bp.route("/usuarios/<id_spm>", methods=["GET", "PUT", "DELETE"])
+@require_admin
 @rate_limit(requests=20, window_seconds=60)  # Proteccion contra enumeracion/brute force
 def admin_usuarios_mod(id_spm):
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     if request.method == "GET":
         with get_db_connection() as conn:
             cur = conn.cursor()
@@ -457,12 +400,9 @@ def admin_usuarios_mod(id_spm):
 
 
 @bp.route("/planificadores", methods=["GET", "POST"])
+@require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_planificadores():
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
         if not data.get("usuario_id"):
@@ -497,12 +437,9 @@ def admin_planificadores():
 
 
 @bp.route("/planificadores/<usuario_id>", methods=["PUT", "DELETE"])
+@require_admin
 @rate_limit(requests=20, window_seconds=60)
 def admin_planificadores_mod(usuario_id):
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     with get_db_transaction() as conn:
         cur = conn.cursor()
         if request.method == "PUT":
@@ -526,10 +463,8 @@ def admin_planificadores_mod(usuario_id):
 
 
 def _get_current_user_info():
-    """Obtiene info del usuario actual desde el token JWT."""
-    from flask import g
-
-    user_id = getattr(g, "user_id", None)
+    """Obtiene info del usuario actual desde g.user (set by @require_admin)."""
+    user_id = g.user.get("user_id") if hasattr(g, "user") and g.user else None
     if not user_id:
         return None, None
     with get_db_connection() as conn:
@@ -587,12 +522,9 @@ def _registrar_historial_presupuesto(
 
 
 @bp.route("/presupuestos", methods=["GET", "POST"])
+@require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_presupuestos():
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
         if not data.get("centro") or not data.get("sector"):
@@ -654,13 +586,10 @@ def admin_presupuestos():
 
 
 @bp.route("/presupuestos/historial", methods=["GET"])
+@require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_presupuestos_historial():
     """Obtiene el historial de cambios en presupuestos."""
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     centro = request.args.get("centro")
     sector = request.args.get("sector")
     limit = request.args.get("limit", 50, type=int)
@@ -694,12 +623,9 @@ def admin_presupuestos_historial():
 
 
 @bp.route("/presupuestos/<centro>/<sector>", methods=["PUT", "DELETE"])
+@require_admin
 @rate_limit(requests=20, window_seconds=60)
 def admin_presupuestos_mod(centro, sector):
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     with get_db_transaction() as conn:
         cur = conn.cursor()
 
@@ -760,12 +686,9 @@ def admin_presupuestos_mod(centro, sector):
 
 
 @bp.route("/estado", methods=["GET"])
+@require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_estado():
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     db_path = get_spm_db_path()
     db_exists = db_path.exists()
     return (
@@ -787,12 +710,9 @@ def admin_estado():
 
 
 @bp.route("/metricas", methods=["GET"])
+@require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_metricas():
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     import logging
 
     counts = {}
@@ -836,12 +756,9 @@ def admin_metricas():
 
 
 @bp.route("/config/almacenes", methods=["GET", "POST"])
+@require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_config_almacenes():
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
         if not data.get("centro") or not data.get("almacen"):
@@ -895,12 +812,9 @@ def admin_config_almacenes():
 
 
 @bp.route("/config/almacenes/<centro>/<almacen>", methods=["PUT", "DELETE"])
+@require_admin
 @rate_limit(requests=20, window_seconds=60)
 def admin_config_almacenes_mod(centro, almacen):
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     with get_db_transaction() as conn:
         cur = conn.cursor()
         if request.method == "PUT":
@@ -934,16 +848,13 @@ def admin_config_almacenes_mod(centro, almacen):
 
 
 @bp.route("/proveedores/externos", methods=["GET", "POST"])
+@require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_proveedores_externos():
     """
     GET: Lista proveedores externos con sus contactos/emails
     POST: Crea un nuevo proveedor externo
     """
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
         if not data.get("cuit"):
@@ -1019,6 +930,7 @@ def admin_proveedores_externos():
 
 
 @bp.route("/proveedores/externos/<cuit>", methods=["GET", "PUT", "DELETE"])
+@require_admin
 @rate_limit(requests=20, window_seconds=60)
 def admin_proveedores_externos_mod(cuit):
     """
@@ -1026,10 +938,6 @@ def admin_proveedores_externos_mod(cuit):
     PUT: Actualiza un proveedor
     DELETE: Desactiva un proveedor (soft delete)
     """
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     if request.method == "GET":
         with get_db_connection() as conn:
             cur = conn.cursor()
@@ -1102,16 +1010,13 @@ def admin_proveedores_externos_mod(cuit):
 
 
 @bp.route("/proveedores/internos", methods=["GET", "POST"])
+@require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_proveedores_internos():
     """
     GET: Lista proveedores internos (almacenes)
     POST: Crea/actualiza un proveedor interno
     """
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
         if not data.get("centro") or not data.get("almacen"):
@@ -1169,6 +1074,7 @@ def admin_proveedores_internos():
 
 
 @bp.route("/proveedores/internos/<centro>/<almacen>", methods=["GET", "PUT", "DELETE"])
+@require_admin
 @rate_limit(requests=20, window_seconds=60)
 def admin_proveedores_internos_mod(centro, almacen):
     """
@@ -1176,10 +1082,6 @@ def admin_proveedores_internos_mod(centro, almacen):
     PUT: Actualiza un proveedor interno
     DELETE: Desactiva un proveedor interno
     """
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     if request.method == "GET":
         with get_db_connection() as conn:
             cur = conn.cursor()
@@ -1241,25 +1143,19 @@ def admin_proveedores_internos_mod(centro, almacen):
 
 
 @bp.route("/cache/stats", methods=["GET"])
+@require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_cache_stats():
     """Get cache statistics for monitoring performance"""
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     stats = get_cache_stats()
     return jsonify({"ok": True, "cache": stats}), 200
 
 
 @bp.route("/cache/clear", methods=["POST"])
+@require_admin
 @rate_limit(requests=10, window_seconds=60)
 def admin_cache_clear():
     """Clear all caches (use after major data changes)"""
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     invalidate_catalog_cache()
     invalidate_user_cache()
 
@@ -1293,16 +1189,13 @@ except ImportError:
 
 
 @bp.route("/reglas-aprobacion", methods=["GET", "POST"])
+@require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_reglas_aprobacion():
     """
     GET: Lista todas las reglas de aprobacion
     POST: Crea una nueva regla de aprobacion
     """
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
 
@@ -1313,9 +1206,8 @@ def admin_reglas_aprobacion():
             return jsonify({"ok": False, "error": "rol_requerido es requerido"}), 400
 
         try:
-            # Obtener usuario que crea la regla
-            payload, _ = _require_admin()
-            created_by = payload.get("user_id") if payload else None
+            # Obtener usuario que crea la regla (from g.user set by @require_admin)
+            created_by = g.user.get("user_id") if hasattr(g, "user") and g.user else None
 
             resultado = crear_regla(
                 nombre=data["nombre"],
@@ -1348,6 +1240,7 @@ def admin_reglas_aprobacion():
 
 
 @bp.route("/reglas-aprobacion/<int:regla_id>", methods=["GET", "PUT", "DELETE"])
+@require_admin
 @rate_limit(requests=20, window_seconds=60)
 def admin_reglas_aprobacion_mod(regla_id):
     """
@@ -1355,10 +1248,6 @@ def admin_reglas_aprobacion_mod(regla_id):
     PUT: Actualiza una regla
     DELETE: Desactiva una regla (soft delete)
     """
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     if request.method == "GET":
         with get_db_connection() as conn:
             cur = conn.cursor()
@@ -1409,16 +1298,13 @@ def admin_reglas_aprobacion_mod(regla_id):
 
 
 @bp.route("/delegaciones-aprobacion", methods=["GET", "POST"])
+@require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_delegaciones_aprobacion():
     """
     GET: Lista delegaciones de aprobacion activas
     POST: Crea una nueva delegacion temporal
     """
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
 
@@ -1429,8 +1315,8 @@ def admin_delegaciones_aprobacion():
                 return jsonify({"ok": False, "error": f"{field} es requerido"}), 400
 
         try:
-            payload, _ = _require_admin()
-            created_by = payload.get("user_id") if payload else None
+            # Obtener usuario que crea la delegación (from g.user set by @require_admin)
+            created_by = g.user.get("user_id") if hasattr(g, "user") and g.user else None
 
             resultado = crear_delegacion(
                 aprobador_original_id=data["aprobador_original_id"],
@@ -1471,16 +1357,13 @@ def admin_delegaciones_aprobacion():
 
 
 @bp.route("/delegaciones-aprobacion/<int:delegacion_id>", methods=["PUT", "DELETE"])
+@require_admin
 @rate_limit(requests=20, window_seconds=60)
 def admin_delegaciones_aprobacion_mod(delegacion_id):
     """
     PUT: Actualiza una delegacion
     DELETE: Desactiva una delegacion
     """
-    guard = _admin_guard()
-    if guard:
-        return guard
-
     with get_db_transaction() as conn:
         cur = conn.cursor()
 

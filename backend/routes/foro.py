@@ -6,14 +6,11 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Dict
 
-import jwt
-from flask import Blueprint, jsonify, request
-from jwt import InvalidTokenError
+from flask import Blueprint, g, jsonify, request
 
-from backend.core.config import settings
 from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id, is_using_postgresql
+from backend.core.roles import is_admin, require_auth
 
 
 bp = Blueprint("foro", __name__)
@@ -114,37 +111,20 @@ def _ensure_foro_tables():
             )
 
 
-def _get_token_from_request() -> str | None:
-    """Get token from Authorization header or cookie"""
-    auth_header = request.headers.get("Authorization", "")
-    if auth_header.startswith("Bearer "):
-        return auth_header.split(" ", 1)[1].strip()
-    return request.cookies.get("spm_token")
-
-
-def _get_current_user() -> Dict[str, Any] | None:
-    """Get current user from JWT token"""
-    token = _get_token_from_request()
-    if not token:
-        return None
+def _get_user_info(user_id: str) -> dict | None:
+    """Get user name info from database"""
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=["HS256"])
-        if payload.get("type") != "access":
-            return None
-
-        user_id = payload.get("user_id")
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
                 "SELECT id_spm, nombre, apellido FROM usuarios WHERE id_spm=?", (str(user_id),)
             )
             row = cur.fetchone()
-
             if row:
                 return {"id": row["id_spm"], "nombre": row["nombre"], "apellido": row["apellido"]}
-        return None
-    except InvalidTokenError:
-        return None
+    except Exception:
+        pass
+    return None
 
 
 def _safe_json():
@@ -157,12 +137,14 @@ def _safe_json():
 @bp.route("/foro/posts", methods=["GET"])
 def get_posts():
     """
-    Get all forum posts with replies count
+    Get all forum posts with replies count (public endpoint)
     """
     _ensure_foro_tables()
 
-    user = _get_current_user()
-    user_id = user["id"] if user else None
+    # Optional: get user_id if authenticated (for user_liked field)
+    user_id = None
+    if hasattr(g, "user") and g.user:
+        user_id = g.user.get("user_id")
 
     categoria = request.args.get("categoria", None)
     limit = request.args.get("limit", 50, type=int)
@@ -226,23 +208,15 @@ def get_posts():
 
 
 @bp.route("/foro/posts", methods=["POST"])
+@require_auth
 def create_post():
     """
     Create a new forum post
     """
     _ensure_foro_tables()
 
-    user = _get_current_user()
-    if not user:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {"code": "unauthorized", "message": "Authentication required"},
-                }
-            ),
-            401,
-        )
+    user_id = g.user.get("user_id")
+    user = _get_user_info(user_id) or {"id": user_id, "nombre": "", "apellido": ""}
 
     data = _safe_json()
     if not data:
@@ -304,23 +278,14 @@ def create_post():
 
 
 @bp.route("/foro/posts/<int:post_id>/like", methods=["POST"])
+@require_auth
 def toggle_like(post_id):
     """
     Toggle like on a post
     """
     _ensure_foro_tables()
 
-    user = _get_current_user()
-    if not user:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {"code": "unauthorized", "message": "Authentication required"},
-                }
-            ),
-            401,
-        )
+    user_id = g.user.get("user_id")
 
     with get_db_transaction() as conn:
         cur = conn.cursor()
@@ -338,7 +303,7 @@ def toggle_like(post_id):
             SELECT id FROM foro_likes
             WHERE post_id = ? AND user_id = ?
         """,
-            (post_id, str(user["id"])),
+            (post_id, str(user_id)),
         )
         existing = cur.fetchone()
 
@@ -352,7 +317,7 @@ def toggle_like(post_id):
                 INSERT INTO foro_likes (post_id, user_id, created_at)
                 VALUES (?, ?, ?)
             """,
-                (post_id, str(user["id"]), datetime.utcnow().isoformat()),
+                (post_id, str(user_id), datetime.utcnow().isoformat()),
             )
             cur.execute("UPDATE foro_posts SET likes = likes + 1 WHERE id = ?", (post_id,))
             action = "liked"
@@ -364,23 +329,15 @@ def toggle_like(post_id):
 
 
 @bp.route("/foro/posts/<int:post_id>/respuestas", methods=["POST"])
+@require_auth
 def create_reply(post_id):
     """
     Add a reply to a post
     """
     _ensure_foro_tables()
 
-    user = _get_current_user()
-    if not user:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {"code": "unauthorized", "message": "Authentication required"},
-                }
-            ),
-            401,
-        )
+    user_id = g.user.get("user_id")
+    user = _get_user_info(user_id) or {"id": user_id, "nombre": "", "apellido": ""}
 
     # Validar JSON antes de abrir conexión
     data = _safe_json()
@@ -434,23 +391,15 @@ def create_reply(post_id):
 
 
 @bp.route("/foro/posts/<int:post_id>", methods=["DELETE"])
+@require_auth
 def delete_post(post_id):
     """
     Delete a post (only author or admin)
     """
     _ensure_foro_tables()
 
-    user = _get_current_user()
-    if not user:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {"code": "unauthorized", "message": "Authentication required"},
-                }
-            ),
-            401,
-        )
+    user_id = g.user.get("user_id")
+    user_rol = g.user.get("rol", "")
 
     with get_db_transaction() as conn:
         cur = conn.cursor()
@@ -464,11 +413,10 @@ def delete_post(post_id):
                 404,
             )
 
-        cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (str(user["id"]),))
-        user_row = cur.fetchone()
-        is_admin = user_row and "admin" in str(user_row["rol"]).lower()
+        # Check if user is author or admin
+        user_is_admin = is_admin(user_rol)
 
-        if post["autor_id"] != str(user["id"]) and not is_admin:
+        if post["autor_id"] != str(user_id) and not user_is_admin:
             return (
                 jsonify(
                     {

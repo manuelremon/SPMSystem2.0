@@ -12,10 +12,10 @@ Endpoints:
 - GET /api/mensajes/unread-count - Contador de no leídos
 """
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 
 from backend.core.db import get_db_connection
-from backend.routes.auth import _decode_token
+from backend.core.roles import require_auth
 from backend.services.message_service import MessageService
 from backend.services.notification_service import NotificationService
 
@@ -37,30 +37,8 @@ def _get_user_name(user_id: str) -> str:
 bp = Blueprint("mensajes", __name__, url_prefix="/api/mensajes")
 
 
-def _get_user_from_token():
-    """
-    Extraer user_id del token de autorización.
-
-    Soporta:
-    - Authorization: Bearer <token> header
-    - spm_token cookie
-
-    _decode_token maneja ambos casos internamente.
-    """
-    # _decode_token busca en header Authorization o en cookie
-    payload = _decode_token(expected_type="access", cookie_name="spm_token")
-
-    # _decode_token retorna tuple (response, status) en error, dict en éxito
-    if isinstance(payload, tuple):
-        return None
-
-    if not isinstance(payload, dict):
-        return None
-
-    return payload.get("sub") or payload.get("user_id")
-
-
 @bp.route("/inbox", methods=["GET"])
+@require_auth
 def get_inbox():
     """
     Obtener bandeja de entrada del usuario
@@ -73,9 +51,7 @@ def get_inbox():
     Returns:
         JSON con lista de mensajes recibidos
     """
-    user_id = _get_user_from_token()
-    if not user_id:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    user_id = g.user.get("user_id")
 
     unread_only = request.args.get("unread_only", "false").lower() == "true"
     limit = min(int(request.args.get("limit", 50)), 100)
@@ -96,6 +72,7 @@ def get_inbox():
 
 
 @bp.route("/outbox", methods=["GET"])
+@require_auth
 def get_outbox():
     """
     Obtener bandeja de salida del usuario
@@ -107,9 +84,7 @@ def get_outbox():
     Returns:
         JSON con lista de mensajes enviados
     """
-    user_id = _get_user_from_token()
-    if not user_id:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    user_id = g.user.get("user_id")
 
     limit = min(int(request.args.get("limit", 50)), 100)
     offset = int(request.args.get("offset", 0))
@@ -120,6 +95,7 @@ def get_outbox():
 
 
 @bp.route("/<int:message_id>/thread", methods=["GET"])
+@require_auth
 def get_thread(message_id):
     """
     Obtener hilo de conversación completo
@@ -130,9 +106,7 @@ def get_thread(message_id):
     Returns:
         JSON con mensaje original y todas las respuestas
     """
-    user_id = _get_user_from_token()
-    if not user_id:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    user_id = g.user.get("user_id")
 
     thread = MessageService.get_thread(message_id, user_id)
 
@@ -143,6 +117,7 @@ def get_thread(message_id):
 
 
 @bp.route("", methods=["POST"])
+@require_auth
 def send_message():
     """
     Enviar un nuevo mensaje
@@ -160,9 +135,7 @@ def send_message():
     Returns:
         JSON con confirmación y ID del mensaje
     """
-    user_id = _get_user_from_token()
-    if not user_id:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    user_id = g.user.get("user_id")
 
     data = request.get_json(silent=True) or {}
 
@@ -208,6 +181,7 @@ def send_message():
 
 
 @bp.route("/<int:message_id>/reply", methods=["POST"])
+@require_auth
 def reply_message(message_id):
     """
     Responder a un mensaje (crea mensaje en el thread)
@@ -223,9 +197,7 @@ def reply_message(message_id):
     Returns:
         JSON con confirmación y ID de la respuesta
     """
-    user_id = _get_user_from_token()
-    if not user_id:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    user_id = g.user.get("user_id")
 
     data = request.get_json(silent=True) or {}
 
@@ -279,6 +251,7 @@ def reply_message(message_id):
 
 
 @bp.route("/<int:message_id>/mark-read", methods=["POST"])
+@require_auth
 def mark_as_read(message_id):
     """
     Marcar mensaje como leído
@@ -289,9 +262,7 @@ def mark_as_read(message_id):
     Returns:
         JSON con confirmación
     """
-    user_id = _get_user_from_token()
-    if not user_id:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    user_id = g.user.get("user_id")
 
     success = MessageService.mark_as_read(message_id, user_id)
 
@@ -302,6 +273,7 @@ def mark_as_read(message_id):
 
 
 @bp.route("/<int:message_id>", methods=["DELETE"])
+@require_auth
 def delete_message(message_id):
     """
     Eliminar mensaje
@@ -312,9 +284,7 @@ def delete_message(message_id):
     Returns:
         JSON con confirmación
     """
-    user_id = _get_user_from_token()
-    if not user_id:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    user_id = g.user.get("user_id")
 
     success = MessageService.delete_message(message_id, user_id)
 
@@ -325,6 +295,7 @@ def delete_message(message_id):
 
 
 @bp.route("/unread-count", methods=["GET"])
+@require_auth
 def get_unread_count():
     """
     Obtener cantidad de mensajes no leídos
@@ -332,9 +303,7 @@ def get_unread_count():
     Returns:
         JSON con contador de no leídos
     """
-    user_id = _get_user_from_token()
-    if not user_id:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    user_id = g.user.get("user_id")
 
     count = MessageService.get_unread_count(user_id)
 

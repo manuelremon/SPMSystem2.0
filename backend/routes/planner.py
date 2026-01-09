@@ -13,7 +13,7 @@ import traceback
 from pathlib import Path
 
 import pandas as pd
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 
 from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
 from backend.core.errors import (
@@ -37,9 +37,9 @@ from backend.core.repository_legacy import (
     MrpRepository,
     ProveedorPreciosRepository,
 )
+from backend.core.roles import require_auth
 from backend.core.schemas import ResultadoPaso1, ResultadoPaso2, ResultadoPaso3
 from backend.core.user_helpers import get_user_by_id
-from backend.routes.auth import _decode_token
 from backend.services.audit_service import auditar_modificacion
 from backend.services.planner_service import (
     guardar_decision_multifuente,
@@ -132,10 +132,19 @@ _get_user = get_user_by_id
 
 
 def _current_user():
-    payload = _decode_token("access", "spm_token")
-    if isinstance(payload, tuple):
-        return payload
-    user = _get_user(payload.get("user_id"))
+    """Get current user from g.user (set by @require_auth decorator)."""
+    user_id = g.user.get("user_id") if hasattr(g, "user") and g.user else None
+    if not user_id:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {"code": "unauthorized", "message": "Usuario no autenticado"},
+                }
+            ),
+            401,
+        )
+    user = _get_user(user_id)
     if not user:
         return (
             jsonify(
@@ -676,6 +685,7 @@ def _load_solicitudes(filters: dict):
 
 
 @bp.route("/solicitudes", methods=["GET"])
+@require_auth
 def listar_solicitudes_aprobadas():
     """Solicitudes aprobadas/asignadas para planificador"""
     user = _current_user()
@@ -714,6 +724,7 @@ def obtener_presupuesto():
 
 
 @bp.route("/solicitudes/<int:solicitud_id>/aceptar", methods=["POST"])
+@require_auth
 def aceptar_solicitud(solicitud_id):
     """Planificador acepta y marca como en tratamiento - Usa FSM"""
     guard, user = _require_solicitud_access(solicitud_id)
@@ -755,6 +766,7 @@ def aceptar_solicitud(solicitud_id):
 
 
 @bp.route("/solicitudes/<int:solicitud_id>/finalizar", methods=["POST"])
+@require_auth
 def finalizar_solicitud(solicitud_id):
     """Planificador finaliza tratamiento - Cambia estado a COMPLETED"""
     guard, user = _require_solicitud_access(solicitud_id)
@@ -833,6 +845,7 @@ def finalizar_solicitud(solicitud_id):
 
 
 @bp.route("/solicitudes/<int:solicitud_id>/comentar", methods=["POST"])
+@require_auth
 def comentar_solicitud(solicitud_id):
     """Agregar comentario/notificación a una solicitud"""
     guard, user = _require_solicitud_access(solicitud_id)
@@ -872,6 +885,7 @@ def comentar_solicitud(solicitud_id):
 
 
 @bp.route("/solicitudes/<int:solicitud_id>/items", methods=["PATCH"])
+@require_auth
 def tratar_items(solicitud_id):
     """
     Guarda tratamiento de ítems: espera un array items con item_index, decision, cantidad_aprobada, comentario, etc.
@@ -983,6 +997,7 @@ def tratar_items(solicitud_id):
 
 
 @bp.route("/solicitudes/<int:solicitud_id>/tratamiento", methods=["GET"])
+@require_auth
 def obtener_tratamiento(solicitud_id):
     """Rehidrata decisiones previas para mostrarlas al planificador."""
     guard, user = _require_solicitud_access(solicitud_id)
@@ -1004,6 +1019,7 @@ def obtener_tratamiento(solicitud_id):
 
 
 @bp.route("/solicitudes/<int:solicitud_id>/analizar", methods=["POST"])
+@require_auth
 def analizar_solicitud(solicitud_id):
     """
     PASO 1: Análisis integral de solicitud para tratamiento
@@ -1094,6 +1110,7 @@ def _log_evento(
 @bp.route(
     "/solicitudes/<int:solicitud_id>/items/<int:item_idx>/opciones-abastecimiento", methods=["GET"]
 )
+@require_auth
 def obtener_opciones_abastecimiento(solicitud_id, item_idx):
     """
     PASO 2: Obtener opciones de abastecimiento para un item.
@@ -1117,6 +1134,7 @@ def obtener_opciones_abastecimiento(solicitud_id, item_idx):
 
 
 @bp.route("/solicitudes/<int:solicitud_id>/guardar-tratamiento", methods=["POST"])
+@require_auth
 def guardar_tratamiento(solicitud_id):
     """
     PASO 3: Guardar decisiones de tratamiento para toda la solicitud.
@@ -1158,6 +1176,7 @@ def guardar_tratamiento(solicitud_id):
     "/solicitudes/<int:solicitud_id>/items/<int:item_idx>/decision-multifuente",
     methods=["POST"],
 )
+@require_auth
 def guardar_decision_multifuente_endpoint(solicitud_id, item_idx):
     """
     Guarda decisión multi-fuente para un item.
@@ -1240,6 +1259,7 @@ def guardar_decision_multifuente_endpoint(solicitud_id, item_idx):
 
 
 @bp.route("/solicitudes/<int:solicitud_id>/decisiones-resumen", methods=["GET"])
+@require_auth
 def obtener_resumen_decisiones_endpoint(solicitud_id):
     """
     Obtiene resumen de todas las decisiones multi-fuente de una solicitud.
@@ -1279,6 +1299,7 @@ def obtener_resumen_decisiones_endpoint(solicitud_id):
     "/solicitudes/<int:solicitud_id>/items/<int:item_idx>/mrp",
     methods=["GET"],
 )
+@require_auth
 def obtener_detalle_mrp(solicitud_id, item_idx):
     """
     Obtiene detalle completo de parámetros MRP para un item.
@@ -1370,6 +1391,7 @@ def obtener_detalle_mrp(solicitud_id, item_idx):
 
 
 @bp.route("/proveedores/<cuit>/precios", methods=["GET"])
+@require_auth
 def listar_precios_proveedor(cuit):
     """
     Lista todos los precios negociados de un proveedor.
@@ -1403,6 +1425,7 @@ def listar_precios_proveedor(cuit):
 
 
 @bp.route("/proveedores/<cuit>/precios", methods=["POST"])
+@require_auth
 def crear_precio_negociado(cuit):
     """
     Crea o actualiza un precio negociado para proveedor/material.
@@ -1469,6 +1492,7 @@ def crear_precio_negociado(cuit):
 
 
 @bp.route("/materiales/<codigo>/mejores-precios", methods=["GET"])
+@require_auth
 def obtener_mejores_precios_material(codigo):
     """
     Obtiene los mejores precios negociados para un material.
@@ -1502,6 +1526,7 @@ def obtener_mejores_precios_material(codigo):
     "/solicitudes/<int:solicitud_id>/items/<int:item_idx>/decision",
     methods=["GET"],
 )
+@require_auth
 def obtener_decision_item(solicitud_id, item_idx):
     """
     Obtiene la decisión guardada para un item específico.
@@ -1543,6 +1568,7 @@ def obtener_decision_item(solicitud_id, item_idx):
 
 
 @bp.route("/solicitudes/<int:solicitud_id>/ejecutar-acciones", methods=["POST"])
+@require_auth
 def ejecutar_acciones_post_tratamiento(solicitud_id):
     """
     PASO 4: Ejecutar acciones post-tratamiento.
@@ -1828,6 +1854,7 @@ def ejecutar_acciones_post_tratamiento(solicitud_id):
 
 
 @bp.route("/mis-consultas-pendientes", methods=["GET"])
+@require_auth
 def obtener_mis_consultas_pendientes():
     """
     Obtiene consultas de stock pendientes para el usuario actual.
@@ -1924,6 +1951,7 @@ def obtener_mis_consultas_pendientes():
 
 
 @bp.route("/responder-consulta/<int:fuente_id>", methods=["POST"])
+@require_auth
 def responder_consulta_stock(fuente_id):
     """
     Responder a consulta de disponibilidad de stock.
@@ -2098,6 +2126,7 @@ def responder_consulta_stock(fuente_id):
 
 
 @bp.route("/responder-consulta-legacy/<int:decision_id>", methods=["POST"])
+@require_auth
 def responder_consulta_referente(decision_id):
     """
     Endpoint para que referentes respondan consultas de disponibilidad de stock.
@@ -2216,6 +2245,7 @@ def responder_consulta_referente(decision_id):
 
 
 @bp.route("/solicitudes/<int:solicitud_id>/estado-acciones", methods=["GET"])
+@require_auth
 def obtener_estado_acciones(solicitud_id):
     """
     Obtiene el estado actual de todas las acciones post-tratamiento de una solicitud.
