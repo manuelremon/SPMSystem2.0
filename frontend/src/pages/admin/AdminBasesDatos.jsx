@@ -10,7 +10,7 @@ import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
 import { Badge } from "../../components/ui/Badge";
 import { Select } from "../../components/ui/Select";
-import { Tabs } from "../../components/ui/Tabs";
+import { Tabs, TabsList, TabsTrigger } from "../../components/ui/Tabs";
 import { Modal } from "../../components/ui/Modal";
 import { Input } from "../../components/ui/Input";
 import { TableSkeleton } from "../../components/ui/Skeleton";
@@ -376,12 +376,6 @@ export default function AdminBasesDatos() {
     return `${mb.toFixed(2)} MB`;
   };
 
-  const tabs = [
-    { id: "overview", label: t("db_overview", "Vista General"), icon: <Database className="w-4 h-4" /> },
-    { id: "tables", label: t("db_tables", "Tablas"), icon: <List className="w-4 h-4" /> },
-    { id: "tools", label: t("db_tools", "Herramientas"), icon: <Settings className="w-4 h-4" /> },
-  ];
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -393,7 +387,22 @@ export default function AdminBasesDatos() {
       {success && <Alert variant="success" onDismiss={() => setSuccess("")}>{success}</Alert>}
 
       {/* Tabs */}
-      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="overview">
+            <Database className="w-4 h-4" />
+            {t("db_overview", "Vista General")}
+          </TabsTrigger>
+          <TabsTrigger value="tables">
+            <List className="w-4 h-4" />
+            {t("db_tables", "Tablas")}
+          </TabsTrigger>
+          <TabsTrigger value="tools">
+            <Settings className="w-4 h-4" />
+            {t("db_tools", "Herramientas")}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* Vista General */}
       {activeTab === "overview" && (
