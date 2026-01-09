@@ -38,8 +38,11 @@ import {
   Activity,
   History,
   Users,
+  Upload,
   ICON_COLORS,
 } from "../../components/ui/Icons";
+import { ImportExcelModal } from "../../components/admin/ImportExcelModal";
+import { TempDataBanner } from "../../components/ui/TempDataBanner";
 
 export default function AdminBasesDatos() {
   const { t } = useI18n();
@@ -83,6 +86,10 @@ export default function AdminBasesDatos() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [connections, setConnections] = useState([]);
   const [connectionsModal, setConnectionsModal] = useState({ open: false });
+
+  // Estado para importación de datos temporales
+  const [importExcelModal, setImportExcelModal] = useState(false);
+  const [tempModeActive, setTempModeActive] = useState(false);
 
   // Cargar vista general
   const loadOverview = useCallback(async () => {
@@ -458,6 +465,11 @@ export default function AdminBasesDatos() {
 
       {error && <Alert variant="danger" onDismiss={() => setError("")}>{error}</Alert>}
       {success && <Alert variant="success" onDismiss={() => setSuccess("")}>{success}</Alert>}
+
+      {/* Banner de Modo Temporal */}
+      <TempDataBanner
+        onStatusChange={setTempModeActive}
+      />
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -918,6 +930,39 @@ export default function AdminBasesDatos() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Importar Datos Temporales */}
+            <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-orange-500/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Upload className="w-5 h-5 text-amber-500" />
+                  Datos Temporales
+                  <Badge variant="warning" className="ml-auto text-xs">MRP/Forecast</Badge>
+                </CardTitle>
+                <CardDescription>
+                  Importar Excel para operar MRP y Forecast con datos temporales
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-[var(--fg-muted)]">
+                  Permite trabajar con datos importados desde Excel sin afectar las bases de datos del sistema.
+                  Ideal para pruebas y analisis.
+                </p>
+                <Button
+                  onClick={() => setImportExcelModal(true)}
+                  className="w-full bg-amber-500 hover:bg-amber-600"
+                  disabled={tempModeActive}
+                >
+                  <Upload className="w-4 h-4" />
+                  {tempModeActive ? "Modo Temporal Activo" : "Importar Excel"}
+                </Button>
+                {tempModeActive && (
+                  <p className="text-xs text-amber-600 text-center">
+                    Desactive el modo temporal desde el banner superior para importar nuevos datos
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {isProduction && (
@@ -1359,6 +1404,17 @@ export default function AdminBasesDatos() {
           )}
         </div>
       </Modal>
+
+      {/* Modal de Importar Excel Temporal */}
+      <ImportExcelModal
+        isOpen={importExcelModal}
+        onClose={() => setImportExcelModal(false)}
+        onSuccess={() => {
+          setTempModeActive(true);
+          setSuccess("Modo temporal activado exitosamente");
+          setTimeout(() => setSuccess(""), 5000);
+        }}
+      />
     </div>
   );
 }

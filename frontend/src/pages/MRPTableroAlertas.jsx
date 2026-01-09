@@ -27,6 +27,7 @@ import {
   XCircle,
   ICON_COLORS,
 } from "../components/ui/Icons";
+import { TempDataBanner } from "../components/ui/TempDataBanner";
 
 // Estado badge component - Glass style
 function EstadoBadge({ estado, clase }) {
@@ -214,6 +215,9 @@ export default function MRPTableroAlertas() {
           </div>
         }
       />
+
+      {/* Banner de Modo Temporal */}
+      <TempDataBanner />
 
       {/* Resumen Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">

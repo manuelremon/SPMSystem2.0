@@ -12,6 +12,7 @@ import Loading from '../components/Loading';
 import { Button } from '../components/ui/Button';
 import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
+import { TempDataBanner } from '../components/ui/TempDataBanner';
 
 const ForecastMasivo = () => {
   const { t } = useI18n();
@@ -156,6 +157,9 @@ const ForecastMasivo = () => {
           {t('forecast_masivo_subtitulo', 'Analiza múltiples materiales simultáneamente')}
         </p>
       </div>
+
+      {/* Banner de Modo Temporal */}
+      <TempDataBanner />
 
       {/* Formulario */}
       <div className="bg-white rounded-lg border p-6 mb-6">

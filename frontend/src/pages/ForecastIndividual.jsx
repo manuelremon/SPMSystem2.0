@@ -20,6 +20,7 @@ import {
 import Loading from '../components/Loading';
 import { Button } from '../components/ui/Button';
 import { Select } from '../components/ui/Select';
+import { TempDataBanner } from '../components/ui/TempDataBanner';
 
 const ForecastIndividual = () => {
   const { t } = useI18n();
@@ -103,6 +104,9 @@ const ForecastIndividual = () => {
           {t('forecast_titulo', 'Forecast de Demanda con Machine Learning')}
         </h1>
       </div>
+
+      {/* Banner de Modo Temporal */}
+      <TempDataBanner />
 
       {/* Formulario de búsqueda */}
       <div className="bg-white rounded-lg border p-6 mb-6">

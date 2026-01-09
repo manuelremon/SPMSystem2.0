@@ -1,6 +1,8 @@
 """
 MRP Routes - Material Requirements Planning
 Tablero de Alertas y KPIs para planificadores
+
+Soporta modo temporal con datos importados desde Excel.
 """
 
 import logging
@@ -11,8 +13,14 @@ from typing import Any, Dict, Optional, Tuple
 from flask import Blueprint, g, jsonify, request
 
 from backend.core.roles import require_auth, require_role
+from backend.services.temp_data_service import temp_data_service
 
 logger = logging.getLogger(__name__)
+
+
+def _get_user_id() -> str:
+    """Obtiene el user_id del request context."""
+    return getattr(g, "user_id", None) or getattr(g, "current_user", {}).get("id_spm", "")
 
 # FIX 5.2: Cache simple para KPIs con TTL de 5 minutos
 _kpis_cache: Dict[str, Any] = {}
@@ -308,11 +316,151 @@ def _generar_evolucion_alertas(hoy: datetime, materiales_riesgo: int, materiales
     return evolucion
 
 
+def _get_alertas_from_temp_data(
+    user_id: str, centro: str, almacen: str, sector: str,
+    estado_filtro: str, limit: int, offset: int
+):
+    """
+    Obtiene alertas MRP desde datos temporales importados.
+
+    Esta función replica la lógica de get_alertas() pero usando
+    los datos del temp_data_service en lugar de la base de datos.
+    """
+    try:
+        # Obtener datos de stock temporal
+        filters = {}
+        if centro:
+            filters["centro"] = centro
+        if almacen:
+            filters["almacen"] = almacen
+
+        materiales = temp_data_service.get_stock(user_id, filters)
+
+        # Filtrar por sector si se especifica
+        if sector:
+            materiales = [
+                m for m in materiales
+                if sector.lower() in (m.get("grupo_articulos", "") or "").lower()
+            ]
+
+        # Calcular alertas para cada material
+        alertas = []
+
+        for mat in materiales:
+            codigo = mat.get("material", "")
+            stock_actual = float(mat.get("stock", 0) or 0)
+
+            # Obtener consumo histórico para este material
+            consumo_data = temp_data_service.get_consumo_agregado_mensual(user_id, codigo, 12)
+            consumo_mensual = sum(c["cantidad"] for c in consumo_data) / max(len(consumo_data), 1) if consumo_data else 0
+
+            # Obtener parámetros MRP (calculados o desde Excel)
+            params = temp_data_service.get_parametros_mrp(user_id, codigo)
+            stock_seguridad = params.get("stock_seguridad", 0)
+            punto_pedido = params.get("punto_pedido", 0)
+            stock_maximo = params.get("stock_maximo", 0)
+
+            # Si no hay parámetros, calcular desde consumo
+            if consumo_mensual > 0 and stock_seguridad == 0:
+                stock_seguridad = consumo_mensual * 2
+                punto_pedido = consumo_mensual * 3
+                stock_maximo = consumo_mensual * 6
+            elif consumo_mensual == 0 and stock_seguridad == 0:
+                stock_seguridad = stock_actual * 0.2
+                punto_pedido = stock_actual * 0.3
+                stock_maximo = stock_actual * 1.5
+
+            # Calcular demanda anual
+            demanda_anual = consumo_mensual * 12
+
+            # Calcular rotación
+            rotacion = calcular_rotacion(demanda_anual, stock_actual) if stock_actual > 0 else 0
+
+            # Calcular estado y sugerencia
+            estado_info = calcular_estado_material(
+                stock_actual=stock_actual,
+                stock_seguridad=stock_seguridad,
+                punto_pedido=punto_pedido,
+                stock_maximo=stock_maximo,
+                consumo_promedio=consumo_mensual,
+                pedidos_en_curso=0,
+            )
+
+            # Filtrar por estado si se especificó
+            if estado_filtro and estado_filtro.lower() != "todos":
+                if estado_filtro.lower() not in estado_info["estado"].lower():
+                    continue
+
+            alertas.append({
+                "codigo": codigo,
+                "descripcion": mat.get("descripcion", codigo) or codigo,
+                "unidad": mat.get("um", "UNI") or "UNI",
+                "precio_usd": round(float(mat.get("precio_usd", 0) or 0), 2),
+                "centro": mat.get("centro", centro) or centro,
+                "sector": mat.get("grupo_articulos", sector) or sector,
+                "almacen": mat.get("almacen", almacen) or almacen or "0001",
+                "demanda_estimada_anual": round(demanda_anual, 0),
+                "stock_seguridad": round(stock_seguridad, 0),
+                "punto_pedido": round(punto_pedido, 0),
+                "stock_maximo": round(stock_maximo, 0),
+                "stock_actual": round(stock_actual, 0),
+                "pedidos_en_curso": 0,
+                "solpeds_en_curso": 0,
+                "ventas_ute_en_curso": 0,
+                "consumo_promedio_anual": round(demanda_anual, 2),
+                "rotacion_pct": round(rotacion * 100, 1),
+                "estado": estado_info["estado"],
+                "estado_clase": estado_info["estado_clase"],
+                "sugerencia": estado_info["sugerencia"],
+                "critico": (mat.get("critico", "NO") or "NO").upper() == "SI",
+                "ubicacion": mat.get("ubicacion"),
+                "_temp_data": True,  # Flag para indicar datos temporales
+            })
+
+        # Aplicar paginación
+        total = len(alertas)
+        alertas_paginadas = alertas[offset:offset + limit]
+
+        # Resumen de estados
+        resumen = {
+            "total": total,
+            "quiebre_stock": sum(1 for a in alertas if "quiebre" in a["estado"].lower()),
+            "bajo_punto_pedido": sum(1 for a in alertas if "bajo punto" in a["estado"].lower()),
+            "bajo_stock_seguridad": sum(1 for a in alertas if "bajo stock" in a["estado"].lower()),
+            "sobrestock": sum(
+                1 for a in alertas
+                if "exceso" in a["estado"].lower() or "sobrestock" in a["estado"].lower()
+            ),
+            "bajo_consumo": sum(1 for a in alertas if "bajo consumo" in a["estado"].lower()),
+            "normal": sum(1 for a in alertas if a["estado"].lower() == "normal"),
+        }
+
+        return jsonify({
+            "ok": True,
+            "data": alertas_paginadas,
+            "resumen": resumen,
+            "pagination": {
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+                "has_more": (offset + limit) < total,
+            },
+            "_temp_mode": True,  # Flag para indicar modo temporal activo
+            "_temp_message": "Usando datos temporales importados desde Excel"
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"ok": False, "error": {"code": "temp_data_error", "message": str(e)}}), 500
+
+
 @bp.route("/alertas", methods=["GET"])
 @require_role(["admin", "planificador"])
 def get_alertas():
     """
     Obtiene el tablero de alertas MRP usando datos reales de sap_data.db.
+    Soporta modo temporal con datos importados desde Excel.
 
     Query params:
         centro: Filtro por centro (opcional)
@@ -328,6 +476,11 @@ def get_alertas():
     estado_filtro = request.args.get("estado", "").strip()
     limit = min(int(request.args.get("limit", 50)), 200)
     offset = int(request.args.get("offset", 0))
+
+    # Verificar si modo temporal está activo
+    user_id = _get_user_id()
+    if user_id and temp_data_service.is_active(user_id):
+        return _get_alertas_from_temp_data(user_id, centro, almacen, sector, estado_filtro, limit, offset)
 
     try:
         # Conectar a la BD para obtener datos reales de stock
@@ -513,11 +666,178 @@ def get_alertas():
         return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
 
 
+def _get_kpis_from_temp_data(user_id: str, centro: str, periodo: str):
+    """
+    Calcula KPIs MRP desde datos temporales importados.
+    """
+    try:
+        hoy = datetime.now()
+        if periodo == "anio":
+            fecha_inicio = hoy - timedelta(days=365)
+        elif periodo == "trimestre":
+            fecha_inicio = hoy - timedelta(days=90)
+        else:
+            fecha_inicio = hoy - timedelta(days=30)
+
+        fecha_inicio_str = fecha_inicio.strftime("%Y-%m-%d")
+
+        # Obtener datos de stock temporal
+        filters = {"centro": centro} if centro else {}
+        materiales = temp_data_service.get_stock(user_id, filters)
+
+        total_materiales = len(set(m.get("material") for m in materiales))
+        valor_total_inventario = sum(
+            float(m.get("stock", 0) or 0) * float(m.get("precio_usd", 0) or 0)
+            for m in materiales
+        )
+
+        # Calcular métricas por material
+        materiales_en_riesgo = 0
+        materiales_sobrestock = 0
+        materiales_stock_bajo = 0
+        consumo_total = 0
+
+        top_riesgo = []
+
+        for mat in materiales:
+            codigo = mat.get("material", "")
+            stock_actual = float(mat.get("stock", 0) or 0)
+
+            # Obtener consumo histórico
+            consumo_data = temp_data_service.get_consumo_agregado_mensual(user_id, codigo, 12)
+            consumo_mensual = sum(c["cantidad"] for c in consumo_data) / max(len(consumo_data), 1) if consumo_data else 0
+            consumo_total += consumo_mensual
+
+            # Obtener parámetros MRP
+            params = temp_data_service.get_parametros_mrp(user_id, codigo)
+            punto_pedido = params.get("punto_pedido", stock_actual * 0.3)
+            stock_maximo = params.get("stock_maximo", stock_actual * 1.5)
+
+            # Clasificar material
+            if stock_actual < 20:
+                materiales_en_riesgo += 1
+                materiales_stock_bajo += 1
+
+                # Calcular días hasta quiebre
+                consumo_diario = consumo_mensual / 30 if consumo_mensual > 0 else 1.0
+                dias_cobertura = int(stock_actual / consumo_diario) if consumo_diario > 0 else 999
+
+                top_riesgo.append({
+                    "codigo": codigo,
+                    "descripcion": mat.get("descripcion", "Sin descripción"),
+                    "dias_sin_stock": max(0, dias_cobertura),
+                    "stock_actual": stock_actual,
+                    "punto_pedido": punto_pedido,
+                    "consumo_diario": round(consumo_diario, 2),
+                    "consumo_estimado": consumo_mensual <= 0,
+                })
+
+            if stock_actual > 1000:
+                materiales_sobrestock += 1
+
+        # Ordenar y limitar top riesgo
+        top_riesgo.sort(key=lambda x: x["dias_sin_stock"])
+        top_riesgo = top_riesgo[:5]
+
+        # Calcular KPIs
+        pct_en_riesgo = round((materiales_en_riesgo / max(total_materiales, 1)) * 100, 1)
+        pct_sobrestock = round((materiales_sobrestock / max(total_materiales, 1)) * 100, 1)
+
+        # Calcular rotación promedio
+        stock_total = sum(float(m.get("stock", 0) or 0) for m in materiales)
+        rotacion_promedio = round(
+            (consumo_total * 12) / max(stock_total, 1), 2
+        ) if stock_total > 0 else 2.5
+
+        kpis = {
+            "materiales_en_riesgo": {
+                "valor": pct_en_riesgo,
+                "unidad": "%",
+                "tendencia": "up" if pct_en_riesgo > 10 else "down",
+                "descripcion": "Materiales por quiebre o bajo punto de pedido",
+            },
+            "materiales_sobrestock": {
+                "valor": pct_sobrestock,
+                "unidad": "%",
+                "tendencia": "stable",
+                "descripcion": "Materiales con exceso de inventario",
+            },
+            "rotacion_promedio": {
+                "valor": rotacion_promedio,
+                "unidad": "veces/año",
+                "tendencia": "up" if rotacion_promedio > 3 else "down",
+                "descripcion": "Rotación promedio del portafolio",
+            },
+            "lead_time_promedio": {
+                "valor": 15.0,
+                "unidad": "días",
+                "objetivo": 12,
+                "tendencia": "up",
+                "descripcion": "Tiempo promedio de entrega (estimado)",
+                "fuente": "estimado",
+            },
+            "cumplimiento_mrp": {
+                "valor": 0,
+                "unidad": "%",
+                "tendencia": "stable",
+                "descripcion": "N/A en modo temporal",
+            },
+            "pedidos_vencidos": {
+                "valor": 0,
+                "unidad": "pedidos",
+                "tendencia": "stable",
+                "descripcion": "N/A en modo temporal",
+            },
+            "pct_pedidos_vencidos": {
+                "valor": 0,
+                "unidad": "%",
+                "tendencia": "stable",
+                "descripcion": "N/A en modo temporal",
+            },
+            "velocidad_respuesta": {
+                "valor": 5.0,
+                "unidad": "días",
+                "tendencia": "stable",
+                "descripcion": "Tiempo promedio para resolver alertas (estimado)",
+                "fuente": "estimado",
+            },
+        }
+
+        graficos = {
+            "distribucion_estados": [
+                {"nombre": "Normal", "valor": 100 - pct_en_riesgo - pct_sobrestock, "color": "#22c55e"},
+                {"nombre": "En Riesgo", "valor": pct_en_riesgo, "color": "#ef4444"},
+                {"nombre": "Sobrestock", "valor": pct_sobrestock, "color": "#3b82f6"},
+            ],
+            "evolucion_alertas": _generar_evolucion_alertas(hoy, materiales_en_riesgo, materiales_sobrestock),
+            "top_materiales_riesgo": top_riesgo,
+        }
+
+        return jsonify({
+            "ok": True,
+            "cached": False,
+            "kpis": kpis,
+            "graficos": graficos,
+            "periodo": periodo,
+            "fecha_inicio": fecha_inicio_str,
+            "fecha_fin": hoy.strftime("%Y-%m-%d"),
+            "total_materiales": total_materiales,
+            "_temp_mode": True,
+            "_temp_message": "KPIs calculados desde datos temporales importados"
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"ok": False, "error": {"code": "temp_data_error", "message": str(e)}}), 500
+
+
 @bp.route("/kpis", methods=["GET"])
 @require_role(["admin", "planificador"])
 def get_kpis():
     """
     Obtiene los KPIs MRP usando datos reales de sap_data.db.
+    Soporta modo temporal con datos importados desde Excel.
 
     Query params:
         centro: Filtro por centro (opcional)
@@ -525,6 +845,11 @@ def get_kpis():
     """
     centro = request.args.get("centro", "").strip()
     periodo = request.args.get("periodo", "mes").strip()
+
+    # Verificar si modo temporal está activo
+    user_id = _get_user_id()
+    if user_id and temp_data_service.is_active(user_id):
+        return _get_kpis_from_temp_data(user_id, centro, periodo)
 
     # FIX 5.2: Verificar cache antes de calcular
     cached = _get_cached_kpis(centro, periodo)

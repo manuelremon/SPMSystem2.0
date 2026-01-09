@@ -2,6 +2,8 @@
 Endpoints API para recomendaciones inteligentes de IA.
 Sprint 6.3 - Expone funcionalidades del servicio unificado de IA.
 
+Soporta modo temporal con datos importados desde Excel.
+
 Endpoints:
 - GET  /api/ai/status              - Estado de los pipelines ML
 - POST /api/ai/train               - Entrenar modelos ML
@@ -15,13 +17,19 @@ Endpoints:
 
 import logging
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 
 from backend.core.roles import require_auth, require_role
 from backend.services.ai_service import AIService, get_ai_service
+from backend.services.temp_data_service import temp_data_service
 
 
 logger = logging.getLogger(__name__)
+
+
+def _get_user_id() -> str:
+    """Obtiene el user_id del request context."""
+    return getattr(g, "user_id", None) or getattr(g, "current_user", {}).get("id_spm", "")
 
 bp = Blueprint("ai", __name__, url_prefix="/api/ai")
 
@@ -197,6 +205,7 @@ def materiales_similares(material_codigo):
 def forecast_demanda(material_codigo):
     """
     Proyecta demanda futura para un material.
+    Soporta modo temporal con datos importados desde Excel.
 
     Path params:
         - material_codigo: Codigo del material
@@ -216,6 +225,11 @@ def forecast_demanda(material_codigo):
     dias = int(request.args.get("dias", 30))
     modelo = request.args.get("modelo", "random_forest")
 
+    # Verificar si modo temporal está activo
+    user_id = _get_user_id()
+    if user_id and temp_data_service.is_active(user_id):
+        return _forecast_from_temp_data(user_id, material_codigo, centro, dias, modelo)
+
     try:
         service = get_ai_service()
         result = service.proyectar_demanda(
@@ -227,6 +241,114 @@ def forecast_demanda(material_codigo):
     except Exception as e:
         logger.error(f"Error proyectando demanda: {e}")
         return jsonify({"ok": False, "error": {"code": "forecast_error", "message": str(e)}}), 500
+
+
+def _forecast_from_temp_data(user_id: str, material_codigo: str, centro: str, dias: int, modelo: str):
+    """
+    Genera forecast desde datos temporales importados.
+    Usa promedio móvil simple cuando los datos son insuficientes para ML.
+    """
+    import pandas as pd
+    from datetime import datetime, timedelta
+
+    try:
+        # Obtener consumo histórico de datos temporales
+        consumo_data = temp_data_service.get_consumo_historico(
+            user_id=user_id,
+            material=material_codigo,
+            centro=centro if centro else None
+        )
+
+        if not consumo_data:
+            # Sin datos históricos, usar stock actual como referencia
+            stock_info = temp_data_service.get_stock_by_material(user_id, material_codigo)
+            if stock_info:
+                # Estimación muy básica: asumir consumo del 10% del stock por mes
+                consumo_mensual_est = float(stock_info.get("stock", 0)) * 0.1
+                demanda_proyectada = (consumo_mensual_est / 30) * dias
+            else:
+                demanda_proyectada = 0
+
+            return jsonify({
+                "ok": True,
+                "data": {
+                    "material_codigo": material_codigo,
+                    "centro": centro,
+                    "dias": dias,
+                    "demanda_proyectada": round(demanda_proyectada, 2),
+                    "metodo": "estimacion_basica",
+                    "confianza": 0.3,
+                    "intervalo_inferior": 0,
+                    "intervalo_superior": round(demanda_proyectada * 2, 2),
+                    "advertencia": "Sin datos históricos - estimación muy básica",
+                    "_temp_mode": True
+                }
+            })
+
+        # Convertir a DataFrame para análisis
+        df = pd.DataFrame(consumo_data)
+        df["fecha"] = pd.to_datetime(df["fecha"])
+        df = df.sort_values("fecha")
+
+        # Calcular consumo diario promedio
+        total_consumo = df["cantidad"].sum()
+        dias_datos = max((df["fecha"].max() - df["fecha"].min()).days, 1)
+        consumo_diario = total_consumo / dias_datos
+
+        # Proyección simple usando promedio móvil
+        demanda_proyectada = consumo_diario * dias
+
+        # Calcular variabilidad para intervalo de confianza
+        consumo_mensual = df.groupby(df["fecha"].dt.to_period("M"))["cantidad"].sum()
+
+        if len(consumo_mensual) > 1:
+            std_mensual = consumo_mensual.std()
+            mean_mensual = consumo_mensual.mean()
+            cv = std_mensual / mean_mensual if mean_mensual > 0 else 0.5
+
+            # Intervalo de confianza (95%)
+            intervalo = demanda_proyectada * cv * 1.96
+            confianza = max(0.5, 1 - cv)
+        else:
+            intervalo = demanda_proyectada * 0.5
+            confianza = 0.5
+
+        # Generar serie temporal de predicciones
+        hoy = datetime.now()
+        predicciones = []
+        for i in range(1, min(dias + 1, 31)):  # Limitar a 30 días para visualización
+            fecha_pred = (hoy + timedelta(days=i)).strftime("%Y-%m-%d")
+            predicciones.append({
+                "fecha": fecha_pred,
+                "cantidad_predicha": round(consumo_diario, 2),
+                "intervalo_inferior": round(max(0, consumo_diario - (intervalo / dias)), 2),
+                "intervalo_superior": round(consumo_diario + (intervalo / dias), 2)
+            })
+
+        return jsonify({
+            "ok": True,
+            "data": {
+                "material_codigo": material_codigo,
+                "centro": centro,
+                "dias": dias,
+                "demanda_proyectada": round(demanda_proyectada, 2),
+                "intervalo_inferior": round(max(0, demanda_proyectada - intervalo), 2),
+                "intervalo_superior": round(demanda_proyectada + intervalo, 2),
+                "metodo": "promedio_movil",
+                "modelo_solicitado": modelo,
+                "confianza": round(confianza, 2),
+                "consumo_diario_promedio": round(consumo_diario, 2),
+                "datos_historicos": len(df),
+                "periodo_historico_dias": dias_datos,
+                "predicciones": predicciones,
+                "_temp_mode": True,
+                "_temp_message": "Forecast calculado desde datos temporales importados"
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error en forecast temporal: {e}")
+        return jsonify({"ok": False, "error": {"code": "temp_forecast_error", "message": str(e)}}), 500
 
 
 @bp.route("/materiales/analisis/<material_codigo>", methods=["GET"])

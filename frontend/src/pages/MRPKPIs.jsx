@@ -23,6 +23,7 @@ import {
   RefreshCw,
   Calendar,
 } from "../components/ui/Icons";
+import { TempDataBanner } from "../components/ui/TempDataBanner";
 
 // KPI Card component - Glass Morphism style
 function KPICard({ titulo, valor, unidad, tendencia, objetivo, descripcion, icon: Icon, t }) {
@@ -318,6 +319,9 @@ export default function MRPKPIs() {
       <PageHeader
         title={t("mrp_kpis_titulo", "KPI's MRP")}
       />
+
+      {/* Banner de Modo Temporal */}
+      <TempDataBanner />
 
       {/* Período selector - Glass Morphism */}
       <div className="flex items-center justify-between mb-6">

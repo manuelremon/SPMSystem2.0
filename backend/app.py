@@ -32,6 +32,7 @@ from backend.core.request_validation import init_request_validation
 from backend.core.security_headers import init_security_headers
 from backend.routes import (
     admin,
+    admin_import,
     ai,
     assistant,
     auth,
@@ -223,6 +224,7 @@ def create_app(config_override: dict | None = None) -> Flask:
     app.register_blueprint(docs.bp)  # API Documentation at /api/docs
     app.register_blueprint(metrics.bp)  # Metrics and monitoring at /api/metrics
     app.register_blueprint(database.bp)  # Database administration at /api/admin/database
+    app.register_blueprint(admin_import.bp)  # Temp data import for MRP/Forecast at /api/admin
 
     # ==================== SERVIR FRONTEND REACT ====================
     # Calcular rutas del frontend
