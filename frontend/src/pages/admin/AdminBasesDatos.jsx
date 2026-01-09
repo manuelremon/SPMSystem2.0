@@ -32,8 +32,8 @@ import {
   Clock,
   FileText,
   Plus,
-  Pencil,
-  Trash,
+  Edit2,
+  Trash2,
   ICON_COLORS,
 } from "../../components/ui/Icons";
 
@@ -826,14 +826,14 @@ export default function AdminBasesDatos() {
                               className="p-1 hover:bg-[var(--bg-soft)] rounded"
                               title="Editar"
                             >
-                              <Pencil className={`w-3.5 h-3.5 ${ICON_COLORS.info}`} />
+                              <Edit2 className={`w-3.5 h-3.5 ${ICON_COLORS.info}`} />
                             </button>
                             <button
                               onClick={() => openDeleteModal(row)}
                               className="p-1 hover:bg-[var(--bg-soft)] rounded"
                               title="Eliminar"
                             >
-                              <Trash className={`w-3.5 h-3.5 ${ICON_COLORS.danger}`} />
+                              <Trash2 className={`w-3.5 h-3.5 ${ICON_COLORS.danger}`} />
                             </button>
                           </div>
                         </td>
@@ -953,7 +953,7 @@ export default function AdminBasesDatos() {
               Cancelar
             </Button>
             <Button onClick={handleUpdate} disabled={crudLoading}>
-              {crudLoading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}
+              {crudLoading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Edit2 className="w-4 h-4" />}
               Guardar cambios
             </Button>
           </div>
@@ -997,7 +997,7 @@ export default function AdminBasesDatos() {
               Soft Delete
             </Button>
             <Button variant="danger" onClick={() => handleDelete(false)} disabled={crudLoading}>
-              {crudLoading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Trash className="w-4 h-4" />}
+              {crudLoading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
               Eliminar
             </Button>
           </div>
