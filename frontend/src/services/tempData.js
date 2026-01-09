@@ -94,9 +94,8 @@ export async function downloadTemplate() {
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
   } catch (err) {
-    // Silenciar errores de autenticación
+    // Silenciar errores de autenticación - son esperados
     if (err.response?.status === 401 || err.response?.status === 403) {
-      console.warn('No autorizado para descargar plantilla')
       return
     }
     throw err
