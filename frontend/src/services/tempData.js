@@ -6,6 +6,18 @@
  */
 
 import api from './api'
+import { useAuthStore } from '../store/authStore'
+
+/**
+ * Verifica si el usuario actual es admin/coordinador.
+ * Previene llamadas innecesarias a endpoints admin.
+ */
+function isUserAdmin() {
+  const state = useAuthStore.getState()
+  const { isAuthenticated, user } = state
+  if (!isAuthenticated || !user) return false
+  return user.rol === 'admin' || user.rol === 'coordinador'
+}
 
 const ENDPOINTS = {
   IMPORT: '/admin/import-excel',
@@ -36,20 +48,23 @@ export async function importExcel(file) {
 
 /**
  * Obtiene el estado del modo temporal.
- * Silencia errores 401/403 ya que son esperados para usuarios no admin.
+ * Solo hace la llamada si el usuario es admin.
  *
- * @returns {Promise<Object>} Estado con active, data (si activo), o {ok: false} si error
+ * @returns {Promise<Object>} Estado con active, data (si activo), o {ok: false} si no admin
  */
 export async function getTempDataStatus() {
+  // Verificar admin antes de hacer la llamada
+  if (!isUserAdmin()) {
+    return { ok: false, active: false }
+  }
+
   try {
-    // Silenciar errores 401/403 y no reintentar auth - es un endpoint opcional
     const response = await api.get(ENDPOINTS.STATUS, {
       _silenceErrors: [401, 403],
       _skipAuthRetry: true
     })
     return response.data
   } catch (err) {
-    // Silenciar errores de autenticación/autorización
     if (err.response?.status === 401 || err.response?.status === 403) {
       return { ok: false, active: false }
     }
@@ -69,11 +84,16 @@ export async function clearTempData() {
 
 /**
  * Descarga la plantilla Excel con la estructura correcta.
- * Silencia errores 401/403 ya que requiere autenticación.
+ * Solo hace la llamada si el usuario es admin.
  *
  * @returns {Promise<void>} Inicia descarga del archivo
  */
 export async function downloadTemplate() {
+  // Verificar admin antes de hacer la llamada
+  if (!isUserAdmin()) {
+    return
+  }
+
   try {
     const response = await api.get(ENDPOINTS.TEMPLATE, {
       responseType: 'blob',
@@ -94,7 +114,6 @@ export async function downloadTemplate() {
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
   } catch (err) {
-    // Silenciar errores de autenticación - son esperados
     if (err.response?.status === 401 || err.response?.status === 403) {
       return
     }
