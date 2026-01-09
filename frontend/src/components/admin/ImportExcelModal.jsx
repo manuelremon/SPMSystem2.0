@@ -222,14 +222,28 @@ export function ImportExcelModal({ isOpen, onClose, onSuccess }) {
               </ul>
             </div>
 
-            {/* Botón descargar plantilla */}
-            <div className="flex justify-center">
-              <Button
-                variant="secondary"
-                onClick={handleDownloadTemplate}
-              >
-                Descargar Plantilla de Ejemplo
-              </Button>
+            {/* Descargar plantilla */}
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-blue-500">Primera vez?</p>
+                  <p className="text-sm text-[var(--text-secondary)]">
+                    Descarga la plantilla para completar antes de importar
+                  </p>
+                </div>
+                <Button
+                  variant="secondary"
+                  onClick={handleDownloadTemplate}
+                  className="!bg-blue-500/20 !text-blue-500 hover:!bg-blue-500/30"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
+                  </svg>
+                  Descargar Plantilla
+                </Button>
+              </div>
             </div>
 
             {loading && (
