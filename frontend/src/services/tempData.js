@@ -69,26 +69,38 @@ export async function clearTempData() {
 
 /**
  * Descarga la plantilla Excel con la estructura correcta.
+ * Silencia errores 401/403 ya que requiere autenticación.
  *
  * @returns {Promise<void>} Inicia descarga del archivo
  */
 export async function downloadTemplate() {
-  const response = await api.get(ENDPOINTS.TEMPLATE, {
-    responseType: 'blob'
-  })
+  try {
+    const response = await api.get(ENDPOINTS.TEMPLATE, {
+      responseType: 'blob',
+      _silenceErrors: [401, 403],
+      _skipAuthRetry: true
+    })
 
-  // Crear URL temporal y descargar
-  const blob = new Blob([response.data], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-  })
-  const url = window.URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = 'plantilla_mrp_forecast.xlsx'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  window.URL.revokeObjectURL(url)
+    // Crear URL temporal y descargar
+    const blob = new Blob([response.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'plantilla_mrp_forecast.xlsx'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (err) {
+    // Silenciar errores de autenticación
+    if (err.response?.status === 401 || err.response?.status === 403) {
+      console.warn('No autorizado para descargar plantilla')
+      return
+    }
+    throw err
+  }
 }
 
 /**
