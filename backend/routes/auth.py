@@ -355,6 +355,7 @@ def login():
         secure=settings.JWT_COOKIE_SECURE,
         samesite=settings.JWT_COOKIE_SAMESITE,
         max_age=settings.JWT_ACCESS_TOKEN_EXPIRES,
+        path="/",
     )
     response.set_cookie(
         "spm_token_refresh",
@@ -363,6 +364,7 @@ def login():
         secure=settings.JWT_COOKIE_SECURE,
         samesite=settings.JWT_COOKIE_SAMESITE,
         max_age=settings.JWT_REFRESH_TOKEN_EXPIRES,
+        path="/",
     )
 
     return response, 200
@@ -409,6 +411,7 @@ def refresh():
         secure=settings.JWT_COOKIE_SECURE,
         samesite=settings.JWT_COOKIE_SAMESITE,
         max_age=settings.JWT_ACCESS_TOKEN_EXPIRES,
+        path="/",
     )
 
     return response, 200
@@ -419,9 +422,9 @@ def logout():
     """Logout"""
     response = jsonify({"ok": True, "message": "Logged out successfully"})
 
-    response.set_cookie("spm_token", "", max_age=0)
-    response.set_cookie("spm_token_refresh", "", max_age=0)
-    response.set_cookie("spm_csrf", "", max_age=0)
+    response.set_cookie("spm_token", "", max_age=0, path="/")
+    response.set_cookie("spm_token_refresh", "", max_age=0, path="/")
+    response.set_cookie("spm_csrf", "", max_age=0, path="/")
 
     return response, 200
 
@@ -539,6 +542,7 @@ def register():
         secure=settings.JWT_COOKIE_SECURE,
         samesite=settings.JWT_COOKIE_SAMESITE,
         max_age=settings.JWT_ACCESS_TOKEN_EXPIRES,
+        path="/",
     )
     response.set_cookie(
         "spm_token_refresh",
@@ -547,6 +551,7 @@ def register():
         secure=settings.JWT_COOKIE_SECURE,
         samesite=settings.JWT_COOKIE_SAMESITE,
         max_age=settings.JWT_REFRESH_TOKEN_EXPIRES,
+        path="/",
     )
 
     return response, 201
