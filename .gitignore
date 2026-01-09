@@ -28,6 +28,7 @@ env/
 *.xls
 *.csv
 !docs/examples/*.csv
+!frontend/public/templates/*.xlsx
 
 # =============================================================================
 # Logs
