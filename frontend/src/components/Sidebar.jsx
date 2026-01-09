@@ -217,6 +217,7 @@ const adminNavHierarchy = [
       { trKey: "admin_centros", label: "Centros", to: "/admin/centros", icon: Building2, iconName: "Building2" },
       { trKey: "admin_almacenes", label: "Almacenes", to: "/admin/almacenes", icon: Boxes, iconName: "Boxes" },
       { trKey: "admin_proveedores", label: "Proveedores", to: "/admin/proveedores", icon: Truck, iconName: "Truck" },
+      { trKey: "admin_bases_datos", label: "Bases de Datos", to: "/admin/bases-datos", icon: Database, iconName: "Database" },
     ],
   },
   {

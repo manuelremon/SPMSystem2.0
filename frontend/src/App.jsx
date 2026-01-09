@@ -67,6 +67,7 @@ const AdminPresupuestos = lazy(() => import('./pages/admin/AdminPresupuestos'))
 const AdminEstado = lazy(() => import('./pages/admin/AdminEstado'))
 const AdminMateriales = lazy(() => import('./pages/admin/AdminMateriales'))
 const AdminProveedores = lazy(() => import('./pages/AdminProveedores'))
+const AdminBasesDatos = lazy(() => import('./pages/admin/AdminBasesDatos'))
 
 function App() {
   const { user, isLoading, getCurrentUser } = useAuthStore()
@@ -140,6 +141,7 @@ function App() {
             <Route path="/admin/materiales" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminMateriales /></ProtectedRoute>} />
             <Route path="/admin/estado" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminEstado /></ProtectedRoute>} />
             <Route path="/admin/proveedores" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminProveedores /></ProtectedRoute>} />
+            <Route path="/admin/bases-datos" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminBasesDatos /></ProtectedRoute>} />
             <Route path="/registro/completar" element={<ProtectedRoute><CompleteRegistration /></ProtectedRoute>} />
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="*" element={<Navigate to="/dashboard" />} />

@@ -37,6 +37,7 @@ from backend.routes import (
     auth,
     budget,
     catalogos,
+    database,
     docs,
     equivalencias,
     export,
@@ -221,6 +222,7 @@ def create_app(config_override: dict | None = None) -> Flask:
     app.register_blueprint(export.bp)  # Export/reporting at /api/export
     app.register_blueprint(docs.bp)  # API Documentation at /api/docs
     app.register_blueprint(metrics.bp)  # Metrics and monitoring at /api/metrics
+    app.register_blueprint(database.bp)  # Database administration at /api/admin/database
 
     # ==================== SERVIR FRONTEND REACT ====================
     # Calcular rutas del frontend
