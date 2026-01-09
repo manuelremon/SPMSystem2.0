@@ -47,29 +47,36 @@ bp = Blueprint("database", __name__, url_prefix="/api/admin/database")
 ALLOWED_DATABASES = {"spm", "sap_data", "equivalentes", "catalogo_materiales"}
 
 # Whitelist de tablas por BD (para prevenir SQL injection)
+# Actualizado 2026-01-09 con tablas reales de produccion
 ALLOWED_TABLES = {
     "spm": [
+        # Core tables
         "usuarios", "solicitudes", "solicitud_items_tratamiento", "decision_abastecimiento",
-        "decision_abastecimiento_fuentes", "presupuestos", "presupuesto_ledger",
-        "budget_update_requests", "presupuesto_incorporaciones", "proveedores",
-        "proveedores_externos", "proveedor_ext_contactos", "proveedor_ext_emails",
-        "proveedor_ext_telefonos", "proveedores_internos", "proveedor_precios_negociados",
-        "config_equivalencia_scores", "traslados", "solpeds", "purchase_orders",
-        "solicitud_tratamiento_eventos", "solicitud_tratamiento_log", "mensajes",
-        "notificaciones", "outbox_emails", "catalog_centros", "catalog_almacenes",
-        "catalog_sectores", "catalog_roles", "catalog_puestos", "planificador_asignaciones",
-        "config_almacenes", "config_lotes_excluidos", "user_profile_requests",
-        "trivias_scores", "foro_posts", "foro_respuestas", "foro_likes",
-        "archivos_adjuntos", "schema_migrations", "audit_log",
+        "presupuestos", "presupuesto_ledger", "budget_update_requests", "presupuesto_incorporaciones",
+        # Proveedores
+        "proveedores", "proveedores_externos", "proveedor_ext_contactos",
+        "proveedor_ext_emails", "proveedor_ext_telefonos",
+        # Comunicacion
+        "mensajes", "notificaciones", "push_subscriptions",
+        # Catalogos
+        "catalog_centros", "catalog_almacenes", "catalog_sectores", "catalog_roles",
+        "catalog_puestos", "materiales",
+        # Configuracion
+        "config_almacenes", "planificador_asignaciones", "reglas_aprobacion",
+        "sla_configuracion", "ordenes_planificadas",
+        # Usuarios
+        "user_profile_requests", "solicitudes_historial_estados",
+        # Audit (read-only)
+        "audit_trail",
     ],
-    "sap_data": ["stock", "consumo", "pedidos", "materiales"],
-    "equivalentes": ["equivalencias", "materiales_base"],
-    "catalogo_materiales": ["materiales", "categorias"],
+    "sap_data": ["stock", "consumo_historico", "pedidos_sap", "materiales_bbdd"],
+    "equivalentes": ["equivalencias"],
+    "catalogo_materiales": ["materiales"],
 }
 
 # Tablas protegidas (solo lectura - no se pueden modificar via CRUD)
 READ_ONLY_TABLES = {
-    "spm": ["audit_log", "schema_migrations", "sesiones"],
+    "spm": ["audit_trail"],
 }
 
 # Columnas protegidas (nunca visibles ni editables)
