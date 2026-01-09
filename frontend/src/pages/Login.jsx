@@ -146,6 +146,7 @@ export default function Login() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
                   className="w-full pl-10 pr-10 py-3 bg-[var(--bg-glass)] backdrop-blur-sm border border-[var(--border-colored)] rounded-lg text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-muted)] focus:border-[var(--primary)] transition-all duration-300 ease-spring"
                   placeholder="••••••••"
                 />
@@ -289,6 +290,7 @@ export default function Login() {
                 value={registerData.password}
                 onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
                 required
+                autoComplete="new-password"
                 className="w-full px-4 pr-10 py-3 bg-[var(--bg-glass)] backdrop-blur-sm border border-[var(--border-colored)] rounded-lg text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-muted)] focus:border-[var(--primary)] transition-all duration-300 ease-spring"
                 placeholder="••••••••"
               />

@@ -468,6 +468,7 @@ export default function MiCuenta() {
                   type="password"
                   value={passwordForm.nueva}
                   onChange={(e) => handlePasswordChange("nueva", e.target.value)}
+                  autoComplete="new-password"
                   className="w-full px-4 py-3 rounded-lg bg-[var(--bg-glass)] backdrop-blur-sm border border-[var(--border-colored)] text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--primary-muted)] focus:border-[var(--primary)] outline-none transition-all duration-300 ease-spring"
                   placeholder="Min 8 caracteres"
                 />
@@ -477,6 +478,7 @@ export default function MiCuenta() {
                   type="password"
                   value={passwordForm.repetir}
                   onChange={(e) => handlePasswordChange("repetir", e.target.value)}
+                  autoComplete="new-password"
                   className="w-full px-4 py-3 rounded-lg bg-[var(--bg-glass)] backdrop-blur-sm border border-[var(--border-colored)] text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--primary-muted)] focus:border-[var(--primary)] outline-none transition-all duration-300 ease-spring"
                   placeholder="Repite la contrasena"
                 />
