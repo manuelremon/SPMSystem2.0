@@ -4,6 +4,7 @@ Pipeline para clustering de materiales y solicitudes.
 Agrupa materiales similares y solicitudes relacionadas.
 """
 
+import json
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -13,6 +14,20 @@ from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_data_json(data_json):
+    """Parse data_json which can be either a string or dict."""
+    if data_json is None:
+        return {}
+    if isinstance(data_json, dict):
+        return data_json
+    if isinstance(data_json, str):
+        try:
+            return json.loads(data_json)
+        except (json.JSONDecodeError, TypeError):
+            return {}
+    return {}
 
 
 class ClusteringPipeline:
@@ -229,7 +244,7 @@ class ClusteringPipeline:
 
         for solicitud in solicitudes_data:
             # Extraer features
-            data_json = solicitud.get("data_json", {})
+            data_json = _parse_data_json(solicitud.get("data_json"))
             n_items = len(data_json.get("items", []))
             total_monto = float(solicitud.get("total_monto", 0))
 

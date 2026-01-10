@@ -6,6 +6,7 @@ Calcula puntuaciones para solicitudes y materiales.
 Optimizado con vectorización numpy para ranking masivo.
 """
 
+import json
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -13,6 +14,20 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_data_json(data_json):
+    """Parse data_json which can be either a string or dict."""
+    if data_json is None:
+        return {}
+    if isinstance(data_json, dict):
+        return data_json
+    if isinstance(data_json, str):
+        try:
+            return json.loads(data_json)
+        except (json.JSONDecodeError, TypeError):
+            return {}
+    return {}
 
 
 class ScoringPipeline:
@@ -81,7 +96,7 @@ class ScoringPipeline:
             scores["monto"] = min(total_monto / max_monto, 1.0)
 
             # Score de complejidad (número de items)
-            data_json = solicitud.get("data_json", {})
+            data_json = _parse_data_json(solicitud.get("data_json"))
             n_items = len(data_json.get("items", []))
             scores["complejidad"] = min(n_items / 20, 1.0)  # Max 20 items
 
@@ -247,7 +262,7 @@ class ScoringPipeline:
         ])
 
         complejidades = np.array([
-            min(len(s.get("data_json", {}).get("items", [])) / 20.0, 1.0)
+            min(len(_parse_data_json(s.get("data_json")).get("items", [])) / 20.0, 1.0)
             for s in solicitudes
         ])
 

@@ -504,14 +504,8 @@ class AIService:
                         )
 
         except Exception as e:
-            logger.error(f"Error generando alertas: {e}")
-            alertas.append(
-                {
-                    "tipo": "error_sistema",
-                    "severidad": "info",
-                    "mensaje": f"No se pudieron analizar algunos materiales: {e}",
-                }
-            )
+            # Log error but don't add alert - table may not exist in production
+            logger.warning(f"Error generando alertas (tabla puede no existir): {e}")
 
         return {
             "centro": centro,
