@@ -52,6 +52,7 @@ from backend.routes import (
     mi_cuenta,
     mrp,
     notificaciones,
+    procurement,
     push,
     sla,
     solicitudes,
@@ -225,6 +226,7 @@ def create_app(config_override: dict | None = None) -> Flask:
     app.register_blueprint(metrics.bp)  # Metrics and monitoring at /api/metrics
     app.register_blueprint(database.bp)  # Database administration at /api/admin/database
     app.register_blueprint(admin_import.bp)  # Temp data import for MRP/Forecast at /api/admin
+    app.register_blueprint(procurement.procurement_bp)  # SAP Procurement data at /api/procurement
 
     # ==================== SERVIR FRONTEND REACT ====================
     # Calcular rutas del frontend

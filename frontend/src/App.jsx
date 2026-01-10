@@ -54,6 +54,9 @@ const BudgetRequests = lazy(() => import('./pages/BudgetRequests'))
 const BudgetRequestCreate = lazy(() => import('./pages/BudgetRequestCreate'))
 const BudgetRequestDetail = lazy(() => import('./pages/BudgetRequestDetail'))
 
+// Procurement Dashboard (lazy-loaded)
+const ProcurementDashboard = lazy(() => import('./pages/ProcurementDashboard'))
+
 // Admin pages (lazy-loaded)
 const AdminCentros = lazy(() => import('./pages/admin/AdminCentros'))
 const AdminAlmacenes = lazy(() => import('./pages/admin/AdminAlmacenes'))
@@ -124,6 +127,7 @@ function App() {
             <Route path="/presupuestos" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe', 'coordinador']}><BudgetRequests /></ProtectedRoute>} />
             <Route path="/presupuestos/nueva" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe']}><BudgetRequestCreate /></ProtectedRoute>} />
             <Route path="/presupuestos/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe', 'coordinador']}><BudgetRequestDetail /></ProtectedRoute>} />
+            <Route path="/procurement" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ProcurementDashboard /></ProtectedRoute>} />
             <Route path="/kpi" element={<ProtectedRoute><KPI /></ProtectedRoute>} />
             <Route path="/materiales/catalogo" element={<ProtectedRoute><CatalogoMateriales /></ProtectedRoute>} />
             <Route path="/materiales/equivalencias" element={<ProtectedRoute><CatalogoEquivalencias /></ProtectedRoute>} />

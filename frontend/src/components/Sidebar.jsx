@@ -192,6 +192,7 @@ const plannerNavItems = [
           { trKey: "nav_forecast_masivo", label: "Masivo", to: "/planificador/forecast/masivo", icon: TrendingUp, iconName: "TrendingUp" },
         ],
       },
+      { trKey: "nav_procurement", label: "Procurement", to: "/procurement", icon: Truck, iconName: "Truck" },
       { trKey: "nav_sla", label: "SLA", to: "/planificador/sla", icon: Clock, iconName: "Clock" },
       { trKey: "nav_ai", label: "IA Analytics", to: "/planificador/ai", icon: Activity, iconName: "Activity" },
     ],

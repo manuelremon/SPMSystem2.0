@@ -2,7 +2,7 @@
 
 Sistema web profesional para gestionar solicitudes de materiales, construido con **Flask** (backend) + **React + Vite** (frontend).
 
-**Version:** 2.0 | **Estado:** Produccion | **Ultima actualizacion:** 29 Diciembre 2025
+**Version:** 2.0 | **Estado:** Produccion | **Ultima actualizacion:** 9 Enero 2026
 
 ---
 
@@ -10,10 +10,10 @@ Sistema web profesional para gestionar solicitudes de materiales, construido con
 
 | Area | Valor |
 |------|-------|
-| **Backend** | 125 archivos Python, ~48,000 lineas |
-| **Frontend** | 46 paginas, 68 componentes |
-| **Endpoints API** | 194 endpoints en 24 modulos |
-| **Tests** | 969+ tests (792 unit, 25 E2E, 152 integration) |
+| **Backend** | 131 archivos Python, ~55,000 lineas |
+| **Frontend** | 68 paginas, 87 componentes |
+| **Endpoints API** | 200+ endpoints en 24 modulos |
+| **Tests** | 1,045+ tests (153 archivos) |
 
 ---
 
@@ -87,17 +87,17 @@ cd frontend && npm run dev
 
 ```
 SPMv2.0/
-├── backend/                    # API Flask (125 archivos)
-│   ├── routes/                 # Endpoints REST (24 modulos, 194 endpoints)
-│   ├── services/               # Logica de negocio (10 servicios)
+├── backend/                    # API Flask (131 archivos)
+│   ├── routes/                 # Endpoints REST (24 modulos, 200+ endpoints)
+│   ├── services/               # Logica de negocio (11 servicios)
 │   ├── core/                   # Config, DB, Auth, Cache, WebSocket
 │   ├── agent/                  # Modulo IA/ML (30 archivos)
 │   │   └── pipelines/forecast/ # Modelos de pronostico
 │   └── migrations/             # Migraciones de BD
 │
 ├── frontend/                   # React + Vite + Tailwind
-│   ├── src/pages/              # 46 paginas
-│   ├── src/components/         # 68 componentes
+│   ├── src/pages/              # 68 paginas
+│   ├── src/components/         # 87 componentes
 │   │   ├── ui/                 # Sistema de diseno
 │   │   ├── forecast/           # Graficos y visualizaciones
 │   │   └── Planner/            # Wizard de planificacion
@@ -109,7 +109,7 @@ SPMv2.0/
 ├── data/                       # Bases de datos SQLite
 ├── infra/                      # Docker, nginx, migraciones SQL
 ├── scripts/                    # Scripts de utilidad y deployment
-├── tests/                      # Tests (128 archivos, 969+ tests)
+├── tests/                      # Tests (153 archivos, 1,045+ tests)
 ├── docs/                       # Documentacion tecnica
 │
 ├── wsgi.py                     # Entry point del servidor
@@ -214,4 +214,4 @@ python -m pytest tests/ --cov=backend --cov-report=html
 
 ---
 
-*Ultima actualizacion: 29 de Diciembre, 2025*
+*Ultima actualizacion: 9 de Enero, 2026*

@@ -2,16 +2,16 @@
 
 Guia para Claude Code (claude.ai/code) cuando trabaja con este repositorio.
 
-> **Ultima actualizacion**: 2025-12-29 (Auditoria completa y reorganizacion)
+> **Ultima actualizacion**: 2026-01-09 (Actualizacion de metricas y Sprint 21)
 
 ## Resumen del Proyecto
 
 | Metrica | Valor |
 |---------|-------|
-| **Backend** | 125 archivos Python, ~48,000 lineas |
-| **Frontend** | 46 paginas, 68 componentes, 8 hooks |
-| **Endpoints API** | 194 endpoints en 24 modulos |
-| **Tests** | 969+ tests (792 unit, 25 E2E, 152 integration) |
+| **Backend** | 131 archivos Python, ~55,000 lineas |
+| **Frontend** | 68 paginas, 87 componentes, 8 hooks |
+| **Endpoints API** | 200+ endpoints en 24 modulos |
+| **Tests** | 1,045+ tests (153 archivos) |
 | **Base de Datos** | 3 SQLite + PostgreSQL (produccion) |
 
 ## Comandos de Desarrollo
@@ -24,7 +24,7 @@ python wsgi.py                    # Inicia en http://localhost:5000
 cd frontend && npm run dev        # Inicia en http://localhost:5173
 
 # Tests
-python -m pytest tests/           # Backend tests (755 tests)
+python -m pytest tests/           # Backend tests (1,000+ tests)
 cd frontend && npm test           # Frontend tests
 
 # Build produccion
@@ -48,21 +48,21 @@ http://localhost:5173       http://localhost:5000     SQLite (data/)
 
 ```
 SPMv2.0/
-├── backend/                    # API Flask (111 archivos, ~36K lineas)
-│   ├── routes/                 # 24 modulos, 194 endpoints
+├── backend/                    # API Flask (131 archivos, ~55K lineas)
+│   ├── routes/                 # 24 modulos, 200+ endpoints
 │   ├── services/               # 11 servicios de negocio
 │   ├── core/                   # 28 modulos de infraestructura
 │   ├── agent/                  # 30 archivos ML/IA (incluye forecast/)
-│   └── migrations/             # 9 migraciones de BD
+│   └── migrations/             # 13 migraciones de BD
 ├── frontend/src/
-│   ├── pages/                  # 37 paginas + 10 admin
-│   ├── components/             # 75 componentes
+│   ├── pages/                  # 68 paginas (incluye admin)
+│   ├── components/             # 87 componentes
 │   ├── hooks/                  # 8 custom hooks
 │   ├── services/               # 11 servicios API
 │   ├── store/                  # 3 stores Zustand
 │   └── context/                # i18n provider (200+ keys)
 ├── data/                       # Bases de datos SQLite
-├── tests/                      # 128 archivos de test
+├── tests/                      # 153 archivos de test
 ├── scripts/                    # Scripts de utilidad
 └── docs/                       # Documentacion
 ```
@@ -169,7 +169,7 @@ agent/
 
 ## Frontend - Inventario Completo
 
-### Pages (36 principales + 10 admin)
+### Pages (68 paginas totales)
 
 | Categoria | Paginas |
 |-----------|---------|
@@ -189,7 +189,7 @@ agent/
 | **Gamificacion** | Trivias |
 | **Admin** | AdminUsuarios, AdminRoles, AdminCentros, AdminSectores, AdminMateriales, AdminProveedores, AdminPresupuestos, AdminEstado, AdminPlanificadores, AdminPuestos, AdminAlmacenes, AdminSolicitudesPerfil |
 
-### Components (75 totales)
+### Components (87 totales)
 
 | Carpeta | Componentes | Proposito |
 |---------|-------------|-----------|
@@ -258,13 +258,13 @@ python scripts/migrate_excel_to_db.py
 
 | Categoria | Tests | Cobertura |
 |-----------|-------|-----------|
-| Backend Unit | 792 | Excelente (core, pipelines) |
-| Backend Integration | 152 | Buena (14+ rutas) |
+| Backend Unit | 850+ | Excelente (core, pipelines) |
+| Backend Integration | 160+ | Buena (14+ rutas) |
 | Backend E2E | 25 | Buena (health, auth, flujos) |
-| Frontend Pages | 6 | **Gap critico** (mejorando) |
-| Frontend Components | 13 | **Gap critico** (mejorando) |
+| Frontend Pages | 12 | Mejorando |
+| Frontend Components | 9 | Mejorando |
 
-**Total: 969+ tests en 128 archivos**
+**Total: 1,045+ tests en 153 archivos**
 
 ### Backend - Tests por Modulo
 
@@ -541,12 +541,12 @@ Revision completa de 30 bugs identificados en FSM, Aprobaciones, Presupuestos, M
 - Exportacion: Inclusion de items y decisiones en reportes
 - Audit: Serializacion JSON para valores complejos
 
-## Auditoria Exhaustiva (2025-12-29)
+## Auditoria Exhaustiva (2026-01-09)
 
 **Estadisticas actualizadas:**
-- Backend: 111 archivos Python, 47,855 lineas, 199+ endpoints
-- Frontend: 57 paginas, 73 componentes, 40,288 lineas
-- Tests: 1,044 funciones backend (excelente), 14 archivos frontend (gap critico)
+- Backend: 131 archivos Python, ~55,000 lineas, 200+ endpoints
+- Frontend: 68 paginas, 87 componentes, ~40,000 lineas
+- Tests: 1,045+ tests (132 backend + 21 frontend archivos)
 
 **Deuda tecnica identificada:**
 - `routes/planner.py`: 2,453 lineas (deberia dividirse en 4 modulos)
@@ -652,6 +652,42 @@ Revision completa de 30 bugs identificados en FSM, Aprobaciones, Presupuestos, M
   - L1: hasta $200,000 USD
   - L2: hasta $1,000,000 USD
   - ADMIN: mas de $1,000,000 USD
+
+## Sprint 21: Fixes de Autenticacion (2026-01-09)
+
+**Fecha**: 2026-01-03 a 2026-01-09
+**Enfoque**: Mejoras de autenticacion, UX y CI/CD
+
+### Cambios Principales
+
+| Tipo | Descripcion | Archivos |
+|------|-------------|----------|
+| Auth | Validacion mejorada de variantes de rol admin | `tempData.js`, `TempDataBanner.jsx` |
+| Auth | Context retrieval para admin import | `admin_import.py` |
+| Auth | Retry de autenticacion en downloadTemplate | `tempData.js` |
+| UX | Autocomplete en todos los inputs de formularios | Multiples paginas |
+| UX | Silenciamiento de errores 401 innecesarios | `downloadTemplate`, `AnalisisPuntual` |
+| CI/CD | GitHub Actions workflow para produccion | `.github/workflows/` |
+
+### Commits (15 totales)
+
+```
+318eb52 fix(admin_import): fix user context retrieval for auth
+922d2ca fix(tempData): allow auth retry for downloadTemplate
+ed2b785 fix(tempData): improve role checking with multiple admin role variants
+64b778e fix(tempData): add admin check before API calls in service layer
+08bb9d2 fix(TempDataBanner): check admin role before fetching temp-data status
+d39efd0 fix: remove console.warn from downloadTemplate
+9de88a9 fix: silence 401 errors in downloadTemplate
+2e5b7e7 fix: correct API URLs and handle error objects in AnalisisPuntual
+25f7f25 feat: improve download template button in import modal
+c209538 fix: silence 401 errors from temp-data/status endpoint
+c1e1653 fix: prevent TempDataBanner API call when not authenticated
+f5d67fe fix: add autocomplete attributes to all form inputs
+cc7a1e1 fix: add autocomplete attributes to password inputs
+2505e44 chore: trigger production deployment
+28ba85f ci: add GitHub Actions workflow for production deployment
+```
 
 ## Documentacion
 
