@@ -131,7 +131,8 @@ def priorizar_solicitudes():
     except ImportError:
         from core.db import get_db_connection
 
-    status = request.args.get("status", "submitted")
+    # Accept both 'status' and 'estado' for backwards compatibility with frontend
+    status = request.args.get("status") or request.args.get("estado", "submitted")
     centro = request.args.get("centro")
     limit = int(request.args.get("limit", 20))
 
