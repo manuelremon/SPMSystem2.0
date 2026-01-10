@@ -68,12 +68,11 @@ export default function ChatAssistant() {
   /**
    * Envía un mensaje y obtiene respuesta del agente
    */
-  const handleSendMessage = async (e) => {
-    e.preventDefault()
-    if (!inputValue.trim() || isSending) return
+  const sendMessage = async (message) => {
+    if (!message.trim() || isSending) return
 
     // Agregar mensaje del usuario
-    addUserMessage(inputValue)
+    addUserMessage(message)
     setInputValue('')
     setIsSending(true)
     setLoading(true)
@@ -81,7 +80,7 @@ export default function ChatAssistant() {
 
     try {
       // Procesar la consulta
-      const { agentGoal, context } = await processQuery(inputValue)
+      const { agentGoal, context } = await processQuery(message)
 
       // Ejecutar el agente
       const agentResponse = await agentService.execute(
@@ -155,10 +154,18 @@ export default function ChatAssistant() {
   }
 
   /**
-   * Maneja el click en sugerencias
+   * Maneja el envío del formulario
+   */
+  const handleSendMessage = async (e) => {
+    e.preventDefault()
+    await sendMessage(inputValue)
+  }
+
+  /**
+   * Maneja el click en sugerencias - auto-envía el mensaje
    */
   const handleSuggestion = (suggestion) => {
-    setInputValue(suggestion)
+    sendMessage(suggestion)
   }
 
   if (!isOpen) return null
