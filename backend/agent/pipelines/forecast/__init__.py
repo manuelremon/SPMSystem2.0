@@ -3,10 +3,21 @@ Módulo de Forecasting Avanzado para SPM v2.0
 =============================================
 
 Sistema multi-modelo de predicción de demanda con:
-- 6 estrategias ML: Random Forest, Gradient Boosting, Ridge, XGBoost, Prophet, ARIMA
+- 6 estrategias ML: Random Forest, Gradient Boosting, Ridge, XGBoost, Prophet*, ARIMA
 - Backtesting con validación walk-forward
 - Auto-tuning de hiperparámetros
 - Registro y persistencia de modelos
+
+Notas de Disponibilidad:
+------------------------
+- Random Forest, Gradient Boosting, Ridge: Siempre disponibles (sklearn)
+- XGBoost: Requiere `pip install xgboost>=2.0.0`
+- ARIMA: Requiere `pip install pmdarima>=2.0.0 statsmodels>=0.14.0`
+- Prophet*: Requiere instalación especial en Windows:
+    1. Instalar Visual C++ Build Tools
+    2. pip install pystan==2.19.1.1
+    3. pip install prophet>=1.1.0
+  En Linux/Mac: `pip install prophet>=1.1.0` directamente
 
 Uso básico:
     from backend.agent.pipelines.forecast import (
@@ -145,12 +156,15 @@ try:
 except ImportError:
     logger.info("XGBoost no disponible")
 
-# Prophet (opcional)
+# Prophet (opcional - requiere instalación especial en Windows)
 try:
     from .prophet_model import ProphetStrategy
     registrar_estrategia('prophet', ProphetStrategy)
 except ImportError:
-    logger.info("Prophet no disponible")
+    logger.info(
+        "Prophet no disponible. En Windows requiere: "
+        "Visual C++ Build Tools + pystan==2.19.1.1 + prophet>=1.1.0"
+    )
 
 # ARIMA (opcional)
 try:
@@ -167,7 +181,10 @@ from .predictor import (
     DemandPredictor,
     StockOptimizer,
     get_cached_predictor,
-    clear_model_cache
+    get_predictor_with_stock,
+    clear_model_cache,
+    cleanup_expired_models,
+    set_cache_ttl,
 )
 
 from .backtesting import (
@@ -205,9 +222,12 @@ __all__ = [
     'DemandPredictor',
     'StockOptimizer',
 
-    # Cache
+    # Cache y Stock
     'get_cached_predictor',
+    'get_predictor_with_stock',
     'clear_model_cache',
+    'cleanup_expired_models',
+    'set_cache_ttl',
 
     # Estrategias
     'RandomForestStrategy',

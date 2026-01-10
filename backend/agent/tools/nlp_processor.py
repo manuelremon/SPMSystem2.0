@@ -3,15 +3,154 @@ Procesador NLP para extraer entidades de texto libre.
 
 Extrae equipos, componentes, tipos de falla y keywords
 de descripciones de problemas en lenguaje natural.
+
+Incluye:
+- Lemmatización básica para español (stemming de sufijos comunes)
+- Manejo de acrónimos técnicos (SAP, ISO, API, ANSI)
+- Normalización de plurales y conjugaciones verbales
+- Extracción de dimensiones técnicas (3/4", DN50, etc.)
 """
 
 import logging
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set, Tuple
 
 from .base import BaseTool, ToolMetadata
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Stemmer Español Ligero (sin dependencias externas)
+# =============================================================================
+
+class SpanishStemmer:
+    """
+    Stemmer básico para español orientado a terminología industrial.
+
+    Elimina sufijos comunes para normalizar variantes de palabras:
+    - Plurales: -s, -es
+    - Verbos: -ando, -endo, -ido, -ado, -ar, -er, -ir
+    - Sustantivos: -ción, -miento, -dor, -ador
+    - Adjetivos: -oso, -ivo, -ble
+    """
+
+    # Sufijos en orden de prioridad (más largo primero)
+    VERB_SUFFIXES = [
+        'ándose', 'iéndose', 'amente',
+        'iendo', 'ando', 'aron', 'ieron',
+        'aban', 'ían', 'ado', 'ido', 'ando',
+        'ar', 'er', 'ir',
+    ]
+
+    NOUN_SUFFIXES = [
+        'aciones', 'iciones', 'amiento', 'imiento',
+        'ación', 'ición', 'miento',
+        'adores', 'edores', 'idores',
+        'ador', 'edor', 'idor',
+        'iones', 'ción', 'sión',
+        'ista', 'ismo',
+    ]
+
+    ADJ_SUFFIXES = [
+        'ísimo', 'ísima', 'ísimos', 'ísimas',
+        'osos', 'osas', 'oso', 'osa',
+        'ivos', 'ivas', 'ivo', 'iva',
+        'bles', 'ble',
+        'ante', 'ente',
+    ]
+
+    PLURAL_SUFFIXES = [
+        'ces',  # luz -> luces
+        'es',
+        's',
+    ]
+
+    # Excepciones que NO deben reducirse
+    EXCEPTIONS = {
+        'bomba', 'motor', 'sello', 'filtro', 'valvula', 'sensor',
+        'cable', 'tubo', 'aceite', 'grasa', 'agua', 'aire',
+        'rodamiento', 'acople', 'brida', 'manguera', 'correa',
+        'tanque', 'bomba', 'compresor', 'reductor', 'generador',
+    }
+
+    # Mapping de irregulares (stem -> canonical)
+    IRREGULARS = {
+        'romp': 'rotura',
+        'rot': 'rotura',
+        'quebr': 'rotura',
+        'fug': 'fuga',
+        'perd': 'fuga',
+        'gote': 'fuga',
+        'desgast': 'desgaste',
+        'gast': 'desgaste',
+        'calienta': 'calentamiento',
+        'calent': 'calentamiento',
+        'vibr': 'vibracion',
+        'ruid': 'ruido',
+    }
+
+    def __init__(self):
+        # Precompilar sufijos ordenados por longitud (más largo primero)
+        all_suffixes = (
+            self.VERB_SUFFIXES +
+            self.NOUN_SUFFIXES +
+            self.ADJ_SUFFIXES +
+            self.PLURAL_SUFFIXES
+        )
+        self._suffixes = sorted(set(all_suffixes), key=len, reverse=True)
+
+    def stem(self, word: str) -> str:
+        """
+        Reduce una palabra a su raíz (stem).
+
+        Args:
+            word: Palabra en español (minúsculas)
+
+        Returns:
+            Raíz de la palabra
+        """
+        if not word or len(word) < 4:
+            return word
+
+        # No reducir excepciones conocidas
+        if word in self.EXCEPTIONS:
+            return word
+
+        # Intentar reducir sufijos
+        original = word
+        for suffix in self._suffixes:
+            if word.endswith(suffix) and len(word) - len(suffix) >= 3:
+                word = word[:-len(suffix)]
+                break
+
+        # Aplicar mapping de irregulares si existe
+        if word in self.IRREGULARS:
+            return self.IRREGULARS[word]
+
+        return word if word else original
+
+    def normalize_plural(self, word: str) -> str:
+        """Normaliza solo plurales sin afectar otros sufijos."""
+        if not word or len(word) < 3:
+            return word
+
+        # casos especiales: z -> ces
+        if word.endswith('ces') and len(word) > 4:
+            return word[:-3] + 'z'
+
+        if word.endswith('es') and len(word) > 3:
+            # motores -> motor, válvulas -> válvula
+            return word[:-2]
+
+        if word.endswith('s') and len(word) > 3:
+            return word[:-1]
+
+        return word
+
+
+# Instancia global del stemmer
+_stemmer = SpanishStemmer()
 
 # Stopwords en español para filtrar
 STOPWORDS = {
@@ -186,7 +325,14 @@ class NLPProcessor(BaseTool):
             text: Texto libre describiendo un problema
 
         Returns:
-            Diccionario con entidades extraídas
+            Diccionario con entidades extraídas:
+            - equipos: Lista de equipos detectados
+            - componentes: Lista de componentes detectados
+            - tipo_falla: Lista de tipos de falla
+            - keywords: Palabras clave adicionales
+            - dimensiones: Dimensiones técnicas (3/4", DN50, etc.)
+            - acronimos: Acrónimos detectados (SAP, ISO, etc.)
+            - search_queries: Queries generados para búsqueda
         """
         if not text:
             return {
@@ -194,6 +340,9 @@ class NLPProcessor(BaseTool):
                 "componentes": [],
                 "tipo_falla": [],
                 "keywords": [],
+                "dimensiones": [],
+                "acronimos": [],
+                "search_queries": [],
             }
 
         entities = self.extract_entities(text)
@@ -204,12 +353,19 @@ class NLPProcessor(BaseTool):
             "componentes": entities["componentes"],
             "tipo_falla": entities["tipo_falla"],
             "keywords": entities["keywords"],
+            "dimensiones": entities.get("dimensiones", []),
+            "acronimos": entities.get("acronimos", []),
             "search_queries": queries,
         }
 
     def extract_entities(self, text: str) -> Dict[str, List[str]]:
         """
         Extrae entidades del texto: equipo, componente, tipo_falla.
+
+        Mejoras v2.0:
+        - Usa stemming para normalizar variantes (bombas -> bomba)
+        - Extrae acrónimos técnicos (SAP, ISO, ANSI, API)
+        - Detecta dimensiones técnicas (3/4", DN50, 1/2 pulgada)
 
         Args:
             text: Texto en lenguaje natural
@@ -224,36 +380,81 @@ class NLPProcessor(BaseTool):
             "componentes": [],
             "tipo_falla": [],
             "keywords": [],
+            "dimensiones": [],
+            "acronimos": [],
         }
 
-        # Tokenizar y limpiar (permite caracteres con acentos)
+        # 1. Extraer acrónimos (mayúsculas de 2-5 caracteres)
+        acronyms = re.findall(r'\b[A-Z]{2,5}\b', text)
+        entities["acronimos"] = list(set(acronyms))
+
+        # 2. Extraer dimensiones técnicas
+        # Patrones: 3/4", 1/2 pulgada, DN50, 2", 25mm, M8, etc.
+        dimension_patterns = [
+            r'\d+/\d+"?',                    # 3/4", 1/2
+            r'\d+(?:\.\d+)?\s*(?:mm|cm|m|pulg|pulgada|inch|in)"?',  # 25mm, 2 pulg
+            r'DN\s*\d+',                     # DN50, DN 100
+            r'M\d+(?:x\d+)?',                # M8, M10x1.5
+            r'\d+(?:\.\d+)?(?:"|\')',        # 2", 1.5"
+            r'#\d+',                         # #8 (tornillos)
+            r'\d+\s*x\s*\d+(?:\s*x\s*\d+)?', # 10x20, 10x20x5
+        ]
+        for pattern in dimension_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            entities["dimensiones"].extend(matches)
+        entities["dimensiones"] = list(set(entities["dimensiones"]))
+
+        # 3. Tokenizar y limpiar (permite caracteres con acentos y números)
         words = re.findall(r"\b[a-záéíóúüñ]+\b", text_lower)
 
-        found_canonical: set = set()
+        found_canonical: Set[str] = set()
 
-        # Buscar matches con sinónimos
+        # 4. Buscar matches con sinónimos (usando stemming)
         for word in words:
+            # Normalizar con stemmer
+            word_stemmed = _stemmer.stem(word)
+            word_plural_norm = _stemmer.normalize_plural(word)
+
+            # Intentar match con word original, stemmed y plural normalizado
+            word_variants = {word, word_stemmed, word_plural_norm}
+
             for canonical, synonyms in self.synonyms.items():
-                if word == canonical or word in synonyms:
+                # También normalizar el canonical y sinónimos
+                synonyms_expanded = set(synonyms)
+                synonyms_expanded.add(canonical)
+                synonyms_expanded.add(_stemmer.normalize_plural(canonical))
+
+                # Verificar si alguna variante hace match
+                if word_variants & synonyms_expanded:
                     if canonical not in found_canonical:
                         found_canonical.add(canonical)
                         if canonical in self.equipment_terms:
                             entities["equipos"].append(canonical)
                         else:
                             entities["componentes"].append(canonical)
+                    break
 
-            # Buscar tipos de falla
+            # 5. Buscar tipos de falla (con stemming)
             for failure_type, patterns in self.failure_patterns.items():
-                if word in patterns and failure_type not in entities["tipo_falla"]:
-                    entities["tipo_falla"].append(failure_type)
+                patterns_expanded = set(patterns)
+                # Agregar stems de los patrones
+                for p in patterns:
+                    patterns_expanded.add(_stemmer.stem(p))
 
-        # Keywords adicionales (sustantivos no reconocidos, sin stopwords)
+                if word_variants & patterns_expanded:
+                    if failure_type not in entities["tipo_falla"]:
+                        entities["tipo_falla"].append(failure_type)
+                    break
+
+        # 6. Keywords adicionales (sustantivos no reconocidos, sin stopwords)
         keywords = []
         for w in words:
             if len(w) > 3 and w not in STOPWORDS and w not in found_canonical:
+                # Normalizar keyword
+                w_normalized = _stemmer.normalize_plural(w)
                 # Evitar duplicados
-                if w not in keywords:
-                    keywords.append(w)
+                if w_normalized not in keywords:
+                    keywords.append(w_normalized)
 
         entities["keywords"] = keywords[:10]  # Limitar a 10 keywords
 
@@ -326,7 +527,39 @@ class NLPProcessor(BaseTool):
                     "componentes": {"type": "array", "items": {"type": "string"}},
                     "tipo_falla": {"type": "array", "items": {"type": "string"}},
                     "keywords": {"type": "array", "items": {"type": "string"}},
+                    "dimensiones": {"type": "array", "items": {"type": "string"}},
+                    "acronimos": {"type": "array", "items": {"type": "string"}},
                     "search_queries": {"type": "array", "items": {"type": "string"}},
                 },
             },
         )
+
+
+# =============================================================================
+# Funciones de utilidad exportadas
+# =============================================================================
+
+def stem_spanish(word: str) -> str:
+    """
+    Reduce una palabra en español a su raíz.
+
+    Args:
+        word: Palabra en español
+
+    Returns:
+        Raíz (stem) de la palabra
+    """
+    return _stemmer.stem(word.lower())
+
+
+def normalize_plural_spanish(word: str) -> str:
+    """
+    Normaliza un plural en español a su forma singular.
+
+    Args:
+        word: Palabra posiblemente en plural
+
+    Returns:
+        Forma singular de la palabra
+    """
+    return _stemmer.normalize_plural(word.lower())

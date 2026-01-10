@@ -2,9 +2,20 @@
 Pipeline para predicción de demanda de materiales.
 
 Analiza histórico de solicitudes y predice demanda futura.
+
+NOTA: Esta clase está DEPRECADA. Use `DemandPredictor` de
+`backend.agent.pipelines.forecast` en su lugar, que ofrece:
+- Múltiples modelos (Random Forest, XGBoost, Prophet, ARIMA)
+- Features temporales avanzadas (cíclicos, lags, rolling)
+- Integración con datos de stock SAP
+- Backtesting y tuning automático
+
+Esta clase se mantiene por compatibilidad hacia atrás y
+delegará internamente a DemandPredictor.
 """
 
 import logging
+import warnings
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Tuple
 
@@ -34,12 +45,23 @@ class DemandForecastPipeline:
 
         Args:
             historical_window_days: Días de histórico para análisis
+
+        .. deprecated::
+            Use `DemandPredictor` from `backend.agent.pipelines.forecast` instead.
         """
+        warnings.warn(
+            "DemandForecastPipeline está deprecado. "
+            "Use DemandPredictor de backend.agent.pipelines.forecast en su lugar. "
+            "Ofrece múltiples modelos, features avanzadas e integración con SAP.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.historical_window_days = historical_window_days
         self.scaler = StandardScaler()
         self.model = None
         self.feature_names = []
         self.last_fit_date = None
+        self._predictor = None  # Lazy-loaded DemandPredictor
 
     def fit(self, solicitudes_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """

@@ -42,15 +42,30 @@ from . import (
 )
 
 # ============================================================================
-# Cache de Modelos ML con Persistencia en Disco
+# Cache de Modelos ML con Persistencia en Disco y TTL
 # ============================================================================
-_model_cache: Dict[str, 'DemandPredictor'] = {}
+_model_cache: Dict[str, Tuple['DemandPredictor', datetime]] = {}  # (predictor, timestamp)
 _cache_lock = threading.Lock()
 _cache_max_size = 20
+_cache_ttl_hours = 24 * 7  # TTL de 7 días por defecto
 
 # Directorio para persistir modelos en disco
 _MODELS_DIR = Path(__file__).parent.parent.parent.parent / "data" / "models"
 _MODELS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def set_cache_ttl(hours: int) -> None:
+    """Configura el TTL del cache en horas."""
+    global _cache_ttl_hours
+    _cache_ttl_hours = hours
+    logger.info(f"Cache TTL configurado a {hours} horas")
+
+
+def _is_cache_expired(timestamp: datetime, ttl_hours: int = None) -> bool:
+    """Verifica si un modelo en cache ha expirado."""
+    ttl = ttl_hours or _cache_ttl_hours
+    age = datetime.now() - timestamp
+    return age.total_seconds() > (ttl * 3600)
 
 
 def _compute_data_hash(df: pd.DataFrame, codigo: str = None) -> str:
@@ -68,30 +83,109 @@ def _get_model_path(cache_key: str) -> Path:
     return _MODELS_DIR / f"{cache_key}.joblib"
 
 
-def _load_from_disk(cache_key: str) -> Optional['DemandPredictor']:
-    """Intenta cargar un modelo desde disco"""
+def _load_from_disk(cache_key: str) -> Optional[Tuple['DemandPredictor', datetime]]:
+    """
+    Intenta cargar un modelo desde disco.
+
+    Returns:
+        Tuple (predictor, timestamp) o None si no existe o expiró
+    """
     model_path = _get_model_path(cache_key)
+    meta_path = _get_model_path(cache_key + "_meta")
+
     if model_path.exists():
         try:
             predictor = joblib.load(model_path)
-            logger.debug(f"Modelo cargado desde disco: {cache_key}")
-            return predictor
+
+            # Cargar timestamp
+            if meta_path.exists():
+                meta = joblib.load(meta_path)
+                timestamp = meta.get("created_at", datetime.now())
+            else:
+                # Usar fecha de modificación del archivo como fallback
+                timestamp = datetime.fromtimestamp(model_path.stat().st_mtime)
+
+            # Verificar TTL
+            if _is_cache_expired(timestamp):
+                logger.info(f"Modelo expirado, eliminando: {cache_key}")
+                model_path.unlink(missing_ok=True)
+                meta_path.unlink(missing_ok=True)
+                return None
+
+            logger.debug(f"Modelo cargado desde disco: {cache_key} (edad: {datetime.now() - timestamp})")
+            return predictor, timestamp
+
         except Exception as e:
             logger.warning(f"Error cargando modelo desde disco: {e}")
             model_path.unlink(missing_ok=True)
+            meta_path.unlink(missing_ok=True)
+
     return None
 
 
 def _save_to_disk(cache_key: str, predictor: 'DemandPredictor') -> bool:
-    """Guarda un modelo en disco"""
+    """Guarda un modelo en disco con metadata de timestamp."""
     try:
         model_path = _get_model_path(cache_key)
+        meta_path = _get_model_path(cache_key + "_meta")
+
+        # Guardar modelo
         joblib.dump(predictor, model_path, compress=3)
+
+        # Guardar metadata con timestamp
+        meta = {
+            "created_at": datetime.now(),
+            "modelo_tipo": getattr(predictor, 'modelo_tipo', 'unknown'),
+            "is_trained": getattr(predictor, 'is_trained', False),
+        }
+        joblib.dump(meta, meta_path)
+
         logger.debug(f"Modelo guardado en disco: {cache_key}")
         return True
     except Exception as e:
         logger.warning(f"Error guardando modelo en disco: {e}")
         return False
+
+
+def cleanup_expired_models() -> int:
+    """
+    Limpia modelos expirados del disco.
+
+    Returns:
+        Número de modelos eliminados
+    """
+    deleted = 0
+    try:
+        for model_file in _MODELS_DIR.glob("*.joblib"):
+            if model_file.name.endswith("_meta.joblib"):
+                continue
+
+            cache_key = model_file.stem
+            meta_path = _MODELS_DIR / f"{cache_key}_meta.joblib"
+
+            try:
+                if meta_path.exists():
+                    meta = joblib.load(meta_path)
+                    timestamp = meta.get("created_at", datetime.now())
+                else:
+                    timestamp = datetime.fromtimestamp(model_file.stat().st_mtime)
+
+                if _is_cache_expired(timestamp):
+                    model_file.unlink(missing_ok=True)
+                    meta_path.unlink(missing_ok=True)
+                    deleted += 1
+                    logger.debug(f"Modelo expirado eliminado: {cache_key}")
+
+            except Exception as e:
+                logger.warning(f"Error verificando modelo {cache_key}: {e}")
+
+    except Exception as e:
+        logger.error(f"Error en cleanup de modelos: {e}")
+
+    if deleted > 0:
+        logger.info(f"Limpiados {deleted} modelos expirados")
+
+    return deleted
 
 
 def get_cached_predictor(
@@ -101,23 +195,47 @@ def get_cached_predictor(
 ) -> Tuple['DemandPredictor', bool]:
     """
     Obtiene predictor desde cache (memoria o disco) o crea uno nuevo.
+
+    El cache tiene TTL configurable (por defecto 7 días).
+    Los modelos expirados se eliminan automáticamente.
+
+    Args:
+        df: DataFrame con datos históricos
+        codigo: Código del material (para cache key)
+        modelo_tipo: Tipo de modelo a usar
+
+    Returns:
+        Tuple (predictor, from_cache)
     """
     cache_key = f"{modelo_tipo}_{_compute_data_hash(df, codigo)}"
 
+    # 1. Buscar en cache de memoria
     with _cache_lock:
         if cache_key in _model_cache:
-            logger.debug(f"Cache memoria hit: {cache_key}")
-            return _model_cache[cache_key], True
+            predictor, timestamp = _model_cache[cache_key]
+            # Verificar TTL
+            if not _is_cache_expired(timestamp):
+                logger.debug(f"Cache memoria hit: {cache_key}")
+                return predictor, True
+            else:
+                # Expirado, eliminar
+                del _model_cache[cache_key]
+                logger.debug(f"Cache memoria expirado: {cache_key}")
 
-    predictor = _load_from_disk(cache_key)
-    if predictor is not None:
+    # 2. Buscar en disco
+    disk_result = _load_from_disk(cache_key)
+    if disk_result is not None:
+        predictor, timestamp = disk_result
         with _cache_lock:
+            # Limpiar cache si está lleno
             if len(_model_cache) >= _cache_max_size:
-                oldest_key = next(iter(_model_cache))
+                # Eliminar el más antiguo
+                oldest_key = min(_model_cache.keys(), key=lambda k: _model_cache[k][1])
                 del _model_cache[oldest_key]
-            _model_cache[cache_key] = predictor
+            _model_cache[cache_key] = (predictor, timestamp)
         return predictor, True
 
+    # 3. Crear nuevo predictor
     predictor = DemandPredictor(modelo=modelo_tipo)
 
     if df is None or len(df) == 0:
@@ -129,9 +247,9 @@ def get_cached_predictor(
 
         with _cache_lock:
             if len(_model_cache) >= _cache_max_size:
-                oldest_key = next(iter(_model_cache))
+                oldest_key = min(_model_cache.keys(), key=lambda k: _model_cache[k][1])
                 del _model_cache[oldest_key]
-            _model_cache[cache_key] = predictor
+            _model_cache[cache_key] = (predictor, datetime.now())
 
     except Exception as e:
         logger.error(f"Error entrenando predictor: {e}")
@@ -154,6 +272,79 @@ def clear_model_cache(clear_disk: bool = False):
             logger.warning(f"Error limpiando cache de disco: {e}")
 
     logger.debug("Cache de modelos en memoria limpiado")
+
+
+def get_predictor_with_stock(
+    df: pd.DataFrame,
+    material_codigo: str,
+    modelo_tipo: str = "random_forest",
+    stock_actual: float = None,
+    lead_time_dias: int = 14,
+) -> Tuple['DemandPredictor', Dict[str, Any]]:
+    """
+    Obtiene predictor con features de stock integrados.
+
+    Esta función extiende get_cached_predictor agregando:
+    - Carga automática de stock desde SAP si no se proporciona
+    - Features de ratio_stock_demanda, dias_cobertura, urgencia
+    - Métricas de stock junto con las predicciones
+
+    Args:
+        df: DataFrame con datos históricos ['fecha', 'cantidad']
+        material_codigo: Código del material
+        modelo_tipo: Tipo de modelo a usar
+        stock_actual: Stock actual (si None, se carga de SAP)
+        lead_time_dias: Tiempo de entrega en días
+
+    Returns:
+        Tuple[DemandPredictor, Dict] con:
+        - predictor: Modelo entrenado
+        - stock_info: Info de stock incluyendo:
+            - stock_total, ratio_stock_demanda, dias_cobertura, urgencia
+    """
+    stock_info = {
+        "material": material_codigo,
+        "stock_total": 0.0,
+        "demanda_promedio_diaria": 0.0,
+        "ratio_stock_demanda": None,
+        "dias_cobertura": None,
+        "urgencia": 3,  # Crítico por defecto si no hay datos
+        "lead_time": lead_time_dias,
+    }
+
+    # Cargar stock desde SAP si no se proporciona
+    if stock_actual is None:
+        try:
+            from backend.agent.tools.data_loader import DataLoader
+            loader = DataLoader()
+            stock_data = loader.get_stock_for_material(material_codigo)
+            stock_actual = stock_data.get("stock_total", 0.0)
+            stock_info.update({
+                "stock_total": stock_actual,
+                "demanda_promedio_diaria": stock_data.get("demanda_promedio_diaria", 0.0),
+                "ratio_stock_demanda": stock_data.get("ratio_stock_demanda"),
+                "dias_cobertura": stock_data.get("dias_cobertura"),
+                "stock_por_centro": stock_data.get("stock_por_centro", []),
+            })
+        except Exception as e:
+            logger.warning(f"No se pudo cargar stock para {material_codigo}: {e}")
+            stock_actual = 0.0
+
+    # Calcular urgencia basada en cobertura
+    dias_cobertura = stock_info.get("dias_cobertura") or 0
+    if dias_cobertura >= lead_time_dias * 2:
+        stock_info["urgencia"] = 0  # Stock suficiente
+    elif dias_cobertura >= lead_time_dias:
+        stock_info["urgencia"] = 1  # Stock justo
+    elif dias_cobertura >= lead_time_dias * 0.5:
+        stock_info["urgencia"] = 2  # Stock bajo
+    else:
+        stock_info["urgencia"] = 3  # Crítico
+
+    # Obtener o crear predictor
+    predictor, from_cache = get_cached_predictor(df, material_codigo, modelo_tipo)
+
+    return predictor, stock_info
 
 
 class DemandPredictor:

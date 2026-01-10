@@ -2,16 +2,21 @@
 Herramienta para cargar datos del sistema SPM.
 
 Carga solicitudes, materiales, stock, presupuestos desde BD.
+Integración con datos SAP (stock, consumo histórico, pedidos).
 """
 
 import logging
 import sqlite3
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from .base import BaseTool, ToolError, ToolMetadata
 
 logger = logging.getLogger(__name__)
+
+# Rutas a bases de datos SAP
+SAP_DATA_DB = Path("data/sap_data.db")
+CATALOGO_MATERIALES_DB = Path("data/catalogo_materiales.db")
 
 
 class DataLoader(BaseTool):
@@ -51,7 +56,13 @@ class DataLoader(BaseTool):
         Carga datos según el tipo especificado.
 
         Args:
-            data_type: Tipo de datos ('solicitudes', 'materiales', 'stock', 'presupuestos')
+            data_type: Tipo de datos:
+                - 'solicitudes': Solicitudes de materiales
+                - 'materiales': Catálogo de materiales
+                - 'stock': Stock actual desde SAP (sap_data.db)
+                - 'consumo_historico': Historial de consumo SAP
+                - 'presupuestos': Presupuestos por centro/sector
+                - 'catalogs': Catálogos (centros, sectores, almacenes)
             filters: Filtros a aplicar (ej: {"estado": "aprobada"})
             limit: Límite de registros
 
@@ -66,6 +77,8 @@ class DataLoader(BaseTool):
             return self._load_materiales(filters, limit)
         elif data_type == "stock":
             return self._load_stock(filters, limit)
+        elif data_type == "consumo_historico":
+            return self._load_consumo_historico(filters, limit)
         elif data_type == "presupuestos":
             return self._load_presupuestos(filters)
         elif data_type == "catalogs":
@@ -155,16 +168,244 @@ class DataLoader(BaseTool):
             raise ToolError(f"No se pudieron cargar materiales: {e}")
 
     def _load_stock(self, filters: Dict[str, Any], limit: int) -> Dict[str, Any]:
-        """Carga datos de stock (desde Excel o tabla en BD)."""
-        # Nota: Implementación simplificada
-        # En producción, conectaría con sistema de stock real
+        """
+        Carga datos de stock desde sap_data.db.
 
-        return {
-            "data_type": "stock",
-            "count": 0,
-            "data": [],
-            "note": "Stock loader no implementado",
+        Filtros soportados:
+            - material: código de material (exacto o parcial con %)
+            - centro: código de centro
+            - almacen: código de almacén
+            - min_stock: stock mínimo (para filtrar items sin stock)
+
+        Returns:
+            Dict con datos de stock incluyendo:
+            - material, descripcion, stock, precio, centro, almacen
+        """
+        if not SAP_DATA_DB.exists():
+            logger.warning(f"BD SAP no encontrada: {SAP_DATA_DB}")
+            return {
+                "data_type": "stock",
+                "count": 0,
+                "data": [],
+                "error": f"BD SAP no encontrada: {SAP_DATA_DB}",
+            }
+
+        try:
+            conn = sqlite3.connect(SAP_DATA_DB)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            query = """
+                SELECT
+                    material,
+                    material_descripcion as descripcion,
+                    stock,
+                    precio,
+                    stock_valorizado,
+                    um as unidad_medida,
+                    centro,
+                    centro_descripcion,
+                    almacen,
+                    regional,
+                    critico,
+                    dia as fecha_actualizacion
+                FROM stock
+                WHERE 1=1
+            """
+            params: List[Any] = []
+
+            # Filtro por material (exacto o parcial)
+            if "material" in filters:
+                material = filters["material"]
+                if "%" in material:
+                    query += " AND material LIKE ?"
+                else:
+                    query += " AND material = ?"
+                params.append(material)
+
+            # Filtro por centro
+            if "centro" in filters:
+                query += " AND centro = ?"
+                params.append(filters["centro"])
+
+            # Filtro por almacén
+            if "almacen" in filters:
+                query += " AND almacen = ?"
+                params.append(filters["almacen"])
+
+            # Filtro por stock mínimo
+            if "min_stock" in filters:
+                query += " AND stock >= ?"
+                params.append(filters["min_stock"])
+
+            # Solo items con stock > 0 por defecto
+            if filters.get("include_zero_stock", False) is False:
+                query += " AND stock > 0"
+
+            query += f" ORDER BY stock DESC LIMIT {limit}"
+
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            conn.close()
+
+            stock_data = [dict(row) for row in rows]
+
+            return {
+                "data_type": "stock",
+                "count": len(stock_data),
+                "data": stock_data,
+                "filters_applied": filters,
+                "source": "sap_data.db",
+            }
+
+        except Exception as e:
+            logger.error(f"Error cargando stock: {e}")
+            return {
+                "data_type": "stock",
+                "count": 0,
+                "data": [],
+                "error": str(e),
+            }
+
+    def _load_consumo_historico(
+        self, filters: Dict[str, Any], limit: int
+    ) -> Dict[str, Any]:
+        """
+        Carga historial de consumo desde sap_data.db.
+
+        Filtros soportados:
+            - material: código de material
+            - centro: código de centro
+            - fecha_desde: fecha mínima (YYYY-MM-DD)
+            - fecha_hasta: fecha máxima (YYYY-MM-DD)
+
+        Returns:
+            Dict con datos de consumo histórico
+        """
+        if not SAP_DATA_DB.exists():
+            logger.warning(f"BD SAP no encontrada: {SAP_DATA_DB}")
+            return {
+                "data_type": "consumo_historico",
+                "count": 0,
+                "data": [],
+                "error": f"BD SAP no encontrada: {SAP_DATA_DB}",
+            }
+
+        try:
+            conn = sqlite3.connect(SAP_DATA_DB)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            query = """
+                SELECT
+                    fecha,
+                    material,
+                    descripcion,
+                    cantidad,
+                    centro,
+                    almacen
+                FROM consumo_historico
+                WHERE 1=1
+            """
+            params: List[Any] = []
+
+            if "material" in filters:
+                query += " AND material = ?"
+                params.append(filters["material"])
+
+            if "centro" in filters:
+                query += " AND centro = ?"
+                params.append(filters["centro"])
+
+            if "fecha_desde" in filters:
+                query += " AND fecha >= ?"
+                params.append(filters["fecha_desde"])
+
+            if "fecha_hasta" in filters:
+                query += " AND fecha <= ?"
+                params.append(filters["fecha_hasta"])
+
+            query += f" ORDER BY fecha DESC LIMIT {limit}"
+
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            conn.close()
+
+            consumo_data = [dict(row) for row in rows]
+
+            return {
+                "data_type": "consumo_historico",
+                "count": len(consumo_data),
+                "data": consumo_data,
+                "filters_applied": filters,
+                "source": "sap_data.db",
+            }
+
+        except Exception as e:
+            logger.error(f"Error cargando consumo histórico: {e}")
+            return {
+                "data_type": "consumo_historico",
+                "count": 0,
+                "data": [],
+                "error": str(e),
+            }
+
+    def get_stock_for_material(self, material_codigo: str) -> Dict[str, Any]:
+        """
+        Obtiene stock actual y métricas para un material específico.
+
+        Args:
+            material_codigo: Código del material
+
+        Returns:
+            Dict con:
+            - stock_total: suma de stock en todos los centros
+            - stock_por_centro: desglose por centro
+            - demanda_promedio: promedio de consumo diario (si hay histórico)
+            - ratio_stock_demanda: stock_total / demanda_promedio
+            - dias_cobertura: días que cubre el stock actual
+        """
+        result = {
+            "material": material_codigo,
+            "stock_total": 0.0,
+            "stock_por_centro": [],
+            "demanda_promedio_diaria": 0.0,
+            "ratio_stock_demanda": None,
+            "dias_cobertura": None,
         }
+
+        # Cargar stock
+        stock_data = self._load_stock({"material": material_codigo}, limit=100)
+        if stock_data["data"]:
+            result["stock_total"] = sum(item["stock"] for item in stock_data["data"])
+            result["stock_por_centro"] = [
+                {
+                    "centro": item["centro"],
+                    "almacen": item.get("almacen"),
+                    "stock": item["stock"],
+                    "precio": item.get("precio"),
+                }
+                for item in stock_data["data"]
+            ]
+
+        # Cargar consumo histórico
+        consumo_data = self._load_consumo_historico(
+            {"material": material_codigo}, limit=365
+        )
+        if consumo_data["data"]:
+            total_consumo = sum(item["cantidad"] for item in consumo_data["data"])
+            dias_con_datos = len(set(item["fecha"] for item in consumo_data["data"]))
+
+            if dias_con_datos > 0:
+                result["demanda_promedio_diaria"] = total_consumo / dias_con_datos
+
+                if result["demanda_promedio_diaria"] > 0:
+                    result["ratio_stock_demanda"] = (
+                        result["stock_total"] / result["demanda_promedio_diaria"]
+                    )
+                    result["dias_cobertura"] = result["ratio_stock_demanda"]
+
+        return result
 
     def _load_presupuestos(self, filters: Dict[str, Any]) -> Dict[str, Any]:
         """Carga presupuestos por centro/sector."""
@@ -233,8 +474,18 @@ class DataLoader(BaseTool):
                 "properties": {
                     "data_type": {
                         "type": "string",
-                        "enum": ["solicitudes", "materiales", "stock", "presupuestos", "catalogs"],
-                        "description": "Tipo de datos a cargar",
+                        "enum": [
+                            "solicitudes",
+                            "materiales",
+                            "stock",
+                            "consumo_historico",
+                            "presupuestos",
+                            "catalogs",
+                        ],
+                        "description": (
+                            "Tipo de datos a cargar. 'stock' y 'consumo_historico' "
+                            "provienen de sap_data.db"
+                        ),
                     },
                     "filters": {"type": "object", "description": "Filtros a aplicar"},
                     "limit": {
@@ -251,6 +502,7 @@ class DataLoader(BaseTool):
                     "data_type": {"type": "string"},
                     "count": {"type": "integer"},
                     "data": {"type": "array"},
+                    "source": {"type": "string"},
                 },
             },
         )

@@ -160,6 +160,69 @@ class ForecastStrategy(ABC):
 
         return df
 
+    def _agregar_features_stock(
+        self,
+        df: pd.DataFrame,
+        stock_actual: float = 0.0,
+        lead_time_dias: int = 14,
+    ) -> pd.DataFrame:
+        """
+        Agrega features relacionados con stock y lead time.
+
+        Args:
+            df: DataFrame con datos de demanda
+            stock_actual: Stock actual del material
+            lead_time_dias: Tiempo de entrega en días
+
+        Returns:
+            DataFrame con features adicionales:
+            - ratio_stock_demanda: stock_actual / demanda_promedio
+            - dias_cobertura: días que cubre el stock actual
+            - stock_suficiente: 1 si stock cubre lead_time, 0 si no
+            - urgencia: nivel de urgencia basado en cobertura
+        """
+        df = df.copy()
+
+        # Calcular demanda promedio diaria
+        demanda_promedio = df['cantidad'].mean() if len(df) > 0 else 0.0
+        demanda_std = df['cantidad'].std() if len(df) > 1 else 0.0
+
+        # Ratio stock/demanda (feature clave para predicción)
+        if demanda_promedio > 0:
+            ratio_stock_demanda = stock_actual / demanda_promedio
+            dias_cobertura = ratio_stock_demanda
+        else:
+            ratio_stock_demanda = float('inf') if stock_actual > 0 else 0.0
+            dias_cobertura = 365.0 if stock_actual > 0 else 0.0
+
+        # Coeficiente de variación (volatilidad de demanda)
+        cv = demanda_std / demanda_promedio if demanda_promedio > 0 else 0.0
+
+        # Features constantes para todo el dataset
+        df['stock_actual'] = stock_actual
+        df['demanda_promedio'] = demanda_promedio
+        df['ratio_stock_demanda'] = min(ratio_stock_demanda, 365.0)  # Cap a 1 año
+        df['dias_cobertura'] = min(dias_cobertura, 365.0)
+        df['coef_variacion'] = cv
+        df['lead_time'] = lead_time_dias
+
+        # Stock suficiente para cubrir lead time
+        df['stock_suficiente'] = 1 if dias_cobertura >= lead_time_dias else 0
+
+        # Nivel de urgencia (0=bajo, 1=medio, 2=alto, 3=crítico)
+        if dias_cobertura >= lead_time_dias * 2:
+            urgencia = 0  # Stock suficiente
+        elif dias_cobertura >= lead_time_dias:
+            urgencia = 1  # Stock justo
+        elif dias_cobertura >= lead_time_dias * 0.5:
+            urgencia = 2  # Stock bajo
+        else:
+            urgencia = 3  # Crítico
+
+        df['urgencia'] = urgencia
+
+        return df
+
     def _calcular_metricas(
         self,
         y_true: np.ndarray,

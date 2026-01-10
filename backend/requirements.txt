@@ -55,3 +55,11 @@ xgboost>=2.0.0
 statsmodels>=0.14.0
 pmdarima>=2.0.0
 # prophet>=1.1.0  # Comentado: requiere instalación especial en Windows
+
+# RAG / Búsqueda Semántica (opcionales)
+sentence-transformers>=2.2.0
+chromadb>=0.4.0
+
+# LLM Providers (opcionales - para RAG completo)
+# openai>=1.0.0        # Para GPT-4/GPT-3.5
+# anthropic>=0.18.0    # Para Claude
