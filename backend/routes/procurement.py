@@ -25,6 +25,7 @@ from flask import Blueprint, g, jsonify, request
 
 from backend.core.db import get_db_connection
 from backend.core.roles import require_auth, require_role
+from backend.routes.database import is_postgres
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,20 @@ def _row_to_dict(row) -> Dict[str, Any]:
     if hasattr(row, 'keys'):
         return dict(row)
     return {}
+
+
+def _date_diff_sql(col1: str, col2: str) -> str:
+    """Genera SQL para diferencia de fechas compatible con PG y SQLite."""
+    if is_postgres():
+        return f"({col1} - {col2})"
+    return f"julianday({col1}) - julianday({col2})"
+
+
+def _round_avg_sql(expression: str, decimals: int = 1) -> str:
+    """Genera SQL para ROUND(AVG(...)) compatible con PG y SQLite."""
+    if is_postgres():
+        return f"ROUND(AVG({expression})::numeric, {decimals})"
+    return f"ROUND(AVG({expression}), {decimals})"
 
 
 # =============================================================================
@@ -488,17 +503,22 @@ def get_lead_times():
             'centro': "s.centro as id, s.centro as nombre"
         }.get(group_by, "p.proveedor_nombre as nombre, p.proveedor_cuit as id")
 
+        # SQL compatible con PostgreSQL y SQLite
+        lead_time_diff = _date_diff_sql('p.fecha_recepcion', 's.fecha_creacion')
+        aprobacion_diff = _date_diff_sql('p.fecha_pedido', 's.fecha_creacion')
+        entrega_diff = _date_diff_sql('p.fecha_recepcion', 'p.fecha_pedido')
+
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(f"""
                 SELECT
                     {select_field},
                     COUNT(*) as total_entregas,
-                    ROUND(AVG((p.fecha_recepcion - s.fecha_creacion)::numeric), 1) as lead_time_promedio,
-                    MIN(p.fecha_recepcion - s.fecha_creacion) as lead_time_min,
-                    MAX(p.fecha_recepcion - s.fecha_creacion) as lead_time_max,
-                    ROUND(AVG((p.fecha_pedido - s.fecha_creacion)::numeric), 1) as tiempo_aprobacion,
-                    ROUND(AVG((p.fecha_recepcion - p.fecha_pedido)::numeric), 1) as tiempo_entrega
+                    {_round_avg_sql(lead_time_diff)} as lead_time_promedio,
+                    MIN({lead_time_diff}) as lead_time_min,
+                    MAX({lead_time_diff}) as lead_time_max,
+                    {_round_avg_sql(aprobacion_diff)} as tiempo_aprobacion,
+                    {_round_avg_sql(entrega_diff)} as tiempo_entrega
                 FROM sap_solpeds s
                 INNER JOIN sap_purchase_orders p
                     ON s.solped_id = p.solped_id AND s.posicion = p.solped_posicion
@@ -749,23 +769,24 @@ def get_procurement_analytics():
             """)
             orders_stats = cur.fetchone()
 
-            # 2. Lead times
-            cur.execute("""
+            # 2. Lead times (SQL compatible con PG y SQLite)
+            date_diff = _date_diff_sql('fecha_recepcion', 'fecha_creacion')
+            cur.execute(f"""
                 SELECT
-                    ROUND(AVG((fecha_recepcion - fecha_creacion)::numeric), 1) as promedio,
-                    MIN(fecha_recepcion - fecha_creacion) as minimo,
-                    MAX(fecha_recepcion - fecha_creacion) as maximo
+                    {_round_avg_sql(date_diff)} as promedio,
+                    MIN({date_diff}) as minimo,
+                    MAX({date_diff}) as maximo
                 FROM v_sap_lead_times
             """)
             lead_times = cur.fetchone()
 
-            # 3. Cumplimiento OTIF
-            cur.execute("""
+            # 3. Cumplimiento OTIF (SQL compatible con PG y SQLite)
+            cur.execute(f"""
                 SELECT
                     COUNT(*) as total,
-                    ROUND(AVG(pct_a_tiempo)::numeric, 1) as avg_a_tiempo,
-                    ROUND(AVG(pct_completas)::numeric, 1) as avg_completas,
-                    ROUND(AVG(pct_otif)::numeric, 1) as avg_otif
+                    {_round_avg_sql('pct_a_tiempo')} as avg_a_tiempo,
+                    {_round_avg_sql('pct_completas')} as avg_completas,
+                    {_round_avg_sql('pct_otif')} as avg_otif
                 FROM v_sap_cumplimiento
             """)
             cumplimiento = cur.fetchone()
@@ -788,12 +809,12 @@ def get_procurement_analytics():
             """)
             top_proveedores = cur.fetchall()
 
-            # 6. Top 5 proveedores por lead time (mas rapidos)
-            cur.execute("""
+            # 6. Top 5 proveedores por lead time (mas rapidos, SQL compatible)
+            cur.execute(f"""
                 SELECT
                     proveedor_nombre,
                     COUNT(*) as entregas,
-                    ROUND(AVG((fecha_recepcion - fecha_creacion)::numeric), 1) as lead_time_promedio
+                    {_round_avg_sql(date_diff)} as lead_time_promedio
                 FROM v_sap_lead_times
                 WHERE proveedor_nombre IS NOT NULL
                 GROUP BY proveedor_nombre
