@@ -578,7 +578,7 @@ def get_costs():
 
 @procurement_bp.route('/import', methods=['POST'])
 @require_auth
-@require_role('Admin', 'Administrador', 'Planificador')
+@require_role(['Admin', 'Administrador', 'Planificador'])
 def import_zm65():
     """
     Importar archivo ZM65.xlsx
