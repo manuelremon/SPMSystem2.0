@@ -225,21 +225,26 @@ class ReactAgent:
             raise ValueError(f"Herramienta no registrada: {tool_name}")
 
         try:
+            logger.debug(f"Executing tool {tool_name} with params: {tool_params}")
             tool_result = self._execute_tool(tool_name, tool_params)
             self.memory.remember_action(tool_name, tool_params)
             self.memory.remember_result(tool_result.result, tool_result.success)
 
-            # Log de ejecución exitosa
-            self.execution_log.append(
-                {
-                    "iteration": self.iterations,
-                    "observation": observation,
-                    "thought": thought,
-                    "tool": tool_name,
-                    "result": tool_result.result,
-                    "success": tool_result.success,
-                }
-            )
+            # Log de ejecución (incluye error si existe)
+            log_entry = {
+                "iteration": self.iterations,
+                "observation": observation,
+                "thought": thought,
+                "tool": tool_name,
+                "params": tool_params,
+                "result": tool_result.result,
+                "success": tool_result.success,
+            }
+            if tool_result.error:
+                log_entry["error"] = tool_result.error
+                logger.warning(f"Tool {tool_name} failed: {tool_result.error}")
+
+            self.execution_log.append(log_entry)
 
         except Exception as e:
             logger.error(f"Error ejecutando herramienta {tool_name}: {e}")

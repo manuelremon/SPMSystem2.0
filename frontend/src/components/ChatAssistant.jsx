@@ -99,14 +99,15 @@ export default function ChatAssistant() {
       )
 
       // Procesar respuesta del agente
-      // Agent returns: { success, iterations_used, execution_log: [{result, ...}], summary, observations }
+      // Agent returns: { success, iterations_used, execution_log: [{result, params, error, ...}], summary, observations }
       if (agentResponse.success) {
         let botMessage = ''
 
         // Extract result from execution_log (last successful tool execution)
         const executionLog = agentResponse.execution_log || []
-        const lastExecution = executionLog.filter(e => e.success && e.result).pop()
-        const result = lastExecution?.result
+        const successfulExecution = executionLog.filter(e => e.success && e.result).pop()
+        const failedExecution = executionLog.filter(e => !e.success).pop()
+        const result = successfulExecution?.result
 
         if (result && typeof result === 'object') {
           // Format result based on data_type
@@ -143,6 +144,9 @@ export default function ChatAssistant() {
           } else {
             botMessage = JSON.stringify(result, null, 2).substring(0, 300)
           }
+        } else if (failedExecution?.error) {
+          // Check for errors in failed executions
+          botMessage = `Error en la consulta: ${failedExecution.error}`
         }
 
         // Fallback to summary or iteration count
