@@ -47,7 +47,20 @@ export const priorizarSolicitudes = async ({ estado = 'submitted', centro, limit
   const response = await api.get('/ai/solicitudes/priorizar', {
     params: { estado, centro, limit }
   })
-  return response.data?.data || []
+  // Backend returns {solicitudes_rankeadas: [...], total_solicitudes: N, ...}
+  // Extract the array and transform to match frontend expectations
+  const data = response.data?.data
+  const items = data?.solicitudes_rankeadas || []
+  // Map backend fields to frontend expectations
+  return items.map(item => ({
+    id: item.solicitud_id || item.id,
+    criticidad: item.criticidad || item.priority_level,
+    score: item.total_score ?? item.score,
+    scores: item.scores,
+    rank: item.rank,
+    razon: item.razon,
+    recomendacion: item.recomendacion
+  }))
 }
 
 /**
