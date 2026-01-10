@@ -167,7 +167,41 @@ ANÁLISIS DE OBJETIVO:
 
         # Parámetros por defecto según herramienta
         if tool == "load_data":
-            params = {"source": context.get("data_source", "default")}
+            # Map context.action to data_type for DataLoader
+            action = context.get("action", "")
+            data_type = "solicitudes"  # default
+
+            if action == "load_solicitudes" or "solicitud" in action:
+                data_type = "solicitudes"
+            elif action == "load_materiales" or "material" in action:
+                data_type = "materiales"
+            elif action == "load_presupuestos" or "presupuesto" in action:
+                data_type = "presupuestos"
+            elif action == "load_stock" or "stock" in action:
+                data_type = "stock"
+            elif action == "load_consumo" or "consumo" in action:
+                data_type = "consumo_historico"
+            elif action == "load_catalogs" or "catalog" in action:
+                data_type = "catalogs"
+
+            # Build filters from context
+            filters = {}
+            if context.get("solicitudId"):
+                filters["id"] = context.get("solicitudId")
+            if context.get("usuario_id"):
+                filters["usuario_id"] = context.get("usuario_id")
+            if context.get("estado"):
+                filters["estado"] = context.get("estado")
+            if context.get("centro"):
+                filters["centro"] = context.get("centro")
+            if context.get("search"):
+                filters["search"] = context.get("search")
+
+            params = {
+                "data_type": data_type,
+                "filters": filters if filters else None,
+                "limit": context.get("limit", 100),
+            }
         elif tool == "train_model":
             params = {
                 "model_type": context.get("model_type", "random_forest"),

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send, X, Loader2 } from './ui/Icons'
 import { useChatStore } from '../store/chatStore'
+import { useAuthStore } from '../store/authStore'
 import agentService from '../services/agent'
 import { Button } from './ui/Button'
 
@@ -13,7 +14,7 @@ export default function ChatAssistant() {
   const [inputValue, setInputValue] = useState('')
   const [isSending, setIsSending] = useState(false)
 
-  // Zustand store
+  // Zustand stores
   const {
     messages,
     isOpen,
@@ -28,6 +29,8 @@ export default function ChatAssistant() {
     getContext
   } = useChatStore()
 
+  const { user } = useAuthStore()
+
   // Auto scroll a los últimos mensajes
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -40,6 +43,12 @@ export default function ChatAssistant() {
     const lowerInput = userInput.toLowerCase()
     let agentGoal = userInput
     let context = getContext()
+
+    // Enrich context with user data
+    if (user) {
+      context.usuario_id = user.id
+      context.centro = user.centro || context.centro
+    }
 
     // Mapear consultas comunes a objetivos del agente
     if (lowerInput.includes('solicitud') || lowerInput.includes('mis solicitud')) {
