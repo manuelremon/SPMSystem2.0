@@ -132,6 +132,13 @@ def migrate_solicitudes_sla_columns(cur):
     """Agrega columnas SLA a la tabla solicitudes."""
     print("Agregando columnas SLA a solicitudes...")
 
+    # Verificar columnas existentes primero
+    cur.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'solicitudes' AND column_name LIKE 'sla_%%'
+    """)
+    existing_sla_cols = {row['column_name'] for row in cur.fetchall()}
+
     columns_to_add = [
         ("sla_fecha_limite", "TEXT"),
         ("sla_estado", "TEXT DEFAULT 'on_time'"),
@@ -139,14 +146,11 @@ def migrate_solicitudes_sla_columns(cur):
     ]
 
     for col_name, col_type in columns_to_add:
-        try:
+        if col_name in existing_sla_cols:
+            print(f"  Columna {col_name} ya existe")
+        else:
             cur.execute(f"ALTER TABLE solicitudes ADD COLUMN {col_name} {col_type}")
             print(f"  Agregada columna: {col_name}")
-        except Exception as e:
-            if "already exists" in str(e).lower() or "duplicate column" in str(e).lower():
-                print(f"  Columna {col_name} ya existe")
-            else:
-                raise
 
     print("  Columnas SLA agregadas a solicitudes")
 
