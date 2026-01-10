@@ -99,10 +99,16 @@ def migrate_sla_alertas(cur):
             print(f"  Agregando columna: {col}")
             cur.execute(sql)
 
-    # Renombrar columnas si existen con nombres diferentes
-    if 'tipo_alerta' in existing_columns and 'tipo' not in existing_columns:
-        print("  Renombrando tipo_alerta -> tipo")
-        cur.execute("ALTER TABLE sla_alertas RENAME COLUMN tipo_alerta TO tipo")
+    # Copiar datos de tipo_alerta a tipo si ambas existen
+    cur.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'sla_alertas'
+    """)
+    current_columns = {row['column_name'] for row in cur.fetchall()}
+
+    if 'tipo_alerta' in current_columns and 'tipo' in current_columns:
+        print("  Copiando datos de tipo_alerta a tipo")
+        cur.execute("UPDATE sla_alertas SET tipo = tipo_alerta WHERE tipo IS NULL")
 
     if 'resuelta' in existing_columns:
         # Migrar datos de resuelta (boolean) a estado (text)
