@@ -6,6 +6,7 @@ Protegido: requiere rol admin (token access)
 import logging
 import sys
 
+import bcrypt
 from flask import Blueprint, g, jsonify, request
 
 logger = logging.getLogger(__name__)
@@ -264,6 +265,11 @@ def admin_usuarios():
         if not all(data.get(k) for k in required):
             return jsonify({"ok": False, "error": "Faltan campos obligatorios"}), 400
 
+        # Hash de la contraseña con bcrypt antes de guardar
+        password_hash = bcrypt.hashpw(
+            data["contrasena"].encode("utf-8"), bcrypt.gensalt()
+        ).decode("utf-8")
+
         with get_db_transaction() as conn:
             cur = conn.cursor()
             cur.execute(
@@ -274,7 +280,7 @@ def admin_usuarios():
                     data["nombre"],
                     data["apellido"],
                     rol_csv,
-                    data["contrasena"],
+                    password_hash,
                     data.get("mail"),
                     data.get("posicion"),
                     data.get("sector"),
@@ -367,6 +373,12 @@ def admin_usuarios_mod(id_spm):
                     values.append(value)
                     rol_processed = True
                     continue
+
+                # Hash de contraseña con bcrypt si se está actualizando
+                if key == "contrasena" and value:
+                    value = bcrypt.hashpw(
+                        value.encode("utf-8"), bcrypt.gensalt()
+                    ).decode("utf-8")
 
                 if key in ["centros", "almacenes"] and isinstance(value, list):
                     value = ",".join(str(v) for v in value)
