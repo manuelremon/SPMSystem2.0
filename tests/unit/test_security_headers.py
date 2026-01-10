@@ -63,7 +63,9 @@ def prod_client():
     from backend.core import config
 
     # Crear app dentro del patch
-    with patch.object(config.settings, "ENV", "production"):
+    # Nota: RENDER=true simula hosting directo (sin Nginx) donde Flask maneja headers
+    with patch.object(config.settings, "ENV", "production"), \
+         patch.dict("os.environ", {"RENDER": "true"}):
         app = Flask(__name__)
         app.config["TESTING"] = True
 
