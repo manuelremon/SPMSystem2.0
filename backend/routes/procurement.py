@@ -494,11 +494,11 @@ def get_lead_times():
                 SELECT
                     {select_field},
                     COUNT(*) as total_entregas,
-                    ROUND(AVG(EXTRACT(DAY FROM (p.fecha_recepcion - s.fecha_creacion)))::numeric, 1) as lead_time_promedio,
-                    ROUND(MIN(EXTRACT(DAY FROM (p.fecha_recepcion - s.fecha_creacion)))::numeric, 1) as lead_time_min,
-                    ROUND(MAX(EXTRACT(DAY FROM (p.fecha_recepcion - s.fecha_creacion)))::numeric, 1) as lead_time_max,
-                    ROUND(AVG(EXTRACT(DAY FROM (p.fecha_pedido - s.fecha_creacion)))::numeric, 1) as tiempo_aprobacion,
-                    ROUND(AVG(EXTRACT(DAY FROM (p.fecha_recepcion - p.fecha_pedido)))::numeric, 1) as tiempo_entrega
+                    ROUND(AVG((p.fecha_recepcion - s.fecha_creacion)::numeric), 1) as lead_time_promedio,
+                    MIN(p.fecha_recepcion - s.fecha_creacion) as lead_time_min,
+                    MAX(p.fecha_recepcion - s.fecha_creacion) as lead_time_max,
+                    ROUND(AVG((p.fecha_pedido - s.fecha_creacion)::numeric), 1) as tiempo_aprobacion,
+                    ROUND(AVG((p.fecha_recepcion - p.fecha_pedido)::numeric), 1) as tiempo_entrega
                 FROM sap_solpeds s
                 INNER JOIN sap_purchase_orders p
                     ON s.solped_id = p.solped_id AND s.posicion = p.solped_posicion
