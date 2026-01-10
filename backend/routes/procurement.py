@@ -103,9 +103,11 @@ def get_solpeds():
         where_clause = " AND ".join(conditions) if conditions else "1=1"
 
         with get_db_connection() as conn:
+            cur = conn.cursor()
             # Contar total
             count_query = f"SELECT COUNT(*) FROM sap_solpeds WHERE {where_clause}"
-            total = conn.execute(count_query, params).fetchone()[0]
+            cur.execute(count_query, params)
+            total = cur.fetchone()['count']
 
             # Obtener datos
             query = f"""
@@ -114,7 +116,8 @@ def get_solpeds():
                 ORDER BY fecha_creacion DESC, solped_id DESC
                 LIMIT ? OFFSET ?
             """
-            rows = conn.execute(query, params + [per_page, offset]).fetchall()
+            cur.execute(query, params + [per_page, offset])
+            rows = cur.fetchall()
 
         items = [_row_to_dict(r) for r in rows]
 
@@ -139,8 +142,9 @@ def get_solped_detail(solped_id: int):
     """
     try:
         with get_db_connection() as conn:
+            cur = conn.cursor()
             # Obtener posiciones de la SOLPED
-            rows = conn.execute("""
+            cur.execute("""
                 SELECT s.*, p.pedido_id, p.fecha_pedido, p.fecha_recepcion,
                        p.proveedor_nombre, p.cantidad_recepcionada, p.valor_recibido
                 FROM sap_solpeds s
@@ -148,7 +152,8 @@ def get_solped_detail(solped_id: int):
                     ON s.solped_id = p.solped_id AND s.posicion = p.solped_posicion
                 WHERE s.solped_id = ?
                 ORDER BY s.posicion
-            """, (solped_id,)).fetchall()
+            """, (solped_id,))
+            rows = cur.fetchall()
 
             if not rows:
                 return jsonify({"error": "SOLPED no encontrada"}), 404
@@ -228,10 +233,12 @@ def get_orders():
         where_clause = " AND ".join(conditions) if conditions else "1=1"
 
         with get_db_connection() as conn:
-            total = conn.execute(
+            cur = conn.cursor()
+            cur.execute(
                 f"SELECT COUNT(*) FROM sap_purchase_orders WHERE {where_clause}",
                 params
-            ).fetchone()[0]
+            )
+            total = cur.fetchone()['count']
 
             query = f"""
                 SELECT * FROM sap_purchase_orders
@@ -239,7 +246,8 @@ def get_orders():
                 ORDER BY fecha_pedido DESC, pedido_id DESC
                 LIMIT ? OFFSET ?
             """
-            rows = conn.execute(query, params + [per_page, offset]).fetchall()
+            cur.execute(query, params + [per_page, offset])
+            rows = cur.fetchall()
 
         items = [_row_to_dict(r) for r in rows]
 
@@ -262,14 +270,16 @@ def get_order_detail(pedido_id: int):
     """Obtiene detalle de una orden de compra."""
     try:
         with get_db_connection() as conn:
-            rows = conn.execute("""
+            cur = conn.cursor()
+            cur.execute("""
                 SELECT p.*, s.material_descripcion, s.fecha_creacion as fecha_solped,
                        s.fecha_entrega_solicitada, s.solicitante
                 FROM sap_purchase_orders p
                 LEFT JOIN sap_solpeds s
                     ON p.solped_id = s.solped_id AND p.solped_posicion = s.posicion
                 WHERE p.pedido_id = ?
-            """, (pedido_id,)).fetchall()
+            """, (pedido_id,))
+            rows = cur.fetchall()
 
             if not rows:
                 return jsonify({"error": "Pedido no encontrado"}), 404
@@ -317,19 +327,20 @@ def get_kpis():
         centro = request.args.get('centro')
         periodo = request.args.get('periodo', 'mes')
 
-        # Calcular rango de fechas segun periodo
+        # Calcular rango de fechas segun periodo (PostgreSQL syntax)
         fecha_filtro = {
-            'mes': "date('now', '-30 days')",
-            'trimestre': "date('now', '-90 days')",
-            'anio': "date('now', '-365 days')"
-        }.get(periodo, "date('now', '-30 days')")
+            'mes': "NOW() - INTERVAL '30 days'",
+            'trimestre': "NOW() - INTERVAL '90 days'",
+            'anio': "NOW() - INTERVAL '365 days'"
+        }.get(periodo, "NOW() - INTERVAL '30 days'")
 
         centro_filter = "AND s.centro = ?" if centro else ""
         params = [centro] if centro else []
 
         with get_db_connection() as conn:
+            cur = conn.cursor()
             # Totales generales
-            totals = conn.execute(f"""
+            cur.execute(f"""
                 SELECT
                     COUNT(DISTINCT s.solped_id) as total_solpeds,
                     COUNT(*) as total_items,
@@ -343,24 +354,26 @@ def get_kpis():
                     ON s.solped_id = p.solped_id AND s.posicion = p.solped_posicion
                 WHERE s.fecha_creacion >= {fecha_filtro}
                 {centro_filter}
-            """, params).fetchone()
+            """, params)
+            totals = cur.fetchone()
 
             # Lead time promedio
-            lead_time = conn.execute(f"""
+            cur.execute(f"""
                 SELECT
-                    AVG(julianday(p.fecha_recepcion) - julianday(s.fecha_creacion)) as lead_time_total,
-                    AVG(julianday(p.fecha_pedido) - julianday(s.fecha_creacion)) as tiempo_aprobacion,
-                    AVG(julianday(p.fecha_recepcion) - julianday(p.fecha_pedido)) as tiempo_entrega
+                    AVG(p.fecha_recepcion - s.fecha_creacion) as lead_time_total,
+                    AVG(p.fecha_pedido - s.fecha_creacion) as tiempo_aprobacion,
+                    AVG(p.fecha_recepcion - p.fecha_pedido) as tiempo_entrega
                 FROM sap_solpeds s
                 INNER JOIN sap_purchase_orders p
                     ON s.solped_id = p.solped_id AND s.posicion = p.solped_posicion
                 WHERE p.fecha_recepcion IS NOT NULL
                   AND s.fecha_creacion >= {fecha_filtro}
                 {centro_filter}
-            """, params).fetchone()
+            """, params)
+            lead_time = cur.fetchone()
 
             # OTIF global
-            otif = conn.execute(f"""
+            cur.execute(f"""
                 SELECT
                     COUNT(*) as total,
                     SUM(CASE WHEN p.fecha_recepcion <= s.fecha_entrega_solicitada THEN 1 ELSE 0 END) as a_tiempo,
@@ -376,10 +389,11 @@ def get_kpis():
                 WHERE p.fecha_recepcion IS NOT NULL
                   AND s.fecha_creacion >= {fecha_filtro}
                 {centro_filter}
-            """, params).fetchone()
+            """, params)
+            otif = cur.fetchone()
 
             # Top 5 proveedores por volumen
-            top_proveedores = conn.execute(f"""
+            cur.execute(f"""
                 SELECT
                     p.proveedor_nombre,
                     p.proveedor_cuit,
@@ -394,7 +408,8 @@ def get_kpis():
                 GROUP BY p.proveedor_cuit, p.proveedor_nombre
                 ORDER BY valor_total DESC
                 LIMIT 5
-            """, params).fetchall()
+            """, params)
+            top_proveedores = cur.fetchall()
 
         totals_dict = _row_to_dict(totals)
         lead_time_dict = _row_to_dict(lead_time)
@@ -474,15 +489,16 @@ def get_lead_times():
         }.get(group_by, "p.proveedor_nombre as nombre, p.proveedor_cuit as id")
 
         with get_db_connection() as conn:
-            rows = conn.execute(f"""
+            cur = conn.cursor()
+            cur.execute(f"""
                 SELECT
                     {select_field},
                     COUNT(*) as total_entregas,
-                    ROUND(AVG(julianday(p.fecha_recepcion) - julianday(s.fecha_creacion)), 1) as lead_time_promedio,
-                    ROUND(MIN(julianday(p.fecha_recepcion) - julianday(s.fecha_creacion)), 1) as lead_time_min,
-                    ROUND(MAX(julianday(p.fecha_recepcion) - julianday(s.fecha_creacion)), 1) as lead_time_max,
-                    ROUND(AVG(julianday(p.fecha_pedido) - julianday(s.fecha_creacion)), 1) as tiempo_aprobacion,
-                    ROUND(AVG(julianday(p.fecha_recepcion) - julianday(p.fecha_pedido)), 1) as tiempo_entrega
+                    ROUND(AVG(EXTRACT(DAY FROM (p.fecha_recepcion - s.fecha_creacion)))::numeric, 1) as lead_time_promedio,
+                    ROUND(MIN(EXTRACT(DAY FROM (p.fecha_recepcion - s.fecha_creacion)))::numeric, 1) as lead_time_min,
+                    ROUND(MAX(EXTRACT(DAY FROM (p.fecha_recepcion - s.fecha_creacion)))::numeric, 1) as lead_time_max,
+                    ROUND(AVG(EXTRACT(DAY FROM (p.fecha_pedido - s.fecha_creacion)))::numeric, 1) as tiempo_aprobacion,
+                    ROUND(AVG(EXTRACT(DAY FROM (p.fecha_recepcion - p.fecha_pedido)))::numeric, 1) as tiempo_entrega
                 FROM sap_solpeds s
                 INNER JOIN sap_purchase_orders p
                     ON s.solped_id = p.solped_id AND s.posicion = p.solped_posicion
@@ -490,7 +506,8 @@ def get_lead_times():
                 GROUP BY {group_field}
                 ORDER BY lead_time_promedio DESC
                 LIMIT 50
-            """, params).fetchall()
+            """, params)
+            rows = cur.fetchall()
 
         return jsonify({
             "group_by": group_by,
@@ -512,11 +529,13 @@ def get_compliance():
         min_pedidos = request.args.get('min_pedidos', 5, type=int)
 
         with get_db_connection() as conn:
-            rows = conn.execute("""
+            cur = conn.cursor()
+            cur.execute("""
                 SELECT * FROM v_sap_cumplimiento
                 WHERE total_pedidos >= ?
                 ORDER BY pct_otif DESC
-            """, (min_pedidos,)).fetchall()
+            """, (min_pedidos,))
+            rows = cur.fetchall()
 
         return jsonify({
             "items": [_row_to_dict(r) for r in rows]
@@ -556,12 +575,14 @@ def get_costs():
         where_clause = " AND ".join(conditions)
 
         with get_db_connection() as conn:
-            rows = conn.execute(f"""
+            cur = conn.cursor()
+            cur.execute(f"""
                 SELECT * FROM v_sap_analisis_costos
                 WHERE {where_clause}
                 ORDER BY importe_total DESC
                 LIMIT 100
-            """, params).fetchall()
+            """, params)
+            rows = cur.fetchall()
 
         return jsonify({
             "items": [_row_to_dict(r) for r in rows]
@@ -634,11 +655,13 @@ def get_import_history():
         limit = request.args.get('limit', 20, type=int)
 
         with get_db_connection() as conn:
-            rows = conn.execute("""
+            cur = conn.cursor()
+            cur.execute("""
                 SELECT * FROM sap_import_log
                 ORDER BY started_at DESC
                 LIMIT ?
-            """, (limit,)).fetchall()
+            """, (limit,))
+            rows = cur.fetchall()
 
         return jsonify({
             "items": [_row_to_dict(r) for r in rows]
@@ -659,7 +682,9 @@ def get_summary():
     """Obtiene resumen por centro."""
     try:
         with get_db_connection() as conn:
-            rows = conn.execute("SELECT * FROM v_sap_resumen_centro").fetchall()
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM v_sap_resumen_centro")
+            rows = cur.fetchall()
 
         return jsonify({
             "items": [_row_to_dict(r) for r in rows]
@@ -676,11 +701,11 @@ def get_pipeline():
     """Obtiene pipeline de conversion (embudo)."""
     try:
         with get_db_connection() as conn:
-            rows = conn.execute("SELECT * FROM v_sap_pipeline ORDER BY orden").fetchall()
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM v_sap_pipeline ORDER BY orden")
+            rows = cur.fetchall()
 
-        return jsonify({
-            "items": [_row_to_dict(r) for r in rows]
-        })
+        return jsonify([_row_to_dict(r) for r in rows])
 
     except Exception as e:
         logger.error(f"Error obteniendo pipeline: {e}")
