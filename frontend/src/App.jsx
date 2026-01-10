@@ -56,6 +56,7 @@ const BudgetRequestDetail = lazy(() => import('./pages/BudgetRequestDetail'))
 
 // Procurement Dashboard (lazy-loaded)
 const ProcurementDashboard = lazy(() => import('./pages/ProcurementDashboard'))
+const ProcurementAnalytics = lazy(() => import('./pages/ProcurementAnalytics'))
 
 // Admin pages (lazy-loaded)
 const AdminCentros = lazy(() => import('./pages/admin/AdminCentros'))
@@ -128,6 +129,7 @@ function App() {
             <Route path="/presupuestos/nueva" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe']}><BudgetRequestCreate /></ProtectedRoute>} />
             <Route path="/presupuestos/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe', 'coordinador']}><BudgetRequestDetail /></ProtectedRoute>} />
             <Route path="/procurement" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ProcurementDashboard /></ProtectedRoute>} />
+            <Route path="/procurement/analytics" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ProcurementAnalytics /></ProtectedRoute>} />
             <Route path="/kpi" element={<ProtectedRoute><KPI /></ProtectedRoute>} />
             <Route path="/materiales/catalogo" element={<ProtectedRoute><CatalogoMateriales /></ProtectedRoute>} />
             <Route path="/materiales/equivalencias" element={<ProtectedRoute><CatalogoEquivalencias /></ProtectedRoute>} />

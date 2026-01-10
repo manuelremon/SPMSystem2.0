@@ -101,6 +101,15 @@ export const procurementService = {
   getPipeline: () =>
     api.get(`${BASE_URL}/pipeline`),
 
+  // ==================== ANALYTICS ====================
+
+  /**
+   * Obtiene analytics consolidado del impacto de procurement
+   * Incluye volumenes, lead times, OTIF, top proveedores, distribucion por centro
+   */
+  getAnalytics: () =>
+    api.get(`${BASE_URL}/analytics`),
+
   // ==================== IMPORTACION ====================
 
   /**

@@ -710,3 +710,152 @@ def get_pipeline():
     except Exception as e:
         logger.error(f"Error obteniendo pipeline: {e}")
         return jsonify({"error": "Error al obtener pipeline"}), 500
+
+
+# =============================================================================
+# ANALYTICS - Impacto en Produccion
+# =============================================================================
+
+@procurement_bp.route('/analytics', methods=['GET'])
+@require_auth
+def get_procurement_analytics():
+    """
+    Analisis consolidado del impacto de procurement en produccion.
+
+    Retorna metricas de volumenes, lead times, cumplimiento OTIF,
+    top proveedores e historial de importaciones.
+    """
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+
+            # 1. Volumenes actuales
+            cur.execute("""
+                SELECT
+                    COUNT(*) as total_solpeds,
+                    COUNT(DISTINCT material_codigo) as materiales_unicos,
+                    COUNT(DISTINCT centro) as centros
+                FROM sap_solpeds
+            """)
+            solpeds_stats = cur.fetchone()
+
+            cur.execute("""
+                SELECT
+                    COUNT(*) as total_orders,
+                    COUNT(DISTINCT proveedor_cuit) as proveedores,
+                    SUM(CASE WHEN fecha_recepcion IS NOT NULL THEN 1 ELSE 0 END) as recibidos,
+                    SUM(valor_pedido) as valor_total
+                FROM sap_purchase_orders
+            """)
+            orders_stats = cur.fetchone()
+
+            # 2. Lead times
+            cur.execute("""
+                SELECT
+                    ROUND(AVG((fecha_recepcion - fecha_creacion)::numeric), 1) as promedio,
+                    MIN(fecha_recepcion - fecha_creacion) as minimo,
+                    MAX(fecha_recepcion - fecha_creacion) as maximo
+                FROM v_sap_lead_times
+            """)
+            lead_times = cur.fetchone()
+
+            # 3. Cumplimiento OTIF
+            cur.execute("""
+                SELECT
+                    COUNT(*) as total,
+                    ROUND(AVG(pct_a_tiempo)::numeric, 1) as avg_a_tiempo,
+                    ROUND(AVG(pct_completas)::numeric, 1) as avg_completas,
+                    ROUND(AVG(pct_otif)::numeric, 1) as avg_otif
+                FROM v_sap_cumplimiento
+            """)
+            cumplimiento = cur.fetchone()
+
+            # 4. Pipeline
+            cur.execute("SELECT etapa, cantidad, porcentaje FROM v_sap_pipeline ORDER BY orden")
+            pipeline = cur.fetchall()
+
+            # 5. Top 5 proveedores por volumen
+            cur.execute("""
+                SELECT
+                    proveedor_nombre,
+                    proveedor_cuit,
+                    total_pedidos,
+                    pct_completas,
+                    pct_a_tiempo
+                FROM v_sap_cumplimiento
+                ORDER BY total_pedidos DESC
+                LIMIT 5
+            """)
+            top_proveedores = cur.fetchall()
+
+            # 6. Top 5 proveedores por lead time (mas rapidos)
+            cur.execute("""
+                SELECT
+                    proveedor_nombre,
+                    COUNT(*) as entregas,
+                    ROUND(AVG((fecha_recepcion - fecha_creacion)::numeric), 1) as lead_time_promedio
+                FROM v_sap_lead_times
+                WHERE proveedor_nombre IS NOT NULL
+                GROUP BY proveedor_nombre
+                HAVING COUNT(*) >= 3
+                ORDER BY lead_time_promedio ASC
+                LIMIT 5
+            """)
+            proveedores_rapidos = cur.fetchall()
+
+            # 7. Distribucion por centro
+            cur.execute("""
+                SELECT centro, total_solpeds, total_items, materiales_unicos
+                FROM v_sap_resumen_centro
+                ORDER BY total_solpeds DESC
+            """)
+            por_centro = cur.fetchall()
+
+            # 8. Historial de importaciones
+            cur.execute("""
+                SELECT
+                    COUNT(*) as total_imports,
+                    MAX(started_at) as ultima_importacion,
+                    SUM(records_inserted) as total_insertados,
+                    SUM(records_error) as total_errores
+                FROM sap_import_log
+            """)
+            imports = cur.fetchone()
+
+        return jsonify({
+            "volumenes": {
+                "solpeds": solpeds_stats.get('total_solpeds', 0) if solpeds_stats else 0,
+                "orders": orders_stats.get('total_orders', 0) if orders_stats else 0,
+                "recibidos": orders_stats.get('recibidos', 0) if orders_stats else 0,
+                "proveedores": orders_stats.get('proveedores', 0) if orders_stats else 0,
+                "materiales": solpeds_stats.get('materiales_unicos', 0) if solpeds_stats else 0,
+                "centros": solpeds_stats.get('centros', 0) if solpeds_stats else 0,
+                "valor_total": float(orders_stats.get('valor_total') or 0) if orders_stats else 0
+            },
+            "lead_times": {
+                "promedio": float(lead_times.get('promedio') or 0) if lead_times else 0,
+                "minimo": int(lead_times.get('minimo') or 0) if lead_times else 0,
+                "maximo": int(lead_times.get('maximo') or 0) if lead_times else 0
+            },
+            "cumplimiento": {
+                "proveedores_evaluados": cumplimiento.get('total', 0) if cumplimiento else 0,
+                "pct_a_tiempo": float(cumplimiento.get('avg_a_tiempo') or 0) if cumplimiento else 0,
+                "pct_completas": float(cumplimiento.get('avg_completas') or 0) if cumplimiento else 0,
+                "pct_otif": float(cumplimiento.get('avg_otif') or 0) if cumplimiento else 0,
+                "objetivo_otif": 85.0
+            },
+            "pipeline": [_row_to_dict(r) for r in pipeline],
+            "top_proveedores_volumen": [_row_to_dict(r) for r in top_proveedores],
+            "proveedores_mas_rapidos": [_row_to_dict(r) for r in proveedores_rapidos],
+            "distribucion_centros": [_row_to_dict(r) for r in por_centro],
+            "importaciones": {
+                "total": imports.get('total_imports', 0) if imports else 0,
+                "ultima": str(imports.get('ultima_importacion', '')) if imports and imports.get('ultima_importacion') else None,
+                "registros_insertados": imports.get('total_insertados', 0) if imports else 0,
+                "errores": imports.get('total_errores', 0) if imports else 0
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error obteniendo analytics: {e}")
+        return jsonify({"error": "Error al obtener analytics de procurement"}), 500
