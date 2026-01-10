@@ -34,6 +34,13 @@ def is_bcrypt_hash(password: str) -> bool:
     return password.startswith("$2b$") or password.startswith("$2a$")
 
 
+def get_field(row, index, name):
+    """Extrae un campo de una fila (compatible con SQLite y PostgreSQL)."""
+    if isinstance(row, dict):
+        return row.get(name)
+    return row[index]
+
+
 def migrate_passwords(dry_run: bool = False) -> int:
     """
     Migra todas las contraseñas que no son bcrypt hash.
@@ -50,13 +57,13 @@ def migrate_passwords(dry_run: bool = False) -> int:
         cur = conn.cursor()
 
         # Encontrar usuarios con contraseñas en texto plano
-        # Usamos LIKE porque funciona tanto en SQLite como PostgreSQL
+        # Usamos %% para escapar % en LIKE (funciona en SQLite y PostgreSQL)
         cur.execute("""
             SELECT id_spm, contrasena FROM usuarios
             WHERE contrasena IS NOT NULL
             AND contrasena != ''
-            AND contrasena NOT LIKE '$2b$%'
-            AND contrasena NOT LIKE '$2a$%'
+            AND contrasena NOT LIKE '$2b$%%'
+            AND contrasena NOT LIKE '$2a$%%'
         """)
 
         users = cur.fetchall()
@@ -71,24 +78,33 @@ def migrate_passwords(dry_run: bool = False) -> int:
         if dry_run:
             print("\n[DRY RUN] Los siguientes usuarios serían migrados:")
             for user in users:
-                user_id = user[0]
+                user_id = get_field(user, 0, "id_spm")
                 print(f"  - {user_id}")
             print("\nEjecuta sin --dry-run para aplicar los cambios.")
             return len(users)
 
         print("\nMigrando contraseñas...")
         for user in users:
-            user_id = user[0]
-            plain_pwd = user[1]
+            user_id = get_field(user, 0, "id_spm")
+            plain_pwd = get_field(user, 1, "contrasena")
 
             # Hashear con bcrypt
             hashed = hash_password(plain_pwd)
 
-            # Actualizar en BD
-            cur.execute(
-                "UPDATE usuarios SET contrasena = ? WHERE id_spm = ?",
-                (hashed, user_id)
-            )
+            # Actualizar en BD (usar %s para PostgreSQL, ? para SQLite)
+            # get_db_connection devuelve conexión con el placeholder correcto
+            try:
+                # Intentar con %s (PostgreSQL)
+                cur.execute(
+                    "UPDATE usuarios SET contrasena = %s WHERE id_spm = %s",
+                    (hashed, user_id)
+                )
+            except Exception:
+                # Fallback a ? (SQLite)
+                cur.execute(
+                    "UPDATE usuarios SET contrasena = ? WHERE id_spm = ?",
+                    (hashed, user_id)
+                )
             migrated += 1
             print(f"  Migrado: {user_id}")
 
@@ -98,6 +114,13 @@ def migrate_passwords(dry_run: bool = False) -> int:
     return migrated
 
 
+def get_count(row):
+    """Extrae el count de una fila (compatible con SQLite y PostgreSQL)."""
+    if isinstance(row, dict):
+        return row.get("count", row.get("COUNT(*)", 0))
+    return row[0]
+
+
 def verify_migration() -> None:
     """Verifica que todas las contraseñas estén hasheadas."""
     with get_db_connection() as conn:
@@ -105,21 +128,21 @@ def verify_migration() -> None:
 
         # Contar contraseñas en texto plano restantes
         cur.execute("""
-            SELECT COUNT(*) FROM usuarios
+            SELECT COUNT(*) as count FROM usuarios
             WHERE contrasena IS NOT NULL
             AND contrasena != ''
-            AND contrasena NOT LIKE '$2b$%'
-            AND contrasena NOT LIKE '$2a$%'
+            AND contrasena NOT LIKE '$2b$%%'
+            AND contrasena NOT LIKE '$2a$%%'
         """)
-        plain_count = cur.fetchone()[0]
+        plain_count = get_count(cur.fetchone())
 
         # Contar contraseñas hasheadas
         cur.execute("""
-            SELECT COUNT(*) FROM usuarios
-            WHERE contrasena LIKE '$2b$%'
-            OR contrasena LIKE '$2a$%'
+            SELECT COUNT(*) as count FROM usuarios
+            WHERE contrasena LIKE '$2b$%%'
+            OR contrasena LIKE '$2a$%%'
         """)
-        hashed_count = cur.fetchone()[0]
+        hashed_count = get_count(cur.fetchone())
 
         print("\n=== Estado de las contraseñas ===")
         print(f"Hasheadas (bcrypt): {hashed_count}")
