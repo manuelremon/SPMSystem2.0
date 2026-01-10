@@ -232,7 +232,7 @@ def health_check_detailed():
     Returns:
         JSON con estado detallado del sistema
     """
-    include = request.args.get("include", "db,cache,metrics,redis").split(",")
+    include = request.args.get("include", "db,cache,metrics,redis,jobs").split(",")
     verbose = request.args.get("verbose", "false").lower() == "true"
 
     checks = {}
@@ -268,6 +268,13 @@ def health_check_detailed():
         # Redis es opcional - no degradar status si no está disponible
         # Solo reportar si hay error (no "unavailable")
         if checks["redis"].get("status") == "error":
+            overall_status = "degraded"
+
+    # Jobs queue check
+    if "jobs" in include:
+        checks["jobs"] = _check_jobs_queue()
+        # Jobs es importante pero no crítico
+        if checks["jobs"].get("status") == "error":
             overall_status = "degraded"
 
     response = {
@@ -682,6 +689,79 @@ def _get_system_metrics() -> dict:
         pass
 
     return result
+
+
+def _check_jobs_queue() -> dict:
+    """
+    Verifica estado de la cola de background jobs.
+
+    Returns:
+        Estado de la cola de tareas
+    """
+    try:
+        from backend.core.background_jobs import get_job_queue
+    except ImportError:
+        try:
+            from core.background_jobs import get_job_queue
+        except ImportError:
+            return {"status": "unavailable", "error": "Jobs module not found"}
+
+    try:
+        queue = get_job_queue()
+        stats = queue.get_stats()
+
+        # Calcular métricas adicionales
+        by_status = stats.get("by_status", {})
+        total = stats.get("total_jobs", 0)
+        pending = by_status.get("pending", 0) + by_status.get("retrying", 0)
+        failed = by_status.get("failed", 0)
+
+        return {
+            "status": "healthy" if stats.get("worker_running") else "degraded",
+            "worker_running": stats.get("worker_running", False),
+            "total_jobs": total,
+            "pending_jobs": pending,
+            "failed_jobs": failed,
+            "by_status": by_status,
+            "registered_tasks": stats.get("registered_tasks", []),
+            "warning": None if stats.get("worker_running") else "Worker not running - jobs will not be processed"
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@bp.route("/api/health/jobs", methods=["GET"])
+@require_auth
+def jobs_queue_status():
+    """
+    Estado de la cola de background jobs.
+
+    Requiere autenticación. Muestra:
+    - Estado del worker
+    - Jobs pendientes/fallidos
+    - Tareas registradas
+
+    Query params:
+        - include_jobs: true para listar últimos jobs
+        - limit: número de jobs a mostrar (default 20)
+
+    Returns:
+        JSON con estado de la cola
+    """
+    include_jobs = request.args.get("include_jobs", "false").lower() == "true"
+    limit = min(int(request.args.get("limit", 20)), 100)
+
+    result = _check_jobs_queue()
+
+    if include_jobs and result.get("status") != "unavailable":
+        try:
+            from backend.core.background_jobs import get_job_queue
+            queue = get_job_queue()
+            result["recent_jobs"] = queue.get_jobs(limit=limit)
+        except Exception as e:
+            result["recent_jobs_error"] = str(e)
+
+    return jsonify(result), 200 if result.get("status") == "healthy" else 503
 
 
 @bp.route("/api/health/infrastructure", methods=["GET"])
