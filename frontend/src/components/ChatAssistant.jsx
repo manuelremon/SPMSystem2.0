@@ -50,13 +50,25 @@ export default function ChatAssistant() {
       context.centro = user.centro || context.centro
     }
 
+    // Material/product search keywords
+    const materialKeywords = ['comprar', 'buscar', 'necesito', 'brida', 'tornillo', 'tubo',
+      'válvula', 'bomba', 'filtro', 'cable', 'motor', 'sensor', 'repuesto', 'pieza']
+
     // Mapear consultas comunes a objetivos del agente
-    if (lowerInput.includes('solicitud') || lowerInput.includes('mis solicitud')) {
+    if (lowerInput.includes('solicitud') || lowerInput.includes('mis solicitud') || lowerInput === 'listar solicitudes') {
       agentGoal = 'Cargar y summarizar todas las solicitudes del usuario actual'
       context.action = 'load_solicitudes'
-    } else if (lowerInput.includes('material') || lowerInput.includes('buscar material')) {
-      agentGoal = 'Cargar catálogo de materiales disponibles'
+    } else if (lowerInput.includes('material') || lowerInput.includes('buscar material') ||
+               materialKeywords.some(kw => lowerInput.includes(kw))) {
+      // Extract search term - remove common words
+      const searchTerm = userInput
+        .replace(/quiero|necesito|buscar|comprar|un|una|el|la|los|las|de|para/gi, '')
+        .trim()
+      agentGoal = `Buscar materiales: ${searchTerm || 'todos'}`
       context.action = 'load_materiales'
+      if (searchTerm) {
+        context.search = searchTerm
+      }
     } else if (lowerInput.includes('presupuesto')) {
       agentGoal = 'Obtener información de presupuestos disponibles'
       context.action = 'load_presupuestos'
@@ -69,6 +81,9 @@ export default function ChatAssistant() {
       }
     } else if (lowerInput.includes('recomendación') || lowerInput.includes('sugerir')) {
       agentGoal = 'Proporcionar recomendaciones de materiales a priorizar basado en demanda histórica'
+    } else if (lowerInput.includes('stock')) {
+      agentGoal = 'Consultar stock disponible'
+      context.action = 'load_stock'
     }
 
     return { agentGoal, context }
@@ -79,6 +94,28 @@ export default function ChatAssistant() {
    */
   const sendMessage = async (message) => {
     if (!message.trim() || isSending) return
+
+    const lowerMessage = message.toLowerCase()
+
+    // Handle special commands that don't need agent
+    if (lowerMessage === 'nueva consulta') {
+      addUserMessage(message)
+      addBotMessage('¿En qué puedo ayudarte?', [
+        'Ver mis solicitudes',
+        'Buscar materiales',
+        'Consultar presupuesto'
+      ])
+      return
+    }
+
+    if (lowerMessage === 'ver más detalles') {
+      addUserMessage(message)
+      addBotMessage('Para ver más detalles, visita la sección correspondiente en el menú lateral.', [
+        'Ver mis solicitudes',
+        'Buscar materiales'
+      ])
+      return
+    }
 
     // Agregar mensaje del usuario
     addUserMessage(message)
