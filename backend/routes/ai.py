@@ -119,7 +119,7 @@ def priorizar_solicitudes():
     Prioriza solicitudes pendientes.
 
     Query params:
-        - estado: Filtrar por estado (default: submitted)
+        - status: Filtrar por status (default: submitted)
         - centro: Filtrar por centro
         - limit: Limite de resultados (default: 20)
 
@@ -131,7 +131,7 @@ def priorizar_solicitudes():
     except ImportError:
         from core.db import get_db_connection
 
-    estado = request.args.get("estado", "submitted")
+    status = request.args.get("status", "submitted")
     centro = request.args.get("centro")
     limit = int(request.args.get("limit", 20))
 
@@ -143,11 +143,11 @@ def priorizar_solicitudes():
 
             query = """
                 SELECT id, criticidad, fecha_necesidad, total_monto, data_json,
-                       estado, centro, sector, created_at
+                       status, centro, sector, created_at
                 FROM solicitudes
-                WHERE estado = ?
+                WHERE status = ?
             """
-            params = [estado]
+            params = [status]
 
             if centro:
                 query += " AND centro = ?"
