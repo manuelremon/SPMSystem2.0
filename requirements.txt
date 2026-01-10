@@ -50,6 +50,9 @@ psycopg2-binary>=2.9.9
 # Redis (opcional - para SSE pub/sub escalable)
 redis>=5.0.0
 
+# Celery (opcional - para cola de tareas persistente)
+celery[redis]>=5.3.0
+
 # Push Notifications
 pywebpush>=1.14.0
 

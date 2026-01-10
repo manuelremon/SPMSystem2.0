@@ -70,6 +70,14 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_FILE: str = "logs/spm_backend.log"
 
+    # Redis / Celery Configuration
+    # - Producción: Redis via REDIS_URL env var
+    # - Desarrollo: Sin Redis (fallback a cola en memoria)
+    REDIS_URL: str = os.getenv("REDIS_URL", "")
+    CELERY_BROKER_URL: str = os.getenv("CELERY_BROKER_URL", "") or os.getenv("REDIS_URL", "")
+    CELERY_RESULT_BACKEND: str = os.getenv("CELERY_RESULT_BACKEND", "") or os.getenv("REDIS_URL", "")
+    CELERY_ENABLED: bool = os.getenv("CELERY_ENABLED", "false").lower() == "true"
+
     # SMTP Email Configuration
     SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
     SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))

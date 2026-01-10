@@ -3,6 +3,22 @@
 version: '3.8'
 
 services:
+  # === Redis (Message Broker for Celery) ===
+  redis:
+    image: redis:7-alpine
+    container_name: spm-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - spm-network
+
   # === PostgreSQL Database ===
   postgres:
     image: postgres:16-alpine
@@ -33,9 +49,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       # Database
       DATABASE_URL: postgresql://${POSTGRES_USER:-spm}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-spm_production}
+      # Redis / Celery
+      REDIS_URL: redis://redis:6379/0
+      CELERY_ENABLED: "true"
       # Security
       SECRET_KEY: ${SECRET_KEY:?error}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?error}
@@ -62,6 +83,46 @@ services:
     expose:
       - "5000"
 
+  # === Celery Worker (Background Tasks) ===
+  celery-worker:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.prod
+    container_name: spm-celery-worker
+    restart: unless-stopped
+    command: celery -A backend.core.celery_app worker --loglevel=info --concurrency=2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-spm}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-spm_production}
+      # Redis / Celery
+      REDIS_URL: redis://redis:6379/0
+      CELERY_ENABLED: "true"
+      # Security
+      SECRET_KEY: ${SECRET_KEY:?error}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?error}
+      # Flask
+      FLASK_ENV: production
+      # SMTP (for email tasks)
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_ENABLED: ${SMTP_ENABLED:-false}
+    volumes:
+      - spm_logs:/app/logs
+      # SQLite databases (read-only) - Datos SAP
+      - ../data/sap_data.db:/app/data/sap_data.db:ro
+      - ../data/equivalentes.db:/app/data/equivalentes.db:ro
+      - ../data/catalogo_materiales.db:/app/data/catalogo_materiales.db:ro
+    networks:
+      - spm-network
+
   # === Nginx Reverse Proxy ===
   nginx:
     image: nginx:alpine
@@ -84,6 +145,8 @@ services:
 
 # === Volumes ===
 volumes:
+  redis_data:
+    name: spm_redis_data
   postgres_data:
     name: spm_postgres_data
   spm_uploads:

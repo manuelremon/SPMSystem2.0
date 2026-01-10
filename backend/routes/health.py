@@ -232,7 +232,7 @@ def health_check_detailed():
     Returns:
         JSON con estado detallado del sistema
     """
-    include = request.args.get("include", "db,cache,metrics,redis,jobs").split(",")
+    include = request.args.get("include", "db,cache,metrics,redis,jobs,celery").split(",")
     verbose = request.args.get("verbose", "false").lower() == "true"
 
     checks = {}
@@ -275,6 +275,13 @@ def health_check_detailed():
         checks["jobs"] = _check_jobs_queue()
         # Jobs es importante pero no crítico
         if checks["jobs"].get("status") == "error":
+            overall_status = "degraded"
+
+    # Celery check
+    if "celery" in include:
+        checks["celery"] = _check_celery()
+        # Celery es opcional - no degradar si está deshabilitado
+        if checks["celery"].get("status") == "error":
             overall_status = "degraded"
 
     response = {
@@ -689,6 +696,43 @@ def _get_system_metrics() -> dict:
         pass
 
     return result
+
+
+def _check_celery() -> dict:
+    """
+    Verifica estado de Celery workers.
+
+    Returns:
+        Estado de Celery
+    """
+    try:
+        from backend.core.config import settings
+
+        if not settings.CELERY_ENABLED:
+            return {"status": "disabled", "reason": "Celery not enabled"}
+
+        from backend.core.celery_app import get_celery_stats
+
+        stats = get_celery_stats()
+
+        if stats.get("available"):
+            return {
+                "status": "healthy",
+                "workers": stats.get("workers", 0),
+                "active_tasks": stats.get("active_tasks", 0),
+                "broker": stats.get("broker", "unknown"),
+            }
+        else:
+            return {
+                "status": "unavailable",
+                "error": stats.get("error", "No workers connected"),
+                "broker": stats.get("broker", "unknown"),
+            }
+
+    except ImportError:
+        return {"status": "unavailable", "error": "Celery module not found"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
 
 
 def _check_jobs_queue() -> dict:
