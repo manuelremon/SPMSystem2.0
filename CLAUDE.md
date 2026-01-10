@@ -2,7 +2,7 @@
 
 Guia para Claude Code (claude.ai/code) cuando trabaja con este repositorio.
 
-> **Ultima actualizacion**: 2026-01-09 (Actualizacion de metricas y Sprint 21)
+> **Ultima actualizacion**: 2026-01-10 (Sprint 22 - Agentes y PostgreSQL)
 
 ## Resumen del Proyecto
 
@@ -687,6 +687,40 @@ f5d67fe fix: add autocomplete attributes to all form inputs
 cc7a1e1 fix: add autocomplete attributes to password inputs
 2505e44 chore: trigger production deployment
 28ba85f ci: add GitHub Actions workflow for production deployment
+```
+
+## Sprint 22: Mejoras al Sistema de Agentes (2026-01-10)
+
+**Fecha**: 2026-01-09 a 2026-01-10
+**Enfoque**: Sistema de agentes/chat, integracion PostgreSQL, modulo RAG
+
+### Cambios Principales
+
+| Tipo | Descripcion | Archivos |
+|------|-------------|----------|
+| Agent | Modulo RAG agregado para mejorar forecasting ML | `agent/` |
+| Agent | DataLoader refactorizado para PostgreSQL en produccion | `data_loader.py` |
+| Agent | Captura de errores en execution_log para chat | `react_agent.py` |
+| Chat | Mejora en manejo de queries y comandos especiales | `ChatAssistant.jsx` |
+| Chat | Auto-envio de sugerencias al hacer clic | `ChatAssistant.jsx` |
+| AI | Compatibilidad de estructura de respuesta con frontend | `routes/ai.py` |
+| SLA | Script de migracion PostgreSQL para esquema SLA | `migrations/` |
+| Auth | Hash de passwords con bcrypt en rutas admin | `routes/admin.py` |
+| Tests | Tests unitarios para checks de Celery y JobsQueue | `test_health.py` |
+
+### Commits (20 principales)
+
+```
+57ef662 fix(chat): improve query handling and special commands
+a713bd4 fix(agent): capture errors in execution_log and display in chat
+bece1a4 fix(chat): fix response handling to match agent output structure
+963e5b5 fix(agent): fix DataLoader params in Reasoner and enrich context
+74dcdb8 fix(agent): refactor DataLoader to use PostgreSQL for production
+cda7f57 feat(agent): add RAG module and improve ML forecasting pipeline
+6e289b3 fix(ai): extract alertas array from response object
+bdc3453 fix(ai): transform response structure for frontend compatibility
+82ae082 feat(sla): add PostgreSQL migration script for SLA schema
+4711936 test(health): add unit tests for Celery and JobsQueue checks
 ```
 
 ## Documentacion
