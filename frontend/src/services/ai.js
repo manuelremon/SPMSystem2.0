@@ -129,7 +129,10 @@ export const getAlertasInteligentes = async (centro) => {
   const response = await api.get('/ai/alertas', {
     params: { centro }
   })
-  return response.data?.data || []
+  // Backend returns {alertas: [...], centro: ..., total_alertas: N}
+  // Extract the alertas array
+  const data = response.data?.data
+  return data?.alertas || []
 }
 
 /**
