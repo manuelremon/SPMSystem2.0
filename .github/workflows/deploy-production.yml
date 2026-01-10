@@ -99,16 +99,18 @@ jobs:
             cd ..
 
             echo "=== Rebuilding Docker containers ==="
-            docker-compose -f infra/docker-compose.prod.yml build --no-cache backend
+            docker compose -f infra/docker-compose.prod.yml build --no-cache backend
 
-            echo "=== Restarting services ==="
-            docker-compose -f infra/docker-compose.prod.yml up -d
+            echo "=== Restarting services (clean recreate) ==="
+            docker compose -f infra/docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
+            docker network rm spm_network 2>/dev/null || true
+            docker compose -f infra/docker-compose.prod.yml up -d
 
             echo "=== Waiting for services to start ==="
             sleep 10
 
             echo "=== Checking service health ==="
-            docker-compose -f infra/docker-compose.prod.yml ps
+            docker compose -f infra/docker-compose.prod.yml ps
 
             echo "=== Deployment completed ==="
           DEPLOY_SCRIPT
