@@ -250,10 +250,10 @@ export default function ProcurementAnalytics() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            {t('procurement_analytics', 'Analytics de Procurement')}
+            {t('procurement_analytics', 'Analítica de Compras SAP')}
           </h1>
           <p className="text-sm text-gray-500">
-            Impacto del modulo de procurement en produccion
+            Impacto del módulo de compras en producción
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -287,12 +287,12 @@ export default function ProcurementAnalytics() {
             <MetricCard
               title="Total SOLPEDs"
               value={analytics.volumenes?.solpeds?.toLocaleString() || 0}
-              subtitle={`${analytics.volumenes?.materiales || 0} materiales unicos`}
+              subtitle={`${analytics.volumenes?.materiales || 0} materiales únicos`}
               icon={Package}
               color="blue"
             />
             <MetricCard
-              title="Ordenes de Compra"
+              title="Órdenes de Compra"
               value={analytics.volumenes?.orders?.toLocaleString() || 0}
               subtitle={`${analytics.volumenes?.recibidos || 0} recibidos`}
               icon={Truck}
@@ -306,9 +306,9 @@ export default function ProcurementAnalytics() {
               color="purple"
             />
             <MetricCard
-              title="Lead Time Promedio"
-              value={`${analytics.lead_times?.promedio || 0} dias`}
-              subtitle={`Min: ${analytics.lead_times?.minimo || 0}d | Max: ${analytics.lead_times?.maximo || 0}d`}
+              title="Tiempo de Entrega Promedio"
+              value={`${analytics.lead_times?.promedio || 0} días`}
+              subtitle={`Mín: ${analytics.lead_times?.minimo || 0}d | Máx: ${analytics.lead_times?.maximo || 0}d`}
               icon={Clock}
               color="orange"
             />
@@ -320,7 +320,7 @@ export default function ProcurementAnalytics() {
             <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp className="h-5 w-5 text-blue-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Pipeline de Conversion</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Embudo de Conversión</h3>
               </div>
               <PipelineViz data={analytics.pipeline} />
             </div>
@@ -351,14 +351,14 @@ export default function ProcurementAnalytics() {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Clock className="h-5 w-5 text-green-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Proveedores Mas Rapidos</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Proveedores Más Rápidos</h3>
               </div>
               <ProveedoresTable
                 data={analytics.proveedores_mas_rapidos}
                 columns={[
                   { key: 'proveedor_nombre', header: 'Proveedor', render: (v) => v || 'Sin nombre' },
                   { key: 'entregas', header: 'Entregas', align: 'right' },
-                  { key: 'lead_time_promedio', header: 'Lead Time', align: 'right', render: (v) => `${v || 0} dias` }
+                  { key: 'lead_time_promedio', header: 'Tiempo Entrega', align: 'right', render: (v) => `${v || 0} días` }
                 ]}
               />
             </div>
@@ -370,7 +370,7 @@ export default function ProcurementAnalytics() {
             <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Building2 className="h-5 w-5 text-indigo-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Distribucion por Centro</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Distribución por Centro</h3>
               </div>
               <CentrosChart data={analytics.distribucion_centros} />
             </div>
@@ -398,7 +398,7 @@ export default function ProcurementAnalytics() {
                 </div>
                 {analytics.importaciones?.ultima && (
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-sm text-gray-500">Ultima importacion</span>
+                    <span className="text-sm text-gray-500">Última importación</span>
                     <span className="text-sm text-gray-700">
                       {new Date(analytics.importaciones.ultima).toLocaleDateString('es-AR')}
                     </span>
@@ -413,7 +413,7 @@ export default function ProcurementAnalytics() {
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg shadow p-6 text-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm opacity-80">Valor Total de Ordenes</p>
+                  <p className="text-sm opacity-80">Valor Total de Órdenes</p>
                   <p className="text-3xl font-bold mt-1">
                     ${analytics.volumenes.valor_total.toLocaleString('es-AR', { minimumFractionDigits: 0 })}
                   </p>

@@ -195,12 +195,12 @@ const plannerNavItems = [
       {
         key: "procurement",
         trKey: "nav_procurement",
-        label: "Procurement",
+        label: "Compras SAP",
         icon: Truck,
         iconName: "Truck",
         children: [
-          { trKey: "nav_procurement_dashboard", label: "Dashboard", to: "/procurement", icon: Boxes, iconName: "Boxes" },
-          { trKey: "nav_procurement_analytics", label: "Analytics", to: "/procurement/analytics", icon: BarChart2, iconName: "BarChart2" },
+          { trKey: "nav_procurement_dashboard", label: "Panel General", to: "/procurement", icon: Boxes, iconName: "Boxes" },
+          { trKey: "nav_procurement_analytics", label: "Analítica", to: "/procurement/analytics", icon: BarChart2, iconName: "BarChart2" },
         ],
       },
       { trKey: "nav_sla", label: "SLA", to: "/planificador/sla", icon: Clock, iconName: "Clock" },
