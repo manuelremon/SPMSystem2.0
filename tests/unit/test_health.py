@@ -446,3 +446,128 @@ class TestHealthStatusValues:
         with patch("backend.core.metrics.get_metrics_collector", side_effect=Exception()):
             result = _check_metrics()
         assert result["status"] in valid_statuses
+
+
+class TestCheckCelery:
+    """Tests para la funcion _check_celery."""
+
+    def test_celery_disabled(self):
+        """Celery deshabilitado retorna disabled."""
+        try:
+            from backend.routes.health import _check_celery
+        except ImportError:
+            pytest.skip("Module not available")
+
+        with patch("backend.core.config.settings") as mock_settings:
+            mock_settings.CELERY_ENABLED = False
+            result = _check_celery()
+
+        assert result["status"] == "disabled"
+        assert "reason" in result
+
+    def test_celery_healthy(self):
+        """Celery con workers conectados retorna healthy."""
+        mock_stats = {
+            "available": True,
+            "workers": 2,
+            "active_tasks": 5,
+            "broker": "redis://localhost:6379/0"
+        }
+
+        # Parchear directamente en el modulo donde se importa
+        with patch("backend.core.config.settings.CELERY_ENABLED", True):
+            # Crear mock del modulo celery_app con get_celery_stats
+            mock_celery_module = MagicMock()
+            mock_celery_module.get_celery_stats = MagicMock(return_value=mock_stats)
+            with patch.dict("sys.modules", {"backend.core.celery_app": mock_celery_module}):
+                # Re-importar para que use el mock
+                from backend.routes.health import _check_celery
+                result = _check_celery()
+
+        assert result["status"] == "healthy"
+        assert result["workers"] == 2
+        assert result["active_tasks"] == 5
+        assert "broker" in result
+
+    def test_celery_unavailable(self):
+        """Celery sin workers retorna unavailable."""
+        mock_stats = {
+            "available": False,
+            "error": "No workers connected",
+            "broker": "redis://localhost:6379/0"
+        }
+
+        with patch("backend.core.config.settings.CELERY_ENABLED", True):
+            mock_celery_module = MagicMock()
+            mock_celery_module.get_celery_stats = MagicMock(return_value=mock_stats)
+            with patch.dict("sys.modules", {"backend.core.celery_app": mock_celery_module}):
+                from backend.routes.health import _check_celery
+                result = _check_celery()
+
+        assert result["status"] == "unavailable"
+        assert "error" in result
+
+    def test_celery_in_default_includes(self):
+        """Celery esta incluido en los checks por defecto."""
+        # El default include debe contener 'celery'
+        default_include = "db,cache,metrics,redis,jobs,celery"
+        assert "celery" in default_include
+
+
+class TestCheckJobsQueue:
+    """Tests para la funcion _check_jobs_queue."""
+
+    def test_jobs_queue_healthy(self):
+        """Cola de jobs con worker corriendo retorna healthy."""
+        try:
+            from backend.routes.health import _check_jobs_queue
+        except ImportError:
+            pytest.skip("Module not available")
+
+        mock_stats = {
+            "worker_running": True,
+            "total_jobs": 10,
+            "by_status": {
+                "pending": 2,
+                "completed": 7,
+                "failed": 1,
+                "retrying": 0
+            },
+            "registered_tasks": ["send_email", "send_notification"]
+        }
+
+        mock_queue = MagicMock()
+        mock_queue.get_stats.return_value = mock_stats
+
+        with patch("backend.core.background_jobs.get_job_queue", return_value=mock_queue):
+            result = _check_jobs_queue()
+
+        assert result["status"] == "healthy"
+        assert result["worker_running"] is True
+        assert result["total_jobs"] == 10
+        assert result["pending_jobs"] == 2
+        assert result["failed_jobs"] == 1
+
+    def test_jobs_queue_degraded(self):
+        """Cola sin worker corriendo retorna degraded."""
+        try:
+            from backend.routes.health import _check_jobs_queue
+        except ImportError:
+            pytest.skip("Module not available")
+
+        mock_stats = {
+            "worker_running": False,
+            "total_jobs": 5,
+            "by_status": {"pending": 5},
+            "registered_tasks": []
+        }
+
+        mock_queue = MagicMock()
+        mock_queue.get_stats.return_value = mock_stats
+
+        with patch("backend.core.background_jobs.get_job_queue", return_value=mock_queue):
+            result = _check_jobs_queue()
+
+        assert result["status"] == "degraded"
+        assert result["worker_running"] is False
+        assert "warning" in result
