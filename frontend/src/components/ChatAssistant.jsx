@@ -99,39 +99,60 @@ export default function ChatAssistant() {
       )
 
       // Procesar respuesta del agente
+      // Agent returns: { success, iterations_used, execution_log: [{result, ...}], summary, observations }
       if (agentResponse.success) {
         let botMessage = ''
 
-        // Extraer información de la respuesta
-        if (agentResponse.reasoning_trace && agentResponse.reasoning_trace.length > 0) {
-          botMessage = agentResponse.reasoning_trace[agentResponse.reasoning_trace.length - 1]
-        }
+        // Extract result from execution_log (last successful tool execution)
+        const executionLog = agentResponse.execution_log || []
+        const lastExecution = executionLog.filter(e => e.success && e.result).pop()
+        const result = lastExecution?.result
 
-        if (agentResponse.result) {
-          const result = agentResponse.result
-          if (typeof result === 'object') {
-            // Formatear resultado según el tipo
-            if (result.data && Array.isArray(result.data)) {
-              botMessage = `Encontré ${result.data.length} registros. `
-              if (result.count) {
-                botMessage += `Mostrando: ${Math.min(5, result.data.length)} resultados.`
+        if (result && typeof result === 'object') {
+          // Format result based on data_type
+          if (result.data && Array.isArray(result.data)) {
+            const count = result.count || result.data.length
+            if (count > 0) {
+              botMessage = `Encontré ${count} registros.`
+              // Show first few items summary
+              const items = result.data.slice(0, 3)
+              if (result.data_type === 'solicitudes') {
+                const summaries = items.map(s =>
+                  `• #${s.id}: ${s.status || 'pendiente'} - $${(s.total_monto || 0).toLocaleString()}`
+                )
+                botMessage += '\n\n' + summaries.join('\n')
+                if (count > 3) botMessage += `\n...y ${count - 3} más`
+              } else if (result.data_type === 'materiales') {
+                const summaries = items.map(m =>
+                  `• ${m.codigo}: ${m.descripcion?.substring(0, 40) || 'Sin descripción'}`
+                )
+                botMessage += '\n\n' + summaries.join('\n')
+                if (count > 3) botMessage += `\n...y ${count - 3} más`
+              } else {
+                botMessage += ` Tipo: ${result.data_type || 'datos'}`
               }
-            } else if (result.status === 'fitted') {
-              botMessage = `Modelo entrenado exitosamente. Score: ${(result.train_score * 100).toFixed(2)}%`
-            } else if (result.predictions) {
-              botMessage = `Predicción completada. ${result.n_predictions} predicciones realizadas.`
             } else {
-              botMessage = JSON.stringify(result, null, 2).substring(0, 200)
+              botMessage = 'No se encontraron registros con los filtros especificados.'
             }
+          } else if (result.status === 'fitted') {
+            botMessage = `Modelo entrenado exitosamente. Score: ${(result.train_score * 100).toFixed(2)}%`
+          } else if (result.predictions) {
+            botMessage = `Predicción completada. ${result.n_predictions} predicciones realizadas.`
+          } else if (result.error) {
+            botMessage = `Error al cargar datos: ${result.error}`
           } else {
-            botMessage = String(result).substring(0, 500)
+            botMessage = JSON.stringify(result, null, 2).substring(0, 300)
           }
         }
 
+        // Fallback to summary or iteration count
         if (!botMessage) {
-          botMessage = agentResponse.execution_log
-            ? `Análisis completado en ${agentResponse.n_iterations} iteraciones.`
-            : 'Consulta procesada.'
+          if (agentResponse.summary && agentResponse.summary !== 'Sin resultado') {
+            botMessage = agentResponse.summary
+          } else {
+            const iterations = agentResponse.iterations_used || agentResponse.iterations || 0
+            botMessage = `Análisis completado en ${iterations} iteraciones.`
+          }
         }
 
         // Agregar mensaje del bot
