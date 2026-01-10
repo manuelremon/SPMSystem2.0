@@ -13,7 +13,7 @@ Incluye:
 
 import logging
 import re
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Set
 
 from .base import BaseTool, ToolMetadata
 

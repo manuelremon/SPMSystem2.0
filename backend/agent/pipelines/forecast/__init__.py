@@ -40,8 +40,8 @@ Uso básico:
 
 Adaptado de ForecastDemandaMateriales para SPM v2.0
 """
-from typing import Dict, Type, Optional, List
 import logging
+from typing import Dict, List, Optional, Type
 
 from .base import ForecastStrategy
 
@@ -139,10 +139,10 @@ def obtener_nombres_modelos() -> Dict[str, str]:
 # =============================================================================
 
 # Estrategias sklearn (siempre disponibles)
-from .sklearn_models import (
-    RandomForestStrategy,
+from .sklearn_models import (  # noqa: E402
     GradientBoostingStrategy,
-    RidgeStrategy
+    RandomForestStrategy,
+    RidgeStrategy,
 )
 
 registrar_estrategia('random_forest', RandomForestStrategy)
@@ -177,43 +177,39 @@ except ImportError:
 # =============================================================================
 # Imports principales
 # =============================================================================
-from .predictor import (
-    DemandPredictor,
-    StockOptimizer,
-    get_cached_predictor,
-    get_predictor_with_stock,
-    clear_model_cache,
-    cleanup_expired_models,
-    set_cache_ttl,
-)
-
-from .backtesting import (
+from .backtesting import (  # noqa: E402
     Backtester,
     BacktestReport,
     BacktestStep,
     ModelComparator,
+    comparar_modelos_rapido,
     ejecutar_backtest_rapido,
-    comparar_modelos_rapido
 )
-
-from .tuning import (
-    HyperparameterTuner,
+from .model_registry import (  # noqa: E402
+    ModelInfo,
+    ModelMetadata,
+    ModelRegistry,
+    crear_metadata,
+    obtener_registry,
+)
+from .predictor import (  # noqa: E402
+    DemandPredictor,
+    StockOptimizer,
+    cleanup_expired_models,
+    clear_model_cache,
+    get_cached_predictor,
+    get_predictor_with_stock,
+    set_cache_ttl,
+)
+from .tuning import (  # noqa: E402
     AutoModelSelector,
-    TuningResult,
     AutoSelectResult,
+    HyperparameterTuner,
+    TuningResult,
+    obtener_params_default,
     optimizar_rapido,
     seleccionar_mejor_modelo,
-    obtener_params_default
 )
-
-from .model_registry import (
-    ModelRegistry,
-    ModelMetadata,
-    ModelInfo,
-    crear_metadata,
-    obtener_registry
-)
-
 
 # Exports públicos
 __all__ = [

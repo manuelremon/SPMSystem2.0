@@ -51,8 +51,8 @@ LLM_AVAILABLE = False
 # =============================================================================
 try:
     from .embedder import Embedder, get_embedder
-    from .vector_store import VectorStore, get_vector_store
     from .material_retriever import MaterialRetriever, get_material_retriever
+    from .vector_store import VectorStore, get_vector_store
 
     RAG_AVAILABLE = True
     logger.info("Módulo RAG (búsqueda semántica) cargado correctamente")
@@ -90,19 +90,19 @@ except ImportError as e:
 # =============================================================================
 try:
     from .llm_client import (
-        BaseLLMClient,
-        OpenAIClient,
         AnthropicClient,
+        BaseLLMClient,
         MockLLMClient,
+        OpenAIClient,
         get_llm_client,
     )
+    from .pipeline import RAGPipeline, get_rag_pipeline
     from .prompts import (
+        TEMPLATES,
         PromptTemplate,
         get_template,
         list_templates,
-        TEMPLATES,
     )
-    from .pipeline import RAGPipeline, get_rag_pipeline
 
     LLM_AVAILABLE = True
     logger.info("Módulo LLM/RAG Pipeline cargado correctamente")
