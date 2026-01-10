@@ -73,7 +73,7 @@ const OTIFGauge = ({ value }) => {
         </div>
       </div>
       <p className="mt-2 text-sm font-medium text-gray-700">OTIF</p>
-      <p className="text-xs text-gray-500">On Time In Full</p>
+      <p className="text-xs text-gray-500">A tiempo y completo</p>
     </div>
   );
 };
@@ -191,12 +191,12 @@ export default function ProcurementDashboard() {
     setImporting(true);
     try {
       const res = await procurementService.importFile(file);
-      alert(`Importacion completada:\n- Insertados: ${res.data.stats?.solpeds_inserted || 0} SOLPEDs\n- Actualizados: ${res.data.stats?.solpeds_updated || 0}`);
+      alert(`Importación completada:\n- Insertados: ${res.data.stats?.solpeds_inserted || 0} SOLPEDs\n- Actualizados: ${res.data.stats?.solpeds_updated || 0}`);
       setShowImportModal(false);
       fetchData();
     } catch (err) {
       console.error('Error importing:', err);
-      alert('Error durante la importacion: ' + (err.response?.data?.error || err.message));
+      alert('Error durante la importación: ' + (err.response?.data?.error || err.message));
     } finally {
       setImporting(false);
     }
@@ -214,14 +214,9 @@ export default function ProcurementDashboard() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {t('procurement_dashboard', 'Procurement Dashboard')}
-          </h1>
-          <p className="text-sm text-gray-500">
-            {t('procurement_subtitle', 'Requisiciones SAP, Ordenes de Compra y KPIs')}
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {t('procurement_dashboard', 'Panel de Compras SAP')}
+        </h1>
         <div className="flex items-center gap-3">
           {/* Filtro Periodo */}
           <select
@@ -229,9 +224,9 @@ export default function ProcurementDashboard() {
             onChange={(e) => setPeriodo(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
           >
-            <option value="mes">Ultimo Mes</option>
-            <option value="trimestre">Ultimo Trimestre</option>
-            <option value="anio">Ultimo Anio</option>
+            <option value="mes">Último Mes</option>
+            <option value="trimestre">Último Trimestre</option>
+            <option value="anio">Último Año</option>
           </select>
 
           {/* Boton Refresh */}
@@ -272,9 +267,9 @@ export default function ProcurementDashboard() {
             color="blue"
           />
           <StatCard
-            title="Lead Time Promedio"
-            value={`${kpis.lead_times?.total_dias || 0} dias`}
-            subtitle={`Aprobacion: ${kpis.lead_times?.aprobacion_dias || 0}d | Entrega: ${kpis.lead_times?.entrega_dias || 0}d`}
+            title="Tiempo de Entrega"
+            value={`${kpis.lead_times?.total_dias || 0} días`}
+            subtitle={`Aprobación: ${kpis.lead_times?.aprobacion_dias || 0}d | Entrega: ${kpis.lead_times?.entrega_dias || 0}d`}
             icon={Clock}
             color="purple"
           />
@@ -288,7 +283,7 @@ export default function ProcurementDashboard() {
           <StatCard
             title="Proveedores Activos"
             value={kpis.totales?.proveedores_unicos || 0}
-            subtitle={`${kpis.totales?.materiales_unicos || 0} materiales unicos`}
+            subtitle={`${kpis.totales?.materiales_unicos || 0} materiales únicos`}
             icon={Users}
             color="orange"
           />
@@ -329,7 +324,7 @@ export default function ProcurementDashboard() {
       {/* Pipeline */}
       {pipeline.length > 0 && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Pipeline de Conversion</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Embudo de Conversión</h3>
           <div className="flex items-center justify-between">
             {pipeline.map((etapa, idx) => (
               <div key={idx} className="flex-1 text-center">
@@ -361,7 +356,7 @@ export default function ProcurementDashboard() {
       {/* Historial de Importaciones */}
       {importHistory.length > 0 && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Ultimas Importaciones</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Últimas Importaciones</h3>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
