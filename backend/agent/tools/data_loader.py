@@ -2,7 +2,8 @@
 Herramienta para cargar datos del sistema SPM.
 
 Carga solicitudes, materiales, stock, presupuestos desde BD.
-Integración con datos SAP (stock, consumo histórico, pedidos).
+- Solicitudes/Presupuestos/Catalogs: PostgreSQL (producción)
+- Stock/Consumo histórico/Materiales: SQLite (datos SAP)
 """
 
 import logging
@@ -14,9 +15,19 @@ from .base import BaseTool, ToolError, ToolMetadata
 
 logger = logging.getLogger(__name__)
 
-# Rutas a bases de datos SAP
+# Rutas a bases de datos SAP (SQLite)
 SAP_DATA_DB = Path("data/sap_data.db")
 CATALOGO_MATERIALES_DB = Path("data/catalogo_materiales.db")
+
+
+def _get_db_connection():
+    """Obtiene conexión a PostgreSQL."""
+    try:
+        from backend.core.db import get_db_connection
+        return get_db_connection()
+    except ImportError:
+        from core.db import get_db_connection
+        return get_db_connection()
 
 
 class DataLoader(BaseTool):
@@ -24,27 +35,19 @@ class DataLoader(BaseTool):
     Herramienta para cargar datos del sistema SPM.
 
     Soporta:
-    - Solicitudes (todas, por usuario, por estado)
-    - Materiales (búsqueda, filtros)
-    - Stock disponible
-    - Presupuestos por centro/sector
-    - Información de centros, sectores, almacenes
+    - Solicitudes (todas, por usuario, por estado) - PostgreSQL
+    - Materiales (búsqueda, filtros) - SQLite (catalogo_materiales.db)
+    - Stock disponible - SQLite (sap_data.db)
+    - Presupuestos por centro/sector - PostgreSQL
+    - Información de centros, sectores, almacenes - PostgreSQL
     """
 
-    def __init__(self, db_path: str = "backend/spm.db"):
-        """
-        Inicializa el cargador de datos.
-
-        Args:
-            db_path: Ruta a la BD SQLite
-        """
+    def __init__(self):
+        """Inicializa el cargador de datos."""
         super().__init__(
             name="load_data",
             description="Carga datos del sistema SPM (solicitudes, materiales, stock, etc.)",
         )
-        self.db_path = Path(db_path)
-        if not self.db_path.exists():
-            logger.warning(f"BD no encontrada: {db_path}")
 
     def execute(
         self,
@@ -57,12 +60,12 @@ class DataLoader(BaseTool):
 
         Args:
             data_type: Tipo de datos:
-                - 'solicitudes': Solicitudes de materiales
-                - 'materiales': Catálogo de materiales
-                - 'stock': Stock actual desde SAP (sap_data.db)
-                - 'consumo_historico': Historial de consumo SAP
-                - 'presupuestos': Presupuestos por centro/sector
-                - 'catalogs': Catálogos (centros, sectores, almacenes)
+                - 'solicitudes': Solicitudes de materiales (PostgreSQL)
+                - 'materiales': Catálogo de materiales (SQLite)
+                - 'stock': Stock actual desde SAP (SQLite)
+                - 'consumo_historico': Historial de consumo SAP (SQLite)
+                - 'presupuestos': Presupuestos por centro/sector (PostgreSQL)
+                - 'catalogs': Catálogos (centros, sectores, almacenes) (PostgreSQL)
             filters: Filtros a aplicar (ej: {"estado": "aprobada"})
             limit: Límite de registros
 
@@ -87,61 +90,74 @@ class DataLoader(BaseTool):
             raise ToolError(f"Tipo de dato no soportado: {data_type}")
 
     def _load_solicitudes(self, filters: Dict[str, Any], limit: int) -> Dict[str, Any]:
-        """Carga solicitudes de la BD."""
+        """Carga solicitudes desde PostgreSQL."""
         try:
-            conn = sqlite3.connect(self.db_path)
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
+            with _get_db_connection() as conn:
+                cursor = conn.cursor()
 
-            query = "SELECT * FROM solicitudes WHERE 1=1"
-            params = []
+                query = "SELECT id, status, criticidad, centro, sector, total_monto, created_at, id_usuario FROM solicitudes WHERE 1=1"
+                params = []
 
-            # Aplicar filtros
-            if "estado" in filters:
-                query += " AND status = ?"
-                params.append(filters["estado"])
+                # Aplicar filtros
+                if "estado" in filters:
+                    query += " AND status = %s"
+                    params.append(filters["estado"])
 
-            if "usuario_id" in filters:
-                query += " AND id_usuario = ?"
-                params.append(filters["usuario_id"])
+                if "usuario_id" in filters:
+                    query += " AND id_usuario = %s"
+                    params.append(filters["usuario_id"])
 
-            if "centro" in filters:
-                query += " AND centro = ?"
-                params.append(filters["centro"])
+                if "centro" in filters:
+                    query += " AND centro = %s"
+                    params.append(filters["centro"])
 
-            query += f" LIMIT {limit}"
+                query += f" ORDER BY created_at DESC LIMIT {limit}"
 
-            cursor.execute(query, params)
-            rows = cursor.fetchall()
-            conn.close()
+                cursor.execute(query, params)
+                rows = cursor.fetchall()
 
-            solicitudes = [dict(row) for row in rows]
+                solicitudes = [dict(row) for row in rows]
 
-            return {
-                "data_type": "solicitudes",
-                "count": len(solicitudes),
-                "data": solicitudes,
-                "filters_applied": filters,
-            }
+                return {
+                    "data_type": "solicitudes",
+                    "count": len(solicitudes),
+                    "data": solicitudes,
+                    "filters_applied": filters,
+                }
 
         except Exception as e:
             logger.error(f"Error cargando solicitudes: {e}")
-            raise ToolError(f"No se pudieron cargar solicitudes: {e}")
+            return {
+                "data_type": "solicitudes",
+                "count": 0,
+                "data": [],
+                "error": str(e),
+            }
 
     def _load_materiales(self, filters: Dict[str, Any], limit: int) -> Dict[str, Any]:
-        """Carga materiales de la BD."""
+        """Carga materiales desde catalogo_materiales.db (SQLite)."""
+        if not CATALOGO_MATERIALES_DB.exists():
+            logger.warning(f"BD catálogo no encontrada: {CATALOGO_MATERIALES_DB}")
+            return {
+                "data_type": "materiales",
+                "count": 0,
+                "data": [],
+                "error": f"BD catálogo no encontrada: {CATALOGO_MATERIALES_DB}",
+            }
+
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = sqlite3.connect(CATALOGO_MATERIALES_DB)
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
-            query = "SELECT * FROM materiales WHERE 1=1"
+            query = "SELECT codigo, descripcion, descripcion_larga, unidad_medida, precio_usd FROM materiales WHERE 1=1"
             params = []
 
             # Búsqueda por descripción
             if "search" in filters:
-                query += " AND descripcion LIKE ?"
-                params.append(f"%{filters['search']}%")
+                query += " AND (descripcion LIKE ? OR descripcion_larga LIKE ?)"
+                search_term = f"%{filters['search']}%"
+                params.extend([search_term, search_term])
 
             # Filtro por código
             if "codigo" in filters:
@@ -161,11 +177,17 @@ class DataLoader(BaseTool):
                 "count": len(materiales),
                 "data": materiales,
                 "filters_applied": filters,
+                "source": "catalogo_materiales.db",
             }
 
         except Exception as e:
             logger.error(f"Error cargando materiales: {e}")
-            raise ToolError(f"No se pudieron cargar materiales: {e}")
+            return {
+                "data_type": "materiales",
+                "count": 0,
+                "data": [],
+                "error": str(e),
+            }
 
     def _load_stock(self, filters: Dict[str, Any], limit: int) -> Dict[str, Any]:
         """
@@ -408,55 +430,59 @@ class DataLoader(BaseTool):
         return result
 
     def _load_presupuestos(self, filters: Dict[str, Any]) -> Dict[str, Any]:
-        """Carga presupuestos por centro/sector."""
+        """Carga presupuestos desde PostgreSQL."""
         try:
-            conn = sqlite3.connect(self.db_path)
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
+            with _get_db_connection() as conn:
+                cursor = conn.cursor()
 
-            query = "SELECT * FROM presupuestos WHERE 1=1"
-            params = []
+                query = "SELECT * FROM presupuestos WHERE 1=1"
+                params = []
 
-            if "centro" in filters:
-                query += " AND centro = ?"
-                params.append(filters["centro"])
+                if "centro" in filters:
+                    query += " AND centro_id = %s"
+                    params.append(filters["centro"])
 
-            if "sector" in filters:
-                query += " AND sector = ?"
-                params.append(filters["sector"])
+                if "sector" in filters:
+                    query += " AND sector_id = %s"
+                    params.append(filters["sector"])
 
-            cursor.execute(query, params)
-            rows = cursor.fetchall()
-            conn.close()
+                cursor.execute(query, params)
+                rows = cursor.fetchall()
 
-            presupuestos = [dict(row) for row in rows]
+                presupuestos = [dict(row) for row in rows]
 
-            return {"data_type": "presupuestos", "count": len(presupuestos), "data": presupuestos}
+                return {
+                    "data_type": "presupuestos",
+                    "count": len(presupuestos),
+                    "data": presupuestos,
+                }
 
         except Exception as e:
             logger.error(f"Error cargando presupuestos: {e}")
             return {"data_type": "presupuestos", "count": 0, "data": [], "error": str(e)}
 
     def _load_catalogs(self) -> Dict[str, Any]:
-        """Carga catálogos (centros, sectores, almacenes)."""
+        """Carga catálogos desde PostgreSQL."""
         try:
-            conn = sqlite3.connect(self.db_path)
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-
-            # Cargar cada catálogo
             catalogs = {}
 
-            cursor.execute("SELECT * FROM catalog_centros LIMIT 100")
-            catalogs["centros"] = [dict(row) for row in cursor.fetchall()]
+            with _get_db_connection() as conn:
+                cursor = conn.cursor()
 
-            cursor.execute("SELECT * FROM catalog_sectores LIMIT 100")
-            catalogs["sectores"] = [dict(row) for row in cursor.fetchall()]
+                # Centros
+                cursor.execute("SELECT * FROM catalog_centros LIMIT 100")
+                catalogs["centros"] = [dict(row) for row in cursor.fetchall()]
 
-            cursor.execute("SELECT * FROM catalog_almacenes LIMIT 100")
-            catalogs["almacenes"] = [dict(row) for row in cursor.fetchall()]
+                # Sectores
+                cursor.execute("SELECT * FROM catalog_sectores LIMIT 100")
+                catalogs["sectores"] = [dict(row) for row in cursor.fetchall()]
 
-            conn.close()
+                # Almacenes (si existe)
+                try:
+                    cursor.execute("SELECT * FROM catalog_almacenes LIMIT 100")
+                    catalogs["almacenes"] = [dict(row) for row in cursor.fetchall()]
+                except Exception:
+                    catalogs["almacenes"] = []
 
             return {"data_type": "catalogs", "data": catalogs}
 
@@ -484,7 +510,7 @@ class DataLoader(BaseTool):
                         ],
                         "description": (
                             "Tipo de datos a cargar. 'stock' y 'consumo_historico' "
-                            "provienen de sap_data.db"
+                            "provienen de sap_data.db (SQLite)"
                         ),
                     },
                     "filters": {"type": "object", "description": "Filtros a aplicar"},
