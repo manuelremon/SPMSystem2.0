@@ -26,7 +26,7 @@ export default function AdminCrudTemplate({
   parseList,
   transformSubmit,
   customUpdate,
-  hideCardTitle = false,
+  hideCardTitle = true,
   hideDescription = false,
 }) {
   const { t } = useI18n();
