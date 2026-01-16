@@ -328,11 +328,11 @@ INSERT INTO usuarios VALUES (
   'Sector',
   'test@ejemplo.com',
   '555-1234',
-  'ID_YPF',
+  'ID_EMPRESA',
   'Jefe',
   'Gerente',
   'Gerente',
-  '["1008"]',  -- JSON con centros
+  '["1001"]',  -- JSON con centros
   'activo',
   '...',  -- bcrypt hash
   CURRENT_TIMESTAMP,

@@ -118,7 +118,7 @@ export default function AdminUsuarios() {
             return sectorMap[row.sector] || row.sector || '-';
           }
         },
-        { key: 'id_ypf', label: 'ID YPF' },
+        { key: 'id_ypf', label: 'ID Empresa' },
         {
           key: 'estado_registro',
           label: 'Estado',
@@ -214,8 +214,8 @@ export default function AdminUsuarios() {
         },
         {
           name: 'id_ypf',
-          label: 'ID YPF',
-          placeholder: 'Identificador YPF del usuario'
+          label: 'ID Empresa',
+          placeholder: 'Identificador del usuario en la empresa'
         },
         {
           name: 'sector',

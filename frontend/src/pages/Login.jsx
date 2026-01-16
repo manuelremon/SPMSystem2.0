@@ -199,7 +199,7 @@ export default function Login() {
 
         {/* Footer */}
         <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-6">
-          © 2025 SPM. Todos los derechos reservados. Desarrollador: Manuel Remón / Neuquén, Argentina. / +54 9 299 467 3102
+          © 2025 SPM. Todos los derechos reservados.
         </p>
       </div>
 

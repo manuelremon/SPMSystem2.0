@@ -1017,7 +1017,7 @@ def admin_proveedores_externos_mod(cuit):
 
 
 # ==============================================================================
-# PROVEEDORES INTERNOS (Almacenes YPF)
+# PROVEEDORES INTERNOS (Almacenes Internos)
 # ==============================================================================
 
 

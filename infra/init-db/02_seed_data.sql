@@ -1,18 +1,18 @@
--- Datos iniciales para SPM v2.0
+-- Datos iniciales para SPM v2.0 (DATOS ANONIMIZADOS)
 -- Todos los usuarios tienen contrasena: "a"
 
 -- Usuarios del sistema
 INSERT INTO usuarios (id_spm, nombre, apellido, rol, contrasena, mail, posicion, sector, centros, jefe, gerente1, gerente2, telefono, estado_registro, id_ypf, mail_respaldo, almacenes) VALUES
-('1', 'Manu', 'Remon', 'Admin, Administrador, Aprobador_presupuestos, Aprobador_solicitudes, Planificador', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'admin@spm.local', 'Administrador General', 'Mantenimiento', '1008,1050', NULL, NULL, NULL, '', 'Activo', '', NULL, NULL),
-('2', 'Laura', 'Planner', 'Planificador, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'planner1@spm.local', 'Planificador Senior', 'Planificacion', '1500', '6', '6', '7', '', 'Activo', '', NULL, NULL),
-('3', 'Sergio', 'Planner', 'Planificador, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'planner2@spm.local', 'Planificador', 'Mantenimiento', '1008,1050', '6', '6', '7', '', 'Activo', '', NULL, NULL),
-('4', 'Carlos', 'Perez', 'Aprobador_solicitudes, Jefe, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'jefe1@spm.local', 'Jefe de Sector', 'Planificacion', '1008,1050', '6', '6', '7', '', 'Activo', '', NULL, NULL),
-('5', 'Maria', 'Lopez', 'Aprobador_solicitudes, Jefe, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'jefe2@spm.local', 'Jefa de Area', 'Mantenimiento', '1008,1050', '6', '6', '7', '', 'Activo', '', NULL, '["0001"]'),
-('6', 'Andres', 'Garcia', 'Aprobador_presupuestos, Aprobador_solicitudes, Gerente1, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'gerente1@spm.local', 'Gerente Regional', 'Mantenimiento', '1008,1050,1064', '7', NULL, '7', '', 'Activo', '', NULL, NULL),
-('7', 'Luis', 'Lopez', 'Aprobador_presupuestos, Aprobador_solicitudes, Gerente2, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'gerente2@spm.local', 'Director de Operaciones', 'Mantenimiento', '1008,1050,1064', '1', NULL, NULL, '', 'Activo', '', NULL, NULL),
-('8', 'Juan', 'Levi', 'Solicitante, solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'juanlevi@spm.local', 'Empleado', 'Mantenimiento', '1050,1008', '4', '6', '7', '2994565456', 'Activo', '', '', '0101,0001'),
-('9', 'Pedro', 'Mamani', 'Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'pedromamani@spm.local', 'Tecnico', 'Mantenimiento', '1500', '4', '6', '7', '', 'Activo', '', NULL, NULL),
-('10', 'Roberto', 'Rosas', 'Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'robertorosas@spm.local', 'Operador', 'Mantenimiento', '1008,1050', '5', '6', '7', '', 'Activo', '', NULL, NULL)
+('1', 'Admin', 'Demo', 'Admin, Administrador, Aprobador_presupuestos, Aprobador_solicitudes, Planificador', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'admin@demo.local', 'Administrador General', 'Mantenimiento', '1001,1002', NULL, NULL, NULL, '', 'Activo', '', NULL, NULL),
+('2', 'Laura', 'Planificador', 'Planificador, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'planner1@demo.local', 'Planificador Senior', 'Planificacion', '1004', '6', '6', '7', '', 'Activo', '', NULL, NULL),
+('3', 'Sergio', 'Planificador', 'Planificador, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'planner2@demo.local', 'Planificador', 'Mantenimiento', '1001,1002', '6', '6', '7', '', 'Activo', '', NULL, NULL),
+('4', 'Carlos', 'Usuario', 'Aprobador_solicitudes, Jefe, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'jefe1@demo.local', 'Jefe de Sector', 'Planificacion', '1001,1002', '6', '6', '7', '', 'Activo', '', NULL, NULL),
+('5', 'Maria', 'Aprobador', 'Aprobador_solicitudes, Jefe, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'jefe2@demo.local', 'Jefa de Area', 'Mantenimiento', '1001,1002', '6', '6', '7', '', 'Activo', '', NULL, '["0001"]'),
+('6', 'Andres', 'Gerente', 'Aprobador_presupuestos, Aprobador_solicitudes, Gerente1, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'gerente1@demo.local', 'Gerente Regional', 'Mantenimiento', '1001,1002,1003', '7', NULL, '7', '', 'Activo', '', NULL, NULL),
+('7', 'Luis', 'Gerente', 'Aprobador_presupuestos, Aprobador_solicitudes, Gerente2, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'gerente2@demo.local', 'Director de Operaciones', 'Mantenimiento', '1001,1002,1003', '1', NULL, NULL, '', 'Activo', '', NULL, NULL),
+('8', 'Juan', 'Usuario', 'Solicitante, solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'juanusuario@demo.local', 'Empleado', 'Mantenimiento', '1002,1001', '4', '6', '7', '5550001234', 'Activo', '', '', '0101,0001'),
+('9', 'Pedro', 'Usuario', 'Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'pedrousuario@demo.local', 'Tecnico', 'Mantenimiento', '1004', '4', '6', '7', '', 'Activo', '', NULL, NULL),
+('10', 'Roberto', 'Usuario', 'Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'robertousuario@demo.local', 'Operador', 'Mantenimiento', '1001,1002', '5', '6', '7', '', 'Activo', '', NULL, NULL)
 ON CONFLICT (id_spm) DO NOTHING;
 
 -- Catalogo de Sectores
@@ -23,17 +23,17 @@ INSERT INTO catalog_sectores (nombre, activo) VALUES ('Planificacion', 1) ON CON
 INSERT INTO catalog_sectores (nombre, activo) VALUES ('Produccion', 1) ON CONFLICT DO NOTHING;
 INSERT INTO catalog_sectores (nombre, activo) VALUES ('Logistica', 1) ON CONFLICT DO NOTHING;
 
--- Catalogo de Centros
-INSERT INTO catalog_centros (codigo, nombre, activo) VALUES ('1008', 'UP Loma La Lata', 1) ON CONFLICT DO NOTHING;
-INSERT INTO catalog_centros (codigo, nombre, activo) VALUES ('1050', 'UP UTE Rio Neuquen', 1) ON CONFLICT DO NOTHING;
-INSERT INTO catalog_centros (codigo, nombre, activo) VALUES ('1064', 'UP Anelo', 1) ON CONFLICT DO NOTHING;
-INSERT INTO catalog_centros (codigo, nombre, activo) VALUES ('1500', 'MID Loma La Lata', 1) ON CONFLICT DO NOTHING;
-INSERT INTO catalog_centros (codigo, nombre, activo) VALUES ('1501', 'MID Sierra Barrosa', 1) ON CONFLICT DO NOTHING;
-INSERT INTO catalog_centros (codigo, nombre, activo) VALUES ('1502', 'MID El Porton', 1) ON CONFLICT DO NOTHING;
+-- Catalogo de Centros (ANONIMIZADOS)
+INSERT INTO catalog_centros (codigo, nombre, activo) VALUES ('1001', 'Planta Norte', 1) ON CONFLICT DO NOTHING;
+INSERT INTO catalog_centros (codigo, nombre, activo) VALUES ('1002', 'Planta Sur', 1) ON CONFLICT DO NOTHING;
+INSERT INTO catalog_centros (codigo, nombre, activo) VALUES ('1003', 'Planta Este', 1) ON CONFLICT DO NOTHING;
+INSERT INTO catalog_centros (codigo, nombre, activo) VALUES ('1004', 'Terminal Alpha', 1) ON CONFLICT DO NOTHING;
+INSERT INTO catalog_centros (codigo, nombre, activo) VALUES ('1005', 'Terminal Beta', 1) ON CONFLICT DO NOTHING;
+INSERT INTO catalog_centros (codigo, nombre, activo) VALUES ('1006', 'Terminal Gamma', 1) ON CONFLICT DO NOTHING;
 
 -- Catalogo de Almacenes
 INSERT INTO catalog_almacenes (codigo, nombre, activo) VALUES ('0001', 'Mantenimiento', 1) ON CONFLICT DO NOTHING;
-INSERT INTO catalog_almacenes (codigo, nombre, activo) VALUES ('0012', 'Yacimiento Digital', 1) ON CONFLICT DO NOTHING;
+INSERT INTO catalog_almacenes (codigo, nombre, activo) VALUES ('0012', 'Digital', 1) ON CONFLICT DO NOTHING;
 INSERT INTO catalog_almacenes (codigo, nombre, activo) VALUES ('0101', 'Criticos', 1) ON CONFLICT DO NOTHING;
 INSERT INTO catalog_almacenes (codigo, nombre, activo) VALUES ('9002', 'Energia', 1) ON CONFLICT DO NOTHING;
 INSERT INTO catalog_almacenes (codigo, nombre, activo) VALUES ('9003', 'Obras', 1) ON CONFLICT DO NOTHING;
@@ -55,12 +55,12 @@ INSERT INTO catalog_puestos (nombre, activo) VALUES ('Supervisor', 1) ON CONFLIC
 INSERT INTO catalog_puestos (nombre, activo) VALUES ('Analista', 1) ON CONFLICT DO NOTHING;
 INSERT INTO catalog_puestos (nombre, activo) VALUES ('Coordinador', 1) ON CONFLICT DO NOTHING;
 
--- Presupuestos iniciales
+-- Presupuestos iniciales (CENTROS ANONIMIZADOS)
 INSERT INTO presupuestos (centro, sector, monto_usd, saldo_usd, version, monto_cents, saldo_cents) VALUES
-('1008', 'Mantenimiento', 2100110.0, 2047565.19, 6, 210011000, 204756519),
-('1050', 'Mantenimiento', 500000.0, 500000.0, 1, 50000000, 50000000),
-('1064', 'Mantenimiento', 300000.0, 300000.0, 1, 30000000, 30000000),
-('1500', 'Mantenimiento', 200000.0, 200000.0, 1, 20000000, 20000000)
+('1001', 'Mantenimiento', 2100110.0, 2047565.19, 6, 210011000, 204756519),
+('1002', 'Mantenimiento', 500000.0, 500000.0, 1, 50000000, 50000000),
+('1003', 'Mantenimiento', 300000.0, 300000.0, 1, 30000000, 30000000),
+('1004', 'Mantenimiento', 200000.0, 200000.0, 1, 20000000, 20000000)
 ON CONFLICT (centro, sector) DO NOTHING;
 
 -- Configuracion de scores de equivalencia
@@ -87,35 +87,35 @@ INSERT INTO reglas_aprobacion (rol_solicitante, monto_minimo, monto_maximo, rol_
 ('Solicitante', 50000, NULL, 'Admin', 3, true)
 ON CONFLICT DO NOTHING;
 
--- Asignaciones de planificadores
+-- Asignaciones de planificadores (CENTROS ANONIMIZADOS)
 INSERT INTO planificador_asignaciones (planificador_id, centro, sector, almacen_virtual, prioridad, activo) VALUES
-('2', '1500', 'Mantenimiento', NULL, 1, true),
-('2', '1500', 'Planificacion', NULL, 1, true),
-('3', '1008', 'Mantenimiento', NULL, 1, true),
-('3', '1050', 'Mantenimiento', NULL, 1, true),
-('1', '1008', NULL, NULL, 2, true),
-('1', '1050', NULL, NULL, 2, true)
+('2', '1004', 'Mantenimiento', NULL, 1, true),
+('2', '1004', 'Planificacion', NULL, 1, true),
+('3', '1001', 'Mantenimiento', NULL, 1, true),
+('3', '1002', 'Mantenimiento', NULL, 1, true),
+('1', '1001', NULL, NULL, 2, true),
+('1', '1002', NULL, NULL, 2, true)
 ON CONFLICT DO NOTHING;
 
--- Algunos proveedores externos de ejemplo
+-- Proveedores externos de ejemplo (ANONIMIZADOS)
 INSERT INTO proveedores_externos (cuit, nombre, direccion, localidad, pais, origen, lead_time_dias, rubro, calificacion, activo) VALUES
-('30-12345678-9', 'Ferreteria Industrial SA', 'Av. Industrial 1234', 'Neuquen', 'Argentina', 'local', 7, 'Ferreteria', 'cumplidor', true),
-('30-98765432-1', 'Bombas y Valvulas SRL', 'Ruta 22 Km 5', 'Cipolletti', 'Argentina', 'local', 14, 'Bombas', 'cumplidor', true),
-('30-11223344-5', 'Importadora Tecnica', 'Zona Franca Lote 10', 'Neuquen', 'Argentina', 'exterior', 45, 'Repuestos', 'sin_calificar', true)
+('30-12345678-9', 'Proveedor Industrial A', 'Av. Industrial 1234', 'Ciudad Norte', 'Pais Demo', 'local', 7, 'Ferreteria', 'cumplidor', true),
+('30-98765432-1', 'Proveedor Tecnico B', 'Ruta 22 Km 5', 'Ciudad Sur', 'Pais Demo', 'local', 14, 'Bombas', 'cumplidor', true),
+('30-11223344-5', 'Proveedor Importador C', 'Zona Franca Lote 10', 'Ciudad Norte', 'Pais Demo', 'exterior', 45, 'Repuestos', 'sin_calificar', true)
 ON CONFLICT (cuit) DO NOTHING;
 
--- Proveedores internos (almacenes YPF)
+-- Proveedores internos (almacenes internos - ANONIMIZADOS)
 INSERT INTO proveedores_internos (centro, almacen, centro_nombre, almacen_nombre, sector, responsable_centro, referente_id, activo) VALUES
-('1008', '0001', 'UP Loma La Lata', 'Mantenimiento', 'Almacenes', 'Juan Perez', '3', true),
-('1008', '0101', 'UP Loma La Lata', 'Criticos', 'Almacenes', 'Juan Perez', '3', true),
-('1050', '0001', 'UP UTE Rio Neuquen', 'Mantenimiento', 'Almacenes', 'Maria Garcia', '3', true),
-('1500', '0001', 'MID Loma La Lata', 'Mantenimiento', 'Almacenes', 'Pedro Lopez', '2', true)
+('1001', '0001', 'Planta Norte', 'Mantenimiento', 'Almacenes', 'Responsable A', '3', true),
+('1001', '0101', 'Planta Norte', 'Criticos', 'Almacenes', 'Responsable A', '3', true),
+('1002', '0001', 'Planta Sur', 'Mantenimiento', 'Almacenes', 'Responsable B', '3', true),
+('1004', '0001', 'Terminal Alpha', 'Mantenimiento', 'Almacenes', 'Responsable C', '2', true)
 ON CONFLICT (centro, almacen) DO NOTHING;
 
--- Configuracion de almacenes
+-- Configuracion de almacenes (ANONIMIZADOS)
 INSERT INTO config_almacenes (centro, almacen, nombre, libre_disponibilidad, excluido) VALUES
-('1008', '0001', 'Mantenimiento LLL', 1, 0),
-('1008', '0101', 'Criticos LLL', 0, 0),
-('1050', '0001', 'Mantenimiento UTE', 1, 0),
-('1500', '0001', 'Mantenimiento MID', 1, 0)
+('1001', '0001', 'Mantenimiento PN', 1, 0),
+('1001', '0101', 'Criticos PN', 0, 0),
+('1002', '0001', 'Mantenimiento PS', 1, 0),
+('1004', '0001', 'Mantenimiento TA', 1, 0)
 ON CONFLICT (centro, almacen) DO NOTHING;
