@@ -109,6 +109,26 @@ jobs:
             echo "=== Backup completed ==="
           BACKUP_SCRIPT
 
+      - name: Fix permissions
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'PERMISSIONS_SCRIPT'
+            echo "=== Fixing file permissions ==="
+            cd /opt/spm
+
+            # Fix ownership of project directory (requires sudo)
+            sudo chown -R $(whoami):$(whoami) /opt/spm 2>/dev/null || true
+
+            # If sudo not available, try to remove problematic node_modules
+            if [ -d "frontend/node_modules" ]; then
+              rm -rf frontend/node_modules 2>/dev/null || {
+                echo "Warning: Could not remove node_modules, trying with sudo..."
+                sudo rm -rf frontend/node_modules 2>/dev/null || true
+              }
+            fi
+
+            echo "=== Permissions fixed ==="
+          PERMISSIONS_SCRIPT
+
       - name: Deploy to server
         id: deploy
         run: |
