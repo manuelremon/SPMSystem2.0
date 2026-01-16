@@ -86,8 +86,8 @@ jobs:
             set -e
 
             echo "=== Creating pre-deploy backup ==="
-            cd ${{ env.DEPLOY_PATH }}
-            BACKUP_DIR="/opt/spm-backups"
+            cd /opt/spm
+            BACKUP_DIR="/opt/spm/backups"
             TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
             mkdir -p $BACKUP_DIR
@@ -116,7 +116,7 @@ jobs:
             set -e
 
             echo "=== Starting deployment ==="
-            cd ${{ env.DEPLOY_PATH }}
+            cd /opt/spm
 
             echo "=== Pulling latest code ==="
             git fetch origin main
@@ -185,8 +185,8 @@ jobs:
             set -e
 
             echo "=== Starting rollback ==="
-            cd ${{ env.DEPLOY_PATH }}
-            BACKUP_DIR="/opt/spm-backups"
+            cd /opt/spm
+            BACKUP_DIR="/opt/spm/backups"
 
             # Get last good commit
             LAST_COMMIT=$(ls -t $BACKUP_DIR/last_good_commit_*.txt 2>/dev/null | head -1)
