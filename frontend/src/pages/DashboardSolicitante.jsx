@@ -18,8 +18,10 @@ import {
   Package,
   BarChart3,
   Loader2,
+  HelpCircle,
   ICON_COLORS,
 } from "../components/ui/Icons";
+import { Tooltip } from "../components/ui/Tooltip";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
 import { useNavigate, Link } from "react-router-dom";
@@ -198,7 +200,7 @@ export default function DashboardSolicitante() {
               <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                 <CardContent className="h-full flex flex-col justify-between py-5">
                   <div className="flex items-start justify-between">
-                    <div><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Total Solicitudes</p><p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{kpiData.solicitudes.total}</p></div>
+                    <div><div className="flex items-center gap-1 mb-1"><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Solicitudes</p><Tooltip content="Número total de solicitudes que has creado, incluyendo borradores, enviadas, aprobadas y rechazadas." position="top"><HelpCircle className="w-3.5 h-3.5 text-slate-400 cursor-help hover:text-slate-600 dark:hover:text-slate-300 transition-colors" /></Tooltip></div><p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{kpiData.solicitudes.total}</p></div>
                     <div className="h-12 w-12 rounded-2xl bg-blue-500/10 dark:bg-blue-500/20 grid place-items-center"><FileText className={`w-6 h-6 ${ICON_COLORS.primary}`} /></div>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
@@ -219,7 +221,7 @@ export default function DashboardSolicitante() {
                   <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                     <CardContent className="h-full flex flex-col justify-between py-5">
                       <div className="flex items-start justify-between">
-                        <div><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Tasa de Aprobación</p><p className={`text-3xl font-bold ${isGood ? 'text-emerald-600 dark:text-emerald-400' : isWarning ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{tasa}%</p></div>
+                        <div><div className="flex items-center gap-1 mb-1"><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tasa de Aprobación</p><Tooltip content="Porcentaje de solicitudes aprobadas del total enviadas. Verde ≥70% (bueno), amarillo 40-70% (mejorable), rojo <40% (crítico)." position="top"><HelpCircle className="w-3.5 h-3.5 text-slate-400 cursor-help hover:text-slate-600 dark:hover:text-slate-300 transition-colors" /></Tooltip></div><p className={`text-3xl font-bold ${isGood ? 'text-emerald-600 dark:text-emerald-400' : isWarning ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{tasa}%</p></div>
                         <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><Icon className={`w-6 h-6 ${iconColor}`} /></div>
                       </div>
                       <div className="text-sm text-slate-500 dark:text-slate-400">{kpiData.solicitudes.aprobadas} aprobadas de {kpiData.solicitudes.total}</div>
@@ -238,7 +240,7 @@ export default function DashboardSolicitante() {
                   <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                     <CardContent className="h-full flex flex-col justify-between py-5">
                       <div className="flex items-start justify-between">
-                        <div><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Tiempo Promedio</p><p className={`text-3xl font-bold ${valueColor}`}>{prom} días</p></div>
+                        <div><div className="flex items-center gap-1 mb-1"><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tiempo Promedio</p><Tooltip content="Días promedio que tardan tus solicitudes en ser aprobadas. La meta es 3 días o menos." position="top"><HelpCircle className="w-3.5 h-3.5 text-slate-400 cursor-help hover:text-slate-600 dark:hover:text-slate-300 transition-colors" /></Tooltip></div><p className={`text-3xl font-bold ${valueColor}`}>{prom} días</p></div>
                         <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><Clock className={`w-6 h-6 ${iconColor}`} /></div>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
@@ -261,7 +263,7 @@ export default function DashboardSolicitante() {
                   <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
                     <CardContent className="h-full flex flex-col justify-between py-5">
                       <div className="flex items-start justify-between">
-                        <div><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Presupuesto</p><p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(kpiData.presupuesto.utilizado)}</p></div>
+                        <div><div className="flex items-center gap-1 mb-1"><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Presupuesto</p><Tooltip content="Porcentaje del presupuesto consumido en el período actual. Muestra cuánto has gastado del total asignado." position="top"><HelpCircle className="w-3.5 h-3.5 text-slate-400 cursor-help hover:text-slate-600 dark:hover:text-slate-300 transition-colors" /></Tooltip></div><p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(kpiData.presupuesto.utilizado)}</p></div>
                         <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><DollarSign className={`w-6 h-6 ${iconColor}`} /></div>
                       </div>
                       <div className="text-sm"><span className={`font-semibold ${textColor}`}>{pct}%</span><span className="text-slate-500 dark:text-slate-400"> de {formatCurrency(kpiData.presupuesto.total)}</span></div>
