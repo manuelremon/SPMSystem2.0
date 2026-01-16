@@ -1,0 +1,158 @@
+name: Server Diagnostics
+
+on:
+  workflow_dispatch:
+    inputs:
+      log_lines:
+        description: 'Number of log lines to fetch'
+        required: false
+        default: '100'
+      include_system:
+        description: 'Include system info (disk, memory)'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  diagnose:
+    name: Run Diagnostics
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
+      - name: System Information
+        if: ${{ inputs.include_system }}
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'SYSINFO'
+            echo "=========================================="
+            echo "         SYSTEM INFORMATION"
+            echo "=========================================="
+            echo ""
+            echo "=== Hostname & Date ==="
+            hostname
+            date
+            echo ""
+            echo "=== Disk Usage ==="
+            df -h /
+            echo ""
+            echo "=== Memory Usage ==="
+            free -h
+            echo ""
+            echo "=== Docker Version ==="
+            docker --version
+            docker compose version
+          SYSINFO
+
+      - name: Docker Container Status
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'DOCKER_STATUS'
+            echo "=========================================="
+            echo "       DOCKER CONTAINER STATUS"
+            echo "=========================================="
+            echo ""
+            cd /opt/spm
+            echo "=== Running Containers ==="
+            docker compose -f infra/docker-compose.prod.yml ps -a
+            echo ""
+            echo "=== Container Resource Usage ==="
+            docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}" 2>/dev/null || echo "No running containers"
+          DOCKER_STATUS
+
+      - name: Backend Logs
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'BACKEND_LOGS'
+            echo "=========================================="
+            echo "           BACKEND LOGS"
+            echo "=========================================="
+            echo ""
+            cd /opt/spm
+            echo "=== Last ${{ inputs.log_lines }} lines ==="
+            docker compose -f infra/docker-compose.prod.yml logs backend --tail ${{ inputs.log_lines }} 2>&1 || echo "Backend container not found or not running"
+          BACKEND_LOGS
+
+      - name: Nginx Logs
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'NGINX_LOGS'
+            echo "=========================================="
+            echo "            NGINX LOGS"
+            echo "=========================================="
+            echo ""
+            cd /opt/spm
+            echo "=== Last 50 lines ==="
+            docker compose -f infra/docker-compose.prod.yml logs nginx --tail 50 2>&1 || echo "Nginx container not found or not running"
+          NGINX_LOGS
+
+      - name: Application Health Check
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'HEALTH_CHECK'
+            echo "=========================================="
+            echo "        APPLICATION HEALTH"
+            echo "=========================================="
+            echo ""
+            echo "=== Internal Health Check ==="
+            curl -s http://localhost:5000/health 2>/dev/null || echo "Backend not responding on port 5000"
+            echo ""
+            echo "=== External Health Check ==="
+            curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" https://planifica-materiales.com/api/health 2>/dev/null || echo "External check failed"
+            echo ""
+            echo "=== Port Listening ==="
+            ss -tlnp | grep -E "5000|80|443" || echo "No relevant ports listening"
+          HEALTH_CHECK
+
+      - name: Recent Git History
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'GIT_INFO'
+            echo "=========================================="
+            echo "          GIT INFORMATION"
+            echo "=========================================="
+            echo ""
+            cd /opt/spm
+            echo "=== Current Commit ==="
+            git log -1 --format="Commit: %H%nAuthor: %an%nDate: %ad%nMessage: %s"
+            echo ""
+            echo "=== Recent Commits ==="
+            git log --oneline -5
+            echo ""
+            echo "=== Git Status ==="
+            git status --short
+          GIT_INFO
+
+      - name: Check Error Logs
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'ERROR_LOGS'
+            echo "=========================================="
+            echo "           ERROR ANALYSIS"
+            echo "=========================================="
+            echo ""
+            cd /opt/spm
+            echo "=== Backend Errors (last 50 lines with ERROR/Exception) ==="
+            docker compose -f infra/docker-compose.prod.yml logs backend 2>&1 | grep -i -E "error|exception|traceback|failed" | tail -50 || echo "No errors found"
+            echo ""
+            echo "=== Nginx Errors ==="
+            docker compose -f infra/docker-compose.prod.yml logs nginx 2>&1 | grep -i -E "error|failed|502|503|504" | tail -20 || echo "No nginx errors found"
+          ERROR_LOGS
+
+      - name: Cleanup SSH
+        if: always()
+        run: rm -rf ~/.ssh/id_rsa
+
+      - name: Create Summary
+        run: |
+          echo "## Server Diagnostics Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Diagnostics ran at: $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check the job logs above for detailed information about:" >> $GITHUB_STEP_SUMMARY
+          echo "- System resources (disk, memory)" >> $GITHUB_STEP_SUMMARY
+          echo "- Docker container status" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend and Nginx logs" >> $GITHUB_STEP_SUMMARY
+          echo "- Application health" >> $GITHUB_STEP_SUMMARY
+          echo "- Recent git commits" >> $GITHUB_STEP_SUMMARY
+          echo "- Error analysis" >> $GITHUB_STEP_SUMMARY
