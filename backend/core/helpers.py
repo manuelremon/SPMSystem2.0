@@ -93,6 +93,37 @@ def safe_json() -> dict | None:
 # =============================================================================
 
 
+def get_user_id_from_context() -> str:
+    """
+    Obtiene el user_id del contexto de Flask (g).
+
+    Busca en orden:
+    1. g.user (set por auth middleware moderno)
+    2. g.user_id (legacy)
+    3. g.current_user (legacy alternativo)
+
+    Returns:
+        str: ID del usuario o string vacio si no autenticado
+    """
+    from flask import g
+
+    # Formato moderno: g.user es un dict con datos del usuario
+    user = getattr(g, "user", None)
+    if user and isinstance(user, dict):
+        return user.get("id_spm", "")
+
+    # Formatos legacy
+    user_id = getattr(g, "user_id", None)
+    if user_id:
+        return str(user_id)
+
+    current_user = getattr(g, "current_user", None)
+    if current_user and isinstance(current_user, dict):
+        return current_user.get("id_spm", "")
+
+    return ""
+
+
 def get_user_id_from_token(cookie_name: str = "spm_token") -> str | None:
     """
     Extrae el user_id del token JWT.
@@ -336,3 +367,4 @@ _error_response = error_response
 _success_response = success_response
 _utc_now = utc_now
 _resolve_sector_name = resolve_sector_name
+_get_user_id = get_user_id_from_context
