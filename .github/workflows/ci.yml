@@ -41,17 +41,29 @@ jobs:
       - name: Create data directory
         run: mkdir -p data
 
-      - name: Run unit tests
+      - name: Run unit tests with coverage
         run: |
           python -m pytest tests/unit/ -v --tb=short \
             --ignore=tests/unit/test_openapi.py \
+            --cov=backend --cov-report=xml --cov-report=term-missing \
             -x --timeout=60
 
       - name: Run integration tests
         run: |
           python -m pytest tests/integration/ -v --tb=short \
+            --cov=backend --cov-report=xml --cov-append \
             -x --timeout=120
         continue-on-error: true  # Integration tests may need DB
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   # ==================== Backend Linting ====================
   backend-lint:
@@ -75,7 +87,8 @@ jobs:
 
       - name: Run Ruff linter
         run: ruff check backend/ --output-format=github
-        continue-on-error: true  # Don't fail on lint errors for now
+        # TODO: Remove continue-on-error after resolving lint issues
+        continue-on-error: true
 
   # ==================== Frontend Tests ====================
   frontend-tests:
@@ -100,9 +113,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm test -- --passWithNoTests
+      - name: Run tests with coverage
+        run: npm test -- --run --coverage
+        # TODO: Remove continue-on-error when frontend test coverage > 50%
         continue-on-error: true
+
+      - name: Upload frontend coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   # ==================== Frontend Build ====================
   frontend-build:
@@ -162,7 +186,8 @@ jobs:
 
       - name: Run ESLint
         run: npx eslint src/ --max-warnings=0
-        continue-on-error: true  # Don't fail on lint warnings for now
+        # TODO: Remove continue-on-error after configuring ESLint and fixing warnings
+        continue-on-error: true
 
   # ==================== Security Check ====================
   security-check:

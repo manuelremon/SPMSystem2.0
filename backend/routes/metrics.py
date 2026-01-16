@@ -19,6 +19,7 @@ from flask import Blueprint, g, jsonify, request
 
 from backend.core.metrics import get_cache_metrics, get_db_pool_metrics, get_metrics_collector
 from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+from backend.core.rate_limit import rate_limit
 from backend.core.roles import require_auth, require_admin
 
 bp = Blueprint("metrics", __name__, url_prefix="/api/metrics")
@@ -27,6 +28,7 @@ bp = Blueprint("metrics", __name__, url_prefix="/api/metrics")
 @bp.route("", methods=["GET"])
 @bp.route("/", methods=["GET"])
 @require_admin
+@rate_limit(requests=20, window_seconds=60)
 def get_all_metrics():
     """
     Obtiene todas las metricas del sistema.
@@ -46,6 +48,7 @@ def get_all_metrics():
 
 @bp.route("/requests", methods=["GET"])
 @require_admin
+@rate_limit(requests=20, window_seconds=60)
 def get_request_metrics():
     """
     Obtiene metricas de requests HTTP.
@@ -61,6 +64,7 @@ def get_request_metrics():
 
 @bp.route("/endpoints", methods=["GET"])
 @require_admin
+@rate_limit(requests=20, window_seconds=60)
 def get_endpoint_metrics():
     """
     Obtiene metricas por endpoint.
@@ -76,6 +80,7 @@ def get_endpoint_metrics():
 
 @bp.route("/business", methods=["GET"])
 @require_auth
+@rate_limit(requests=20, window_seconds=60)
 def get_business_metrics():
     """
     Obtiene metricas de negocio desde la base de datos.
@@ -174,6 +179,7 @@ def get_business_metrics():
 
 @bp.route("/system", methods=["GET"])
 @require_auth
+@rate_limit(requests=20, window_seconds=60)
 def get_system_metrics():
     """
     Obtiene metricas del sistema.
@@ -191,6 +197,7 @@ def get_system_metrics():
 
 @bp.route("/cache", methods=["GET"])
 @require_auth
+@rate_limit(requests=20, window_seconds=60)
 def get_cache_metrics_endpoint():
     """
     Obtiene metricas de cache.
@@ -207,6 +214,7 @@ def get_cache_metrics_endpoint():
 
 @bp.route("/db", methods=["GET"])
 @require_auth
+@rate_limit(requests=20, window_seconds=60)
 def get_db_metrics():
     """
     Obtiene metricas del pool de BD.
@@ -223,6 +231,7 @@ def get_db_metrics():
 
 @bp.route("/db-stats", methods=["GET"])
 @require_auth
+@rate_limit(requests=20, window_seconds=60)
 def get_db_stats():
     """
     Obtiene estadisticas de las bases de datos.
@@ -232,10 +241,7 @@ def get_db_stats():
     """
     import sqlite3
 
-    try:
-        from backend.core.db import get_db_path
-    except ImportError:
-        from core.db import get_db_path
+    from backend.core.db import get_db_path
 
     # Whitelist de tablas permitidas (defensa en profundidad)
     ALLOWED_TABLES = {
@@ -320,6 +326,7 @@ def get_db_stats():
 
 @bp.route("/reset", methods=["POST"])
 @require_admin
+@rate_limit(requests=5, window_seconds=60)
 def reset_metrics():
     """
     Reinicia todas las metricas.
@@ -345,6 +352,7 @@ def reset_metrics():
 
 @bp.route("/prometheus", methods=["GET"])
 @require_admin
+@rate_limit(requests=30, window_seconds=60)
 def prometheus_metrics():
     """
     Expone metricas en formato Prometheus.
@@ -354,7 +362,9 @@ def prometheus_metrics():
     """
     collector = get_metrics_collector()
     stats = collector.get_request_stats()
+    system_stats = collector.get_system_metrics()
     cache_stats = get_cache_metrics()
+    db_stats = get_db_pool_metrics()
 
     lines = [
         "# HELP spm_requests_total Total de requests HTTP",
@@ -382,6 +392,51 @@ def prometheus_metrics():
     lines.append("# TYPE spm_http_responses_total counter")
     for code, count in stats.get("status_codes", {}).items():
         lines.append(f'spm_http_responses_total{{status="{code}"}} {count}')
+
+    # System metrics (process)
+    if isinstance(system_stats, dict) and "process" in system_stats:
+        proc = system_stats["process"]
+        lines.append("")
+        lines.append("# HELP spm_process_memory_bytes Memoria del proceso en bytes")
+        lines.append("# TYPE spm_process_memory_bytes gauge")
+        memory_mb = proc.get("memory_mb", 0)
+        lines.append(f"spm_process_memory_bytes {int(memory_mb * 1024 * 1024)}")
+
+        lines.append("")
+        lines.append("# HELP spm_process_cpu_percent Uso de CPU del proceso")
+        lines.append("# TYPE spm_process_cpu_percent gauge")
+        lines.append(f'spm_process_cpu_percent {proc.get("cpu_percent", 0)}')
+
+        lines.append("")
+        lines.append("# HELP spm_process_threads Numero de threads del proceso")
+        lines.append("# TYPE spm_process_threads gauge")
+        lines.append(f'spm_process_threads {proc.get("threads", 0)}')
+
+    # System metrics (global)
+    if isinstance(system_stats, dict) and "system" in system_stats:
+        sys_info = system_stats["system"]
+        if "cpu_percent" in sys_info:
+            lines.append("")
+            lines.append("# HELP spm_system_cpu_percent Uso global de CPU")
+            lines.append("# TYPE spm_system_cpu_percent gauge")
+            lines.append(f'spm_system_cpu_percent {sys_info.get("cpu_percent", 0)}')
+
+            lines.append("")
+            lines.append("# HELP spm_system_memory_percent Uso global de memoria")
+            lines.append("# TYPE spm_system_memory_percent gauge")
+            lines.append(f'spm_system_memory_percent {sys_info.get("memory_percent", 0)}')
+
+    # Database pool metrics
+    if isinstance(db_stats, dict) and "error" not in db_stats:
+        lines.append("")
+        lines.append("# HELP spm_db_pool_size Tamano del pool de conexiones")
+        lines.append("# TYPE spm_db_pool_size gauge")
+        lines.append(f'spm_db_pool_size {db_stats.get("pool_size", 0)}')
+
+        lines.append("")
+        lines.append("# HELP spm_db_connections_active Conexiones activas")
+        lines.append("# TYPE spm_db_connections_active gauge")
+        lines.append(f'spm_db_connections_active {db_stats.get("active_connections", 0)}')
 
     # Cache metrics
     if isinstance(cache_stats, dict) and "error" not in cache_stats:
@@ -411,6 +466,7 @@ def prometheus_metrics():
 
 @bp.route("/history", methods=["GET"])
 @require_auth
+@rate_limit(requests=20, window_seconds=60)
 def get_metrics_history():
     """
     Obtiene histórico de métricas para gráficos de tendencias.
@@ -478,6 +534,7 @@ def get_metrics_history():
 
 @bp.route("/alerts", methods=["GET"])
 @require_auth
+@rate_limit(requests=20, window_seconds=60)
 def get_system_alerts():
     """
     Obtiene alertas del sistema.
@@ -554,6 +611,7 @@ def get_system_alerts():
 
 @bp.route("/alerts/<int:alert_id>/acknowledge", methods=["POST"])
 @require_admin
+@rate_limit(requests=30, window_seconds=60)
 def acknowledge_alert(alert_id):
     """
     Marca una alerta como reconocida.
@@ -616,6 +674,7 @@ def acknowledge_alert(alert_id):
 
 @bp.route("/alerts/acknowledge-all", methods=["POST"])
 @require_admin
+@rate_limit(requests=5, window_seconds=60)
 def acknowledge_all_alerts():
     """
     Marca todas las alertas pendientes como reconocidas.

@@ -17,8 +17,10 @@ Endpoints:
 
 import logging
 
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, jsonify, request
 
+from backend.core.helpers import _get_user_id
+from backend.core.rate_limit import rate_limit
 from backend.core.roles import require_auth, require_role
 from backend.services.ai_service import AIService, get_ai_service
 from backend.services.temp_data_service import temp_data_service
@@ -26,16 +28,12 @@ from backend.services.temp_data_service import temp_data_service
 
 logger = logging.getLogger(__name__)
 
-
-def _get_user_id() -> str:
-    """Obtiene el user_id del request context."""
-    return getattr(g, "user_id", None) or getattr(g, "current_user", {}).get("id_spm", "")
-
 bp = Blueprint("ai", __name__, url_prefix="/api/ai")
 
 
 @bp.route("/status", methods=["GET"])
 @require_auth
+@rate_limit(requests=20, window_seconds=60)
 def get_status():
     """
     Obtiene estado de los pipelines ML.
@@ -57,6 +55,7 @@ def get_status():
 @bp.route("/train", methods=["POST"])
 @require_auth
 @require_role(["admin", "planner"])
+@rate_limit(requests=2, window_seconds=60)
 def train_models():
     """
     Entrena modelos ML con datos historicos.
@@ -203,6 +202,7 @@ def materiales_similares(material_codigo):
 
 @bp.route("/materiales/forecast/<material_codigo>", methods=["GET"])
 @require_auth
+@rate_limit(requests=5, window_seconds=60)
 def forecast_demanda(material_codigo):
     """
     Proyecta demanda futura para un material.
@@ -552,6 +552,7 @@ def cantidad_optima():
 
 @bp.route("/forecast/models", methods=["GET"])
 @require_auth
+@rate_limit(requests=20, window_seconds=60)
 def get_forecast_models():
     """
     Lista modelos de forecast disponibles.
@@ -590,6 +591,7 @@ def get_forecast_models():
 @bp.route("/forecast/backtest", methods=["POST"])
 @require_auth
 @require_role(["admin", "planner"])
+@rate_limit(requests=5, window_seconds=60)
 def run_backtest():
     """
     Ejecuta backtesting para evaluar precisión del modelo.
@@ -659,6 +661,7 @@ def run_backtest():
 @bp.route("/forecast/compare", methods=["POST"])
 @require_auth
 @require_role(["admin", "planner"])
+@rate_limit(requests=5, window_seconds=60)
 def compare_models():
     """
     Compara múltiples modelos de forecast.
@@ -733,6 +736,7 @@ def compare_models():
 @bp.route("/forecast/auto-select", methods=["POST"])
 @require_auth
 @require_role(["admin", "planner"])
+@rate_limit(requests=5, window_seconds=60)
 def auto_select_model():
     """
     Selecciona automáticamente el mejor modelo para un material.
@@ -818,6 +822,7 @@ def auto_select_model():
 @bp.route("/forecast/tune", methods=["POST"])
 @require_auth
 @require_role(["admin", "planner"])
+@rate_limit(requests=2, window_seconds=60)
 def tune_hyperparameters():
     """
     Optimiza hiperparámetros de un modelo.

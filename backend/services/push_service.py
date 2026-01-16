@@ -13,22 +13,13 @@ from typing import Any, Dict, List, Optional
 
 from pywebpush import WebPushException, webpush
 
-try:
-    from backend.core.db import get_db_connection, get_db_transaction, sql_now_minus
-    from backend.core.push_config import (
-        VAPID_PRIVATE_KEY_PATH,
-        get_vapid_claims,
-        get_vapid_private_key,
-        get_vapid_public_key_base64,
-    )
-except ImportError:
-    from core.db import get_db_connection, get_db_transaction, sql_now_minus
-    from core.push_config import (
-        VAPID_PRIVATE_KEY_PATH,
-        get_vapid_claims,
-        get_vapid_private_key,
-        get_vapid_public_key_base64,
-    )
+from backend.core.db import get_db_connection, get_db_transaction, sql_now_minus
+from backend.core.push_config import (
+    VAPID_PRIVATE_KEY_PATH,
+    get_vapid_claims,
+    get_vapid_private_key,
+    get_vapid_public_key_base64,
+)
 
 logger = logging.getLogger(__name__)
 

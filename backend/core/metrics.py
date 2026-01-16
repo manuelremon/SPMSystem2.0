@@ -445,22 +445,41 @@ def timed(name: Optional[str] = None):
 
 def get_cache_metrics() -> Dict[str, Any]:
     """
-    Obtiene metricas de los caches.
+    Obtiene metricas de todos los sistemas de cache.
 
     Returns:
-        Estadisticas de todos los caches
+        Estadisticas unificadas de caches (simple, advanced, data_loader)
     """
+    result = {}
+
+    # Cache simple (TTLCache)
     try:
         from backend.core.cache import get_cache_stats
+        result.update(get_cache_stats())
+    except Exception:
+        pass
 
-        return get_cache_stats()
-    except ImportError:
-        try:
-            from core.cache import get_cache_stats
+    # Cache avanzado (MemoryCache/Redis)
+    try:
+        from backend.core.cache_advanced import get_cache
+        advanced = get_cache()
+        advanced_stats = advanced.get_stats()
+        result["advanced_cache"] = advanced_stats
+    except Exception:
+        pass
 
-            return get_cache_stats()
-        except ImportError:
-            return {"error": "Cache module not available"}
+    # Data cache loader (DataFrames SAP)
+    try:
+        from backend.core.cache_loader import get_consumo_cache, get_stock_cache
+        # Solo verificar si estan cargados
+        result["data_loader"] = {
+            "stock_loaded": get_stock_cache() is not None,
+            "consumo_loaded": get_consumo_cache() is not None,
+        }
+    except Exception:
+        pass
+
+    return result if result else {"error": "Cache modules not available"}
 
 
 # =============================================================================
@@ -477,12 +496,6 @@ def get_db_pool_metrics() -> Dict[str, Any]:
     """
     try:
         from backend.core.db_optimization import get_all_pool_stats
-
         return get_all_pool_stats()
-    except ImportError:
-        try:
-            from core.db_optimization import get_all_pool_stats
-
-            return get_all_pool_stats()
-        except ImportError:
-            return {"error": "DB optimization module not available"}
+    except Exception:
+        return {"error": "DB optimization module not available"}

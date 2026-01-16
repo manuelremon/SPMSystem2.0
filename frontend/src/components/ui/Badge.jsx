@@ -1,10 +1,11 @@
-import React from "react";
+import React, { memo } from "react";
 import PropTypes from "prop-types";
 import clsx from "clsx";
 
 /**
  * Badge Component - Glass Morphism Style
  * Translucent badges with subtle blur effect
+ * Memoizado para evitar re-renders innecesarios
  */
 const variants = {
   default: "bg-slate-100/70 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 border-slate-200/50 dark:border-slate-600/50",
@@ -15,7 +16,7 @@ const variants = {
   primary: "bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-300/30 dark:border-blue-600/30",
 };
 
-export function Badge({ variant = "default", className, children }) {
+export const Badge = memo(function Badge({ variant = "default", className, children }) {
   return (
     <span
       className={clsx(
@@ -32,7 +33,7 @@ export function Badge({ variant = "default", className, children }) {
       {children}
     </span>
   );
-}
+});
 
 Badge.propTypes = {
   variant: PropTypes.oneOf(["default", "success", "warning", "danger", "info", "primary"]),

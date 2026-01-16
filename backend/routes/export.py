@@ -15,6 +15,7 @@ import logging
 
 from flask import Blueprint, Response, g, jsonify, request
 
+from backend.core.rate_limit import rate_limit
 from backend.core.roles import require_auth, require_role
 from backend.services.reporting_service import get_reporting_service
 
@@ -67,6 +68,7 @@ def _make_download_response(result: dict) -> Response:
 
 @bp.route("/solicitudes", methods=["GET"])
 @require_auth
+@rate_limit(requests=10, window_seconds=60)
 def export_solicitudes():
     """
     Exporta solicitudes.
@@ -109,6 +111,7 @@ def export_solicitudes():
 
 @bp.route("/inventario", methods=["GET"])
 @require_auth
+@rate_limit(requests=10, window_seconds=60)
 def export_inventario():
     """
     Exporta inventario de materiales.
@@ -138,6 +141,7 @@ def export_inventario():
 
 @bp.route("/alertas-mrp", methods=["GET"])
 @require_auth
+@rate_limit(requests=10, window_seconds=60)
 def export_alertas_mrp():
     """
     Exporta alertas MRP.
@@ -200,6 +204,7 @@ def export_alertas_mrp():
 
 @bp.route("/kpis", methods=["GET"])
 @require_auth
+@rate_limit(requests=10, window_seconds=60)
 def export_kpis():
     """
     Exporta reporte de KPIs.
@@ -292,6 +297,7 @@ def export_kpis():
 @bp.route("/custom", methods=["POST"])
 @require_auth
 @require_role(["admin", "planner"])
+@rate_limit(requests=10, window_seconds=60)
 def export_custom():
     """
     Genera reporte personalizado.
@@ -372,6 +378,7 @@ def export_custom():
 
 
 @bp.route("/formatos", methods=["GET"])
+@rate_limit(requests=30, window_seconds=60)
 def get_formatos():
     """
     Lista formatos de exportacion soportados.

@@ -19,12 +19,8 @@ from typing import Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 # Importar configuración de BD
-try:
-    from backend.core.config import settings
-    from backend.core.db import is_using_postgresql, _get_postgres_connection
-except ImportError:
-    from core.config import settings
-    from core.db import is_using_postgresql, _get_postgres_connection
+from backend.core.config import settings
+from backend.core.db import is_using_postgresql, _get_postgres_connection
 
 
 class MessageService:

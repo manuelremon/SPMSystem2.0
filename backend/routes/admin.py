@@ -1179,25 +1179,15 @@ def admin_cache_clear():
 # ==============================================================================
 
 
-try:
-    from backend.services.approval_service import (
-        ApprovalValidationError,
-        actualizar_regla,
-        crear_delegacion,
-        crear_regla,
-        desactivar_regla,
-        listar_reglas,
-        obtener_delegacion_activa,
-    )
-except ImportError:
-    from services.approval_service import (
-        ApprovalValidationError,
-        actualizar_regla,
-        crear_delegacion,
-        crear_regla,
-        desactivar_regla,
-        listar_reglas,
-    )
+from backend.services.approval_service import (
+    ApprovalValidationError,
+    actualizar_regla,
+    crear_delegacion,
+    crear_regla,
+    desactivar_regla,
+    listar_reglas,
+    obtener_delegacion_activa,
+)
 
 
 @bp.route("/reglas-aprobacion", methods=["GET", "POST"])

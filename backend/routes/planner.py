@@ -30,7 +30,7 @@ from backend.core.fsm import (
     normalizar_estado,
     validar_transicion,
 )
-from backend.core.repository_legacy import (
+from backend.core.repository import (
     DecisionAbastecimientoRepository,
     MrpRepository,
     ProveedorPreciosRepository,

@@ -1,8 +1,13 @@
 # SPM v2.0 - Sistema de Planificacion de Materiales
 
+[![CI Pipeline](https://github.com/MANUE/SPMSystem2.0/actions/workflows/ci.yml/badge.svg)](https://github.com/MANUE/SPMSystem2.0/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/MANUE/SPMSystem2.0/branch/main/graph/badge.svg)](https://codecov.io/gh/MANUE/SPMSystem2.0)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/)
+[![React 18](https://img.shields.io/badge/react-18-61dafb.svg)](https://reactjs.org/)
+
 Sistema web profesional para gestionar solicitudes de materiales, construido con **Flask** (backend) + **React + Vite** (frontend).
 
-**Version:** 2.0 | **Estado:** Produccion | **Ultima actualizacion:** 9 Enero 2026
+**Version:** 2.0 | **Estado:** Produccion | **Ultima actualizacion:** 15 Enero 2026
 
 ---
 

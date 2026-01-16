@@ -152,7 +152,7 @@ class DatabaseError(SPMException):
 
 
 class BusinessRuleError(SPMException):
-    """422 Unprocessable Entity - Violación de regla de negocio."""
+    """422 Unprocessable Entity - Violacion de regla de negocio."""
 
     def __init__(
         self,
@@ -165,6 +165,88 @@ class BusinessRuleError(SPMException):
             rule,
             status=422,
             details=details,
+            trace_id=trace_id,
+        )
+
+
+class BadRequestError(SPMException):
+    """400 Bad Request - Solicitud malformada o parametros faltantes."""
+
+    def __init__(
+        self,
+        message: str = "Solicitud invalida",
+        details: Optional[Dict[str, Any]] = None,
+        trace_id: Optional[str] = None,
+    ):
+        super().__init__(
+            "bad_request",
+            message,
+            status=400,
+            details=details,
+            trace_id=trace_id,
+        )
+
+
+class InsufficientDataError(SPMException):
+    """422 Insufficient Data - Datos insuficientes para procesar."""
+
+    def __init__(
+        self,
+        message: str = "Datos insuficientes para procesar",
+        required: Optional[int] = None,
+        actual: Optional[int] = None,
+        trace_id: Optional[str] = None,
+    ):
+        details = {}
+        if required is not None:
+            details["required"] = required
+        if actual is not None:
+            details["actual"] = actual
+        super().__init__(
+            "insufficient_data",
+            message,
+            status=422,
+            details=details if details else None,
+            trace_id=trace_id,
+        )
+
+
+class RateLimitedError(SPMException):
+    """429 Too Many Requests - Limite de peticiones excedido."""
+
+    def __init__(
+        self,
+        retry_after: Optional[int] = None,
+        trace_id: Optional[str] = None,
+    ):
+        message = "Demasiadas peticiones. Intente mas tarde."
+        details = {}
+        if retry_after is not None:
+            details["retry_after_seconds"] = retry_after
+        super().__init__(
+            "rate_limited",
+            message,
+            status=429,
+            details=details if details else None,
+            trace_id=trace_id,
+        )
+
+
+class ServiceError(SPMException):
+    """500/503 Service Error - Error en servicio interno o externo."""
+
+    def __init__(
+        self,
+        service: str,
+        message: str = "Error en servicio",
+        status: int = 500,
+        trace_id: Optional[str] = None,
+    ):
+        super().__init__(
+            f"{service}_error",
+            message,
+            status=status,
+            details={"service": service},
             trace_id=trace_id,
         )
 
@@ -273,3 +355,52 @@ def error_internal(error_detail: str, trace_id: Optional[str] = None):
 def error_conflict(reason: str, trace_id: Optional[str] = None):
     """409 Conflict"""
     return api_error("conflict", f"Conflicto: {reason}", status=409, trace_id=trace_id)
+
+
+def error_bad_request(message: str, details: Optional[Dict[str, Any]] = None, trace_id: Optional[str] = None):
+    """400 Bad Request"""
+    return api_error("bad_request", message, details=details, status=400, trace_id=trace_id)
+
+
+def error_insufficient_data(
+    message: str,
+    required: Optional[int] = None,
+    actual: Optional[int] = None,
+    trace_id: Optional[str] = None,
+):
+    """422 Insufficient Data"""
+    details = {}
+    if required is not None:
+        details["required"] = required
+    if actual is not None:
+        details["actual"] = actual
+    return api_error(
+        "insufficient_data",
+        message,
+        details=details if details else None,
+        status=422,
+        trace_id=trace_id,
+    )
+
+
+def error_rate_limited(retry_after: Optional[int] = None, trace_id: Optional[str] = None):
+    """429 Too Many Requests"""
+    details = {"retry_after_seconds": retry_after} if retry_after else None
+    return api_error(
+        "rate_limited",
+        "Demasiadas peticiones. Intente mas tarde.",
+        details=details,
+        status=429,
+        trace_id=trace_id,
+    )
+
+
+def error_service(service: str, message: str = "Error en servicio", trace_id: Optional[str] = None):
+    """500 Service Error"""
+    return api_error(
+        f"{service}_error",
+        message,
+        details={"service": service},
+        status=500,
+        trace_id=trace_id,
+    )

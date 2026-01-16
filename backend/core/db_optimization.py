@@ -19,12 +19,8 @@ from pathlib import Path
 from queue import Empty, Queue
 from typing import Any, Dict, Generator, List
 
-try:
-    from backend.core.cache import cached, catalog_cache, query_cache
-    from backend.core.config import settings
-except ImportError:
-    from core.cache import cached, catalog_cache, query_cache
-    from core.config import settings
+from backend.core.cache import cached, catalog_cache, query_cache
+from backend.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -271,15 +267,30 @@ RECOMMENDED_INDEXES = {
         ("idx_solicitudes_fecha", "solicitudes", "created_at"),
         ("idx_solicitudes_usuario", "solicitudes", "usuario_id"),
         ("idx_solicitudes_estado_fecha", "solicitudes", "estado, created_at"),
+        # Solicitud Items (Sprint 5.4)
+        ("idx_items_solicitud_id", "solicitud_items", "solicitud_id"),
+        ("idx_items_material", "solicitud_items", "codigo_material"),
         # Usuarios
         ("idx_usuarios_email", "usuarios", "email"),
         ("idx_usuarios_rol", "usuarios", "rol"),
+        ("idx_usuarios_centro_rol", "usuarios", "centro, rol"),
+        ("idx_usuarios_activo", "usuarios", "activo"),
         # Notificaciones
         ("idx_notificaciones_usuario", "notificaciones", "usuario_id"),
         ("idx_notificaciones_leida", "notificaciones", "leida"),
+        ("idx_notificaciones_usuario_leida", "notificaciones", "usuario_id, leida"),
         # Mensajes
         ("idx_mensajes_solicitud", "mensajes", "solicitud_id"),
         ("idx_mensajes_remitente", "mensajes", "remitente_id"),
+        # Audit Log (Sprint 5.4)
+        ("idx_audit_usuario", "audit_log", "user_id"),
+        ("idx_audit_fecha", "audit_log", "timestamp"),
+        ("idx_audit_accion", "audit_log", "action"),
+        ("idx_audit_usuario_fecha", "audit_log", "user_id, timestamp"),
+        # Presupuestos
+        ("idx_presupuestos_centro", "presupuestos", "centro"),
+        ("idx_presupuestos_sector", "presupuestos", "sector"),
+        ("idx_presupuestos_anio", "presupuestos", "anio"),
     ],
     "sap_data": [
         # Stock

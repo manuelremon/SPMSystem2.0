@@ -15,10 +15,7 @@ import pandas as pd
 # FIX 4.3: TTL por defecto para cache (60 minutos)
 DEFAULT_CACHE_TTL_MINUTES = 60
 
-try:
-    from backend.core.db import get_db_connection
-except ImportError:
-    from core.db import get_db_connection
+from backend.core.db import get_db_connection
 
 
 class DataCacheLoader:

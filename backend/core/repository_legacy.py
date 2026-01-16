@@ -1,9 +1,9 @@
 """
-DEPRECATED: Este archivo mantiene compatibilidad hacia atrás.
+DEPRECATED: Este archivo mantiene compatibilidad hacia atras.
 Usar backend.core.repository en su lugar.
 
 Los repositorios han sido modularizados en:
-- backend/core/repository/base.py         - Funciones de conexión
+- backend/core/repository/base.py         - Funciones de conexion
 - backend/core/repository/solicitud.py    - SolicitudRepository
 - backend/core/repository/presupuesto.py  - PresupuestoRepository
 - backend/core/repository/tratamiento.py  - TratamientoRepository
@@ -13,7 +13,21 @@ Los repositorios han sido modularizados en:
 - backend/core/repository/equivalencias.py- EquivalenciasRepository
 - backend/core/repository/mrp.py          - MrpRepository
 - backend/core/repository/decision.py     - DecisionAbastecimientoRepository
+
+AVISO: Este modulo sera eliminado en una version futura.
+       Por favor, actualice sus imports a 'backend.core.repository'.
 """
+
+import warnings
+
+# Emitir advertencia de deprecacion al importar
+warnings.warn(
+    "backend.core.repository_legacy esta deprecado. "
+    "Use 'from backend.core.repository import ...' en su lugar. "
+    "Este modulo sera eliminado en una version futura.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 # Re-export everything for backward compatibility
 from backend.core.repository import (

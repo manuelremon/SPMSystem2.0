@@ -8,6 +8,7 @@ Incluye operaciones CRUD completas con validacion y audit trail.
 import csv
 import io
 import json
+import logging
 import os
 import sqlite3
 import time
@@ -16,30 +17,19 @@ from functools import wraps
 
 from flask import Blueprint, g, jsonify, request, send_file
 
-try:
-    from backend.core.config import settings
-    from backend.core.db import get_db_connection
-    from backend.core.db_optimization import (
-        analyze_tables,
-        create_indexes,
-        get_all_pool_stats,
-        get_db_stats,
-        optimize_database,
-    )
-    from backend.core.rate_limit import rate_limit
-    from backend.core.roles import require_auth
-except ImportError:
-    from core.config import settings
-    from core.db import get_db_connection
-    from core.db_optimization import (
-        analyze_tables,
-        create_indexes,
-        get_all_pool_stats,
-        get_db_stats,
-        optimize_database,
-    )
-    from core.rate_limit import rate_limit
-    from core.roles import require_auth
+logger = logging.getLogger(__name__)
+
+from backend.core.config import settings
+from backend.core.db import get_db_connection
+from backend.core.db_optimization import (
+    analyze_tables,
+    create_indexes,
+    get_all_pool_stats,
+    get_db_stats,
+    optimize_database,
+)
+from backend.core.rate_limit import rate_limit
+from backend.core.roles import require_auth
 
 bp = Blueprint("database", __name__, url_prefix="/api/admin/database")
 
@@ -855,7 +845,7 @@ def _log_crud_operation(operation: str, table: str, db_name: str, data: dict, us
             conn.close()
     except Exception as e:
         # No fallar si el audit log falla
-        print(f"Error logging CRUD operation: {e}")
+        logger.warning(f"Error logging CRUD operation: {e}")
 
 
 def _filter_protected_columns(columns: list, for_display: bool = True) -> list:

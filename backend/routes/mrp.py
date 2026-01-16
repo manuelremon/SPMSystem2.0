@@ -12,15 +12,11 @@ from typing import Any, Dict, Optional, Tuple
 
 from flask import Blueprint, g, jsonify, request
 
+from backend.core.helpers import _get_user_id
 from backend.core.roles import require_auth, require_role
 from backend.services.temp_data_service import temp_data_service
 
 logger = logging.getLogger(__name__)
-
-
-def _get_user_id() -> str:
-    """Obtiene el user_id del request context."""
-    return getattr(g, "user_id", None) or getattr(g, "current_user", {}).get("id_spm", "")
 
 # FIX 5.2: Cache simple para KPIs con TTL de 5 minutos
 _kpis_cache: Dict[str, Any] = {}
@@ -1219,24 +1215,15 @@ def get_catalogos():
 # Endpoints MRP Avanzados (Sprint 5)
 # =============================================================================
 
-try:
-    from backend.services.mrp_service import (
-        analizar_centro,
-        analizar_material,
-        crear_alerta_mrp,
-        generar_recomendacion,
-        obtener_alertas_mrp,
-        obtener_demanda_proyectada,
-        resolver_alerta_mrp,
-    )
-except ImportError:
-    from services.mrp_service import (
-        analizar_centro,
-        analizar_material,
-        obtener_alertas_mrp,
-        obtener_demanda_proyectada,
-        resolver_alerta_mrp,
-    )
+from backend.services.mrp_service import (
+    analizar_centro,
+    analizar_material,
+    crear_alerta_mrp,
+    generar_recomendacion,
+    obtener_alertas_mrp,
+    obtener_demanda_proyectada,
+    resolver_alerta_mrp,
+)
 
 
 @bp.route("/analisis/<material_codigo>", methods=["GET"])

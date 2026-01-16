@@ -16,24 +16,15 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-try:
-    from backend.core.config import settings
-    from backend.core.db import get_db_connection, get_db_transaction, sql_now_minus, is_using_postgresql
-    from backend.core.notification_schemas import (
-        Notificacion,
-        NotificacionCreate,
-        NotificacionEvent,
-        NotificacionListResponse,
-    )
-    from backend.services.push_service import send_push_notification
-except ImportError:
-    from core.db import get_db_connection, get_db_transaction, sql_now_minus, is_using_postgresql
-    from core.notification_schemas import Notificacion
-
-    try:
-        from services.push_service import send_push_notification
-    except ImportError:
-        send_push_notification = None
+from backend.core.config import settings
+from backend.core.db import get_db_connection, get_db_transaction, sql_now_minus, is_using_postgresql
+from backend.core.notification_schemas import (
+    Notificacion,
+    NotificacionCreate,
+    NotificacionEvent,
+    NotificacionListResponse,
+)
+from backend.services.push_service import send_push_notification
 
 logger = logging.getLogger(__name__)
 
@@ -454,10 +445,7 @@ class NotificationService:
         Returns:
             ID de la notificación creada, o None si falla
         """
-        try:
-            from backend.core.repository_legacy import SolicitudRepository
-        except ImportError:
-            from core.repository_legacy import SolicitudRepository
+        from backend.core.repository import SolicitudRepository
 
         try:
             solicitud = SolicitudRepository.get_by_id(solicitud_id)

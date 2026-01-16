@@ -80,7 +80,37 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
+      - name: Pre-deploy backup
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'BACKUP_SCRIPT'
+            set -e
+
+            echo "=== Creating pre-deploy backup ==="
+            cd ${{ env.DEPLOY_PATH }}
+            BACKUP_DIR="/opt/spm-backups"
+            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+            mkdir -p $BACKUP_DIR
+
+            # Backup database
+            if [ -f data/spm.db ]; then
+              cp data/spm.db $BACKUP_DIR/spm_$TIMESTAMP.db
+              echo "Database backed up to $BACKUP_DIR/spm_$TIMESTAMP.db"
+            fi
+
+            # Save current commit for rollback
+            git rev-parse HEAD > $BACKUP_DIR/last_good_commit_$TIMESTAMP.txt
+            echo "Current commit saved for rollback"
+
+            # Keep only last 5 backups
+            ls -t $BACKUP_DIR/spm_*.db 2>/dev/null | tail -n +6 | xargs -r rm
+            ls -t $BACKUP_DIR/last_good_commit_*.txt 2>/dev/null | tail -n +6 | xargs -r rm
+
+            echo "=== Backup completed ==="
+          BACKUP_SCRIPT
+
       - name: Deploy to server
+        id: deploy
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'DEPLOY_SCRIPT'
             set -e
@@ -98,6 +128,13 @@ jobs:
             npm run build
             cd ..
 
+            echo "=== Running database migrations ==="
+            docker compose -f infra/docker-compose.prod.yml run --rm backend python -c "
+            from backend.core.db import init_db
+            init_db()
+            print('Database initialized successfully')
+            " 2>/dev/null || echo "Migration step skipped (container not ready)"
+
             echo "=== Rebuilding Docker containers ==="
             docker compose -f infra/docker-compose.prod.yml build --no-cache backend
 
@@ -107,7 +144,7 @@ jobs:
             docker compose -f infra/docker-compose.prod.yml up -d
 
             echo "=== Waiting for services to start ==="
-            sleep 10
+            sleep 15
 
             echo "=== Checking service health ==="
             docker compose -f infra/docker-compose.prod.yml ps
@@ -115,20 +152,67 @@ jobs:
             echo "=== Deployment completed ==="
           DEPLOY_SCRIPT
 
-      - name: Verify deployment
+      - name: Health check with retry
+        id: health_check
         run: |
-          # Wait a bit more for services to fully start
-          sleep 5
+          echo "=== Running health checks ==="
+          MAX_RETRIES=5
+          RETRY_DELAY=10
+          HEALTH_URL="https://planifica-materiales.com/api/health"
 
-          # Check if the site is responding
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://planifica-materiales.com/api/health || echo "000")
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Health check attempt $i/$MAX_RETRIES..."
+            response=$(curl -s -o /dev/null -w "%{http_code}" $HEALTH_URL || echo "000")
 
-          if [ "$response" = "200" ]; then
-            echo "Deployment successful! Site is responding with HTTP 200"
-          else
-            echo "Warning: Site responded with HTTP $response"
-            echo "This might be normal if the site takes time to fully start"
-          fi
+            if [ "$response" = "200" ]; then
+              echo "Health check passed! Site responding with HTTP 200"
+              echo "health_status=success" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+
+            echo "Received HTTP $response, waiting ${RETRY_DELAY}s before retry..."
+            sleep $RETRY_DELAY
+          done
+
+          echo "Health check failed after $MAX_RETRIES attempts"
+          echo "health_status=failed" >> $GITHUB_OUTPUT
+          exit 1
+
+      - name: Rollback on failure
+        if: failure() && steps.health_check.outputs.health_status == 'failed'
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'ROLLBACK_SCRIPT'
+            set -e
+
+            echo "=== Starting rollback ==="
+            cd ${{ env.DEPLOY_PATH }}
+            BACKUP_DIR="/opt/spm-backups"
+
+            # Get last good commit
+            LAST_COMMIT=$(ls -t $BACKUP_DIR/last_good_commit_*.txt 2>/dev/null | head -1)
+            if [ -f "$LAST_COMMIT" ]; then
+              COMMIT_HASH=$(cat "$LAST_COMMIT")
+              echo "Rolling back to commit: $COMMIT_HASH"
+              git reset --hard $COMMIT_HASH
+
+              # Restore database backup
+              LAST_DB=$(ls -t $BACKUP_DIR/spm_*.db 2>/dev/null | head -1)
+              if [ -f "$LAST_DB" ]; then
+                cp "$LAST_DB" data/spm.db
+                echo "Database restored from $LAST_DB"
+              fi
+
+              # Rebuild and restart
+              cd frontend && npm ci && npm run build && cd ..
+              docker compose -f infra/docker-compose.prod.yml build backend
+              docker compose -f infra/docker-compose.prod.yml up -d
+
+              echo "=== Rollback completed ==="
+            else
+              echo "No backup found for rollback!"
+              exit 1
+            fi
+          ROLLBACK_SCRIPT
 
       - name: Cleanup SSH
         if: always()

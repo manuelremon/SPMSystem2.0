@@ -656,16 +656,32 @@ def init_observability(app) -> None:
         """Loggea cada request completado."""
         duration = (time.time() - g.get("trace_start_time", time.time())) * 1000
 
+        # Obtener user_id desde g.user (establecido por auth_middleware)
+        user_id = None
+        if hasattr(g, "user") and g.user:
+            user_id = g.user.get("id") or g.user.get("user_id")
+
+        # Actualizar contexto de trace con user_id
+        trace_ctx = get_trace_context() or {}
+        if user_id:
+            trace_ctx["user_id"] = user_id
+            set_trace_context(trace_ctx)
+
         logger = get_logger("http")
+        log_extra = {
+            "method": request.method,
+            "path": request.path,
+            "status_code": response.status_code,
+            "duration_ms": round(duration, 2),
+            "remote_addr": request.remote_addr,
+            "trace_id": g.get("trace_id", ""),
+        }
+        if user_id:
+            log_extra["user_id"] = user_id
+
         logger.info(
             f"{request.method} {request.path} {response.status_code}",
-            extra={
-                "method": request.method,
-                "path": request.path,
-                "status_code": response.status_code,
-                "duration_ms": round(duration, 2),
-                "remote_addr": request.remote_addr,
-            },
+            extra=log_extra,
         )
 
         # Agregar trace ID al response

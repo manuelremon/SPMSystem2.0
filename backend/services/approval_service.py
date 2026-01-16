@@ -13,10 +13,7 @@ Sprint 2.3 - Implementacion basada en TDD
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-try:
-    from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
-except ImportError:
-    from core.db import get_db_connection, get_db_transaction, insert_returning_id
+from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
 
 
 # =============================================================================

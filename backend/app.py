@@ -27,6 +27,7 @@ from backend.core.csrf import init_csrf_protection
 from backend.core.db import db, init_db
 from backend.core.db_optimization import create_indexes
 from backend.core.errors import register_spm_error_handler
+from backend.core.observability import init_observability
 from backend.core.rate_limit import init_rate_limiting
 from backend.core.request_validation import init_request_validation
 from backend.core.security_headers import init_security_headers
@@ -98,8 +99,9 @@ def create_app(config_override: dict | None = None) -> Flask:
     if config_override:
         app.config.update(config_override)
 
-    # Logging
+    # Logging y Observabilidad (trace_id, user_id, JSON en prod)
     _configure_logging(app)
+    init_observability(app)
 
     # Inicializar DB
     db.init_app(app)

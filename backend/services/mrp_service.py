@@ -21,10 +21,7 @@ from backend.core.db import get_db_connection, get_db_transaction, insert_return
 logger = logging.getLogger(__name__)
 
 # Intentar importar el pipeline de forecast
-try:
-    from backend.agent.pipelines.demand_forecast import DemandForecastPipeline
-except ImportError:
-    DemandForecastPipeline = None
+from backend.agent.pipelines.demand_forecast import DemandForecastPipeline
 
 
 # =============================================================================

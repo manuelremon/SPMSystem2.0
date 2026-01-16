@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import { useI18n } from "../../context/i18n";
 import { getEstadoConfig } from "../../utils/styleConfig";
 import { formatDate } from "../../utils/formatters";
 
 /**
  * StatusBadge con icono y texto coloreado (estilo consistente con criticidad)
+ * Memoizado para evitar re-renders innecesarios en tablas
  * @param {string} estado - Estado de la solicitud
  * @param {string} className - Clases CSS adicionales
  * @param {boolean} showIcon - Mostrar icono (default: true)
@@ -12,7 +13,7 @@ import { formatDate } from "../../utils/formatters";
  * @param {object} tooltipInfo - Info para el tooltip
  * @param {boolean} disableTooltip - Desactivar tooltip interno (default: false)
  */
-export default function StatusBadge({
+const StatusBadge = memo(function StatusBadge({
   estado,
   className = "",
   showIcon = true,
@@ -154,7 +155,9 @@ export default function StatusBadge({
       )}
     </div>
   );
-}
+});
+
+export default StatusBadge;
 
 // Helper para formatear fecha corta - usa formatDate de formatters
 function formatDateShort(dateStr) {
