@@ -183,7 +183,7 @@ def run_migration_postgresql():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS vertex_conversations (
                 id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL,
+                user_id TEXT NOT NULL,
                 session_id UUID DEFAULT uuid_generate_v4(),
                 started_at TIMESTAMP DEFAULT NOW(),
                 ended_at TIMESTAMP,
@@ -243,7 +243,7 @@ def run_migration_postgresql():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS vertex_user_memory (
                 id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL,
+                user_id TEXT NOT NULL,
                 fact_key VARCHAR(100) NOT NULL,
                 fact_value JSONB NOT NULL,
                 learned_at TIMESTAMP DEFAULT NOW(),
@@ -269,7 +269,7 @@ def run_migration_postgresql():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS vertex_proactive_alerts (
                 id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL,
+                user_id TEXT NOT NULL,
                 alert_type VARCHAR(50) NOT NULL,
                 priority INTEGER DEFAULT 5 CHECK (priority >= 1 AND priority <= 10),
                 title TEXT NOT NULL,

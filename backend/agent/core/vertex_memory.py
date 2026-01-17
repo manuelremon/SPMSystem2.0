@@ -52,14 +52,14 @@ class VertexMemory:
     - Contexto entre sesiones
     """
 
-    def __init__(self, user_id: int):
+    def __init__(self, user_id: str):
         """
         Inicializa memoria para un usuario.
 
         Args:
-            user_id: ID del usuario (id_spm en tabla usuarios)
+            user_id: ID del usuario (id_spm TEXT en tabla usuarios)
         """
-        self.user_id = user_id
+        self.user_id = str(user_id)  # Ensure it's a string
         self.current_session_id: Optional[str] = None
         self.current_conversation_id: Optional[int] = None
         self._tables_checked = False
