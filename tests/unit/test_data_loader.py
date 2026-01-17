@@ -30,27 +30,30 @@ def temp_spm_db(tmp_path):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    # Crear tabla solicitudes
+    # Crear tabla solicitudes (con todas las columnas que espera DataLoader)
     cursor.execute("""
         CREATE TABLE solicitudes (
             id INTEGER PRIMARY KEY,
             id_usuario INTEGER,
             centro TEXT,
+            sector TEXT,
             status TEXT,
+            criticidad TEXT,
+            total_monto REAL,
             descripcion TEXT,
-            fecha_creacion TEXT
+            created_at TEXT
         )
     """)
 
     # Insertar datos de prueba
     cursor.executemany(
-        "INSERT INTO solicitudes (id_usuario, centro, status, descripcion, fecha_creacion) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO solicitudes (id_usuario, centro, sector, status, criticidad, total_monto, descripcion, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         [
-            (1, "CENTRO1", "submitted", "Solicitud bomba", "2024-01-01"),
-            (1, "CENTRO1", "approved", "Solicitud válvula", "2024-01-02"),
-            (2, "CENTRO2", "submitted", "Solicitud motor", "2024-01-03"),
-            (2, "CENTRO2", "rejected", "Solicitud sensor", "2024-01-04"),
-            (1, "CENTRO1", "submitted", "Solicitud filtro", "2024-01-05"),
+            (1, "CENTRO1", "MANTENIMIENTO", "submitted", "media", 1500.00, "Solicitud bomba", "2024-01-01"),
+            (1, "CENTRO1", "MANTENIMIENTO", "approved", "alta", 2500.00, "Solicitud válvula", "2024-01-02"),
+            (2, "CENTRO2", "PRODUCCION", "submitted", "baja", 500.00, "Solicitud motor", "2024-01-03"),
+            (2, "CENTRO2", "PRODUCCION", "rejected", "media", 1200.00, "Solicitud sensor", "2024-01-04"),
+            (1, "CENTRO1", "MANTENIMIENTO", "submitted", "alta", 3500.00, "Solicitud filtro", "2024-01-05"),
         ],
     )
 
