@@ -202,9 +202,24 @@ def temp_sap_db(tmp_path):
 
 
 @pytest.fixture
-def data_loader(temp_spm_db):
-    """Crea un DataLoader con la BD de prueba."""
-    return DataLoader(db_path=str(temp_spm_db))
+def data_loader(temp_spm_db, temp_sap_db):
+    """Crea un DataLoader mockeando las conexiones a BD."""
+    import sqlite3
+
+    # Mock para conexión PostgreSQL (devuelve conexión a SQLite temporal)
+    def mock_get_db_connection():
+        conn = sqlite3.connect(temp_spm_db)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    with patch('backend.agent.tools.data_loader._get_db_connection', mock_get_db_connection):
+        with patch('backend.agent.tools.data_loader.SAP_DATA_DB', temp_sap_db):
+            with patch('backend.agent.tools.data_loader.CATALOGO_MATERIALES_DB', temp_spm_db):
+                loader = DataLoader()
+                # Store patches for use in tests
+                loader._mock_db_path = temp_spm_db
+                loader._mock_sap_path = temp_sap_db
+                yield loader
 
 
 # =============================================================================
