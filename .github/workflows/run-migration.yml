@@ -1,0 +1,34 @@
+name: Run Database Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      migration_script:
+        description: 'Migration script to run (e.g., 021_rename_centros.py)'
+        required: true
+        default: '021_rename_centros.py'
+
+jobs:
+  run-migration:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
+      - name: Run migration on production
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'MIGRATION_SCRIPT'
+          cd /opt/spm
+          echo "=== Running migration: ${{ github.event.inputs.migration_script }} ==="
+          docker-compose exec -T backend python backend/migrations/${{ github.event.inputs.migration_script }}
+          echo "=== Migration completed ==="
+          MIGRATION_SCRIPT
+
+      - name: Cleanup SSH
+        if: always()
+        run: rm -rf ~/.ssh/id_rsa
