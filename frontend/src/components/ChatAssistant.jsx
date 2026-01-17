@@ -60,41 +60,76 @@ export default function ChatAssistant() {
   // Formatear mensajes para UI
   const formattedMessages = selectFormattedMessages(store)
 
-  // Find the best Spanish female voice
+  // Find the best Spanish female voice (Latin American preferred)
   const findBestVoice = useCallback(() => {
     if (!synthesisRef.current) return null
 
     const voices = synthesisRef.current.getVoices()
     if (!voices.length) return null
 
-    // Priority order for natural-sounding Spanish female voices
+    // Log available Spanish voices for debugging (only once)
+    const spanishVoices = voices.filter(v => v.lang.startsWith('es'))
+    if (spanishVoices.length > 0) {
+      console.log('Available Spanish voices:', spanishVoices.map(v => `${v.name} (${v.lang})`))
+    }
+
+    // Priority order for natural-sounding Latin American female voices
+    // Focus: Argentine > Uruguayan > Colombian > Mexican > Venezuelan > Other LATAM
     const voicePreferences = [
-      // Google voices (best quality)
-      { match: (v) => v.name.includes('Google') && v.lang.startsWith('es') },
-      // Microsoft Sabina (Latin American Spanish, very natural)
-      { match: (v) => v.name.toLowerCase().includes('sabina') },
-      // Microsoft voices with "Online" (cloud-based, better quality)
-      { match: (v) => v.name.includes('Microsoft') && v.name.includes('Online') && v.lang.startsWith('es') },
-      // Paulina (macOS/iOS, Mexican Spanish, clear and natural)
-      { match: (v) => v.name.toLowerCase().includes('paulina') },
-      // Monica (Spanish Spain)
-      { match: (v) => v.name.toLowerCase().includes('monica') || v.name.toLowerCase().includes('mónica') },
-      // Any voice with "female" in name
-      { match: (v) => v.lang.startsWith('es') && v.name.toLowerCase().includes('female') },
-      // Argentine Spanish
-      { match: (v) => v.lang === 'es-AR' },
-      // Mexican Spanish (clear pronunciation)
-      { match: (v) => v.lang === 'es-MX' },
-      // Latin American Spanish
-      { match: (v) => v.lang === 'es-US' || v.lang === 'es-419' },
-      // Any Spanish voice
-      { match: (v) => v.lang.startsWith('es') },
+      // Microsoft Edge voices (highest quality, neural)
+      // Elena = Argentina, Dalia = Mexico, Salome = Colombia
+      { match: (v) => v.name.includes('Elena') && v.lang === 'es-AR', name: 'Elena Argentina' },
+      { match: (v) => v.name.includes('Microsoft') && v.name.includes('Elena'), name: 'Microsoft Elena' },
+
+      // Google neural voices (excellent quality)
+      { match: (v) => v.name.includes('Google') && v.lang === 'es-AR', name: 'Google Argentina' },
+      { match: (v) => v.name.includes('Google') && v.lang === 'es-419', name: 'Google LATAM' },
+      { match: (v) => v.name.includes('Google') && v.lang === 'es-US', name: 'Google US Spanish' },
+
+      // Microsoft Sabina (Mexico, very natural)
+      { match: (v) => v.name.toLowerCase().includes('sabina'), name: 'Sabina' },
+
+      // Microsoft Salome (Colombia)
+      { match: (v) => v.name.includes('Salome') || v.name.includes('Salomé'), name: 'Salome Colombia' },
+
+      // Microsoft Dalia (Mexico)
+      { match: (v) => v.name.includes('Dalia'), name: 'Dalia Mexico' },
+
+      // Paola (Venezuela)
+      { match: (v) => v.name.includes('Paola') && v.lang.startsWith('es'), name: 'Paola Venezuela' },
+
+      // Any Microsoft Online voice (neural, better quality)
+      { match: (v) => v.name.includes('Microsoft') && v.name.includes('Online') && v.lang.startsWith('es'), name: 'Microsoft Online' },
+
+      // Apple voices (macOS/iOS)
+      { match: (v) => v.name.toLowerCase().includes('paulina'), name: 'Paulina Mexico' },
+      { match: (v) => v.name.toLowerCase().includes('monica') || v.name.toLowerCase().includes('mónica'), name: 'Monica Spain' },
+
+      // Any Google Spanish voice
+      { match: (v) => v.name.includes('Google') && v.lang.startsWith('es'), name: 'Google Spanish' },
+
+      // Regional preferences (Latin American countries)
+      { match: (v) => v.lang === 'es-AR', name: 'es-AR' }, // Argentina
+      { match: (v) => v.lang === 'es-UY', name: 'es-UY' }, // Uruguay
+      { match: (v) => v.lang === 'es-CO', name: 'es-CO' }, // Colombia
+      { match: (v) => v.lang === 'es-MX', name: 'es-MX' }, // Mexico
+      { match: (v) => v.lang === 'es-VE', name: 'es-VE' }, // Venezuela
+      { match: (v) => v.lang === 'es-CL', name: 'es-CL' }, // Chile
+      { match: (v) => v.lang === 'es-PE', name: 'es-PE' }, // Peru
+      { match: (v) => v.lang === 'es-419', name: 'es-419 LATAM' }, // Latin America generic
+      { match: (v) => v.lang === 'es-US', name: 'es-US' }, // US Spanish
+
+      // Any female Spanish voice
+      { match: (v) => v.lang.startsWith('es') && v.name.toLowerCase().includes('female'), name: 'Female Spanish' },
+
+      // Fallback: any Spanish voice
+      { match: (v) => v.lang.startsWith('es'), name: 'Spanish fallback' },
     ]
 
     for (const pref of voicePreferences) {
       const voice = voices.find(pref.match)
       if (voice) {
-        console.log('Selected voice:', voice.name, voice.lang)
+        console.log(`Selected voice: ${voice.name} (${voice.lang}) - matched: ${pref.name}`)
         return voice
       }
     }
@@ -173,7 +208,7 @@ export default function ChatAssistant() {
   }, [])
 
   /**
-   * Speak text using Web Speech API with natural-sounding voice
+   * Speak text using Web Speech API with natural-sounding feminine voice
    */
   const speak = useCallback((text) => {
     if (!synthesisRef.current || !voiceEnabled || !text) return
@@ -181,24 +216,50 @@ export default function ChatAssistant() {
     // Cancel any ongoing speech
     synthesisRef.current.cancel()
 
-    const utterance = new SpeechSynthesisUtterance(text)
+    // Clean text for better TTS (remove markdown, extra spaces)
+    const cleanText = text
+      .replace(/\*\*/g, '')  // Remove bold markdown
+      .replace(/\*/g, '')    // Remove italic markdown
+      .replace(/`/g, '')     // Remove code backticks
+      .replace(/\n+/g, '. ') // Replace newlines with pauses
+      .replace(/\s+/g, ' ')  // Normalize spaces
+      .trim()
+
+    const utterance = new SpeechSynthesisUtterance(cleanText)
 
     // Use selected voice or find one
     if (selectedVoice) {
       utterance.voice = selectedVoice
       utterance.lang = selectedVoice.lang
     } else {
+      // Fallback to Argentine Spanish
       utterance.lang = 'es-AR'
     }
 
-    // Natural speech parameters for feminine voice
-    utterance.rate = 0.95    // Slightly slower for more natural pace
-    utterance.pitch = 1.15   // Higher pitch for feminine voice
+    // Natural speech parameters for feminine Latin American voice
+    // Adjust based on voice type for optimal quality
+    const isNeuralVoice = selectedVoice?.name?.includes('Online') ||
+                          selectedVoice?.name?.includes('Google') ||
+                          selectedVoice?.name?.includes('Neural')
+
+    if (isNeuralVoice) {
+      // Neural voices are already natural, minimal adjustments
+      utterance.rate = 1.0
+      utterance.pitch = 1.05  // Slight feminine touch
+    } else {
+      // Standard voices need more help
+      utterance.rate = 0.92   // Slightly slower for clarity
+      utterance.pitch = 1.12  // Higher pitch for feminine voice
+    }
+
     utterance.volume = 1.0
 
     utterance.onstart = () => setIsSpeaking(true)
     utterance.onend = () => setIsSpeaking(false)
-    utterance.onerror = () => setIsSpeaking(false)
+    utterance.onerror = (e) => {
+      console.warn('Speech synthesis error:', e.error)
+      setIsSpeaking(false)
+    }
 
     synthesisRef.current.speak(utterance)
   }, [voiceEnabled, selectedVoice])

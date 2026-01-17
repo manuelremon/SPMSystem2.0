@@ -480,7 +480,7 @@ def dismiss_alert(alert_id: int):
                 """
                 UPDATE vertex_proactive_alerts
                 SET dismissed_at = NOW()
-                WHERE id = ? AND user_id = ?
+                WHERE id = %s AND user_id = %s
                 """,
                 (alert_id, user_id),
             )
@@ -527,7 +527,7 @@ def mark_alert_shown(alert_id: int):
                 """
                 UPDATE vertex_proactive_alerts
                 SET shown_at = NOW()
-                WHERE id = ? AND user_id = ? AND shown_at IS NULL
+                WHERE id = %s AND user_id = %s AND shown_at IS NULL
                 """,
                 (alert_id, user_id),
             )
@@ -635,7 +635,7 @@ def resume_session():
             cursor.execute(
                 """
                 SELECT session_id FROM vertex_conversations
-                WHERE user_id = ? AND ended_at IS NULL
+                WHERE user_id = %s AND ended_at IS NULL
                 ORDER BY started_at DESC
                 LIMIT 1
                 """,
@@ -717,10 +717,10 @@ def get_history():
                     COUNT(vm.id) as message_count
                 FROM vertex_conversations vc
                 LEFT JOIN vertex_messages vm ON vc.id = vm.conversation_id
-                WHERE vc.user_id = ?
-                GROUP BY vc.id
+                WHERE vc.user_id = %s
+                GROUP BY vc.id, vc.session_id, vc.started_at, vc.ended_at, vc.summary
                 ORDER BY vc.started_at DESC
-                LIMIT ?
+                LIMIT %s
                 """,
                 (user_id, limit),
             )
@@ -728,7 +728,7 @@ def get_history():
 
             # Obtener total
             cursor.execute(
-                "SELECT COUNT(*) FROM vertex_conversations WHERE user_id = ?",
+                "SELECT COUNT(*) FROM vertex_conversations WHERE user_id = %s",
                 (user_id,),
             )
             total_row = cursor.fetchone()
