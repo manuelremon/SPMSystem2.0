@@ -841,3 +841,35 @@ def infrastructure_status():
             "error": str(e),
             "timestamp": datetime.utcnow().isoformat() + "Z",
         }), 500
+
+
+@bp.route("/api/health/routes", methods=["GET"])
+def list_routes():
+    """
+    Lista todas las rutas registradas en la aplicacion.
+
+    Util para depurar problemas de blueprints no registrados.
+
+    Returns:
+        JSON con lista de rutas y blueprints
+    """
+    from flask import current_app
+
+    routes = []
+    for rule in current_app.url_map.iter_rules():
+        routes.append({
+            "endpoint": rule.endpoint,
+            "methods": list(rule.methods - {"OPTIONS", "HEAD"}),
+            "rule": str(rule),
+        })
+
+    blueprints = list(current_app.blueprints.keys())
+
+    return jsonify({
+        "ok": True,
+        "route_count": len(routes),
+        "blueprint_count": len(blueprints),
+        "blueprints": blueprints,
+        "vertex_registered": "vertex_ia" in blueprints,
+        "routes": sorted(routes, key=lambda r: r["rule"]),
+    }), 200
