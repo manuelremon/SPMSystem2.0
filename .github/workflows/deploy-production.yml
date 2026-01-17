@@ -170,6 +170,9 @@ jobs:
             print('Database initialized successfully')
             " 2>/dev/null || echo "Migration step skipped (container not ready)"
 
+            echo "=== Pruning old Docker images ==="
+            docker image prune -f 2>/dev/null || true
+
             echo "=== Rebuilding Docker containers ==="
             docker compose -f infra/docker-compose.prod.yml build --no-cache backend
 
@@ -183,6 +186,12 @@ jobs:
 
             echo "=== Checking service health ==="
             docker compose -f infra/docker-compose.prod.yml ps
+
+            echo "=== Checking backend logs for import errors ==="
+            docker logs spm-backend --tail 50 2>&1 || echo "Could not get backend logs"
+
+            echo "=== Testing Vertex routes locally ==="
+            curl -s http://localhost:5000/api/vertex/status || echo "Vertex status endpoint not responding"
 
             echo "=== Deployment completed ==="
           DEPLOY_SCRIPT
