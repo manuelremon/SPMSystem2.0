@@ -26,6 +26,7 @@ export default function ChatAssistant() {
   const [voiceEnabled, setVoiceEnabled] = useState(true)
   const [speechSupported, setSpeechSupported] = useState(false)
   const [micPermissionDenied, setMicPermissionDenied] = useState(false)
+  const [selectedVoice, setSelectedVoice] = useState(null)
   const recognitionRef = useRef(null)
   const synthesisRef = useRef(null)
 
@@ -59,11 +60,65 @@ export default function ChatAssistant() {
   // Formatear mensajes para UI
   const formattedMessages = selectFormattedMessages(store)
 
+  // Find the best Spanish female voice
+  const findBestVoice = useCallback(() => {
+    if (!synthesisRef.current) return null
+
+    const voices = synthesisRef.current.getVoices()
+    if (!voices.length) return null
+
+    // Priority order for natural-sounding Spanish female voices
+    const voicePreferences = [
+      // Google voices (best quality)
+      { match: (v) => v.name.includes('Google') && v.lang.startsWith('es') },
+      // Microsoft Sabina (Latin American Spanish, very natural)
+      { match: (v) => v.name.toLowerCase().includes('sabina') },
+      // Microsoft voices with "Online" (cloud-based, better quality)
+      { match: (v) => v.name.includes('Microsoft') && v.name.includes('Online') && v.lang.startsWith('es') },
+      // Paulina (macOS/iOS, Mexican Spanish, clear and natural)
+      { match: (v) => v.name.toLowerCase().includes('paulina') },
+      // Monica (Spanish Spain)
+      { match: (v) => v.name.toLowerCase().includes('monica') || v.name.toLowerCase().includes('mónica') },
+      // Any voice with "female" in name
+      { match: (v) => v.lang.startsWith('es') && v.name.toLowerCase().includes('female') },
+      // Argentine Spanish
+      { match: (v) => v.lang === 'es-AR' },
+      // Mexican Spanish (clear pronunciation)
+      { match: (v) => v.lang === 'es-MX' },
+      // Latin American Spanish
+      { match: (v) => v.lang === 'es-US' || v.lang === 'es-419' },
+      // Any Spanish voice
+      { match: (v) => v.lang.startsWith('es') },
+    ]
+
+    for (const pref of voicePreferences) {
+      const voice = voices.find(pref.match)
+      if (voice) {
+        console.log('Selected voice:', voice.name, voice.lang)
+        return voice
+      }
+    }
+
+    return voices[0]
+  }, [])
+
   // Initialize Speech Recognition
   useEffect(() => {
     // Check for speech synthesis support
     if ('speechSynthesis' in window) {
       synthesisRef.current = window.speechSynthesis
+
+      // Load voices (may be async)
+      const loadVoices = () => {
+        const voice = findBestVoice()
+        if (voice) setSelectedVoice(voice)
+      }
+
+      // Some browsers load voices async
+      if (synthesisRef.current.getVoices().length) {
+        loadVoices()
+      }
+      synthesisRef.current.onvoiceschanged = loadVoices
     }
 
     // Check for speech recognition support
@@ -118,7 +173,7 @@ export default function ChatAssistant() {
   }, [])
 
   /**
-   * Speak text using Web Speech API
+   * Speak text using Web Speech API with natural-sounding voice
    */
   const speak = useCallback((text) => {
     if (!synthesisRef.current || !voiceEnabled || !text) return
@@ -127,28 +182,26 @@ export default function ChatAssistant() {
     synthesisRef.current.cancel()
 
     const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'es-AR'
-    utterance.rate = 1.0
-    utterance.pitch = 1.1 // Slightly higher pitch for feminine voice
 
-    // Try to find a Spanish female voice
-    const voices = synthesisRef.current.getVoices()
-    const spanishFemaleVoice = voices.find(voice =>
-      voice.lang.startsWith('es') && voice.name.toLowerCase().includes('female')
-    ) || voices.find(voice =>
-      voice.lang.startsWith('es')
-    ) || voices[0]
-
-    if (spanishFemaleVoice) {
-      utterance.voice = spanishFemaleVoice
+    // Use selected voice or find one
+    if (selectedVoice) {
+      utterance.voice = selectedVoice
+      utterance.lang = selectedVoice.lang
+    } else {
+      utterance.lang = 'es-AR'
     }
+
+    // Natural speech parameters for feminine voice
+    utterance.rate = 0.95    // Slightly slower for more natural pace
+    utterance.pitch = 1.15   // Higher pitch for feminine voice
+    utterance.volume = 1.0
 
     utterance.onstart = () => setIsSpeaking(true)
     utterance.onend = () => setIsSpeaking(false)
     utterance.onerror = () => setIsSpeaking(false)
 
     synthesisRef.current.speak(utterance)
-  }, [voiceEnabled])
+  }, [voiceEnabled, selectedVoice])
 
   /**
    * Toggle voice input (microphone)
