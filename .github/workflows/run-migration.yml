@@ -20,20 +20,15 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
+      - name: Check migration file exists
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} \
+            "cd /opt/spm && docker compose -f infra/docker-compose.prod.yml exec -T backend ls -la backend/migrations/${{ github.event.inputs.migration_script }}"
+
       - name: Run migration on production
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'MIGRATION_SCRIPT'
-          cd /opt/spm
-          echo "=== Starting migration: ${{ github.event.inputs.migration_script }} ==="
-
-          echo "=== Checking file exists ==="
-          docker compose -f infra/docker-compose.prod.yml exec -T backend ls -la backend/migrations/${{ github.event.inputs.migration_script }} || echo "File not found"
-
-          echo "=== Running migration with full output ==="
-          docker compose -f infra/docker-compose.prod.yml exec -T backend python -u backend/migrations/${{ github.event.inputs.migration_script }} 2>&1
-
-          echo "=== Migration exit code: $? ==="
-          MIGRATION_SCRIPT
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} \
+            "cd /opt/spm && docker compose -f infra/docker-compose.prod.yml exec -T backend python -u backend/migrations/${{ github.event.inputs.migration_script }}"
 
       - name: Cleanup SSH
         if: always()
