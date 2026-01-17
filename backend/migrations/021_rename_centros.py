@@ -11,63 +11,31 @@ Mapeo para PRODUCCION (codigos reales):
 - 1501 (MID Sierra Barrosa) -> AA105 (Deposito 5)
 - 1502 (MID El Porton) -> AA106 (Deposito 6)
 
-Mapeo para DESARROLLO (codigos anonimizados):
-- 1001-1006 -> AA101-AA106
-
-Fecha: 2026-01-16
+Fecha: 2026-01-17
 """
 
-import logging
 import os
-import sqlite3
-from pathlib import Path
+import sys
 
-logger = logging.getLogger(__name__)
-
-# Mapeo de codigos - incluye tanto produccion como desarrollo
+# Mapeo de codigos - produccion
 CENTRO_MAPPING = {
-    # Produccion (codigos reales)
     "1008": "AA101",
     "1050": "AA102",
     "1064": "AA103",
     "1500": "AA104",
     "1501": "AA105",
     "1502": "AA106",
-    # Desarrollo (codigos anonimizados)
-    "1001": "AA101",
-    "1002": "AA102",
-    "1003": "AA103",
-    "1004": "AA104",
-    "1005": "AA105",
-    "1006": "AA106",
 }
 
-# Mapeo inverso para rollback
-CENTRO_MAPPING_REVERSE = {v: k for k, v in CENTRO_MAPPING.items()}
-
-# Mapeo de nombres - incluye todas las variantes
-NOMBRE_MAPPING = {
-    # Produccion (nombres reales)
-    "UP Loma La Lata": "Deposito 1",
-    "UP UTE Rio Neuquen": "Deposito 2",
-    "UP UTE Río Neuquén": "Deposito 2",
-    "UP Anelo": "Deposito 3",
-    "UP Añelo": "Deposito 3",
-    "MID Loma La Lata": "Deposito 4",
-    "MID Sierra Barrosa": "Deposito 5",
-    "MID El Porton": "Deposito 6",
-    "MID El Portón": "Deposito 6",
-    # Desarrollo (nombres anonimizados)
-    "Planta Norte": "Deposito 1",
-    "Planta Sur": "Deposito 2",
-    "Planta Este": "Deposito 3",
-    "Terminal Alpha": "Deposito 4",
-    "Terminal Beta": "Deposito 5",
-    "Terminal Gamma": "Deposito 6",
+# Mapeo de codigo a nombre nuevo
+CODIGO_TO_NOMBRE = {
+    "1008": "Deposito 1",
+    "1050": "Deposito 2",
+    "1064": "Deposito 3",
+    "1500": "Deposito 4",
+    "1501": "Deposito 5",
+    "1502": "Deposito 6",
 }
-
-# Mapeo inverso para rollback
-NOMBRE_MAPPING_REVERSE = {v: k for k, v in NOMBRE_MAPPING.items()}
 
 
 def _update_csv_field(value, mapping):
@@ -79,278 +47,144 @@ def _update_csv_field(value, mapping):
     return ",".join(mapped)
 
 
-# Mapeo directo de codigo antiguo a nuevo nombre
-CODIGO_TO_NOMBRE = {
-    # Produccion
-    "1008": "Deposito 1",
-    "1050": "Deposito 2",
-    "1064": "Deposito 3",
-    "1500": "Deposito 4",
-    "1501": "Deposito 5",
-    "1502": "Deposito 6",
-    # Desarrollo
-    "1001": "Deposito 1",
-    "1002": "Deposito 2",
-    "1003": "Deposito 3",
-    "1004": "Deposito 4",
-    "1005": "Deposito 5",
-    "1006": "Deposito 6",
-}
-
-
-def run_migration_sqlite(db_path):
-    """Ejecuta la migracion en SQLite."""
-    if not os.path.exists(db_path):
-        print(f"Base de datos no encontrada: {db_path}")
-        return False
-
-    try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-
-        # 1. Actualizar catalog_centros
-        print("Actualizando catalog_centros...")
-        for old_code, new_code in CENTRO_MAPPING.items():
-            new_name = CODIGO_TO_NOMBRE.get(old_code)
-            if new_name:
-                cursor.execute(
-                    "UPDATE catalog_centros SET codigo = ?, nombre = ? WHERE codigo = ?",
-                    (new_code, new_name, old_code),
-                )
-                print(f"  {old_code} -> {new_code} ({new_name})")
-
-        # 2. Actualizar usuarios (campo centros es CSV)
-        print("Actualizando usuarios.centros...")
-        cursor.execute("SELECT id_spm, centros FROM usuarios WHERE centros IS NOT NULL")
-        for row in cursor.fetchall():
-            user_id, centros = row
-            new_centros = _update_csv_field(centros, CENTRO_MAPPING)
-            if new_centros != centros:
-                cursor.execute(
-                    "UPDATE usuarios SET centros = ? WHERE id_spm = ?",
-                    (new_centros, user_id),
-                )
-
-        # 3. Actualizar solicitudes
-        print("Actualizando solicitudes.centro...")
-        for old_code, new_code in CENTRO_MAPPING.items():
-            cursor.execute(
-                "UPDATE solicitudes SET centro = ? WHERE centro = ?",
-                (new_code, old_code),
-            )
-
-        # 4. Actualizar presupuestos
-        print("Actualizando presupuestos.centro...")
-        for old_code, new_code in CENTRO_MAPPING.items():
-            cursor.execute(
-                "UPDATE presupuestos SET centro = ? WHERE centro = ?",
-                (new_code, old_code),
-            )
-
-        # 5. Actualizar presupuesto_ledger (si existe)
-        cursor.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='presupuesto_ledger'"
-        )
-        if cursor.fetchone():
-            print("Actualizando presupuesto_ledger.centro...")
-            for old_code, new_code in CENTRO_MAPPING.items():
-                cursor.execute(
-                    "UPDATE presupuesto_ledger SET centro = ? WHERE centro = ?",
-                    (new_code, old_code),
-                )
-
-        # 6. Actualizar budget_update_requests (si existe)
-        cursor.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='budget_update_requests'"
-        )
-        if cursor.fetchone():
-            print("Actualizando budget_update_requests.centro...")
-            for old_code, new_code in CENTRO_MAPPING.items():
-                cursor.execute(
-                    "UPDATE budget_update_requests SET centro = ? WHERE centro = ?",
-                    (new_code, old_code),
-                )
-
-        # 7. Actualizar planificador_asignaciones
-        print("Actualizando planificador_asignaciones.centro...")
-        for old_code, new_code in CENTRO_MAPPING.items():
-            cursor.execute(
-                "UPDATE planificador_asignaciones SET centro = ? WHERE centro = ?",
-                (new_code, old_code),
-            )
-
-        # 8. Actualizar proveedores_internos
-        cursor.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='proveedores_internos'"
-        )
-        if cursor.fetchone():
-            print("Actualizando proveedores_internos...")
-            for old_code, new_code in CENTRO_MAPPING.items():
-                cursor.execute(
-                    "UPDATE proveedores_internos SET centro = ? WHERE centro = ?",
-                    (new_code, old_code),
-                )
-            for old_name, new_name in NOMBRE_MAPPING.items():
-                cursor.execute(
-                    "UPDATE proveedores_internos SET centro_nombre = ? WHERE centro_nombre = ?",
-                    (new_name, old_name),
-                )
-
-        # 9. Actualizar config_almacenes
-        cursor.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='config_almacenes'"
-        )
-        if cursor.fetchone():
-            print("Actualizando config_almacenes.centro...")
-            for old_code, new_code in CENTRO_MAPPING.items():
-                cursor.execute(
-                    "UPDATE config_almacenes SET centro = ? WHERE centro = ?",
-                    (new_code, old_code),
-                )
-
-        # 10. Actualizar decision_abastecimiento_fuentes (si existe)
-        cursor.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='decision_abastecimiento_fuentes'"
-        )
-        if cursor.fetchone():
-            print("Actualizando decision_abastecimiento_fuentes.centro_origen...")
-            for old_code, new_code in CENTRO_MAPPING.items():
-                cursor.execute(
-                    "UPDATE decision_abastecimiento_fuentes SET centro_origen = ? WHERE centro_origen = ?",
-                    (new_code, old_code),
-                )
-
-        conn.commit()
-        conn.close()
-        print(f"Migracion SQLite completada: {db_path}")
-        return True
-
-    except Exception as e:
-        print(f"Error en migracion SQLite: {e}")
-        return False
-
-
 def run_migration_postgresql():
     """Ejecuta la migracion en PostgreSQL."""
     database_url = os.environ.get("DATABASE_URL")
 
-    if not database_url or not database_url.startswith("postgresql://"):
-        print("DATABASE_URL no es PostgreSQL. Saltando migracion PostgreSQL.")
-        return True
+    print(f"DATABASE_URL presente: {bool(database_url)}")
+
+    if not database_url:
+        print("ERROR: DATABASE_URL no configurada")
+        return False
+
+    if not database_url.startswith("postgresql://"):
+        print(f"DATABASE_URL no es PostgreSQL: {database_url[:20]}...")
+        return False
 
     try:
         import psycopg2
 
+        print("Conectando a PostgreSQL...")
         conn = psycopg2.connect(database_url)
         cursor = conn.cursor()
 
-        # 1. Actualizar catalog_centros
-        print("Actualizando catalog_centros...")
+        # ESTRATEGIA: Como codigo es PRIMARY KEY, necesitamos:
+        # 1. Insertar nuevos centros
+        # 2. Actualizar todas las referencias
+        # 3. Eliminar centros viejos
+
+        print("\n=== PASO 1: Insertar nuevos centros ===")
         for old_code, new_code in CENTRO_MAPPING.items():
-            new_name = CODIGO_TO_NOMBRE.get(old_code)
-            if new_name:
+            new_name = CODIGO_TO_NOMBRE.get(old_code, f"Centro {new_code}")
+            try:
                 cursor.execute(
-                    "UPDATE catalog_centros SET codigo = %s, nombre = %s WHERE codigo = %s",
-                    (new_code, new_name, old_code),
+                    """
+                    INSERT INTO catalog_centros (codigo, nombre, activo)
+                    VALUES (%s, %s, 1)
+                    ON CONFLICT (codigo) DO UPDATE SET nombre = EXCLUDED.nombre
+                    """,
+                    (new_code, new_name),
                 )
-                print(f"  {old_code} -> {new_code} ({new_name})")
+                print(f"  Insertado/actualizado: {new_code} ({new_name})")
+            except Exception as e:
+                print(f"  Error insertando {new_code}: {e}")
 
-        # 2. Actualizar usuarios (campo centros es CSV)
-        print("Actualizando usuarios.centros...")
-        cursor.execute("SELECT id_spm, centros FROM usuarios WHERE centros IS NOT NULL")
-        for row in cursor.fetchall():
-            user_id, centros = row
-            new_centros = _update_csv_field(centros, CENTRO_MAPPING)
-            if new_centros != centros:
-                cursor.execute(
-                    "UPDATE usuarios SET centros = %s WHERE id_spm = %s",
-                    (new_centros, user_id),
-                )
+        print("\n=== PASO 2: Actualizar referencias en tablas ===")
 
-        # 3-10. Actualizar otras tablas
+        # Lista de tablas y columnas a actualizar
         tables_with_centro = [
-            ("solicitudes", "centro"),
-            ("presupuestos", "centro"),
-            ("presupuesto_ledger", "centro"),
-            ("budget_update_requests", "centro"),
-            ("planificador_asignaciones", "centro"),
-            ("config_almacenes", "centro"),
-            ("decision_abastecimiento_fuentes", "centro_origen"),
+            ("usuarios", "centros", True),  # CSV field
+            ("solicitudes", "centro", False),
+            ("presupuestos", "centro", False),
+            ("presupuesto_ledger", "centro", False),
+            ("budget_update_requests", "centro", False),
+            ("planificador_asignaciones", "centro", False),
+            ("config_almacenes", "centro", False),
+            ("proveedores_internos", "centro", False),
+            ("decision_abastecimiento_fuentes", "centro_origen", False),
         ]
 
-        for table, column in tables_with_centro:
-            print(f"Actualizando {table}.{column}...")
+        for table, column, is_csv in tables_with_centro:
+            print(f"\n  Actualizando {table}.{column}...")
+            try:
+                if is_csv:
+                    # Campo CSV - necesita logica especial
+                    cursor.execute(f"SELECT id_spm, {column} FROM {table} WHERE {column} IS NOT NULL")
+                    rows = cursor.fetchall()
+                    updated = 0
+                    for row in rows:
+                        user_id, old_value = row
+                        new_value = _update_csv_field(old_value, CENTRO_MAPPING)
+                        if new_value != old_value:
+                            cursor.execute(
+                                f"UPDATE {table} SET {column} = %s WHERE id_spm = %s",
+                                (new_value, user_id),
+                            )
+                            updated += 1
+                    print(f"    {updated} registros actualizados")
+                else:
+                    # Campo simple
+                    for old_code, new_code in CENTRO_MAPPING.items():
+                        cursor.execute(
+                            f"UPDATE {table} SET {column} = %s WHERE {column} = %s",
+                            (new_code, old_code),
+                        )
+                        count = cursor.rowcount
+                        if count > 0:
+                            print(f"    {old_code} -> {new_code}: {count} registros")
+            except Exception as e:
+                print(f"    Error en {table}: {e}")
+
+        # Actualizar centro_nombre en proveedores_internos
+        print("\n  Actualizando proveedores_internos.centro_nombre...")
+        try:
             for old_code, new_code in CENTRO_MAPPING.items():
-                try:
+                new_name = CODIGO_TO_NOMBRE.get(old_code)
+                if new_name:
                     cursor.execute(
-                        f"UPDATE {table} SET {column} = %s WHERE {column} = %s",
-                        (new_code, old_code),
+                        "UPDATE proveedores_internos SET centro_nombre = %s WHERE centro = %s",
+                        (new_name, new_code),
                     )
-                except Exception as e:
-                    print(f"Tabla {table} no existe o error: {e}")
+        except Exception as e:
+            print(f"    Error: {e}")
 
-        # proveedores_internos (centro y centro_nombre)
-        print("Actualizando proveedores_internos...")
-        for old_code, new_code in CENTRO_MAPPING.items():
+        print("\n=== PASO 3: Desactivar centros viejos ===")
+        for old_code in CENTRO_MAPPING.keys():
             try:
                 cursor.execute(
-                    "UPDATE proveedores_internos SET centro = %s WHERE centro = %s",
-                    (new_code, old_code),
+                    "UPDATE catalog_centros SET activo = 0 WHERE codigo = %s",
+                    (old_code,),
                 )
-            except Exception:
-                pass
-        for old_name, new_name in NOMBRE_MAPPING.items():
-            try:
-                cursor.execute(
-                    "UPDATE proveedores_internos SET centro_nombre = %s WHERE centro_nombre = %s",
-                    (new_name, old_name),
-                )
-            except Exception:
-                pass
+                if cursor.rowcount > 0:
+                    print(f"  Desactivado: {old_code}")
+            except Exception as e:
+                print(f"  Error desactivando {old_code}: {e}")
 
+        print("\n=== Guardando cambios ===")
         conn.commit()
         conn.close()
-        print("Migracion PostgreSQL completada")
+        print("Migracion PostgreSQL completada exitosamente!")
         return True
 
     except ImportError:
-        print("psycopg2 no instalado. Saltando migracion PostgreSQL.")
-        return True
+        print("ERROR: psycopg2 no instalado")
+        return False
     except Exception as e:
-        print(f"Error en migracion PostgreSQL: {e}")
+        print(f"ERROR en migracion: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
 def run_migration():
     """Ejecuta la migracion completa."""
-    base_dir = Path(__file__).parent.parent.parent
-    data_dir = base_dir / "data"
-    spm_db = data_dir / "spm.db"
+    print("=" * 60)
+    print("MIGRACION 021: Renombrar Centros")
+    print("=" * 60)
 
-    success = True
-
-    # Migrar SQLite
-    if spm_db.exists():
-        success = run_migration_sqlite(str(spm_db)) and success
-
-    # Migrar PostgreSQL
-    success = run_migration_postgresql() and success
-
-    if success:
-        print("Migracion 021 completada: centros renombrados")
-    return success
-
-
-def rollback_migration():
-    """Revierte la migracion (usa mapeo inverso)."""
-    global CENTRO_MAPPING, NOMBRE_MAPPING
-    # Intercambiar mapeos
-    CENTRO_MAPPING, _ = CENTRO_MAPPING_REVERSE, CENTRO_MAPPING
-    NOMBRE_MAPPING, _ = NOMBRE_MAPPING_REVERSE, NOMBRE_MAPPING
-
-    return run_migration()
+    return run_migration_postgresql()
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    run_migration()
+    success = run_migration()
+    sys.exit(0 if success else 1)
