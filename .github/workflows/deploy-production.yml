@@ -129,6 +129,21 @@ jobs:
             echo "=== Permissions fixed ==="
           PERMISSIONS_SCRIPT
 
+      - name: Update environment variables
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << ENVSCRIPT
+            cd /opt/spm
+
+            # Add or update GOOGLE_AI_API_KEY in .env
+            if grep -q "^GOOGLE_AI_API_KEY=" .env 2>/dev/null; then
+              sed -i 's|^GOOGLE_AI_API_KEY=.*|GOOGLE_AI_API_KEY=${{ secrets.GOOGLE_AI_API_KEY }}|' .env
+              echo "Updated GOOGLE_AI_API_KEY in .env"
+            else
+              echo 'GOOGLE_AI_API_KEY=${{ secrets.GOOGLE_AI_API_KEY }}' >> .env
+              echo "Added GOOGLE_AI_API_KEY to .env"
+            fi
+          ENVSCRIPT
+
       - name: Deploy to server
         id: deploy
         run: |
