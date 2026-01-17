@@ -58,6 +58,7 @@ from backend.routes import (
     sla,
     solicitudes,
     trivias,
+    vertex_ia,
 )
 from backend.routes import planner as planner_new
 
@@ -229,6 +230,7 @@ def create_app(config_override: dict | None = None) -> Flask:
     app.register_blueprint(database.bp)  # Database administration at /api/admin/database
     app.register_blueprint(admin_import.bp)  # Temp data import for MRP/Forecast at /api/admin
     app.register_blueprint(procurement.procurement_bp)  # SAP Procurement data at /api/procurement
+    app.register_blueprint(vertex_ia.bp)  # Vertex IA chat assistant at /api/vertex
 
     # ==================== SERVIR FRONTEND REACT ====================
     # Calcular rutas del frontend

@@ -2,10 +2,12 @@
 Cliente LLM abstracto para RAG.
 
 Soporta múltiples proveedores:
+- Google Gemini (Vertex IA - recomendado)
 - OpenAI (GPT-4, GPT-3.5)
 - Anthropic (Claude)
 
 Configuración via variables de entorno:
+- GOOGLE_AI_API_KEY: API key de Google AI Studio (Gemini)
 - OPENAI_API_KEY: API key de OpenAI
 - ANTHROPIC_API_KEY: API key de Anthropic
 """
@@ -358,7 +360,7 @@ def get_llm_client(
     Factory para obtener cliente LLM.
 
     Args:
-        provider: 'openai', 'anthropic', 'mock', o 'auto'
+        provider: 'gemini', 'openai', 'anthropic', 'mock', o 'auto'
         model: Modelo específico (opcional)
         api_key: API key (opcional, usa env vars)
 
@@ -367,7 +369,10 @@ def get_llm_client(
     """
     if provider == "auto":
         # Detectar automáticamente basado en API keys disponibles
-        if os.getenv("ANTHROPIC_API_KEY") or api_key:
+        # Prioridad: Gemini > Anthropic > OpenAI > Mock
+        if os.getenv("GOOGLE_AI_API_KEY"):
+            provider = "gemini"
+        elif os.getenv("ANTHROPIC_API_KEY") or api_key:
             provider = "anthropic"
         elif os.getenv("OPENAI_API_KEY"):
             provider = "openai"
@@ -375,7 +380,10 @@ def get_llm_client(
             logger.warning("No se encontraron API keys, usando cliente mock")
             provider = "mock"
 
-    if provider == "openai":
+    if provider == "gemini":
+        from backend.agent.rag.gemini_client import GeminiClient
+        return GeminiClient(api_key=api_key, model=model or "gemini-2.0-flash")
+    elif provider == "openai":
         return OpenAIClient(api_key=api_key, model=model or "gpt-4o-mini")
     elif provider == "anthropic":
         return AnthropicClient(api_key=api_key, model=model or "claude-3-haiku-20240307")

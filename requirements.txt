@@ -61,3 +61,6 @@ xgboost>=2.0.0
 statsmodels>=0.14.0
 pmdarima>=2.0.0
 # prophet>=1.1.0  # Comentado: requiere instalación especial en Windows
+
+# Google AI / Vertex IA
+google-genai>=1.0.0
