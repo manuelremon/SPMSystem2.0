@@ -166,22 +166,42 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'SCRIPT'
             set -ex
             cd /opt/spm
-            echo "=== Current .env contents (masked) ==="
-            grep -v "PASSWORD\|SECRET\|KEY" .env || true
-            echo "=== GOOGLE_AI_API_KEY is set: $(grep -c GOOGLE_AI_API_KEY .env || echo 0) ==="
+
+            # Export GOOGLE_AI_API_KEY from .env if present
+            if grep -q "^GOOGLE_AI_API_KEY=" .env 2>/dev/null; then
+              export $(grep "^GOOGLE_AI_API_KEY=" .env)
+              echo "=== GOOGLE_AI_API_KEY exported from .env ==="
+            fi
+
+            # Copy GOOGLE_AI_API_KEY to infra/.env if not present there
+            if [ -f infra/.env ]; then
+              if ! grep -q "^GOOGLE_AI_API_KEY=" infra/.env 2>/dev/null; then
+                grep "^GOOGLE_AI_API_KEY=" .env >> infra/.env 2>/dev/null || true
+                echo "=== Added GOOGLE_AI_API_KEY to infra/.env ==="
+              else
+                # Update existing value
+                sed -i "s|^GOOGLE_AI_API_KEY=.*|$(grep '^GOOGLE_AI_API_KEY=' .env)|" infra/.env 2>/dev/null || true
+                echo "=== Updated GOOGLE_AI_API_KEY in infra/.env ==="
+              fi
+            else
+              # Create infra/.env with the key
+              grep "^GOOGLE_AI_API_KEY=" .env > infra/.env 2>/dev/null || true
+              echo "=== Created infra/.env with GOOGLE_AI_API_KEY ==="
+            fi
+
             echo "=== Pruning old Docker images ==="
             docker image prune -f || true
             echo "=== Stopping existing containers ==="
-            docker compose --env-file .env -f infra/docker-compose.prod.yml down --remove-orphans || true
+            docker compose -f infra/docker-compose.prod.yml down --remove-orphans || true
             docker network rm spm_network 2>/dev/null || true
             echo "=== Rebuilding backend container ==="
-            docker compose --env-file .env -f infra/docker-compose.prod.yml build --no-cache backend
+            docker compose -f infra/docker-compose.prod.yml build --no-cache backend
             echo "=== Starting all containers ==="
-            docker compose --env-file .env -f infra/docker-compose.prod.yml up -d
+            docker compose -f infra/docker-compose.prod.yml up -d
             echo "=== Waiting for containers to start ==="
             sleep 20
             echo "=== Container status ==="
-            docker compose --env-file .env -f infra/docker-compose.prod.yml ps
+            docker compose -f infra/docker-compose.prod.yml ps
             echo "=== Restart completed ==="
           SCRIPT
 
