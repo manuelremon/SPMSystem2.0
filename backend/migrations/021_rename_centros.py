@@ -101,7 +101,7 @@ CODIGO_TO_NOMBRE = {
 def run_migration_sqlite(db_path):
     """Ejecuta la migracion en SQLite."""
     if not os.path.exists(db_path):
-        logger.warning(f"Base de datos no encontrada: {db_path}")
+        print(f"Base de datos no encontrada: {db_path}")
         return False
 
     try:
@@ -109,7 +109,7 @@ def run_migration_sqlite(db_path):
         cursor = conn.cursor()
 
         # 1. Actualizar catalog_centros
-        logger.info("Actualizando catalog_centros...")
+        print("Actualizando catalog_centros...")
         for old_code, new_code in CENTRO_MAPPING.items():
             new_name = CODIGO_TO_NOMBRE.get(old_code)
             if new_name:
@@ -117,10 +117,10 @@ def run_migration_sqlite(db_path):
                     "UPDATE catalog_centros SET codigo = ?, nombre = ? WHERE codigo = ?",
                     (new_code, new_name, old_code),
                 )
-                logger.info(f"  {old_code} -> {new_code} ({new_name})")
+                print(f"  {old_code} -> {new_code} ({new_name})")
 
         # 2. Actualizar usuarios (campo centros es CSV)
-        logger.info("Actualizando usuarios.centros...")
+        print("Actualizando usuarios.centros...")
         cursor.execute("SELECT id_spm, centros FROM usuarios WHERE centros IS NOT NULL")
         for row in cursor.fetchall():
             user_id, centros = row
@@ -132,7 +132,7 @@ def run_migration_sqlite(db_path):
                 )
 
         # 3. Actualizar solicitudes
-        logger.info("Actualizando solicitudes.centro...")
+        print("Actualizando solicitudes.centro...")
         for old_code, new_code in CENTRO_MAPPING.items():
             cursor.execute(
                 "UPDATE solicitudes SET centro = ? WHERE centro = ?",
@@ -140,7 +140,7 @@ def run_migration_sqlite(db_path):
             )
 
         # 4. Actualizar presupuestos
-        logger.info("Actualizando presupuestos.centro...")
+        print("Actualizando presupuestos.centro...")
         for old_code, new_code in CENTRO_MAPPING.items():
             cursor.execute(
                 "UPDATE presupuestos SET centro = ? WHERE centro = ?",
@@ -152,7 +152,7 @@ def run_migration_sqlite(db_path):
             "SELECT name FROM sqlite_master WHERE type='table' AND name='presupuesto_ledger'"
         )
         if cursor.fetchone():
-            logger.info("Actualizando presupuesto_ledger.centro...")
+            print("Actualizando presupuesto_ledger.centro...")
             for old_code, new_code in CENTRO_MAPPING.items():
                 cursor.execute(
                     "UPDATE presupuesto_ledger SET centro = ? WHERE centro = ?",
@@ -164,7 +164,7 @@ def run_migration_sqlite(db_path):
             "SELECT name FROM sqlite_master WHERE type='table' AND name='budget_update_requests'"
         )
         if cursor.fetchone():
-            logger.info("Actualizando budget_update_requests.centro...")
+            print("Actualizando budget_update_requests.centro...")
             for old_code, new_code in CENTRO_MAPPING.items():
                 cursor.execute(
                     "UPDATE budget_update_requests SET centro = ? WHERE centro = ?",
@@ -172,7 +172,7 @@ def run_migration_sqlite(db_path):
                 )
 
         # 7. Actualizar planificador_asignaciones
-        logger.info("Actualizando planificador_asignaciones.centro...")
+        print("Actualizando planificador_asignaciones.centro...")
         for old_code, new_code in CENTRO_MAPPING.items():
             cursor.execute(
                 "UPDATE planificador_asignaciones SET centro = ? WHERE centro = ?",
@@ -184,7 +184,7 @@ def run_migration_sqlite(db_path):
             "SELECT name FROM sqlite_master WHERE type='table' AND name='proveedores_internos'"
         )
         if cursor.fetchone():
-            logger.info("Actualizando proveedores_internos...")
+            print("Actualizando proveedores_internos...")
             for old_code, new_code in CENTRO_MAPPING.items():
                 cursor.execute(
                     "UPDATE proveedores_internos SET centro = ? WHERE centro = ?",
@@ -201,7 +201,7 @@ def run_migration_sqlite(db_path):
             "SELECT name FROM sqlite_master WHERE type='table' AND name='config_almacenes'"
         )
         if cursor.fetchone():
-            logger.info("Actualizando config_almacenes.centro...")
+            print("Actualizando config_almacenes.centro...")
             for old_code, new_code in CENTRO_MAPPING.items():
                 cursor.execute(
                     "UPDATE config_almacenes SET centro = ? WHERE centro = ?",
@@ -213,7 +213,7 @@ def run_migration_sqlite(db_path):
             "SELECT name FROM sqlite_master WHERE type='table' AND name='decision_abastecimiento_fuentes'"
         )
         if cursor.fetchone():
-            logger.info("Actualizando decision_abastecimiento_fuentes.centro_origen...")
+            print("Actualizando decision_abastecimiento_fuentes.centro_origen...")
             for old_code, new_code in CENTRO_MAPPING.items():
                 cursor.execute(
                     "UPDATE decision_abastecimiento_fuentes SET centro_origen = ? WHERE centro_origen = ?",
@@ -222,11 +222,11 @@ def run_migration_sqlite(db_path):
 
         conn.commit()
         conn.close()
-        logger.info(f"Migracion SQLite completada: {db_path}")
+        print(f"Migracion SQLite completada: {db_path}")
         return True
 
     except Exception as e:
-        logger.error(f"Error en migracion SQLite: {e}")
+        print(f"Error en migracion SQLite: {e}")
         return False
 
 
@@ -235,7 +235,7 @@ def run_migration_postgresql():
     database_url = os.environ.get("DATABASE_URL")
 
     if not database_url or not database_url.startswith("postgresql://"):
-        logger.info("DATABASE_URL no es PostgreSQL. Saltando migracion PostgreSQL.")
+        print("DATABASE_URL no es PostgreSQL. Saltando migracion PostgreSQL.")
         return True
 
     try:
@@ -245,7 +245,7 @@ def run_migration_postgresql():
         cursor = conn.cursor()
 
         # 1. Actualizar catalog_centros
-        logger.info("Actualizando catalog_centros...")
+        print("Actualizando catalog_centros...")
         for old_code, new_code in CENTRO_MAPPING.items():
             new_name = CODIGO_TO_NOMBRE.get(old_code)
             if new_name:
@@ -253,10 +253,10 @@ def run_migration_postgresql():
                     "UPDATE catalog_centros SET codigo = %s, nombre = %s WHERE codigo = %s",
                     (new_code, new_name, old_code),
                 )
-                logger.info(f"  {old_code} -> {new_code} ({new_name})")
+                print(f"  {old_code} -> {new_code} ({new_name})")
 
         # 2. Actualizar usuarios (campo centros es CSV)
-        logger.info("Actualizando usuarios.centros...")
+        print("Actualizando usuarios.centros...")
         cursor.execute("SELECT id_spm, centros FROM usuarios WHERE centros IS NOT NULL")
         for row in cursor.fetchall():
             user_id, centros = row
@@ -279,7 +279,7 @@ def run_migration_postgresql():
         ]
 
         for table, column in tables_with_centro:
-            logger.info(f"Actualizando {table}.{column}...")
+            print(f"Actualizando {table}.{column}...")
             for old_code, new_code in CENTRO_MAPPING.items():
                 try:
                     cursor.execute(
@@ -287,10 +287,10 @@ def run_migration_postgresql():
                         (new_code, old_code),
                     )
                 except Exception as e:
-                    logger.warning(f"Tabla {table} no existe o error: {e}")
+                    print(f"Tabla {table} no existe o error: {e}")
 
         # proveedores_internos (centro y centro_nombre)
-        logger.info("Actualizando proveedores_internos...")
+        print("Actualizando proveedores_internos...")
         for old_code, new_code in CENTRO_MAPPING.items():
             try:
                 cursor.execute(
@@ -310,14 +310,14 @@ def run_migration_postgresql():
 
         conn.commit()
         conn.close()
-        logger.info("Migracion PostgreSQL completada")
+        print("Migracion PostgreSQL completada")
         return True
 
     except ImportError:
-        logger.warning("psycopg2 no instalado. Saltando migracion PostgreSQL.")
+        print("psycopg2 no instalado. Saltando migracion PostgreSQL.")
         return True
     except Exception as e:
-        logger.error(f"Error en migracion PostgreSQL: {e}")
+        print(f"Error en migracion PostgreSQL: {e}")
         return False
 
 
@@ -337,7 +337,7 @@ def run_migration():
     success = run_migration_postgresql() and success
 
     if success:
-        logger.info("Migracion 021 completada: centros renombrados")
+        print("Migracion 021 completada: centros renombrados")
     return success
 
 
