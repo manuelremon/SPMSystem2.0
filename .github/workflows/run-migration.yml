@@ -24,16 +24,14 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'MIGRATION_SCRIPT'
           cd /opt/spm
-          echo "=== Running migration: ${{ github.event.inputs.migration_script }} ==="
+          echo "=== Starting migration: ${{ github.event.inputs.migration_script }} ==="
+          echo "=== Checking file exists ==="
+          docker-compose exec -T backend ls -la backend/migrations/${{ github.event.inputs.migration_script }}
 
-          # Run migration with proper environment variables from docker-compose
-          docker-compose exec -T backend bash -c "
-            export PYTHONUNBUFFERED=1
-            echo 'DATABASE_URL:' \$DATABASE_URL
-            python -u backend/migrations/${{ github.event.inputs.migration_script }}
-          "
+          echo "=== Running migration with full output ==="
+          docker-compose exec -T backend python -u backend/migrations/${{ github.event.inputs.migration_script }} 2>&1
 
-          echo "=== Migration completed ==="
+          echo "=== Migration exit code: $? ==="
           MIGRATION_SCRIPT
 
       - name: Cleanup SSH
