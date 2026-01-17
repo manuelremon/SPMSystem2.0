@@ -25,6 +25,7 @@ export default function ChatAssistant() {
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [voiceEnabled, setVoiceEnabled] = useState(true)
   const [speechSupported, setSpeechSupported] = useState(false)
+  const [micPermissionDenied, setMicPermissionDenied] = useState(false)
   const recognitionRef = useRef(null)
   const synthesisRef = useRef(null)
 
@@ -88,10 +89,14 @@ export default function ChatAssistant() {
       }
 
       recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error)
+        // Only log non-permission errors once
+        if (event.error !== 'not-allowed' && event.error !== 'aborted') {
+          console.error('Speech recognition error:', event.error)
+        }
         setIsListening(false)
         if (event.error === 'not-allowed') {
-          setError('Permiso de microfono denegado. Habilitalo en la configuracion del navegador.')
+          setMicPermissionDenied(true)
+          // Don't spam the error - only show once
         }
       }
 
@@ -151,13 +156,26 @@ export default function ChatAssistant() {
   const toggleListening = () => {
     if (!recognitionRef.current) return
 
+    // Don't try if permission was denied
+    if (micPermissionDenied) {
+      setError('Permiso de microfono denegado. Habilitalo en la configuracion del navegador.')
+      return
+    }
+
     if (isListening) {
       recognitionRef.current.stop()
       setIsListening(false)
     } else {
       setInputValue('')
-      recognitionRef.current.start()
-      setIsListening(true)
+      try {
+        recognitionRef.current.start()
+        setIsListening(true)
+      } catch (err) {
+        // Recognition already started or other error
+        if (err.name !== 'InvalidStateError') {
+          console.error('Failed to start recognition:', err)
+        }
+      }
     }
   }
 
@@ -450,7 +468,7 @@ export default function ChatAssistant() {
       >
         <div className="flex gap-2">
           {/* Microphone Button */}
-          {speechSupported && (
+          {speechSupported && !micPermissionDenied && (
             <Button
               type="button"
               onClick={toggleListening}

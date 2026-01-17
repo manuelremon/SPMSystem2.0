@@ -396,11 +396,30 @@ def get_alerts():
         # Obtener alertas pendientes (no mostradas)
         with get_db_connection() as conn:
             cursor = conn.cursor()
+            # Check if table exists first
+            cursor.execute(
+                """
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables
+                    WHERE table_name = 'vertex_proactive_alerts'
+                )
+                """
+            )
+            table_exists = cursor.fetchone()[0]
+
+            if not table_exists:
+                # Table not created yet - return empty alerts
+                return jsonify({
+                    "ok": True,
+                    "alerts": [],
+                    "count": 0,
+                }), 200
+
             cursor.execute(
                 """
                 SELECT id, alert_type, priority, title, message, context, created_at
                 FROM vertex_proactive_alerts
-                WHERE user_id = ? AND shown_at IS NULL
+                WHERE user_id = %s AND shown_at IS NULL
                 ORDER BY priority ASC, created_at ASC
                 LIMIT 5
                 """,
