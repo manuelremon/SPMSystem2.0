@@ -70,6 +70,8 @@ services:
       VAPID_EMAIL: ${VAPID_EMAIL:-}
       # Rate Limiting (opcional, desactivar con DISABLE_RATE_LIMIT=1)
       DISABLE_RATE_LIMIT: ${DISABLE_RATE_LIMIT:-0}
+      # Vertex IA (Google Gemini)
+      GOOGLE_AI_API_KEY: ${GOOGLE_AI_API_KEY:-}
     volumes:
       - spm_uploads:/app/uploads
       - spm_logs:/app/logs
@@ -114,6 +116,8 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_ENABLED: ${SMTP_ENABLED:-false}
+      # Vertex IA (Google Gemini)
+      GOOGLE_AI_API_KEY: ${GOOGLE_AI_API_KEY:-}
     volumes:
       - spm_logs:/app/logs
       # SQLite databases (read-only) - Datos SAP
