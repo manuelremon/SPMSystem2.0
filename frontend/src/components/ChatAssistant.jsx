@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-import { Send, X, Loader2, AlertCircle, Bell } from './ui/Icons'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { Send, X, Loader2, AlertCircle, Bell, Mic, MicOff, Volume2, VolumeX } from './ui/Icons'
 import { useVertexStore, selectFormattedMessages } from '../store/vertexStore'
 import { useAuthStore } from '../store/authStore'
 import vertexService, { sendVertexMessage, loadVertexAlerts, initializeVertex } from '../services/vertex'
@@ -13,11 +13,20 @@ import { Button } from './ui/Button'
  * - Memoria persistente entre sesiones
  * - Alertas proactivas
  * - Sugerencias contextuales
+ * - Voz: Text-to-Speech y Speech-to-Text
  */
 export default function ChatAssistant() {
   const messagesEndRef = useRef(null)
   const [inputValue, setInputValue] = useState('')
   const inputRef = useRef(null)
+
+  // Voice state
+  const [isListening, setIsListening] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const [voiceEnabled, setVoiceEnabled] = useState(true)
+  const [speechSupported, setSpeechSupported] = useState(false)
+  const recognitionRef = useRef(null)
+  const synthesisRef = useRef(null)
 
   // Vertex store
   const store = useVertexStore()
@@ -48,6 +57,131 @@ export default function ChatAssistant() {
 
   // Formatear mensajes para UI
   const formattedMessages = selectFormattedMessages(store)
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    // Check for speech synthesis support
+    if ('speechSynthesis' in window) {
+      synthesisRef.current = window.speechSynthesis
+    }
+
+    // Check for speech recognition support
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (SpeechRecognition) {
+      setSpeechSupported(true)
+      const recognition = new SpeechRecognition()
+      recognition.continuous = false
+      recognition.interimResults = true
+      recognition.lang = 'es-AR' // Argentinian Spanish
+
+      recognition.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .map(result => result[0].transcript)
+          .join('')
+
+        setInputValue(transcript)
+
+        // If final result, send message
+        if (event.results[0].isFinal) {
+          setIsListening(false)
+        }
+      }
+
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error)
+        setIsListening(false)
+        if (event.error === 'not-allowed') {
+          setError('Permiso de microfono denegado. Habilitalo en la configuracion del navegador.')
+        }
+      }
+
+      recognition.onend = () => {
+        setIsListening(false)
+      }
+
+      recognitionRef.current = recognition
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort()
+      }
+      if (synthesisRef.current) {
+        synthesisRef.current.cancel()
+      }
+    }
+  }, [])
+
+  /**
+   * Speak text using Web Speech API
+   */
+  const speak = useCallback((text) => {
+    if (!synthesisRef.current || !voiceEnabled || !text) return
+
+    // Cancel any ongoing speech
+    synthesisRef.current.cancel()
+
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = 'es-AR'
+    utterance.rate = 1.0
+    utterance.pitch = 1.1 // Slightly higher pitch for feminine voice
+
+    // Try to find a Spanish female voice
+    const voices = synthesisRef.current.getVoices()
+    const spanishFemaleVoice = voices.find(voice =>
+      voice.lang.startsWith('es') && voice.name.toLowerCase().includes('female')
+    ) || voices.find(voice =>
+      voice.lang.startsWith('es')
+    ) || voices[0]
+
+    if (spanishFemaleVoice) {
+      utterance.voice = spanishFemaleVoice
+    }
+
+    utterance.onstart = () => setIsSpeaking(true)
+    utterance.onend = () => setIsSpeaking(false)
+    utterance.onerror = () => setIsSpeaking(false)
+
+    synthesisRef.current.speak(utterance)
+  }, [voiceEnabled])
+
+  /**
+   * Toggle voice input (microphone)
+   */
+  const toggleListening = () => {
+    if (!recognitionRef.current) return
+
+    if (isListening) {
+      recognitionRef.current.stop()
+      setIsListening(false)
+    } else {
+      setInputValue('')
+      recognitionRef.current.start()
+      setIsListening(true)
+    }
+  }
+
+  /**
+   * Toggle voice output (speaker)
+   */
+  const toggleVoice = () => {
+    if (isSpeaking && synthesisRef.current) {
+      synthesisRef.current.cancel()
+      setIsSpeaking(false)
+    }
+    setVoiceEnabled(!voiceEnabled)
+  }
+
+  // Speak new assistant messages
+  useEffect(() => {
+    if (messages.length > 0 && voiceEnabled) {
+      const lastMessage = messages[messages.length - 1]
+      if (lastMessage.role === 'assistant') {
+        // Small delay to ensure UI updates first
+        setTimeout(() => speak(lastMessage.content), 100)
+      }
+    }
+  }, [messages, voiceEnabled, speak])
 
   // Inicializar al abrir
   useEffect(() => {
@@ -93,6 +227,12 @@ export default function ChatAssistant() {
 
     setInputValue('')
     clearError()
+
+    // Stop listening if active
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop()
+      setIsListening(false)
+    }
 
     // Usar el helper que actualiza el store
     await sendVertexMessage(store, message)
@@ -143,24 +283,38 @@ export default function ChatAssistant() {
         <div className="flex items-center gap-3">
           {/* Avatar Vertex */}
           <div className="relative">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-purple-600
-                          flex items-center justify-center shadow-lg shadow-violet-500/25">
+            <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-purple-600
+                          flex items-center justify-center shadow-lg shadow-violet-500/25
+                          ${isSpeaking ? 'animate-pulse' : ''}`}>
               <span className="text-white text-sm font-bold">V</span>
             </div>
             {/* Indicador de estado */}
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white dark:border-slate-900"></div>
+            <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900
+                          ${isSpeaking ? 'bg-violet-400 animate-pulse' : 'bg-green-400'}`}></div>
           </div>
           <div>
             <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
               Vertex IA
             </h3>
             <span className="text-xs text-slate-500 dark:text-slate-400">
-              Tu asistente SPM
+              {isSpeaking ? 'Hablando...' : isListening ? 'Escuchando...' : 'Tu asistente SPM'}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          {/* Toggle Voice Output */}
+          <Button
+            onClick={toggleVoice}
+            variant="icon"
+            size="icon-sm"
+            aria-label={voiceEnabled ? 'Desactivar voz' : 'Activar voz'}
+            title={voiceEnabled ? 'Desactivar voz' : 'Activar voz'}
+            className={voiceEnabled ? 'text-violet-500' : 'text-slate-400'}
+          >
+            {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </Button>
+
           {/* Badge de alertas */}
           {unshownAlertsCount > 0 && (
             <div className="relative">
@@ -295,21 +449,41 @@ export default function ChatAssistant() {
         className="border-t border-white/30 dark:border-white/10 p-3 bg-white/50 dark:bg-slate-800/50 rounded-b-2xl"
       >
         <div className="flex gap-2">
+          {/* Microphone Button */}
+          {speechSupported && (
+            <Button
+              type="button"
+              onClick={toggleListening}
+              disabled={isLoading}
+              size="sm"
+              variant={isListening ? 'primary' : 'secondary'}
+              className={`px-3 ${isListening
+                ? 'bg-red-500 hover:bg-red-600 animate-pulse'
+                : 'bg-violet-100 dark:bg-violet-900/50 hover:bg-violet-200 dark:hover:bg-violet-900'}`}
+              title={isListening ? 'Detener' : 'Hablar'}
+            >
+              {isListening ? <MicOff className="w-4 h-4 text-white" /> : <Mic className="w-4 h-4 text-violet-600 dark:text-violet-400" />}
+            </Button>
+          )}
+
           <input
             ref={inputRef}
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Escribi tu consulta..."
+            placeholder={isListening ? 'Escuchando...' : 'Escribi o habla tu consulta...'}
             disabled={isLoading}
             autoComplete="off"
-            className="flex-1 px-3 py-2 bg-white/70 dark:bg-slate-700/70 backdrop-blur-sm
-                      border border-white/50 dark:border-white/10 rounded-xl
+            className={`flex-1 px-3 py-2 bg-white/70 dark:bg-slate-700/70 backdrop-blur-sm
+                      border rounded-xl
                       text-sm text-slate-800 dark:text-slate-200
                       placeholder-slate-400 dark:placeholder-slate-500
                       focus:outline-none focus:ring-2 focus:ring-violet-400/30 focus:border-violet-400/50
                       disabled:bg-slate-100/50 dark:disabled:bg-slate-600/50 disabled:cursor-not-allowed
-                      transition-all"
+                      transition-all
+                      ${isListening
+                        ? 'border-red-400/50 ring-2 ring-red-400/30'
+                        : 'border-white/50 dark:border-white/10'}`}
           />
           <Button
             type="submit"

@@ -233,6 +233,16 @@ export { default as Film } from './svg/film.svg?react';
 export { default as Music } from './svg/music_note.svg?react';
 
 // ============================================================================
+// AUDIO Y VOZ
+// ============================================================================
+export { default as Mic } from './svg/mic.svg?react';
+export { default as MicOff } from './svg/mic_slash.svg?react';
+export { default as Volume2 } from './svg/speaker_2.svg?react';
+export { default as VolumeX } from './svg/speaker_slash.svg?react';
+export { default as Volume1 } from './svg/speaker_1.svg?react';
+export { default as Volume } from './svg/speaker.svg?react';
+
+// ============================================================================
 // MAPEO DE COLORES POR DEFECTO PARA CADA ICONO
 // ============================================================================
 export const ICON_DEFAULT_COLORS = {
@@ -415,4 +425,12 @@ export const ICON_DEFAULT_COLORS = {
   WifiOff: 'danger',
   EyeOff: 'muted',
   Bookmark: 'favorites',
+
+  // AUDIO Y VOZ
+  Mic: 'ai',
+  MicOff: 'danger',
+  Volume: 'ai',
+  Volume1: 'ai',
+  Volume2: 'ai',
+  VolumeX: 'muted',
 };
