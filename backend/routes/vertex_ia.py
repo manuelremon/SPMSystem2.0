@@ -246,10 +246,12 @@ def _learn_from_message(memory: VertexMemory, user_msg: str, response: str):
 
 
 @bp.route("/suggestions", methods=["GET"])
-@require_auth
 def get_suggestions():
     """
     Obtiene sugerencias contextuales basadas en la pagina actual.
+
+    No requiere autenticacion - devuelve sugerencias genericas si no hay auth.
+    Personaliza si el usuario esta autenticado.
 
     Query params:
     - page: Nombre de la pagina actual
@@ -273,11 +275,14 @@ def get_suggestions():
 
     try:
         page = request.args.get("page", "default")
-        user_id = g.user["id_spm"]
-        user_name = g.user.get("nombre", "")
-
-        # Obtener hora actual para saludo
         hour = datetime.now().hour
+
+        # Intentar obtener info del usuario si esta autenticado
+        user_name = ""
+        user_id = None
+        if hasattr(g, "user") and g.user:
+            user_name = g.user.get("nombre", "")
+            user_id = g.user.get("id_spm")
 
         # Generar saludo
         greeting = get_greeting(hour, user_name)
@@ -285,15 +290,16 @@ def get_suggestions():
         # Obtener sugerencias para la pagina
         suggestions = get_page_suggestions(page)
 
-        # Personalizar con memoria si existe
-        try:
-            memory = VertexMemory(user_id)
-            recent_topics = memory.get_recent_topics(days=3, limit=1)
-            if recent_topics:
-                suggestions.insert(0, f"Seguimos con lo que hablamos de '{recent_topics[0][:30]}...'?")
-                suggestions = suggestions[:4]  # Max 4 sugerencias
-        except Exception:
-            pass
+        # Personalizar con memoria si el usuario esta autenticado
+        if user_id:
+            try:
+                memory = VertexMemory(user_id)
+                recent_topics = memory.get_recent_topics(days=3, limit=1)
+                if recent_topics:
+                    suggestions.insert(0, f"Seguimos con lo que hablamos de '{recent_topics[0][:30]}...'?")
+                    suggestions = suggestions[:4]  # Max 4 sugerencias
+            except Exception:
+                pass
 
         return jsonify({
             "ok": True,
@@ -315,10 +321,11 @@ def get_suggestions():
 
 
 @bp.route("/alerts", methods=["GET"])
-@require_auth
 def get_alerts():
     """
     Obtiene alertas proactivas pendientes para el usuario.
+
+    No requiere autenticacion - devuelve lista vacia si no hay auth.
 
     Response:
     {
@@ -340,6 +347,14 @@ def get_alerts():
             "ok": False,
             "error": {"code": "vertex_not_available"},
         }), 503
+
+    # Si no hay usuario autenticado, devolver lista vacia
+    if not hasattr(g, "user") or not g.user:
+        return jsonify({
+            "ok": True,
+            "alerts": [],
+            "count": 0,
+        }), 200
 
     try:
         from backend.core.db import get_db_connection
