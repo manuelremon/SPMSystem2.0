@@ -1,13 +1,18 @@
 """
 Migracion 021: Renombrar Centros
 
-Esta migracion actualiza los codigos y nombres de centros en todas las tablas:
-- 1001 (Planta Norte) -> AA101 (Deposito 1)
-- 1002 (Planta Sur) -> AA102 (Deposito 2)
-- 1003 (Planta Este) -> AA103 (Deposito 3)
-- 1004 (Terminal Alpha) -> AA104 (Deposito 4)
-- 1005 (Terminal Beta) -> AA105 (Deposito 5)
-- 1006 (Terminal Gamma) -> AA106 (Deposito 6)
+Esta migracion actualiza los codigos y nombres de centros en todas las tablas.
+
+Mapeo para PRODUCCION (codigos reales):
+- 1008 (UP Loma La Lata) -> AA101 (Deposito 1)
+- 1050 (UP UTE Rio Neuquen) -> AA102 (Deposito 2)
+- 1064 (UP Anelo) -> AA103 (Deposito 3)
+- 1500 (MID Loma La Lata) -> AA104 (Deposito 4)
+- 1501 (MID Sierra Barrosa) -> AA105 (Deposito 5)
+- 1502 (MID El Porton) -> AA106 (Deposito 6)
+
+Mapeo para DESARROLLO (codigos anonimizados):
+- 1001-1006 -> AA101-AA106
 
 Fecha: 2026-01-16
 """
@@ -19,8 +24,16 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# Mapeo de codigos
+# Mapeo de codigos - incluye tanto produccion como desarrollo
 CENTRO_MAPPING = {
+    # Produccion (codigos reales)
+    "1008": "AA101",
+    "1050": "AA102",
+    "1064": "AA103",
+    "1500": "AA104",
+    "1501": "AA105",
+    "1502": "AA106",
+    # Desarrollo (codigos anonimizados)
     "1001": "AA101",
     "1002": "AA102",
     "1003": "AA103",
@@ -32,8 +45,19 @@ CENTRO_MAPPING = {
 # Mapeo inverso para rollback
 CENTRO_MAPPING_REVERSE = {v: k for k, v in CENTRO_MAPPING.items()}
 
-# Mapeo de nombres
+# Mapeo de nombres - incluye todas las variantes
 NOMBRE_MAPPING = {
+    # Produccion (nombres reales)
+    "UP Loma La Lata": "Deposito 1",
+    "UP UTE Rio Neuquen": "Deposito 2",
+    "UP UTE Río Neuquén": "Deposito 2",
+    "UP Anelo": "Deposito 3",
+    "UP Añelo": "Deposito 3",
+    "MID Loma La Lata": "Deposito 4",
+    "MID Sierra Barrosa": "Deposito 5",
+    "MID El Porton": "Deposito 6",
+    "MID El Portón": "Deposito 6",
+    # Desarrollo (nombres anonimizados)
     "Planta Norte": "Deposito 1",
     "Planta Sur": "Deposito 2",
     "Planta Este": "Deposito 3",
@@ -55,6 +79,25 @@ def _update_csv_field(value, mapping):
     return ",".join(mapped)
 
 
+# Mapeo directo de codigo antiguo a nuevo nombre
+CODIGO_TO_NOMBRE = {
+    # Produccion
+    "1008": "Deposito 1",
+    "1050": "Deposito 2",
+    "1064": "Deposito 3",
+    "1500": "Deposito 4",
+    "1501": "Deposito 5",
+    "1502": "Deposito 6",
+    # Desarrollo
+    "1001": "Deposito 1",
+    "1002": "Deposito 2",
+    "1003": "Deposito 3",
+    "1004": "Deposito 4",
+    "1005": "Deposito 5",
+    "1006": "Deposito 6",
+}
+
+
 def run_migration_sqlite(db_path):
     """Ejecuta la migracion en SQLite."""
     if not os.path.exists(db_path):
@@ -68,26 +111,13 @@ def run_migration_sqlite(db_path):
         # 1. Actualizar catalog_centros
         logger.info("Actualizando catalog_centros...")
         for old_code, new_code in CENTRO_MAPPING.items():
-            new_name = None
-            for old_name, mapped_name in NOMBRE_MAPPING.items():
-                if old_code == "1001" and old_name == "Planta Norte":
-                    new_name = mapped_name
-                elif old_code == "1002" and old_name == "Planta Sur":
-                    new_name = mapped_name
-                elif old_code == "1003" and old_name == "Planta Este":
-                    new_name = mapped_name
-                elif old_code == "1004" and old_name == "Terminal Alpha":
-                    new_name = mapped_name
-                elif old_code == "1005" and old_name == "Terminal Beta":
-                    new_name = mapped_name
-                elif old_code == "1006" and old_name == "Terminal Gamma":
-                    new_name = mapped_name
-
+            new_name = CODIGO_TO_NOMBRE.get(old_code)
             if new_name:
                 cursor.execute(
                     "UPDATE catalog_centros SET codigo = ?, nombre = ? WHERE codigo = ?",
                     (new_code, new_name, old_code),
                 )
+                logger.info(f"  {old_code} -> {new_code} ({new_name})")
 
         # 2. Actualizar usuarios (campo centros es CSV)
         logger.info("Actualizando usuarios.centros...")
@@ -217,20 +247,13 @@ def run_migration_postgresql():
         # 1. Actualizar catalog_centros
         logger.info("Actualizando catalog_centros...")
         for old_code, new_code in CENTRO_MAPPING.items():
-            for old_name, new_name in NOMBRE_MAPPING.items():
-                if (
-                    (old_code == "1001" and old_name == "Planta Norte")
-                    or (old_code == "1002" and old_name == "Planta Sur")
-                    or (old_code == "1003" and old_name == "Planta Este")
-                    or (old_code == "1004" and old_name == "Terminal Alpha")
-                    or (old_code == "1005" and old_name == "Terminal Beta")
-                    or (old_code == "1006" and old_name == "Terminal Gamma")
-                ):
-                    cursor.execute(
-                        "UPDATE catalog_centros SET codigo = %s, nombre = %s WHERE codigo = %s",
-                        (new_code, new_name, old_code),
-                    )
-                    break
+            new_name = CODIGO_TO_NOMBRE.get(old_code)
+            if new_name:
+                cursor.execute(
+                    "UPDATE catalog_centros SET codigo = %s, nombre = %s WHERE codigo = %s",
+                    (new_code, new_name, old_code),
+                )
+                logger.info(f"  {old_code} -> {new_code} ({new_name})")
 
         # 2. Actualizar usuarios (campo centros es CSV)
         logger.info("Actualizando usuarios.centros...")
