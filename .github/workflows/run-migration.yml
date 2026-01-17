@@ -25,7 +25,14 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'MIGRATION_SCRIPT'
           cd /opt/spm
           echo "=== Running migration: ${{ github.event.inputs.migration_script }} ==="
-          docker-compose exec -T backend python backend/migrations/${{ github.event.inputs.migration_script }}
+
+          # Run migration with proper environment variables from docker-compose
+          docker-compose exec -T backend bash -c "
+            export PYTHONUNBUFFERED=1
+            echo 'DATABASE_URL:' \$DATABASE_URL
+            python -u backend/migrations/${{ github.event.inputs.migration_script }}
+          "
+
           echo "=== Migration completed ==="
           MIGRATION_SCRIPT
 
