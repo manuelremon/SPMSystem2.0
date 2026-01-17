@@ -28,7 +28,7 @@ export default function AdminCentros() {
         { key: 'created_at', label: 'Creado' }
       ]}
       fields={[
-        { name: 'codigo', label: t("admin_codigo", "Código"), required: true, placeholder: 'Ej: 1008' },
+        { name: 'codigo', label: t("admin_codigo", "Código"), required: true, placeholder: 'Ej: AA107' },
         { name: 'nombre', label: t("admin_nombre", "Nombre"), placeholder: 'Nombre descriptivo del centro' },
         { name: 'activo', label: t("admin_activo", "Activo"), type: 'checkbox', defaultValue: 1, placeholder: t("admin_disponible", "Disponible") }
       ]}

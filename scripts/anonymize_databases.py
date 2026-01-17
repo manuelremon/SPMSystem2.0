@@ -31,24 +31,24 @@ DATA_DIR = BASE_DIR / "data"
 
 # Centros: codigo original -> codigo nuevo
 CENTRO_CODES = {
-    "1008": "1001",
-    "1050": "1002",
-    "1064": "1003",
-    "1500": "1004",
-    "1501": "1005",
-    "1502": "1006",
+    "1008": "AA101",
+    "1050": "AA102",
+    "1064": "AA103",
+    "1500": "AA104",
+    "1501": "AA105",
+    "1502": "AA106",
 }
 
 # Centros: nombre original -> nombre nuevo
 CENTRO_NAMES = {
-    "UP Loma La Lata": "Planta Norte",
-    "UP UTE Rio Neuquen": "Planta Sur",
-    "UP UTE Río Neuquén": "Planta Sur",
-    "UP Anelo": "Planta Este",
-    "MID Loma La Lata": "Terminal Alpha",
-    "MID Sierra Barrosa": "Terminal Beta",
-    "MID El Porton": "Terminal Gamma",
-    "MID El Portón": "Terminal Gamma",
+    "UP Loma La Lata": "Deposito 1",
+    "UP UTE Rio Neuquen": "Deposito 2",
+    "UP UTE Río Neuquén": "Deposito 2",
+    "UP Anelo": "Deposito 3",
+    "MID Loma La Lata": "Deposito 4",
+    "MID Sierra Barrosa": "Deposito 5",
+    "MID El Porton": "Deposito 6",
+    "MID El Portón": "Deposito 6",
     "Loma La Lata": "Zona Industrial",
     "Sierra Barrosa": "Zona Comercial",
     "El Porton": "Zona Logistica",

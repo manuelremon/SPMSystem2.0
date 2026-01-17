@@ -39,7 +39,7 @@ export default function AdminPlanificadores() {
           name: 'asignaciones_text',
           label: 'Asignaciones (una por línea: centro,sector,almacen)',
           type: 'textarea',
-          placeholder: '1008, SEC1, 0001'
+          placeholder: 'AA101, SEC1, 0001'
         }
       ]}
       columns={[
