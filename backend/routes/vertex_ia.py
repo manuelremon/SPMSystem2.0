@@ -19,6 +19,8 @@ from typing import Any, Dict, List
 
 from flask import Blueprint, g, jsonify, request
 
+logger = logging.getLogger(__name__)
+
 try:
     from backend.core.roles import require_auth
     from backend.core.rate_limit import rate_limit
@@ -27,21 +29,44 @@ except ImportError:
     from core.rate_limit import rate_limit
 
 # Importar componentes de Vertex IA
+VERTEX_AVAILABLE = False
+import_error = ""
+vertex_memory_module = None
+vertex_prompts_module = None
+llm_client_module = None
+
 try:
     from backend.agent.core.vertex_memory import VertexMemory
+    vertex_memory_module = True
+except ImportError as e:
+    import_error = f"vertex_memory: {e}"
+    logger.warning(f"Could not import vertex_memory: {e}")
+
+try:
     from backend.agent.rag.vertex_prompts import (
         VERTEX_SYSTEM_PROMPT,
         VERTEX_SEARCH_PROMPT,
         get_page_suggestions,
         get_greeting,
     )
-    from backend.agent.rag.llm_client import get_llm_client
-    VERTEX_AVAILABLE = True
+    vertex_prompts_module = True
 except ImportError as e:
-    VERTEX_AVAILABLE = False
-    import_error = str(e)
+    import_error += f"; vertex_prompts: {e}"
+    logger.warning(f"Could not import vertex_prompts: {e}")
+    # Provide fallback functions
+    VERTEX_SYSTEM_PROMPT = ""
+    VERTEX_SEARCH_PROMPT = ""
+    def get_page_suggestions(page): return ["Como te puedo ayudar?"]
+    def get_greeting(hour, name=""): return "Hola! Soy Vertex IA."
 
-logger = logging.getLogger(__name__)
+try:
+    from backend.agent.rag.llm_client import get_llm_client
+    llm_client_module = True
+except ImportError as e:
+    import_error += f"; llm_client: {e}"
+    logger.warning(f"Could not import llm_client: {e}")
+
+VERTEX_AVAILABLE = bool(vertex_memory_module and vertex_prompts_module and llm_client_module)
 
 bp = Blueprint("vertex_ia", __name__, url_prefix="/api/vertex")
 
@@ -80,10 +105,17 @@ def status():
         "gemini_configured": bool(gemini_key),
         "features": {
             "chat": VERTEX_AVAILABLE and bool(gemini_key),
-            "memory": VERTEX_AVAILABLE,
+            "memory": bool(vertex_memory_module),
+            "prompts": bool(vertex_prompts_module),
+            "llm_client": bool(llm_client_module),
             "proactive_alerts": VERTEX_AVAILABLE,
         },
         "error": None if VERTEX_AVAILABLE else import_error,
+        "modules": {
+            "vertex_memory": bool(vertex_memory_module),
+            "vertex_prompts": bool(vertex_prompts_module),
+            "llm_client": bool(llm_client_module),
+        },
     }), 200
 
 
