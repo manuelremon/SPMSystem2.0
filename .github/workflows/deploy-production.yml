@@ -144,57 +144,54 @@ jobs:
             fi
           ENVSCRIPT
 
-      - name: Deploy to server
-        id: deploy
+      - name: Deploy code and frontend
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'DEPLOY_SCRIPT'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'SCRIPT'
             set -e
-
             echo "=== Starting deployment ==="
             cd /opt/spm
-
             echo "=== Pulling latest code ==="
             git fetch origin main
             git reset --hard origin/main
-
             echo "=== Building frontend ==="
             cd frontend
             npm ci
             npm run build
             cd ..
+            echo "=== Code and frontend deployed ==="
+          SCRIPT
 
-            echo "=== Running database migrations ==="
-            docker compose -f infra/docker-compose.prod.yml run --rm backend python -c "
-            from backend.core.db import init_db
-            init_db()
-            print('Database initialized successfully')
-            " 2>/dev/null || echo "Migration step skipped (container not ready)"
-
+      - name: Rebuild and restart Docker containers
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'SCRIPT'
+            set -ex
+            cd /opt/spm
             echo "=== Pruning old Docker images ==="
-            docker image prune -f 2>/dev/null || true
-
-            echo "=== Rebuilding Docker containers ==="
-            docker compose -f infra/docker-compose.prod.yml build --no-cache backend
-
-            echo "=== Restarting services (clean recreate) ==="
-            docker compose -f infra/docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
+            docker image prune -f || true
+            echo "=== Stopping existing containers ==="
+            docker compose -f infra/docker-compose.prod.yml down --remove-orphans || true
             docker network rm spm_network 2>/dev/null || true
+            echo "=== Rebuilding backend container ==="
+            docker compose -f infra/docker-compose.prod.yml build --no-cache backend
+            echo "=== Starting all containers ==="
             docker compose -f infra/docker-compose.prod.yml up -d
-
-            echo "=== Waiting for services to start ==="
-            sleep 15
-
-            echo "=== Checking service health ==="
+            echo "=== Waiting for containers to start ==="
+            sleep 20
+            echo "=== Container status ==="
             docker compose -f infra/docker-compose.prod.yml ps
+            echo "=== Restart completed ==="
+          SCRIPT
 
-            echo "=== Checking backend logs for import errors ==="
-            docker logs spm-backend --tail 50 2>&1 || echo "Could not get backend logs"
-
-            echo "=== Testing Vertex routes locally ==="
-            curl -s http://localhost:5000/api/vertex/status || echo "Vertex status endpoint not responding"
-
-            echo "=== Deployment completed ==="
-          DEPLOY_SCRIPT
+      - name: Show container logs
+        continue-on-error: true
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'SCRIPT'
+            echo "=== Backend container logs ==="
+            docker logs spm-backend --tail 100 2>&1 || echo "Could not get logs"
+            echo "=== Testing Vertex status ==="
+            curl -s http://localhost:5000/api/vertex/status || echo "Vertex not responding"
+            curl -s http://localhost:5000/api/health/routes | head -c 500 || echo "Routes endpoint not available"
+          SCRIPT
 
       - name: Health check with retry
         id: health_check
