@@ -166,19 +166,22 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'SCRIPT'
             set -ex
             cd /opt/spm
+            echo "=== Current .env contents (masked) ==="
+            grep -v "PASSWORD\|SECRET\|KEY" .env || true
+            echo "=== GOOGLE_AI_API_KEY is set: $(grep -c GOOGLE_AI_API_KEY .env || echo 0) ==="
             echo "=== Pruning old Docker images ==="
             docker image prune -f || true
             echo "=== Stopping existing containers ==="
-            docker compose -f infra/docker-compose.prod.yml down --remove-orphans || true
+            docker compose --env-file .env -f infra/docker-compose.prod.yml down --remove-orphans || true
             docker network rm spm_network 2>/dev/null || true
             echo "=== Rebuilding backend container ==="
-            docker compose -f infra/docker-compose.prod.yml build --no-cache backend
+            docker compose --env-file .env -f infra/docker-compose.prod.yml build --no-cache backend
             echo "=== Starting all containers ==="
-            docker compose -f infra/docker-compose.prod.yml up -d
+            docker compose --env-file .env -f infra/docker-compose.prod.yml up -d
             echo "=== Waiting for containers to start ==="
             sleep 20
             echo "=== Container status ==="
-            docker compose -f infra/docker-compose.prod.yml ps
+            docker compose --env-file .env -f infra/docker-compose.prod.yml ps
             echo "=== Restart completed ==="
           SCRIPT
 
