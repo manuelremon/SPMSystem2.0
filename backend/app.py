@@ -1,18 +1,18 @@
 """
 Backend v2.0 - Flask Application Factory
-API REST limpia con CORS, blueprints, error handlers
+
+API REST limpia con CORS, blueprints, error handlers.
+Refactorizado para mejor legibilidad y testabilidad.
 """
 
 from __future__ import annotations
 
 import logging
 import os
-
-# Imports unificados - usar siempre backend.* para compatibilidad con gunicorn
 import sys
 from pathlib import Path
 
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify
 
 # Asegurar que el directorio raiz este en sys.path para imports relativos
 _project_root = Path(__file__).parent.parent
@@ -20,9 +20,10 @@ if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
 # ruff: noqa: E402
-from backend.agent import agent_bp
 from backend.core.auth_middleware import init_auth_middleware
+from backend.core.blueprints import register_blueprints
 from backend.core.config import settings
+from backend.core.cors import init_cors
 from backend.core.csrf import init_csrf_protection
 from backend.core.db import db, init_db
 from backend.core.db_optimization import create_indexes
@@ -31,36 +32,7 @@ from backend.core.observability import init_observability
 from backend.core.rate_limit import init_rate_limiting
 from backend.core.request_validation import init_request_validation
 from backend.core.security_headers import init_security_headers
-from backend.routes import (
-    admin,
-    admin_import,
-    ai,
-    assistant,
-    auth,
-    budget,
-    catalogos,
-    database,
-    docs,
-    equivalencias,
-    export,
-    foro,
-    health,
-    kpis,
-    materiales,
-    materiales_detalle,
-    mensajes,
-    metrics,
-    mi_cuenta,
-    mrp,
-    notificaciones,
-    procurement,
-    push,
-    sla,
-    solicitudes,
-    trivias,
-    vertex_ia,
-)
-from backend.routes import planner as planner_new
+from backend.core.spa import init_spa_routes
 
 
 def create_app(config_override: dict | None = None) -> Flask:
@@ -73,11 +45,10 @@ def create_app(config_override: dict | None = None) -> Flask:
     Returns:
         Instancia de Flask configurada
     """
-    # Ruta del archivo actual: /path/to/backend/app.py
-    # Necesitamos: /path/to/frontend/dist
-    current_dir = os.path.dirname(os.path.abspath(__file__))  # /path/to/backend
-    root_dir = os.path.dirname(current_dir)  # /path/to
-    static_dir = os.path.join(root_dir, "frontend", "dist")  # /path/to/frontend/dist
+    # Calcular rutas
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir = os.path.dirname(current_dir)
+    static_dir = os.path.join(root_dir, "frontend", "dist")
 
     app = Flask(
         __name__,
@@ -100,25 +71,21 @@ def create_app(config_override: dict | None = None) -> Flask:
     if config_override:
         app.config.update(config_override)
 
-    # Logging y Observabilidad (trace_id, user_id, JSON en prod)
+    # ==================== INICIALIZACION ====================
+
+    # Logging y Observabilidad
     _configure_logging(app)
     init_observability(app)
 
-    # Inicializar DB
+    # Database
     db.init_app(app)
 
-    # Authentication middleware (sets g.user from Bearer token)
-    # MUST run before CSRF to enable authenticated routes
-    init_auth_middleware(app)
-
-    # Protección CSRF
+    # Security middleware (orden importante)
+    init_auth_middleware(app)  # Sets g.user from Bearer token
     init_csrf_protection(app)
-
-    # Security headers
     init_security_headers(app)
 
-    # Rate limiting (proteccion contra abuso)
-    # Desactivar con DISABLE_RATE_LIMIT=1 o config_override["RATE_LIMIT_ENABLED"] = False
+    # Rate limiting
     rate_limit_disabled = os.environ.get("DISABLE_RATE_LIMIT") == "1"
     if not rate_limit_disabled and app.config.get("RATE_LIMIT_ENABLED", True) and settings.ENV != "test":
         init_rate_limiting(app)
@@ -128,206 +95,30 @@ def create_app(config_override: dict | None = None) -> Flask:
     # Request validation (sanitizacion de inputs)
     init_request_validation(app, max_content_length=10 * 1024 * 1024)  # 10MB max
 
-    # CORS - Manejar manualmente para soportar wildcards con credentials
-    # Flask-CORS no soporta funciones callable, así que usamos @after_request
-    # Leer origenes de la variable de entorno CORS_ORIGINS
-    import re
-    cors_origins = settings.get_cors_origins()
-    ALLOWED_ORIGINS_EXACT = {o for o in cors_origins if isinstance(o, str)}
-    ALLOWED_ORIGINS_REGEX = [o for o in cors_origins if hasattr(o, 'match')]
+    # CORS (manejo manual para wildcards con credentials)
+    init_cors(app)
 
-    def is_origin_allowed(origin):
-        """Valida si el origen está permitido."""
-        if not origin:
-            return False
-        # Verificar origenes exactos
-        if origin in ALLOWED_ORIGINS_EXACT:
-            return True
-        # Verificar patrones regex (wildcards) - usar fullmatch para seguridad
-        for pattern in ALLOWED_ORIGINS_REGEX:
-            if pattern.fullmatch(origin):
-                return True
-        return False
-
-    @app.after_request
-    def add_cors_headers(response):
-        """Agrega headers CORS dinámicamente basado en el origen."""
-        from flask import request
-
-        origin = request.headers.get("Origin")
-        if origin and is_origin_allowed(origin):
-            response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Allow-Headers"] = (
-                "Content-Type, Authorization, X-CSRF-Token, bypass-tunnel-reminder"
-            )
-            response.headers["Access-Control-Allow-Methods"] = (
-                "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-            )
-            response.headers["Access-Control-Max-Age"] = "86400"
-        return response
-
-    @app.before_request
-    def handle_preflight():
-        """Responde a preflight OPTIONS requests."""
-        from flask import make_response, request
-
-        if request.method == "OPTIONS":
-            origin = request.headers.get("Origin")
-            if origin and is_origin_allowed(origin):
-                response = make_response()
-                response.headers["Access-Control-Allow-Origin"] = origin
-                response.headers["Access-Control-Allow-Credentials"] = "true"
-                response.headers["Access-Control-Allow-Headers"] = (
-                    "Content-Type, Authorization, X-CSRF-Token, bypass-tunnel-reminder"
-                )
-                response.headers["Access-Control-Allow-Methods"] = (
-                    "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-                )
-                response.headers["Access-Control-Max-Age"] = "86400"
-                return response
+    # ==================== DATABASE ====================
 
     # Inicializar DB (siempre, init_db verifica si ya existe)
-    # En Render/producción también necesitamos inicializar la BD
     with app.app_context():
         init_db()
-        # Crear índices si no existen (mejora rendimiento de queries)
         try:
             create_indexes()
         except Exception as e:
             app.logger.warning(f"No se pudieron crear indices: {e}")
 
-    # NOTA: NO cerrar el pool en teardown_appcontext - se ejecuta en CADA request
-    # El pool se cierra automáticamente cuando el proceso termina (Gunicorn shutdown)
-    # Las conexiones individuales se devuelven al pool via PostgresConnectionWrapper.close()
+    # ==================== BLUEPRINTS ====================
 
-    # Registrar blueprints
-    app.register_blueprint(health.bp)
-    app.register_blueprint(auth.bp, url_prefix="/api/auth")
-    app.register_blueprint(solicitudes.bp)
-    app.register_blueprint(planner_new.bp, url_prefix="/api/planificador")
-    app.register_blueprint(catalogos.bp, url_prefix="/api/catalogos")
-    app.register_blueprint(mi_cuenta.bp, url_prefix="/api")
-    app.register_blueprint(materiales.bp)
-    app.register_blueprint(materiales_detalle.bp_detalle)
-    app.register_blueprint(admin.bp)
-    app.register_blueprint(notificaciones.bp)  # Notifications real-time system
-    app.register_blueprint(mensajes.bp)  # Bidirectional messaging system
-    app.register_blueprint(agent_bp)  # Agent routes registered at /api/agent
-    app.register_blueprint(budget.bp)  # Budget/BUR management at /api
-    app.register_blueprint(trivias.bp, url_prefix="/api")  # Trivias: games, rankings, scores
-    app.register_blueprint(foro.bp, url_prefix="/api")  # Forum: posts, replies, likes
-    app.register_blueprint(kpis.bp)  # KPIs and metrics at /api/kpis
-    app.register_blueprint(equivalencias.bp)  # Material equivalences at /api/equivalencias
-    app.register_blueprint(mrp.bp)  # MRP (Material Requirements Planning) at /api/mrp
-    app.register_blueprint(push.bp)  # Push Notifications at /api/push
-    app.register_blueprint(assistant.bp)  # NLP Assistant at /api/assistant
-    app.register_blueprint(sla.bp)  # SLA metrics and configuration at /api/sla
-    app.register_blueprint(ai.bp)  # AI recommendations at /api/ai
-    app.register_blueprint(export.bp)  # Export/reporting at /api/export
-    app.register_blueprint(docs.bp)  # API Documentation at /api/docs
-    app.register_blueprint(metrics.bp)  # Metrics and monitoring at /api/metrics
-    app.register_blueprint(database.bp)  # Database administration at /api/admin/database
-    app.register_blueprint(admin_import.bp)  # Temp data import for MRP/Forecast at /api/admin
-    app.register_blueprint(procurement.procurement_bp)  # SAP Procurement data at /api/procurement
-    app.register_blueprint(vertex_ia.bp)  # Vertex IA chat assistant at /api/vertex
+    register_blueprints(app)
 
-    # ==================== SERVIR FRONTEND REACT ====================
-    # Calcular rutas del frontend
-    current_dir = os.path.dirname(os.path.abspath(__file__))  # /path/to/backend
-    root_dir = os.path.dirname(current_dir)  # /path/to
-    frontend_dist = os.path.join(root_dir, "frontend", "dist")
-    index_html_path = os.path.join(frontend_dist, "index.html")
+    # ==================== SPA & FRONTEND ====================
 
-    # Debug logging
-    app.logger.info(f"Frontend dist: {frontend_dist}")
-    app.logger.info(f"Frontend dist exists: {os.path.exists(frontend_dist)}")
-    app.logger.info(f"Index.html: {index_html_path}")
-    app.logger.info(f"Index.html exists: {os.path.exists(index_html_path)}")
+    init_spa_routes(app)
 
-    @app.route("/")
-    def serve_spa_index():
-        """Servir index.html para React SPA"""
-        try:
-            if os.path.exists(index_html_path):
-                with open(index_html_path, encoding="utf-8") as f:
-                    return f.read(), 200, {"Content-Type": "text/html; charset=utf-8"}
-        except Exception as e:
-            app.logger.error(f"Error serving index.html: {e}")
+    # ==================== ERROR HANDLERS ====================
 
-        # Fallback a la API info
-        app.logger.warning("Serving API info (index.html not found)")
-        return api_info()
-
-    @app.route("/<path:path>", methods=["GET"])
-    def serve_spa_routes(path):
-        """
-        Manejar rutas de React SPA.
-        """
-        try:
-            file_path = os.path.join(frontend_dist, path)
-            # Validar que el archivo está dentro de frontend_dist (seguridad)
-            if os.path.commonpath([file_path, frontend_dist]) == frontend_dist:
-                if os.path.isfile(file_path):
-                    return send_from_directory(frontend_dist, path)
-        except Exception as e:
-            app.logger.error(f"Error serving {path}: {e}")
-
-        # Fallback a index.html para SPA routing
-        try:
-            if os.path.exists(index_html_path):
-                with open(index_html_path, encoding="utf-8") as f:
-                    return f.read(), 200, {"Content-Type": "text/html; charset=utf-8"}
-        except Exception as e:
-            app.logger.error(f"Error serving index.html fallback: {e}")
-
-        from flask import abort
-
-        abort(404)
-
-    def api_info():
-        """Información sobre la API"""
-        return (
-            jsonify(
-                {
-                    "ok": True,
-                    "message": "SPM v2.0 Backend API",
-                    "version": "2.0.0",
-                    "endpoints": {
-                        "health": "/api/health",
-                        "auth": "/api/auth/login",
-                        "solicitudes": "/api/solicitudes",
-                        "planificador": "/api/planificador",
-                        "catalogos": "/api/catalogos",
-                        "docs": "https://github.com/manuelremon/SPMSystem2.0",
-                    },
-                }
-            ),
-            200,
-        )
-
-    # ==================== RUTAS ANTIGUAS ====================
-    # Mantener compatibilidad
-    @app.route("/api")
-    def api_root():
-        """Endpoint API raíz"""
-        return api_info()
-
-    @app.route("/favicon.ico")
-    def favicon():
-        """Serve a tiny SVG favicon to avoid 404 noise."""
-        svg = (
-            "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>"
-            "<rect width='64' height='64' rx='12' fill='#2563eb'/>"
-            "<path d='M16 44l8-24h8l-8 24h-8Zm16 0 8-24h8l-8 24h-8Z' fill='#e5e7eb'/>"
-            "</svg>"
-        )
-        return app.response_class(svg, mimetype="image/svg+xml")
-
-    # Error handlers
     _register_error_handlers(app)
-
-    # Custom SPM exception handler (for raise NotFoundError, ValidationError, etc.)
     register_spm_error_handler(app)
 
     # Logging de inicio
@@ -337,7 +128,7 @@ def create_app(config_override: dict | None = None) -> Flask:
 
 
 def _configure_logging(app: Flask) -> None:
-    """Configura logging según entorno, evitando handlers duplicados"""
+    """Configura logging según entorno, evitando handlers duplicados."""
     # Limpiar handlers previos (por si hay reload)
     for handler in app.logger.handlers[:]:
         app.logger.removeHandler(handler)
@@ -367,7 +158,7 @@ def _configure_logging(app: Flask) -> None:
 
 
 def _register_error_handlers(app: Flask) -> None:
-    """Registra handlers para errores HTTP comunes"""
+    """Registra handlers para errores HTTP comunes."""
 
     @app.errorhandler(404)
     def not_found(error):
