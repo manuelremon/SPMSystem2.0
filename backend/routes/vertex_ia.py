@@ -10,16 +10,105 @@ Endpoints:
 - GET  /api/vertex/session/resume - Reanudar sesion existente
 - GET  /api/vertex/history - Historial de conversaciones
 - GET  /api/vertex/status - Estado del servicio
+
+Mejoras Sprint 24:
+- Cache de respuestas con TTL
+- Integracion RAG para busqueda de materiales
+- Enriquecimiento de contexto con datos del usuario
+- Aprendizaje de materiales consultados
+- Integracion de AlertEngine para alertas proactivas
 """
 
+import hashlib
 import json
 import logging
+import re
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, g, jsonify, request
 
 logger = logging.getLogger(__name__)
+
+# =============================================================================
+# Cache de Respuestas
+# =============================================================================
+
+# Simple TTL cache para respuestas repetidas
+_response_cache: Dict[str, Dict[str, Any]] = {}
+_cache_ttl_seconds = 300  # 5 minutos
+
+
+def _get_cache_key(user_id: str, message: str, page: str) -> str:
+    """Genera clave de cache normalizada."""
+    normalized = message.lower().strip()
+    raw = f"{user_id}:{page}:{normalized}"
+    return hashlib.md5(raw.encode()).hexdigest()
+
+
+def _get_cached_response(cache_key: str) -> Optional[str]:
+    """Obtiene respuesta cacheada si existe y no expiro."""
+    if cache_key in _response_cache:
+        entry = _response_cache[cache_key]
+        if (datetime.now() - entry["created_at"]).total_seconds() < _cache_ttl_seconds:
+            logger.debug(f"Cache hit for {cache_key[:8]}...")
+            return entry["response"]
+        else:
+            del _response_cache[cache_key]
+    return None
+
+
+def _set_cached_response(cache_key: str, response: str):
+    """Guarda respuesta en cache."""
+    # Limitar tamano del cache
+    if len(_response_cache) > 500:
+        # Eliminar entradas mas antiguas
+        oldest = sorted(_response_cache.items(), key=lambda x: x[1]["created_at"])[:100]
+        for key, _ in oldest:
+            del _response_cache[key]
+
+    _response_cache[cache_key] = {
+        "response": response,
+        "created_at": datetime.now(),
+    }
+
+
+# =============================================================================
+# Helper para verificar tablas de Vertex
+# =============================================================================
+
+_vertex_tables_exist: Optional[bool] = None
+
+
+def _check_vertex_tables() -> bool:
+    """
+    Verifica si las tablas de Vertex existen en la BD.
+    Cachea el resultado para evitar queries repetidas.
+    """
+    global _vertex_tables_exist
+
+    if _vertex_tables_exist is not None:
+        return _vertex_tables_exist
+
+    try:
+        from backend.core.db import get_db_connection
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables
+                    WHERE table_name = 'vertex_conversations'
+                )
+                """
+            )
+            _vertex_tables_exist = cursor.fetchone()[0]
+            return _vertex_tables_exist
+    except Exception as e:
+        logger.warning(f"Error verificando tablas Vertex: {e}")
+        _vertex_tables_exist = False
+        return False
 
 try:
     from backend.core.roles import require_auth
@@ -174,6 +263,20 @@ def chat():
             }), 400
 
         user_id = g.user["id_spm"]
+        page = context.get("page", "default")
+
+        # Verificar cache para queries repetidas
+        cache_key = _get_cache_key(user_id, user_message, page)
+        cached = _get_cached_response(cache_key)
+        if cached and not _is_user_specific_query(user_message):
+            return jsonify({
+                "ok": True,
+                "response": cached,
+                "session_id": session_id or "cached",
+                "suggestions": get_page_suggestions(page),
+                "cached": True,
+            }), 200
+
         memory = VertexMemory(user_id)
 
         # Reanudar o crear sesion
@@ -199,7 +302,21 @@ def chat():
         if user_context:
             context_info = f"\n\nInformacion del usuario:\n{user_context}"
 
-        full_prompt = f"""{VERTEX_SYSTEM_PROMPT}{context_info}
+        # =================================================================
+        # MEJORA: Integrar RAG para busqueda de materiales
+        # =================================================================
+        rag_context = ""
+        if _is_material_query(user_message):
+            rag_context = _get_rag_context(user_message)
+
+        # =================================================================
+        # MEJORA: Enriquecer con datos del usuario (solicitudes, alertas)
+        # =================================================================
+        user_data_context = _get_user_data_context(user_id, user_message)
+        if user_data_context:
+            context_info += f"\n\n{user_data_context}"
+
+        full_prompt = f"""{VERTEX_SYSTEM_PROMPT}{context_info}{rag_context}
 
 Historial de conversacion:
 {_format_history(history)}
@@ -216,6 +333,11 @@ Responde como Vertex IA:"""
                 max_tokens=1024,
                 temperature=0.7,
             )
+
+            # Cachear respuesta si no es especifica del usuario
+            if not _is_user_specific_query(user_message):
+                _set_cached_response(cache_key, response_text)
+
         except Exception as e:
             logger.error(f"Error generando con Gemini: {e}")
             response_text = (
@@ -265,11 +387,187 @@ def _format_history(history: List[Dict[str, str]]) -> str:
     return "\n".join(lines)
 
 
+# =============================================================================
+# Funciones de Inteligencia (RAG, Contexto, Aprendizaje)
+# =============================================================================
+
+# Keywords para detectar queries de materiales
+MATERIAL_KEYWORDS = [
+    "material", "bomba", "repuesto", "stock", "necesito", "busco",
+    "precio", "disponible", "inventario", "codigo", "sap",
+    "valvula", "motor", "filtro", "sensor", "cable", "tornillo",
+    "pieza", "componente", "herramienta", "equipo",
+]
+
+# Keywords que indican query especifica del usuario (no cachear)
+USER_SPECIFIC_KEYWORDS = [
+    "mi solicitud", "mis solicitudes", "mi pedido", "mis pedidos",
+    "mi presupuesto", "mi centro", "mi sector", "cuanto tengo",
+    "pendiente", "estado de", "seguimiento",
+]
+
+
+def _is_material_query(message: str) -> bool:
+    """Detecta si el mensaje es una consulta sobre materiales."""
+    msg_lower = message.lower()
+    return any(kw in msg_lower for kw in MATERIAL_KEYWORDS)
+
+
+def _is_user_specific_query(message: str) -> bool:
+    """Detecta si el mensaje es especifico del usuario (no cachear)."""
+    msg_lower = message.lower()
+    return any(kw in msg_lower for kw in USER_SPECIFIC_KEYWORDS)
+
+
+def _get_rag_context(message: str) -> str:
+    """
+    Busca materiales relevantes usando RAG y formatea para el prompt.
+    """
+    try:
+        from backend.agent.rag.pipeline import get_rag_pipeline
+
+        rag = get_rag_pipeline(llm_provider="gemini")
+        results = rag.search(message, n_results=5)
+
+        if not results:
+            return ""
+
+        context = "\n\nMateriales relevantes encontrados en el catalogo:\n"
+        for r in results:
+            codigo = r.get("codigo", r.get("material_id", "N/A"))
+            descripcion = r.get("descripcion", r.get("text", ""))[:100]
+            stock = r.get("stock", r.get("stock_total", "N/A"))
+            similarity = r.get("similarity", r.get("score", 0))
+
+            context += f"- {codigo}: {descripcion}"
+            if stock != "N/A":
+                context += f" (Stock: {stock})"
+            if similarity:
+                context += f" [Match: {similarity*100:.0f}%]"
+            context += "\n"
+
+        context += "\nUsa esta informacion para dar recomendaciones especificas."
+        return context
+
+    except Exception as e:
+        logger.warning(f"Error en busqueda RAG: {e}")
+        return ""
+
+
+def _get_user_data_context(user_id: str, message: str) -> str:
+    """
+    Obtiene datos relevantes del usuario para enriquecer el contexto.
+    """
+    context_parts = []
+
+    try:
+        from backend.core.db import get_db_connection
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Si pregunta por solicitudes, obtener las activas
+            if any(kw in message.lower() for kw in ["solicitud", "pedido", "estado"]):
+                cursor.execute(
+                    """
+                    SELECT id, status, total_monto, created_at
+                    FROM solicitudes
+                    WHERE id_usuario = %s
+                    AND status NOT IN ('closed', 'rejected', 'cancelled')
+                    ORDER BY created_at DESC
+                    LIMIT 5
+                    """,
+                    (user_id,),
+                )
+                solicitudes = cursor.fetchall()
+
+                if solicitudes:
+                    context_parts.append("Solicitudes activas del usuario:")
+                    for sol in solicitudes:
+                        sol_id = sol[0] if isinstance(sol, (list, tuple)) else sol["id"]
+                        status = sol[1] if isinstance(sol, (list, tuple)) else sol["status"]
+                        monto = sol[2] if isinstance(sol, (list, tuple)) else sol["total_monto"]
+                        context_parts.append(f"  - #{sol_id} ({status}): ${monto:,.0f}" if monto else f"  - #{sol_id} ({status})")
+
+            # Si pregunta por presupuesto, obtener info del centro
+            if any(kw in message.lower() for kw in ["presupuesto", "budget", "plata", "dinero"]):
+                cursor.execute(
+                    "SELECT centros FROM usuarios WHERE id_spm = %s",
+                    (user_id,),
+                )
+                user_row = cursor.fetchone()
+                if user_row:
+                    centros = user_row[0] if isinstance(user_row, (list, tuple)) else user_row.get("centros")
+                    if centros:
+                        centro = centros.split(",")[0].strip() if "," in str(centros) else centros
+                        cursor.execute(
+                            """
+                            SELECT monto_total, monto_usado, monto_reservado
+                            FROM presupuestos
+                            WHERE centro = %s AND anio = EXTRACT(YEAR FROM NOW())
+                            """,
+                            (centro,),
+                        )
+                        budget = cursor.fetchone()
+                        if budget:
+                            total = budget[0] if isinstance(budget, (list, tuple)) else budget["monto_total"]
+                            usado = budget[1] if isinstance(budget, (list, tuple)) else budget["monto_usado"]
+                            disponible = total - (usado or 0) if total else 0
+                            context_parts.append(f"Presupuesto del centro {centro}:")
+                            context_parts.append(f"  - Total: ${total:,.0f}" if total else "  - Total: N/A")
+                            context_parts.append(f"  - Usado: ${usado:,.0f}" if usado else "  - Usado: $0")
+                            context_parts.append(f"  - Disponible: ${disponible:,.0f}")
+
+    except Exception as e:
+        logger.warning(f"Error obteniendo contexto del usuario: {e}")
+
+    return "\n".join(context_parts) if context_parts else ""
+
+
 def _learn_from_message(memory: VertexMemory, user_msg: str, response: str):
-    """Extrae y guarda informacion util de la conversacion."""
-    # Detectar si pregunta por materiales especificos
-    # En el futuro: usar NLP para extraer entidades
-    pass
+    """
+    Extrae y guarda informacion util de la conversacion.
+    Aprende codigos de materiales consultados para personalizar futuras respuestas.
+    """
+    try:
+        # 1. Extraer codigos de material (formato: 6-10 digitos)
+        material_codes = re.findall(r'\b\d{6,10}\b', user_msg + " " + response)
+
+        if material_codes:
+            # Obtener materiales frecuentes existentes
+            freq_materials = memory.recall_fact("materiales_frecuentes") or []
+
+            # Agregar nuevos codigos (sin duplicados)
+            for code in material_codes:
+                if not any(m.get("codigo") == code for m in freq_materials):
+                    freq_materials.append({
+                        "codigo": code,
+                        "mentioned_at": datetime.now().isoformat(),
+                    })
+
+            # Mantener solo los ultimos 10
+            freq_materials = freq_materials[-10:]
+            memory.remember_fact("materiales_frecuentes", freq_materials, expires_in_days=30)
+
+        # 2. Detectar temas de interes
+        topics = []
+        topic_keywords = {
+            "stock": ["stock", "inventario", "disponible", "cantidad"],
+            "solicitud": ["solicitud", "pedido", "orden"],
+            "presupuesto": ["presupuesto", "budget", "monto", "precio"],
+            "sla": ["sla", "tiempo", "urgente", "demora", "vencimiento"],
+            "equivalente": ["equivalente", "alternativa", "reemplazo", "similar"],
+        }
+
+        for topic, keywords in topic_keywords.items():
+            if any(kw in user_msg.lower() for kw in keywords):
+                topics.append(topic)
+
+        if topics:
+            memory.remember_fact("recent_topics", topics, expires_in_days=7)
+
+    except Exception as e:
+        logger.warning(f"Error en aprendizaje de mensaje: {e}")
 
 
 # =============================================================================
@@ -393,27 +691,28 @@ def get_alerts():
 
         user_id = g.user["id_spm"]
 
+        # Verificar si las tablas existen
+        if not _check_vertex_tables():
+            return jsonify({
+                "ok": True,
+                "alerts": [],
+                "count": 0,
+                "tables_exist": False,
+            }), 200
+
+        # =================================================================
+        # MEJORA: Generar alertas proactivas con AlertEngine
+        # =================================================================
+        try:
+            from backend.agent.proactive.alert_engine import AlertEngine
+            engine = AlertEngine(user_id)
+            engine.check_all_alerts()  # Genera nuevas alertas si corresponde
+        except Exception as e:
+            logger.warning(f"Error generando alertas proactivas: {e}")
+
         # Obtener alertas pendientes (no mostradas)
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            # Check if table exists first
-            cursor.execute(
-                """
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables
-                    WHERE table_name = 'vertex_proactive_alerts'
-                )
-                """
-            )
-            table_exists = cursor.fetchone()[0]
-
-            if not table_exists:
-                # Table not created yet - return empty alerts
-                return jsonify({
-                    "ok": True,
-                    "alerts": [],
-                    "count": 0,
-                }), 200
 
             cursor.execute(
                 """
@@ -629,6 +928,16 @@ def resume_session():
 
         user_id = g.user["id_spm"]
 
+        # Verificar si las tablas existen
+        if not _check_vertex_tables():
+            return jsonify({
+                "ok": True,
+                "has_active_session": False,
+                "session_id": None,
+                "messages": [],
+                "tables_exist": False,
+            }), 200
+
         # Buscar ultima sesion activa
         with get_db_connection() as conn:
             cursor = conn.cursor()
@@ -702,6 +1011,15 @@ def get_history():
 
         user_id = g.user["id_spm"]
         limit = request.args.get("limit", 10, type=int)
+
+        # Verificar si las tablas existen
+        if not _check_vertex_tables():
+            return jsonify({
+                "ok": True,
+                "conversations": [],
+                "total": 0,
+                "tables_exist": False,
+            }), 200
 
         with get_db_connection() as conn:
             cursor = conn.cursor()
