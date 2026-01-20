@@ -14,10 +14,10 @@ Sistema web profesional para gestionar solicitudes de materiales, construido con
 
 | Area | Valor |
 |------|-------|
-| **Backend** | 165 archivos Python, ~65,000 lineas |
-| **Frontend** | 75 paginas, 80 componentes, 12 hooks |
-| **Endpoints API** | 200+ endpoints en 28 modulos |
-| **Tests** | 1,210+ tests (54 archivos) |
+| **Backend** | 168 archivos Python, ~65,000 lineas |
+| **Frontend** | 75 paginas, 77 componentes, 11 hooks |
+| **Endpoints API** | 200+ endpoints en 29 modulos |
+| **Tests** | 1,220+ tests (55 archivos) |
 | **Base de Datos** | SQLite (dev) + PostgreSQL (prod) |
 
 ---
@@ -95,7 +95,7 @@ SPMv2.0/
 ├── backend/                    # API Flask (165 archivos, ~65K lineas)
 │   ├── routes/                 # Endpoints REST (28 modulos)
 │   ├── services/               # Logica de negocio (11 servicios)
-│   ├── core/                   # Config, DB, Auth, Cache, WebSocket
+│   ├── core/                   # Config, DB, Auth, CORS, SPA, Cache
 │   ├── agent/                  # Modulo IA/ML (35+ archivos)
 │   │   ├── pipelines/forecast/ # Modelos de pronostico
 │   │   └── rag/                # Retrieval Augmented Generation

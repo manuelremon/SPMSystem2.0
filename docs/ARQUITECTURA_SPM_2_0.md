@@ -10,11 +10,14 @@
 ```
 SPMv2.0/
 ├── backend/                    # API Flask (165 archivos, ~65K lineas)
-│   ├── core/                   # Configuracion, DB, Auth, Middleware
+│   ├── core/                   # Configuracion, DB, Auth, Middleware (31 modulos)
 │   │   ├── config.py           # Configuracion centralizada (Pydantic)
 │   │   ├── db.py               # Conexion SQLite/PostgreSQL
 │   │   ├── auth_middleware.py  # JWT + decoradores de auth
 │   │   ├── csrf.py             # Proteccion CSRF
+│   │   ├── cors.py             # CORS con soporte regex/wildcards
+│   │   ├── spa.py              # Servir frontend React SPA
+│   │   ├── blueprints.py       # Registro centralizado de blueprints
 │   │   ├── security_headers.py # Headers de seguridad OWASP
 │   │   └── repository_legacy.py # Data access layer
 │   │
@@ -61,7 +64,7 @@ SPMv2.0/
 │   ├── dist/                   # Build de produccion
 │   └── package.json
 │
-├── tests/                      # Tests (1,290+ en 91 archivos)
+├── tests/                      # Tests (1,220+ en 55 archivos)
 │   ├── unit/                   # Tests unitarios Python
 │   ├── integration/            # Tests de integracion
 │   └── e2e/                    # Tests end-to-end
@@ -163,6 +166,7 @@ cd frontend && npm test           # Tests React
 
 ## Historial de Cambios
 
-- **2026-01-19**: Actualizacion de metricas y limpieza de documentacion
+- **2026-01-19**: Refactoring app.py (extraer CORS, SPA, blueprints a modulos core)
+- **2026-01-19**: Limpieza de codigo muerto (dark mode, scripts obsoletos)
 - **2026-01-10**: Integracion Vertex AI, modulo RAG, PostgreSQL en produccion
 - **2025-12-05**: Reestructuracion inicial de carpetas

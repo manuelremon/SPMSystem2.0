@@ -2,16 +2,16 @@
 
 Guia para Claude Code (claude.ai/code) cuando trabaja con este repositorio.
 
-> **Ultima actualizacion**: 2026-01-19 (Sprint 23 - Limpieza y Documentacion)
+> **Ultima actualizacion**: 2026-01-19 (Sprint 24 - Refactoring app.py)
 
 ## Resumen del Proyecto
 
 | Metrica | Valor |
 |---------|-------|
-| **Backend** | 165 archivos Python, ~65,000 lineas |
+| **Backend** | 168 archivos Python, ~65,000 lineas |
 | **Frontend** | 75 paginas, 80 componentes, 12 hooks |
 | **Endpoints API** | 200+ endpoints en 29 modulos |
-| **Tests** | 1,210+ tests (54 archivos) |
+| **Tests** | 1,220+ tests (55 archivos) |
 | **Base de Datos** | 3 SQLite + PostgreSQL (produccion) |
 
 ## Comandos de Desarrollo
@@ -118,15 +118,18 @@ SPMv2.0/
 | `message_service.py` | 350+ | Sistema de mensajes |
 | `planner_service.py` | 400+ | Logica de planificacion |
 
-### Core (28 modulos)
+### Core (31 modulos)
 
 | Categoria | Modulos |
 |-----------|---------|
 | **Auth** | `auth_middleware.py`, `roles.py`, `user_helpers.py` |
-| **Database** | `db.py`, `db_optimization.py`, `repository_legacy.py` (refactorizado), `repository/` (modular) |
+| **Database** | `db.py`, `db_optimization.py`, `repository_legacy.py` (refactorizado) |
 | **Schemas** | `schemas.py`, `budget_schemas.py`, `notification_schemas.py`, `item_schemas.py` |
 | **Validation** | `request_validation.py` (sanitizacion XSS/SQL) |
 | **Security** | `csrf.py`, `security_headers.py`, `rate_limit.py` |
+| **CORS** | `cors.py` (manejo manual con regex/wildcards) |
+| **SPA** | `spa.py` (servir frontend React) |
+| **Blueprints** | `blueprints.py` (registro centralizado de 29 blueprints) |
 | **Cache** | `cache.py`, `cache_advanced.py`, `cache_loader.py` |
 | **State** | `fsm.py` (maquina de estados solicitudes) |
 | **Errors** | `errors.py` (excepciones custom) |
@@ -136,7 +139,6 @@ SPMv2.0/
 | **Config** | `config.py`, `push_config.py` |
 | **API Docs** | `openapi.py` |
 | **Budget** | `budget_transaction.py` |
-| **Services** | `services/planner_service.py` (nuevo) |
 
 ### Agent/ML (35+ archivos)
 
@@ -741,6 +743,57 @@ bdc3453 fix(ai): transform response structure for frontend compatibility
 82ae082 feat(sla): add PostgreSQL migration script for SLA schema
 4711936 test(health): add unit tests for Celery and JobsQueue checks
 ```
+
+## Sprint 23-24: Limpieza y Refactoring (2026-01-19)
+
+**Fecha**: 2026-01-19
+**Enfoque**: Limpieza de codigo muerto, refactoring de app.py, mejoras de calidad
+
+### Limpieza de Codigo (Sprint 23)
+
+| Eliminado | Descripcion |
+|-----------|-------------|
+| `scripts/archive/` | 7 scripts obsoletos de migracion |
+| `frontend/src/components/ui/ThemeToggle.jsx` | Dark mode eliminado |
+| `frontend/src/hooks/useTheme.js` | Hook de dark mode |
+| `frontend/src/context/ThemeContext.jsx` | Provider de tema |
+| `infra/nginx/default-initial.conf` | Config nginx legacy |
+| `infra/nginx/default-ip.conf` | Config nginx alternativa |
+
+**Total eliminado:** ~3,500 lineas de codigo muerto
+
+### Refactoring de app.py (Sprint 24)
+
+| Archivo | Accion | Resultado |
+|---------|--------|-----------|
+| `backend/core/cors.py` | **CREADO** | Logica CORS con regex (82 lineas) |
+| `backend/core/spa.py` | **CREADO** | Servir frontend React (112 lineas) |
+| `backend/core/blueprints.py` | **CREADO** | Registro de 29 blueprints (96 lineas) |
+| `backend/app.py` | Refactorizado | 423 → 214 lineas (-49%) |
+
+**Beneficios:**
+- `create_app()` de 271 a ~90 lineas (-67%)
+- Mejor separacion de responsabilidades
+- CORS y SPA testeables independientemente
+- Sigue patron de otros `init_*` helpers
+
+### Tests Agregados
+
+| Archivo | Tests |
+|---------|-------|
+| `tests/unit/test_cors.py` | 8 tests de validacion CORS |
+
+### Commits
+
+```
+952a3be refactor(backend): extraer CORS, SPA y blueprints de create_app
+5294def chore: documentar sys.path y agregar tests CORS
+321713b chore(deps): limpiar dependencias y habilitar mypy en backend
+9e62c4c chore: limpieza rapida - eliminar codigo muerto y duplicados
+1ac975f chore: limpieza de proyecto y actualizacion de documentacion
+```
+
+---
 
 ## Documentacion
 
