@@ -1,4 +1,26 @@
 import { create } from 'zustand'
+import { getTranslation } from '../context/i18n'
+
+/**
+ * Helper to create initial message with current translations
+ */
+const createInitialMessage = (withSuggestions = true) => ({
+  id: 'initial',
+  type: 'bot',
+  content: getTranslation(
+    withSuggestions ? 'chat_greeting_with_options' : 'chat_greeting',
+    '¡Hola! Soy el asistente SPM. ¿En qué puedo ayudarte?'
+  ),
+  timestamp: new Date(),
+  ...(withSuggestions && {
+    suggestions: [
+      getTranslation('chat_suggestion_view_requests', 'Ver mis solicitudes'),
+      getTranslation('chat_suggestion_analyze', 'Analizar una solicitud'),
+      getTranslation('chat_suggestion_load_materials', 'Cargar datos de materiales'),
+      getTranslation('chat_suggestion_recommendations', 'Obtener recomendaciones')
+    ]
+  })
+})
 
 /**
  * Store Zustand para el estado del chat asistente
@@ -10,20 +32,7 @@ import { create } from 'zustand'
  */
 export const useChatStore = create((set, get) => ({
   // Estado
-  messages: [
-    {
-      id: 'initial',
-      type: 'bot',
-      content: '¡Hola! Soy el asistente SPM. ¿En qué puedo ayudarte? Puedo:',
-      timestamp: new Date(),
-      suggestions: [
-        'Ver mis solicitudes',
-        'Analizar una solicitud',
-        'Cargar datos de materiales',
-        'Obtener recomendaciones'
-      ]
-    }
-  ],
+  messages: [createInitialMessage(true)],
   isOpen: false,
   isLoading: false,
   error: null,
@@ -80,14 +89,7 @@ export const useChatStore = create((set, get) => ({
     }))
   },
 
-  clearMessages: () => set({ messages: [
-    {
-      id: 'initial',
-      type: 'bot',
-      content: '¡Hola! Soy el asistente SPM. ¿En qué puedo ayudarte?',
-      timestamp: new Date()
-    }
-  ]}),
+  clearMessages: () => set({ messages: [createInitialMessage(false)] }),
 
   // Utilidades
   getLastMessage: () => {
@@ -98,14 +100,7 @@ export const useChatStore = create((set, get) => ({
   getContext: () => get().currentContext,
 
   reset: () => set({
-    messages: [
-      {
-        id: 'initial',
-        type: 'bot',
-        content: '¡Hola! Soy el asistente SPM. ¿En qué puedo ayudarte?',
-        timestamp: new Date()
-      }
-    ],
+    messages: [createInitialMessage(true)],
     isOpen: false,
     isLoading: false,
     error: null,

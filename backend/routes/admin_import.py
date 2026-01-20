@@ -11,23 +11,13 @@ from io import BytesIO
 from flask import Blueprint, jsonify, request, send_file
 
 from backend.core.excel_validator import excel_validator
+from backend.core.helpers import _get_user_id
 from backend.core.roles import require_auth, is_admin
 from backend.services.temp_data_service import temp_data_service
 
 logger = logging.getLogger(__name__)
 
 bp = Blueprint("admin_import", __name__, url_prefix="/api/admin")
-
-
-def _get_user_id() -> str:
-    """Obtiene el user_id del request context."""
-    from flask import g
-    # El auth middleware setea g.user con los datos del usuario
-    user = getattr(g, "user", None)
-    if user:
-        return user.get("id_spm", "")
-    # Fallback a formatos legacy
-    return getattr(g, "user_id", None) or getattr(g, "current_user", {}).get("id_spm", "")
 
 
 def _check_admin():

@@ -21,20 +21,16 @@ import tempfile
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, jsonify, request
 
 from backend.core.db import get_db_connection
+from backend.core.helpers import _get_user_id
 from backend.core.roles import require_auth, require_role
 from backend.routes.database import is_postgres
 
 logger = logging.getLogger(__name__)
 
 procurement_bp = Blueprint('procurement', __name__, url_prefix='/api/procurement')
-
-
-def _get_user_id() -> str:
-    """Obtiene el user_id del request context."""
-    return getattr(g, "user_id", None) or getattr(g, "current_user", {}).get("id_spm", "")
 
 
 def _row_to_dict(row) -> Dict[str, Any]:

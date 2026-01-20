@@ -4,9 +4,9 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
-import { useDebouncedValue } from '../useDebounced'
+import { useDebounced } from '../useDebounced'
 
-describe('useDebouncedValue', () => {
+describe('useDebounced', () => {
   beforeEach(() => {
     vi.useFakeTimers()
   })
@@ -16,13 +16,13 @@ describe('useDebouncedValue', () => {
   })
 
   it('debe retornar el valor inicial inmediatamente', () => {
-    const { result } = renderHook(() => useDebouncedValue('initial', 300))
+    const { result } = renderHook(() => useDebounced('initial', 300))
     expect(result.current).toBe('initial')
   })
 
   it('debe retornar el valor debounced después del delay', async () => {
     const { result, rerender } = renderHook(
-      ({ value, delay }) => useDebouncedValue(value, delay),
+      ({ value, delay }) => useDebounced(value, delay),
       { initialProps: { value: 'initial', delay: 300 } }
     )
 
@@ -45,7 +45,7 @@ describe('useDebouncedValue', () => {
 
   it('debe cancelar el timer anterior cuando el valor cambia', () => {
     const { result, rerender } = renderHook(
-      ({ value, delay }) => useDebouncedValue(value, delay),
+      ({ value, delay }) => useDebounced(value, delay),
       { initialProps: { value: 'initial', delay: 300 } }
     )
 
@@ -77,7 +77,7 @@ describe('useDebouncedValue', () => {
 
   it('debe funcionar con diferentes delays', () => {
     const { result, rerender } = renderHook(
-      ({ value, delay }) => useDebouncedValue(value, delay),
+      ({ value, delay }) => useDebounced(value, delay),
       { initialProps: { value: 'initial', delay: 500 } }
     )
 
@@ -101,7 +101,7 @@ describe('useDebouncedValue', () => {
   it('debe manejar valores de diferentes tipos', () => {
     // Número
     const { result: numResult, rerender: numRerender } = renderHook(
-      ({ value, delay }) => useDebouncedValue(value, delay),
+      ({ value, delay }) => useDebounced(value, delay),
       { initialProps: { value: 0, delay: 100 } }
     )
 
@@ -113,7 +113,7 @@ describe('useDebouncedValue', () => {
 
     // Objeto
     const { result: objResult, rerender: objRerender } = renderHook(
-      ({ value, delay }) => useDebouncedValue(value, delay),
+      ({ value, delay }) => useDebounced(value, delay),
       { initialProps: { value: { foo: 'bar' }, delay: 100 } }
     )
 
@@ -126,7 +126,7 @@ describe('useDebouncedValue', () => {
 
   it('debe manejar delay de 0', () => {
     const { result, rerender } = renderHook(
-      ({ value, delay }) => useDebouncedValue(value, delay),
+      ({ value, delay }) => useDebounced(value, delay),
       { initialProps: { value: 'initial', delay: 0 } }
     )
 
@@ -143,7 +143,7 @@ describe('useDebouncedValue', () => {
     const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
 
     const { unmount, rerender } = renderHook(
-      ({ value, delay }) => useDebouncedValue(value, delay),
+      ({ value, delay }) => useDebounced(value, delay),
       { initialProps: { value: 'initial', delay: 300 } }
     )
 
@@ -156,7 +156,7 @@ describe('useDebouncedValue', () => {
 
   it('debe manejar valores null y undefined', () => {
     const { result, rerender } = renderHook(
-      ({ value, delay }) => useDebouncedValue(value, delay),
+      ({ value, delay }) => useDebounced(value, delay),
       { initialProps: { value: null, delay: 100 } }
     )
 
@@ -169,7 +169,7 @@ describe('useDebouncedValue', () => {
 
   it('debe mantener el valor cuando no hay cambios', () => {
     const { result, rerender } = renderHook(
-      ({ value, delay }) => useDebouncedValue(value, delay),
+      ({ value, delay }) => useDebounced(value, delay),
       { initialProps: { value: 'same', delay: 100 } }
     )
 
