@@ -60,66 +60,72 @@ export default function ChatAssistant() {
   // Formatear mensajes para UI
   const formattedMessages = selectFormattedMessages(store)
 
-  // Find the best Spanish female voice (Latin American preferred)
+  // Buscar la mejor voz espanola femenina con acento ARGENTINO
+  // Prioridad: Argentina > Rioplatense > LATAM > Espana
   const findBestVoice = useCallback(() => {
     if (!synthesisRef.current) return null
 
     const voices = synthesisRef.current.getVoices()
     if (!voices.length) return null
 
-    // Filter Spanish voices
+    // Filtrar voces en espanol
     const spanishVoices = voices.filter(v => v.lang.startsWith('es'))
 
-    // Priority order for natural-sounding Latin American female voices
-    // Focus: Argentine > Uruguayan > Colombian > Mexican > Venezuelan > Other LATAM
+    // Orden de prioridad: ARGENTINA primero, luego otras LATAM
+    // Buscamos voz femenina con tonada argentina/rioplatense
     const voicePreferences = [
-      // Microsoft Edge voices (highest quality, neural)
-      // Elena = Argentina, Dalia = Mexico, Salome = Colombia
+      // ARGENTINA - Maxima prioridad
       { match: (v) => v.name.includes('Elena') && v.lang === 'es-AR', name: 'Elena Argentina' },
+      { match: (v) => v.lang === 'es-AR' && v.name.includes('Female'), name: 'Female Argentina' },
+      { match: (v) => v.lang === 'es-AR', name: 'es-AR any' },
       { match: (v) => v.name.includes('Microsoft') && v.name.includes('Elena'), name: 'Microsoft Elena' },
 
-      // Google neural voices (excellent quality)
+      // Google voces argentinas (neural, excelente calidad)
       { match: (v) => v.name.includes('Google') && v.lang === 'es-AR', name: 'Google Argentina' },
+
+      // Uruguay (acento similar al argentino)
+      { match: (v) => v.lang === 'es-UY', name: 'es-UY Uruguay' },
+
+      // LATAM generico (puede tener buen acento)
       { match: (v) => v.name.includes('Google') && v.lang === 'es-419', name: 'Google LATAM' },
-      { match: (v) => v.name.includes('Google') && v.lang === 'es-US', name: 'Google US Spanish' },
+      { match: (v) => v.lang === 'es-419', name: 'es-419 LATAM' },
 
-      // Microsoft Sabina (Mexico, very natural)
-      { match: (v) => v.name.toLowerCase().includes('sabina'), name: 'Sabina' },
-
-      // Microsoft Salome (Colombia)
+      // Colombia (acento neutro, agradable)
       { match: (v) => v.name.includes('Salome') || v.name.includes('Salomé'), name: 'Salome Colombia' },
+      { match: (v) => v.lang === 'es-CO', name: 'es-CO Colombia' },
 
-      // Microsoft Dalia (Mexico)
+      // Mexico (muy claro, buena alternativa)
+      { match: (v) => v.name.toLowerCase().includes('sabina'), name: 'Sabina Mexico' },
       { match: (v) => v.name.includes('Dalia'), name: 'Dalia Mexico' },
+      { match: (v) => v.lang === 'es-MX', name: 'es-MX Mexico' },
 
-      // Paola (Venezuela)
+      // Venezuela, Chile, Peru
       { match: (v) => v.name.includes('Paola') && v.lang.startsWith('es'), name: 'Paola Venezuela' },
+      { match: (v) => v.lang === 'es-VE', name: 'es-VE Venezuela' },
+      { match: (v) => v.lang === 'es-CL', name: 'es-CL Chile' },
+      { match: (v) => v.lang === 'es-PE', name: 'es-PE Peru' },
 
-      // Any Microsoft Online voice (neural, better quality)
+      // US Spanish (puede ser neutro)
+      { match: (v) => v.name.includes('Google') && v.lang === 'es-US', name: 'Google US Spanish' },
+      { match: (v) => v.lang === 'es-US', name: 'es-US' },
+
+      // Microsoft Online (neural, buena calidad)
       { match: (v) => v.name.includes('Microsoft') && v.name.includes('Online') && v.lang.startsWith('es'), name: 'Microsoft Online' },
 
       // Apple voices (macOS/iOS)
       { match: (v) => v.name.toLowerCase().includes('paulina'), name: 'Paulina Mexico' },
-      { match: (v) => v.name.toLowerCase().includes('monica') || v.name.toLowerCase().includes('mónica'), name: 'Monica Spain' },
 
-      // Any Google Spanish voice
+      // Cualquier voz Google en espanol
       { match: (v) => v.name.includes('Google') && v.lang.startsWith('es'), name: 'Google Spanish' },
 
-      // Regional preferences (Latin American countries)
-      { match: (v) => v.lang === 'es-AR', name: 'es-AR' }, // Argentina
-      { match: (v) => v.lang === 'es-UY', name: 'es-UY' }, // Uruguay
-      { match: (v) => v.lang === 'es-CO', name: 'es-CO' }, // Colombia
-      { match: (v) => v.lang === 'es-MX', name: 'es-MX' }, // Mexico
-      { match: (v) => v.lang === 'es-VE', name: 'es-VE' }, // Venezuela
-      { match: (v) => v.lang === 'es-CL', name: 'es-CL' }, // Chile
-      { match: (v) => v.lang === 'es-PE', name: 'es-PE' }, // Peru
-      { match: (v) => v.lang === 'es-419', name: 'es-419 LATAM' }, // Latin America generic
-      { match: (v) => v.lang === 'es-US', name: 'es-US' }, // US Spanish
-
-      // Any female Spanish voice
+      // Voz femenina espanola
       { match: (v) => v.lang.startsWith('es') && v.name.toLowerCase().includes('female'), name: 'Female Spanish' },
 
-      // Fallback: any Spanish voice
+      // Espana (ultimo recurso, acento diferente)
+      { match: (v) => v.name.toLowerCase().includes('monica') || v.name.toLowerCase().includes('mónica'), name: 'Monica Spain' },
+      { match: (v) => v.lang === 'es-ES', name: 'es-ES Spain' },
+
+      // Fallback: cualquier voz en espanol
       { match: (v) => v.lang.startsWith('es'), name: 'Spanish fallback' },
     ]
 
@@ -232,20 +238,28 @@ export default function ChatAssistant() {
       utterance.lang = 'es-AR'
     }
 
-    // Natural speech parameters for feminine Latin American voice
-    // Adjust based on voice type for optimal quality
+    // Parametros de voz optimizados para acento argentino natural y dinamico
+    // Rate mas alto para sonar energica, no aburrida
     const isNeuralVoice = selectedVoice?.name?.includes('Online') ||
                           selectedVoice?.name?.includes('Google') ||
                           selectedVoice?.name?.includes('Neural')
 
+    const isArgentineVoice = selectedVoice?.lang === 'es-AR' ||
+                             selectedVoice?.name?.includes('Elena') ||
+                             selectedVoice?.name?.includes('Argentina')
+
     if (isNeuralVoice) {
-      // Neural voices are already natural, minimal adjustments
-      utterance.rate = 1.0
-      utterance.pitch = 1.05  // Slight feminine touch
+      // Voces neurales: rapidas y naturales
+      utterance.rate = 1.12   // Mas rapido, estilo portenio
+      utterance.pitch = 1.08  // Tono ligeramente mas alto, femenino
+    } else if (isArgentineVoice) {
+      // Voz argentina estandar
+      utterance.rate = 1.15   // Rapido como hablan los argentinos
+      utterance.pitch = 1.1   // Tono vivaz
     } else {
-      // Standard voices need more help
-      utterance.rate = 0.92   // Slightly slower for clarity
-      utterance.pitch = 1.12  // Higher pitch for feminine voice
+      // Otras voces latinas
+      utterance.rate = 1.1    // Mas rapido que antes
+      utterance.pitch = 1.08  // Natural femenino
     }
 
     utterance.volume = 1.0
