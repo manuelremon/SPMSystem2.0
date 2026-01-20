@@ -4,7 +4,14 @@
 import os
 import sys
 
-# Agregar directorios al path para compatibilidad de imports
+# Path setup para imports de backend
+# -----------------------------------------------------------------------------
+# Este "path hacking" es necesario porque el proyecto no es un paquete instalable.
+# Agrega tanto el root (para `backend.*`) como backend/ (para `core.*`, `routes.*`).
+# Funciona correctamente con Gunicorn en produccion (Cloud Run) y en desarrollo.
+# Alternativa seria convertir a paquete con pyproject.toml, pero el riesgo de
+# romper la configuracion actual supera el beneficio.
+# -----------------------------------------------------------------------------
 _project_root = os.path.dirname(os.path.abspath(__file__))
 _backend_dir = os.path.join(_project_root, "backend")
 
