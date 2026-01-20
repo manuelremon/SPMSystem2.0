@@ -183,7 +183,7 @@ def list_budget_requests():
 @require_auth
 def create_budget_request():
     """Crear Budget Update Request (solo jefe/admin)"""
-    user_id = str(g.user.get("user_id"))
+    user_id = str(g.user.get("id_spm") or g.user.get("user_id"))
     user = _get_user(user_id)
     if not user:
         return (
@@ -193,7 +193,7 @@ def create_budget_request():
                     "error": {"code": "user_not_found", "message": "Usuario no encontrado"},
                 }
             ),
-            404,
+            401,
         )
 
     user_roles = normalize_roles(user.get("rol", ""))
@@ -311,7 +311,7 @@ def get_budget_request(bur_id):
 @require_auth
 def aprobar_budget_request(bur_id):
     """Aprobar Budget Update Request"""
-    user_id = str(g.user.get("user_id"))
+    user_id = str(g.user.get("id_spm") or g.user.get("user_id"))
     user = _get_user(user_id)
     if not user:
         return (
@@ -321,7 +321,7 @@ def aprobar_budget_request(bur_id):
                     "error": {"code": "user_not_found", "message": "Usuario no encontrado"},
                 }
             ),
-            404,
+            401,
         )
 
     user_roles = normalize_roles(user.get("rol", ""))
@@ -399,7 +399,7 @@ def aprobar_budget_request(bur_id):
 @require_auth
 def rechazar_budget_request(bur_id):
     """Rechazar Budget Update Request"""
-    user_id = str(g.user.get("user_id"))
+    user_id = str(g.user.get("id_spm") or g.user.get("user_id"))
     user = _get_user(user_id)
     if not user:
         return (
@@ -409,7 +409,7 @@ def rechazar_budget_request(bur_id):
                     "error": {"code": "user_not_found", "message": "Usuario no encontrado"},
                 }
             ),
-            404,
+            401,
         )
 
     user_roles = normalize_roles(user.get("rol", ""))
@@ -489,7 +489,7 @@ def revertir_budget_request(bur_id):
     SPRINT 2.3: Revertir un BUR aprobado (solo admin).
     Resta el monto del presupuesto y marca el BUR como revertido.
     """
-    user_id = str(g.user.get("user_id"))
+    user_id = str(g.user.get("id_spm") or g.user.get("user_id"))
     user = _get_user(user_id)
     if not user:
         return (
@@ -499,7 +499,7 @@ def revertir_budget_request(bur_id):
                     "error": {"code": "user_not_found", "message": "Usuario no encontrado"},
                 }
             ),
-            404,
+            401,
         )
 
     user_roles = normalize_roles(user.get("rol", ""))
@@ -574,7 +574,7 @@ def revertir_budget_request(bur_id):
 @require_auth
 def get_bur_pendientes():
     """Obtiene BURs pendientes que el usuario actual puede aprobar"""
-    user_id = str(g.user.get("user_id"))
+    user_id = str(g.user.get("id_spm") or g.user.get("user_id"))
     user = _get_user(user_id)
     if not user:
         return (
@@ -584,7 +584,7 @@ def get_bur_pendientes():
                     "error": {"code": "user_not_found", "message": "Usuario no encontrado"},
                 }
             ),
-            404,
+            401,
         )
 
     user_roles = normalize_roles(user.get("rol", ""))
