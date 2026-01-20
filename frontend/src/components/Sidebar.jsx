@@ -238,18 +238,18 @@ const adminNavHierarchy = [
     iconName: "Server",
     children: [
       { trKey: "admin_estado", label: "Estado del Sistema", to: "/admin/estado", icon: Activity, iconName: "Activity" },
-    ],
-  },
-  {
-    key: "analisis-puntual",
-    trKey: "admin_cat_analisis_puntual",
-    label: "Analisis Puntual",
-    icon: BarChart2,
-    iconName: "BarChart2",
-    children: [
-      { trKey: "admin_ap_importar", label: "Importar Datos", to: "/admin/analisis-puntual", icon: Database, iconName: "Database" },
-      { trKey: "admin_ap_mrp", label: "MRP Temporal", to: "/admin/analisis-puntual/mrp", icon: AlertTriangle, iconName: "AlertTriangle" },
-      { trKey: "admin_ap_forecast", label: "Forecast Temporal", to: "/admin/analisis-puntual/forecast", icon: LineChart, iconName: "LineChart" },
+      {
+        key: "analisis-puntual",
+        trKey: "admin_cat_analisis_puntual",
+        label: "Análisis Puntual",
+        icon: BarChart2,
+        iconName: "BarChart2",
+        children: [
+          { trKey: "admin_ap_importar", label: "Importar Datos", to: "/admin/analisis-puntual", icon: Database, iconName: "Database" },
+          { trKey: "admin_ap_mrp", label: "MRP Temporal", to: "/admin/analisis-puntual/mrp", icon: AlertTriangle, iconName: "AlertTriangle" },
+          { trKey: "admin_ap_forecast", label: "Forecast Temporal", to: "/admin/analisis-puntual/forecast", icon: LineChart, iconName: "LineChart" },
+        ],
+      },
     ],
   },
 ];
@@ -603,24 +603,29 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1" style={{ maxHeight: 'calc(100vh - 180px)' }}>
-        {/* Main nav */}
-        {mainNavItems.map((item) => renderNavItem(item))}
-
-        {/* Planner section */}
-        {canSeePlanner && (
-          <>
-            {!collapsed && (
-              <div className="pt-4 pb-2 px-3">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  {t("nav_planificacion", "Planificación")}
-                </span>
-              </div>
-            )}
-            {plannerNavItems.map((item) => renderNavItem(item))}
-          </>
+        {/* Section: Principal */}
+        {!collapsed && (
+          <div className="pb-2 px-3">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              {t("nav_principal", "Principal")}
+            </span>
+          </div>
         )}
+        {/* Dashboard y Bandeja */}
+        {mainNavItems.slice(0, 2).map((item) => renderNavItem(item))}
 
-        {/* Budget */}
+        {/* Section: Operaciones */}
+        {!collapsed && (
+          <div className="pt-4 pb-2 px-3">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              {t("nav_operaciones", "Operaciones")}
+            </span>
+          </div>
+        )}
+        {/* Solicitudes y Materiales */}
+        {mainNavItems.slice(2).map((item) => renderNavItem(item))}
+
+        {/* Presupuesto - ahora en Operaciones */}
         {canSeeBudget && (
           collapsed ? (
             <Tooltip content={t("nav_presupuesto", "Presupuesto")} position="right" delay={0} className="w-full flex justify-center py-0.5">
@@ -653,7 +658,21 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
           )
         )}
 
-        {/* Admin section */}
+        {/* Section: Planificación */}
+        {canSeePlanner && (
+          <>
+            {!collapsed && (
+              <div className="pt-4 pb-2 px-3">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  {t("nav_planificacion", "Planificación")}
+                </span>
+              </div>
+            )}
+            {plannerNavItems.map((item) => renderNavItem(item))}
+          </>
+        )}
+
+        {/* Section: Administración */}
         {isAdmin() && (
           <>
             {!collapsed && (

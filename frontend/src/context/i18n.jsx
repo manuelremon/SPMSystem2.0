@@ -26,6 +26,9 @@ const translations = {
   nav_materiales: { es: "Materiales", en: "Materials" },
   nav_catalogo_materiales: { es: "Catálogo de Materiales", en: "Materials Catalog" },
   nav_equivalencias: { es: "Materiales Alternativos", en: "Alternative Materials" },
+  nav_principal: { es: "Principal", en: "Main" },
+  nav_operaciones: { es: "Operaciones", en: "Operations" },
+  nav_planificacion: { es: "Planificación", en: "Planning" },
   admin_centros: { es: "Centros", en: "Plants" },
   admin_almacenes: { es: "Almacenes", en: "Warehouses" },
   admin_sectores: { es: "Sectores", en: "Sectors" },
@@ -776,6 +779,14 @@ const translations = {
   // Tiempo
   time_now: { es: "Ahora", en: "Now" },
   time_ago: { es: "Hace", en: "ago" },
+
+  // Chat Assistant
+  chat_greeting: { es: "¡Hola! Soy el asistente SPM. ¿En qué puedo ayudarte?", en: "Hi! I'm the SPM assistant. How can I help you?" },
+  chat_greeting_with_options: { es: "¡Hola! Soy el asistente SPM. ¿En qué puedo ayudarte? Puedo:", en: "Hi! I'm the SPM assistant. How can I help you? I can:" },
+  chat_suggestion_view_requests: { es: "Ver mis solicitudes", en: "View my requests" },
+  chat_suggestion_analyze: { es: "Analizar una solicitud", en: "Analyze a request" },
+  chat_suggestion_load_materials: { es: "Cargar datos de materiales", en: "Load materials data" },
+  chat_suggestion_recommendations: { es: "Obtener recomendaciones", en: "Get recommendations" },
 };
 
 export function I18nProvider({ children }) {
@@ -818,6 +829,20 @@ export function I18nProvider({ children }) {
 
 export function useI18n() {
   return useContext(I18nContext);
+}
+
+/**
+ * Get translation outside of React components (e.g., in Zustand stores)
+ * Reads current language from localStorage
+ * @param {string} key - Translation key
+ * @param {string} fallback - Fallback text if key not found
+ * @returns {string} Translated text
+ */
+export function getTranslation(key, fallback) {
+  const lang = localStorage.getItem("lang") || "es";
+  const entry = translations[key];
+  if (!entry) return fallback || key;
+  return entry[lang] || fallback || entry.es || key;
 }
 
 export { translations };
