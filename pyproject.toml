@@ -18,4 +18,4 @@ addopts = "-ra"
 [tool.mypy]
 explicit_package_bases = true
 ignore_missing_imports = true
-exclude = ["build", "dist", ".venv", "venv", "backend"]
+exclude = ["build", "dist", ".venv", "venv"]
