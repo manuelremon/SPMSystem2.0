@@ -18,7 +18,7 @@ import {
   Users,
   DollarSign,
   BarChart3
-} from 'lucide-react';
+} from '../components/ui/Icons';
 
 // Componente Card reutilizable
 const StatCard = ({ title, value, subtitle, icon: Icon, color = 'blue', trend }) => (

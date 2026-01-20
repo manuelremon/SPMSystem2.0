@@ -247,6 +247,9 @@ def get_tables():
 
     tables = []
 
+    # Obtener whitelist de tablas para esta BD
+    allowed_tables_for_db = set(ALLOWED_TABLES.get(db_name, []))
+
     try:
         if db_name == "spm" and is_postgres():
             with get_db_connection() as conn:
@@ -259,6 +262,9 @@ def get_tables():
                 """)
                 for row in cur.fetchall():
                     table_name = _get_value(row, 'table_name') or _get_value(row, 0)
+                    # Validar contra whitelist antes de ejecutar query
+                    if table_name not in allowed_tables_for_db:
+                        continue
                     cur.execute(f"SELECT COUNT(*) FROM \"{table_name}\"")
                     count = _get_value(cur.fetchone(), 0, 0)
                     tables.append({"name": table_name, "records": count})
@@ -273,6 +279,9 @@ def get_tables():
             cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
             for row in cur.fetchall():
                 table_name = row[0]
+                # Validar contra whitelist antes de ejecutar query
+                if table_name not in allowed_tables_for_db:
+                    continue
                 try:
                     cur.execute(f"SELECT COUNT(*) FROM [{table_name}]")
                     count = cur.fetchone()[0]

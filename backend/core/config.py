@@ -31,7 +31,7 @@ def _get_secret_key(env_var: str, env: str) -> str:
 class Settings(BaseSettings):
     """Configuración de la aplicación"""
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 
     # Entorno
     ENV: str = os.getenv("FLASK_ENV", "development")

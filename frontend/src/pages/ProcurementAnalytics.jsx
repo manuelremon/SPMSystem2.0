@@ -19,7 +19,7 @@ import {
   Building2,
   Truck,
   FileSpreadsheet
-} from 'lucide-react';
+} from '../components/ui/Icons';
 
 // Componente Card con indicador de valor
 const MetricCard = ({ title, value, subtitle, icon: Icon, color = 'blue' }) => (
