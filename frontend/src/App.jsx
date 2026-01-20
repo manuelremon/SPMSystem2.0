@@ -39,8 +39,7 @@ const TodasLasSolicitudes = lazy(() => import('./pages/TodasLasSolicitudes'))
 const MRPTableroAlertas = lazy(() => import('./pages/MRPTableroAlertas'))
 const MRPKPIs = lazy(() => import('./pages/MRPKPIs'))
 
-// SLA Dashboard (lazy-loaded)
-const SLADashboard = lazy(() => import('./pages/SLADashboard'))
+// SLA Dashboard removed - merged into AIAnalytics
 
 // AI Analytics (lazy-loaded)
 const AIAnalytics = lazy(() => import('./pages/AIAnalytics'))
@@ -121,7 +120,7 @@ function App() {
             <Route path="/planificador" element={<ProtectedRoute><Planner /></ProtectedRoute>} />
             <Route path="/planificador/mrp/alertas" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><MRPTableroAlertas /></ProtectedRoute>} />
             <Route path="/planificador/mrp/kpis" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><MRPKPIs /></ProtectedRoute>} />
-            <Route path="/planificador/sla" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador', 'coordinador']}><SLADashboard /></ProtectedRoute>} />
+            <Route path="/planificador/sla" element={<Navigate to="/planificador/ai" replace />} />
             <Route path="/planificador/ai" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><AIAnalytics /></ProtectedRoute>} />
             <Route path="/planificador/forecast" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ForecastIndividual /></ProtectedRoute>} />
             <Route path="/planificador/forecast/masivo" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ForecastMasivo /></ProtectedRoute>} />

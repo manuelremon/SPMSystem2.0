@@ -202,7 +202,6 @@ const plannerNavItems = [
           { trKey: "nav_procurement_analytics", label: "Analítica", to: "/procurement/analytics", icon: BarChart2, iconName: "BarChart2" },
         ],
       },
-      { trKey: "nav_sla", label: "SLA", to: "/planificador/sla", icon: Clock, iconName: "Clock" },
       { trKey: "nav_ai", label: "IA Analytics", to: "/planificador/ai", icon: Activity, iconName: "Activity" },
     ],
   },
