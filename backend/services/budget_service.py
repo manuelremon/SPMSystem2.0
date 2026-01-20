@@ -315,7 +315,11 @@ class BURService:
             row = _fetchone(cur)
             return {"ok": True, "bur": BudgetUpdateRequest.from_row(dict(row)).to_dict()}
         except Exception as e:
-            return {"ok": False, "error": str(e)}
+            import logging
+            logging.getLogger(__name__).error(f"BURService.crear error: {type(e).__name__}: {e}")
+            import traceback
+            logging.getLogger(__name__).error(f"BURService.crear traceback: {traceback.format_exc()}")
+            return {"ok": False, "error": f"{type(e).__name__}: {str(e)}"}
         finally:
             conn.close()
 
