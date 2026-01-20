@@ -2,16 +2,16 @@
 
 Guia para Claude Code (claude.ai/code) cuando trabaja con este repositorio.
 
-> **Ultima actualizacion**: 2026-01-10 (Sprint 22 - Agentes y PostgreSQL)
+> **Ultima actualizacion**: 2026-01-19 (Sprint 23 - Limpieza y Documentacion)
 
 ## Resumen del Proyecto
 
 | Metrica | Valor |
 |---------|-------|
-| **Backend** | 131 archivos Python, ~55,000 lineas |
-| **Frontend** | 68 paginas, 87 componentes, 8 hooks |
-| **Endpoints API** | 200+ endpoints en 24 modulos |
-| **Tests** | 1,045+ tests (153 archivos) |
+| **Backend** | 165 archivos Python, ~65,000 lineas |
+| **Frontend** | 75 paginas, 80 componentes, 12 hooks |
+| **Endpoints API** | 200+ endpoints en 29 modulos |
+| **Tests** | 1,210+ tests (54 archivos) |
 | **Base de Datos** | 3 SQLite + PostgreSQL (produccion) |
 
 ## Comandos de Desarrollo
@@ -48,35 +48,37 @@ http://localhost:5173       http://localhost:5000     SQLite (data/)
 
 ```
 SPMv2.0/
-├── backend/                    # API Flask (131 archivos, ~55K lineas)
-│   ├── routes/                 # 24 modulos, 200+ endpoints
+├── backend/                    # API Flask (165 archivos, ~65K lineas)
+│   ├── routes/                 # 29 modulos, 200+ endpoints
 │   ├── services/               # 11 servicios de negocio
 │   ├── core/                   # 28 modulos de infraestructura
-│   ├── agent/                  # 30 archivos ML/IA (incluye forecast/)
+│   ├── agent/                  # 30+ archivos ML/IA (incluye forecast/, rag/)
 │   └── migrations/             # 13 migraciones de BD
 ├── frontend/src/
-│   ├── pages/                  # 68 paginas (incluye admin)
-│   ├── components/             # 87 componentes
-│   ├── hooks/                  # 8 custom hooks
+│   ├── pages/                  # 75 paginas (incluye admin)
+│   ├── components/             # 80 componentes
+│   ├── hooks/                  # 12 custom hooks
 │   ├── services/               # 11 servicios API
 │   ├── store/                  # 3 stores Zustand
 │   └── context/                # i18n provider (200+ keys)
 ├── data/                       # Bases de datos SQLite
-├── tests/                      # 153 archivos de test
+├── tests/                      # 54 archivos de test
 ├── scripts/                    # Scripts de utilidad
 └── docs/                       # Documentacion
 ```
 
 ## Backend - Inventario Completo
 
-### Routes (24 modulos, 194 endpoints)
+### Routes (28 modulos, 200+ endpoints)
 
 | Modulo | Endpoints | Proposito |
 |--------|-----------|-----------|
 | `admin.py` | 31 | CRUD usuarios, roles, materiales, proveedores |
+| `admin_import.py` | 5 | Importacion masiva de datos |
 | `planner.py` | 21 | Planificacion de solicitudes, decisiones |
 | `mi_cuenta.py` | 14 | Perfil, password, preferencias |
 | `ai.py` | 14 | Recomendaciones IA, analisis, forecast |
+| `vertex_ia.py` | 8 | Integracion Vertex AI, chat, voz |
 | `solicitudes.py` | 11 | CRUD solicitudes, estados, archivos |
 | `metrics.py` | 11 | Metricas de rendimiento |
 | `budget.py` | 8 | Presupuestos, ledger, BUR |
@@ -89,6 +91,8 @@ SPMv2.0/
 | `notificaciones.py` | 6 | CRUD notificaciones |
 | `push.py` | 6 | Push notifications |
 | `health.py` | 6 | Health checks, probes, diagnostics |
+| `database.py` | 5 | Admin de base de datos |
+| `procurement.py` | 5 | Gestion de compras |
 | `catalogos.py` | 5 | Centros, sectores, puestos |
 | `equivalencias.py` | 5 | Equivalencias de materiales |
 | `foro.py` | 5 | Posts, replies, likes |
@@ -134,7 +138,7 @@ SPMv2.0/
 | **Budget** | `budget_transaction.py` |
 | **Services** | `services/planner_service.py` (nuevo) |
 
-### Agent/ML (30 archivos)
+### Agent/ML (35+ archivos)
 
 ```
 agent/
@@ -157,9 +161,13 @@ agent/
 │       ├── model_registry.py  # Registro de modelos
 │       ├── predictor.py       # Motor de prediccion
 │       └── base.py            # Clase base modelos
+├── rag/                       # Retrieval Augmented Generation
+│   ├── embeddings.py      # Generacion de embeddings
+│   ├── retriever.py       # Busqueda semantica
+│   └── context_builder.py # Constructor de contexto
 └── tools/
     ├── base.py            # Abstraccion de herramientas
-    ├── data_loader.py     # Carga de datos historicos
+    ├── data_loader.py     # Carga de datos historicos (PostgreSQL)
     ├── evaluator.py       # Evaluacion de modelos
     ├── material_matcher.py # Matching de materiales
     ├── ml_trainer.py      # Entrenamiento ML
@@ -256,15 +264,26 @@ python scripts/migrate_excel_to_db.py
 
 ### Resumen
 
-| Categoria | Tests | Cobertura |
-|-----------|-------|-----------|
-| Backend Unit | 850+ | Excelente (core, pipelines) |
-| Backend Integration | 160+ | Buena (14+ rutas) |
-| Backend E2E | 25 | Buena (health, auth, flujos) |
-| Frontend Pages | 12 | Mejorando |
-| Frontend Components | 9 | Mejorando |
+| Categoria | Archivos | Tests | Cobertura |
+|-----------|----------|-------|-----------|
+| Backend Unit | 36 | 900+ | Excelente (core, pipelines) |
+| Backend Integration | 15 | 200+ | Buena (28+ rutas) |
+| Backend E2E | 2 | 30+ | Buena (health, auth, flujos) |
+| Frontend | 21 | 80+ | Mejorando |
 
-**Total: 1,045+ tests en 153 archivos**
+**Total: 1,210+ tests en 54 archivos**
+
+### Estructura Optimizada (2026-01-19)
+
+```
+tests/
+├── conftest.py          # Fixtures globales
+├── unit/                # 36 archivos - Tests unitarios
+├── integration/         # 15 archivos - Tests de integracion
+└── e2e/                 # 2 archivos - Tests end-to-end
+```
+
+*Nota: Se eliminaron 81 scripts manuales/debug que no eran tests automatizados.*
 
 ### Backend - Tests por Modulo
 
@@ -725,12 +744,13 @@ bdc3453 fix(ai): transform response structure for frontend compatibility
 
 ## Documentacion
 
-- `docs/ARQUITECTURA_SPM_2_0.md` - Arquitectura completa
-- `docs/DEPLOYMENT.md` - Guia de despliegue
-- `docs/GUIA_RAPIDA_USAR_SERVICIOS.md` - Uso de servicios
-- `docs/PLAN_ESCALADO_SPM.md` - Plan de escalado
-- `docs/implementation_plan.md` - Plan de implementacion
-- `docs/history/` - Documentacion historica
+- `docs/ARQUITECTURA_SPM_2_0.md` - Arquitectura completa del sistema
+- `docs/DEPLOYMENT.md` - Guia de despliegue a produccion
+- `docs/GUIA_RAPIDA_USAR_SERVICIOS.md` - Uso de servicios backend
+- `docs/PLAN_ESCALADO_SPM.md` - Plan de escalado futuro
+- `docs/AUDIT.md` - Auditoria de seguridad y calidad
+- `docs/guides/CODE_REVIEW_GUIDE.md` - Guia de code review
+- `docs/guides/QUICK_REFERENCE_BD.md` - Referencia rapida de BD
 
 ## Instrucciones para Claude
 

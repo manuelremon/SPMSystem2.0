@@ -1,7 +1,7 @@
 # Arquitectura de Carpetas - SPMv2.0
 
-**Fecha de reestructuración:** 2025-12-05
-**Versión:** 2.0
+**Ultima actualizacion:** 2026-01-19
+**Version:** 2.1
 
 ---
 
@@ -9,98 +9,77 @@
 
 ```
 SPMv2.0/
-├── backend/                    # API Flask (Python)
-│   ├── core/                   # Configuración, DB, Auth, Middleware
-│   │   ├── config.py           # Configuración centralizada (Pydantic)
-│   │   ├── db.py               # Conexión SQLite + SQLAlchemy
+├── backend/                    # API Flask (165 archivos, ~65K lineas)
+│   ├── core/                   # Configuracion, DB, Auth, Middleware
+│   │   ├── config.py           # Configuracion centralizada (Pydantic)
+│   │   ├── db.py               # Conexion SQLite/PostgreSQL
 │   │   ├── auth_middleware.py  # JWT + decoradores de auth
-│   │   ├── csrf.py             # Protección CSRF
+│   │   ├── csrf.py             # Proteccion CSRF
 │   │   ├── security_headers.py # Headers de seguridad OWASP
-│   │   └── schema.sql          # Esquema inicial de BD
+│   │   └── repository_legacy.py # Data access layer
 │   │
-│   ├── routes/                 # Blueprints Flask (14 módulos)
+│   ├── routes/                 # Blueprints Flask (28 modulos)
 │   │   ├── auth.py             # Login, registro, refresh token
 │   │   ├── solicitudes.py      # CRUD de solicitudes
-│   │   ├── materiales.py       # Búsqueda de materiales SAP
-│   │   ├── planner.py          # Planificación de solicitudes
-│   │   ├── admin.py            # Administración de usuarios
-│   │   ├── budget.py           # Gestión presupuestaria (BUR)
-│   │   ├── mensajes.py         # Sistema de mensajería
-│   │   ├── notificaciones.py   # Notificaciones push
-│   │   ├── mi_cuenta.py        # Perfil de usuario
-│   │   ├── catalogos.py        # Catálogos (centros, almacenes)
-│   │   ├── foro.py             # Foro de discusión
-│   │   ├── trivias.py          # Módulo de trivias
+│   │   ├── materiales.py       # Busqueda de materiales SAP
+│   │   ├── planner.py          # Planificacion de solicitudes
+│   │   ├── admin.py            # Administracion de usuarios
+│   │   ├── admin_import.py     # Importacion masiva de datos
+│   │   ├── budget.py           # Gestion presupuestaria (BUR)
+│   │   ├── vertex_ia.py        # Integracion Vertex AI
+│   │   ├── procurement.py      # Gestion de compras
+│   │   ├── database.py         # Admin de base de datos
+│   │   └── ...                 # 18 modulos adicionales
+│   │
+│   ├── services/               # Logica de negocio (11 servicios)
+│   │   ├── ai_service.py       # Orchestrador ML
+│   │   ├── mrp_service.py      # Motor MRP
+│   │   ├── budget_service.py   # Calculos presupuestarios
 │   │   └── ...
 │   │
-│   ├── services/               # Lógica de negocio
-│   │   ├── budget_service.py   # Cálculos presupuestarios
-│   │   ├── notification_service.py
-│   │   └── message_service.py
-│   │
-│   ├── agent/                  # Módulo ML/IA (ReAct)
-│   │   ├── core/               # Agente principal
+│   ├── agent/                  # Modulo ML/IA (35+ archivos)
+│   │   ├── core/               # Agente ReAct principal
 │   │   ├── tools/              # Herramientas del agente
-│   │   └── pipelines/          # Pipelines ML (clustering, forecast)
-│   │
-│   ├── models/                 # Schemas Pydantic
-│   │   └── schemas.py
+│   │   ├── pipelines/          # Pipelines ML (clustering, forecast)
+│   │   └── rag/                # Retrieval Augmented Generation
 │   │
 │   ├── migrations/             # Migraciones SQL
-│   └── app.py                  # Factory de aplicación Flask
+│   └── app.py                  # Factory de aplicacion Flask
 │
 ├── frontend/                   # React + Vite + Tailwind
 │   ├── src/
-│   │   ├── pages/              # Componentes de página (31)
-│   │   ├── components/         # Componentes UI reutilizables
-│   │   │   └── ui/             # Sistema de diseño (25 componentes)
+│   │   ├── pages/              # Componentes de pagina (75)
+│   │   ├── components/         # Componentes UI (80)
+│   │   │   └── ui/             # Sistema de diseno
 │   │   ├── context/            # Providers (Auth, i18n)
-│   │   ├── hooks/              # Custom hooks (4)
-│   │   ├── services/           # API clients
-│   │   └── utils/              # Utilidades (formatters, styleConfig)
+│   │   ├── hooks/              # Custom hooks (12)
+│   │   ├── services/           # API clients (11)
+│   │   ├── store/              # Zustand stores (3)
+│   │   └── utils/              # Utilidades
 │   │
-│   ├── public/                 # Assets estáticos
-│   ├── dist/                   # Build de producción
-│   ├── vite.config.js          # Configuración Vite
-│   ├── tailwind.config.js      # Configuración Tailwind
+│   ├── public/                 # Assets estaticos
+│   ├── dist/                   # Build de produccion
 │   └── package.json
 │
-├── tests/                      # Tests (237 total)
+├── tests/                      # Tests (1,290+ en 91 archivos)
 │   ├── unit/                   # Tests unitarios Python
-│   ├── integration/            # Tests de integración
-│   ├── e2e/                    # Tests end-to-end
-│   └── manual/                 # Scripts de prueba manual
+│   ├── integration/            # Tests de integracion
+│   └── e2e/                    # Tests end-to-end
 │
-├── scripts/                    # Scripts de ejecución y mantenimiento
-│   ├── INICIAR_SPM.bat         # Script de inicio Windows
-│   ├── init_db_production.py   # Inicializar BD producción
-│   ├── verify_production_setup.py
-│   └── test_production.py
+├── scripts/                    # Scripts de utilidad
+│   └── INICIAR_SPM.bat         # Script de inicio Windows
 │
-├── data/                       # Datos persistentes
-│   ├── spm.db                  # BD transaccional (usuarios, solicitudes)
-│   ├── equivalentes.db         # BD de equivalencias de materiales SAP
-│   ├── sap_data.db             # BD de datos SAP (stock, consumo, pedidos)
-│   └── xlsx/                   # Archivos Excel originales (backup)
+├── data/                       # Bases de datos SQLite
+│   ├── spm.db                  # BD transaccional
+│   ├── equivalentes.db         # Equivalencias de materiales
+│   └── sap_data.db             # Datos SAP
 │
-├── docs/                       # Documentación
-│   ├── ai/                     # Docs del módulo IA
-│   ├── functional/             # Especificaciones funcionales
-│   ├── guides/                 # Guías de uso
-│   ├── history/                # Historial de desarrollo
-│   ├── infrastructure/         # Docs de infraestructura
-│   └── planning/               # Planificación
-│
-├── .claude/                    # Configuración Claude Code
-├── .sugar/                     # Tareas Sugar
+├── docs/                       # Documentacion
+│   └── guides/                 # Guias de uso
 │
 ├── wsgi.py                     # Punto de entrada del servidor
-├── pyproject.toml              # Configuración Python
-├── requirements.txt            # Dependencias Python
-├── pytest.ini                  # Configuración pytest
-├── README.md                   # Documentación principal
 ├── CLAUDE.md                   # Instrucciones para Claude
-└── .gitignore                  # Archivos ignorados por Git
+└── AGENTS.md                   # Configuracion de agentes
 ```
 
 ---
@@ -112,18 +91,18 @@ SPMv2.0/
 - **Frontend**: React SPA en puerto 5173 (dev) / servido por Flask (prod)
 - **Comunicación**: REST API con JWT + CSRF
 
-### 2. Bases de Datos (SQLite)
+### 2. Bases de Datos
 
-| Base de Datos | Propósito | Registros |
+| Base de Datos | Proposito | Registros |
 |---------------|-----------|-----------|
 | `data/spm.db` | BD transaccional (usuarios, solicitudes, auth) | ~500 |
 | `data/equivalentes.db` | Equivalencias de materiales SAP | 34,865 |
-| `data/sap_data.db` | Stock, consumo histórico, pedidos SAP | 178,338 |
+| `data/sap_data.db` | Stock, consumo historico, pedidos SAP | 178,338 |
+| PostgreSQL (prod) | BD de produccion en Cloud Run | - |
 
-- **Motor**: SQLite (desarrollo y producción ligera)
-- **ORM**: SQLAlchemy para queries complejas
+- **Motor desarrollo**: SQLite
+- **Motor produccion**: PostgreSQL
 - **Migraciones**: Scripts SQL en `backend/migrations/`
-- **Reimportación SAP**: `python scripts/migrate_excel_to_db.py`
 
 ### 3. Autenticación
 - **JWT**: Access token (1h) + Refresh token (7d)
@@ -182,23 +161,8 @@ cd frontend && npm test           # Tests React
 
 ---
 
-## Notas de Reestructuración (2025-12-05)
+## Historial de Cambios
 
-### Cambios Realizados
-1. `backend_v2/` → `backend/` (nombre estándar)
-2. `spm.db` → `data/spm.db` (separar datos de código)
-3. Scripts de producción → `scripts/`
-4. Configuración duplicada eliminada de raíz
-5. Archivos basura eliminados (nul, estructura.txt)
-
-### Imports Actualizados
-- Todos los imports `from backend_v2` → `from backend`
-- 100+ archivos actualizados automáticamente
-- Verificado con pytest: 218/237 tests pasando
-
-### Migración Excel → SQLite (2025-12-05)
-- Archivos Excel de datos SAP movidos de `docs/` a `data/xlsx/`
-- Convertidos a SQLite para mejor rendimiento y consultas
-- **equivalentes.db**: 34,865 equivalencias de materiales
-- **sap_data.db**: 178,338 registros (stock, consumo, pedidos)
-- Script de reimportación: `scripts/migrate_excel_to_db.py`
+- **2026-01-19**: Actualizacion de metricas y limpieza de documentacion
+- **2026-01-10**: Integracion Vertex AI, modulo RAG, PostgreSQL en produccion
+- **2025-12-05**: Reestructuracion inicial de carpetas

@@ -1,13 +1,12 @@
 # SPM v2.0 - Sistema de Planificacion de Materiales
 
 [![CI Pipeline](https://github.com/MANUE/SPMSystem2.0/actions/workflows/ci.yml/badge.svg)](https://github.com/MANUE/SPMSystem2.0/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/MANUE/SPMSystem2.0/branch/main/graph/badge.svg)](https://codecov.io/gh/MANUE/SPMSystem2.0)
-[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![React 18](https://img.shields.io/badge/react-18-61dafb.svg)](https://reactjs.org/)
 
 Sistema web profesional para gestionar solicitudes de materiales, construido con **Flask** (backend) + **React + Vite** (frontend).
 
-**Version:** 2.0 | **Estado:** Produccion | **Ultima actualizacion:** 15 Enero 2026
+**Version:** 2.1 | **Estado:** Produccion | **Ultima actualizacion:** 19 Enero 2026
 
 ---
 
@@ -15,10 +14,11 @@ Sistema web profesional para gestionar solicitudes de materiales, construido con
 
 | Area | Valor |
 |------|-------|
-| **Backend** | 131 archivos Python, ~55,000 lineas |
-| **Frontend** | 68 paginas, 87 componentes |
-| **Endpoints API** | 200+ endpoints en 24 modulos |
-| **Tests** | 1,045+ tests (153 archivos) |
+| **Backend** | 165 archivos Python, ~65,000 lineas |
+| **Frontend** | 75 paginas, 80 componentes, 12 hooks |
+| **Endpoints API** | 200+ endpoints en 28 modulos |
+| **Tests** | 1,210+ tests (54 archivos) |
+| **Base de Datos** | SQLite (dev) + PostgreSQL (prod) |
 
 ---
 
@@ -35,8 +35,8 @@ SPM es un sistema integral de gestion de solicitudes de materiales disenado para
 - Dashboard de KPIs y metricas SLA
 - Motor MRP con alertas de reposicion
 - Pronosticos de demanda con ML (ARIMA, Prophet, XGBoost)
+- Asistente IA con Vertex AI
 - WebSockets para actualizaciones en tiempo real
-- Sistema de gamificacion (Trivias)
 - Interfaz moderna con soporte i18n (ES/EN)
 - API REST documentada con Swagger
 
@@ -48,7 +48,7 @@ SPM es un sistema integral de gestion de solicitudes de materiales disenado para
 |-----------|---------|----------|
 | Python | 3.11+ | Backend Flask |
 | Node.js | 18+ | Frontend React |
-| SQLite | Incluido | Bases de datos |
+| SQLite | Incluido | Base de datos desarrollo |
 | Git | 2.0+ | Control de versiones |
 
 ---
@@ -92,29 +92,33 @@ cd frontend && npm run dev
 
 ```
 SPMv2.0/
-├── backend/                    # API Flask (131 archivos)
-│   ├── routes/                 # Endpoints REST (24 modulos, 200+ endpoints)
+├── backend/                    # API Flask (165 archivos, ~65K lineas)
+│   ├── routes/                 # Endpoints REST (28 modulos)
 │   ├── services/               # Logica de negocio (11 servicios)
 │   ├── core/                   # Config, DB, Auth, Cache, WebSocket
-│   ├── agent/                  # Modulo IA/ML (30 archivos)
-│   │   └── pipelines/forecast/ # Modelos de pronostico
+│   ├── agent/                  # Modulo IA/ML (35+ archivos)
+│   │   ├── pipelines/forecast/ # Modelos de pronostico
+│   │   └── rag/                # Retrieval Augmented Generation
 │   └── migrations/             # Migraciones de BD
 │
 ├── frontend/                   # React + Vite + Tailwind
-│   ├── src/pages/              # 68 paginas
-│   ├── src/components/         # 87 componentes
+│   ├── src/pages/              # 75 paginas
+│   ├── src/components/         # 80 componentes
 │   │   ├── ui/                 # Sistema de diseno
 │   │   ├── forecast/           # Graficos y visualizaciones
 │   │   └── Planner/            # Wizard de planificacion
-│   ├── src/hooks/              # 8 custom hooks
+│   ├── src/hooks/              # 12 custom hooks
 │   ├── src/context/            # Providers (Auth, i18n)
 │   ├── src/services/           # 11 clientes API
 │   └── src/store/              # 3 stores Zustand
 │
 ├── data/                       # Bases de datos SQLite
-├── infra/                      # Docker, nginx, migraciones SQL
-├── scripts/                    # Scripts de utilidad y deployment
-├── tests/                      # Tests (153 archivos, 1,045+ tests)
+├── infra/                      # Docker, nginx, Cloud Run
+├── scripts/                    # Scripts de utilidad
+├── tests/                      # Tests (54 archivos, 1,210+ tests)
+│   ├── unit/                   # Tests unitarios
+│   ├── integration/            # Tests de integracion
+│   └── e2e/                    # Tests end-to-end
 ├── docs/                       # Documentacion tecnica
 │
 ├── wsgi.py                     # Entry point del servidor
@@ -135,11 +139,11 @@ cd frontend && npm run dev        # Desarrollo (puerto 5173)
 cd frontend && npm run build      # Build produccion
 
 # Tests
-python -m pytest tests/           # Tests backend
+python -m pytest tests/           # Tests backend (1,210+ tests)
 cd frontend && npm test           # Tests frontend
 
-# Migracion de datos SAP
-python scripts/migrate_excel_to_db.py
+# Windows - Inicio rapido
+scripts/INICIAR_SPM.bat           # Inicia backend + frontend
 ```
 
 ---
@@ -151,6 +155,7 @@ python scripts/migrate_excel_to_db.py
 | `data/spm.db` | Transaccional (usuarios, solicitudes, auth) | ~500 |
 | `data/equivalentes.db` | Equivalencias de materiales SAP | 34,865 |
 | `data/sap_data.db` | Stock, consumo historico, pedidos | 178,338 |
+| PostgreSQL (prod) | Base de datos de produccion | - |
 
 ---
 
@@ -160,8 +165,10 @@ python scripts/migrate_excel_to_db.py
 - JWT Tokens (access 1h + refresh 7d)
 - Proteccion CSRF (doble cookie)
 - Headers de seguridad OWASP
+- Rate limiting en endpoints sensibles
 - Validacion con Pydantic
 - Encriptacion bcrypt
+- httpOnly cookies en produccion
 
 **Roles del sistema:**
 - `admin`: Acceso total
@@ -174,25 +181,28 @@ python scripts/migrate_excel_to_db.py
 
 ## Documentacion
 
-- `CLAUDE.md` - Guia para Claude Code (inventario completo)
-- `docs/ARQUITECTURA_SPM_2_0.md` - Arquitectura completa
+- `CLAUDE.md` - Guia completa para desarrollo
+- `docs/ARQUITECTURA_SPM_2_0.md` - Arquitectura del sistema
 - `docs/DEPLOYMENT.md` - Guia de despliegue
 - `docs/GUIA_RAPIDA_USAR_SERVICIOS.md` - Uso de servicios
-- `docs/implementation_progress.md` - Progreso de implementacion
-- `/api/docs` - Swagger UI (cuando el servidor esta corriendo)
+- `docs/AUDIT.md` - Auditoria de seguridad
+- `/api/docs` - Swagger UI (servidor corriendo)
 
 ---
 
-## Ejecutar Tests
+## Tests
 
 ```bash
-# Tests unitarios
+# Tests unitarios (36 archivos)
 python -m pytest tests/unit/ -v
 
-# Tests de integracion
+# Tests de integracion (15 archivos)
 python -m pytest tests/integration/ -v
 
-# Con cobertura
+# Tests e2e (2 archivos)
+python -m pytest tests/e2e/ -v
+
+# Todos los tests con cobertura
 python -m pytest tests/ --cov=backend --cov-report=html
 ```
 
@@ -209,7 +219,7 @@ python -m pytest tests/ --cov=backend --cov-report=html
 **Estandares:**
 - Python: PEP 8
 - JavaScript: ESLint
-- Commits en espanol
+- Commits en espanol con prefijos: `feat:`, `fix:`, `docs:`, `test:`
 
 ---
 
@@ -219,4 +229,4 @@ python -m pytest tests/ --cov=backend --cov-report=html
 
 ---
 
-*Ultima actualizacion: 9 de Enero, 2026*
+*Ultima actualizacion: 19 de Enero, 2026*
