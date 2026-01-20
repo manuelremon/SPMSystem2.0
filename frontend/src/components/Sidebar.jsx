@@ -50,7 +50,6 @@ import {
   ICON_DEFAULT_COLORS,
   ICON_COLORS,
 } from "./ui/Icons";
-import { ThemeToggle } from "./ui/ThemeToggle";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
 import { useRealtimeStore } from "../store/realtimeStore";
@@ -670,12 +669,8 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
 
       </nav>
 
-      {/* Bottom fixed section: Theme toggle + Connection indicator + Foro + Logout */}
+      {/* Bottom fixed section: Connection indicator + Foro + Logout */}
       <div className="border-t border-[var(--border-glass)] px-2 py-2 space-y-1">
-        {/* Theme toggle - siempre icono */}
-        <Tooltip content={t("tooltip_tema", "Cambiar tema")} position="right" delay={0} className={collapsed ? "w-full flex justify-center py-0.5" : ""}>
-          <ThemeToggle collapsed size="md" className={collapsed ? "" : "ml-2"} />
-        </Tooltip>
         {/* Connection indicator */}
         {collapsed ? (
           <Tooltip

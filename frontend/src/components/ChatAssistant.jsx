@@ -67,11 +67,8 @@ export default function ChatAssistant() {
     const voices = synthesisRef.current.getVoices()
     if (!voices.length) return null
 
-    // Log available Spanish voices for debugging (only once)
+    // Filter Spanish voices
     const spanishVoices = voices.filter(v => v.lang.startsWith('es'))
-    if (spanishVoices.length > 0) {
-      console.log('Available Spanish voices:', spanishVoices.map(v => `${v.name} (${v.lang})`))
-    }
 
     // Priority order for natural-sounding Latin American female voices
     // Focus: Argentine > Uruguayan > Colombian > Mexican > Venezuelan > Other LATAM
@@ -129,7 +126,6 @@ export default function ChatAssistant() {
     for (const pref of voicePreferences) {
       const voice = voices.find(pref.match)
       if (voice) {
-        console.log(`Selected voice: ${voice.name} (${voice.lang}) - matched: ${pref.name}`)
         return voice
       }
     }
