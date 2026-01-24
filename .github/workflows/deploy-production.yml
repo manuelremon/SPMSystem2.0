@@ -187,15 +187,13 @@ jobs:
 
             # Sync secrets to infra/.env for Docker Compose
             echo "=== Syncing secrets to infra/.env ==="
-            cat > infra/.env << EOF
-POSTGRES_USER=spm
-POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-POSTGRES_DB=spm_production
-SECRET_KEY=${SECRET_KEY}
-JWT_SECRET_KEY=${JWT_SECRET_KEY}
-GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}
-CORS_ORIGINS=https://planifica-materiales.com
-EOF
+            echo "POSTGRES_USER=spm" > infra/.env
+            echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >> infra/.env
+            echo "POSTGRES_DB=spm_production" >> infra/.env
+            echo "SECRET_KEY=${SECRET_KEY}" >> infra/.env
+            echo "JWT_SECRET_KEY=${JWT_SECRET_KEY}" >> infra/.env
+            echo "GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}" >> infra/.env
+            echo "CORS_ORIGINS=https://planifica-materiales.com" >> infra/.env
             echo "=== infra/.env updated with all secrets ==="
 
             echo "=== Pruning old Docker images ==="
