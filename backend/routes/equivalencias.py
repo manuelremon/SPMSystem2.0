@@ -234,12 +234,17 @@ def crear_equivalencia():
         )
 
     # Fase 1: Verificar que los materiales existen en cat_materiales (PostgreSQL) o catalogo_materiales.db (SQLite)
+    # Whitelist de tablas permitidas para catálogo de materiales
+    ALLOWED_CATALOG_TABLES = {"cat_materiales", "materiales"}
     try:
         with get_db_connection("catalogo_materiales") as conn:
             cursor = conn.cursor()
             # En PostgreSQL usa cat_materiales, en SQLite usa materiales
             from core.db import is_using_postgresql
             tabla = "cat_materiales" if is_using_postgresql() else "materiales"
+            # Validación explícita contra whitelist (defensa en profundidad)
+            if tabla not in ALLOWED_CATALOG_TABLES:
+                raise ValueError(f"Tabla no permitida: {tabla}")
             cursor.execute(f"SELECT codigo FROM {tabla} WHERE codigo = ?", (codigo_original,))
             original_exists = cursor.fetchone() is not None
 

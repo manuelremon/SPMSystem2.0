@@ -509,13 +509,24 @@ def explain_query(db_name: str, query: str) -> List[Dict]:
     """
     Explica el plan de ejecucion de una query.
 
+    ADVERTENCIA: Esta función ejecuta queries arbitrarias. Solo usar con
+    queries generadas internamente, NUNCA con entrada de usuario.
+
     Args:
         db_name: Nombre de la BD
-        query: Query SQL a analizar
+        query: Query SQL a analizar (solo SELECT permitido)
 
     Returns:
         Plan de ejecucion
+
+    Raises:
+        ValueError: Si la query no es SELECT
     """
+    # Validación básica: solo permitir SELECT para evitar modificaciones
+    query_upper = query.strip().upper()
+    if not query_upper.startswith("SELECT"):
+        raise ValueError("Solo se permiten queries SELECT para explain")
+
     with get_pooled_connection(db_name) as conn:
         cursor = conn.cursor()
         cursor.execute(f"EXPLAIN QUERY PLAN {query}")

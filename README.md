@@ -182,6 +182,7 @@ scripts/INICIAR_SPM.bat           # Inicia backend + frontend
 ## Documentacion
 
 - `CLAUDE.md` - Guia completa para desarrollo
+- `docs/claude-workflow.md` - Guia de trabajo con Claude
 - `docs/ARQUITECTURA_SPM_2_0.md` - Arquitectura del sistema
 - `docs/DEPLOYMENT.md` - Guia de despliegue
 - `docs/GUIA_RAPIDA_USAR_SERVICIOS.md` - Uso de servicios

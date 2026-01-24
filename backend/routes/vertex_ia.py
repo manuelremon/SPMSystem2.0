@@ -23,6 +23,7 @@ import hashlib
 import json
 import logging
 import re
+import threading
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -31,8 +32,11 @@ from flask import Blueprint, g, jsonify, request
 logger = logging.getLogger(__name__)
 
 # =============================================================================
-# Cache de Respuestas
+# Cache de Respuestas (Thread-Safe)
 # =============================================================================
+
+# Lock para operaciones de cache (thread-safety en Gunicorn multi-worker)
+_cache_lock = threading.Lock()
 
 # Simple TTL cache para respuestas repetidas
 _response_cache: Dict[str, Dict[str, Any]] = {}
@@ -47,68 +51,77 @@ def _get_cache_key(user_id: str, message: str, page: str) -> str:
 
 
 def _get_cached_response(cache_key: str) -> Optional[str]:
-    """Obtiene respuesta cacheada si existe y no expiro."""
-    if cache_key in _response_cache:
-        entry = _response_cache[cache_key]
-        if (datetime.now() - entry["created_at"]).total_seconds() < _cache_ttl_seconds:
-            logger.debug(f"Cache hit for {cache_key[:8]}...")
-            return entry["response"]
-        else:
-            del _response_cache[cache_key]
-    return None
+    """Obtiene respuesta cacheada si existe y no expiro (thread-safe)."""
+    with _cache_lock:
+        if cache_key in _response_cache:
+            entry = _response_cache[cache_key]
+            if (datetime.now() - entry["created_at"]).total_seconds() < _cache_ttl_seconds:
+                logger.debug(f"Cache hit for {cache_key[:8]}...")
+                return entry["response"]
+            else:
+                del _response_cache[cache_key]
+        return None
 
 
 def _set_cached_response(cache_key: str, response: str):
-    """Guarda respuesta en cache."""
-    # Limitar tamano del cache
-    if len(_response_cache) > 500:
-        # Eliminar entradas mas antiguas
-        oldest = sorted(_response_cache.items(), key=lambda x: x[1]["created_at"])[:100]
-        for key, _ in oldest:
-            del _response_cache[key]
+    """Guarda respuesta en cache (thread-safe)."""
+    with _cache_lock:
+        # Limitar tamano del cache
+        if len(_response_cache) > 500:
+            # Eliminar entradas mas antiguas
+            oldest = sorted(_response_cache.items(), key=lambda x: x[1]["created_at"])[:100]
+            for key, _ in oldest:
+                del _response_cache[key]
 
-    _response_cache[cache_key] = {
-        "response": response,
-        "created_at": datetime.now(),
-    }
+        _response_cache[cache_key] = {
+            "response": response,
+            "created_at": datetime.now(),
+        }
 
 
 # =============================================================================
-# Helper para verificar tablas de Vertex
+# Helper para verificar tablas de Vertex (Thread-Safe)
 # =============================================================================
 
+_tables_lock = threading.Lock()
 _vertex_tables_exist: Optional[bool] = None
 
 
 def _check_vertex_tables() -> bool:
     """
     Verifica si las tablas de Vertex existen en la BD.
-    Cachea el resultado para evitar queries repetidas.
+    Cachea el resultado para evitar queries repetidas (thread-safe).
     """
     global _vertex_tables_exist
 
+    # Fast path: si ya está cacheado, retornar sin lock
     if _vertex_tables_exist is not None:
         return _vertex_tables_exist
 
-    try:
-        from backend.core.db import get_db_connection
-
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                """
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables
-                    WHERE table_name = 'vertex_conversations'
-                )
-                """
-            )
-            _vertex_tables_exist = cursor.fetchone()[0]
+    with _tables_lock:
+        # Double-check dentro del lock
+        if _vertex_tables_exist is not None:
             return _vertex_tables_exist
-    except Exception as e:
-        logger.warning(f"Error verificando tablas Vertex: {e}")
-        _vertex_tables_exist = False
-        return False
+
+        try:
+            from backend.core.db import get_db_connection
+
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables
+                        WHERE table_name = 'vertex_conversations'
+                    )
+                    """
+                )
+                _vertex_tables_exist = cursor.fetchone()[0]
+                return _vertex_tables_exist
+        except Exception as e:
+            logger.warning(f"Error verificando tablas Vertex: {e}")
+            _vertex_tables_exist = False
+            return False
 
 try:
     from backend.core.roles import require_auth

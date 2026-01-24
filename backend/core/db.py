@@ -276,6 +276,8 @@ def get_db_connection(db_name: str = "spm") -> Generator:
             db_path = get_db_path(db_name)
             conn = sqlite3.connect(db_path)
             conn.row_factory = sqlite3.Row
+            # Activar foreign keys en SQLite (desactivadas por defecto)
+            conn.execute("PRAGMA foreign_keys = ON")
         yield conn
     finally:
         if conn:
@@ -315,6 +317,8 @@ def get_db_transaction(db_name: str = "spm") -> Generator:
             db_path = get_db_path(db_name)
             conn = sqlite3.connect(db_path)
             conn.row_factory = sqlite3.Row
+            # Activar foreign keys en SQLite (desactivadas por defecto)
+            conn.execute("PRAGMA foreign_keys = ON")
         yield conn
         conn.commit()
     except Exception:

@@ -10,9 +10,14 @@ Uso:
     # Verificar si modo temporal está activo
     if temp_data_service.is_active(user_id):
         stock = temp_data_service.get_stock(user_id)
+
+NOTA: Este servicio almacena datos en memoria. En producción con múltiples
+workers de Gunicorn, cada worker tiene su propia copia de _stores.
+Para escalabilidad real, considerar migrar a Redis.
 """
 
 import logging
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -70,7 +75,13 @@ class TempDataService:
 
     Los datos se almacenan en memoria por sesión de usuario.
     Al cerrar sesión o desactivar manualmente, los datos se eliminan.
+
+    Thread-Safety: Todas las operaciones de lectura/escritura a _stores
+    están protegidas por _stores_lock para evitar race conditions.
     """
+
+    # Lock para operaciones thread-safe en _stores
+    _stores_lock = threading.Lock()
 
     # Almacenamiento en memoria por user_id
     _stores: Dict[str, TempDataStore] = {}

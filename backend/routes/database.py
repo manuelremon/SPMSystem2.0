@@ -770,8 +770,8 @@ def _get_table_pk(db_name: str, table: str):
                 if row[5] == 1:  # pk flag
                     pk_columns.append(row[1])
             conn.close()
-    except Exception:
-        pass
+    except (sqlite3.Error, Exception) as e:
+        logger.warning(f"Error obteniendo primary keys para {db_name}.{table}: {e}")
 
     return pk_columns
 
@@ -811,8 +811,8 @@ def _get_table_columns_info(db_name: str, table: str):
                     "pk": row[5] == 1,
                 })
             conn.close()
-    except Exception:
-        pass
+    except (sqlite3.Error, Exception) as e:
+        logger.warning(f"Error obteniendo columnas para {db_name}.{table}: {e}")
 
     return columns
 
