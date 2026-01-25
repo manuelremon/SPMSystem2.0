@@ -180,6 +180,8 @@ export { default as Wifi } from './svg/wifi.svg?react';
 export { default as WifiOff } from './svg/wifi_slash.svg?react';
 export { default as Power } from './svg/power.svg?react';
 export { default as LogOut } from './svg/power.svg?react';
+export { default as Keyboard } from './svg/command.svg?react';
+export { default as Command } from './svg/command.svg?react';
 
 // ============================================================================
 // ORGANIZACION

@@ -4,6 +4,14 @@
 import os
 import sys
 
+# Cargar variables de entorno desde .env (desarrollo local)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # dotenv no instalado, las variables deben estar en el entorno
+    pass
+
 # Path setup para imports de backend
 # -----------------------------------------------------------------------------
 # Este "path hacking" es necesario porque el proyecto no es un paquete instalable.

@@ -157,15 +157,30 @@ describe('formatters', () => {
   })
 
   describe('formatAlmacen', () => {
-    it('debe formatear codigo a 4 digitos con ceros', () => {
+    it('debe formatear codigo numerico a 4 digitos con ceros', () => {
       expect(formatAlmacen(1)).toBe('0001')
       expect(formatAlmacen(100)).toBe('0100')
       expect(formatAlmacen(9999)).toBe('9999')
     })
 
-    it('debe manejar strings', () => {
+    it('debe manejar strings numericos', () => {
       expect(formatAlmacen('1')).toBe('0001')
       expect(formatAlmacen('0100')).toBe('0100')
+    })
+
+    it('debe mantener formato alfanumerico AA001', () => {
+      expect(formatAlmacen('AA001')).toBe('AA001')
+      expect(formatAlmacen('aa001')).toBe('AA001')  // Normaliza a mayusculas
+    })
+
+    it('debe mantener formato alfanumerico II003', () => {
+      expect(formatAlmacen('II003')).toBe('II003')
+      expect(formatAlmacen('ii003')).toBe('II003')
+    })
+
+    it('debe manejar otros formatos alfanumericos (2 letras + 3 digitos)', () => {
+      expect(formatAlmacen('AB123')).toBe('AB123')
+      expect(formatAlmacen('ZZ999')).toBe('ZZ999')
     })
 
     it('debe retornar - para valores invalidos', () => {
@@ -174,8 +189,14 @@ describe('formatters', () => {
       expect(formatAlmacen('')).toBe('-')
     })
 
-    it('debe eliminar caracteres no numericos', () => {
+    it('debe extraer digitos de strings mixtos que no son formato estandar', () => {
+      // 3 letras + digitos no coincide con patron AA001, extrae numeros
       expect(formatAlmacen('ALM001')).toBe('0001')
+      expect(formatAlmacen('ALMACEN1')).toBe('0001')
+    })
+
+    it('debe retornar original si no tiene digitos', () => {
+      expect(formatAlmacen('ABC')).toBe('ABC')
     })
   })
 

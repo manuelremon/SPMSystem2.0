@@ -78,9 +78,10 @@ function Toast({ toast, onClose, onClick }) {
           e.stopPropagation();
           onClose(toast.id);
         }}
-        className="flex-shrink-0 p-1 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+        className="flex-shrink-0 p-1 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+        aria-label="Cerrar notificacion"
       >
-        <X className="w-4 h-4" />
+        <X className="w-4 h-4" aria-hidden="true" />
       </button>
     </div>
   );
@@ -105,7 +106,12 @@ export default function ToastContainer() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 w-80 max-w-[calc(100vw-2rem)]">
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="false"
+      className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 w-80 max-w-[calc(100vw-2rem)]"
+    >
       {toasts.map((toast) => (
         <Toast
           key={toast.id}

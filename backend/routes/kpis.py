@@ -7,7 +7,12 @@ from collections import Counter, defaultdict
 
 from flask import Blueprint, jsonify
 
-from backend.core.db import get_db_connection
+from backend.core.db import (
+    get_db_connection,
+    sql_date_diff_days,
+    sql_date_relative,
+    sql_format_date,
+)
 from backend.core.helpers import row_to_dict as _row_to_dict
 
 
@@ -64,12 +69,12 @@ def get_kpis():
 
             # Tendencia últimos 7 días
             cursor.execute(
-                """
+                f"""
                 SELECT
                     DATE(created_at) as fecha,
                     COUNT(*) as cantidad
                 FROM solicitudes
-                WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
+                WHERE created_at >= {sql_date_relative(days=-7)}
                 GROUP BY DATE(created_at)
                 ORDER BY fecha
             """
@@ -84,18 +89,18 @@ def get_kpis():
 
             # Calcular tendencia porcentual (vs semana anterior)
             cursor.execute(
-                """
+                f"""
                 SELECT COUNT(*) FROM solicitudes
-                WHERE created_at >= CURRENT_DATE - INTERVAL '14 days'
-                AND created_at < CURRENT_DATE - INTERVAL '7 days'
+                WHERE created_at >= {sql_date_relative(days=-14)}
+                AND created_at < {sql_date_relative(days=-7)}
             """
             )
             row = cursor.fetchone()
             prev_week = (list(row.values())[0] if isinstance(row, dict) else row[0]) or 1
             cursor.execute(
-                """
+                f"""
                 SELECT COUNT(*) FROM solicitudes
-                WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
+                WHERE created_at >= {sql_date_relative(days=-7)}
             """
             )
             row = cursor.fetchone()
@@ -113,28 +118,28 @@ def get_kpis():
                 SELECT
                     centro,
                     sector,
-                    monto_total,
-                    monto_disponible
+                    monto_usd,
+                    saldo_usd
                 FROM presupuestos
-                WHERE monto_total > 0
-                ORDER BY monto_total DESC
+                WHERE monto_usd > 0
+                ORDER BY monto_usd DESC
             """
             )
             presupuestos = _rows_to_dicts(cursor.fetchall(), cursor)
 
-            total_presupuesto = sum(row["monto_total"] or 0 for row in presupuestos)
+            total_presupuesto = sum(row["monto_usd"] or 0 for row in presupuestos)
             total_utilizado = sum(
-                (row["monto_total"] or 0) - (row["monto_disponible"] or 0) for row in presupuestos
+                (row["monto_usd"] or 0) - (row["saldo_usd"] or 0) for row in presupuestos
             )
-            total_disponible = sum(row["monto_disponible"] or 0 for row in presupuestos)
+            total_disponible = sum(row["saldo_usd"] or 0 for row in presupuestos)
 
             presupuesto_por_centro = []
             for row in presupuestos[:5]:  # Top 5
                 presupuesto_por_centro.append(
                     {
                         "nombre": f"Centro {row['centro']} - {row['sector']}",
-                        "valor": (row["monto_total"] or 0)
-                        - (row["monto_disponible"] or 0),  # Utilizado
+                        "valor": (row["monto_usd"] or 0)
+                        - (row["saldo_usd"] or 0),  # Utilizado
                     }
                 )
 
@@ -208,9 +213,9 @@ def get_kpis():
 
             # Calcular tiempo promedio entre creación y aprobación
             cursor.execute(
-                """
+                f"""
                 SELECT
-                    AVG(EXTRACT(EPOCH FROM (updated_at::timestamp - created_at::timestamp)) / 86400) as promedio_dias
+                    AVG({sql_date_diff_days('updated_at', 'created_at')}) as promedio_dias
                 FROM solicitudes
                 WHERE status IN ('approved', 'processing', 'dispatched', 'closed')
             """
@@ -241,14 +246,14 @@ def get_kpis():
             ]
 
             cursor.execute(
-                """
+                f"""
                 SELECT
-                    TO_CHAR(created_at::timestamp, 'YYYY-MM') as mes,
+                    {sql_format_date('created_at', '%Y-%m')} as mes,
                     status,
                     COUNT(*) as cantidad
                 FROM solicitudes
-                WHERE created_at >= CURRENT_DATE - INTERVAL '6 months'
-                GROUP BY TO_CHAR(created_at::timestamp, 'YYYY-MM'), status
+                WHERE created_at >= {sql_date_relative(months=-6)}
+                GROUP BY {sql_format_date('created_at', '%Y-%m')}, status
                 ORDER BY mes
             """
             )

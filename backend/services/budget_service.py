@@ -28,9 +28,38 @@ from backend.core.budget_schemas import (
 )
 from backend.core.budget_transaction import AtomicBudgetTransaction
 from backend.core.config import settings
-from backend.core.db import get_db_connection
+from backend.core.db import get_db_connection, is_using_postgresql
 from backend.core.roles import is_admin, normalize_roles
 from backend.core.helpers import resolve_sector_name as _resolve_sector_name_helper, row_to_dict
+
+
+class _ConnectionWrapper:
+    """Wrapper para conexión que permite usar como context manager o con close()"""
+    def __init__(self, ctx):
+        self._ctx = ctx
+        self._conn = None
+
+    def __enter__(self):
+        self._conn = self._ctx.__enter__()
+        return self
+
+    def __exit__(self, *args):
+        return self._ctx.__exit__(*args)
+
+    def cursor(self):
+        return self._conn.cursor()
+
+    def commit(self):
+        return self._conn.commit()
+
+    def rollback(self):
+        return self._conn.rollback()
+
+    def close(self):
+        try:
+            self._ctx.__exit__(None, None, None)
+        except Exception:
+            pass
 
 
 def _connect():
@@ -38,23 +67,11 @@ def _connect():
     SPRINT 2.1: Conexion a BD usando get_db_connection.
     Soporta tanto PostgreSQL como SQLite.
 
-    NOTA: Esta función retorna una conexión que debe cerrarse con .close()
-    para mantener compatibilidad con el código existente.
+    Retorna un wrapper que puede usarse como context manager o con .close()
     """
-    # get_db_connection es un context manager, entramos y obtenemos la conexión
-    ctx = get_db_connection()
-    conn = ctx.__enter__()
-    # Guardamos referencia al context manager para poder hacer cleanup
-    conn._ctx_manager = ctx
-    # Override close para hacer cleanup apropiado
-    original_close = conn.close if hasattr(conn, 'close') else lambda: None
-    def new_close():
-        try:
-            ctx.__exit__(None, None, None)
-        except Exception:
-            pass
-    conn.close = new_close
-    return conn
+    wrapper = _ConnectionWrapper(get_db_connection())
+    wrapper.__enter__()
+    return wrapper
 
 
 def _row_to_dict(row, cursor):
@@ -72,8 +89,9 @@ def _row_to_dict(row, cursor):
 
 
 def _execute(cursor, sql, params=None):
-    """Ejecuta query convirtiendo placeholders ? a %s para PostgreSQL"""
-    sql = sql.replace("?", "%s")
+    """Ejecuta query convirtiendo placeholders ? a %s solo para PostgreSQL"""
+    if is_using_postgresql():
+        sql = sql.replace("?", "%s")
     return cursor.execute(sql, params)
 
 

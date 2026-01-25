@@ -4,6 +4,7 @@ import { useVertexStore, selectFormattedMessages } from '../store/vertexStore'
 import { useAuthStore } from '../store/authStore'
 import vertexService, { sendVertexMessage, loadVertexAlerts, initializeVertex } from '../services/vertex'
 import { Button } from './ui/Button'
+import api from '../services/api'
 
 /**
  * Componente ChatAssistant - Vertex IA
@@ -29,6 +30,7 @@ export default function ChatAssistant() {
   const [selectedVoice, setSelectedVoice] = useState(null)
   const recognitionRef = useRef(null)
   const synthesisRef = useRef(null)
+  const audioRef = useRef(null)  // Para audio de Google Cloud TTS
 
   // Vertex store
   const store = useVertexStore()
@@ -206,73 +208,120 @@ export default function ChatAssistant() {
       if (synthesisRef.current) {
         synthesisRef.current.cancel()
       }
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
+      }
     }
   }, [])
 
   /**
-   * Speak text using Web Speech API with natural-sounding feminine voice
+   * Fallback: hablar usando Web Speech API del navegador
+   * Se usa cuando Google Cloud TTS no esta disponible
    */
-  const speak = useCallback((text) => {
-    if (!synthesisRef.current || !voiceEnabled || !text) return
+  const fallbackSpeak = useCallback((text) => {
+    if (!synthesisRef.current || !text) return
 
-    // Cancel any ongoing speech
-    synthesisRef.current.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+
+    if (selectedVoice) {
+      utterance.voice = selectedVoice
+      utterance.lang = selectedVoice.lang
+    } else {
+      utterance.lang = 'es-AR'
+    }
+
+    // Parametros optimizados para Web Speech API
+    const isNeuralVoice = selectedVoice?.name?.includes('Online') ||
+                          selectedVoice?.name?.includes('Google') ||
+                          selectedVoice?.name?.includes('Neural')
+
+    if (isNeuralVoice) {
+      utterance.rate = 1.12
+      utterance.pitch = 1.08
+    } else {
+      utterance.rate = 1.1
+      utterance.pitch = 1.08
+    }
+
+    utterance.volume = 1.0
+    utterance.onstart = () => setIsSpeaking(true)
+    utterance.onend = () => setIsSpeaking(false)
+    utterance.onerror = () => setIsSpeaking(false)
+
+    synthesisRef.current.speak(utterance)
+  }, [selectedVoice])
+
+  /**
+   * Speak text using Google Cloud TTS Neural voices
+   * Falls back to Web Speech API if TTS service is unavailable
+   */
+  const speak = useCallback(async (text) => {
+    if (!voiceEnabled || !text) return
+
+    // Cancel any ongoing audio/speech
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current = null
+    }
+    if (synthesisRef.current) {
+      synthesisRef.current.cancel()
+    }
 
     // Clean text for better TTS (remove markdown, extra spaces)
     const cleanText = text
       .replace(/\*\*/g, '')  // Remove bold markdown
       .replace(/\*/g, '')    // Remove italic markdown
       .replace(/`/g, '')     // Remove code backticks
+      .replace(/```[\s\S]*?```/g, '') // Remove code blocks
       .replace(/\n+/g, '. ') // Replace newlines with pauses
       .replace(/\s+/g, ' ')  // Normalize spaces
       .trim()
 
-    const utterance = new SpeechSynthesisUtterance(cleanText)
+    if (!cleanText) return
 
-    // Use selected voice or find one
-    if (selectedVoice) {
-      utterance.voice = selectedVoice
-      utterance.lang = selectedVoice.lang
-    } else {
-      // Fallback to Argentine Spanish
-      utterance.lang = 'es-AR'
-    }
+    setIsSpeaking(true)
 
-    // Parametros de voz optimizados para acento argentino natural y dinamico
-    // Rate mas alto para sonar energica, no aburrida
-    const isNeuralVoice = selectedVoice?.name?.includes('Online') ||
-                          selectedVoice?.name?.includes('Google') ||
-                          selectedVoice?.name?.includes('Neural')
+    try {
+      // Llamar al endpoint de Google Cloud TTS
+      const response = await api.post('/vertex/tts', { text: cleanText }, {
+        responseType: 'blob',
+        timeout: 10000, // 10 segundos timeout
+      })
 
-    const isArgentineVoice = selectedVoice?.lang === 'es-AR' ||
-                             selectedVoice?.name?.includes('Elena') ||
-                             selectedVoice?.name?.includes('Argentina')
+      // Crear audio desde blob
+      const audioBlob = new Blob([response.data], { type: 'audio/mpeg' })
+      const audioUrl = URL.createObjectURL(audioBlob)
 
-    if (isNeuralVoice) {
-      // Voces neurales: rapidas y naturales
-      utterance.rate = 1.12   // Mas rapido, estilo portenio
-      utterance.pitch = 1.08  // Tono ligeramente mas alto, femenino
-    } else if (isArgentineVoice) {
-      // Voz argentina estandar
-      utterance.rate = 1.15   // Rapido como hablan los argentinos
-      utterance.pitch = 1.1   // Tono vivaz
-    } else {
-      // Otras voces latinas
-      utterance.rate = 1.1    // Mas rapido que antes
-      utterance.pitch = 1.08  // Natural femenino
-    }
+      const audio = new Audio(audioUrl)
+      audioRef.current = audio
 
-    utterance.volume = 1.0
+      audio.onended = () => {
+        setIsSpeaking(false)
+        URL.revokeObjectURL(audioUrl)
+        audioRef.current = null
+      }
 
-    utterance.onstart = () => setIsSpeaking(true)
-    utterance.onend = () => setIsSpeaking(false)
-    utterance.onerror = (e) => {
-      console.warn('Speech synthesis error:', e.error)
+      audio.onerror = (e) => {
+        console.warn('Audio playback error:', e)
+        setIsSpeaking(false)
+        URL.revokeObjectURL(audioUrl)
+        audioRef.current = null
+      }
+
+      await audio.play()
+
+    } catch (err) {
+      // Si falla Google Cloud TTS, usar Web Speech API como fallback
+      console.warn('Google TTS error, using fallback:', err.message || err)
       setIsSpeaking(false)
-    }
 
-    synthesisRef.current.speak(utterance)
-  }, [voiceEnabled, selectedVoice])
+      // Solo usar fallback si hay soporte de sintesis
+      if (synthesisRef.current) {
+        fallbackSpeak(cleanText)
+      }
+    }
+  }, [voiceEnabled, fallbackSpeak])
 
   /**
    * Toggle voice input (microphone)
@@ -307,8 +356,16 @@ export default function ChatAssistant() {
    * Toggle voice output (speaker)
    */
   const toggleVoice = () => {
-    if (isSpeaking && synthesisRef.current) {
-      synthesisRef.current.cancel()
+    if (isSpeaking) {
+      // Parar Google Cloud TTS audio
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
+      }
+      // Parar Web Speech API
+      if (synthesisRef.current) {
+        synthesisRef.current.cancel()
+      }
       setIsSpeaking(false)
     }
     setVoiceEnabled(!voiceEnabled)

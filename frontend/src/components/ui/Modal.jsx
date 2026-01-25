@@ -272,12 +272,6 @@ Modal.propTypes = {
   className: PropTypes.string,
 };
 
-Modal.defaultProps = {
-  size: "md",
-  closeOnOverlayClick: true,
-  showCloseButton: true,
-};
-
 ConfirmModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
@@ -289,13 +283,6 @@ ConfirmModal.propTypes = {
   variant: PropTypes.string,
 };
 
-ConfirmModal.defaultProps = {
-  title: "Confirmar",
-  confirmText: "Confirmar",
-  cancelText: "Cancelar",
-  variant: "primary",
-};
-
 AlertModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
@@ -303,12 +290,6 @@ AlertModal.propTypes = {
   message: PropTypes.node,
   buttonText: PropTypes.string,
   variant: PropTypes.string,
-};
-
-AlertModal.defaultProps = {
-  title: "Aviso",
-  buttonText: "Entendido",
-  variant: "primary",
 };
 
 export default Modal;

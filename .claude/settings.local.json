@@ -63,7 +63,17 @@
       "Bash(start:*)",
       "WebFetch(domain:planifica-materiales.com)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:api.github.com)"
+      "WebFetch(domain:api.github.com)",
+      "Bash(set PYTHONPATH=%CD%)",
+      "Bash($env:PYTHONPATH=\"C:\\\\Users\\\\MANUE\\\\Documents\\\\GitHub\\\\SPMSystem2.0\")",
+      "Bash(PYTHONPATH=\"C:/Users/MANUE/Documents/GitHub/SPMSystem2.0\" python -m pytest:*)",
+      "Bash(export PYTHONPATH=\"/c/Users/MANUE/Documents/GitHub/SPMSystem2.0\")",
+      "Bash(gh secret list:*)",
+      "Bash(more:*)",
+      "Bash(cd:*)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\MANUE\\\\Documents\\\\GitHub\\\\SPMSystem2.0\\\\backend\" -Recurse -Filter \"*.pyc\")",
+      "Bash(pkill:*)",
+      "Bash(ping:*)"
     ],
     "deny": [],
     "ask": []

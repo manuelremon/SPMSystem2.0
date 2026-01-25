@@ -18,77 +18,87 @@ logger = logging.getLogger(__name__)
 class ContextualSuggester:
     """Genera sugerencias contextuales para el usuario."""
 
-    # Sugerencias por pagina/contexto
+    # Sugerencias por pagina/contexto - Accionables y especificas
     PAGE_SUGGESTIONS = {
         "dashboard": [
-            "Queres ver el resumen de tus solicitudes pendientes?",
-            "Te muestro las alertas de stock de tus materiales frecuentes?",
-            "Reviso como esta el presupuesto de tu centro?",
+            "Mostrame mis solicitudes pendientes",
+            "Cual es el estado de mi ultima solicitud?",
+            "Hay alertas de stock que deba revisar?",
         ],
         "crear_solicitud": [
-            "Necesitas ayuda para encontrar un material?",
-            "Te sugiero materiales basados en lo que pediste antes?",
-            "Queres que verifique el stock antes de agregar?",
+            "Buscar material por codigo SAP",
+            "Que materiales similares hay disponibles?",
+            "Verificar stock antes de agregar",
         ],
         "create": [  # Alias
-            "Necesitas ayuda para encontrar un material?",
-            "Te sugiero materiales basados en lo que pediste antes?",
-            "Queres que verifique el stock antes de agregar?",
+            "Buscar material por codigo SAP",
+            "Que materiales similares hay disponibles?",
+            "Verificar stock antes de agregar",
         ],
         "mis_solicitudes": [
-            "Queres que te resuma el estado de tus solicitudes?",
-            "Hay alguna solicitud que te preocupe por el SLA?",
-            "Te ayudo a hacer seguimiento de alguna?",
+            "Cual es el estado de mi ultima solicitud?",
+            "Hay solicitudes proximas a vencer?",
+            "Mostrame el historial de una solicitud",
         ],
         "solicitudes": [  # Alias
-            "Queres que te resuma el estado de tus solicitudes?",
-            "Hay alguna solicitud que te preocupe por el SLA?",
-            "Te ayudo a hacer seguimiento de alguna?",
+            "Cual es el estado de mi ultima solicitud?",
+            "Hay solicitudes proximas a vencer?",
+            "Mostrame el historial de una solicitud",
         ],
         "materiales": [
-            "Buscas algo en particular? Describime lo que necesitas",
-            "Te muestro materiales equivalentes?",
-            "Queres ver el historial de consumo de algun material?",
+            "Buscar material por codigo o nombre",
+            "Ver materiales equivalentes",
+            "Consultar historial de consumo",
         ],
         "materials": [  # Alias ingles
-            "Buscas algo en particular? Describime lo que necesitas",
-            "Te muestro materiales equivalentes?",
-            "Queres ver el historial de consumo de algun material?",
+            "Buscar material por codigo o nombre",
+            "Ver materiales equivalentes",
+            "Consultar historial de consumo",
         ],
         "planner": [
-            "Necesitas ayuda para priorizar solicitudes?",
-            "Te analizo el impacto en presupuesto?",
-            "Queres que te sugiera fuentes de abastecimiento?",
+            "Que solicitudes debo priorizar?",
+            "Analizar impacto en presupuesto",
+            "Sugerir fuentes de abastecimiento",
         ],
         "planificador": [  # Alias
-            "Necesitas ayuda para priorizar solicitudes?",
-            "Te analizo el impacto en presupuesto?",
-            "Queres que te sugiera fuentes de abastecimiento?",
+            "Que solicitudes debo priorizar?",
+            "Analizar impacto en presupuesto",
+            "Sugerir fuentes de abastecimiento",
         ],
         "presupuesto": [
-            "Queres ver el estado actual del presupuesto?",
-            "Te muestro las solicitudes que mas impactan?",
-            "Puedo ayudarte a crear un BUR si necesitas?",
+            "Cuanto presupuesto me queda?",
+            "Ver movimientos del mes",
+            "Proyectar consumo del trimestre",
         ],
         "budget": [  # Alias
-            "Queres ver el estado actual del presupuesto?",
-            "Te muestro las solicitudes que mas impactan?",
-            "Puedo ayudarte a crear un BUR si necesitas?",
+            "Cuanto presupuesto me queda?",
+            "Ver movimientos del mes",
+            "Proyectar consumo del trimestre",
         ],
         "mrp": [
-            "Te muestro las alertas de reabastecimiento?",
-            "Queres analizar la proyeccion de demanda?",
-            "Puedo sugerirte cantidades optimas de pedido",
+            "Que materiales tienen stock critico?",
+            "Mostrar alertas de reposicion",
+            "Calcular punto de reorden",
+        ],
+        "alertas": [  # Alias
+            "Que materiales tienen stock critico?",
+            "Mostrar alertas de reposicion",
+            "Calcular punto de reorden",
         ],
         "forecast": [
-            "Queres ver la proyeccion de demanda de algun material?",
-            "Te muestro los materiales con mayor variabilidad?",
-            "Puedo analizar tendencias estacionales",
+            "Proyectar demanda del proximo mes",
+            "Comparar modelos de pronostico",
+            "Ver tendencia de consumo historico",
+        ],
+        "aprobaciones": [
+            "Cuantas solicitudes tengo pendientes?",
+            "Mostrar solicitudes por monto",
+            "Ver historial de aprobaciones",
         ],
         "default": [
-            "En que te puedo ayudar?",
-            "Tenes alguna consulta sobre materiales o solicitudes?",
-            "Puedo buscar informacion del sistema si necesitas",
+            "Buscar un material por codigo o descripcion",
+            "Ver mis solicitudes pendientes",
+            "Consultar stock de un material",
         ],
     }
 
@@ -178,23 +188,8 @@ class ContextualSuggester:
         else:
             greeting = f"Buenas noches{name_part}!"
 
-        # Agregar contexto segun pagina
-        page = context.get("page", "default")
-
-        page_intros = {
-            "crear_solicitud": " Aca estoy para ayudarte a armar tu solicitud.",
-            "create": " Aca estoy para ayudarte a armar tu solicitud.",
-            "mis_solicitudes": " Revisamos tus solicitudes?",
-            "solicitudes": " Revisamos tus solicitudes?",
-            "materiales": " Contame que material estas buscando.",
-            "materials": " Contame que material estas buscando.",
-            "planner": " Te ayudo a planificar?",
-            "planificador": " Te ayudo a planificar?",
-            "dashboard": " En que te puedo ayudar hoy?",
-        }
-
-        intro = page_intros.get(page, " En que te puedo ayudar?")
-        return greeting + intro
+        # Saludo conciso - las sugerencias comunican las acciones disponibles
+        return greeting + " Soy Vertex, tu asistente."
 
     @staticmethod
     def get_page_suggestions(page: str) -> List[str]:

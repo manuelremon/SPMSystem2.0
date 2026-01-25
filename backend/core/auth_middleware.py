@@ -40,7 +40,7 @@ def _get_user_by_id(user_id: str) -> dict | None:
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT id_spm, nombre, apellido, rol, mail, centros, sector, posicion FROM usuarios WHERE id_spm = %s",
+                "SELECT id_spm, nombre, apellido, rol, mail, centros, sector, posicion FROM usuarios WHERE id_spm = ?",
                 (str(user_id),),
             )
             row = cur.fetchone()
@@ -62,6 +62,9 @@ def _get_user_by_id(user_id: str) -> dict | None:
                 "sector": row[6],
                 "posicion": row[7],
             }
+
+        # Add user_id alias for backward compatibility with routes using g.user.get("user_id")
+        user["user_id"] = user.get("id_spm")
 
         # Cache the result
         user_cache.set(cache_key, user, ttl=120)  # 2 min TTL

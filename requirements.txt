@@ -64,3 +64,6 @@ pmdarima>=2.0.0
 
 # Google AI / Vertex IA
 google-genai>=1.0.0
+
+# Edge TTS - Voces neurales GRATIS de Microsoft (incluye voz argentina)
+edge-tts>=7.0.0

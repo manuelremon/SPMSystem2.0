@@ -82,19 +82,9 @@ Card.propTypes = {
   interactive: PropTypes.bool,
 };
 
-Card.defaultProps = {
-  className: "",
-  hover: false,
-  glow: false,
-};
-
 CardHeader.propTypes = {
   className: PropTypes.string,
   children: PropTypes.node,
-};
-
-CardHeader.defaultProps = {
-  className: "",
 };
 
 CardTitle.propTypes = {
@@ -102,24 +92,12 @@ CardTitle.propTypes = {
   children: PropTypes.node,
 };
 
-CardTitle.defaultProps = {
-  className: "",
-};
-
 CardDescription.propTypes = {
   className: PropTypes.string,
   children: PropTypes.node,
 };
 
-CardDescription.defaultProps = {
-  className: "",
-};
-
 CardContent.propTypes = {
   className: PropTypes.string,
   children: PropTypes.node,
-};
-
-CardContent.defaultProps = {
-  className: "",
 };

@@ -12,7 +12,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from flask import Blueprint, g, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, validate_almacen_access, error_response
 from backend.core.roles import require_auth, require_role
 from backend.services.temp_data_service import temp_data_service
 
@@ -473,8 +473,16 @@ def get_alertas():
     limit = min(int(request.args.get("limit", 50)), 200)
     offset = int(request.args.get("offset", 0))
 
-    # Verificar si modo temporal está activo
+    # Validar acceso al almacén solicitado
     user_id = _get_user_id()
+    if almacen and not validate_almacen_access(user_id, almacen):
+        return error_response(
+            code="almacen_no_autorizado",
+            message=f"No tienes acceso al almacén {almacen}",
+            status_code=403
+        )
+
+    # Verificar si modo temporal está activo
     if user_id and temp_data_service.is_active(user_id):
         return _get_alertas_from_temp_data(user_id, centro, almacen, sector, estado_filtro, limit, offset)
 
@@ -528,19 +536,30 @@ def get_alertas():
             materiales = [dict(row) for row in cursor.fetchall()]
 
             # Obtener consumo historico promedio por material
+            # FIX 2.2: Filtrar por almacén para obtener consumo real del almacén específico
             consumos = {}
             if materiales:
                 # Usar sintaxis compatible con SQLite (IN con placeholders)
                 codigos = [m["codigo"] for m in materiales]
                 placeholders = ",".join(["?" for _ in codigos])
+                consumo_params = list(codigos)
+
+                # Base query para consumo histórico
                 consumo_query = f"""
                     SELECT material, AVG(cantidad) as consumo_mensual
                     FROM consumo_historico
                     WHERE material IN ({placeholders})
-                    GROUP BY material
                 """
+
+                # FIX 2.2: Agregar filtro por almacén si se especificó
+                if almacen:
+                    consumo_query += " AND almacen = ?"
+                    consumo_params.append(almacen)
+
+                consumo_query += " GROUP BY material"
+
                 try:
-                    cursor.execute(consumo_query, codigos)
+                    cursor.execute(consumo_query, consumo_params)
                     for row in cursor.fetchall():
                         # Compatibilidad PostgreSQL (dict) y SQLite (tuple/Row)
                         if isinstance(row, dict):

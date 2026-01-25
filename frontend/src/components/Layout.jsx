@@ -15,6 +15,7 @@ import { useRealtime } from "../hooks/useRealtime";
 import ChatAssistant from "./ChatAssistant";
 import Sidebar from "./Sidebar";
 import ToastContainer from "./ui/ToastContainer";
+import SkipLink from "./ui/SkipLink";
 import { useI18n } from "../context/i18n";
 
 export default function Layout({ children }) {
@@ -47,6 +48,9 @@ export default function Layout({ children }) {
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-200">
+      {/* Skip Navigation Link - Accesibilidad WCAG 2.1 AA */}
+      <SkipLink targetId="main-content" />
+
       {/* Sidebar - Pass real-time state */}
       <Sidebar
         collapsed={sidebarCollapsed}
@@ -62,7 +66,7 @@ export default function Layout({ children }) {
         )}
       >
         {/* Page content - No header, full height */}
-        <main className="p-4 lg:p-6">
+        <main id="main-content" className="p-4 lg:p-6" tabIndex={-1}>
           {children}
         </main>
       </div>

@@ -58,7 +58,7 @@ svg {
   --fg: hsl(222 47% 11%);           /* #0F172A slate-900 */
   --fg-strong: hsl(222 47% 5%);     /* Casi negro */
   --fg-muted: hsl(215 16% 47%);     /* #64748B slate-500 */
-  --fg-subtle: hsl(215 20% 65%);
+  --fg-subtle: hsl(215 20% 50%); /* Ajustado para WCAG 2.1 AA ratio 4.5:1 */
 
   --muted: hsl(210 40% 91%);
   --muted-foreground: hsl(215 16% 47%);
@@ -1910,4 +1910,174 @@ button[class*="from-pink-500"]:hover,
 button[class*="bg-gradient-to-r"][class*="from-pink"]:hover {
   background: linear-gradient(to right, #DB2777, #BE185D) !important;
   box-shadow: 0 20px 25px -5px rgba(236, 72, 153, 0.3) !important;
+}
+
+/* ============================================
+   ACCESSIBILITY - WCAG 2.1 AA COMPLIANCE
+   Focus management, tap targets, screen readers
+   ============================================ */
+
+/* Enhanced focus visible ring - consistent across components */
+.focus-visible-ring {
+  @apply focus-visible:outline-none focus-visible:ring-2
+         focus-visible:ring-blue-500 focus-visible:ring-offset-2;
+}
+
+.focus-visible-ring-inset {
+  @apply focus-visible:outline-none focus-visible:ring-2
+         focus-visible:ring-blue-500 focus-visible:ring-inset;
+}
+
+/* Focus ring variations for different contexts */
+.focus-visible-ring-danger {
+  @apply focus-visible:outline-none focus-visible:ring-2
+         focus-visible:ring-red-500 focus-visible:ring-offset-2;
+}
+
+.focus-visible-ring-success {
+  @apply focus-visible:outline-none focus-visible:ring-2
+         focus-visible:ring-emerald-500 focus-visible:ring-offset-2;
+}
+
+/* Skip link styles - hidden until focused */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.not-sr-only {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+.focus\:not-sr-only:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* Ensure all interactive elements have visible focus */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Remove default outline when focus-visible ring is applied */
+.focus-visible-ring:focus-visible,
+.focus-visible-ring-inset:focus-visible,
+[class*="focus-visible:ring"]:focus-visible {
+  outline: none;
+}
+
+/* ============================================
+   MOBILE TAP TARGETS - WCAG 2.1 AA (44x44px)
+   Touch-friendly sizing for mobile devices
+   ============================================ */
+@media (hover: none) and (pointer: coarse) {
+  /* Minimum tap target size for buttons and interactive elements */
+  button,
+  [role="button"],
+  a[href],
+  input[type="checkbox"],
+  input[type="radio"],
+  select {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Ensure adequate spacing for touch targets in lists/tables */
+  table tbody td button,
+  table tbody td a[href],
+  .touch-target {
+    padding: 12px;
+    margin: -4px; /* Compensate for padding to maintain visual alignment */
+  }
+
+  /* Icon buttons need explicit sizing */
+  button[class*="icon"],
+  [class*="icon-button"] {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* Utility class for forced tap targets on any device */
+.tap-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* ============================================
+   HIGH CONTRAST MODE SUPPORT
+   ============================================ */
+@media (prefers-contrast: high) {
+  :root {
+    --border: hsl(220 13% 70%);
+    --border-strong: hsl(220 13% 50%);
+    --fg-muted: hsl(215 16% 30%);
+    --fg-subtle: hsl(215 20% 35%);
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    border-width: 2px !important;
+  }
+}
+
+/* ============================================
+   SCREEN READER UTILITIES
+   ============================================ */
+/* Visually hidden but available to screen readers */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Make content visible only for screen readers (alternative) */
+.sr-only-focusable:not(:focus):not(:focus-within) {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }

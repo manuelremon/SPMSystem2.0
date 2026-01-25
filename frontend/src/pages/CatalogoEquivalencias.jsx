@@ -464,7 +464,7 @@ export default function CatalogoEquivalencias() {
                         {t('equivalencias_col_tipo', 'Tipo')}
                       </th>
                       <th className={`px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] ${canManage ? 'border-r border-b border-slate-200' : ''}`}>
-                        {t('equivalencias_col_motivo', 'Motivo')}
+                        {t('equivalencias_col_similitud', 'Similitud')}
                       </th>
                       {canManage && (
                         <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">
@@ -522,12 +522,29 @@ export default function CatalogoEquivalencias() {
                           <Badge variant={eq.tipo_equivalencia === 'SUSTITUTO' ? 'success' : 'secondary'}>
                             {eq.tipo_equivalencia || '-'}
                           </Badge>
-                          {eq.criterio && (
+                          {eq.criterio && eq.criterio.toUpperCase() !== 'SIMILITUD' && (
                             <p className="text-xs text-slate-500 mt-0.5">{eq.criterio}</p>
                           )}
                         </td>
                         <td className={`px-4 py-3 text-slate-800 ${canManage ? 'border-r border-b border-slate-200' : ''}`}>
-                          <p className="line-clamp-2">{eq.motivo || '-'}</p>
+                          {(() => {
+                            // Filtrar texto genérico "Generado automaticamente" y "Similitud:"
+                            let motivoClean = eq.motivo || '';
+                            motivoClean = motivoClean.replace(/^Generado automaticamente\.?\s*/i, '').trim();
+                            motivoClean = motivoClean.replace(/^Similitud:\s*/i, '').trim();
+                            const displayMotivo = motivoClean || '-';
+                            return (
+                              <div className="group relative">
+                                <p className="line-clamp-2 cursor-help">{displayMotivo}</p>
+                                {motivoClean && motivoClean.length > 60 && (
+                                  <div className="absolute z-20 hidden group-hover:block bg-slate-800 text-white text-xs rounded-lg px-3 py-2 bottom-full left-0 mb-1 w-72 shadow-lg">
+                                    {motivoClean}
+                                    <div className="absolute top-full left-4 border-4 border-transparent border-t-slate-800" />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
                         {canManage && (
                           <td className="px-4 py-3 text-center">

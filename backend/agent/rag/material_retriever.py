@@ -152,6 +152,136 @@ class MaterialRetriever:
             "collection": MATERIALS_COLLECTION,
         }
 
+    def index_from_catalogo(self, force_reindex: bool = False) -> Dict[str, Any]:
+        """
+        Indexa materiales desde catalogo_materiales.db.
+
+        Este método es específico para indexar el catálogo completo de materiales
+        que incluye descripciones largas, precios y grupos de artículos.
+
+        Args:
+            force_reindex: Forzar reindexación aunque ya existan datos
+
+        Returns:
+            Dict con estadísticas de indexación:
+            {"status": "success", "indexed": int} o
+            {"status": "skipped", "indexed": int, "reason": str}
+        """
+        # Verificar si ya hay suficientes datos indexados
+        current_count = self.vector_store.count(MATERIALS_COLLECTION)
+        if current_count > 40000 and not force_reindex:
+            logger.info(f"RAG: Ya hay {current_count} materiales indexados. Use force_reindex=True para reindexar.")
+            self._indexed = True
+            return {
+                "status": "skipped",
+                "indexed": current_count,
+                "reason": "already_indexed",
+            }
+
+        # Resetear colección si force_reindex
+        if force_reindex and current_count > 0:
+            logger.info("RAG: Reseteando colección para reindexación...")
+            self.vector_store.reset_collection(MATERIALS_COLLECTION)
+
+        # Verificar que la BD existe
+        if not CATALOGO_DB.exists():
+            logger.error(f"RAG: BD no encontrada: {CATALOGO_DB}")
+            return {
+                "status": "error",
+                "reason": "database_not_found",
+                "path": str(CATALOGO_DB),
+            }
+
+        try:
+            conn = sqlite3.connect(CATALOGO_DB)
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+
+            # Query optimizada para catálogo de materiales
+            cur.execute("""
+                SELECT
+                    codigo,
+                    descripcion,
+                    descripcion_larga,
+                    precio_usd,
+                    grupo_articulos,
+                    unidad_medida
+                FROM materiales
+                WHERE activo = 1
+                AND codigo IS NOT NULL
+                AND descripcion IS NOT NULL
+            """)
+
+            materials = [dict(row) for row in cur.fetchall()]
+            conn.close()
+
+            if not materials:
+                logger.warning("RAG: No se encontraron materiales activos en el catálogo")
+                return {
+                    "status": "error",
+                    "reason": "no_materials_found",
+                }
+
+            logger.info(f"RAG: Indexando {len(materials)} materiales desde catálogo...")
+
+            # Indexar en batches
+            indexed = 0
+            for i in range(0, len(materials), self.batch_size):
+                batch = materials[i:i + self.batch_size]
+
+                ids = [m["codigo"] for m in batch]
+
+                # Texto para embedding: combinar descripción y descripción larga
+                texts = []
+                for m in batch:
+                    text_parts = [m["descripcion"]]
+                    if m.get("descripcion_larga"):
+                        text_parts.append(m["descripcion_larga"])
+                    texts.append(" | ".join(text_parts))
+
+                # Metadata con información adicional
+                metadatas = [{
+                    "codigo": m["codigo"],
+                    "descripcion": (m["descripcion"] or "")[:200],
+                    "precio": float(m.get("precio_usd") or 0),
+                    "grupo": int(m.get("grupo_articulos") or 0),
+                    "unidad": m.get("unidad_medida") or "UNI",
+                } for m in batch]
+
+                # Generar embeddings
+                embeddings = self.embedder.encode(texts, show_progress=False)
+
+                # Insertar en ChromaDB
+                self.vector_store.upsert(
+                    ids=ids,
+                    embeddings=embeddings.tolist(),
+                    documents=texts,
+                    metadatas=metadatas,
+                    collection_name=MATERIALS_COLLECTION,
+                )
+
+                indexed += len(batch)
+
+                # Log progreso cada 2000 materiales
+                if indexed % 2000 == 0:
+                    logger.info(f"RAG: Indexados {indexed}/{len(materials)} materiales")
+
+            self._indexed = True
+            logger.info(f"RAG: Indexación completada: {indexed} materiales")
+
+            return {
+                "status": "success",
+                "indexed": indexed,
+                "collection": MATERIALS_COLLECTION,
+            }
+
+        except Exception as e:
+            logger.error(f"RAG: Error indexando catálogo: {e}")
+            return {
+                "status": "error",
+                "reason": str(e),
+            }
+
     def search(
         self,
         query: str,

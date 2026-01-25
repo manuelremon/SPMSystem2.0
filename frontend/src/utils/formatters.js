@@ -333,15 +333,28 @@ const SECTOR_MAP = {
 };
 
 /**
- * Formatea un código de almacén a 4 dígitos con ceros a la izquierda
- * Ejemplos: 1 -> "0001", 100 -> "0100", 9999 -> "9999"
+ * Formatea un código de almacén preservando formatos alfanuméricos
+ * Ejemplos:
+ *   - "AA001" -> "AA001" (formato alfanumérico, sin cambio)
+ *   - "II003" -> "II003" (formato alfanumérico, sin cambio)
+ *   - 1 -> "0001" (numérico, rellena con ceros)
+ *   - "100" -> "0100" (numérico, rellena con ceros)
  * @param {string|number} almacen - Código del almacén
- * @returns {string} - Código formateado a 4 dígitos
+ * @returns {string} - Código formateado
  */
 export function formatAlmacen(almacen) {
   if (almacen === null || almacen === undefined || almacen === '') return '-';
-  const num = String(almacen).replace(/\D/g, ''); // Remove non-digits
-  if (!num) return '-';
+  const str = String(almacen).trim();
+  if (!str) return '-';
+
+  // Si coincide con formato alfanumérico (2 letras + 3 dígitos), mantener sin cambios
+  if (/^[A-Za-z]{2}\d{3}$/.test(str)) {
+    return str.toUpperCase();  // Normalizar a mayúsculas
+  }
+
+  // Si es puramente numérico, rellenar con ceros a 4 dígitos
+  const num = str.replace(/\D/g, '');
+  if (!num) return str;  // Retornar original si no tiene dígitos
   return num.padStart(4, '0');
 }
 

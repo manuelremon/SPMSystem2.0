@@ -353,6 +353,118 @@ def resolve_sector_name(sector_value: str) -> str:
 
 
 # =============================================================================
+# Almacen Helpers (SPRINT 25 - Auditoría Post-Migración)
+# =============================================================================
+
+
+def get_user_almacenes(user_id: str) -> list[str]:
+    """
+    Obtiene la lista de almacenes permitidos para un usuario.
+
+    El campo 'almacenes' puede estar en varios formatos:
+    - JSON array: '["AA001", "II003"]'
+    - CSV string: 'AA001,II003'
+    - Single value: 'AA001'
+    - Null/empty: sin restricción (acceso a todos)
+
+    Args:
+        user_id: ID del usuario
+
+    Returns:
+        list[str]: Lista de códigos de almacén permitidos.
+                   Lista vacía significa acceso a todos los almacenes.
+    """
+    import json
+
+    if not user_id:
+        return []
+
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT almacenes, rol FROM usuarios WHERE id_spm = ?",
+                (str(user_id),)
+            )
+            row = cur.fetchone()
+
+            if not row:
+                return []
+
+            almacenes_raw = row["almacenes"] if isinstance(row, dict) else row[0]
+            rol = row["rol"] if isinstance(row, dict) else row[1]
+
+            # Admins tienen acceso a todos los almacenes
+            if roles_is_admin(rol or ""):
+                return []  # Lista vacía = sin restricción
+
+            if not almacenes_raw:
+                return []
+
+            almacenes_str = str(almacenes_raw).strip()
+            if not almacenes_str:
+                return []
+
+            # Intentar parsear como JSON array
+            if almacenes_str.startswith("["):
+                try:
+                    parsed = json.loads(almacenes_str)
+                    if isinstance(parsed, list):
+                        return [str(a).strip().upper() for a in parsed if a]
+                except json.JSONDecodeError:
+                    pass
+
+            # Parsear como CSV
+            if "," in almacenes_str:
+                return [a.strip().upper() for a in almacenes_str.split(",") if a.strip()]
+
+            # Valor único
+            return [almacenes_str.upper()]
+
+    except Exception as e:
+        logger.error(f"Error obteniendo almacenes del usuario {user_id}: {e}")
+        return []
+
+
+def validate_almacen_access(user_id: str, almacen: str) -> bool:
+    """
+    Valida si un usuario tiene acceso a un almacén específico.
+
+    Args:
+        user_id: ID del usuario
+        almacen: Código de almacén a validar
+
+    Returns:
+        bool: True si tiene acceso, False si no
+    """
+    if not almacen:
+        return True  # Sin filtro específico, permitir
+
+    almacenes_permitidos = get_user_almacenes(user_id)
+
+    # Lista vacía significa acceso a todos (admin o sin restricción)
+    if not almacenes_permitidos:
+        return True
+
+    # Normalizar y comparar
+    almacen_upper = str(almacen).strip().upper()
+    return almacen_upper in almacenes_permitidos
+
+
+def get_user_almacenes_from_context() -> list[str]:
+    """
+    Obtiene almacenes permitidos del usuario actual desde el contexto Flask.
+
+    Returns:
+        list[str]: Lista de almacenes permitidos (vacía = sin restricción)
+    """
+    user_id = get_user_id_from_context()
+    if not user_id:
+        return []
+    return get_user_almacenes(user_id)
+
+
+# =============================================================================
 # Aliases para compatibilidad con codigo existente
 # =============================================================================
 
@@ -368,3 +480,6 @@ _success_response = success_response
 _utc_now = utc_now
 _resolve_sector_name = resolve_sector_name
 _get_user_id = get_user_id_from_context
+_get_user_almacenes = get_user_almacenes
+_validate_almacen_access = validate_almacen_access
+_get_user_almacenes_from_context = get_user_almacenes_from_context

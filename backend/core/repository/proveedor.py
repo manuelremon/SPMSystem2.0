@@ -5,7 +5,7 @@ Repositorios para operaciones de Proveedores
 import logging
 from typing import Any, Dict, List, Optional
 
-from backend.core.db import is_using_postgresql
+from backend.core.db import is_using_postgresql, sql_current_date
 from backend.core.repository.base import _connect, _connect_sap_data
 from backend.core.repository.config import ConfigAlmacenesRepository
 
@@ -43,14 +43,14 @@ class ProveedorPreciosRepository:
         try:
             cur = conn.cursor()
             cur.execute(
-                """
+                f"""
                 SELECT id, cuit_proveedor, codigo_material, precio_usd, moneda,
                        fecha_vigencia_desde, fecha_vigencia_hasta, condicion_pago,
                        cantidad_minima, notas
                 FROM proveedor_precios_negociados
                 WHERE cuit_proveedor = ? AND codigo_material = ? AND activo = 1
-                  AND fecha_vigencia_desde <= date('now')
-                  AND (fecha_vigencia_hasta IS NULL OR fecha_vigencia_hasta >= date('now'))
+                  AND fecha_vigencia_desde <= {sql_current_date()}
+                  AND (fecha_vigencia_hasta IS NULL OR fecha_vigencia_hasta >= {sql_current_date()})
                 ORDER BY fecha_vigencia_desde DESC
                 LIMIT 1
             """,
@@ -68,14 +68,14 @@ class ProveedorPreciosRepository:
         try:
             cur = conn.cursor()
             cur.execute(
-                """
+                f"""
                 SELECT p.id, p.cuit_proveedor, p.codigo_material, p.precio_usd, p.moneda,
                        p.condicion_pago, p.cantidad_minima, pe.nombre as proveedor_nombre
                 FROM proveedor_precios_negociados p
                 LEFT JOIN proveedores_externos pe ON p.cuit_proveedor = pe.cuit
                 WHERE p.codigo_material = ? AND p.activo = 1
-                  AND p.fecha_vigencia_desde <= date('now')
-                  AND (p.fecha_vigencia_hasta IS NULL OR p.fecha_vigencia_hasta >= date('now'))
+                  AND p.fecha_vigencia_desde <= {sql_current_date()}
+                  AND (p.fecha_vigencia_hasta IS NULL OR p.fecha_vigencia_hasta >= {sql_current_date()})
                 ORDER BY p.precio_usd ASC
                 LIMIT ?
             """,

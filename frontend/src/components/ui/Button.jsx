@@ -205,6 +205,7 @@ export function Button({
   children,
   disabled = false,
   style = {},
+  "aria-label": ariaLabel,
   ...props
 }) {
   // Combinar inline styles del variant con los estilos pasados como prop
@@ -229,6 +230,7 @@ export function Button({
       `}
       style={combinedStyle}
       disabled={disabled}
+      aria-label={ariaLabel}
       {...props}
     >
       {children}
@@ -262,13 +264,5 @@ Button.propTypes = {
   style: PropTypes.object,
   onClick: PropTypes.func,
   type: PropTypes.oneOf(["button", "submit", "reset"]),
-};
-
-Button.defaultProps = {
-  as: "button",
-  variant: "primary",
-  size: "md",
-  className: "",
-  disabled: false,
-  style: {},
+  "aria-label": PropTypes.string,
 };

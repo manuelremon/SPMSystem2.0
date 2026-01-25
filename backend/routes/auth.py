@@ -19,7 +19,7 @@ from jwt import InvalidTokenError
 
 from backend.core.cache import user_cache
 from backend.core.config import settings
-from backend.core.db import get_db_connection
+from backend.core.db import get_db_connection, sql_pattern_is_numeric
 from backend.core.roles import format_user_response, is_admin, normalize_roles
 
 bp = Blueprint("auth", __name__)
@@ -75,7 +75,7 @@ def _get_user(username: str):
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT * FROM usuarios WHERE id_spm=%s OR mail=%s",
+            "SELECT * FROM usuarios WHERE id_spm=? OR mail=?",
             (username, username),
         )
         row = cur.fetchone()
@@ -497,8 +497,22 @@ def register():
                 409,
             )
 
-    # Generar ID y hashear password
-    user_id = str(uuid.uuid4())[:8]
+    # Generar ID secuencial y hashear password
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        # Obtener el próximo ID secuencial (solo considerar IDs numéricos)
+        cur.execute(
+            f"SELECT MAX(CAST(id_spm AS INTEGER)) as max_id FROM usuarios WHERE {sql_pattern_is_numeric('id_spm')}"
+        )
+        row = cur.fetchone()
+        # Manejar resultado como dict (PostgreSQL) o tuple/Row (SQLite)
+        if row is None:
+            max_id = 0
+        elif isinstance(row, dict):
+            max_id = row.get("max_id") or 0
+        else:
+            max_id = row[0] or 0
+        user_id = str(max_id + 1)
     password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
     # Insertar usuario con rol Solicitante

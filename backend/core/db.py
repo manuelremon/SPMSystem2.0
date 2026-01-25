@@ -54,6 +54,18 @@ def sql_datetime_now() -> str:
     return "datetime('now')"
 
 
+def sql_current_date() -> str:
+    """
+    Retorna expresión SQL para fecha actual (solo fecha, sin hora).
+
+    Returns:
+        'CURRENT_DATE' para PostgreSQL, "date('now')" para SQLite
+    """
+    if is_using_postgresql():
+        return "CURRENT_DATE"
+    return "date('now')"
+
+
 def sql_now_minus(interval: str) -> str:
     """
     Retorna expresión SQL para NOW() - interval.
@@ -72,6 +84,120 @@ def sql_now_minus(interval: str) -> str:
     if is_using_postgresql():
         return f"NOW() - INTERVAL '{interval}'"
     return f"datetime('now', '-{interval}')"
+
+
+def sql_date_relative(days: int = 0, months: int = 0) -> str:
+    """
+    Retorna expresión SQL para fecha relativa a hoy.
+
+    Args:
+        days: Días a sumar/restar (negativo para pasado)
+        months: Meses a sumar/restar (negativo para pasado)
+
+    Returns:
+        Expresión SQL compatible con el motor actual
+
+    Example:
+        >>> sql_date_relative(days=-7)
+        # PostgreSQL: "CURRENT_DATE - INTERVAL '7 days'"
+        # SQLite: "date('now', '-7 days')"
+
+        >>> sql_date_relative(months=-6)
+        # PostgreSQL: "CURRENT_DATE - INTERVAL '6 months'"
+        # SQLite: "date('now', '-6 months')"
+    """
+    if is_using_postgresql():
+        parts = []
+        if days != 0:
+            parts.append(f"{abs(days)} days")
+        if months != 0:
+            parts.append(f"{abs(months)} months")
+        interval = " ".join(parts) if parts else "0 days"
+        # Determinar si es suma o resta (asumimos que days y months tienen el mismo signo)
+        if days < 0 or months < 0:
+            return f"CURRENT_DATE - INTERVAL '{interval}'"
+        return f"CURRENT_DATE + INTERVAL '{interval}'"
+    else:
+        # SQLite
+        parts = []
+        if days != 0:
+            sign = "+" if days > 0 else ""
+            parts.append(f"'{sign}{days} days'")
+        if months != 0:
+            sign = "+" if months > 0 else ""
+            parts.append(f"'{sign}{months} months'")
+        modifiers = ", ".join(parts) if parts else "'0 days'"
+        return f"date('now', {modifiers})"
+
+
+def sql_date_diff_days(col1: str, col2: str) -> str:
+    """
+    Retorna expresión SQL para diferencia de fechas en días.
+
+    Args:
+        col1: Nombre de columna fecha más reciente
+        col2: Nombre de columna fecha más antigua
+
+    Returns:
+        Expresión SQL que calcula (col1 - col2) en días
+
+    Example:
+        >>> sql_date_diff_days('updated_at', 'created_at')
+        # PostgreSQL: "EXTRACT(EPOCH FROM (updated_at - created_at)) / 86400"
+        # SQLite: "julianday(updated_at) - julianday(created_at)"
+    """
+    if is_using_postgresql():
+        return f"EXTRACT(EPOCH FROM ({col1} - {col2})) / 86400"
+    return f"julianday({col1}) - julianday({col2})"
+
+
+def sql_format_date(column: str, format_str: str) -> str:
+    """
+    Retorna expresión SQL para formatear fechas.
+
+    Args:
+        column: Nombre de columna de fecha
+        format_str: Formato deseado (estilo strftime)
+
+    Returns:
+        Expresión SQL compatible con el motor actual
+
+    Formatos soportados:
+        - '%Y-%m': Año-Mes (ej: "2024-12")
+        - '%Y': Año (ej: "2024")
+        - '%m': Mes (ej: "12")
+        - '%d': Día (ej: "25")
+
+    Example:
+        >>> sql_format_date('created_at', '%Y-%m')
+        # PostgreSQL: "TO_CHAR(created_at, 'YYYY-MM')"
+        # SQLite: "strftime('%Y-%m', created_at)"
+    """
+    if is_using_postgresql():
+        # Mapear formato strftime a formato PostgreSQL
+        pg_format = format_str.replace("%Y", "YYYY").replace("%m", "MM").replace("%d", "DD")
+        return f"TO_CHAR({column}, '{pg_format}')"
+    return f"strftime('{format_str}', {column})"
+
+
+def sql_pattern_is_numeric(column: str) -> str:
+    """
+    Retorna expresión SQL para verificar si columna contiene solo dígitos.
+
+    Args:
+        column: Nombre de columna a verificar
+
+    Returns:
+        Expresión SQL compatible con el motor actual
+
+    Example:
+        >>> sql_pattern_is_numeric('id_spm')
+        # PostgreSQL: "id_spm ~ '^[0-9]+$'"
+        # SQLite: "id_spm GLOB '[0-9]*'"
+    """
+    if is_using_postgresql():
+        return f"{column} ~ '^[0-9]+$'"
+    return f"{column} GLOB '[0-9]*'"
 
 
 def insert_returning_id(cursor, sql: str, params: tuple = None) -> int:
