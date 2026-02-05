@@ -230,9 +230,12 @@ jobs:
             echo "=== Running database migrations ==="
             cd /opt/spm
 
-            # Copy migration file into postgres container and execute
-            docker cp infra/migrations/029_add_tms_fms_dashboard.sql spm-postgres:/tmp/migration.sql
-            docker exec spm-postgres psql -U spm -d spm_production -f /tmp/migration.sql
+            # Run all pending migrations
+            for migration in infra/migrations/0*.sql; do
+              echo "Running migration: $migration"
+              docker cp "$migration" spm-postgres:/tmp/migration.sql
+              docker exec spm-postgres psql -U spm -d spm_production -f /tmp/migration.sql
+            done
 
             echo "=== Database migration completed ==="
           MIGRATION_SCRIPT

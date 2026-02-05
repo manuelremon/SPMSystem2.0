@@ -1,8 +1,8 @@
 -- Schema PostgreSQL para SPM v3.0
 -- Este archivo se ejecuta automaticamente al inicializar PostgreSQL
 
--- Tabla principal de usuarios
-CREATE TABLE IF NOT EXISTS usuarios(
+-- Tabla principal de usuario
+CREATE TABLE IF NOT EXISTS usuario(
     id_spm TEXT PRIMARY KEY,
     nombre TEXT NOT NULL,
     apellido TEXT NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS usuarios(
 -- Solicitudes de cambio de perfil
 CREATE TABLE IF NOT EXISTS user_profile_requests(
     id SERIAL PRIMARY KEY,
-    usuario_id TEXT NOT NULL REFERENCES usuarios(id_spm),
+    usuario_id TEXT NOT NULL REFERENCES usuario(id_spm),
     tipo TEXT NOT NULL,
     payload TEXT,
     estado TEXT NOT NULL DEFAULT 'pendiente',
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS user_profile_requests(
 -- Solicitudes de materiales
 CREATE TABLE IF NOT EXISTS solicitudes(
     id SERIAL PRIMARY KEY,
-    id_usuario TEXT NOT NULL REFERENCES usuarios(id_spm),
+    id_usuario TEXT NOT NULL REFERENCES usuario(id_spm),
     centro TEXT NOT NULL,
     sector TEXT NOT NULL,
     justificacion TEXT NOT NULL,
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS solicitudes(
     data_json TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'draft',
     aprobador_id TEXT,
-    planner_id TEXT REFERENCES usuarios(id_spm),
+    planner_id TEXT REFERENCES usuario(id_spm),
     total_monto REAL DEFAULT 0,
     notificado_at TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -86,8 +86,8 @@ CREATE TABLE IF NOT EXISTS presupuesto_incorporaciones(
     monto REAL NOT NULL,
     motivo TEXT,
     estado TEXT NOT NULL DEFAULT 'pendiente',
-    solicitante_id TEXT NOT NULL REFERENCES usuarios(id_spm),
-    aprobador_id TEXT REFERENCES usuarios(id_spm),
+    solicitante_id TEXT NOT NULL REFERENCES usuario(id_spm),
+    aprobador_id TEXT REFERENCES usuario(id_spm),
     comentario TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS archivos_adjuntos(
     tipo_mime TEXT,
     tamano_bytes INTEGER,
     ruta_archivo TEXT NOT NULL,
-    usuario_id TEXT NOT NULL REFERENCES usuarios(id_spm),
+    usuario_id TEXT NOT NULL REFERENCES usuario(id_spm),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -288,7 +288,7 @@ CREATE TABLE IF NOT EXISTS proveedores_internos (
     sector TEXT,
     contacto_centro TEXT,
     responsable_centro TEXT,
-    referente_id TEXT REFERENCES usuarios(id_spm),
+    referente_id TEXT REFERENCES usuario(id_spm),
     referente_nombre TEXT,
     referente_email TEXT,
     activo BOOLEAN DEFAULT TRUE,
@@ -337,7 +337,7 @@ CREATE TABLE IF NOT EXISTS decision_abastecimiento (
         'pendiente', 'parcial', 'completo', 'confirmado'
     )),
     comentario TEXT,
-    planner_id TEXT NOT NULL REFERENCES usuarios(id_spm),
+    planner_id TEXT NOT NULL REFERENCES usuario(id_spm),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(solicitud_id, item_index)
@@ -368,11 +368,11 @@ CREATE TABLE IF NOT EXISTS decision_abastecimiento_fuentes (
 );
 CREATE INDEX IF NOT EXISTS idx_fuentes_decision ON decision_abastecimiento_fuentes(decision_id);
 
--- Mensajes entre usuarios
+-- Mensajes entre usuario
 CREATE TABLE IF NOT EXISTS mensajes (
     id SERIAL PRIMARY KEY,
-    remitente_id TEXT NOT NULL REFERENCES usuarios(id_spm),
-    destinatario_id TEXT NOT NULL REFERENCES usuarios(id_spm),
+    remitente_id TEXT NOT NULL REFERENCES usuario(id_spm),
+    destinatario_id TEXT NOT NULL REFERENCES usuario(id_spm),
     solicitud_id INTEGER REFERENCES solicitudes(id),
     asunto TEXT NOT NULL,
     mensaje TEXT NOT NULL,
@@ -586,8 +586,8 @@ CREATE TABLE IF NOT EXISTS reglas_aprobacion (
 -- Aprobadores delegados
 CREATE TABLE IF NOT EXISTS aprobadores_delegados (
     id SERIAL PRIMARY KEY,
-    aprobador_original_id TEXT NOT NULL REFERENCES usuarios(id_spm),
-    delegado_id TEXT NOT NULL REFERENCES usuarios(id_spm),
+    aprobador_original_id TEXT NOT NULL REFERENCES usuario(id_spm),
+    delegado_id TEXT NOT NULL REFERENCES usuario(id_spm),
     fecha_inicio DATE NOT NULL,
     fecha_fin DATE NOT NULL,
     motivo TEXT,
