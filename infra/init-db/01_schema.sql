@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS usuario(
 );
 
 -- Solicitudes de cambio de perfil
-CREATE TABLE IF NOT EXISTS user_profile_requests(
+CREATE TABLE IF NOT EXISTS usuario_solicitud_perfil(
     id SERIAL PRIMARY KEY,
     usuario_id TEXT NOT NULL REFERENCES usuario(id_spm),
     tipo TEXT NOT NULL,
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS user_profile_requests(
 );
 
 -- Solicitudes de materiales
-CREATE TABLE IF NOT EXISTS solicitudes(
+CREATE TABLE IF NOT EXISTS solicitud(
     id SERIAL PRIMARY KEY,
     id_usuario TEXT NOT NULL REFERENCES usuario(id_spm),
     centro TEXT NOT NULL,
@@ -68,10 +68,10 @@ CREATE TABLE IF NOT EXISTS planificador_asignaciones(
 );
 
 -- Notificaciones del sistema
-CREATE TABLE IF NOT EXISTS notificaciones(
+CREATE TABLE IF NOT EXISTS notificacion(
     id SERIAL PRIMARY KEY,
     destinatario_id TEXT NOT NULL,
-    solicitud_id INTEGER REFERENCES solicitudes(id),
+    solicitud_id INTEGER REFERENCES solicitud(id),
     mensaje TEXT NOT NULL,
     leido INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -94,10 +94,10 @@ CREATE TABLE IF NOT EXISTS presupuesto_incorporaciones(
     resolved_at TEXT
 );
 
--- Archivos adjuntos de solicitudes
+-- Archivos adjuntos de solicitud
 CREATE TABLE IF NOT EXISTS archivos_adjuntos(
     id SERIAL PRIMARY KEY,
-    solicitud_id INTEGER NOT NULL REFERENCES solicitudes(id) ON DELETE CASCADE,
+    solicitud_id INTEGER NOT NULL REFERENCES solicitud(id) ON DELETE CASCADE,
     nombre_archivo TEXT NOT NULL,
     nombre_original TEXT NOT NULL,
     tipo_mime TEXT,
@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS archivos_adjuntos(
 -- Tratamiento de items de solicitud
 CREATE TABLE IF NOT EXISTS solicitud_items_tratamiento(
     id SERIAL PRIMARY KEY,
-    solicitud_id INTEGER NOT NULL REFERENCES solicitudes(id) ON DELETE CASCADE,
+    solicitud_id INTEGER NOT NULL REFERENCES solicitud(id) ON DELETE CASCADE,
     item_index INTEGER NOT NULL,
     decision TEXT NOT NULL,
     cantidad_aprobada REAL NOT NULL,
@@ -126,7 +126,7 @@ CREATE TABLE IF NOT EXISTS solicitud_items_tratamiento(
 -- Eventos de tratamiento
 CREATE TABLE IF NOT EXISTS solicitud_tratamiento_eventos(
     id SERIAL PRIMARY KEY,
-    solicitud_id INTEGER NOT NULL REFERENCES solicitudes(id) ON DELETE CASCADE,
+    solicitud_id INTEGER NOT NULL REFERENCES solicitud(id) ON DELETE CASCADE,
     planner_id TEXT NOT NULL,
     tipo TEXT NOT NULL,
     payload_json TEXT,
@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS solicitud_tratamiento_eventos(
 -- Log de tratamiento
 CREATE TABLE IF NOT EXISTS solicitud_tratamiento_log(
     id SERIAL PRIMARY KEY,
-    solicitud_id INTEGER NOT NULL REFERENCES solicitudes(id) ON DELETE CASCADE,
+    solicitud_id INTEGER NOT NULL REFERENCES solicitud(id) ON DELETE CASCADE,
     item_index INTEGER,
     actor_id TEXT NOT NULL,
     tipo TEXT NOT NULL,
@@ -148,7 +148,7 @@ CREATE TABLE IF NOT EXISTS solicitud_tratamiento_log(
 -- Traslados
 CREATE TABLE IF NOT EXISTS traslados(
     id SERIAL PRIMARY KEY,
-    solicitud_id INTEGER NOT NULL REFERENCES solicitudes(id) ON DELETE CASCADE,
+    solicitud_id INTEGER NOT NULL REFERENCES solicitud(id) ON DELETE CASCADE,
     item_index INTEGER NOT NULL,
     material TEXT NOT NULL,
     um TEXT,
@@ -166,9 +166,9 @@ CREATE TABLE IF NOT EXISTS traslados(
 );
 
 -- Solicitudes de pedido
-CREATE TABLE IF NOT EXISTS solpeds(
+CREATE TABLE IF NOT EXISTS solicitud_pedido_sap(
     id SERIAL PRIMARY KEY,
-    solicitud_id INTEGER NOT NULL REFERENCES solicitudes(id) ON DELETE CASCADE,
+    solicitud_id INTEGER NOT NULL REFERENCES solicitud(id) ON DELETE CASCADE,
     item_index INTEGER NOT NULL,
     material TEXT NOT NULL,
     um TEXT,
@@ -184,8 +184,8 @@ CREATE TABLE IF NOT EXISTS solpeds(
 -- Ordenes de compra
 CREATE TABLE IF NOT EXISTS purchase_orders(
     id SERIAL PRIMARY KEY,
-    solped_id INTEGER NOT NULL REFERENCES solpeds(id) ON DELETE CASCADE,
-    solicitud_id INTEGER NOT NULL REFERENCES solicitudes(id) ON DELETE CASCADE,
+    solped_id INTEGER NOT NULL REFERENCES solicitud_pedido_sap(id) ON DELETE CASCADE,
+    solicitud_id INTEGER NOT NULL REFERENCES solicitud(id) ON DELETE CASCADE,
     proveedor_email TEXT,
     proveedor_nombre TEXT,
     numero TEXT,
@@ -230,7 +230,7 @@ CREATE TABLE IF NOT EXISTS proveedores (
 );
 
 -- Proveedores Externos
-CREATE TABLE IF NOT EXISTS proveedores_externos (
+CREATE TABLE IF NOT EXISTS proveedor_externo (
     cuit TEXT PRIMARY KEY,
     nombre TEXT NOT NULL,
     direccion TEXT,
@@ -247,40 +247,40 @@ CREATE TABLE IF NOT EXISTS proveedores_externos (
 );
 
 -- Contactos de proveedores externos
-CREATE TABLE IF NOT EXISTS proveedor_ext_contactos (
+CREATE TABLE IF NOT EXISTS proveedor_externo_contacto (
     id SERIAL PRIMARY KEY,
-    cuit_proveedor TEXT NOT NULL REFERENCES proveedores_externos(cuit) ON DELETE CASCADE,
+    cuit_proveedor TEXT NOT NULL REFERENCES proveedor_externo(cuit) ON DELETE CASCADE,
     nombre TEXT NOT NULL,
     apellido TEXT,
     cargo TEXT,
     es_principal BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX IF NOT EXISTS idx_contactos_cuit ON proveedor_ext_contactos(cuit_proveedor);
+CREATE INDEX IF NOT EXISTS idx_contactos_cuit ON proveedor_externo_contacto(cuit_proveedor);
 
 -- Emails de proveedores externos
-CREATE TABLE IF NOT EXISTS proveedor_ext_emails (
+CREATE TABLE IF NOT EXISTS proveedor_externo_email (
     id SERIAL PRIMARY KEY,
-    cuit_proveedor TEXT NOT NULL REFERENCES proveedores_externos(cuit) ON DELETE CASCADE,
+    cuit_proveedor TEXT NOT NULL REFERENCES proveedor_externo(cuit) ON DELETE CASCADE,
     email TEXT NOT NULL,
     tipo TEXT DEFAULT 'comercial',
     es_principal BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX IF NOT EXISTS idx_emails_cuit ON proveedor_ext_emails(cuit_proveedor);
+CREATE INDEX IF NOT EXISTS idx_emails_cuit ON proveedor_externo_email(cuit_proveedor);
 
 -- Telefonos de proveedores externos
-CREATE TABLE IF NOT EXISTS proveedor_ext_telefonos (
+CREATE TABLE IF NOT EXISTS proveedor_externo_telefono (
     id SERIAL PRIMARY KEY,
-    cuit_proveedor TEXT NOT NULL REFERENCES proveedores_externos(cuit) ON DELETE CASCADE,
+    cuit_proveedor TEXT NOT NULL REFERENCES proveedor_externo(cuit) ON DELETE CASCADE,
     telefono TEXT NOT NULL,
     tipo TEXT DEFAULT 'fijo',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX IF NOT EXISTS idx_telefonos_cuit ON proveedor_ext_telefonos(cuit_proveedor);
+CREATE INDEX IF NOT EXISTS idx_telefonos_cuit ON proveedor_externo_telefono(cuit_proveedor);
 
 -- Proveedores Internos
-CREATE TABLE IF NOT EXISTS proveedores_internos (
+CREATE TABLE IF NOT EXISTS proveedor_interno (
     centro TEXT NOT NULL,
     almacen TEXT NOT NULL,
     centro_nombre TEXT,
@@ -299,9 +299,9 @@ CREATE TABLE IF NOT EXISTS proveedores_internos (
 );
 
 -- Precios negociados
-CREATE TABLE IF NOT EXISTS proveedor_precios_negociados (
+CREATE TABLE IF NOT EXISTS proveedor_precio_negociado (
     id SERIAL PRIMARY KEY,
-    cuit_proveedor TEXT NOT NULL REFERENCES proveedores_externos(cuit),
+    cuit_proveedor TEXT NOT NULL REFERENCES proveedor_externo(cuit),
     codigo_material TEXT NOT NULL,
     precio_usd REAL NOT NULL,
     moneda TEXT DEFAULT 'USD',
@@ -315,8 +315,8 @@ CREATE TABLE IF NOT EXISTS proveedor_precios_negociados (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(cuit_proveedor, codigo_material, fecha_vigencia_desde)
 );
-CREATE INDEX IF NOT EXISTS idx_precios_material ON proveedor_precios_negociados(codigo_material);
-CREATE INDEX IF NOT EXISTS idx_precios_proveedor ON proveedor_precios_negociados(cuit_proveedor);
+CREATE INDEX IF NOT EXISTS idx_precios_material ON proveedor_precio_negociado(codigo_material);
+CREATE INDEX IF NOT EXISTS idx_precios_proveedor ON proveedor_precio_negociado(cuit_proveedor);
 
 -- Configuracion de scores por tipo de equivalencia
 CREATE TABLE IF NOT EXISTS config_equivalencia_scores (
@@ -329,7 +329,7 @@ CREATE TABLE IF NOT EXISTS config_equivalencia_scores (
 -- Decision de abastecimiento
 CREATE TABLE IF NOT EXISTS decision_abastecimiento (
     id SERIAL PRIMARY KEY,
-    solicitud_id INTEGER NOT NULL REFERENCES solicitudes(id) ON DELETE CASCADE,
+    solicitud_id INTEGER NOT NULL REFERENCES solicitud(id) ON DELETE CASCADE,
     item_index INTEGER NOT NULL,
     cantidad_solicitada REAL NOT NULL,
     cantidad_total_asignada REAL NOT NULL DEFAULT 0,
@@ -353,7 +353,7 @@ CREATE TABLE IF NOT EXISTS decision_abastecimiento_fuentes (
     )),
     centro_origen TEXT,
     almacen_origen TEXT,
-    cuit_proveedor TEXT REFERENCES proveedores_externos(cuit),
+    cuit_proveedor TEXT REFERENCES proveedor_externo(cuit),
     proveedor_nombre TEXT,
     codigo_material_equiv TEXT,
     tipo_equivalencia TEXT,
@@ -369,14 +369,14 @@ CREATE TABLE IF NOT EXISTS decision_abastecimiento_fuentes (
 CREATE INDEX IF NOT EXISTS idx_fuentes_decision ON decision_abastecimiento_fuentes(decision_id);
 
 -- Mensajes entre usuario
-CREATE TABLE IF NOT EXISTS mensajes (
+CREATE TABLE IF NOT EXISTS mensaje (
     id SERIAL PRIMARY KEY,
     remitente_id TEXT NOT NULL REFERENCES usuario(id_spm),
     destinatario_id TEXT NOT NULL REFERENCES usuario(id_spm),
-    solicitud_id INTEGER REFERENCES solicitudes(id),
+    solicitud_id INTEGER REFERENCES solicitud(id),
     asunto TEXT NOT NULL,
     mensaje TEXT NOT NULL,
-    parent_id INTEGER REFERENCES mensajes(id),
+    parent_id INTEGER REFERENCES mensaje(id),
     leido INTEGER DEFAULT 0,
     tipo TEXT DEFAULT 'mensaje',
     metadata_json TEXT,
@@ -408,7 +408,7 @@ CREATE TABLE IF NOT EXISTS presupuesto_ledger (
 );
 
 -- Solicitudes de actualizacion de presupuesto (BUR)
-CREATE TABLE IF NOT EXISTS budget_update_requests (
+CREATE TABLE IF NOT EXISTS presupuesto_solicitud_cambio (
     id SERIAL PRIMARY KEY,
     centro TEXT NOT NULL,
     sector TEXT NOT NULL,
@@ -438,14 +438,14 @@ CREATE TABLE IF NOT EXISTS budget_update_requests (
 );
 
 -- Catalogos
-CREATE TABLE IF NOT EXISTS catalog_sectores (
+CREATE TABLE IF NOT EXISTS catalogo_sector (
     nombre TEXT PRIMARY KEY,
     activo INTEGER DEFAULT 1,
     created_at TEXT,
     updated_at TEXT
 );
 
-CREATE TABLE IF NOT EXISTS catalog_centros (
+CREATE TABLE IF NOT EXISTS catalogo_centro (
     codigo TEXT PRIMARY KEY,
     nombre TEXT,
     activo INTEGER DEFAULT 1,
@@ -453,7 +453,7 @@ CREATE TABLE IF NOT EXISTS catalog_centros (
     updated_at TEXT
 );
 
-CREATE TABLE IF NOT EXISTS catalog_almacenes (
+CREATE TABLE IF NOT EXISTS catalogo_almacen (
     codigo TEXT PRIMARY KEY,
     nombre TEXT,
     activo INTEGER DEFAULT 1,
@@ -461,14 +461,14 @@ CREATE TABLE IF NOT EXISTS catalog_almacenes (
     updated_at TEXT
 );
 
-CREATE TABLE IF NOT EXISTS catalog_roles (
+CREATE TABLE IF NOT EXISTS catalogo_rol (
     nombre TEXT PRIMARY KEY,
     activo INTEGER DEFAULT 1,
     created_at TEXT,
     updated_at TEXT
 );
 
-CREATE TABLE IF NOT EXISTS catalog_puestos (
+CREATE TABLE IF NOT EXISTS catalogo_puesto (
     nombre TEXT PRIMARY KEY,
     activo INTEGER DEFAULT 1,
     created_at TEXT,
@@ -476,7 +476,7 @@ CREATE TABLE IF NOT EXISTS catalog_puestos (
 );
 
 -- Presupuestos por centro/sector
-CREATE TABLE IF NOT EXISTS presupuestos (
+CREATE TABLE IF NOT EXISTS presupuesto (
     centro TEXT NOT NULL,
     sector TEXT NOT NULL,
     monto_usd REAL DEFAULT 0,
@@ -489,7 +489,7 @@ CREATE TABLE IF NOT EXISTS presupuestos (
 );
 
 -- Trivias - puntajes
-CREATE TABLE IF NOT EXISTS trivias_scores (
+CREATE TABLE IF NOT EXISTS trivia_score (
     id SERIAL PRIMARY KEY,
     user_id TEXT NOT NULL,
     user_name TEXT NOT NULL,
@@ -555,10 +555,10 @@ CREATE TABLE IF NOT EXISTS config_lotes_excluidos (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Historial de estados de solicitudes (migración 006)
-CREATE TABLE IF NOT EXISTS solicitudes_historial_estados (
+-- Historial de estados de solicitud (migración 006)
+CREATE TABLE IF NOT EXISTS solicitud_historial_estado (
     id SERIAL PRIMARY KEY,
-    solicitud_id INTEGER NOT NULL REFERENCES solicitudes(id) ON DELETE CASCADE,
+    solicitud_id INTEGER NOT NULL REFERENCES solicitud(id) ON DELETE CASCADE,
     estado_anterior TEXT NOT NULL,
     estado_nuevo TEXT NOT NULL,
     actor_id TEXT NOT NULL,
@@ -566,10 +566,10 @@ CREATE TABLE IF NOT EXISTS solicitudes_historial_estados (
     metadata_json TEXT,
     created_at TIMESTAMP DEFAULT NOW()
 );
-CREATE INDEX IF NOT EXISTS idx_historial_solicitud ON solicitudes_historial_estados(solicitud_id);
-CREATE INDEX IF NOT EXISTS idx_historial_estado_nuevo ON solicitudes_historial_estados(estado_nuevo);
-CREATE INDEX IF NOT EXISTS idx_historial_actor ON solicitudes_historial_estados(actor_id);
-CREATE INDEX IF NOT EXISTS idx_historial_fecha ON solicitudes_historial_estados(created_at);
+CREATE INDEX IF NOT EXISTS idx_historial_solicitud ON solicitud_historial_estado(solicitud_id);
+CREATE INDEX IF NOT EXISTS idx_historial_estado_nuevo ON solicitud_historial_estado(estado_nuevo);
+CREATE INDEX IF NOT EXISTS idx_historial_actor ON solicitud_historial_estado(actor_id);
+CREATE INDEX IF NOT EXISTS idx_historial_fecha ON solicitud_historial_estado(created_at);
 
 -- Reglas de aprobacion
 CREATE TABLE IF NOT EXISTS reglas_aprobacion (
@@ -622,7 +622,7 @@ CREATE TABLE IF NOT EXISTS sla_configuracion (
 -- Alertas SLA
 CREATE TABLE IF NOT EXISTS sla_alertas (
     id SERIAL PRIMARY KEY,
-    solicitud_id INTEGER NOT NULL REFERENCES solicitudes(id),
+    solicitud_id INTEGER NOT NULL REFERENCES solicitud(id),
     tipo_alerta TEXT NOT NULL,
     mensaje TEXT,
     resuelta BOOLEAN DEFAULT FALSE,
@@ -671,7 +671,7 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Historial de presupuestos
+-- Historial de presupuesto
 CREATE TABLE IF NOT EXISTS budget_history (
     id SERIAL PRIMARY KEY,
     centro TEXT NOT NULL,
@@ -962,7 +962,7 @@ CREATE TABLE IF NOT EXISTS dashboard_datasource (
     id SERIAL PRIMARY KEY,
     dashboard_id INTEGER NOT NULL REFERENCES dashboard(id) ON DELETE CASCADE,
     nombre TEXT NOT NULL,
-    tipo TEXT NOT NULL CHECK(tipo IN ('stock', 'budget', 'solicitudes', 'forecast', 'mrp', 'custom')),
+    tipo TEXT NOT NULL CHECK(tipo IN ('stock', 'budget', 'solicitud', 'forecast', 'mrp', 'custom')),
     query TEXT,
     filtros TEXT,
     cache_ttl INTEGER DEFAULT 300,
