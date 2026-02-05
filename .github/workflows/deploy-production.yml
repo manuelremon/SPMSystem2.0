@@ -156,21 +156,32 @@ jobs:
             echo "=== Environment variables updated ==="
           ENVSCRIPT
 
-      - name: Deploy code and frontend
+      - name: Sync code to VPS
+        run: |
+          echo "=== Syncing code to VPS via rsync ==="
+          rsync -avz --delete \
+            --exclude '.git' \
+            --exclude 'node_modules' \
+            --exclude 'data' \
+            --exclude '__pycache__' \
+            --exclude '.env' \
+            --exclude '.claude' \
+            --exclude 'venv' \
+            --exclude 'backups' \
+            --exclude 'frontend/dist' \
+            -e "ssh -o StrictHostKeyChecking=no" \
+            ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/opt/spm/
+          echo "=== Code synced ==="
+
+      - name: Build frontend on VPS
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'SCRIPT'
             set -e
-            echo "=== Starting deployment ==="
-            cd /opt/spm
-            echo "=== Pulling latest code ==="
-            git fetch origin main
-            git reset --hard origin/main
             echo "=== Building frontend ==="
-            cd frontend
+            cd /opt/spm/frontend
             npm ci
             npm run build
-            cd ..
-            echo "=== Code and frontend deployed ==="
+            echo "=== Frontend built ==="
           SCRIPT
 
       - name: Rebuild and restart Docker containers
