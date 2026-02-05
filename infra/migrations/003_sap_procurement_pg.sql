@@ -125,10 +125,10 @@ SELECT
     p.fecha_pedido,
     p.fecha_recepcion,
     s.fecha_entrega_solicitada,
-    EXTRACT(DAY FROM (p.fecha_pedido - s.fecha_creacion))::INTEGER as dias_aprobacion,
-    EXTRACT(DAY FROM (p.fecha_recepcion - p.fecha_pedido))::INTEGER as dias_entrega,
-    EXTRACT(DAY FROM (p.fecha_recepcion - s.fecha_creacion))::INTEGER as dias_total,
-    EXTRACT(DAY FROM (p.fecha_recepcion - s.fecha_entrega_solicitada))::INTEGER as dias_desviacion,
+    (p.fecha_pedido - s.fecha_creacion) as dias_aprobacion,
+    (p.fecha_recepcion - p.fecha_pedido) as dias_entrega,
+    (p.fecha_recepcion - s.fecha_creacion) as dias_total,
+    (p.fecha_recepcion - s.fecha_entrega_solicitada) as dias_desviacion,
     s.cantidad,
     s.precio_unitario,
     s.importe_total,
@@ -184,7 +184,7 @@ SELECT
     MAX(s.precio_unitario) as precio_maximo,
     CASE
         WHEN AVG(s.precio_unitario) > 0
-        THEN ROUND((MAX(s.precio_unitario) - MIN(s.precio_unitario)) / AVG(s.precio_unitario) * 100, 2)
+        THEN ROUND(((MAX(s.precio_unitario) - MIN(s.precio_unitario)) / AVG(s.precio_unitario) * 100)::NUMERIC, 2)
         ELSE 0
     END as variacion_pct,
     SUM(s.cantidad) as cantidad_total,
@@ -210,7 +210,7 @@ SELECT
     SUM(CASE WHEN s.estrategia_liberacion = 'LIBERADA' THEN 1 ELSE 0 END) as solpeds_liberadas,
     SUM(CASE WHEN p.fecha_recepcion IS NOT NULL THEN 1 ELSE 0 END) as items_recibidos,
     SUM(s.importe_total) as importe_total,
-    AVG(EXTRACT(DAY FROM (p.fecha_recepcion - s.fecha_creacion))::INTEGER) as lead_time_promedio
+    AVG(p.fecha_recepcion - s.fecha_creacion) as lead_time_promedio
 FROM sap_solpeds s
 LEFT JOIN sap_purchase_orders p
     ON s.solped_id = p.solped_id

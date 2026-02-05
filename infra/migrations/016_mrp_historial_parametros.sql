@@ -84,7 +84,7 @@ SELECT
     valor_nuevo,
     modificado_por,
     modificado_at,
-    ROUND((CURRENT_TIMESTAMP - modificado_at) / INTERVAL '1 day', 1) as dias_atras
+    ROUND((EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - modificado_at)) / 86400)::NUMERIC, 1) as dias_atras
 FROM mrp_historial_parametros
 ORDER BY modificado_at DESC
 LIMIT 1000;
