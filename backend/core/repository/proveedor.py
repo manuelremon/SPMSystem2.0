@@ -47,7 +47,7 @@ class ProveedorPreciosRepository:
                 SELECT id, cuit_proveedor, codigo_material, precio_usd, moneda,
                        fecha_vigencia_desde, fecha_vigencia_hasta, condicion_pago,
                        cantidad_minima, notas
-                FROM proveedor_precios_negociados
+                FROM proveedor_precio_negociado
                 WHERE cuit_proveedor = ? AND codigo_material = ? AND activo = 1
                   AND fecha_vigencia_desde <= {sql_current_date()}
                   AND (fecha_vigencia_hasta IS NULL OR fecha_vigencia_hasta >= {sql_current_date()})
@@ -71,8 +71,8 @@ class ProveedorPreciosRepository:
                 f"""
                 SELECT p.id, p.cuit_proveedor, p.codigo_material, p.precio_usd, p.moneda,
                        p.condicion_pago, p.cantidad_minima, pe.nombre as proveedor_nombre
-                FROM proveedor_precios_negociados p
-                LEFT JOIN proveedores_externos pe ON p.cuit_proveedor = pe.cuit
+                FROM proveedor_precio_negociado p
+                LEFT JOIN proveedor_externo pe ON p.cuit_proveedor = pe.cuit
                 WHERE p.codigo_material = ? AND p.activo = 1
                   AND p.fecha_vigencia_desde <= {sql_current_date()}
                   AND (p.fecha_vigencia_hasta IS NULL OR p.fecha_vigencia_hasta >= {sql_current_date()})
@@ -101,7 +101,7 @@ class ProveedorPreciosRepository:
         try:
             cur = conn.cursor()
             sql = """
-                INSERT INTO proveedor_precios_negociados
+                INSERT INTO proveedor_precio_negociado
                 (cuit_proveedor, codigo_material, precio_usd, fecha_vigencia_desde,
                  fecha_vigencia_hasta, condicion_pago, cantidad_minima, notas)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -140,7 +140,7 @@ class ProveedorPreciosRepository:
                 SELECT id, cuit_proveedor, codigo_material, precio_usd, moneda,
                        fecha_vigencia_desde, fecha_vigencia_hasta, condicion_pago,
                        cantidad_minima, notas, activo
-                FROM proveedor_precios_negociados
+                FROM proveedor_precio_negociado
                 WHERE cuit_proveedor = ?
                 ORDER BY codigo_material, fecha_vigencia_desde DESC
             """,
@@ -231,7 +231,7 @@ class ProveedorInternoRepository:
 
     @staticmethod
     def _get_info_centro(centro: str, almacen: str) -> Dict[str, Any]:
-        """Obtiene información del centro/almacén desde proveedores_internos"""
+        """Obtiene información del centro/almacén desde proveedor_interno"""
         conn = _connect()
         try:
             cur = conn.cursor()
@@ -239,7 +239,7 @@ class ProveedorInternoRepository:
                 """
                 SELECT centro_nombre, almacen_nombre, sector, contacto_centro,
                        responsable_centro, referente_nombre, referente_email
-                FROM proveedores_internos
+                FROM proveedor_interno
                 WHERE centro = ? AND almacen = ?
             """,
                 (centro, almacen),
@@ -247,8 +247,8 @@ class ProveedorInternoRepository:
             row = cur.fetchone()
             if row:
                 return dict(row)
-            # Si no está en proveedores_internos, buscar en catalog_centros
-            cur.execute("SELECT nombre FROM catalog_centros WHERE codigo = ?", (centro,))
+            # Si no está en proveedor_interno, buscar en catalogo_centro
+            cur.execute("SELECT nombre FROM catalogo_centro WHERE codigo = ?", (centro,))
             centro_row = cur.fetchone()
             return {"centro_nombre": centro_row["nombre"] if centro_row else f"Centro {centro}"}
         finally:
@@ -278,11 +278,11 @@ class ProveedorExternoRepository:
                 """
                 SELECT pe.cuit, pe.nombre, pe.direccion, pe.localidad, pe.pais, pe.origen,
                        pe.lead_time_dias, pe.rubro, pe.calificacion,
-                       (SELECT email FROM proveedor_ext_emails
+                       (SELECT email FROM proveedor_externo_email
                         WHERE cuit_proveedor = pe.cuit AND es_principal = 1 LIMIT 1) as email_principal,
-                       (SELECT telefono FROM proveedor_ext_telefonos
+                       (SELECT telefono FROM proveedor_externo_telefono
                         WHERE proveedor_id = pe.id LIMIT 1) as telefono_principal
-                FROM proveedores_externos pe
+                FROM proveedor_externo pe
                 WHERE pe.activo = 1
                 ORDER BY pe.nombre
             """
@@ -299,7 +299,7 @@ class ProveedorExternoRepository:
             cur = conn.cursor()
             cur.execute(
                 """
-                SELECT * FROM proveedores_externos WHERE cuit = ?
+                SELECT * FROM proveedor_externo WHERE cuit = ?
             """,
                 (cuit,),
             )
@@ -312,7 +312,7 @@ class ProveedorExternoRepository:
             # Obtener contactos
             cur.execute(
                 """
-                SELECT * FROM proveedor_ext_contactos WHERE cuit_proveedor = ?
+                SELECT * FROM proveedor_externo_contacto WHERE cuit_proveedor = ?
             """,
                 (cuit,),
             )
@@ -321,7 +321,7 @@ class ProveedorExternoRepository:
             # Obtener emails
             cur.execute(
                 """
-                SELECT * FROM proveedor_ext_emails WHERE cuit_proveedor = ?
+                SELECT * FROM proveedor_externo_email WHERE cuit_proveedor = ?
             """,
                 (cuit,),
             )
@@ -330,7 +330,7 @@ class ProveedorExternoRepository:
             # Obtener teléfonos
             cur.execute(
                 """
-                SELECT * FROM proveedor_ext_telefonos WHERE cuit_proveedor = ?
+                SELECT * FROM proveedor_externo_telefono WHERE cuit_proveedor = ?
             """,
                 (cuit,),
             )

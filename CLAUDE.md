@@ -2,7 +2,7 @@
 
 Guia para Claude Code (claude.ai/code) cuando trabaja con este repositorio.
 
-> **Ultima actualizacion**: 2026-01-19 (Sprint 24 - Refactoring app.py)
+> **Ultima actualizacion**: 2026-02-05 (Testing 16 fases completado)
 
 ## Resumen del Proyecto
 
@@ -33,6 +33,11 @@ cd frontend && npm run build
 # Scripts de inicio rapido (Windows)
 scripts/INICIAR_SPM.bat           # Inicia backend + frontend
 scripts/INICIAR_SPM_RAPIDO.bat    # Inicio sin verificaciones
+
+# Seed de datos de prueba
+python scripts/seed_dev_data.py          # Genera datos de desarrollo
+python scripts/seed_dev_data.py --clean  # Limpia y regenera datos
+python scripts/seed_dev_data.py -v       # Modo verbose
 ```
 
 ## Arquitectura
@@ -47,7 +52,7 @@ http://localhost:5173       http://localhost:5000     SQLite (data/)
 ### Estructura Principal
 
 ```
-SPMv2.0/
+SPMv3.0/
 ├── backend/                    # API Flask (165 archivos, ~65K lineas)
 │   ├── routes/                 # 29 modulos, 200+ endpoints
 │   ├── services/               # 11 servicios de negocio
@@ -825,3 +830,53 @@ bdc3453 fix(ai): transform response structure for frontend compatibility
 - **No exponer errores internos** - usar mensajes genericos al cliente
 - **Agregar rate limiting** a endpoints sensibles
 - **Revisar permisos por rol** antes de operaciones criticas
+
+---
+
+## Testing Completo (2026-02-05)
+
+### Resumen de 16 Fases
+
+| Fase | Modulo | Estado | Cobertura |
+|------|--------|--------|-----------|
+| 1 | Autenticacion | ✅ | 100% |
+| 2 | Dashboards | ✅ | 100% |
+| 3 | Flujo Solicitudes | ✅ | 100% |
+| 4 | Aprobaciones | ✅ | 100% |
+| 5 | Planificacion | ✅ | 100% |
+| 6 | MRP | ✅ | 100% |
+| 7 | Forecast/AI | ✅ | 100% |
+| 8 | Presupuestos | ✅ | 89% |
+| 9 | Procurement | ⚠️ | 20% (requiere SAP) |
+| 10 | Materiales | ✅ | 60% (requiere catalogo) |
+| 11 | Comunicacion | ✅ | 89% |
+| 12 | Usuario | ✅ | 78% |
+| 13 | Admin | ✅ | 94% |
+| 14 | Seguridad | ✅ | 100% |
+| 15 | Performance | ✅ | 100% |
+| 16 | E2E | ✅ | 67% |
+
+**Cobertura total: 87%**
+
+### Bugs Conocidos (no bloqueantes)
+
+| ID | Descripcion | Severidad |
+|----|-------------|-----------|
+| BUR-001 | Reversion BUR falla (constraint tipo_movimiento) | Media |
+| USER-001 | notification-preferences SQL syntax error | Media |
+| USER-002 | admin/profile-requests columna faltante | Media |
+| ADMIN-001 | presupuestos/historial error 500 | Baja |
+| COMM-001 | notificaciones/test error 500 | Baja |
+
+### Documentacion de Tests
+
+- `TEST_FASE1_AUTENTICACION.md` - `TEST_FASE16_E2E.md` (16 archivos)
+- `TEST_TRACKING.md` - Resumen general de testing
+
+### Usuarios de Prueba
+
+```
+Usuario: 1 (Manu)
+Password: password123
+Rol: Admin, Aprobador_presupuestos, Aprobador_solicitudes, Planificador
+```

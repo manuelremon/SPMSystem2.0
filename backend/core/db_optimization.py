@@ -261,12 +261,12 @@ def get_pooled_connection(db_name: str = "spm") -> Generator[sqlite3.Connection,
 RECOMMENDED_INDEXES = {
     "spm": [
         # Solicitudes
-        ("idx_solicitudes_estado", "solicitudes", "estado"),
-        ("idx_solicitudes_centro", "solicitudes", "centro"),
-        ("idx_solicitudes_sector", "solicitudes", "sector"),
-        ("idx_solicitudes_fecha", "solicitudes", "created_at"),
-        ("idx_solicitudes_usuario", "solicitudes", "usuario_id"),
-        ("idx_solicitudes_estado_fecha", "solicitudes", "estado, created_at"),
+        ("idx_solicitudes_estado", "solicitud", "estado"),
+        ("idx_solicitudes_centro", "solicitud", "centro"),
+        ("idx_solicitudes_sector", "solicitud", "sector"),
+        ("idx_solicitudes_fecha", "solicitud", "created_at"),
+        ("idx_solicitudes_usuario", "solicitud", "usuario_id"),
+        ("idx_solicitudes_estado_fecha", "solicitud", "estado, created_at"),
         # Solicitud Items (Sprint 5.4)
         ("idx_items_solicitud_id", "solicitud_items", "solicitud_id"),
         ("idx_items_material", "solicitud_items", "codigo_material"),
@@ -411,7 +411,7 @@ def get_solicitudes_count_by_estado() -> Dict[str, int]:
         cursor.execute(
             """
             SELECT estado, COUNT(*) as count
-            FROM solicitudes
+            FROM solicitud
             GROUP BY estado
         """
         )

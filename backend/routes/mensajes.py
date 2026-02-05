@@ -25,7 +25,7 @@ def _get_user_name(user_id: str) -> str:
     try:
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT nombre, apellido FROM usuarios WHERE id_spm=?", (user_id,))
+            cur.execute("SELECT nombre, apellido FROM usuario WHERE id_spm=?", (user_id,))
             row = cur.fetchone()
             if row:
                 return f"{row['nombre']} {row['apellido']}".strip()

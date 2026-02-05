@@ -75,28 +75,46 @@ def _verificar_material_existe(material_id: str) -> bool:
 
     try:
         # Import diferido para evitar dependencias circulares
-        try:
-            from backend.core.db import get_db_connection
-        except ImportError:
-            from core.db import get_db_connection
+        from backend.core.db import get_db_connection
 
-        with get_db_connection("sap_data") as conn:
+        # Buscar primero en master_materiales.db (materiales_mrp - antes materiales_bbdd)
+        with get_db_connection("master_materiales") as conn:
             cursor = conn.cursor()
-            # Buscar material en catalogo (stock_detalle tiene todos los materiales)
             cursor.execute(
                 """
-                SELECT 1 FROM stock_detalle
-                WHERE LTRIM(codigo, '0') = ? OR codigo = ?
+                SELECT 1 FROM materiales_mrp
+                WHERE codigo_material = ?
+                   OR REPLACE(codigo_material, '-', '') = ?
+                   OR LTRIM(REPLACE(codigo_material, '-', ''), '0') = ?
                 LIMIT 1
                 """,
-                (codigo_norm, material_id),
+                (material_id, material_id.replace("-", ""), codigo_norm),
             )
             existe = cursor.fetchone() is not None
 
-            if existe:
-                _materiales_validados_cache.add(codigo_norm)
+        # Si no existe, buscar en master_materiales.db (catalogo_materiales)
+        if not existe:
+            with get_db_connection("master_materiales") as conn:
+                cursor = conn.cursor()
+                # Extraer sufijo numérico (ej: 0109-0000649 -> 0000649)
+                sufijo = material_id.split("-")[-1] if "-" in material_id else material_id
+                cursor.execute(
+                    """
+                    SELECT 1 FROM catalogo_materiales
+                    WHERE codigo_original = ?
+                       OR REPLACE(codigo_original, '-', '') = ?
+                       OR id_material = ?
+                       OR id_material = ?
+                    LIMIT 1
+                    """,
+                    (material_id, material_id.replace("-", ""), codigo_norm, sufijo),
+                )
+                existe = cursor.fetchone() is not None
 
-            return existe
+        if existe:
+            _materiales_validados_cache.add(codigo_norm)
+
+        return existe
     except Exception as e:
         # Si hay error de BD, permitir continuar (log warning)
         logger.warning(f"Error verificando existencia de material {material_id}: {e}")

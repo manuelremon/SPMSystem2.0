@@ -1,103 +1,216 @@
+/**
+ * Card Component - MUI Card/Paper
+ * Tarjetas profesionales con estilo MUI
+ */
+
 import React from "react";
 import PropTypes from "prop-types";
+import MuiCard from "@mui/material/Card";
+import MuiCardHeader from "@mui/material/CardHeader";
+import CardContent from "@mui/material/CardContent";
+import CardActions from "@mui/material/CardActions";
+import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
 
 /**
- * Card Component - Glass Morphism Style
- * Apple/iOS inspired translucent cards with backdrop blur
- * Soporta Dark Mode con variantes dark:
+ * Card - Tarjeta contenedora con MUI Card
+ *
+ * @param {string} className - Clases adicionales (compatibilidad)
+ * @param {React.ReactNode} children - Contenido de la tarjeta
+ * @param {boolean} hover - Efecto hover
+ * @param {boolean} interactive - Alias de hover (compatibilidad)
+ * @param {number} elevation - Elevación de sombra (0-24)
+ * @param {string} variant - Variante MUI: 'elevation' | 'outlined'
+ * @param {object} sx - Estilos MUI adicionales
  */
-export function Card({ className = "", children, hover = false, glow = false, interactive, ...props }) {
-  // Support legacy 'interactive' prop
+export function Card({
+  className,
+  children,
+  hover = false,
+  interactive,
+  elevation = 1,
+  variant = "outlined",
+  sx,
+  ...props
+}) {
   const shouldHover = interactive !== undefined ? interactive : hover;
 
   return (
-    <div
-      className={`
-        relative
-        bg-[var(--card-glass)]
-        backdrop-blur-md
-        border border-[var(--border-glass)]
-        rounded-lg
-        shadow-glass
-        ${shouldHover ? 'transition-all duration-300 ease-spring hover:bg-[var(--card-glass-strong)] hover:shadow-glow-primary' : ''}
-        ${glow ? 'shadow-glow-primary' : ''}
-        ${className}
-      `}
+    <MuiCard
+      className={className}
+      elevation={variant === 'outlined' ? 0 : elevation}
+      variant={variant}
+      sx={{
+        borderRadius: '8px',
+        transition: shouldHover ? 'all 0.2s ease-in-out' : undefined,
+        '&:hover': shouldHover ? {
+          boxShadow: 4,
+          borderColor: 'primary.main',
+        } : undefined,
+        ...sx,
+      }}
       {...props}
     >
       {children}
-    </div>
+    </MuiCard>
   );
 }
 
-export function CardHeader({ className = "", children, ...props }) {
+/**
+ * CardHeader - Encabezado de tarjeta
+ */
+export function CardHeader({
+  className,
+  children,
+  title,
+  subheader,
+  action,
+  avatar,
+  sx,
+  ...props
+}) {
+  // Si hay children, renderizar directamente
+  if (children && !title) {
+    return (
+      <Box
+        className={className}
+        sx={{
+          px: { xs: 2, sm: 3 },
+          pt: { xs: 2, sm: 2.5 },
+          pb: { xs: 1.5, sm: 2 },
+          ...sx,
+        }}
+        {...props}
+      >
+        {children}
+      </Box>
+    );
+  }
+
   return (
-    <div
-      className={`px-6 pt-6 pb-4 ${className}`}
+    <MuiCardHeader
+      className={className}
+      title={title}
+      subheader={subheader}
+      action={action}
+      avatar={avatar}
+      sx={{
+        px: { xs: 2, sm: 3 },
+        pt: { xs: 2, sm: 2.5 },
+        pb: { xs: 1.5, sm: 2 },
+        ...sx,
+      }}
       {...props}
     >
       {children}
-    </div>
+    </MuiCardHeader>
   );
 }
 
-export function CardTitle({ className = "", children, ...props }) {
+/**
+ * CardTitle - Título de tarjeta
+ */
+export function CardTitle({ className, children, sx, ...props }) {
   return (
-    <h3
-      className={`text-lg font-bold text-[var(--text-primary)] tracking-tight ${className}`}
+    <Typography
+      variant="subtitle1"
+      component="h3"
+      className={className}
+      sx={{
+        fontWeight: 600,
+        color: 'text.primary',
+        ...sx,
+      }}
       {...props}
     >
       {children}
-    </h3>
+    </Typography>
   );
 }
 
-export function CardDescription({ className = "", children, ...props }) {
+/**
+ * CardDescription - Descripción de tarjeta
+ */
+export function CardDescription({ className, children, sx, ...props }) {
   return (
-    <p
-      className={`text-sm text-[var(--text-muted)] mt-1 ${className}`}
+    <Typography
+      variant="body2"
+      className={className}
+      sx={{
+        color: 'text.secondary',
+        mt: 0.5,
+        ...sx,
+      }}
       {...props}
     >
       {children}
-    </p>
+    </Typography>
   );
 }
 
-export function CardContent({ className = "", children, ...props }) {
+/**
+ * CardContent - Contenido de tarjeta (re-exportación con estilos)
+ */
+export { CardContent };
+
+/**
+ * CardFooter - Pie de tarjeta
+ */
+export function CardFooter({ className, children, sx, ...props }) {
   return (
-    <div
-      className={`px-6 pb-6 ${className}`}
+    <CardActions
+      className={className}
+      sx={{
+        px: { xs: 2, sm: 3 },
+        py: 2,
+        borderTop: 1,
+        borderColor: 'divider',
+        ...sx,
+      }}
       {...props}
     >
       {children}
-    </div>
+    </CardActions>
   );
 }
 
+// PropTypes
 Card.propTypes = {
   className: PropTypes.string,
   children: PropTypes.node,
   hover: PropTypes.bool,
-  glow: PropTypes.bool,
   interactive: PropTypes.bool,
+  elevation: PropTypes.number,
+  variant: PropTypes.oneOf(["elevation", "outlined"]),
+  sx: PropTypes.object,
 };
 
 CardHeader.propTypes = {
   className: PropTypes.string,
   children: PropTypes.node,
+  title: PropTypes.node,
+  subheader: PropTypes.node,
+  action: PropTypes.node,
+  avatar: PropTypes.node,
+  sx: PropTypes.object,
 };
 
 CardTitle.propTypes = {
   className: PropTypes.string,
   children: PropTypes.node,
+  sx: PropTypes.object,
 };
 
 CardDescription.propTypes = {
   className: PropTypes.string,
   children: PropTypes.node,
+  sx: PropTypes.object,
 };
 
-CardContent.propTypes = {
+CardFooter.propTypes = {
   className: PropTypes.string,
   children: PropTypes.node,
+  sx: PropTypes.object,
 };
+
+export default Card;

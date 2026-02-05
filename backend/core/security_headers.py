@@ -10,10 +10,7 @@ import os
 
 from flask import Flask
 
-try:
-    from backend.core.config import settings
-except ImportError:
-    from core.config import settings
+from backend.core.config import settings
 
 
 def init_security_headers(app: Flask):

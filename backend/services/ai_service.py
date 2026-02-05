@@ -27,24 +27,15 @@ _training_lock = threading.Lock()
 
 def get_db_connection():
     """Obtiene conexion a base de datos."""
-    try:
-        from backend.core.db import get_db_connection as db_conn
+    from backend.core.db import get_db_connection as db_conn
 
-        return db_conn()
-    except ImportError:
-        from core.db import get_db_connection as db_conn
-
-        return db_conn()
+    return db_conn()
 
 
 def _sql_now_minus(interval: str) -> str:
     """Helper para obtener expresion SQL NOW() - interval compatible."""
-    try:
-        from backend.core.db import sql_now_minus
-        return sql_now_minus(interval)
-    except ImportError:
-        from core.db import sql_now_minus
-        return sql_now_minus(interval)
+    from backend.core.db import sql_now_minus
+    return sql_now_minus(interval)
 
 
 class AIService:
@@ -248,7 +239,8 @@ class AIService:
 
     def proyectar_demanda(
         self, material_codigo: str, centro: str, dias: int = 30,
-        modelo_tipo: str = "random_forest", almacen: str = ""
+        modelo_tipo: str = "random_forest", almacen: str = "",
+        meses_historico: int = 0
     ) -> Dict[str, Any]:
         """
         Proyecta demanda futura usando forecast ML.
@@ -259,6 +251,7 @@ class AIService:
             dias: Dias a proyectar
             modelo_tipo: Tipo de modelo ML (random_forest, gradient_boosting, linear, ridge)
             almacen: Codigo de almacen (opcional, filtra datos historicos)
+            meses_historico: Meses de historico a usar (0 = todo el historico disponible)
 
         Returns:
             Proyeccion con intervalo de confianza
@@ -282,6 +275,13 @@ class AIService:
                 if almacen:
                     conditions.append("almacen = ?")
                     params.append(almacen)
+
+                # Filtrar por rango de meses si se especifica
+                if meses_historico and meses_historico > 0:
+                    from datetime import timedelta
+                    fecha_inicio = (datetime.now() - timedelta(days=meses_historico * 30)).strftime('%Y-%m-%d')
+                    conditions.append("fecha >= ?")
+                    params.append(fecha_inicio)
 
                 where_clause = " AND ".join(conditions)
                 query = f"""
@@ -311,12 +311,22 @@ class AIService:
                     "limite_superior": round(float(row['limite_superior']), 2)
                 })
 
+            # Calcular patrones semanales y mensuales
+            patrones = self._calcular_patrones(df)
+
+            # Calcular rango de fechas del histórico usado
+            df['fecha'] = pd.to_datetime(df['fecha'])
+            fecha_min = df['fecha'].min()
+            fecha_max = df['fecha'].max()
+            total_registros = len(df)
+
             return {
                 "material": material_codigo,
                 "centro": centro,
                 "modelo": modelo_tipo,
                 "nombre_modelo": predictor.nombre_modelo,
                 "dias": dias,
+                "meses_historico": meses_historico if meses_historico > 0 else "todo",
                 "predicciones": predicciones,
                 "metricas": {
                     "mae": round(metricas.get('mae', 0), 2),
@@ -324,13 +334,83 @@ class AIService:
                     "r2": round(metricas.get('r2', 0), 4),
                     "mape": round(metricas.get('mape', 0), 2)
                 },
-                "historico": df.tail(30).to_dict('records'),
+                # Mostrar todo el histórico usado para entrenar
+                # Formatear fechas para serialización JSON
+                "historico": df.assign(
+                    fecha=df['fecha'].dt.strftime('%Y-%m-%d')
+                ).to_dict('records'),
+                "historico_info": {
+                    "total_registros": total_registros,
+                    "fecha_inicio": fecha_min.strftime('%Y-%m-%d') if pd.notna(fecha_min) else None,
+                    "fecha_fin": fecha_max.strftime('%Y-%m-%d') if pd.notna(fecha_max) else None
+                },
+                "patrones": patrones,
                 "fecha_generacion": datetime.now(timezone.utc).isoformat()
             }
 
         except Exception as e:
             logger.error(f"Error proyectando demanda: {e}")
             return self._fallback_proyeccion(material_codigo, centro, dias)
+
+    def _calcular_patrones(self, df) -> Dict[str, Any]:
+        """
+        Calcula patrones semanales y mensuales del consumo histórico.
+
+        Args:
+            df: DataFrame con columnas 'fecha' y 'cantidad'
+
+        Returns:
+            Dict con patrones semanal y mensual
+        """
+        import pandas as pd
+
+        try:
+            if df is None or len(df) == 0 or 'fecha' not in df.columns or 'cantidad' not in df.columns:
+                logger.warning("DataFrame vacío o sin columnas requeridas para calcular patrones")
+                return {"semanal": None, "mensual": None}
+
+            # Trabajar con copia para no modificar original
+            df_patrones = df.copy()
+
+            # Asegurar que fecha es datetime
+            df_patrones['fecha'] = pd.to_datetime(df_patrones['fecha'], errors='coerce')
+
+            # Eliminar fechas nulas
+            df_patrones = df_patrones.dropna(subset=['fecha', 'cantidad'])
+
+            if len(df_patrones) == 0:
+                logger.warning("No hay datos válidos después de limpiar fechas")
+                return {"semanal": None, "mensual": None}
+
+            # Patrón semanal (promedio por día de semana: 0=Lun, 6=Dom)
+            df_patrones['dia_semana'] = df_patrones['fecha'].dt.dayofweek
+            semanal = df_patrones.groupby('dia_semana')['cantidad'].mean()
+
+            # Crear diccionario con strings como claves (para JSON)
+            patron_semanal = {}
+            for i in range(7):
+                val = semanal.get(i, 0)
+                patron_semanal[str(i)] = round(float(val) if pd.notna(val) else 0, 2)
+
+            # Patrón mensual (promedio por mes: 1=Ene, 12=Dic)
+            df_patrones['mes'] = df_patrones['fecha'].dt.month
+            mensual = df_patrones.groupby('mes')['cantidad'].mean()
+
+            patron_mensual = {}
+            for i in range(1, 13):
+                val = mensual.get(i, 0)
+                patron_mensual[str(i)] = round(float(val) if pd.notna(val) else 0, 2)
+
+            logger.debug(f"Patrones calculados - Semanal: {patron_semanal}, Mensual: {patron_mensual}")
+
+            return {
+                "semanal": patron_semanal,
+                "mensual": patron_mensual
+            }
+        except Exception as e:
+            logger.error(f"Error calculando patrones: {e}", exc_info=True)
+
+        return {"semanal": None, "mensual": None}
 
     # ========================================================================
     # SUGERENCIAS AUTOMATICAS
@@ -677,7 +757,7 @@ class AIService:
                 cursor.execute(
                     f"""
                     SELECT AVG(total_monto) as consumo_promedio
-                    FROM solicitudes
+                    FROM solicitud
                     WHERE material_codigo = ? AND centro = ?
                     AND created_at > {_sql_now_minus("90 days")}
                 """,

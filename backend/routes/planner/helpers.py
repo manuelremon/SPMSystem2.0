@@ -33,7 +33,7 @@ def _get_responsable_almacen(centro: str, almacen: str) -> str | None:
             cur.execute(
                 """
                 SELECT u.id_spm
-                FROM usuarios u
+                FROM usuario u
                 WHERE u.centro = ? AND u.rol LIKE '%%almacen%%'
                 LIMIT 1
                 """,
@@ -98,7 +98,7 @@ def _get_referente_centro(centro: str, almacen: str = None) -> str | None:
             if not referente_email:
                 return None
 
-            sql_user = f"SELECT id_spm FROM usuarios WHERE mail = {placeholder}"
+            sql_user = f"SELECT id_spm FROM usuario WHERE mail = {placeholder}"
             cur.execute(sql_user, (referente_email,))
             user_row = cur.fetchone()
             if user_row:
@@ -176,7 +176,7 @@ def _enviar_notificacion_finalizacion(solicitud_id: int):
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT id_usuario FROM solicitudes WHERE id = ?",
+                "SELECT id_usuario FROM solicitud WHERE id = ?",
                 (solicitud_id,),
             )
             sol = cur.fetchone()

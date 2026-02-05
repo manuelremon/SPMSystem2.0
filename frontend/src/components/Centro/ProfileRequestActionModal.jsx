@@ -1,21 +1,31 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  X,
-  Check,
-  XCircle,
-  MessageSquare,
-  User,
-  Building,
-  MapPin,
-  Loader2,
-  AlertTriangle,
-  ArrowRight,
-  Send,
-} from "../ui/Icons";
-import { Button } from "../ui/Button";
-import { Badge } from "../ui/Badge";
-import { Alert } from "../ui/Alert";
+  Box,
+  Paper,
+  Typography,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  IconButton,
+  CircularProgress,
+  Alert,
+  Chip,
+  Stack,
+  Divider
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import CheckIcon from "@mui/icons-material/Check";
+import CancelIcon from "@mui/icons-material/Cancel";
+import MessageIcon from "@mui/icons-material/Message";
+import PersonIcon from "@mui/icons-material/Person";
+import BusinessIcon from "@mui/icons-material/Business";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import SendIcon from "@mui/icons-material/Send";
 import { useI18n } from "../../context/i18n";
 import api from "../../services/api";
 
@@ -43,17 +53,33 @@ function ValueComparison({ label, current, requested, icon: Icon }) {
   if (!hasChange) return null;
 
   return (
-    <div className="p-3 bg-[var(--bg-soft)] rounded-lg">
-      <div className="flex items-center gap-2 text-sm font-medium text-[var(--fg)] mb-2">
-        {Icon && <Icon className="w-4 h-4" />}
-        <span>{label}</span>
-      </div>
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-[var(--fg-muted)] line-through">{currentDisplay}</span>
-        <ArrowRight className="w-4 h-4 text-[var(--fg-muted)]" />
-        <span className="text-green-600 dark:text-green-400 font-medium">{requestedDisplay}</span>
-      </div>
-    </div>
+    <Paper
+      elevation={0}
+      sx={{
+        p: 2,
+        bgcolor: "grey.50",
+        borderRadius: 2
+      }}
+    >
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+        {Icon && <Icon sx={{ fontSize: 18, color: "text.primary" }} />}
+        <Typography variant="subtitle2" fontWeight={500}>
+          {label}
+        </Typography>
+      </Stack>
+      <Stack direction="row" alignItems="center" spacing={1}>
+        <Typography
+          variant="body2"
+          sx={{ color: "text.secondary", textDecoration: "line-through" }}
+        >
+          {currentDisplay}
+        </Typography>
+        <ArrowForwardIcon sx={{ fontSize: 16, color: "text.disabled" }} />
+        <Typography variant="body2" sx={{ color: "success.main", fontWeight: 500 }}>
+          {requestedDisplay}
+        </Typography>
+      </Stack>
+    </Paper>
   );
 }
 
@@ -228,295 +254,378 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
 
   const isPending = requestData?.estado === "pendiente";
 
+  const getStatusChipProps = (estado) => {
+    switch (estado) {
+      case "pendiente":
+        return { label: estado, color: "warning" };
+      case "aprobado":
+        return { label: estado, color: "success" };
+      default:
+        return { label: estado, color: "error" };
+    }
+  };
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{
-        backgroundColor: "rgba(15, 23, 42, 0.5)",
-        backdropFilter: "blur(4px)",
-        WebkitBackdropFilter: "blur(4px)",
+    <Dialog
+      open={true}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+          maxHeight: "90vh"
+        }
       }}
-      onClick={onClose}
     >
-      <div
-        className="relative w-full max-w-2xl max-h-[90vh] rounded-2xl border border-[var(--border)] overflow-hidden flex flex-col bg-[var(--card)] shadow-elevated"
-        onClick={(e) => e.stopPropagation()}
+      {/* Header */}
+      <DialogTitle
+        sx={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          pb: 2
+        }}
       >
-        {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-[var(--border)]">
-          <div>
-            <h2 className="text-lg font-semibold text-[var(--fg)]">
-              {t("profile_req_action_title", "Solicitud de Cambio de Perfil")}
-              {requestId ? ` #${requestId}` : ""}
-            </h2>
-            {requestData && (
-              <p className="text-sm text-[var(--fg-muted)] mt-1">
-                {formatDateTime(requestData.created_at)}
-              </p>
-            )}
-          </div>
-          <Button
-            onClick={onClose}
-            variant="icon"
-            size="icon-md"
-          >
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
+        <Box>
+          <Typography variant="h6" component="div" fontWeight={600}>
+            {t("profile_req_action_title", "Solicitud de Cambio de Perfil")}
+            {requestId ? ` #${requestId}` : ""}
+          </Typography>
+          {requestData && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              {formatDateTime(requestData.created_at)}
+            </Typography>
+          )}
+        </Box>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-            </div>
-          ) : !requestId && pendingRequests.length > 0 ? (
-            /* Selector de solicitudes pendientes */
-            <div className="space-y-4">
-              <p className="text-sm text-[var(--fg-muted)]">
-                Selecciona la solicitud de cambio de perfil que deseas gestionar:
-              </p>
-              <div className="space-y-2">
-                {pendingRequests.map((req) => (
-                  <button
-                    key={req.id}
-                    onClick={() => setRequestId(req.id)}
-                    className="w-full text-left p-4 bg-[var(--bg-soft)] hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg border border-[var(--border)] hover:border-blue-400 dark:hover:border-blue-600 transition-all"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-[var(--fg)]">
-                          {req.solicitante?.nombre || `Usuario ${req.usuario_id}`}
-                        </p>
-                        <p className="text-sm text-[var(--fg-muted)]">
-                          Solicitud #{req.id} • {formatDateTime(req.created_at)}
-                        </p>
-                      </div>
-                      <Badge className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">Pendiente</Badge>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : error && !requestData ? (
-            <Alert variant="error">{error}</Alert>
-          ) : success ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
-                <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
-              </div>
-              <p className="text-lg font-medium text-green-700 dark:text-green-300">{success}</p>
-            </div>
-          ) : requestData ? (
-            <>
-              {/* Vista de detalle */}
-              {activeView === "detail" && (
-                <div className="space-y-6">
-                  {/* Solicitante */}
-                  <div className="flex items-start gap-4 p-4 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
-                    <div className="w-12 h-12 bg-blue-200 dark:bg-blue-800/50 rounded-full flex items-center justify-center">
-                      <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-[var(--fg)]">
-                        {requestData.solicitante?.nombre || "Usuario"}
-                      </p>
-                      <p className="text-sm text-[var(--fg)]">
-                        {requestData.solicitante?.mail}
-                      </p>
-                      <p className="text-sm text-[var(--fg-muted)]">
-                        {requestData.solicitante?.posicion} • {requestData.solicitante?.sector}
-                      </p>
-                    </div>
-                    <Badge
-                      className={`ml-auto ${
-                        requestData.estado === "pendiente"
-                          ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
-                          : requestData.estado === "aprobado"
-                          ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
-                          : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
-                      }`}
+      <Divider />
+
+      {/* Content */}
+      <DialogContent sx={{ py: 3 }}>
+        {loading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+            <CircularProgress color="primary" />
+          </Box>
+        ) : !requestId && pendingRequests.length > 0 ? (
+          /* Selector de solicitudes pendientes */
+          <Stack spacing={2}>
+            <Typography variant="body2" color="text.secondary">
+              Selecciona la solicitud de cambio de perfil que deseas gestionar:
+            </Typography>
+            <Stack spacing={1}>
+              {pendingRequests.map((req) => (
+                <Paper
+                  key={req.id}
+                  elevation={0}
+                  onClick={() => setRequestId(req.id)}
+                  sx={{
+                    p: 2,
+                    bgcolor: "grey.50",
+                    borderRadius: 2,
+                    border: 1,
+                    borderColor: "divider",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    "&:hover": {
+                      bgcolor: "primary.lighter",
+                      borderColor: "primary.main"
+                    }
+                  }}
+                >
+                  <Stack direction="row" alignItems="center" justifyContent="space-between">
+                    <Box>
+                      <Typography variant="subtitle2" fontWeight={500}>
+                        {req.solicitante?.nombre || `Usuario ${req.usuario_id}`}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Solicitud #{req.id} - {formatDateTime(req.created_at)}
+                      </Typography>
+                    </Box>
+                    <Chip label="Pendiente" color="warning" size="small" />
+                  </Stack>
+                </Paper>
+              ))}
+            </Stack>
+          </Stack>
+        ) : error && !requestData ? (
+          <Alert severity="error">{error}</Alert>
+        ) : success ? (
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", py: 6 }}>
+            <Box
+              sx={{
+                width: 64,
+                height: 64,
+                bgcolor: "success.lighter",
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                mb: 2
+              }}
+            >
+              <CheckIcon sx={{ fontSize: 32, color: "success.main" }} />
+            </Box>
+            <Typography variant="h6" color="success.main" fontWeight={500}>
+              {success}
+            </Typography>
+          </Box>
+        ) : requestData ? (
+          <>
+            {/* Vista de detalle */}
+            {activeView === "detail" && (
+              <Stack spacing={3}>
+                {/* Solicitante */}
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    bgcolor: "primary.lighter",
+                    borderRadius: 3
+                  }}
+                >
+                  <Stack direction="row" alignItems="flex-start" spacing={2}>
+                    <Box
+                      sx={{
+                        width: 48,
+                        height: 48,
+                        bgcolor: "primary.light",
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center"
+                      }}
                     >
-                      {requestData.estado}
-                    </Badge>
-                  </div>
+                      <PersonIcon sx={{ color: "primary.main" }} />
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="subtitle1" fontWeight={600}>
+                        {requestData.solicitante?.nombre || "Usuario"}
+                      </Typography>
+                      <Typography variant="body2" color="text.primary">
+                        {requestData.solicitante?.mail}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {requestData.solicitante?.posicion} - {requestData.solicitante?.sector}
+                      </Typography>
+                    </Box>
+                    <Chip {...getStatusChipProps(requestData.estado)} size="small" />
+                  </Stack>
+                </Paper>
 
-                  {/* Cambios solicitados */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-[var(--fg-muted)] mb-3 uppercase tracking-wider">
-                      {t("profile_req_cambios", "Cambios Solicitados")}
-                    </h3>
-                    <div className="space-y-2">
-                      <ValueComparison
-                        label="Sector"
-                        current={requestData.current_values?.sector}
-                        requested={requestData.requested_values?.sector}
-                        icon={Building}
-                      />
-                      <ValueComparison
-                        label="Centros"
-                        current={requestData.current_values?.centros}
-                        requested={requestData.requested_values?.centros}
-                        icon={MapPin}
-                      />
-                      <ValueComparison
-                        label="Almacenes"
-                        current={requestData.current_values?.almacenes}
-                        requested={requestData.requested_values?.almacenes}
-                        icon={MapPin}
-                      />
-                      <ValueComparison
-                        label="Jefe"
-                        current={requestData.current_values?.jefe}
-                        requested={requestData.requested_values?.jefe}
-                        icon={User}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Error inline */}
-                  {error && <Alert variant="error" onDismiss={() => setError(null)}>{error}</Alert>}
-
-                  {/* Advertencia si ya fue procesada */}
-                  {!isPending && (
-                    <div className="p-4 bg-[var(--bg-soft)] rounded-lg border border-[var(--border)]">
-                      <p className="text-sm text-[var(--fg-muted)]">
-                        Esta solicitud ya fue <strong>{requestData.estado}</strong> y no puede modificarse.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Vista de aprobar */}
-              {activeView === "approve" && (
-                <div className="space-y-4">
-                  <div className="p-4 bg-green-100 dark:bg-green-900/30 rounded-lg border border-green-300 dark:border-green-700">
-                    <p className="text-sm text-green-800 dark:text-green-200">
-                      Los cambios se aplicarán automáticamente al perfil del usuario.
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--fg)] mb-2">
-                      {t("profile_req_comentario", "Comentario (opcional)")}
-                    </label>
-                    <textarea
-                      value={comentario}
-                      onChange={(e) => setComentario(e.target.value)}
-                      placeholder="Agregar un comentario..."
-                      className="w-full px-4 py-3 border border-[var(--border)] rounded-lg bg-[var(--card)] text-[var(--fg)] placeholder:text-[var(--fg-muted)] focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
-                      rows={3}
+                {/* Cambios solicitados */}
+                <Box>
+                  <Typography
+                    variant="overline"
+                    color="text.secondary"
+                    sx={{ letterSpacing: 1, mb: 1.5, display: "block" }}
+                  >
+                    {t("profile_req_cambios", "Cambios Solicitados")}
+                  </Typography>
+                  <Stack spacing={1}>
+                    <ValueComparison
+                      label="Sector"
+                      current={requestData.current_values?.sector}
+                      requested={requestData.requested_values?.sector}
+                      icon={BusinessIcon}
                     />
-                  </div>
-                  {error && <Alert variant="error" onDismiss={() => setError(null)}>{error}</Alert>}
-                </div>
-              )}
-
-              {/* Vista de rechazar */}
-              {activeView === "reject" && (
-                <div className="space-y-4">
-                  <div className="p-4 bg-red-100 dark:bg-red-900/30 rounded-lg border border-red-300 dark:border-red-700">
-                    <p className="text-sm text-red-800 dark:text-red-200">
-                      El solicitante será notificado del rechazo con el motivo indicado.
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--fg)] mb-2">
-                      {t("profile_req_motivo", "Motivo del rechazo")} <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      value={motivo}
-                      onChange={(e) => setMotivo(e.target.value)}
-                      placeholder="Indicar el motivo del rechazo..."
-                      className="w-full px-4 py-3 border border-[var(--border)] rounded-lg bg-[var(--card)] text-[var(--fg)] placeholder:text-[var(--fg-muted)] focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
-                      rows={3}
-                      required
+                    <ValueComparison
+                      label="Centros"
+                      current={requestData.current_values?.centros}
+                      requested={requestData.requested_values?.centros}
+                      icon={LocationOnIcon}
                     />
-                  </div>
-                  {error && <Alert variant="error" onDismiss={() => setError(null)}>{error}</Alert>}
-                </div>
-              )}
-
-              {/* Vista de mensaje */}
-              {activeView === "message" && (
-                <div className="space-y-4">
-                  <div className="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-lg border border-blue-300 dark:border-blue-700">
-                    <p className="text-sm text-blue-800 dark:text-blue-200">
-                      El mensaje será enviado a la bandeja de entrada del solicitante.
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--fg)] mb-2">
-                      {t("profile_req_mensaje_label", "Mensaje")}
-                    </label>
-                    <textarea
-                      value={mensaje}
-                      onChange={(e) => setMensaje(e.target.value)}
-                      placeholder="Escribir mensaje..."
-                      className="w-full px-4 py-3 border border-[var(--border)] rounded-lg bg-[var(--card)] text-[var(--fg)] placeholder:text-[var(--fg-muted)] focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                      rows={4}
+                    <ValueComparison
+                      label="Almacenes"
+                      current={requestData.current_values?.almacenes}
+                      requested={requestData.requested_values?.almacenes}
+                      icon={LocationOnIcon}
                     />
-                  </div>
-                  {error && <Alert variant="error" onDismiss={() => setError(null)}>{error}</Alert>}
-                </div>
-              )}
-            </>
-          ) : null}
-        </div>
+                    <ValueComparison
+                      label="Jefe"
+                      current={requestData.current_values?.jefe}
+                      requested={requestData.requested_values?.jefe}
+                      icon={PersonIcon}
+                    />
+                  </Stack>
+                </Box>
 
-        {/* Footer con acciones */}
-        {requestData && !success && (
-          <div className="p-6 border-t border-[var(--border)] bg-[var(--bg-soft)]/50">
+                {/* Error inline */}
+                {error && (
+                  <Alert severity="error" onClose={() => setError(null)}>
+                    {error}
+                  </Alert>
+                )}
+
+                {/* Advertencia si ya fue procesada */}
+                {!isPending && (
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      bgcolor: "grey.100",
+                      borderRadius: 2,
+                      border: 1,
+                      borderColor: "divider"
+                    }}
+                  >
+                    <Typography variant="body2" color="text.secondary">
+                      Esta solicitud ya fue <strong>{requestData.estado}</strong> y no puede modificarse.
+                    </Typography>
+                  </Paper>
+                )}
+              </Stack>
+            )}
+
+            {/* Vista de aprobar */}
+            {activeView === "approve" && (
+              <Stack spacing={2}>
+                <Alert severity="success" sx={{ borderRadius: 2 }}>
+                  Los cambios se aplicarán automáticamente al perfil del usuario.
+                </Alert>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                    {t("profile_req_comentario", "Comentario (opcional)")}
+                  </Typography>
+                  <TextField
+                    value={comentario}
+                    onChange={(e) => setComentario(e.target.value)}
+                    placeholder="Agregar un comentario..."
+                    multiline
+                    rows={3}
+                    fullWidth
+                    variant="outlined"
+                  />
+                </Box>
+                {error && (
+                  <Alert severity="error" onClose={() => setError(null)}>
+                    {error}
+                  </Alert>
+                )}
+              </Stack>
+            )}
+
+            {/* Vista de rechazar */}
+            {activeView === "reject" && (
+              <Stack spacing={2}>
+                <Alert severity="error" sx={{ borderRadius: 2 }}>
+                  El solicitante será notificado del rechazo con el motivo indicado.
+                </Alert>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                    {t("profile_req_motivo", "Motivo del rechazo")}{" "}
+                    <Typography component="span" color="error">*</Typography>
+                  </Typography>
+                  <TextField
+                    value={motivo}
+                    onChange={(e) => setMotivo(e.target.value)}
+                    placeholder="Indicar el motivo del rechazo..."
+                    multiline
+                    rows={3}
+                    fullWidth
+                    variant="outlined"
+                    required
+                  />
+                </Box>
+                {error && (
+                  <Alert severity="error" onClose={() => setError(null)}>
+                    {error}
+                  </Alert>
+                )}
+              </Stack>
+            )}
+
+            {/* Vista de mensaje */}
+            {activeView === "message" && (
+              <Stack spacing={2}>
+                <Alert severity="info" sx={{ borderRadius: 2 }}>
+                  El mensaje será enviado a la bandeja de entrada del solicitante.
+                </Alert>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                    {t("profile_req_mensaje_label", "Mensaje")}
+                  </Typography>
+                  <TextField
+                    value={mensaje}
+                    onChange={(e) => setMensaje(e.target.value)}
+                    placeholder="Escribir mensaje..."
+                    multiline
+                    rows={4}
+                    fullWidth
+                    variant="outlined"
+                  />
+                </Box>
+                {error && (
+                  <Alert severity="error" onClose={() => setError(null)}>
+                    {error}
+                  </Alert>
+                )}
+              </Stack>
+            )}
+          </>
+        ) : null}
+      </DialogContent>
+
+      {/* Footer con acciones */}
+      {requestData && !success && (
+        <>
+          <Divider />
+          <DialogActions sx={{ p: 2, bgcolor: "grey.50" }}>
             {activeView === "detail" && isPending && (
-              <div className="flex flex-wrap gap-3">
+              <Stack direction="row" spacing={1.5} sx={{ width: "100%" }} flexWrap="wrap">
                 <Button
                   onClick={() => setActiveView("approve")}
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  variant="contained"
+                  color="success"
+                  startIcon={<CheckIcon />}
                 >
-                  <Check className="w-4 h-4 mr-2" />
                   {t("profile_req_aprobar", "Aprobar")}
                 </Button>
                 <Button
                   onClick={() => setActiveView("reject")}
-                  variant="outline"
-                  className="border-red-300 text-red-600 hover:bg-red-50"
+                  variant="outlined"
+                  color="error"
+                  startIcon={<CancelIcon />}
                 >
-                  <XCircle className="w-4 h-4 mr-2" />
                   {t("profile_req_rechazar", "Rechazar")}
                 </Button>
                 <Button
                   onClick={() => setActiveView("message")}
-                  variant="outline"
+                  variant="outlined"
+                  startIcon={<MessageIcon />}
                 >
-                  <MessageSquare className="w-4 h-4 mr-2" />
                   {t("profile_req_mensaje", "Enviar mensaje")}
                 </Button>
-              </div>
+              </Stack>
             )}
 
             {activeView === "detail" && !isPending && (
-              <div className="flex gap-3">
+              <Stack direction="row" spacing={1.5}>
                 <Button
                   onClick={() => setActiveView("message")}
-                  variant="outline"
+                  variant="outlined"
+                  startIcon={<MessageIcon />}
                 >
-                  <MessageSquare className="w-4 h-4 mr-2" />
                   {t("profile_req_mensaje", "Enviar mensaje")}
                 </Button>
                 <Button
                   onClick={() => navigate("/admin/solicitudes-perfil")}
-                  variant="outline"
+                  variant="outlined"
                 >
                   {t("profile_req_ver_todas", "Ver todas las solicitudes")}
                 </Button>
-              </div>
+              </Stack>
             )}
 
             {activeView === "approve" && (
-              <div className="flex gap-3">
+              <Stack direction="row" spacing={1.5}>
                 <Button
                   onClick={() => setActiveView("detail")}
-                  variant="outline"
+                  variant="outlined"
                   disabled={submitting}
                 >
                   {t("common_cancel", "Cancelar")}
@@ -524,23 +633,20 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
                 <Button
                   onClick={handleAprobar}
                   disabled={submitting}
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  variant="contained"
+                  color="success"
+                  startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : <CheckIcon />}
                 >
-                  {submitting ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : (
-                    <Check className="w-4 h-4 mr-2" />
-                  )}
                   {t("profile_req_confirmar_aprobar", "Confirmar Aprobación")}
                 </Button>
-              </div>
+              </Stack>
             )}
 
             {activeView === "reject" && (
-              <div className="flex gap-3">
+              <Stack direction="row" spacing={1.5}>
                 <Button
                   onClick={() => setActiveView("detail")}
-                  variant="outline"
+                  variant="outlined"
                   disabled={submitting}
                 >
                   {t("common_cancel", "Cancelar")}
@@ -548,23 +654,20 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
                 <Button
                   onClick={handleRechazar}
                   disabled={submitting}
-                  className="bg-red-600 hover:bg-red-700 text-white"
+                  variant="contained"
+                  color="error"
+                  startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : <CancelIcon />}
                 >
-                  {submitting ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : (
-                    <XCircle className="w-4 h-4 mr-2" />
-                  )}
                   {t("profile_req_confirmar_rechazar", "Confirmar Rechazo")}
                 </Button>
-              </div>
+              </Stack>
             )}
 
             {activeView === "message" && (
-              <div className="flex gap-3">
+              <Stack direction="row" spacing={1.5}>
                 <Button
                   onClick={() => setActiveView("detail")}
-                  variant="outline"
+                  variant="outlined"
                   disabled={submitting}
                 >
                   {t("common_cancel", "Cancelar")}
@@ -572,19 +675,16 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
                 <Button
                   onClick={handleEnviarMensaje}
                   disabled={submitting || !mensaje.trim()}
+                  variant="contained"
+                  startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : <SendIcon />}
                 >
-                  {submitting ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : (
-                    <Send className="w-4 h-4 mr-2" />
-                  )}
                   {t("profile_req_enviar", "Enviar")}
                 </Button>
-              </div>
+              </Stack>
             )}
-          </div>
-        )}
-      </div>
-    </div>
+          </DialogActions>
+        </>
+      )}
+    </Dialog>
   );
 }

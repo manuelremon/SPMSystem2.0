@@ -36,14 +36,14 @@ def admin_centros():
         with get_db_transaction() as conn:
             cur = conn.cursor()
             cur.execute(
-                "INSERT INTO catalog_centros (codigo, nombre, activo) VALUES (?,?,?)",
+                "INSERT INTO catalogo_centro (codigo, nombre, activo) VALUES (?,?,?)",
                 (data["codigo"], data.get("nombre"), 1),
             )
         invalidate_catalog_cache()
 
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM catalog_centros")
+        cur.execute("SELECT codigo, nombre, activo, created_at, updated_at FROM catalogo_centro")
         rows = [dict(r) for r in cur.fetchall()]
     return jsonify(rows), 200
 
@@ -57,11 +57,11 @@ def admin_centros_mod(centro_codigo):
         if request.method == "PUT":
             data = request.get_json(silent=True) or {}
             cur.execute(
-                "UPDATE catalog_centros SET nombre=?, activo=? WHERE codigo=?",
+                "UPDATE catalogo_centro SET nombre=?, activo=? WHERE codigo=?",
                 (data.get("nombre"), data.get("activo", 1), centro_codigo),
             )
         else:
-            cur.execute("UPDATE catalog_centros SET activo=0 WHERE codigo=?", (centro_codigo,))
+            cur.execute("UPDATE catalogo_centro SET activo=0 WHERE codigo=?", (centro_codigo,))
 
     invalidate_catalog_cache()
     return jsonify({"ok": True}), 200
@@ -78,14 +78,14 @@ def admin_almacenes():
         with get_db_transaction() as conn:
             cur = conn.cursor()
             cur.execute(
-                "INSERT INTO catalog_almacenes (codigo, nombre, activo) VALUES (?,?,?)",
+                "INSERT INTO catalogo_almacen (codigo, nombre, activo) VALUES (?,?,?)",
                 (data["codigo"], data.get("nombre"), 1),
             )
         invalidate_catalog_cache()
 
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM catalog_almacenes")
+        cur.execute("SELECT codigo, nombre, activo, created_at, updated_at FROM catalogo_almacen")
         rows = [dict(r) for r in cur.fetchall()]
     return jsonify(rows), 200
 
@@ -99,11 +99,11 @@ def admin_almacenes_mod(almacen_codigo):
         if request.method == "PUT":
             data = request.get_json(silent=True) or {}
             cur.execute(
-                "UPDATE catalog_almacenes SET nombre=?, activo=? WHERE codigo=?",
+                "UPDATE catalogo_almacen SET nombre=?, activo=? WHERE codigo=?",
                 (data.get("nombre"), data.get("activo", 1), almacen_codigo),
             )
         else:
-            cur.execute("UPDATE catalog_almacenes SET activo=0 WHERE codigo=?", (almacen_codigo,))
+            cur.execute("UPDATE catalogo_almacen SET activo=0 WHERE codigo=?", (almacen_codigo,))
 
     invalidate_catalog_cache()
     return jsonify({"ok": True}), 200
@@ -120,14 +120,14 @@ def admin_sectores():
         with get_db_transaction() as conn:
             cur = conn.cursor()
             cur.execute(
-                "INSERT INTO catalog_sectores (nombre, activo) VALUES (?,?)",
+                "INSERT INTO catalogo_sector (nombre, activo) VALUES (?,?)",
                 (data["nombre"], 1),
             )
         invalidate_catalog_cache()
 
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM catalog_sectores")
+        cur.execute("SELECT nombre, activo, created_at, updated_at FROM catalogo_sector")
         rows = [dict(r) for r in cur.fetchall()]
     return jsonify(rows), 200
 
@@ -141,11 +141,11 @@ def admin_sectores_mod(sector_nombre):
         if request.method == "PUT":
             data = request.get_json(silent=True) or {}
             cur.execute(
-                "UPDATE catalog_sectores SET activo=? WHERE nombre=?",
+                "UPDATE catalogo_sector SET activo=? WHERE nombre=?",
                 (data.get("activo", 1), sector_nombre),
             )
         else:
-            cur.execute("UPDATE catalog_sectores SET activo=0 WHERE nombre=?", (sector_nombre,))
+            cur.execute("UPDATE catalogo_sector SET activo=0 WHERE nombre=?", (sector_nombre,))
 
     invalidate_catalog_cache()
     return jsonify({"ok": True}), 200
@@ -163,14 +163,14 @@ def admin_roles():
         with get_db_transaction() as conn:
             cur = conn.cursor()
             cur.execute(
-                "INSERT INTO catalog_roles (nombre, activo, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
+                "INSERT INTO catalogo_rol (nombre, activo, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
                 (data["nombre"], data.get("activo", 1)),
             )
         invalidate_catalog_cache()
 
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM catalog_roles ORDER BY nombre")
+        cur.execute("SELECT nombre, activo, created_at, updated_at FROM catalogo_rol ORDER BY nombre")
         rows = [dict(r) for r in cur.fetchall()]
     return jsonify(rows), 200
 
@@ -184,12 +184,12 @@ def admin_roles_mod(rol_nombre):
         if request.method == "PUT":
             data = request.get_json(silent=True) or {}
             cur.execute(
-                "UPDATE catalog_roles SET activo=?, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
+                "UPDATE catalogo_rol SET activo=?, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
                 (data.get("activo", 1), rol_nombre),
             )
         else:
             cur.execute(
-                "UPDATE catalog_roles SET activo=0, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
+                "UPDATE catalogo_rol SET activo=0, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
                 (rol_nombre,),
             )
 
@@ -209,14 +209,14 @@ def admin_puestos():
         with get_db_transaction() as conn:
             cur = conn.cursor()
             cur.execute(
-                "INSERT INTO catalog_puestos (nombre, activo, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
+                "INSERT INTO catalogo_puesto (nombre, activo, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
                 (data["nombre"], data.get("activo", 1)),
             )
         invalidate_catalog_cache()
 
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM catalog_puestos ORDER BY nombre")
+        cur.execute("SELECT nombre, activo, created_at, updated_at FROM catalogo_puesto ORDER BY nombre")
         rows = [dict(r) for r in cur.fetchall()]
     return jsonify(rows), 200
 
@@ -230,12 +230,12 @@ def admin_puestos_mod(puesto_nombre):
         if request.method == "PUT":
             data = request.get_json(silent=True) or {}
             cur.execute(
-                "UPDATE catalog_puestos SET activo=?, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
+                "UPDATE catalogo_puesto SET activo=?, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
                 (data.get("activo", 1), puesto_nombre),
             )
         else:
             cur.execute(
-                "UPDATE catalog_puestos SET activo=0, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
+                "UPDATE catalogo_puesto SET activo=0, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
                 (puesto_nombre,),
             )
 
@@ -273,7 +273,7 @@ def admin_usuarios():
         with get_db_transaction() as conn:
             cur = conn.cursor()
             cur.execute(
-                """INSERT INTO usuarios (id_spm, nombre, apellido, rol, contrasena, mail, posicion, sector, centros, jefe, gerente1, gerente2, telefono, estado_registro, id_ypf)
+                """INSERT INTO usuario (id_spm, nombre, apellido, rol, contrasena, mail, posicion, sector, centros, jefe, gerente1, gerente2, telefono, estado_registro, id_ypf)
                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (
                     data["id_spm"],
@@ -299,7 +299,7 @@ def admin_usuarios():
     # Obtener usuarios y normalizar formato de roles
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM usuarios")
+        cur.execute("SELECT id_spm, nombre, apellido, rol, mail, posicion, sector, centros, jefe, gerente1, gerente2, telefono, estado_registro, id_ypf, mail_respaldo, almacenes FROM usuario")
         rows = []
         for r in cur.fetchall():
             row_dict = dict(r)
@@ -316,7 +316,7 @@ def admin_usuarios_mod(id_spm):
     if request.method == "GET":
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT * FROM usuarios WHERE id_spm=?", (id_spm,))
+            cur.execute("SELECT id_spm, nombre, apellido, rol, mail, posicion, sector, centros, jefe, gerente1, gerente2, telefono, estado_registro, id_ypf, mail_respaldo, almacenes FROM usuario WHERE id_spm=?", (id_spm,))
             row = cur.fetchone()
             if not row:
                 return jsonify({"ok": False, "error": "Usuario no encontrado"}), 404
@@ -394,7 +394,7 @@ def admin_usuarios_mod(id_spm):
         try:
             with get_db_transaction() as conn:
                 cur = conn.cursor()
-                query = f"UPDATE usuarios SET {', '.join(update_fields)} WHERE id_spm=?"
+                query = f"UPDATE usuario SET {', '.join(update_fields)} WHERE id_spm=?"
                 logger.debug(f"Ejecutando UPDATE usuario {id_spm}, campos: {update_fields}")
                 cur.execute(query, values)
                 logger.debug(f"Usuario {id_spm} actualizado, filas afectadas: {cur.rowcount}")
@@ -404,7 +404,7 @@ def admin_usuarios_mod(id_spm):
     else:
         with get_db_transaction() as conn:
             cur = conn.cursor()
-            cur.execute("UPDATE usuarios SET estado_registro='Inactivo' WHERE id_spm=?", (id_spm,))
+            cur.execute("UPDATE usuario SET estado_registro='Inactivo' WHERE id_spm=?", (id_spm,))
 
     invalidate_user_cache(id_spm)
     invalidate_catalog_cache()
@@ -436,13 +436,13 @@ def admin_planificadores():
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT id_spm, nombre, apellido, rol FROM usuarios WHERE rol LIKE '%Planificador%'"
+            "SELECT id_spm, nombre, apellido, rol FROM usuario WHERE rol LIKE '%Planificador%'"
         )
         planners = [
             {"usuario_id": r["id_spm"], "nombre": f"{r['nombre']} {r['apellido']}", "activo": 1}
             for r in cur.fetchall()
         ]
-        cur.execute("SELECT * FROM planificador_asignaciones")
+        cur.execute("SELECT id, planificador_id, centro, sector, almacen_virtual, prioridad, activo, created_at FROM planificador_asignaciones")
         asign = [dict(r) for r in cur.fetchall()]
 
     return jsonify({"planificadores": planners, "asignaciones": asign}), 200
@@ -481,7 +481,7 @@ def _get_current_user_info():
         return None, None
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT id, nombre FROM usuarios WHERE id = ?", (user_id,))
+        cur.execute("SELECT id, nombre FROM usuario WHERE id = ?", (user_id,))
         row = cur.fetchone()
         if row:
             return row["id"], row["nombre"]
@@ -552,13 +552,13 @@ def admin_presupuestos():
             cur = conn.cursor()
             # Verificar si existe
             cur.execute(
-                "SELECT monto_usd, saldo_usd FROM presupuestos WHERE centro=? AND sector=?",
+                "SELECT monto_usd, saldo_usd FROM presupuesto WHERE centro=? AND sector=?",
                 (centro, sector),
             )
             existing = cur.fetchone()
 
             cur.execute(
-                """INSERT INTO presupuestos (centro, sector, monto_usd, saldo_usd) VALUES (%s,%s,%s,%s)
+                """INSERT INTO presupuesto (centro, sector, monto_usd, saldo_usd) VALUES (%s,%s,%s,%s)
                 ON CONFLICT (centro, sector) DO UPDATE SET monto_usd = EXCLUDED.monto_usd, saldo_usd = EXCLUDED.saldo_usd""",
                 (centro, sector, monto_new, saldo_new),
             )
@@ -591,7 +591,7 @@ def admin_presupuestos():
 
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM presupuestos")
+        cur.execute("SELECT centro, sector, monto_usd, saldo_usd, version, updated_by, monto_cents, saldo_cents FROM presupuesto")
         rows = [dict(r) for r in cur.fetchall()]
 
     return jsonify(rows), 200
@@ -643,7 +643,7 @@ def admin_presupuestos_mod(centro, sector):
 
         # Obtener valores actuales para el historial
         cur.execute(
-            "SELECT monto_usd, saldo_usd FROM presupuestos WHERE centro=? AND sector=?",
+            "SELECT monto_usd, saldo_usd FROM presupuesto WHERE centro=? AND sector=?",
             (centro, sector),
         )
         existing = cur.fetchone()
@@ -657,7 +657,7 @@ def admin_presupuestos_mod(centro, sector):
             justificacion = data.get("justificacion", "Actualización manual")
 
             cur.execute(
-                "UPDATE presupuestos SET monto_usd=?, saldo_usd=? WHERE centro=? AND sector=?",
+                "UPDATE presupuesto SET monto_usd=?, saldo_usd=? WHERE centro=? AND sector=?",
                 (monto_new, saldo_new, centro, sector),
             )
 
@@ -681,7 +681,7 @@ def admin_presupuestos_mod(centro, sector):
                 justificacion,
             )
         else:
-            cur.execute("DELETE FROM presupuestos WHERE centro=? AND sector=?", (centro, sector))
+            cur.execute("DELETE FROM presupuesto WHERE centro=? AND sector=?", (centro, sector))
             _registrar_historial_presupuesto(
                 conn,
                 centro,
@@ -728,11 +728,11 @@ def admin_metricas():
     import logging
 
     counts = {}
-    ALLOWED_TABLES = {"usuarios", "materiales", "solicitudes"}
+    ALLOWED_TABLES = {"usuario", "materiales", "solicitud"}
     table_key_map = [
-        ("usuarios", "usuarios"),
+        ("usuario", "usuarios"),
         ("materiales", "materiales"),
-        ("solicitudes", "solicitudes_totales"),
+        ("solicitud", "solicitudes_totales"),
     ]
 
     with get_db_connection() as conn:
@@ -749,7 +749,7 @@ def admin_metricas():
                 logging.getLogger(__name__).warning(f"Error contando {table}: {e}")
                 counts[key] = 0
         try:
-            cur.execute("SELECT status, COUNT(*) AS count FROM solicitudes GROUP BY status")
+            cur.execute("SELECT status, COUNT(*) AS count FROM solicitud GROUP BY status")
             for row in cur.fetchall():
                 if isinstance(row, dict):
                     status, c = row["status"], row["count"]
@@ -805,7 +805,7 @@ def admin_config_almacenes():
             """
             SELECT ca.*, u.nombre as responsable_nombre, u.apellido as responsable_apellido
             FROM config_almacenes ca
-            LEFT JOIN usuarios u ON ca.responsable_id = u.id_spm
+            LEFT JOIN usuario u ON ca.responsable_id = u.id_spm
             ORDER BY ca.centro, ca.almacen
         """
         )
@@ -878,7 +878,7 @@ def admin_proveedores_externos():
             cur = conn.cursor()
             cur.execute(
                 """
-                INSERT INTO proveedores_externos
+                INSERT INTO proveedor_externo
                     (cuit, nombre, direccion, localidad, pais, origen, lead_time_dias, rubro, calificacion, activo, notas)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
                 ON CONFLICT(cuit) DO UPDATE SET
@@ -911,13 +911,13 @@ def admin_proveedores_externos():
             if data.get("email"):
                 # Primero eliminar emails principales existentes para este proveedor
                 cur.execute(
-                    "DELETE FROM proveedor_ext_emails WHERE cuit_proveedor = %s AND es_principal = 1",
+                    "DELETE FROM proveedor_externo_email WHERE cuit_proveedor = %s AND es_principal = 1",
                     (data["cuit"],),
                 )
                 # Insertar el nuevo email principal
                 cur.execute(
                     """
-                    INSERT INTO proveedor_ext_emails (cuit_proveedor, email, tipo, es_principal)
+                    INSERT INTO proveedor_externo_email (cuit_proveedor, email, tipo, es_principal)
                     VALUES (%s, %s, 'comercial', 1)
                     """,
                     (data["cuit"], data["email"]),
@@ -930,9 +930,9 @@ def admin_proveedores_externos():
             """
             SELECT
                 pe.*,
-                (SELECT email FROM proveedor_ext_emails WHERE cuit_proveedor = pe.cuit AND es_principal = 1 LIMIT 1) as email_principal,
-                (SELECT COUNT(*) FROM proveedor_ext_contactos WHERE cuit_proveedor = pe.cuit) as num_contactos
-            FROM proveedores_externos pe
+                (SELECT email FROM proveedor_externo_email WHERE cuit_proveedor = pe.cuit AND es_principal = 1 LIMIT 1) as email_principal,
+                (SELECT COUNT(*) FROM proveedor_externo_contacto WHERE cuit_proveedor = pe.cuit) as num_contactos
+            FROM proveedor_externo pe
             ORDER BY pe.nombre
         """
         )
@@ -954,7 +954,7 @@ def admin_proveedores_externos_mod(cuit):
         with get_db_connection() as conn:
             cur = conn.cursor()
             # Datos principales
-            cur.execute("SELECT * FROM proveedores_externos WHERE cuit = ?", (cuit,))
+            cur.execute("SELECT cuit, nombre, direccion, localidad, pais, origen, lead_time_dias, rubro, calificacion, activo, notas, created_at, updated_at, provee_grupo_de_articulos FROM proveedor_externo WHERE cuit = ?", (cuit,))
             prov = cur.fetchone()
             if not prov:
                 return jsonify({"ok": False, "error": "Proveedor no encontrado"}), 404
@@ -963,20 +963,20 @@ def admin_proveedores_externos_mod(cuit):
 
             # Contactos
             cur.execute(
-                "SELECT * FROM proveedor_ext_contactos WHERE cuit_proveedor = ? ORDER BY es_principal DESC",
+                "SELECT id, cuit_proveedor, nombre, apellido, cargo, es_principal, created_at FROM proveedor_externo_contacto WHERE cuit_proveedor = ? ORDER BY es_principal DESC",
                 (cuit,),
             )
             result["contactos"] = [dict(r) for r in cur.fetchall()]
 
             # Emails
             cur.execute(
-                "SELECT * FROM proveedor_ext_emails WHERE cuit_proveedor = ? ORDER BY es_principal DESC",
+                "SELECT id, cuit_proveedor, email, tipo, es_principal, created_at FROM proveedor_externo_email WHERE cuit_proveedor = ? ORDER BY es_principal DESC",
                 (cuit,),
             )
             result["emails"] = [dict(r) for r in cur.fetchall()]
 
             # Teléfonos
-            cur.execute("SELECT * FROM proveedor_ext_telefonos WHERE cuit_proveedor = ?", (cuit,))
+            cur.execute("SELECT id, cuit_proveedor, telefono, tipo, created_at FROM proveedor_externo_telefono WHERE cuit_proveedor = ?", (cuit,))
             result["telefonos"] = [dict(r) for r in cur.fetchall()]
 
         return jsonify(result), 200
@@ -987,7 +987,7 @@ def admin_proveedores_externos_mod(cuit):
             data = request.get_json(silent=True) or {}
             cur.execute(
                 """
-                UPDATE proveedores_externos
+                UPDATE proveedor_externo
                 SET nombre = ?, direccion = ?, localidad = ?, pais = ?,
                     origen = ?, lead_time_dias = ?, rubro = ?,
                     calificacion = ?, activo = ?, notas = ?, updated_at = CURRENT_TIMESTAMP
@@ -1009,7 +1009,7 @@ def admin_proveedores_externos_mod(cuit):
             )
         else:  # DELETE
             cur.execute(
-                "UPDATE proveedores_externos SET activo = 0, updated_at = CURRENT_TIMESTAMP WHERE cuit = ?",
+                "UPDATE proveedor_externo SET activo = 0, updated_at = CURRENT_TIMESTAMP WHERE cuit = ?",
                 (cuit,),
             )
 
@@ -1038,7 +1038,7 @@ def admin_proveedores_internos():
             cur = conn.cursor()
             cur.execute(
                 """
-                INSERT INTO proveedores_internos
+                INSERT INTO proveedor_interno
                     (centro, almacen, centro_nombre, almacen_nombre, sector,
                      contacto_centro, responsable_centro, referente_id, referente_nombre, referente_email,
                      activo, notas)
@@ -1075,8 +1075,8 @@ def admin_proveedores_internos():
         cur.execute(
             """
             SELECT pi.*, u.nombre || ' ' || u.apellido as referente_usuario_nombre
-            FROM proveedores_internos pi
-            LEFT JOIN usuarios u ON pi.referente_id = u.id_spm
+            FROM proveedor_interno pi
+            LEFT JOIN usuario u ON pi.referente_id = u.id_spm
             ORDER BY pi.centro, pi.almacen
         """
         )
@@ -1100,8 +1100,8 @@ def admin_proveedores_internos_mod(centro, almacen):
             cur.execute(
                 """
                 SELECT pi.*, u.nombre || ' ' || u.apellido as referente_usuario_nombre
-                FROM proveedores_internos pi
-                LEFT JOIN usuarios u ON pi.referente_id = u.id_spm
+                FROM proveedor_interno pi
+                LEFT JOIN usuario u ON pi.referente_id = u.id_spm
                 WHERE pi.centro = ? AND pi.almacen = ?
             """,
                 (centro, almacen),
@@ -1118,7 +1118,7 @@ def admin_proveedores_internos_mod(centro, almacen):
             data = request.get_json(silent=True) or {}
             cur.execute(
                 """
-                UPDATE proveedores_internos
+                UPDATE proveedor_interno
                 SET centro_nombre = ?, almacen_nombre = ?, sector = ?,
                     contacto_centro = ?, responsable_centro = ?,
                     referente_id = ?, referente_nombre = ?, referente_email = ?,
@@ -1142,7 +1142,7 @@ def admin_proveedores_internos_mod(centro, almacen):
             )
         else:  # DELETE
             cur.execute(
-                "UPDATE proveedores_internos SET activo = 0, updated_at = CURRENT_TIMESTAMP WHERE centro = ? AND almacen = ?",
+                "UPDATE proveedor_interno SET activo = 0, updated_at = CURRENT_TIMESTAMP WHERE centro = ? AND almacen = ?",
                 (centro, almacen),
             )
 
@@ -1253,7 +1253,7 @@ def admin_reglas_aprobacion_mod(regla_id):
     if request.method == "GET":
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT * FROM reglas_aprobacion WHERE id = ?", (regla_id,))
+            cur.execute("SELECT id, nivel, monto_minimo, monto_maximo, centro, sector, criticidad, rol_aprobador, descripcion, activo, created_at FROM reglas_aprobacion WHERE id = ?", (regla_id,))
             row = cur.fetchone()
             if not row:
                 return jsonify({"ok": False, "error": "Regla no encontrada"}), 404
@@ -1347,8 +1347,8 @@ def admin_delegaciones_aprobacion():
                 u1.nombre || ' ' || u1.apellido as aprobador_nombre,
                 u2.nombre || ' ' || u2.apellido as delegado_nombre
             FROM aprobadores_delegados d
-            LEFT JOIN usuarios u1 ON d.aprobador_original_id = u1.id_spm
-            LEFT JOIN usuarios u2 ON d.delegado_id = u2.id_spm
+            LEFT JOIN usuario u1 ON d.aprobador_original_id = u1.id_spm
+            LEFT JOIN usuario u2 ON d.delegado_id = u2.id_spm
             WHERE d.activo = 1
             ORDER BY d.fecha_fin DESC
         """

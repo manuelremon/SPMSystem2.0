@@ -15,19 +15,17 @@ from .base import BaseTool, ToolError, ToolMetadata
 
 logger = logging.getLogger(__name__)
 
-# Rutas a bases de datos SAP (SQLite)
+# Rutas a bases de datos (SQLite)
 SAP_DATA_DB = Path("data/sap_data.db")
-CATALOGO_MATERIALES_DB = Path("data/catalogo_materiales.db")
+MASTER_MATERIALES_DB = Path("data/master_materiales.db")
+# Alias para compatibilidad
+CATALOGO_MATERIALES_DB = MASTER_MATERIALES_DB
 
 
 def _get_db_connection():
     """Obtiene conexión a PostgreSQL."""
-    try:
-        from backend.core.db import get_db_connection
-        return get_db_connection()
-    except ImportError:
-        from core.db import get_db_connection
-        return get_db_connection()
+    from backend.core.db import get_db_connection
+    return get_db_connection()
 
 
 class DataLoader(BaseTool):
@@ -95,7 +93,7 @@ class DataLoader(BaseTool):
             with _get_db_connection() as conn:
                 cursor = conn.cursor()
 
-                query = "SELECT id, status, criticidad, centro, sector, total_monto, created_at, id_usuario FROM solicitudes WHERE 1=1"
+                query = "SELECT id, status, criticidad, centro, sector, total_monto, created_at, id_usuario FROM solicitud WHERE 1=1"
                 params = []
 
                 # Aplicar filtros
@@ -135,22 +133,23 @@ class DataLoader(BaseTool):
             }
 
     def _load_materiales(self, filters: Dict[str, Any], limit: int) -> Dict[str, Any]:
-        """Carga materiales desde catalogo_materiales.db (SQLite)."""
-        if not CATALOGO_MATERIALES_DB.exists():
-            logger.warning(f"BD catálogo no encontrada: {CATALOGO_MATERIALES_DB}")
+        """Carga materiales desde master_materiales.db - tabla catalogo_materiales."""
+        if not MASTER_MATERIALES_DB.exists():
+            logger.warning(f"BD master_materiales no encontrada: {MASTER_MATERIALES_DB}")
             return {
                 "data_type": "materiales",
                 "count": 0,
                 "data": [],
-                "error": f"BD catálogo no encontrada: {CATALOGO_MATERIALES_DB}",
+                "error": f"BD master_materiales no encontrada: {MASTER_MATERIALES_DB}",
             }
 
         try:
-            conn = sqlite3.connect(CATALOGO_MATERIALES_DB)
+            conn = sqlite3.connect(MASTER_MATERIALES_DB)
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
-            query = "SELECT codigo, descripcion, descripcion_larga, unidad_medida, precio_usd FROM materiales WHERE 1=1"
+            # Tabla catalogo_materiales con columna id_material (antes codigo)
+            query = "SELECT id_material as codigo, descripcion, descripcion_larga, unidad_medida, precio_usd FROM catalogo_materiales WHERE 1=1"
             params = []
 
             # Búsqueda por descripción
@@ -161,7 +160,7 @@ class DataLoader(BaseTool):
 
             # Filtro por código
             if "codigo" in filters:
-                query += " AND codigo = ?"
+                query += " AND id_material = ?"
                 params.append(filters["codigo"])
 
             query += f" LIMIT {limit}"
@@ -177,7 +176,7 @@ class DataLoader(BaseTool):
                 "count": len(materiales),
                 "data": materiales,
                 "filters_applied": filters,
-                "source": "catalogo_materiales.db",
+                "source": "master_materiales.db",
             }
 
         except Exception as e:
@@ -435,7 +434,7 @@ class DataLoader(BaseTool):
             with _get_db_connection() as conn:
                 cursor = conn.cursor()
 
-                query = "SELECT * FROM presupuestos WHERE 1=1"
+                query = "SELECT * FROM presupuesto WHERE 1=1"
                 params = []
 
                 if "centro" in filters:
@@ -470,16 +469,16 @@ class DataLoader(BaseTool):
                 cursor = conn.cursor()
 
                 # Centros
-                cursor.execute("SELECT * FROM catalog_centros LIMIT 100")
+                cursor.execute("SELECT * FROM catalogo_centro LIMIT 100")
                 catalogs["centros"] = [dict(row) for row in cursor.fetchall()]
 
                 # Sectores
-                cursor.execute("SELECT * FROM catalog_sectores LIMIT 100")
+                cursor.execute("SELECT * FROM catalogo_sector LIMIT 100")
                 catalogs["sectores"] = [dict(row) for row in cursor.fetchall()]
 
                 # Almacenes (si existe)
                 try:
-                    cursor.execute("SELECT * FROM catalog_almacenes LIMIT 100")
+                    cursor.execute("SELECT * FROM catalogo_almacen LIMIT 100")
                     catalogs["almacenes"] = [dict(row) for row in cursor.fetchall()]
                 except Exception:
                     catalogs["almacenes"] = []

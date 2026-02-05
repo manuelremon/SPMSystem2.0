@@ -93,7 +93,7 @@ def _require_solicitud_access(solicitud_id: int):
 
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT planner_id FROM solicitudes WHERE id=?", (solicitud_id,))
+        cur.execute("SELECT planner_id FROM solicitud WHERE id=?", (solicitud_id,))
         row = cur.fetchone()
 
     if not row:

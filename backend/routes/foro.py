@@ -10,6 +10,7 @@ from datetime import datetime
 from flask import Blueprint, g, jsonify, request
 
 from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id, is_using_postgresql
+from backend.core.helpers import safe_json as _safe_json
 from backend.core.roles import is_admin, require_auth
 
 
@@ -117,7 +118,7 @@ def _get_user_info(user_id: str) -> dict | None:
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT id_spm, nombre, apellido FROM usuarios WHERE id_spm=?", (str(user_id),)
+                "SELECT id_spm, nombre, apellido FROM usuario WHERE id_spm=?", (str(user_id),)
             )
             row = cur.fetchone()
             if row:
@@ -125,13 +126,6 @@ def _get_user_info(user_id: str) -> dict | None:
     except Exception:
         pass
     return None
-
-
-def _safe_json():
-    data = request.get_json(silent=True)
-    if not isinstance(data, dict):
-        return None
-    return data
 
 
 @bp.route("/foro/posts", methods=["GET"])

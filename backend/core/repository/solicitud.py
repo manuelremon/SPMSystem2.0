@@ -25,7 +25,7 @@ class SolicitudRepository:
                 SELECT id, id_usuario, centro, sector, justificacion, centro_costos,
                        almacen_virtual, criticidad, fecha_necesidad, status, total_monto,
                        planner_id, created_at, updated_at, data_json, aprobador_id
-                FROM solicitudes WHERE id = ?
+                FROM solicitud WHERE id = ?
             """,
                 (solicitud_id,),
             )
@@ -54,7 +54,7 @@ class SolicitudRepository:
         try:
             cur = conn.cursor()
             cur.execute(
-                "UPDATE solicitudes SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                "UPDATE solicitud SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
                 (status, solicitud_id),
             )
             conn.commit()
@@ -89,7 +89,7 @@ class SolicitudRepository:
                 SELECT id, id_usuario, centro, sector, justificacion, centro_costos,
                        almacen_virtual, criticidad, fecha_necesidad, status, total_monto,
                        planner_id, created_at, updated_at, data_json, aprobador_id
-                FROM solicitudes {where_sql}
+                FROM solicitud {where_sql}
                 ORDER BY updated_at DESC
             """,
                 params,

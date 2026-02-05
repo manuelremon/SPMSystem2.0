@@ -1,80 +1,121 @@
 /**
  * DatabaseModals - Modales para administracion de BD
  * Estructura, Preview/CRUD, Stats, Audit, Connections
+ * Migrado a Material UI
  */
 
-import { Modal } from "../../../components/ui/Modal";
-import { Button } from "../../../components/ui/Button";
-import { Alert } from "../../../components/ui/Alert";
-import { Badge } from "../../../components/ui/Badge";
-import { Input } from "../../../components/ui/Input";
 import {
-  CheckCircle,
-  AlertTriangle,
-  Plus,
-  Edit2,
-  Trash2,
-  XCircle,
-  RefreshCcw,
-  Shield,
-  ICON_COLORS,
-} from "../../../components/ui/Icons";
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Box,
+  Typography,
+  TextField,
+  Alert,
+  Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  IconButton,
+  Checkbox,
+  FormControlLabel,
+} from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import WarningIcon from "@mui/icons-material/Warning";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import CancelIcon from "@mui/icons-material/Cancel";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import ShieldIcon from "@mui/icons-material/Shield";
 import { getInputType } from "./useAdminDatabase";
 
 // Modal de Estructura de Tabla
 export function StructureModal({ isOpen, onClose, tableStructure }) {
   return (
-    <Modal
-      isOpen={isOpen}
+    <Dialog
+      open={isOpen}
       onClose={onClose}
-      title={`Estructura: ${tableStructure?.table}`}
-      size="lg"
+      maxWidth="lg"
+      fullWidth
     >
-      {tableStructure && (
-        <div className="space-y-4">
-          <div>
-            <h4 className="text-sm font-medium text-[var(--fg-muted)] uppercase mb-2">Columnas</h4>
-            <table className="w-full text-sm">
-              <thead className="bg-[var(--bg-soft)]">
-                <tr>
-                  <th className="px-3 py-2 text-left">Nombre</th>
-                  <th className="px-3 py-2 text-left">Tipo</th>
-                  <th className="px-3 py-2 text-center">PK</th>
-                  <th className="px-3 py-2 text-center">Nullable</th>
-                  <th className="px-3 py-2 text-left">Default</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {tableStructure.columns.map((col, i) => (
-                  <tr key={i}>
-                    <td className="px-3 py-2 font-mono text-[var(--primary)]">{col.name}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{col.type}</td>
-                    <td className="px-3 py-2 text-center">{col.pk ? <CheckCircle className="w-4 h-4 text-emerald-500 mx-auto" /> : "-"}</td>
-                    <td className="px-3 py-2 text-center">{col.nullable ? "Si" : "No"}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{col.default || "-"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700 }}>
+        Estructura: {tableStructure?.table}
+      </DialogTitle>
+      <DialogContent dividers>
+        {tableStructure && (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ textTransform: "uppercase", mb: 1 }}>
+                Columnas
+              </Typography>
+              <TableContainer component={Paper} variant="outlined">
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: "action.hover" }}>
+                      <TableCell>Nombre</TableCell>
+                      <TableCell>Tipo</TableCell>
+                      <TableCell align="center">PK</TableCell>
+                      <TableCell align="center">Nullable</TableCell>
+                      <TableCell>Default</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {tableStructure.columns.map((col, i) => (
+                      <TableRow key={i}>
+                        <TableCell sx={{ fontFamily: "monospace", color: "primary.main" }}>{col.name}</TableCell>
+                        <TableCell sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}>{col.type}</TableCell>
+                        <TableCell align="center">
+                          {col.pk ? <CheckCircleIcon sx={{ fontSize: 16, color: "success.main" }} /> : "-"}
+                        </TableCell>
+                        <TableCell align="center">{col.nullable ? "Si" : "No"}</TableCell>
+                        <TableCell sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}>{col.default || "-"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
 
-          {tableStructure.indexes?.length > 0 && (
-            <div>
-              <h4 className="text-sm font-medium text-[var(--fg-muted)] uppercase mb-2">Indices</h4>
-              <div className="space-y-2">
-                {tableStructure.indexes.map((idx, i) => (
-                  <div key={i} className="p-2 rounded bg-[var(--bg-soft)] border border-[var(--border)]">
-                    <p className="font-mono text-sm text-[var(--primary)]">{idx.name}</p>
-                    {idx.columns && <p className="text-xs text-[var(--fg-muted)]">Columnas: {idx.columns.join(", ")}</p>}
-                    {idx.unique && <Badge variant="info" className="text-xs mt-1">UNIQUE</Badge>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </Modal>
+            {tableStructure.indexes?.length > 0 && (
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ textTransform: "uppercase", mb: 1 }}>
+                  Indices
+                </Typography>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  {tableStructure.indexes.map((idx, i) => (
+                    <Paper key={i} variant="outlined" sx={{ p: 1.5 }}>
+                      <Typography sx={{ fontFamily: "monospace", fontSize: "0.875rem", color: "primary.main" }}>
+                        {idx.name}
+                      </Typography>
+                      {idx.columns && (
+                        <Typography variant="caption" color="text.secondary">
+                          Columnas: {idx.columns.join(", ")}
+                        </Typography>
+                      )}
+                      {idx.unique && (
+                        <Chip label="UNIQUE" color="info" size="small" sx={{ mt: 0.5 }} />
+                      )}
+                    </Paper>
+                  ))}
+                </Box>
+              </Box>
+            )}
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions sx={{ p: 2 }}>
+        <Button onClick={onClose} variant="outlined" color="inherit">
+          Cerrar
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
@@ -89,86 +130,109 @@ export function PreviewModal({
   onDelete,
 }) {
   return (
-    <Modal
-      isOpen={isOpen}
+    <Dialog
+      open={isOpen}
       onClose={onClose}
-      title={`Datos: ${tablePreview?.table}`}
-      size="xl"
+      maxWidth="xl"
+      fullWidth
     >
-      {tablePreview && (
-        <div className="space-y-4">
-          {/* Boton agregar */}
-          {!isReadOnly && (
-            <div className="flex justify-end">
-              <Button onClick={onAdd} size="sm">
-                <Plus className="w-4 h-4" />
-                Agregar registro
-              </Button>
-            </div>
-          )}
+      <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700 }}>
+        Datos: {tablePreview?.table}
+      </DialogTitle>
+      <DialogContent dividers>
+        {tablePreview && (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {/* Boton agregar */}
+            {!isReadOnly && (
+              <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                <Button
+                  onClick={onAdd}
+                  size="small"
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                >
+                  Agregar registro
+                </Button>
+              </Box>
+            )}
 
-          {isReadOnly && (
-            <Alert variant="warning" className="py-2">
-              <Shield className="w-4 h-4" />
-              Esta tabla es de solo lectura
-            </Alert>
-          )}
+            {isReadOnly && (
+              <Alert severity="warning" icon={<ShieldIcon />}>
+                Esta tabla es de solo lectura
+              </Alert>
+            )}
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="bg-[var(--bg-soft)]">
-                <tr>
-                  {!isReadOnly && (
-                    <th className="px-2 py-2 text-center font-medium text-[var(--fg-muted)] w-20">
-                      Acciones
-                    </th>
-                  )}
-                  {tablePreview.columns.map((col) => (
-                    <th key={col} className="px-2 py-2 text-left font-medium text-[var(--fg-muted)] whitespace-nowrap">
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {tablePreview.rows.map((row, i) => (
-                  <tr key={i} className="hover:bg-[var(--bg-soft)]/50">
+            <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: "60vh" }}>
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
                     {!isReadOnly && (
-                      <td className="px-2 py-1.5 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            onClick={() => onEdit(row)}
-                            className="p-1 hover:bg-[var(--bg-soft)] rounded"
-                            title="Editar"
-                          >
-                            <Edit2 className={`w-3.5 h-3.5 ${ICON_COLORS.info}`} />
-                          </button>
-                          <button
-                            onClick={() => onDelete(row)}
-                            className="p-1 hover:bg-[var(--bg-soft)] rounded"
-                            title="Eliminar"
-                          >
-                            <Trash2 className={`w-3.5 h-3.5 ${ICON_COLORS.danger}`} />
-                          </button>
-                        </div>
-                      </td>
+                      <TableCell align="center" sx={{ fontWeight: 600, color: "text.secondary", width: 80, bgcolor: "background.paper" }}>
+                        Acciones
+                      </TableCell>
                     )}
                     {tablePreview.columns.map((col) => (
-                      <td key={col} className="px-2 py-1.5 font-mono whitespace-nowrap max-w-[200px] truncate">
-                        {row[col] ?? <span className="text-[var(--fg-muted)]">NULL</span>}
-                      </td>
+                      <TableCell key={col} sx={{ fontWeight: 600, color: "text.secondary", whiteSpace: "nowrap", bgcolor: "background.paper" }}>
+                        {col}
+                      </TableCell>
                     ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="text-xs text-[var(--fg-muted)] mt-3 text-center">
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {tablePreview.rows.map((row, i) => (
+                    <TableRow key={i} hover>
+                      {!isReadOnly && (
+                        <TableCell align="center">
+                          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5 }}>
+                            <IconButton
+                              size="small"
+                              onClick={() => onEdit(row)}
+                              title="Editar"
+                            >
+                              <EditIcon fontSize="small" color="info" />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={() => onDelete(row)}
+                              title="Eliminar"
+                            >
+                              <DeleteIcon fontSize="small" color="error" />
+                            </IconButton>
+                          </Box>
+                        </TableCell>
+                      )}
+                      {tablePreview.columns.map((col) => (
+                        <TableCell
+                          key={col}
+                          sx={{
+                            fontFamily: "monospace",
+                            fontSize: "0.75rem",
+                            whiteSpace: "nowrap",
+                            maxWidth: 200,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {row[col] ?? <Typography component="span" color="text.secondary">NULL</Typography>}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <Typography variant="caption" color="text.secondary" align="center">
               Mostrando {tablePreview.rows.length} de {tablePreview.total.toLocaleString()} registros
-            </p>
-          </div>
-        </div>
-      )}
-    </Modal>
+            </Typography>
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions sx={{ p: 2 }}>
+        <Button onClick={onClose} variant="outlined" color="inherit">
+          Cerrar
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
@@ -187,73 +251,90 @@ export function CrudFormModal({
   isEdit = false,
 }) {
   return (
-    <Modal
-      isOpen={isOpen}
+    <Dialog
+      open={isOpen}
       onClose={onClose}
-      title={title}
-      size="md"
+      maxWidth="md"
+      fullWidth
     >
-      <div className="space-y-4">
-        {/* Mostrar PK (solo lectura) para edicion */}
-        {isEdit && tablePk.map((pkCol) => (
-          <div key={pkCol}>
-            <label className="block text-sm font-medium text-[var(--fg-muted)] mb-1">
-              {pkCol} (PK - Solo lectura)
-            </label>
-            <Input
-              value={editRow?.[pkCol] || ""}
-              disabled
-              className="bg-[var(--bg-soft)]"
-            />
-          </div>
-        ))}
-
-        {tableColumns.filter(col => col.editable && !col.is_pk).map((col) => (
-          <div key={col.name}>
-            <label className="block text-sm font-medium text-[var(--fg)] mb-1">
-              {col.name}
-              {!col.nullable && <span className="text-red-500 ml-1">*</span>}
-            </label>
-            {getInputType(col.type) === "checkbox" ? (
-              <input
-                type="checkbox"
-                checked={formData[col.name] === "1" || formData[col.name] === true || formData[col.name] === "true"}
-                onChange={(e) => onFormChange(col.name, e.target.checked ? "1" : "0")}
-                className="h-4 w-4"
+      <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700 }}>
+        {title}
+      </DialogTitle>
+      <DialogContent dividers>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+          {/* Mostrar PK (solo lectura) para edicion */}
+          {isEdit && tablePk.map((pkCol) => (
+            <Box key={pkCol}>
+              <TextField
+                label={`${pkCol} (PK - Solo lectura)`}
+                value={editRow?.[pkCol] || ""}
+                disabled
+                fullWidth
+                size="small"
+                sx={{ bgcolor: "action.hover" }}
               />
-            ) : (
-              <Input
-                type={getInputType(col.type)}
-                value={formData[col.name] || ""}
-                onChange={(e) => onFormChange(col.name, e.target.value)}
-                placeholder={col.type}
-              />
-            )}
-            {!isEdit && (
-              <p className="text-xs text-[var(--fg-muted)] mt-1">
-                Tipo: {col.type} {col.default && `| Default: ${col.default}`}
-              </p>
-            )}
-          </div>
-        ))}
+            </Box>
+          ))}
 
-        <div className="flex justify-end gap-2 pt-4">
-          <Button variant="ghost" onClick={onClose} disabled={loading}>
-            Cancelar
-          </Button>
-          <Button onClick={onSubmit} disabled={loading}>
-            {loading ? (
-              <RefreshCcw className="w-4 h-4 animate-spin" />
-            ) : isEdit ? (
-              <Edit2 className="w-4 h-4" />
-            ) : (
-              <Plus className="w-4 h-4" />
-            )}
-            {isEdit ? "Guardar cambios" : "Crear registro"}
-          </Button>
-        </div>
-      </div>
-    </Modal>
+          {tableColumns.filter(col => col.editable && !col.is_pk).map((col) => (
+            <Box key={col.name}>
+              {getInputType(col.type) === "checkbox" ? (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={formData[col.name] === "1" || formData[col.name] === true || formData[col.name] === "true"}
+                      onChange={(e) => onFormChange(col.name, e.target.checked ? "1" : "0")}
+                    />
+                  }
+                  label={
+                    <Box component="span">
+                      {col.name}
+                      {!col.nullable && <Typography component="span" color="error.main" sx={{ ml: 0.5 }}>*</Typography>}
+                    </Box>
+                  }
+                />
+              ) : (
+                <TextField
+                  label={
+                    <Box component="span">
+                      {col.name}
+                      {!col.nullable && <Typography component="span" color="error.main" sx={{ ml: 0.5 }}>*</Typography>}
+                    </Box>
+                  }
+                  type={getInputType(col.type)}
+                  value={formData[col.name] || ""}
+                  onChange={(e) => onFormChange(col.name, e.target.value)}
+                  placeholder={col.type}
+                  fullWidth
+                  size="small"
+                  helperText={!isEdit ? `Tipo: ${col.type}${col.default ? ` | Default: ${col.default}` : ""}` : undefined}
+                />
+              )}
+            </Box>
+          ))}
+        </Box>
+      </DialogContent>
+      <DialogActions sx={{ p: 2, gap: 1 }}>
+        <Button
+          variant="outlined"
+          color="inherit"
+          onClick={onClose}
+          disabled={loading}
+          sx={{ textTransform: "uppercase" }}
+        >
+          Cancelar
+        </Button>
+        <Button
+          variant="contained"
+          onClick={onSubmit}
+          disabled={loading}
+          startIcon={loading ? <RefreshIcon sx={{ animation: "spin 1s linear infinite", "@keyframes spin": { from: { transform: "rotate(0deg)" }, to: { transform: "rotate(360deg)" } } }} /> : isEdit ? <EditIcon /> : <AddIcon />}
+          sx={{ textTransform: "uppercase" }}
+        >
+          {isEdit ? "Guardar cambios" : "Crear registro"}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
@@ -267,206 +348,307 @@ export function DeleteModal({
   onSoftDelete,
 }) {
   return (
-    <Modal
-      isOpen={isOpen}
+    <Dialog
+      open={isOpen}
       onClose={onClose}
-      title="Confirmar eliminacion"
-      size="md"
+      maxWidth="md"
+      fullWidth
     >
-      <div className="space-y-4">
-        <Alert variant="danger">
-          <AlertTriangle className="w-4 h-4" />
-          Esta accion no se puede deshacer. El registro sera eliminado permanentemente.
-        </Alert>
+      <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700, color: "error.main" }}>
+        Confirmar eliminacion
+      </DialogTitle>
+      <DialogContent dividers>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <Alert severity="error" icon={<WarningIcon />}>
+            Esta accion no se puede deshacer. El registro sera eliminado permanentemente.
+          </Alert>
 
-        <div className="p-3 rounded-lg bg-[var(--bg-soft)] border border-[var(--border)]">
-          <p className="text-sm font-medium mb-2">Datos del registro:</p>
-          <div className="space-y-1 text-xs font-mono">
-            {row && Object.entries(row).slice(0, 8).map(([key, val]) => (
-              <div key={key} className="flex">
-                <span className="text-[var(--fg-muted)] w-24">{key}:</span>
-                <span className="truncate max-w-[200px]">{val ?? "NULL"}</span>
-              </div>
-            ))}
-            {row && Object.keys(row).length > 8 && (
-              <p className="text-[var(--fg-muted)]">... y {Object.keys(row).length - 8} campos mas</p>
-            )}
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-2 pt-4">
-          <Button variant="ghost" onClick={onClose} disabled={loading}>
-            Cancelar
-          </Button>
-          <Button variant="secondary" onClick={onSoftDelete} disabled={loading}>
-            {loading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-            Soft Delete
-          </Button>
-          <Button variant="danger" onClick={onDelete} disabled={loading}>
-            {loading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-            Eliminar
-          </Button>
-        </div>
-      </div>
-    </Modal>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+              Datos del registro:
+            </Typography>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+              {row && Object.entries(row).slice(0, 8).map(([key, val]) => (
+                <Box key={key} sx={{ display: "flex", fontFamily: "monospace", fontSize: "0.75rem" }}>
+                  <Typography component="span" color="text.secondary" sx={{ width: 96, flexShrink: 0, fontFamily: "inherit", fontSize: "inherit" }}>
+                    {key}:
+                  </Typography>
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontFamily: "inherit",
+                      fontSize: "inherit",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      maxWidth: 200,
+                    }}
+                  >
+                    {val ?? "NULL"}
+                  </Typography>
+                </Box>
+              ))}
+              {row && Object.keys(row).length > 8 && (
+                <Typography variant="caption" color="text.secondary">
+                  ... y {Object.keys(row).length - 8} campos mas
+                </Typography>
+              )}
+            </Box>
+          </Paper>
+        </Box>
+      </DialogContent>
+      <DialogActions sx={{ p: 2, gap: 1 }}>
+        <Button
+          variant="outlined"
+          color="inherit"
+          onClick={onClose}
+          disabled={loading}
+          sx={{ textTransform: "uppercase" }}
+        >
+          Cancelar
+        </Button>
+        <Button
+          variant="outlined"
+          color="warning"
+          onClick={onSoftDelete}
+          disabled={loading}
+          startIcon={loading ? <RefreshIcon sx={{ animation: "spin 1s linear infinite", "@keyframes spin": { from: { transform: "rotate(0deg)" }, to: { transform: "rotate(360deg)" } } }} /> : <CancelIcon />}
+          sx={{ textTransform: "uppercase" }}
+        >
+          Soft Delete
+        </Button>
+        <Button
+          variant="contained"
+          color="error"
+          onClick={onDelete}
+          disabled={loading}
+          startIcon={loading ? <RefreshIcon sx={{ animation: "spin 1s linear infinite", "@keyframes spin": { from: { transform: "rotate(0deg)" }, to: { transform: "rotate(360deg)" } } }} /> : <DeleteIcon />}
+          sx={{ textTransform: "uppercase" }}
+        >
+          Eliminar
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
 // Modal de Estadisticas de Tabla
 export function StatsModal({ isOpen, onClose, tableName, tableStats }) {
   return (
-    <Modal
-      isOpen={isOpen}
+    <Dialog
+      open={isOpen}
       onClose={onClose}
-      title={`Estadisticas: ${tableName}`}
-      size="md"
+      maxWidth="md"
+      fullWidth
     >
-      {tableStats && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-3 rounded-lg bg-[var(--bg-soft)] border border-[var(--border)]">
-              <p className="text-sm text-[var(--fg-muted)]">Filas</p>
-              <p className="text-2xl font-bold">{tableStats.stats.actual_rows?.toLocaleString()}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-[var(--bg-soft)] border border-[var(--border)]">
-              <p className="text-sm text-[var(--fg-muted)]">Tamaño</p>
-              <p className="text-2xl font-bold">{tableStats.stats.total_size_mb} MB</p>
-            </div>
-            <div className="p-3 rounded-lg bg-[var(--bg-soft)] border border-[var(--border)]">
-              <p className="text-sm text-[var(--fg-muted)]">Indices</p>
-              <p className="text-2xl font-bold">{tableStats.stats.index_count}</p>
-            </div>
+      <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700 }}>
+        Estadisticas: {tableName}
+      </DialogTitle>
+      <DialogContent dividers>
+        {tableStats && (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 2 }}>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="body2" color="text.secondary">Filas</Typography>
+                <Typography variant="h5" fontWeight={700}>{tableStats.stats.actual_rows?.toLocaleString()}</Typography>
+              </Paper>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="body2" color="text.secondary">Tamaño</Typography>
+                <Typography variant="h5" fontWeight={700}>{tableStats.stats.total_size_mb} MB</Typography>
+              </Paper>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="body2" color="text.secondary">Indices</Typography>
+                <Typography variant="h5" fontWeight={700}>{tableStats.stats.index_count}</Typography>
+              </Paper>
+              {tableStats.type === "postgresql" && (
+                <Paper variant="outlined" sx={{ p: 2 }}>
+                  <Typography variant="body2" color="text.secondary">Fragmentacion</Typography>
+                  <Typography
+                    variant="h5"
+                    fontWeight={700}
+                    sx={{ color: tableStats.stats.fragmentation_pct > 20 ? "warning.main" : "success.main" }}
+                  >
+                    {tableStats.stats.fragmentation_pct}%
+                  </Typography>
+                </Paper>
+              )}
+            </Box>
+
             {tableStats.type === "postgresql" && (
-              <div className="p-3 rounded-lg bg-[var(--bg-soft)] border border-[var(--border)]">
-                <p className="text-sm text-[var(--fg-muted)]">Fragmentacion</p>
-                <p className={`text-2xl font-bold ${tableStats.stats.fragmentation_pct > 20 ? "text-amber-500" : "text-emerald-500"}`}>
-                  {tableStats.stats.fragmentation_pct}%
-                </p>
-              </div>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                  Ultimo Mantenimiento
+                </Typography>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                  <Typography variant="body2">
+                    <Typography component="span" color="text.secondary">VACUUM:</Typography> {tableStats.stats.last_vacuum || tableStats.stats.last_autovacuum || "Nunca"}
+                  </Typography>
+                  <Typography variant="body2">
+                    <Typography component="span" color="text.secondary">ANALYZE:</Typography> {tableStats.stats.last_analyze || tableStats.stats.last_autoanalyze || "Nunca"}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, mt: 1 }}>
+                  <Typography variant="body2">
+                    <Typography component="span" color="text.secondary">Live tuples:</Typography> {tableStats.stats.live_tuples?.toLocaleString()}
+                  </Typography>
+                  <Typography variant="body2">
+                    <Typography component="span" color="text.secondary">Dead tuples:</Typography> {tableStats.stats.dead_tuples?.toLocaleString()}
+                  </Typography>
+                </Box>
+              </Box>
             )}
-          </div>
 
-          {tableStats.type === "postgresql" && (
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-[var(--fg-muted)]">Ultimo Mantenimiento</h4>
-              <div className="text-sm space-y-1">
-                <p><span className="text-[var(--fg-muted)]">VACUUM:</span> {tableStats.stats.last_vacuum || tableStats.stats.last_autovacuum || "Nunca"}</p>
-                <p><span className="text-[var(--fg-muted)]">ANALYZE:</span> {tableStats.stats.last_analyze || tableStats.stats.last_autoanalyze || "Nunca"}</p>
-              </div>
-              <div className="text-sm mt-2">
-                <p><span className="text-[var(--fg-muted)]">Live tuples:</span> {tableStats.stats.live_tuples?.toLocaleString()}</p>
-                <p><span className="text-[var(--fg-muted)]">Dead tuples:</span> {tableStats.stats.dead_tuples?.toLocaleString()}</p>
-              </div>
-            </div>
-          )}
-
-          {tableStats.type === "sqlite" && (
-            <div className="text-sm space-y-1">
-              <p><span className="text-[var(--fg-muted)]">Paginas:</span> {tableStats.stats.page_count?.toLocaleString()}</p>
-              <p><span className="text-[var(--fg-muted)]">Tamaño pagina:</span> {tableStats.stats.page_size} bytes</p>
-            </div>
-          )}
-        </div>
-      )}
-    </Modal>
+            {tableStats.type === "sqlite" && (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                <Typography variant="body2">
+                  <Typography component="span" color="text.secondary">Paginas:</Typography> {tableStats.stats.page_count?.toLocaleString()}
+                </Typography>
+                <Typography variant="body2">
+                  <Typography component="span" color="text.secondary">Tamaño pagina:</Typography> {tableStats.stats.page_size} bytes
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions sx={{ p: 2 }}>
+        <Button onClick={onClose} variant="outlined" color="inherit">
+          Cerrar
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
 // Modal de Audit Logs
 export function AuditModal({ isOpen, onClose, auditLogs }) {
+  const getChipColor = (action) => {
+    if (action.includes("DELETE")) return "error";
+    if (action.includes("CREATE")) return "success";
+    if (action.includes("UPDATE")) return "warning";
+    return "default";
+  };
+
   return (
-    <Modal
-      isOpen={isOpen}
+    <Dialog
+      open={isOpen}
       onClose={onClose}
-      title="Audit Log - Ultimos 7 dias"
-      size="xl"
+      maxWidth="xl"
+      fullWidth
     >
-      <div className="max-h-[60vh] overflow-auto">
-        {auditLogs.length === 0 ? (
-          <p className="text-[var(--fg-muted)] text-center py-8">No hay registros de auditoria</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-[var(--bg-soft)] sticky top-0">
-              <tr>
-                <th className="px-3 py-2 text-left">Fecha</th>
-                <th className="px-3 py-2 text-left">Accion</th>
-                <th className="px-3 py-2 text-left">Entidad</th>
-                <th className="px-3 py-2 text-left">Usuario</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border)]">
-              {auditLogs.map((log) => (
-                <tr key={log.id} className="hover:bg-[var(--bg-soft)]">
-                  <td className="px-3 py-2 whitespace-nowrap text-xs">
-                    {new Date(log.created_at).toLocaleString()}
-                  </td>
-                  <td className="px-3 py-2">
-                    <Badge variant={
-                      log.action.includes("DELETE") ? "danger" :
-                      log.action.includes("CREATE") ? "success" :
-                      log.action.includes("UPDATE") ? "warning" : "default"
-                    }>
-                      {log.action}
-                    </Badge>
-                  </td>
-                  <td className="px-3 py-2 font-mono text-xs">{log.entity_type}</td>
-                  <td className="px-3 py-2 text-xs">{log.user_id}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </Modal>
+      <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700 }}>
+        Audit Log - Ultimos 7 dias
+      </DialogTitle>
+      <DialogContent dividers>
+        <TableContainer sx={{ maxHeight: "60vh" }}>
+          {auditLogs.length === 0 ? (
+            <Typography color="text.secondary" align="center" sx={{ py: 8 }}>
+              No hay registros de auditoria
+            </Typography>
+          ) : (
+            <Table size="small" stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ bgcolor: "background.paper" }}>Fecha</TableCell>
+                  <TableCell sx={{ bgcolor: "background.paper" }}>Accion</TableCell>
+                  <TableCell sx={{ bgcolor: "background.paper" }}>Entidad</TableCell>
+                  <TableCell sx={{ bgcolor: "background.paper" }}>Usuario</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {auditLogs.map((log) => (
+                  <TableRow key={log.id} hover>
+                    <TableCell sx={{ whiteSpace: "nowrap", fontSize: "0.75rem" }}>
+                      {new Date(log.created_at).toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={log.action}
+                        color={getChipColor(log.action)}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}>{log.entity_type}</TableCell>
+                    <TableCell sx={{ fontSize: "0.75rem" }}>{log.user_id}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </TableContainer>
+      </DialogContent>
+      <DialogActions sx={{ p: 2 }}>
+        <Button onClick={onClose} variant="outlined" color="inherit">
+          Cerrar
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
 // Modal de Conexiones Activas
 export function ConnectionsModal({ isOpen, onClose, connections }) {
+  const getChipColor = (state) => {
+    if (state === "active") return "success";
+    if (state === "idle") return "default";
+    return "warning";
+  };
+
   return (
-    <Modal
-      isOpen={isOpen}
+    <Dialog
+      open={isOpen}
       onClose={onClose}
-      title="Conexiones Activas - PostgreSQL"
-      size="xl"
+      maxWidth="xl"
+      fullWidth
     >
-      <div className="max-h-[60vh] overflow-auto">
-        {connections.length === 0 ? (
-          <p className="text-[var(--fg-muted)] text-center py-8">No hay conexiones activas</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-[var(--bg-soft)] sticky top-0">
-              <tr>
-                <th className="px-3 py-2 text-left">PID</th>
-                <th className="px-3 py-2 text-left">Usuario</th>
-                <th className="px-3 py-2 text-left">App</th>
-                <th className="px-3 py-2 text-left">Estado</th>
-                <th className="px-3 py-2 text-left">Duracion</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border)]">
-              {connections.map((conn) => (
-                <tr key={conn.pid} className="hover:bg-[var(--bg-soft)]">
-                  <td className="px-3 py-2 font-mono">{conn.pid}</td>
-                  <td className="px-3 py-2">{conn.user}</td>
-                  <td className="px-3 py-2 text-xs">{conn.application || "-"}</td>
-                  <td className="px-3 py-2">
-                    <Badge variant={
-                      conn.state === "active" ? "success" :
-                      conn.state === "idle" ? "default" : "warning"
-                    }>
-                      {conn.state}
-                    </Badge>
-                  </td>
-                  <td className="px-3 py-2 text-xs">
-                    {conn.query_duration_sec ? `${conn.query_duration_sec}s` : "-"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </Modal>
+      <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700 }}>
+        Conexiones Activas - PostgreSQL
+      </DialogTitle>
+      <DialogContent dividers>
+        <TableContainer sx={{ maxHeight: "60vh" }}>
+          {connections.length === 0 ? (
+            <Typography color="text.secondary" align="center" sx={{ py: 8 }}>
+              No hay conexiones activas
+            </Typography>
+          ) : (
+            <Table size="small" stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ bgcolor: "background.paper" }}>PID</TableCell>
+                  <TableCell sx={{ bgcolor: "background.paper" }}>Usuario</TableCell>
+                  <TableCell sx={{ bgcolor: "background.paper" }}>App</TableCell>
+                  <TableCell sx={{ bgcolor: "background.paper" }}>Estado</TableCell>
+                  <TableCell sx={{ bgcolor: "background.paper" }}>Duracion</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {connections.map((conn) => (
+                  <TableRow key={conn.pid} hover>
+                    <TableCell sx={{ fontFamily: "monospace" }}>{conn.pid}</TableCell>
+                    <TableCell>{conn.user}</TableCell>
+                    <TableCell sx={{ fontSize: "0.75rem" }}>{conn.application || "-"}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={conn.state}
+                        color={getChipColor(conn.state)}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell sx={{ fontSize: "0.75rem" }}>
+                      {conn.query_duration_sec ? `${conn.query_duration_sec}s` : "-"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </TableContainer>
+      </DialogContent>
+      <DialogActions sx={{ p: 2 }}>
+        <Button onClick={onClose} variant="outlined" color="inherit">
+          Cerrar
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }

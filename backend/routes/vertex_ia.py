@@ -127,12 +127,8 @@ def _check_vertex_tables() -> bool:
             _vertex_tables_exist = False
             return False
 
-try:
-    from backend.core.roles import require_auth
-    from backend.core.rate_limit import rate_limit
-except ImportError:
-    from core.roles import require_auth
-    from core.rate_limit import rate_limit
+from backend.core.roles import require_auth
+from backend.core.rate_limit import rate_limit
 
 # Servicio TTS (Text-to-Speech)
 TTS_AVAILABLE = False
@@ -838,7 +834,7 @@ def _get_user_data_context(user_id: str, message: str) -> str:
                 cursor.execute(
                     """
                     SELECT id, status, total_monto, created_at
-                    FROM solicitudes
+                    FROM solicitud
                     WHERE id_usuario = %s
                     AND status NOT IN ('closed', 'rejected', 'cancelled')
                     ORDER BY created_at DESC
@@ -859,7 +855,7 @@ def _get_user_data_context(user_id: str, message: str) -> str:
             # Si pregunta por presupuesto, obtener info del centro
             if any(kw in message.lower() for kw in ["presupuesto", "budget", "plata", "dinero"]):
                 cursor.execute(
-                    "SELECT centros FROM usuarios WHERE id_spm = %s",
+                    "SELECT centros FROM usuario WHERE id_spm = %s",
                     (user_id,),
                 )
                 user_row = cursor.fetchone()
@@ -870,7 +866,7 @@ def _get_user_data_context(user_id: str, message: str) -> str:
                         cursor.execute(
                             """
                             SELECT monto_total, monto_usado, monto_reservado
-                            FROM presupuestos
+                            FROM presupuesto
                             WHERE centro = %s AND anio = EXTRACT(YEAR FROM NOW())
                             """,
                             (centro,),

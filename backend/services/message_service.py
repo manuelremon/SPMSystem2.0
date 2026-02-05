@@ -81,7 +81,7 @@ class MessageService:
             now_ts = datetime.utcnow().isoformat()
 
             sql = """
-                INSERT INTO mensajes (
+                INSERT INTO mensaje (
                     remitente_id, destinatario_id, solicitud_id,
                     asunto, mensaje, parent_id, tipo, metadata_json,
                     created_at, updated_at
@@ -154,9 +154,9 @@ class MessageService:
                     u.apellido AS remitente_apellido,
                     u.rol AS remitente_rol,
                     s.justificacion AS solicitud_justificacion
-                FROM mensajes m
-                LEFT JOIN usuarios u ON m.remitente_id = u.id_spm
-                LEFT JOIN solicitudes s ON m.solicitud_id = s.id
+                FROM mensaje m
+                LEFT JOIN usuario u ON m.remitente_id = u.id_spm
+                LEFT JOIN solicitud s ON m.solicitud_id = s.id
                 {where_clause}
                 ORDER BY m.created_at DESC
                 LIMIT ? OFFSET ?
@@ -212,9 +212,9 @@ class MessageService:
                     u.apellido AS destinatario_apellido,
                     u.rol AS destinatario_rol,
                     s.justificacion AS solicitud_justificacion
-                FROM mensajes m
-                LEFT JOIN usuarios u ON m.destinatario_id = u.id_spm
-                LEFT JOIN solicitudes s ON m.solicitud_id = s.id
+                FROM mensaje m
+                LEFT JOIN usuario u ON m.destinatario_id = u.id_spm
+                LEFT JOIN solicitud s ON m.solicitud_id = s.id
                 WHERE m.remitente_id = ?
                 ORDER BY m.created_at DESC
                 LIMIT ? OFFSET ?
@@ -269,9 +269,9 @@ class MessageService:
                        u_rem.apellido AS remitente_apellido,
                        u_dest.nombre AS destinatario_nombre,
                        u_dest.apellido AS destinatario_apellido
-                FROM mensajes m
-                LEFT JOIN usuarios u_rem ON m.remitente_id = u_rem.id_spm
-                LEFT JOIN usuarios u_dest ON m.destinatario_id = u_dest.id_spm
+                FROM mensaje m
+                LEFT JOIN usuario u_rem ON m.remitente_id = u_rem.id_spm
+                LEFT JOIN usuario u_dest ON m.destinatario_id = u_dest.id_spm
                 WHERE m.id = ? AND (m.remitente_id = ? OR m.destinatario_id = ?)
                 """,
                 (message_id, user_id, user_id),
@@ -289,9 +289,9 @@ class MessageService:
                        u_rem.apellido AS remitente_apellido,
                        u_dest.nombre AS destinatario_nombre,
                        u_dest.apellido AS destinatario_apellido
-                FROM mensajes m
-                LEFT JOIN usuarios u_rem ON m.remitente_id = u_rem.id_spm
-                LEFT JOIN usuarios u_dest ON m.destinatario_id = u_dest.id_spm
+                FROM mensaje m
+                LEFT JOIN usuario u_rem ON m.remitente_id = u_rem.id_spm
+                LEFT JOIN usuario u_dest ON m.destinatario_id = u_dest.id_spm
                 WHERE m.parent_id = ? AND (m.remitente_id = ? OR m.destinatario_id = ?)
                 ORDER BY m.created_at ASC
                 """,
@@ -327,7 +327,7 @@ class MessageService:
         try:
             cursor.execute(
                 """
-                UPDATE mensajes
+                UPDATE mensaje
                 SET leido = 1, updated_at = ?
                 WHERE id = ? AND destinatario_id = ?
                 """,
@@ -360,7 +360,7 @@ class MessageService:
 
         try:
             cursor.execute(
-                "SELECT COUNT(*) AS count FROM mensajes WHERE destinatario_id = ? AND leido = 0",
+                "SELECT COUNT(*) AS count FROM mensaje WHERE destinatario_id = ? AND leido = 0",
                 (user_id,),
             )
 
@@ -392,7 +392,7 @@ class MessageService:
         try:
             cursor.execute(
                 """
-                DELETE FROM mensajes
+                DELETE FROM mensaje
                 WHERE id = ? AND (remitente_id = ? OR destinatario_id = ?)
                 """,
                 (message_id, user_id, user_id),

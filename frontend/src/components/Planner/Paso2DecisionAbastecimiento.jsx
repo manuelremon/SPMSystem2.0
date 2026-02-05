@@ -1,16 +1,38 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { Button } from "../ui/Button";
+import {
+  Box,
+  Paper,
+  Typography,
+  Button,
+  Stack,
+  IconButton,
+  Chip,
+  TextField,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  Checkbox,
+  LinearProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Collapse,
+  Tooltip,
+} from "@mui/material";
 import {
   Package, MapPin, Check, Warehouse, Truck, RefreshCw, Layers,
   LayoutGrid, List, ChevronLeft, ChevronRight, ArrowLeftRight,
-  DollarSign, AlertTriangle, CheckCircle, Plus, Minus, Sparkles
+  DollarSign, AlertTriangle, CheckCircle, Plus, Minus, Sparkles, X
 } from "../ui/Icons";
 import { formatAlmacen } from "../../utils/formatters";
 
 /**
- * Paso2DecisionAbastecimiento - Componente de selección MULTI-FUENTE
+ * Paso2DecisionAbastecimiento - Componente de seleccion MULTI-FUENTE
  *
- * Permite seleccionar múltiples fuentes de abastecimiento para un ítem,
+ * Permite seleccionar multiples fuentes de abastecimiento para un item,
  * asignando cantidades editables a cada fuente seleccionada.
  *
  * Props:
@@ -36,7 +58,7 @@ export default function Paso2DecisionAbastecimiento({
   const dataOpciones = opciones[currentIdx]?.opciones || [];
   const cantidadSolicitada = Number(itemActual.cantidad || 0);
 
-  // Estado local para multi-selección del item actual
+  // Estado local para multi-seleccion del item actual
   const decisionActual = decisiones[currentIdx] || { fuentes: [], comentario: "" };
   const [fuentesSeleccionadas, setFuentesSeleccionadas] = useState([]);
   const [comentario, setComentario] = useState("");
@@ -73,15 +95,15 @@ export default function Paso2DecisionAbastecimiento({
 
     // Solo avanzar si:
     // 1. El item acaba de completarse (no estaba completo antes)
-    // 2. Hay más items después del actual
-    // 3. Hay al menos una fuente seleccionada (evitar avance con item vacío)
+    // 2. Hay mas items despues del actual
+    // 3. Hay al menos una fuente seleccionada (evitar avance con item vacio)
     if (
       itemCompleto &&
       !prevItemCompletoRef.current &&
       currentIdx < totalItems - 1 &&
       fuentesSeleccionadas.length > 0
     ) {
-      // Delay más largo si usó "Aceptar Sugerido" para ver la selección
+      // Delay mas largo si uso "Aceptar Sugerido" para ver la seleccion
       const delayMs = usandoSugerido ? 2000 : 500;
       autoAdvanceTimerRef.current = setTimeout(() => {
         onChangeIdx?.(currentIdx + 1);
@@ -99,13 +121,13 @@ export default function Paso2DecisionAbastecimiento({
     };
   }, [itemCompleto, currentIdx, totalItems, fuentesSeleccionadas.length, onChangeIdx, usandoSugerido]);
 
-  // Reset de la ref cuando cambia el ítem actual
+  // Reset de la ref cuando cambia el item actual
   useEffect(() => {
     prevItemCompletoRef.current = itemCompleto;
     setUsandoSugerido(false);
   }, [currentIdx]);
 
-  // Filtrar opciones según el tipo seleccionado
+  // Filtrar opciones segun el tipo seleccionado
   const opcionesFiltradas = useMemo(() => {
     if (filtroTipo === "todos") return dataOpciones;
     return dataOpciones.filter((op) => op.tipo === filtroTipo);
@@ -158,7 +180,7 @@ export default function Paso2DecisionAbastecimiento({
       }
     });
 
-    // Stock Local: mismo centro Y almacén
+    // Stock Local: mismo centro Y almacen
     const stockLocal = detalle.filter((d) => {
       const centro = String(d.centro || "");
       const almacen = String(d.almacen || "").padStart(4, "0");
@@ -254,12 +276,12 @@ export default function Paso2DecisionAbastecimiento({
     }
   }, [currentIdx, onFetchOpciones]);
 
-  // Verificar si una opción está seleccionada
+  // Verificar si una opcion esta seleccionada
   const isSelected = useCallback((opcionId) => {
     return fuentesSeleccionadas.some(f => f.opcion?.opcion_id === opcionId);
   }, [fuentesSeleccionadas]);
 
-  // Toggle selección de una fuente
+  // Toggle seleccion de una fuente
   const toggleFuente = useCallback((opcion) => {
     setFuentesSeleccionadas(prev => {
       const existe = prev.find(f => f.opcion?.opcion_id === opcion.opcion_id);
@@ -294,7 +316,7 @@ export default function Paso2DecisionAbastecimiento({
     });
   }, [cantidadSolicitada, comentario, currentIdx, onSelectDecision]);
 
-  // Actualizar cantidad de una fuente específica (sin límite estricto)
+  // Actualizar cantidad de una fuente especifica (sin limite estricto)
   const actualizarCantidad = useCallback((opcionId, nuevaCantidad) => {
     setFuentesSeleccionadas(prev => {
       const cantidadValidada = Math.max(0, Number(nuevaCantidad) || 0);
@@ -329,7 +351,7 @@ export default function Paso2DecisionAbastecimiento({
     onSelectDecision?.(currentIdx, decisionMultiFuente);
   }, [fuentesSeleccionadas, cantidadSolicitada, currentIdx, onSelectDecision]);
 
-  // Seleccionar/deseleccionar una ubicación específica de stock
+  // Seleccionar/deseleccionar una ubicacion especifica de stock
   const toggleStockUbicacion = useCallback((ubicacion, categoria) => {
     const opcionId = `stock_${categoria}_${ubicacion.centro}_${String(ubicacion.almacen || "").padStart(4, "0")}`;
     const cantidadDisponible = Number(ubicacion.cantidad || 0);
@@ -379,18 +401,18 @@ export default function Paso2DecisionAbastecimiento({
     });
   }, [cantidadSolicitada, comentario, currentIdx, onSelectDecision]);
 
-  // Verificar si una ubicación específica está seleccionada
+  // Verificar si una ubicacion especifica esta seleccionada
   const isStockUbicacionSelected = useCallback((ubicacion, categoria) => {
     const opcionId = `stock_${categoria}_${ubicacion.centro}_${String(ubicacion.almacen || "").padStart(4, "0")}`;
     return fuentesSeleccionadas.some(f => f.opcion?.opcion_id === opcionId);
   }, [fuentesSeleccionadas]);
 
-  // Contar cuántas ubicaciones de una categoría están seleccionadas
+  // Contar cuantas ubicaciones de una categoria estan seleccionadas
   const countSelectedInCategoria = useCallback((categoria) => {
     return fuentesSeleccionadas.filter(f => f.opcion?.categoria === categoria).length;
   }, [fuentesSeleccionadas]);
 
-  // Función para aceptar automáticamente las opciones más convenientes
+  // Funcion para aceptar automaticamente las opciones mas convenientes
   const aceptarSugerido = useCallback(() => {
     if (dataOpciones.length === 0) return;
 
@@ -400,7 +422,7 @@ export default function Paso2DecisionAbastecimiento({
 
     // Ordenar todas las opciones por conveniencia:
     // 1. Primero las recomendadas
-    // 2. Luego por score de recomendación (mayor primero)
+    // 2. Luego por score de recomendacion (mayor primero)
     // 3. Luego por tipo: stock > transferencia > proveedor > equivalencia
     // 4. Finalmente por precio (menor primero)
     const prioridadTipo = { stock: 1, transferencia: 2, proveedor: 3, equivalencia: 4 };
@@ -439,14 +461,14 @@ export default function Paso2DecisionAbastecimiento({
       nuevasFuentes.push({
         opcion,
         cantidad_asignada: cantidadAsignar,
-        notas: "Selección automática",
+        notas: "Seleccion automatica",
       });
 
       opcionesUsadas.add(opcion.opcion_id);
       cantidadRestante -= cantidadAsignar;
     }
 
-    // Si aún falta cantidad y hay opciones con cantidad ilimitada (proveedores), usar la mejor
+    // Si aun falta cantidad y hay opciones con cantidad ilimitada (proveedores), usar la mejor
     if (cantidadRestante > 0) {
       const proveedorDisponible = opcionesOrdenadas.find(
         op => op.tipo === "proveedor" && !opcionesUsadas.has(op.opcion_id)
@@ -455,13 +477,13 @@ export default function Paso2DecisionAbastecimiento({
         nuevasFuentes.push({
           opcion: proveedorDisponible,
           cantidad_asignada: cantidadRestante,
-          notas: "Selección automática - completar faltante",
+          notas: "Seleccion automatica - completar faltante",
         });
       }
     }
 
     if (nuevasFuentes.length > 0) {
-      // Marcar que se usó "Aceptar Sugerido" para delay más largo en auto-avance
+      // Marcar que se uso "Aceptar Sugerido" para delay mas largo en auto-avance
       setUsandoSugerido(true);
       setFuentesSeleccionadas(nuevasFuentes);
 
@@ -475,7 +497,7 @@ export default function Paso2DecisionAbastecimiento({
     }
   }, [dataOpciones, cantidadSolicitada, comentario, currentIdx, onSelectDecision]);
 
-  // Verificar si hay excedente en algún ítem
+  // Verificar si hay excedente en algun item
   const tieneExcedente = useMemo(() => {
     for (let i = 0; i < totalItems; i++) {
       const dec = decisiones[i];
@@ -487,7 +509,7 @@ export default function Paso2DecisionAbastecimiento({
     return false;
   }, [decisiones, items, totalItems]);
 
-  // Manejar avance con verificación de excedente
+  // Manejar avance con verificacion de excedente
   const handleNextWithCheck = useCallback(() => {
     if (tieneExcedente) {
       setShowExcedenteModal(true);
@@ -496,7 +518,7 @@ export default function Paso2DecisionAbastecimiento({
     }
   }, [tieneExcedente, onNext]);
 
-  // Validar completitud: todos los items deben tener decisión completa
+  // Validar completitud: todos los items deben tener decision completa
   const itemsPendientes = useMemo(() => {
     let pendientes = 0;
     for (let i = 0; i < totalItems; i++) {
@@ -515,414 +537,469 @@ export default function Paso2DecisionAbastecimiento({
   const puedeAvanzar = itemsPendientes === 0;
 
   return (
-    <div className="space-y-4">
-          {/* Panel de asignación actual */}
-          {fuentesSeleccionadas.length > 0 && (
-            <div className="p-4 rounded-xl border-2 border-[var(--primary)] bg-[rgba(59,130,246,0.05)] space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-bold text-[var(--fg)] flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-[var(--primary)]" />
-                  Fuentes Seleccionadas ({fuentesSeleccionadas.length})
-                </p>
-                <div className="flex items-center gap-2">
-                  {excedente > 0 ? (
-                    <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold">
-                      <AlertTriangle className="w-4 h-4" />
-                      Excede +{excedente} un.
-                    </span>
-                  ) : itemCompleto ? (
-                    <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold">
-                      <CheckCircle className="w-4 h-4" />
-                      Completo
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-[var(--bg-soft)] text-[var(--fg-muted)] text-xs font-bold">
-                      <AlertTriangle className="w-4 h-4" />
-                      Faltan {faltante} un.
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Lista de fuentes seleccionadas con cantidades */}
-              <div className="space-y-2">
-                {fuentesSeleccionadas.map((fuente, idx) => (
-                  <FuenteSeleccionadaCard
-                    key={fuente.opcion?.opcion_id || idx}
-                    fuente={fuente}
-                    onChangeCantidad={(val) => actualizarCantidad(fuente.opcion?.opcion_id, val)}
-                    onRemove={() => toggleFuente(fuente.opcion)}
-                  />
-                ))}
-              </div>
-
-              {/* Resumen de cantidades */}
-              <div className="flex items-center justify-between pt-3 border-t border-[var(--border)]">
-                <div className="text-sm text-[var(--fg-muted)]">
-                  <span className="font-bold text-[var(--fg)]">{totalAsignado}</span> de{" "}
-                  <span className="font-bold text-[var(--fg)]">{cantidadSolicitada}</span> asignados
-                </div>
-                <div className="w-32 h-2 bg-[var(--bg-soft)] rounded-full overflow-hidden">
-                  <div
-                    className="h-full transition-all"
-                    style={{
-                      width: `${Math.min(100, (totalAsignado / cantidadSolicitada) * 100)}%`,
-                      backgroundColor: excedente > 0 ? "#f59e0b" : itemCompleto ? "var(--success)" : "var(--primary)"
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Barra de controles: Vista izq + Filtros centro + Navegación items derecha */}
-          {dataOpciones.length > 0 && (
-            <div className="relative flex items-center p-3 rounded-lg bg-[var(--bg-soft)] border border-[var(--border)]">
-              {/* Toggle Vista - Izquierda */}
-              <div className="flex items-center gap-2 absolute left-3">
-                <button
-                  type="button"
-                  onClick={() => setVistaTabla(false)}
-                  title="Vista tarjetas"
-                  className={`p-2 rounded-lg transition ${
-                    !vistaTabla
-                      ? "text-[var(--primary)] border-2 border-[var(--primary)] shadow-sm bg-[var(--card)]"
-                      : "text-[var(--fg-muted)] border border-[var(--border)] bg-[var(--card)] hover:text-[var(--fg)]"
-                  }`}
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setVistaTabla(true)}
-                  title="Vista tabla"
-                  className={`p-2 rounded-lg transition ${
-                    vistaTabla
-                      ? "text-[var(--primary)] border-2 border-[var(--primary)] shadow-sm bg-[var(--card)]"
-                      : "text-[var(--fg-muted)] border border-[var(--border)] bg-[var(--card)] hover:text-[var(--fg)]"
-                  }`}
-                >
-                  <List className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Filtros por tipo - Centro */}
-              <div className="flex flex-wrap justify-center gap-2 flex-1 px-24">
-                <FilterButton
-                  active={filtroTipo === "todos"}
-                  onClick={() => setFiltroTipo("todos")}
-                  icon={Layers}
-                  label="Todas"
-                  count={conteoTipos.todos}
-                  color="primary"
-                />
-                {conteoTipos.stock > 0 && (
-                  <FilterButton
-                    active={filtroTipo === "stock"}
-                    onClick={() => setFiltroTipo("stock")}
-                    icon={Warehouse}
-                    label="Stock"
-                    count={conteoTipos.stock}
-                    color="success"
-                  />
-                )}
-                {conteoTipos.transferencia > 0 && (
-                  <FilterButton
-                    active={filtroTipo === "transferencia"}
-                    onClick={() => setFiltroTipo("transferencia")}
-                    icon={ArrowLeftRight}
-                    label="Transfer."
-                    count={conteoTipos.transferencia}
-                    color="accent"
-                  />
-                )}
-                {conteoTipos.proveedor > 0 && (
-                  <FilterButton
-                    active={filtroTipo === "proveedor"}
-                    onClick={() => setFiltroTipo("proveedor")}
-                    icon={Truck}
-                    label="Proveedor"
-                    count={conteoTipos.proveedor}
-                    color="info"
-                  />
-                )}
-                {conteoTipos.equivalencia > 0 && (
-                  <FilterButton
-                    active={filtroTipo === "equivalencia"}
-                    onClick={() => setFiltroTipo("equivalencia")}
-                    icon={RefreshCw}
-                    label="Equiv."
-                    count={conteoTipos.equivalencia}
-                    color="purple"
-                  />
-                )}
-                {conteoTipos.mix > 0 && (
-                  <FilterButton
-                    active={filtroTipo === "mix"}
-                    onClick={() => setFiltroTipo("mix")}
-                    icon={Layers}
-                    label="Mix"
-                    count={conteoTipos.mix}
-                    color="info"
-                  />
-                )}
-
-                {/* Separador visual */}
-                <div className="w-px h-6 bg-[var(--border)] mx-1" />
-
-                {/* Botón Aceptar Sugerido - Destacado al final */}
-                <button
-                  type="button"
-                  onClick={aceptarSugerido}
-                  disabled={dataOpciones.length === 0 || itemCompleto}
-                  title={itemCompleto ? "Ítem ya completado" : "Aceptar opciones sugeridas por el sistema"}
-                  className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-lg transition shadow-sm ${
-                    itemCompleto
-                      ? "bg-[var(--bg-soft)] text-[var(--fg-muted)] cursor-not-allowed"
-                      : "bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 hover:shadow-md"
-                  }`}
-                >
-                  <Sparkles className="w-4 h-4" />
-                  Aceptar Sugerido
-                </button>
-              </div>
-
-              {/* Navegación entre ítems - Derecha */}
-              {totalItems > 1 && (
-                <div className="flex items-center gap-1 absolute right-3">
-                  <button
-                    type="button"
-                    onClick={() => onChangeIdx?.(Math.max(0, currentIdx - 1))}
-                    disabled={currentIdx === 0}
-                    className={`p-1.5 rounded-md transition ${
-                      currentIdx === 0
-                        ? "text-[var(--fg-muted)] opacity-50 cursor-not-allowed"
-                        : "text-[var(--fg)] hover:bg-[var(--bg-hover)] bg-[var(--card)] border border-[var(--border)]"
-                    }`}
-                    title="Ítem anterior"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <span className="px-2 text-sm font-bold text-[var(--fg)]">
-                    Ítem {currentIdx + 1}/{totalItems}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => onChangeIdx?.(Math.min(totalItems - 1, currentIdx + 1))}
-                    disabled={currentIdx >= totalItems - 1}
-                    className={`p-1.5 rounded-md transition ${
-                      currentIdx >= totalItems - 1
-                        ? "text-[var(--fg-muted)] opacity-50 cursor-not-allowed"
-                        : "text-[var(--fg)] hover:bg-[var(--bg-hover)] bg-[var(--card)] border border-[var(--border)]"
-                    }`}
-                    title="Siguiente ítem"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Opciones de abastecimiento */}
-          <div>
-            {loadingOpciones && dataOpciones.length === 0 ? (
-              <div className="text-sm text-[var(--fg-muted)]">Cargando opciones...</div>
-            ) : vistaTabla ? (
-              <OpcionesTablaMulti
-                opciones={opcionesFiltradas}
-                fuentesSeleccionadas={fuentesSeleccionadas}
-                onToggle={toggleFuente}
-                isSelected={isSelected}
-              />
-            ) : (
-              <div className="space-y-4">
-                {/* Cards de Stock Categorizado */}
-                {hayStockCategorizado && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {/* Stock Local */}
-                    {stockCategorizado.local.total > 0 && (
-                      <StockCategoriaCard
-                        categoria="local"
-                        titulo="Stock Local"
-                        subtitulo={`Centro ${centroSolicitud} / Almacén ${almacenSolicitud}`}
-                        icono={Warehouse}
-                        colorIcono="text-emerald-600"
-                        colorBorde="border-emerald-300"
-                        colorFondo="bg-emerald-50"
-                        colorBadge="bg-emerald-100 text-emerald-700"
-                        total={stockCategorizado.local.total}
-                        ubicaciones={stockCategorizado.local.items}
-                        selectedCount={countSelectedInCategoria("local")}
-                        isUbicacionSelected={(u) => isStockUbicacionSelected(u, "local")}
-                        onToggleUbicacion={(u) => toggleStockUbicacion(u, "local")}
-                        centroSolicitud={centroSolicitud}
-                      />
-                    )}
-
-                    {/* Stock Interno Disponible */}
-                    {stockCategorizado.disponible.total > 0 && (
-                      <StockCategoriaCard
-                        categoria="disponible"
-                        titulo="Stock Interno Disponible"
-                        subtitulo="Almacenes 0100 y 9999"
-                        icono={Package}
-                        colorIcono="text-blue-600"
-                        colorBorde="border-blue-300"
-                        colorFondo="bg-blue-50"
-                        colorBadge="bg-blue-100 text-blue-700"
-                        total={stockCategorizado.disponible.total}
-                        ubicaciones={stockCategorizado.disponible.items}
-                        selectedCount={countSelectedInCategoria("disponible")}
-                        isUbicacionSelected={(u) => isStockUbicacionSelected(u, "disponible")}
-                        onToggleUbicacion={(u) => toggleStockUbicacion(u, "disponible")}
-                        centroSolicitud={centroSolicitud}
-                      />
-                    )}
-
-                    {/* Stock Interno No Disponible */}
-                    {stockCategorizado.noDisponible.total > 0 && (
-                      <StockCategoriaCard
-                        categoria="noDisponible"
-                        titulo="Stock No Disponible"
-                        subtitulo="Requiere consulta"
-                        icono={MapPin}
-                        colorIcono="text-amber-600"
-                        colorBorde="border-amber-300"
-                        colorFondo="bg-amber-50"
-                        colorBadge="bg-amber-100 text-amber-700"
-                        total={stockCategorizado.noDisponible.total}
-                        ubicaciones={stockCategorizado.noDisponible.items}
-                        selectedCount={countSelectedInCategoria("noDisponible")}
-                        isUbicacionSelected={(u) => isStockUbicacionSelected(u, "noDisponible")}
-                        onToggleUbicacion={(u) => toggleStockUbicacion(u, "noDisponible")}
-                        centroSolicitud={centroSolicitud}
-                      />
-                    )}
-
-                    {/* Materiales Equivalentes */}
-                    {opcionesEquivalencias.length > 0 && (
-                      <EquivalenciasCard
-                        equivalencias={opcionesEquivalencias}
-                        isSelected={isSelected}
-                        onToggle={toggleFuente}
-                        selectedCount={fuentesSeleccionadas.filter(f => f.opcion?.tipo === "equivalencia").length}
-                      />
-                    )}
-                  </div>
-                )}
-
-                {/* Fallback: Opciones de Stock del backend si no hay categorizado */}
-                {!hayStockCategorizado && opcionesStock.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 px-1">
-                      <Warehouse className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                      <h4 className="text-sm font-bold text-[var(--fg)]">Stock Disponible</h4>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                      {opcionesStock.map((op) => (
-                        <OpcionCardMulti
-                          key={op.opcion_id}
-                          opcion={op}
-                          selected={isSelected(op.opcion_id)}
-                          onToggle={() => toggleFuente(op)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Proveedores Externos */}
-                {opcionesNoStock.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 px-1">
-                      <Truck className="w-4 h-4 text-[var(--fg-muted)]" />
-                      <h4 className="text-sm font-bold text-[var(--fg)]">PROVEEDORES EXTERNOS</h4>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                      {opcionesNoStock.map((op) => (
-                        <OpcionCardMulti
-                          key={op.opcion_id}
-                          opcion={op}
-                          selected={isSelected(op.opcion_id)}
-                          onToggle={() => toggleFuente(op)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Sin opciones */}
-                {!hayStockCategorizado && opcionesStock.length === 0 && opcionesNoStock.length === 0 && (
-                  <div className="p-6 text-center rounded-xl border-2 border-dashed border-[var(--border)] bg-[var(--bg-soft)]">
-                    <Package className="w-8 h-8 mx-auto text-[var(--fg-muted)] mb-2" />
-                    <p className="text-sm font-medium text-[var(--fg)]">Sin opciones de abastecimiento</p>
-                    <p className="text-xs text-[var(--fg-muted)] mt-1">No se encontró stock ni alternativas para este material</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-
-      {/* Modal de confirmación de excedente */}
-      {showExcedenteModal && (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center px-4"
-          style={{
-            backgroundColor: 'rgba(15, 23, 42, 0.5)',
-            backdropFilter: 'blur(4px)',
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {/* Panel de asignacion actual */}
+      {fuentesSeleccionadas.length > 0 && (
+        <Paper
+          sx={{
+            p: 2,
+            borderRadius: 3,
+            border: 2,
+            borderColor: 'primary.main',
+            bgcolor: 'rgba(25, 118, 210, 0.04)',
           }}
         >
-          <div
-            className="w-full max-w-md rounded-2xl border border-[var(--border)] p-6 space-y-4 bg-[var(--card)] backdrop-blur-xl shadow-glass"
-          >
-            <div className="flex items-start gap-4">
-              <div className="h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900/30 grid place-items-center flex-shrink-0">
-                <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-[var(--fg)]">
-                  Cantidad excede lo solicitado
-                </h3>
-                <p className="text-sm text-[var(--fg-muted)] mt-1">
-                  Has asignado más unidades de las solicitadas en uno o más ítems.
-                  Esto puede generar stock de reserva adicional.
-                </p>
-                <p className="text-sm text-[var(--fg)] mt-2 font-medium">
-                  ¿Deseas continuar con esta asignación?
-                </p>
-              </div>
-            </div>
+          <Stack spacing={2}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Layers sx={{ width: 18, height: 18, color: 'primary.main' }} />
+                <Typography variant="subtitle2" fontWeight="bold">
+                  Fuentes Seleccionadas ({fuentesSeleccionadas.length})
+                </Typography>
+              </Stack>
+              <Box>
+                {excedente > 0 ? (
+                  <Chip
+                    size="small"
+                    icon={<AlertTriangle sx={{ width: 16, height: 16 }} />}
+                    label={`Excede +${excedente} un.`}
+                    sx={{ bgcolor: 'warning.light', color: 'warning.dark', fontWeight: 'bold' }}
+                  />
+                ) : itemCompleto ? (
+                  <Chip
+                    size="small"
+                    icon={<CheckCircle sx={{ width: 16, height: 16 }} />}
+                    label="Completo"
+                    sx={{ bgcolor: 'success.light', color: 'success.dark', fontWeight: 'bold' }}
+                  />
+                ) : (
+                  <Chip
+                    size="small"
+                    icon={<AlertTriangle sx={{ width: 16, height: 16 }} />}
+                    label={`Faltan ${faltante} un.`}
+                    sx={{ bgcolor: 'grey.200', color: 'text.secondary', fontWeight: 'bold' }}
+                  />
+                )}
+              </Box>
+            </Stack>
 
-            <div className="flex justify-end gap-3 pt-2">
-              <Button
-                variant="ghost"
-                onClick={() => setShowExcedenteModal(false)}
-                type="button"
-              >
-                Revisar cantidades
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setShowExcedenteModal(false);
-                  onNext?.();
-                }}
-                type="button"
-              >
-                Sí, continuar
-              </Button>
-            </div>
-          </div>
-        </div>
+            {/* Lista de fuentes seleccionadas con cantidades */}
+            <Stack spacing={1}>
+              {fuentesSeleccionadas.map((fuente, idx) => (
+                <FuenteSeleccionadaCard
+                  key={fuente.opcion?.opcion_id || idx}
+                  fuente={fuente}
+                  onChangeCantidad={(val) => actualizarCantidad(fuente.opcion?.opcion_id, val)}
+                  onRemove={() => toggleFuente(fuente.opcion)}
+                />
+              ))}
+            </Stack>
+
+            {/* Resumen de cantidades */}
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+              sx={{ pt: 2, borderTop: 1, borderColor: 'divider' }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                <Box component="span" fontWeight="bold" color="text.primary">{totalAsignado}</Box> de{" "}
+                <Box component="span" fontWeight="bold" color="text.primary">{cantidadSolicitada}</Box> asignados
+              </Typography>
+              <Box sx={{ width: 128, height: 8, bgcolor: 'grey.200', borderRadius: 1, overflow: 'hidden' }}>
+                <Box
+                  sx={{
+                    height: '100%',
+                    width: `${Math.min(100, (totalAsignado / cantidadSolicitada) * 100)}%`,
+                    bgcolor: excedente > 0 ? 'warning.main' : itemCompleto ? 'success.main' : 'primary.main',
+                    transition: 'all 0.3s',
+                  }}
+                />
+              </Box>
+            </Stack>
+          </Stack>
+        </Paper>
       )}
-    </div>
+
+      {/* Barra de controles: Vista izq + Filtros centro + Navegacion items derecha */}
+      {dataOpciones.length > 0 && (
+        <Paper sx={{ p: 1.5, borderRadius: 2, position: 'relative' }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            {/* Toggle Vista - Izquierda */}
+            <Stack direction="row" spacing={1}>
+              <Tooltip title="Vista tarjetas">
+                <IconButton
+                  size="small"
+                  onClick={() => setVistaTabla(false)}
+                  sx={{
+                    border: 2,
+                    borderColor: !vistaTabla ? 'primary.main' : 'divider',
+                    color: !vistaTabla ? 'primary.main' : 'text.secondary',
+                    bgcolor: 'background.paper',
+                  }}
+                >
+                  <LayoutGrid sx={{ width: 18, height: 18 }} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Vista tabla">
+                <IconButton
+                  size="small"
+                  onClick={() => setVistaTabla(true)}
+                  sx={{
+                    border: 2,
+                    borderColor: vistaTabla ? 'primary.main' : 'divider',
+                    color: vistaTabla ? 'primary.main' : 'text.secondary',
+                    bgcolor: 'background.paper',
+                  }}
+                >
+                  <List sx={{ width: 18, height: 18 }} />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+
+            {/* Filtros por tipo - Centro */}
+            <Stack direction="row" flexWrap="wrap" justifyContent="center" spacing={1} sx={{ flex: 1, px: 2 }}>
+              <FilterButton
+                active={filtroTipo === "todos"}
+                onClick={() => setFiltroTipo("todos")}
+                icon={Layers}
+                label="Todas"
+                count={conteoTipos.todos}
+                color="primary"
+              />
+              {conteoTipos.stock > 0 && (
+                <FilterButton
+                  active={filtroTipo === "stock"}
+                  onClick={() => setFiltroTipo("stock")}
+                  icon={Warehouse}
+                  label="Stock"
+                  count={conteoTipos.stock}
+                  color="success"
+                />
+              )}
+              {conteoTipos.transferencia > 0 && (
+                <FilterButton
+                  active={filtroTipo === "transferencia"}
+                  onClick={() => setFiltroTipo("transferencia")}
+                  icon={ArrowLeftRight}
+                  label="Transfer."
+                  count={conteoTipos.transferencia}
+                  color="secondary"
+                />
+              )}
+              {conteoTipos.proveedor > 0 && (
+                <FilterButton
+                  active={filtroTipo === "proveedor"}
+                  onClick={() => setFiltroTipo("proveedor")}
+                  icon={Truck}
+                  label="Proveedor"
+                  count={conteoTipos.proveedor}
+                  color="info"
+                />
+              )}
+              {conteoTipos.equivalencia > 0 && (
+                <FilterButton
+                  active={filtroTipo === "equivalencia"}
+                  onClick={() => setFiltroTipo("equivalencia")}
+                  icon={RefreshCw}
+                  label="Equiv."
+                  count={conteoTipos.equivalencia}
+                  color="secondary"
+                />
+              )}
+              {conteoTipos.mix > 0 && (
+                <FilterButton
+                  active={filtroTipo === "mix"}
+                  onClick={() => setFiltroTipo("mix")}
+                  icon={Layers}
+                  label="Mix"
+                  count={conteoTipos.mix}
+                  color="info"
+                />
+              )}
+
+              {/* Separador visual */}
+              <Box sx={{ width: 1, height: 24, bgcolor: 'divider', mx: 0.5 }} />
+
+              {/* Boton Aceptar Sugerido - Destacado al final */}
+              <Button
+                size="small"
+                variant="contained"
+                onClick={aceptarSugerido}
+                disabled={dataOpciones.length === 0 || itemCompleto}
+                startIcon={<Sparkles sx={{ width: 16, height: 16 }} />}
+                sx={{
+                  background: itemCompleto
+                    ? undefined
+                    : 'linear-gradient(45deg, #10b981 30%, #14b8a6 90%)',
+                  fontWeight: 'bold',
+                  fontSize: '0.75rem',
+                  px: 2,
+                }}
+              >
+                Aceptar Sugerido
+              </Button>
+            </Stack>
+
+            {/* Navegacion entre items - Derecha */}
+            {totalItems > 1 && (
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <IconButton
+                  size="small"
+                  onClick={() => onChangeIdx?.(Math.max(0, currentIdx - 1))}
+                  disabled={currentIdx === 0}
+                >
+                  <ChevronLeft sx={{ width: 18, height: 18 }} />
+                </IconButton>
+                <Typography variant="body2" fontWeight="bold" sx={{ px: 1 }}>
+                  Item {currentIdx + 1}/{totalItems}
+                </Typography>
+                <IconButton
+                  size="small"
+                  onClick={() => onChangeIdx?.(Math.min(totalItems - 1, currentIdx + 1))}
+                  disabled={currentIdx >= totalItems - 1}
+                >
+                  <ChevronRight sx={{ width: 18, height: 18 }} />
+                </IconButton>
+              </Stack>
+            )}
+          </Stack>
+        </Paper>
+      )}
+
+      {/* Opciones de abastecimiento */}
+      <Box>
+        {loadingOpciones && dataOpciones.length === 0 ? (
+          <Typography variant="body2" color="text.secondary">Cargando opciones...</Typography>
+        ) : vistaTabla ? (
+          <OpcionesTablaMulti
+            opciones={opcionesFiltradas}
+            fuentesSeleccionadas={fuentesSeleccionadas}
+            onToggle={toggleFuente}
+            isSelected={isSelected}
+          />
+        ) : (
+          <Stack spacing={2}>
+            {/* Cards de Stock Categorizado */}
+            {hayStockCategorizado && (
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
+                  gap: 2,
+                }}
+              >
+                {/* Stock Local */}
+                {stockCategorizado.local.total > 0 && (
+                  <StockCategoriaCard
+                    categoria="local"
+                    titulo="Stock Local"
+                    subtitulo={`Centro ${centroSolicitud} / Almacen ${almacenSolicitud}`}
+                    icono={Warehouse}
+                    colorIcono="success.main"
+                    colorBorde="success.light"
+                    colorFondo="success.lighter"
+                    colorBadge={{ bgcolor: 'success.light', color: 'success.dark' }}
+                    total={stockCategorizado.local.total}
+                    ubicaciones={stockCategorizado.local.items}
+                    selectedCount={countSelectedInCategoria("local")}
+                    isUbicacionSelected={(u) => isStockUbicacionSelected(u, "local")}
+                    onToggleUbicacion={(u) => toggleStockUbicacion(u, "local")}
+                    centroSolicitud={centroSolicitud}
+                  />
+                )}
+
+                {/* Stock Interno Disponible */}
+                {stockCategorizado.disponible.total > 0 && (
+                  <StockCategoriaCard
+                    categoria="disponible"
+                    titulo="Stock Interno Disponible"
+                    subtitulo="Almacenes 0100 y 9999"
+                    icono={Package}
+                    colorIcono="info.main"
+                    colorBorde="info.light"
+                    colorFondo="info.lighter"
+                    colorBadge={{ bgcolor: 'info.light', color: 'info.dark' }}
+                    total={stockCategorizado.disponible.total}
+                    ubicaciones={stockCategorizado.disponible.items}
+                    selectedCount={countSelectedInCategoria("disponible")}
+                    isUbicacionSelected={(u) => isStockUbicacionSelected(u, "disponible")}
+                    onToggleUbicacion={(u) => toggleStockUbicacion(u, "disponible")}
+                    centroSolicitud={centroSolicitud}
+                  />
+                )}
+
+                {/* Stock Interno No Disponible */}
+                {stockCategorizado.noDisponible.total > 0 && (
+                  <StockCategoriaCard
+                    categoria="noDisponible"
+                    titulo="Stock No Disponible"
+                    subtitulo="Requiere consulta"
+                    icono={MapPin}
+                    colorIcono="warning.main"
+                    colorBorde="warning.light"
+                    colorFondo="warning.lighter"
+                    colorBadge={{ bgcolor: 'warning.light', color: 'warning.dark' }}
+                    total={stockCategorizado.noDisponible.total}
+                    ubicaciones={stockCategorizado.noDisponible.items}
+                    selectedCount={countSelectedInCategoria("noDisponible")}
+                    isUbicacionSelected={(u) => isStockUbicacionSelected(u, "noDisponible")}
+                    onToggleUbicacion={(u) => toggleStockUbicacion(u, "noDisponible")}
+                    centroSolicitud={centroSolicitud}
+                  />
+                )}
+
+                {/* Materiales Equivalentes */}
+                {opcionesEquivalencias.length > 0 && (
+                  <EquivalenciasCard
+                    equivalencias={opcionesEquivalencias}
+                    isSelected={isSelected}
+                    onToggle={toggleFuente}
+                    selectedCount={fuentesSeleccionadas.filter(f => f.opcion?.tipo === "equivalencia").length}
+                  />
+                )}
+              </Box>
+            )}
+
+            {/* Fallback: Opciones de Stock del backend si no hay categorizado */}
+            {!hayStockCategorizado && opcionesStock.length > 0 && (
+              <Box>
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 0.5, mb: 1 }}>
+                  <Warehouse sx={{ width: 18, height: 18, color: 'success.main' }} />
+                  <Typography variant="subtitle2" fontWeight="bold">Stock Disponible</Typography>
+                </Stack>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
+                    gap: 2,
+                  }}
+                >
+                  {opcionesStock.map((op) => (
+                    <OpcionCardMulti
+                      key={op.opcion_id}
+                      opcion={op}
+                      selected={isSelected(op.opcion_id)}
+                      onToggle={() => toggleFuente(op)}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            )}
+
+            {/* Proveedores Externos */}
+            {opcionesNoStock.length > 0 && (
+              <Box>
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 0.5, mb: 1 }}>
+                  <Truck sx={{ width: 18, height: 18, color: 'text.secondary' }} />
+                  <Typography variant="subtitle2" fontWeight="bold">PROVEEDORES EXTERNOS</Typography>
+                </Stack>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
+                    gap: 2,
+                  }}
+                >
+                  {opcionesNoStock.map((op) => (
+                    <OpcionCardMulti
+                      key={op.opcion_id}
+                      opcion={op}
+                      selected={isSelected(op.opcion_id)}
+                      onToggle={() => toggleFuente(op)}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            )}
+
+            {/* Sin opciones */}
+            {!hayStockCategorizado && opcionesStock.length === 0 && opcionesNoStock.length === 0 && (
+              <Paper
+                sx={{
+                  p: 4,
+                  textAlign: 'center',
+                  borderRadius: 3,
+                  border: 2,
+                  borderStyle: 'dashed',
+                  borderColor: 'divider',
+                  bgcolor: 'grey.50',
+                }}
+              >
+                <Package sx={{ width: 32, height: 32, mx: 'auto', color: 'text.secondary', mb: 1 }} />
+                <Typography variant="body2" fontWeight="medium">Sin opciones de abastecimiento</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                  No se encontro stock ni alternativas para este material
+                </Typography>
+              </Paper>
+            )}
+          </Stack>
+        )}
+      </Box>
+
+      {/* Modal de confirmacion de excedente */}
+      <Dialog
+        open={showExcedenteModal}
+        onClose={() => setShowExcedenteModal(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          <Stack direction="row" spacing={2} alignItems="flex-start">
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                bgcolor: 'warning.light',
+                display: 'grid',
+                placeItems: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <AlertTriangle sx={{ width: 24, height: 24, color: 'warning.main' }} />
+            </Box>
+            <Box>
+              <Typography variant="h6" fontWeight="bold">
+                Cantidad excede lo solicitado
+              </Typography>
+            </Box>
+          </Stack>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            Has asignado mas unidades de las solicitadas en uno o mas items.
+            Esto puede generar stock de reserva adicional.
+          </Typography>
+          <Typography variant="body2" fontWeight="medium" sx={{ mt: 2 }}>
+            Deseas continuar con esta asignacion?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button
+            variant="text"
+            onClick={() => setShowExcedenteModal(false)}
+          >
+            Revisar cantidades
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setShowExcedenteModal(false);
+              onNext?.();
+            }}
+          >
+            Si, continuar
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 }
 
 // =============================================================================
-// Componente: Card de Categoría de Stock con ubicaciones seleccionables
+// Componente: Card de Categoria de Stock con ubicaciones seleccionables
 // =============================================================================
 
 function StockCategoriaCard({
@@ -945,103 +1022,135 @@ function StockCategoriaCard({
   const hasSelection = selectedCount > 0;
 
   return (
-    <div
-      className={`rounded-xl border-2 transition shadow-sm overflow-hidden ${
-        hasSelection
-          ? "border-[var(--primary)] bg-[rgba(59,130,246,0.05)]"
-          : `${colorBorde} ${colorFondo}`
-      }`}
+    <Paper
+      sx={{
+        borderRadius: 3,
+        border: 2,
+        borderColor: hasSelection ? 'primary.main' : colorBorde,
+        bgcolor: hasSelection ? 'rgba(25, 118, 210, 0.04)' : colorFondo,
+        overflow: 'hidden',
+        transition: 'all 0.2s',
+      }}
     >
       {/* Header - clickeable para expandir/colapsar */}
-      <button
-        type="button"
+      <Box
+        component="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full text-left p-4 hover:bg-[var(--bg-hover)] transition"
+        sx={{
+          width: '100%',
+          textAlign: 'left',
+          p: 2,
+          bgcolor: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          '&:hover': { bgcolor: 'action.hover' },
+        }}
       >
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <Icono className={`w-5 h-5 ${colorIcono}`} />
-            <h4 className="text-sm font-bold text-[var(--fg)]">{titulo}</h4>
-          </div>
-          <div className="flex items-center gap-2">
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Icono sx={{ width: 20, height: 20, color: colorIcono }} />
+            <Typography variant="subtitle2" fontWeight="bold">{titulo}</Typography>
+          </Stack>
+          <Stack direction="row" spacing={1}>
             {hasSelection && (
-              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400">
-                {selectedCount} sel.
-              </span>
+              <Chip
+                size="small"
+                label={`${selectedCount} sel.`}
+                sx={{ bgcolor: 'primary.light', color: 'primary.dark', fontWeight: 'bold', height: 22 }}
+              />
             )}
-            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${colorBadge}`}>
-              {total} un.
-            </span>
-          </div>
-        </div>
-        <p className="text-xs text-[var(--fg-muted)]">{subtitulo}</p>
-        <div className="flex items-center justify-between mt-2">
-          <span className="text-xs text-[var(--fg-muted)]">
-            {ubicaciones.length} ubicación{ubicaciones.length !== 1 ? "es" : ""}
-          </span>
-          <span className="text-xs text-[var(--primary)] font-medium">
-            {expanded ? "▲ Colapsar" : "▼ Ver ubicaciones"}
-          </span>
-        </div>
-      </button>
+            <Chip
+              size="small"
+              label={`${total} un.`}
+              sx={{ ...colorBadge, fontWeight: 'bold', height: 22 }}
+            />
+          </Stack>
+        </Stack>
+        <Typography variant="caption" color="text.secondary">{subtitulo}</Typography>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 1 }}>
+          <Typography variant="caption" color="text.secondary">
+            {ubicaciones.length} ubicacion{ubicaciones.length !== 1 ? "es" : ""}
+          </Typography>
+          <Typography variant="caption" color="primary.main" fontWeight="medium">
+            {expanded ? "Colapsar" : "Ver ubicaciones"}
+          </Typography>
+        </Stack>
+      </Box>
 
       {/* Lista de ubicaciones expandida */}
-      {expanded && (
-        <div className="border-t border-[var(--border)] bg-[var(--card)]/60 max-h-48 overflow-y-auto">
+      <Collapse in={expanded}>
+        <Box sx={{ borderTop: 1, borderColor: 'divider', bgcolor: 'background.paper', maxHeight: 192, overflowY: 'auto' }}>
           {ubicaciones.map((u, idx) => {
             const isSelected = isUbicacionSelected(u);
             const esMismoCentro = String(u.centro || "") === centroSolicitud;
 
             return (
-              <button
+              <Box
                 key={idx}
-                type="button"
+                component="button"
                 onClick={() => onToggleUbicacion(u)}
-                className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition border-b border-[var(--border)]/50 last:border-b-0 ${
-                  isSelected
-                    ? "bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50"
-                    : "hover:bg-[var(--bg-soft)]"
-                }`}
+                sx={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  px: 2,
+                  py: 1.5,
+                  textAlign: 'left',
+                  bgcolor: isSelected ? 'primary.lighter' : 'transparent',
+                  border: 'none',
+                  borderBottom: 1,
+                  borderColor: 'divider',
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: isSelected ? 'primary.light' : 'grey.100' },
+                  '&:last-child': { borderBottom: 0 },
+                }}
               >
-                <div className="flex items-center gap-3">
+                <Stack direction="row" alignItems="center" spacing={1.5}>
                   {/* Checkbox */}
-                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition ${
-                    isSelected
-                      ? "bg-[var(--primary)] border-[var(--primary)]"
-                      : "border-[var(--border)] bg-[var(--card)]"
-                  }`}>
-                    {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
-                  </div>
+                  <Checkbox
+                    checked={isSelected}
+                    size="small"
+                    sx={{ p: 0 }}
+                  />
 
-                  {/* Info ubicación */}
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-semibold text-[var(--fg)]">
+                  {/* Info ubicacion */}
+                  <Box>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <Typography variant="body2" fontWeight="semibold">
                         {u.centro}/{String(u.almacen || "").padStart(4, "0")}
-                      </span>
+                      </Typography>
                       {esMismoCentro && (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400">
-                          MISMO CENTRO
-                        </span>
+                        <Chip
+                          size="small"
+                          label="MISMO CENTRO"
+                          sx={{
+                            height: 18,
+                            fontSize: '0.625rem',
+                            fontWeight: 'bold',
+                            bgcolor: 'success.light',
+                            color: 'success.dark',
+                          }}
+                        />
                       )}
-                    </div>
+                    </Stack>
                     {u.nombre_almacen && (
-                      <p className="text-xs text-[var(--fg-muted)]">{u.nombre_almacen}</p>
+                      <Typography variant="caption" color="text.secondary">{u.nombre_almacen}</Typography>
                     )}
-                  </div>
-                </div>
+                  </Box>
+                </Stack>
 
                 {/* Cantidad */}
-                <div className="text-right">
-                  <span className="text-sm font-bold text-[var(--fg)]">{u.cantidad}</span>
-                  <span className="text-xs text-[var(--fg-muted)] ml-1">un.</span>
-                </div>
-              </button>
+                <Box sx={{ textAlign: 'right' }}>
+                  <Typography variant="body2" fontWeight="bold">{u.cantidad}</Typography>
+                  <Typography variant="caption" color="text.secondary">un.</Typography>
+                </Box>
+              </Box>
             );
           })}
-        </div>
-      )}
-    </div>
+        </Box>
+      </Collapse>
+    </Paper>
   );
 }
 
@@ -1054,82 +1163,106 @@ function EquivalenciasCard({ equivalencias, isSelected, onToggle, selectedCount 
   const hasSelection = selectedCount > 0;
 
   return (
-    <div
-      className={`rounded-xl border-2 transition shadow-sm overflow-hidden ${
-        hasSelection
-          ? "border-[var(--primary)] bg-[rgba(59,130,246,0.05)]"
-          : "border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20"
-      }`}
+    <Paper
+      sx={{
+        borderRadius: 3,
+        border: 2,
+        borderColor: hasSelection ? 'primary.main' : 'secondary.light',
+        bgcolor: hasSelection ? 'rgba(25, 118, 210, 0.04)' : 'secondary.lighter',
+        overflow: 'hidden',
+        transition: 'all 0.2s',
+      }}
     >
       {/* Header */}
-      <button
-        type="button"
+      <Box
+        component="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full text-left p-4 hover:bg-[var(--bg-hover)] transition"
+        sx={{
+          width: '100%',
+          textAlign: 'left',
+          p: 2,
+          bgcolor: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          '&:hover': { bgcolor: 'action.hover' },
+        }}
       >
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <RefreshCw className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-            <h4 className="text-sm font-bold text-[var(--fg)]">Mat. Equivalentes</h4>
-          </div>
-          <div className="flex items-center gap-2">
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <RefreshCw sx={{ width: 20, height: 20, color: 'secondary.main' }} />
+            <Typography variant="subtitle2" fontWeight="bold">Mat. Equivalentes</Typography>
+          </Stack>
+          <Stack direction="row" spacing={1}>
             {hasSelection && (
-              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400">
-                {selectedCount} sel.
-              </span>
+              <Chip
+                size="small"
+                label={`${selectedCount} sel.`}
+                sx={{ bgcolor: 'primary.light', color: 'primary.dark', fontWeight: 'bold', height: 22 }}
+              />
             )}
-            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300">
-              {equivalencias.length} opciones
-            </span>
-          </div>
-        </div>
-        <p className="text-xs text-[var(--fg-muted)]">Materiales alternativos compatibles</p>
-        <div className="flex items-center justify-between mt-2">
-          <span className="text-xs text-[var(--fg-muted)]">
+            <Chip
+              size="small"
+              label={`${equivalencias.length} opciones`}
+              sx={{ bgcolor: 'secondary.light', color: 'secondary.dark', fontWeight: 'bold', height: 22 }}
+            />
+          </Stack>
+        </Stack>
+        <Typography variant="caption" color="text.secondary">Materiales alternativos compatibles</Typography>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 1 }}>
+          <Typography variant="caption" color="text.secondary">
             {equivalencias.length} alternativa{equivalencias.length !== 1 ? "s" : ""}
-          </span>
-          <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">
-            {expanded ? "▲ Colapsar" : "▼ Ver opciones"}
-          </span>
-        </div>
-      </button>
+          </Typography>
+          <Typography variant="caption" color="secondary.main" fontWeight="medium">
+            {expanded ? "Colapsar" : "Ver opciones"}
+          </Typography>
+        </Stack>
+      </Box>
 
       {/* Lista expandida */}
-      {expanded && (
-        <div className="border-t border-[var(--border)] bg-[var(--card)]/60 max-h-48 overflow-y-auto">
+      <Collapse in={expanded}>
+        <Box sx={{ borderTop: 1, borderColor: 'divider', bgcolor: 'background.paper', maxHeight: 192, overflowY: 'auto' }}>
           {equivalencias.map((eq) => {
             const selected = isSelected(eq.opcion_id);
             return (
-              <button
+              <Box
                 key={eq.opcion_id}
-                type="button"
+                component="button"
                 onClick={() => onToggle(eq)}
-                className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition border-b border-[var(--border)]/50 last:border-b-0 ${
-                  selected ? "bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50" : "hover:bg-[var(--bg-soft)]"
-                }`}
+                sx={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  px: 2,
+                  py: 1.5,
+                  textAlign: 'left',
+                  bgcolor: selected ? 'primary.lighter' : 'transparent',
+                  border: 'none',
+                  borderBottom: 1,
+                  borderColor: 'divider',
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: selected ? 'primary.light' : 'grey.100' },
+                  '&:last-child': { borderBottom: 0 },
+                }}
               >
-                <div className="flex items-center gap-3">
-                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition ${
-                    selected ? "bg-[var(--primary)] border-[var(--primary)]" : "border-[var(--border)] bg-[var(--card)]"
-                  }`}>
-                    {selected && <Check className="w-3 h-3 text-white" />}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-[var(--fg)] truncate">{eq.nombre}</p>
+                <Stack direction="row" alignItems="center" spacing={1.5}>
+                  <Checkbox checked={selected} size="small" sx={{ p: 0 }} />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="body2" fontWeight="medium" noWrap>{eq.nombre}</Typography>
                     {eq.compatibilidad_pct != null && (
-                      <p className="text-xs text-[var(--fg-muted)]">{eq.compatibilidad_pct}% compatible</p>
+                      <Typography variant="caption" color="text.secondary">{eq.compatibilidad_pct}% compatible</Typography>
                     )}
-                  </div>
-                </div>
-                <span className="text-sm font-bold text-[var(--fg)] shrink-0">
+                  </Box>
+                </Stack>
+                <Typography variant="body2" fontWeight="bold" sx={{ flexShrink: 0 }}>
                   {formatMonto(eq.precio_unitario || 0)}
-                </span>
-              </button>
+                </Typography>
+              </Box>
             );
           })}
-        </div>
-      )}
-    </div>
+        </Box>
+      </Collapse>
+    </Paper>
   );
 }
 
@@ -1139,29 +1272,34 @@ function EquivalenciasCard({ equivalencias, isSelected, onToggle, selectedCount 
 
 function FilterButton({ active, onClick, icon: Icon, label, count, color }) {
   const colorMap = {
-    primary: "var(--primary)",
-    success: "var(--success)",
-    info: "var(--info)",
-    warning: "var(--warning)",
-    accent: "var(--accent)",
-    purple: "#a855f7",
+    primary: 'primary.main',
+    success: 'success.main',
+    info: 'info.main',
+    warning: 'warning.main',
+    secondary: 'secondary.main',
   };
   const activeColor = colorMap[color] || colorMap.primary;
 
   return (
-    <button
-      type="button"
+    <Button
+      size="small"
+      variant={active ? "outlined" : "text"}
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
-        active
-          ? "bg-[var(--card)] shadow-sm"
-          : "bg-[var(--card)] text-[var(--fg-muted)] hover:text-[var(--fg)] border border-[var(--border)] hover:border-[var(--fg-muted)]"
-      }`}
-      style={active ? { color: activeColor, border: `2px solid ${activeColor}` } : {}}
+      startIcon={<Icon sx={{ width: 16, height: 16 }} />}
+      sx={{
+        fontWeight: 'semibold',
+        fontSize: '0.75rem',
+        color: active ? activeColor : 'text.secondary',
+        borderColor: active ? activeColor : 'transparent',
+        borderWidth: active ? 2 : 1,
+        '&:hover': {
+          color: activeColor,
+          borderColor: activeColor,
+        },
+      }}
     >
-      <Icon className="w-4 h-4" />
       {label} ({count})
-    </button>
+    </Button>
   );
 }
 
@@ -1175,327 +1313,377 @@ function FuenteSeleccionadaCard({ fuente, onChangeCantidad, onRemove }) {
   const TipoIcon = tipoConfig.icon;
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg border border-[var(--border)] bg-[var(--card)]">
-      {/* Icono tipo */}
-      <div className={`w-8 h-8 rounded-lg bg-[var(--bg-soft)] flex items-center justify-center shrink-0 ${tipoConfig.color}`}>
-        <TipoIcon className="w-4 h-4" />
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-[var(--fg)] truncate">{opcion.nombre}</p>
-        <div className="flex items-center gap-2 text-xs text-[var(--fg-muted)]">
-          <span className="uppercase">{opcion.tipo}</span>
-          {opcion.precio_es_negociado && (
-            <span className="flex items-center gap-0.5 text-green-600 dark:text-green-400">
-              <DollarSign className="w-3 h-3" />
-              Negociado
-            </span>
-          )}
-          {opcion.cantidad_disponible && (
-            <span>Disp: {opcion.cantidad_disponible}</span>
-          )}
-        </div>
-      </div>
-
-      {/* Cantidad editable */}
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => onChangeCantidad(Number(fuente.cantidad_asignada || 0) - 1)}
-          className="w-8 h-8 rounded-md bg-[var(--bg-soft)] hover:bg-[var(--bg-hover)] flex items-center justify-center text-[var(--fg-muted)] hover:text-[var(--fg)] transition"
+    <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+      <Stack direction="row" alignItems="center" spacing={2}>
+        {/* Icono tipo */}
+        <Box
+          sx={{
+            width: 32,
+            height: 32,
+            borderRadius: 2,
+            bgcolor: 'grey.100',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            color: tipoConfig.color,
+          }}
         >
-          <Minus className="w-4 h-4" />
-        </button>
-        <input
-          type="number"
-          value={fuente.cantidad_asignada || 0}
-          onChange={(e) => onChangeCantidad(e.target.value)}
-          min={0}
-          className="w-16 h-7 px-2 text-center text-sm font-bold rounded-md border border-[var(--border)] bg-[var(--bg)] text-[var(--fg)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
-        />
-        <button
-          type="button"
-          onClick={() => onChangeCantidad(Number(fuente.cantidad_asignada || 0) + 1)}
-          className="w-8 h-8 rounded-md bg-[var(--bg-soft)] hover:bg-[var(--bg-hover)] flex items-center justify-center text-[var(--fg-muted)] hover:text-[var(--fg)] transition"
+          <TipoIcon sx={{ width: 18, height: 18 }} />
+        </Box>
+
+        {/* Info */}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="body2" fontWeight="semibold" noWrap>{opcion.nombre}</Typography>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Typography variant="caption" color="text.secondary" textTransform="uppercase">
+              {opcion.tipo}
+            </Typography>
+            {opcion.precio_es_negociado && (
+              <Stack direction="row" alignItems="center" spacing={0.25}>
+                <DollarSign sx={{ width: 12, height: 12, color: 'success.main' }} />
+                <Typography variant="caption" color="success.main">Negociado</Typography>
+              </Stack>
+            )}
+            {opcion.cantidad_disponible && (
+              <Typography variant="caption" color="text.secondary">Disp: {opcion.cantidad_disponible}</Typography>
+            )}
+          </Stack>
+        </Box>
+
+        {/* Cantidad editable */}
+        <Stack direction="row" alignItems="center" spacing={0.5}>
+          <IconButton
+            size="small"
+            onClick={() => onChangeCantidad(Number(fuente.cantidad_asignada || 0) - 1)}
+            sx={{ bgcolor: 'grey.100', '&:hover': { bgcolor: 'grey.200' } }}
+          >
+            <Minus sx={{ width: 16, height: 16 }} />
+          </IconButton>
+          <TextField
+            type="number"
+            value={fuente.cantidad_asignada || 0}
+            onChange={(e) => onChangeCantidad(e.target.value)}
+            inputProps={{ min: 0, style: { textAlign: 'center', fontWeight: 'bold' } }}
+            size="small"
+            sx={{ width: 64, '& .MuiInputBase-input': { py: 0.5 } }}
+          />
+          <IconButton
+            size="small"
+            onClick={() => onChangeCantidad(Number(fuente.cantidad_asignada || 0) + 1)}
+            sx={{ bgcolor: 'grey.100', '&:hover': { bgcolor: 'grey.200' } }}
+          >
+            <Plus sx={{ width: 16, height: 16 }} />
+          </IconButton>
+        </Stack>
+
+        {/* Precio */}
+        <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+          <Typography variant="body2" fontWeight="bold">{formatMonto(opcion.precio_unitario || 0)}</Typography>
+          <Typography variant="caption" color="text.secondary">
+            Total: {formatMonto((opcion.precio_unitario || 0) * (fuente.cantidad_asignada || 0))}
+          </Typography>
+        </Box>
+
+        {/* Boton eliminar */}
+        <IconButton
+          size="small"
+          onClick={onRemove}
+          sx={{ color: 'error.main', '&:hover': { bgcolor: 'error.lighter' } }}
         >
-          <Plus className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Precio */}
-      <div className="text-right shrink-0">
-        <p className="text-sm font-bold text-[var(--fg)]">{formatMonto(opcion.precio_unitario || 0)}</p>
-        <p className="text-xs text-[var(--fg-muted)]">
-          Total: {formatMonto((opcion.precio_unitario || 0) * (fuente.cantidad_asignada || 0))}
-        </p>
-      </div>
-
-      {/* Botón eliminar */}
-      <button
-        type="button"
-        onClick={onRemove}
-        className="p-1.5 rounded-md text-[var(--danger)] hover:bg-red-100 dark:hover:bg-red-900/30 transition"
-        title="Quitar fuente"
-      >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-    </div>
+          <X sx={{ width: 16, height: 16 }} />
+        </IconButton>
+      </Stack>
+    </Paper>
   );
 }
 
 // =============================================================================
-// Componente: Opción Card Multi-selección (con checkbox)
+// Componente: Opcion Card Multi-seleccion (con checkbox)
 // =============================================================================
 
 function OpcionCardMulti({ opcion, selected, onToggle }) {
   const isRecomendada = opcion.is_recomendada === true;
   const tipoConfig = getTipoConfig(opcion.tipo);
   const TipoIcon = tipoConfig.icon;
-  const tipoColor = tipoConfig.color;
   const esProveedor = opcion.tipo === "proveedor";
 
   return (
-    <button
-      type="button"
+    <Paper
+      component="button"
       onClick={onToggle}
-      className={`text-left p-3 rounded-xl border-2 transition shadow-sm ${
-        selected
-          ? "border-[var(--primary)] bg-[rgba(59,130,246,0.08)]"
+      sx={{
+        textAlign: 'left',
+        p: 1.5,
+        borderRadius: 3,
+        border: 2,
+        borderColor: selected
+          ? 'primary.main'
           : isRecomendada
-          ? "border-blue-400 dark:border-blue-600 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/30 hover:border-blue-500"
-          : "border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)]"
-      }`}
+          ? 'primary.light'
+          : 'divider',
+        bgcolor: selected
+          ? 'rgba(25, 118, 210, 0.06)'
+          : isRecomendada
+          ? 'primary.lighter'
+          : 'background.paper',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+        '&:hover': {
+          borderColor: 'primary.main',
+        },
+      }}
     >
       {esProveedor ? (
         /* === CARD COMPACTA PARA PROVEEDOR === */
         <>
-          {/* Línea 1: Checkbox + PROVEEDOR: Nombre | Precio + badges */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition shrink-0 ${
-                selected ? "bg-[var(--primary)] border-[var(--primary)]" : "border-[var(--border)] bg-transparent"
-              }`}>
-                {selected && <Check className="w-3 h-3 text-white" />}
-              </div>
-              <Truck className="w-4 h-4 text-[var(--info)] shrink-0" />
-              <span className="text-sm font-black text-[var(--fg)] truncate">
+          {/* Linea 1: Checkbox + PROVEEDOR: Nombre | Precio + badges */}
+          <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1.5}>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0 }}>
+              <Checkbox checked={selected} size="small" sx={{ p: 0 }} />
+              <Truck sx={{ width: 16, height: 16, color: 'info.main', flexShrink: 0 }} />
+              <Typography variant="body2" fontWeight="bold" noWrap>
                 {opcion.nombre}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
+              </Typography>
+            </Stack>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ flexShrink: 0 }}>
               {opcion.precio_es_negociado && (
-                <span className="px-1.5 py-0.5 rounded-full border border-green-500 text-green-600 text-[9px] font-bold flex items-center gap-0.5">
-                  <DollarSign className="w-3 h-3" />
-                  NEG
-                </span>
+                <Chip
+                  size="small"
+                  icon={<DollarSign sx={{ width: 12, height: 12 }} />}
+                  label="NEG"
+                  sx={{ height: 20, fontSize: '0.625rem', fontWeight: 'bold', borderColor: 'success.main', color: 'success.main' }}
+                  variant="outlined"
+                />
               )}
               {isRecomendada && (
-                <span className="px-1.5 py-0.5 rounded-full border-2 border-blue-500 text-blue-500 text-[9px] font-bold">
-                  ⭐
-                </span>
+                <Chip
+                  size="small"
+                  label="*"
+                  sx={{ height: 20, fontSize: '0.625rem', fontWeight: 'bold', borderColor: 'primary.main', color: 'primary.main' }}
+                  variant="outlined"
+                />
               )}
-              <span className="text-sm font-bold text-[var(--fg)]">
+              <Typography variant="body2" fontWeight="bold">
                 {formatMonto(opcion.precio_unitario || 0)}
-              </span>
-            </div>
-          </div>
+              </Typography>
+            </Stack>
+          </Stack>
 
-          {/* Línea 2: Plazo + Rating */}
-          <div className="flex items-center gap-4 mt-2 text-xs text-[var(--fg-muted)]">
-            <span>
-              Plazo: <strong className="text-[var(--fg)]">{opcion.plazo_dias ?? "N/D"}</strong> días
-            </span>
+          {/* Linea 2: Plazo + Rating */}
+          <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 1 }}>
+            <Typography variant="caption" color="text.secondary">
+              Plazo: <Box component="span" fontWeight="bold" color="text.primary">{opcion.plazo_dias ?? "N/D"}</Box> dias
+            </Typography>
             {opcion.rating && (
-              <span>
-                Rating: <strong className="text-[var(--fg)]">{opcion.rating}/5</strong> ⭐
-              </span>
+              <Typography variant="caption" color="text.secondary">
+                Rating: <Box component="span" fontWeight="bold" color="text.primary">{opcion.rating}/5</Box>
+              </Typography>
             )}
-          </div>
+          </Stack>
         </>
       ) : (
         /* === CARD NORMAL PARA OTROS TIPOS (stock, transferencia, equivalencia) === */
         <>
           {/* Header: Checkbox + Tipo + Badge */}
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${
-                selected ? "bg-[var(--primary)] border-[var(--primary)]" : "border-[var(--border)] bg-transparent"
-              }`}>
-                {selected && <Check className="w-3 h-3 text-white" />}
-              </div>
-              <TipoIcon className={`w-4 h-4 ${tipoColor}`} />
-              <span className="text-xs uppercase font-bold tracking-[0.08em] text-[var(--fg)]">{opcion.tipo}</span>
-            </div>
-            <div className="flex items-center gap-2">
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Checkbox checked={selected} size="small" sx={{ p: 0 }} />
+              <TipoIcon sx={{ width: 16, height: 16, color: tipoConfig.color }} />
+              <Typography variant="caption" textTransform="uppercase" fontWeight="bold" letterSpacing={0.5}>
+                {opcion.tipo}
+              </Typography>
+            </Stack>
+            <Stack direction="row" spacing={1}>
               {opcion.precio_es_negociado && (
-                <span className="px-2 py-0.5 rounded-full border border-green-500 text-green-600 text-[9px] font-bold flex items-center gap-1">
-                  <DollarSign className="w-3 h-3" />
-                  NEGOCIADO
-                </span>
+                <Chip
+                  size="small"
+                  icon={<DollarSign sx={{ width: 12, height: 12 }} />}
+                  label="NEGOCIADO"
+                  sx={{ height: 20, fontSize: '0.5625rem', fontWeight: 'bold', borderColor: 'success.main', color: 'success.main' }}
+                  variant="outlined"
+                />
               )}
               {isRecomendada && (
-                <span className="px-2 py-0.5 rounded-full border-2 border-blue-500 text-blue-500 text-[10px] font-bold shadow-sm flex items-center gap-1 bg-[var(--card)]">
-                  ⭐ MEJOR
-                </span>
+                <Chip
+                  size="small"
+                  label="* MEJOR"
+                  sx={{ height: 20, fontSize: '0.625rem', fontWeight: 'bold', borderColor: 'primary.main', color: 'primary.main', bgcolor: 'background.paper' }}
+                  variant="outlined"
+                />
               )}
-            </div>
-          </div>
+            </Stack>
+          </Stack>
 
           {/* Nombre y precio */}
-          <div className="flex items-start justify-between gap-3">
-            <p className="text-base font-black text-[var(--fg)] leading-tight">{opcion.nombre}</p>
-            <p className="text-sm font-bold text-[var(--fg)] shrink-0">{formatMonto(opcion.precio_unitario || 0)}</p>
-          </div>
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1.5}>
+            <Typography variant="body1" fontWeight="bold" sx={{ lineHeight: 1.3 }}>{opcion.nombre}</Typography>
+            <Typography variant="body2" fontWeight="bold" sx={{ flexShrink: 0 }}>{formatMonto(opcion.precio_unitario || 0)}</Typography>
+          </Stack>
 
           {/* Info de transferencia */}
           {opcion.tipo === "transferencia" && opcion.centro_origen && (
-            <p className="text-xs text-[var(--accent)] mt-1">
+            <Typography variant="caption" color="secondary.main" sx={{ mt: 0.5, display: 'block' }}>
               Desde: {opcion.centro_origen} / {opcion.almacen_origen || "N/D"}
-            </p>
+            </Typography>
           )}
 
-          {/* Métricas en línea */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] mt-3 pt-3 border-t border-[var(--border)]">
-            <span className="text-[var(--fg-muted)]">
-              <strong className="text-[var(--fg)]">{opcion.cantidad_disponible ?? "N/D"}</strong> disponibles
-            </span>
-            <span className="text-[var(--fg-muted)]">
-              <strong className="text-[var(--fg)]">{opcion.plazo_dias ?? "N/D"}</strong> días
-            </span>
+          {/* Metricas en linea */}
+          <Stack direction="row" flexWrap="wrap" spacing={2} sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: 'divider' }}>
+            <Typography variant="caption" color="text.secondary">
+              <Box component="span" fontWeight="bold" color="text.primary">{opcion.cantidad_disponible ?? "N/D"}</Box> disponibles
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              <Box component="span" fontWeight="bold" color="text.primary">{opcion.plazo_dias ?? "N/D"}</Box> dias
+            </Typography>
             {opcion.compatibilidad_pct != null && (
-              <span className="text-[var(--fg-muted)]">
-                <strong className="text-[var(--fg)]">{opcion.compatibilidad_pct}%</strong> compatible
-              </span>
+              <Typography variant="caption" color="text.secondary">
+                <Box component="span" fontWeight="bold" color="text.primary">{opcion.compatibilidad_pct}%</Box> compatible
+              </Typography>
             )}
-          </div>
+          </Stack>
 
           {opcion.observaciones && (
-            <p className="text-[11px] text-[var(--fg-muted)] mt-2 italic">💡 {opcion.observaciones}</p>
+            <Typography variant="caption" color="text.secondary" fontStyle="italic" sx={{ mt: 1, display: 'block' }}>
+              {opcion.observaciones}
+            </Typography>
           )}
         </>
       )}
-    </button>
+    </Paper>
   );
 }
 
 // =============================================================================
-// Componente: Opciones Tabla Multi-selección
+// Componente: Opciones Tabla Multi-seleccion
 // =============================================================================
 
 function OpcionesTablaMulti({ opciones, fuentesSeleccionadas, onToggle, isSelected }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-[var(--border)] bg-[var(--bg-soft)]">
-            <th className="w-10 px-3 py-3 text-center"></th>
-            <th className="px-4 py-3 text-center font-semibold text-[var(--fg)]">Opción</th>
-            <th className="px-4 py-3 text-right font-semibold text-[var(--fg)]">Precio</th>
-            <th className="px-4 py-3 text-center font-semibold text-[var(--fg)]">Plazo</th>
-            <th className="px-4 py-3 text-center font-semibold text-[var(--fg)]">Disponible</th>
-            <th className="px-4 py-3 text-center font-semibold text-[var(--fg)]">Puntuación</th>
-          </tr>
-        </thead>
-        <tbody>
+    <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+      <Table size="small">
+        <TableHead>
+          <TableRow sx={{ bgcolor: 'grey.50' }}>
+            <TableCell padding="checkbox" sx={{ width: 40 }} />
+            <TableCell sx={{ fontWeight: 'semibold' }}>Opcion</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 'semibold' }}>Precio</TableCell>
+            <TableCell align="center" sx={{ fontWeight: 'semibold' }}>Plazo</TableCell>
+            <TableCell align="center" sx={{ fontWeight: 'semibold' }}>Disponible</TableCell>
+            <TableCell align="center" sx={{ fontWeight: 'semibold' }}>Puntuacion</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
           {opciones.map((op) => {
             const isRecomendada = op.is_recomendada === true;
             const score = op.score_recomendacion || 0;
             const selected = isSelected(op.opcion_id);
             const tipoConfig = getTipoConfig(op.tipo);
             const TipoIcon = tipoConfig.icon;
-            const tipoColor = tipoConfig.color;
 
             return (
-              <tr
+              <TableRow
                 key={op.opcion_id}
-                className={`border-b border-[var(--border)] transition cursor-pointer ${
-                  selected
-                    ? "bg-[rgba(59,130,246,0.15)]"
-                    : isRecomendada
-                    ? "bg-[rgba(59,130,246,0.08)] hover:bg-[rgba(59,130,246,0.15)]"
-                    : "hover:bg-[var(--bg-hover)]"
-                }`}
+                hover
                 onClick={() => onToggle(op)}
+                sx={{
+                  cursor: 'pointer',
+                  bgcolor: selected
+                    ? 'rgba(25, 118, 210, 0.12)'
+                    : isRecomendada
+                    ? 'rgba(25, 118, 210, 0.06)'
+                    : 'transparent',
+                }}
               >
-                <td className="px-3 py-3 text-center">
-                  <input
-                    type="checkbox"
+                <TableCell padding="checkbox">
+                  <Checkbox
                     checked={selected}
-                    onChange={() => onToggle(op)}
                     onClick={(e) => e.stopPropagation()}
-                    className="w-4 h-4 cursor-pointer accent-[var(--primary)] rounded"
+                    onChange={() => onToggle(op)}
+                    size="small"
                   />
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg bg-[var(--bg-soft)] flex items-center justify-center shrink-0 ${tipoColor}`}>
-                      <TipoIcon className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-[var(--fg)] truncate">{op.nombre}</p>
+                </TableCell>
+                <TableCell>
+                  <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <Box
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 2,
+                        bgcolor: 'grey.100',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        color: tipoConfig.color,
+                      }}
+                    >
+                      <TipoIcon sx={{ width: 16, height: 16 }} />
+                    </Box>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <Typography variant="body2" fontWeight="semibold" noWrap>{op.nombre}</Typography>
                         {op.precio_es_negociado && (
-                          <span className="shrink-0 px-1.5 py-0.5 rounded border border-green-500 text-green-600 text-[9px] font-bold">💲</span>
+                          <Chip size="small" label="$" sx={{ height: 18, fontSize: '0.625rem', fontWeight: 'bold', borderColor: 'success.main', color: 'success.main' }} variant="outlined" />
                         )}
                         {isRecomendada && (
-                          <span className="shrink-0 px-1.5 py-0.5 rounded border border-blue-500 text-blue-500 text-[9px] font-bold bg-[var(--card)]">⭐</span>
+                          <Chip size="small" label="*" sx={{ height: 18, fontSize: '0.625rem', fontWeight: 'bold', borderColor: 'primary.main', color: 'primary.main', bgcolor: 'background.paper' }} variant="outlined" />
                         )}
-                      </div>
-                      <p className="text-[11px] text-[var(--fg-muted)] uppercase tracking-wide">{op.tipo}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <p className="font-bold text-[var(--fg)]">{formatMonto(op.precio_unitario || 0)}</p>
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <span className={`font-medium ${op.plazo_dias <= 3 ? "text-green-600" : "text-[var(--fg)]"}`}>
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary" textTransform="uppercase" letterSpacing={0.5}>
+                        {op.tipo}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </TableCell>
+                <TableCell align="right">
+                  <Typography variant="body2" fontWeight="bold">{formatMonto(op.precio_unitario || 0)}</Typography>
+                </TableCell>
+                <TableCell align="center">
+                  <Typography variant="body2" fontWeight="medium" color={op.plazo_dias <= 3 ? 'success.main' : 'text.primary'}>
                     {op.plazo_dias ?? "N/D"} d
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <span className="font-medium text-[var(--fg)]">
+                  </Typography>
+                </TableCell>
+                <TableCell align="center">
+                  <Typography variant="body2" fontWeight="medium">
                     {op.cantidad_disponible ?? op.cantidad_solicitada ?? "N/D"}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
+                  </Typography>
+                </TableCell>
+                <TableCell align="center">
                   {score > 0 ? (
-                    <div className="flex flex-col items-center gap-1">
-                      <span
-                        className="text-xs font-bold"
-                        style={{ color: isRecomendada ? "var(--primary)" : "var(--fg)" }}
+                    <Stack alignItems="center" spacing={0.5}>
+                      <Typography
+                        variant="caption"
+                        fontWeight="bold"
+                        color={isRecomendada ? 'primary.main' : 'text.primary'}
                       >
                         {score.toFixed(0)}
-                      </span>
-                      <div className="w-14 h-1 bg-[var(--bg-soft)] rounded-full overflow-hidden">
-                        <div
-                          className="h-full"
-                          style={{
+                      </Typography>
+                      <Box sx={{ width: 56, height: 4, bgcolor: 'grey.200', borderRadius: 1, overflow: 'hidden' }}>
+                        <Box
+                          sx={{
+                            height: '100%',
                             width: `${score}%`,
-                            backgroundColor: isRecomendada ? "var(--primary)" : "var(--info)"
+                            bgcolor: isRecomendada ? 'primary.main' : 'info.main',
                           }}
                         />
-                      </div>
-                    </div>
+                      </Box>
+                    </Stack>
                   ) : (
-                    <span className="text-xs text-[var(--fg-muted)]">—</span>
+                    <Typography variant="caption" color="text.secondary">-</Typography>
                   )}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
       {opciones.length === 0 && (
-        <div className="p-6 text-center">
-          <Package className="w-8 h-8 mx-auto text-[var(--fg-muted)] mb-2" />
-          <p className="text-sm text-[var(--fg-muted)]">No hay opciones disponibles</p>
-        </div>
+        <Box sx={{ p: 4, textAlign: 'center' }}>
+          <Package sx={{ width: 32, height: 32, mx: 'auto', color: 'text.secondary', mb: 1 }} />
+          <Typography variant="body2" color="text.secondary">No hay opciones disponibles</Typography>
+        </Box>
       )}
-    </div>
+    </Paper>
   );
 }
 
@@ -1505,40 +1693,40 @@ function OpcionesTablaMulti({ opciones, fuentesSeleccionadas, onToggle, isSelect
 
 function getTipoConfig(tipo) {
   const configs = {
-    stock: { icon: Warehouse, color: "text-[var(--success)]" },
-    transferencia: { icon: ArrowLeftRight, color: "text-[var(--accent)]" },
-    proveedor: { icon: Truck, color: "text-[var(--info)]" },
-    equivalencia: { icon: RefreshCw, color: "text-purple-500" },
-    mix: { icon: Layers, color: "text-[var(--info)]" },
+    stock: { icon: Warehouse, color: 'success.main' },
+    transferencia: { icon: ArrowLeftRight, color: 'secondary.main' },
+    proveedor: { icon: Truck, color: 'info.main' },
+    equivalencia: { icon: RefreshCw, color: 'secondary.main' },
+    mix: { icon: Layers, color: 'info.main' },
   };
-  return configs[tipo] || { icon: Package, color: "text-[var(--fg-muted)]" };
+  return configs[tipo] || { icon: Package, color: 'text.secondary' };
 }
 
 function renderMrpBadge({ item, mostrarMrp, setMostrarMrp }) {
   const status = getMrpStatus(item);
 
   return (
-    <div className="flex items-center gap-2">
-      <Layers className="w-4 h-4 text-[var(--accent)]" />
-      <div>
-        <p className="text-xs text-[var(--fg-muted)]">MRP</p>
+    <Stack direction="row" alignItems="center" spacing={1}>
+      <Layers sx={{ width: 16, height: 16, color: 'secondary.main' }} />
+      <Box>
+        <Typography variant="caption" color="text.secondary">MRP</Typography>
         {!status.planificado ? (
-          <p className="text-sm font-bold text-[var(--danger)]">No planificado</p>
+          <Typography variant="body2" fontWeight="bold" color="error.main">No planificado</Typography>
         ) : (
-          <button
-            type="button"
+          <Box
+            component="button"
             onClick={() => setMostrarMrp?.(!mostrarMrp)}
-            className="text-sm font-bold text-[var(--fg)] hover:text-[var(--primary)] transition"
+            sx={{ bgcolor: 'transparent', border: 'none', cursor: 'pointer', p: 0 }}
           >
             {status.warn ? (
-              <span className="text-[var(--danger)]">⚠ Bajo punto pedido</span>
+              <Typography variant="body2" fontWeight="bold" color="error.main">Bajo punto pedido</Typography>
             ) : (
-              <span className="text-[var(--success)]">Planificado</span>
+              <Typography variant="body2" fontWeight="bold" color="success.main">Planificado</Typography>
             )}
-          </button>
+          </Box>
         )}
-      </div>
-    </div>
+      </Box>
+    </Stack>
   );
 }
 
@@ -1548,37 +1736,41 @@ function MrpDetalle({ item, solicitud, onClose }) {
   const total = status.total;
 
   return (
-    <div className="mt-3 p-4 rounded-xl border border-[var(--border)] bg-[var(--bg-soft)] space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-bold text-[var(--fg)]">Detalle MRP</p>
-        <button type="button" className="text-xs text-[var(--fg-muted)] hover:text-[var(--fg)]" onClick={onClose}>
-          Cerrar
-        </button>
-      </div>
-      {status.warn ? (
-        <div className="px-3 py-2 rounded-lg bg-red-50 border border-red-300 text-red-800 text-sm font-semibold">
-          Alerta: stock actual + pedidos ({total}) está por debajo del punto de pedido ({d.punto_pedido ?? "N/D"}). Revisar gestión MRP.
-        </div>
-      ) : null}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <MrpField label="Centro/Almacén" value={`${solicitud?.centro || "N/D"} / ${solicitud?.almacen_virtual || "N/D"}`} />
-        <MrpField label="Stock de seguridad" value={d.stock_seguridad ?? "N/D"} />
-        <MrpField label="Punto de pedido" value={d.punto_pedido ?? "N/D"} />
-        <MrpField label="Stock máximo" value={d.stock_maximo ?? "N/D"} />
-        <MrpField label="Stock actual (centro)" value={d.stock_actual ?? "N/D"} />
-        <MrpField label="Pedidos en curso" value={d.pedidos_en_curso ?? "N/D"} />
-        <MrpField label="Total stock + pedidos" value={total} />
-      </div>
-    </div>
+    <Paper sx={{ mt: 1.5, p: 2, borderRadius: 3, bgcolor: 'grey.50' }}>
+      <Stack spacing={1.5}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Typography variant="subtitle2" fontWeight="bold">Detalle MRP</Typography>
+          <Button size="small" variant="text" onClick={onClose}>Cerrar</Button>
+        </Stack>
+        {status.warn && (
+          <Paper sx={{ px: 1.5, py: 1, borderRadius: 2, bgcolor: 'error.lighter', border: 1, borderColor: 'error.light' }}>
+            <Typography variant="body2" fontWeight="semibold" color="error.dark">
+              Alerta: stock actual + pedidos ({total}) esta por debajo del punto de pedido ({d.punto_pedido ?? "N/D"}). Revisar gestion MRP.
+            </Typography>
+          </Paper>
+        )}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 1.5 }}>
+          <MrpField label="Centro/Almacen" value={`${solicitud?.centro || "N/D"} / ${solicitud?.almacen_virtual || "N/D"}`} />
+          <MrpField label="Stock de seguridad" value={d.stock_seguridad ?? "N/D"} />
+          <MrpField label="Punto de pedido" value={d.punto_pedido ?? "N/D"} />
+          <MrpField label="Stock maximo" value={d.stock_maximo ?? "N/D"} />
+          <MrpField label="Stock actual (centro)" value={d.stock_actual ?? "N/D"} />
+          <MrpField label="Pedidos en curso" value={d.pedidos_en_curso ?? "N/D"} />
+          <MrpField label="Total stock + pedidos" value={total} />
+        </Box>
+      </Stack>
+    </Paper>
   );
 }
 
 function MrpField({ label, value }) {
   return (
-    <div className="p-3 rounded-lg border border-[var(--border)] bg-[var(--card)]">
-      <p className="text-xs uppercase font-bold tracking-[0.08em] text-[var(--fg-muted)]">{label}</p>
-      <p className="text-sm font-semibold text-[var(--fg)]">{value}</p>
-    </div>
+    <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+      <Typography variant="caption" textTransform="uppercase" fontWeight="bold" letterSpacing={0.5} color="text.secondary">
+        {label}
+      </Typography>
+      <Typography variant="body2" fontWeight="semibold">{value}</Typography>
+    </Paper>
   );
 }
 
@@ -1609,7 +1801,7 @@ function isTrueish(val) {
   if (val === true) return true;
   if (typeof val === "string") {
     const normalized = val.trim().toLowerCase();
-    return ["si", "sí", "true", "1", "planificado", "yes"].includes(normalized);
+    return ["si", "si", "true", "1", "planificado", "yes"].includes(normalized);
   }
   if (typeof val === "number") return val === 1;
   return false;

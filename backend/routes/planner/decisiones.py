@@ -288,7 +288,7 @@ def obtener_detalle_mrp(solicitud_id, item_idx):
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT centro, data_json FROM solicitudes WHERE id=?",
+                "SELECT centro, data_json FROM solicitud WHERE id=?",
                 (solicitud_id,),
             )
             row = cur.fetchone()
@@ -303,7 +303,7 @@ def obtener_detalle_mrp(solicitud_id, item_idx):
                 return error_validation("item_idx", f"Item {item_idx} no existe en la solicitud")
 
             item = items[item_idx]
-            codigo_material = item.get("codigo") or item.get("codigo_material", "")
+            codigo_material = item.get("material") or item.get("codigo") or item.get("codigo_material", "")
 
         # Obtener parametros MRP desde sap_data.db
         mrp_params = MrpRepository.get_parametros_mrp(codigo_material, centro)

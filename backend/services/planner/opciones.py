@@ -52,9 +52,9 @@ def paso_2_opciones_abastecimiento(solicitud_id: int, item_idx: int) -> Dict[str
         raise ValueError(f"Item index {item_idx} fuera de rango")
 
     item = items[item_idx]
-    codigo_original = item.get("codigo") or item.get("material_id") or ""
+    codigo_original = item.get("codigo") or item.get("material") or item.get("material_id") or ""
     cantidad_solicitada = float(item.get("cantidad", 0) or 0)
-    precio_unitario_original = float(item.get("precio_unitario", 0) or 0)
+    precio_unitario_original = float(item.get("precio_unitario") or item.get("precio_usd") or 0)
     centro_solicitud = solicitud.get("centro", "")
     almacen_solicitud = solicitud.get("almacen_virtual") or solicitud.get("almacen", "")
 

@@ -89,8 +89,8 @@ def dashboard_stats():
         with get_db_connection() as conn:
             cur = conn.cursor()
 
-            if _table_exists(conn, "solicitudes"):
-                cur.execute("SELECT status, COUNT(*) as cnt FROM solicitudes GROUP BY status")
+            if _table_exists(conn, "solicitud"):
+                cur.execute("SELECT status, COUNT(*) as cnt FROM solicitud GROUP BY status")
                 rows = cur.fetchall() or []
                 counts = {}
                 for row in rows:
@@ -112,7 +112,7 @@ def dashboard_stats():
                 )
 
             if _table_exists(conn, "presupuestos"):
-                cur.execute("SELECT SUM(saldo_usd) as total FROM presupuestos")
+                cur.execute("SELECT SUM(saldo_usd) as total FROM presupuesto")
                 total_saldo = cur.fetchone()
                 # Compatibilidad PostgreSQL (dict) y SQLite (tuple)
                 if total_saldo:
@@ -142,7 +142,9 @@ def _load_solicitudes(filters: dict):
         )"""
     ]
     params = []
-    if filters.get("planner_id"):
+    if filters.get("sin_asignar"):
+        where.append("(s.planner_id IS NULL OR s.planner_id = '')")
+    elif filters.get("planner_id"):
         where.append("s.planner_id = ?")
         params.append(filters["planner_id"])
     if filters.get("centro"):
@@ -163,10 +165,10 @@ def _load_solicitudes(filters: dict):
                 u.nombre AS solicitante_nombre, u.apellido AS solicitante_apellido,
                 ua.nombre AS aprobador_nombre, ua.apellido AS aprobador_apellido,
                 up.nombre AS planner_nombre, up.apellido AS planner_apellido
-            FROM solicitudes s
-            LEFT JOIN usuarios u ON s.id_usuario = u.id_spm
-            LEFT JOIN usuarios ua ON s.aprobador_id = ua.id_spm
-            LEFT JOIN usuarios up ON s.planner_id = up.id_spm
+            FROM solicitud s
+            LEFT JOIN usuario u ON s.id_usuario = u.id_spm
+            LEFT JOIN usuario ua ON s.aprobador_id = ua.id_spm
+            LEFT JOIN usuario up ON s.planner_id = up.id_spm
             {where_sql}
             ORDER BY s.updated_at DESC
             """,
@@ -197,10 +199,27 @@ def listar_solicitudes_aprobadas():
     guard, is_admin = _require_planner_role(user)
     if guard:
         return guard
-    planner_id = user.get("id_spm") if not is_admin else request.args.get("planner_id")
+
+    # Parámetros de filtro
     centro = request.args.get("centro")
     sector = request.args.get("sector")
-    data = _load_solicitudes({"planner_id": planner_id, "centro": centro, "sector": sector})
+    sin_asignar = request.args.get("sin_asignar", "").lower() in ("true", "1", "yes")
+
+    filters = {"centro": centro, "sector": sector}
+
+    if sin_asignar:
+        # Mostrar solo solicitudes sin asignar
+        filters["sin_asignar"] = True
+    elif is_admin:
+        # Admin puede filtrar por planner_id específico o ver todas
+        planner_id = request.args.get("planner_id")
+        if planner_id:
+            filters["planner_id"] = planner_id
+    else:
+        # Usuario normal solo ve las asignadas a él
+        filters["planner_id"] = user.get("id_spm")
+
+    data = _load_solicitudes(filters)
     return jsonify(data), 200
 
 
@@ -215,7 +234,7 @@ def obtener_presupuesto():
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT centro, sector, monto_usd, saldo_usd FROM presupuestos WHERE centro=? AND sector=?",
+            "SELECT centro, sector, monto_usd, saldo_usd FROM presupuesto WHERE centro=? AND sector=?",
             (centro, sector),
         )
         row = cur.fetchone()
@@ -480,7 +499,7 @@ def tratar_items(solicitud_id):
         # Solo cambiar si no está ya en in_treatment
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT status FROM solicitudes WHERE id=?", (solicitud_id,))
+            cur.execute("SELECT status FROM solicitud WHERE id=?", (solicitud_id,))
             row = cur.fetchone()
             if row:
                 estado_actual = normalizar_estado(row["status"])
@@ -593,7 +612,7 @@ def _update_estado(solicitud_id: int, estado: str, actor_id: str = "system"):
     with get_db_transaction() as conn:
         cur = conn.cursor()
         cur.execute(
-            "UPDATE solicitudes SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+            "UPDATE solicitud SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
             (estado_normalizado, solicitud_id),
         )
 
@@ -825,7 +844,7 @@ def obtener_detalle_mrp(solicitud_id, item_idx):
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT centro, data_json FROM solicitudes WHERE id=?",
+                "SELECT centro, data_json FROM solicitud WHERE id=?",
                 (solicitud_id,),
             )
             row = cur.fetchone()
@@ -840,7 +859,7 @@ def obtener_detalle_mrp(solicitud_id, item_idx):
                 return error_validation("item_idx", f"Item {item_idx} no existe en la solicitud")
 
             item = items[item_idx]
-            codigo_material = item.get("codigo") or item.get("codigo_material", "")
+            codigo_material = item.get("material") or item.get("codigo") or item.get("codigo_material", "")
 
         # Obtener parámetros MRP desde sap_data.db
         mrp_params = MrpRepository.get_parametros_mrp(codigo_material, centro)
@@ -1110,7 +1129,7 @@ def ejecutar_acciones_post_tratamiento(solicitud_id):
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT centro, id_usuario, data_json FROM solicitudes WHERE id=?",
+                "SELECT centro, id_usuario, data_json FROM solicitud WHERE id=?",
                 (solicitud_id,),
             )
             sol_row = cur.fetchone()
@@ -1131,7 +1150,7 @@ def ejecutar_acciones_post_tratamiento(solicitud_id):
         for decision in decisiones:
             item_idx = decision.get("item_index", 0)
             item = items[item_idx] if item_idx < len(items) else {}
-            codigo_material = item.get("codigo") or item.get("codigo_material", "")
+            codigo_material = item.get("material") or item.get("codigo") or item.get("codigo_material", "")
             descripcion = item.get("descripcion", "")
 
             # Obtener fuentes de esta decisión
@@ -1396,8 +1415,8 @@ def obtener_mis_consultas_pendientes():
                     u.nombre || ' ' || u.apellido as planner_nombre
                 FROM decision_abastecimiento_fuentes f
                 JOIN decision_abastecimiento d ON d.id = f.decision_id
-                JOIN solicitudes s ON s.id = d.solicitud_id
-                LEFT JOIN usuarios u ON u.id_spm = s.planner_id
+                JOIN solicitud s ON s.id = d.solicitud_id
+                LEFT JOIN usuario u ON u.id_spm = s.planner_id
                 LEFT JOIN config_almacenes ca
                     ON ca.centro = f.centro_origen AND ca.almacen = f.almacen_origen
                 WHERE (f.estado_consulta = 'pendiente' OR f.estado_consulta IS NULL)
@@ -1406,14 +1425,14 @@ def obtener_mis_consultas_pendientes():
                   AND (
                       ca.responsable_id = %s
                       OR EXISTS (
-                          SELECT 1 FROM usuarios u2
+                          SELECT 1 FROM usuario u2
                           WHERE u2.id_spm = %s
                           AND f.centro_origen = ANY(string_to_array(u2.centros, ','))
                           AND (u2.rol LIKE '%%coordinador%%' OR u2.rol LIKE '%%jefe%%')
                       )
                       OR EXISTS (
                           SELECT 1 FROM proveedores_internos pi
-                          JOIN usuarios u3 ON pi.referente_email = u3.mail
+                          JOIN usuario u3 ON pi.referente_email = u3.mail
                           WHERE u3.id_spm = %s
                           AND pi.centro = f.centro_origen
                           AND pi.almacen = f.almacen_origen
@@ -1489,7 +1508,7 @@ def responder_consulta_stock(fuente_id):
                        s.planner_id
                 FROM decision_abastecimiento_fuentes f
                 JOIN decision_abastecimiento d ON d.id = f.decision_id
-                JOIN solicitudes s ON s.id = d.solicitud_id
+                JOIN solicitud s ON s.id = d.solicitud_id
                 WHERE f.id = ?
                 """,
                 (fuente_id,),
@@ -1709,7 +1728,7 @@ def responder_consulta_referente(decision_id):
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT planner_id FROM solicitudes WHERE id=?",
+                "SELECT planner_id FROM solicitud WHERE id=?",
                 (decision["solicitud_id"],),
             )
             sol = cur.fetchone()
@@ -1764,7 +1783,7 @@ def obtener_estado_acciones(solicitud_id):
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT data_json FROM solicitudes WHERE id=?",
+                "SELECT data_json FROM solicitud WHERE id=?",
                 (solicitud_id,),
             )
             sol_row = cur.fetchone()
@@ -1788,7 +1807,7 @@ def obtener_estado_acciones(solicitud_id):
                 {
                     "decision_id": decision["id"],
                     "item_index": item_idx,
-                    "codigo_material": item.get("codigo") or item.get("codigo_material", ""),
+                    "codigo_material": item.get("material") or item.get("codigo") or item.get("codigo_material", ""),
                     "descripcion": item.get("descripcion", ""),
                     "estado": decision.get("estado", "pendiente"),
                     "cantidad_solicitada": decision.get("cantidad_solicitada", 0),
@@ -1829,11 +1848,11 @@ def _get_responsable_almacen(centro: str, almacen: str) -> str | None:
     try:
         with get_db_connection() as conn:
             cur = conn.cursor()
-            # Buscar en config_almacenes o usuarios con rol almacenero
+            # Buscar en config_almacenes o usuario con rol almacenero
             cur.execute(
                 """
                 SELECT u.id_spm
-                FROM usuarios u
+                FROM usuario u
                 WHERE u.centro = ? AND u.rol LIKE '%%almacen%%'
                 LIMIT 1
                 """,
@@ -1944,7 +1963,7 @@ def _get_referente_centro(centro: str, almacen: str = None) -> str | None:
                 return None
 
             # Buscar usuario por email
-            sql_user = f"SELECT id_spm FROM usuarios WHERE mail = {placeholder}"
+            sql_user = f"SELECT id_spm FROM usuario WHERE mail = {placeholder}"
             cur.execute(sql_user, (referente_email,))
             user_row = cur.fetchone()
             if user_row:
@@ -1980,7 +1999,7 @@ def _enviar_notificacion_finalizacion(solicitud_id: int):
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT id_usuario FROM solicitudes WHERE id = ?",
+                "SELECT id_usuario FROM solicitud WHERE id = ?",
                 (solicitud_id,),
             )
             sol = cur.fetchone()

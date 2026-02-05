@@ -1,22 +1,33 @@
 /**
- * Icon Component - Sistema de iconos SVG local
+ * Icon Component - Material UI Icons wrapper
  *
- * Reemplaza lucide-react con SVGs locales del paquete SF Symbols.
- * Soporta tamaños estandarizados y colores semanticos via Tailwind.
+ * Wrapper para iconos de @mui/icons-material con soporte
+ * para tamaños estandarizados y colores semánticos.
  */
 
 import clsx from 'clsx';
 import { ICON_DEFAULT_COLORS } from './iconMap';
 
-// Tamaños estandarizados (coinciden con el sistema anterior)
+// Tamaños estandarizados (Material UI usa fontSize)
+const sizeMap = {
+  xs: { fontSize: '0.75rem' },    // 12px - badges, dots
+  sm: { fontSize: '1rem' },       // 16px - botones, inline, nav (default)
+  md: { fontSize: '1.25rem' },    // 20px - alerts, headers, cards
+  lg: { fontSize: '1.5rem' },     // 24px - titulos, destacados
+  xl: { fontSize: '2rem' },       // 32px - empty states
+  '2xl': { fontSize: '2.5rem' },  // 40px - hero sections
+  '3xl': { fontSize: '3rem' },    // 48px - splash screens
+};
+
+// Clases de tamaño para compatibilidad con Tailwind
 const sizeClasses = {
-  xs: 'w-3 h-3',      // 12px - badges, dots
-  sm: 'w-4 h-4',      // 16px - botones, inline, nav (default)
-  md: 'w-5 h-5',      // 20px - alerts, headers, cards
-  lg: 'w-6 h-6',      // 24px - titulos, destacados
-  xl: 'w-8 h-8',      // 32px - empty states
-  '2xl': 'w-10 h-10', // 40px - hero sections
-  '3xl': 'w-12 h-12', // 48px - splash screens
+  xs: 'text-xs',
+  sm: 'text-base',
+  md: 'text-xl',
+  lg: 'text-2xl',
+  xl: 'text-3xl',
+  '2xl': 'text-4xl',
+  '3xl': 'text-5xl',
 };
 
 // Colores semanticos - exportados como ICON_COLORS para uso directo
@@ -59,33 +70,33 @@ export const ICON_COLORS = {
 /**
  * Componente Icon principal
  *
- * @param {React.ComponentType} icon - Componente SVG importado
+ * @param {React.ComponentType} icon - Componente de icono MUI
  * @param {string} size - Tamaño: xs, sm, md, lg, xl, 2xl, 3xl
  * @param {string} color - Color semantico o inherit
  * @param {string} className - Clases adicionales
  * @param {boolean} spin - Animacion de rotacion (para loaders)
  */
 export function Icon({
-  icon: SvgComponent,
+  icon: IconComponent,
   size = 'sm',
   color = 'inherit',
   className = '',
   spin = false,
   ...props
 }) {
-  if (!SvgComponent) {
-    console.warn('Icon: No se proporciono componente de icono');
+  if (!IconComponent) {
+    console.warn('Icon: No se proporcionó componente de icono');
     return null;
   }
 
-  const sizeClass = sizeClasses[size] || sizeClasses.sm;
+  const sizeStyle = sizeMap[size] || sizeMap.sm;
   const colorClass = ICON_COLORS[color] || '';
 
   return (
-    <SvgComponent
+    <IconComponent
+      sx={sizeStyle}
       className={clsx(
         'flex-shrink-0',
-        sizeClass,
         colorClass,
         spin && 'animate-spin',
         className
@@ -96,30 +107,32 @@ export function Icon({
   );
 }
 
+// Importar iconos específicos para los presets
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
+import WarningIcon from '@mui/icons-material/Warning';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import AutorenewIcon from '@mui/icons-material/Autorenew';
+
 // Iconos de estado preconfigurados (compatibilidad con sistema anterior)
 export function SuccessIcon({ size = 'md', className, ...props }) {
-  const CheckCircleFill = require('./svg/checkmark_circle_fill.svg?react').default;
-  return <Icon icon={CheckCircleFill} size={size} color="success" className={className} {...props} />;
+  return <Icon icon={CheckCircleIcon} size={size} color="success" className={className} {...props} />;
 }
 
 export function ErrorIcon({ size = 'md', className, ...props }) {
-  const XCircleFill = require('./svg/xmark_circle_fill.svg?react').default;
-  return <Icon icon={XCircleFill} size={size} color="error" className={className} {...props} />;
+  return <Icon icon={CancelIcon} size={size} color="error" className={className} {...props} />;
 }
 
-export function WarningIcon({ size = 'md', className, ...props }) {
-  const AlertTriangleFill = require('./svg/exclamationmark_triangle_fill.svg?react').default;
-  return <Icon icon={AlertTriangleFill} size={size} color="warning" className={className} {...props} />;
+export function WarningIconPreset({ size = 'md', className, ...props }) {
+  return <Icon icon={WarningIcon} size={size} color="warning" className={className} {...props} />;
 }
 
 export function InfoIcon({ size = 'md', className, ...props }) {
-  const InfoCircle = require('./svg/info_circle.svg?react').default;
-  return <Icon icon={InfoCircle} size={size} color="info" className={className} {...props} />;
+  return <Icon icon={InfoOutlinedIcon} size={size} color="info" className={className} {...props} />;
 }
 
 export function LoadingIcon({ size = 'md', className, ...props }) {
-  const ArrowCircle = require('./svg/arrow_2_circlepath.svg?react').default;
-  return <Icon icon={ArrowCircle} size={size} color="muted" className={className} spin {...props} />;
+  return <Icon icon={AutorenewIcon} size={size} color="muted" className={className} spin {...props} />;
 }
 
 /**

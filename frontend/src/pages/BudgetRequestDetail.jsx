@@ -1,27 +1,44 @@
+/**
+ * BudgetRequestDetail - Detalle de Solicitud de Presupuesto
+ * Vista de detalle individual de una solicitud de incorporacion (BUR)
+ *
+ * SAP/Enterprise UI - Sprint 23+
+ * Migrado a Material-UI
+ */
+
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { budget } from "../services/spm";
 import { useAuthStore } from "../store/authStore";
-import { Button } from "../components/ui/Button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/Card";
-import { PageHeader } from "../components/ui/PageHeader";
-import { Alert } from "../components/ui/Alert";
-import StatusBadge from "../components/ui/StatusBadge";
 import { useI18n } from "../context/i18n";
 import { formatCurrency } from "../utils/formatters";
-import { Modal } from "../components/ui/Modal";
+
+// MUI Components
 import {
-  ArrowLeft,
-  CheckCircle,
-  XCircle,
-  DollarSign,
-  Building,
-  MapPin,
-  User,
-  Calendar,
-  FileText,
-  Shield,
-} from "../components/ui/Icons";
+  Box,
+  Paper,
+  Typography,
+  Button,
+  Alert,
+  Chip,
+  Stack,
+  Divider,
+  Modal,
+  TextField,
+  CircularProgress,
+} from "@mui/material";
+
+// MUI Icons
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import BusinessIcon from "@mui/icons-material/Business";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import PersonIcon from "@mui/icons-material/Person";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import DescriptionIcon from "@mui/icons-material/Description";
+import SecurityIcon from "@mui/icons-material/Security";
 
 const estadoToBadge = {
   pendiente: "Pendiente",
@@ -35,6 +52,32 @@ const nivelLabels = {
   L1: "Nivel 1 (hasta $200K)",
   L2: "Nivel 2 (hasta $1M)",
   ADMIN: "Admin (mas de $1M)",
+};
+
+const getEstadoColor = (estado) => {
+  switch (estado) {
+    case "aprobado":
+      return "success";
+    case "rechazado":
+      return "error";
+    case "aprobado_l1":
+    case "aprobado_l2":
+      return "info";
+    default:
+      return "warning";
+  }
+};
+
+const modalStyle = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: { xs: "90%", sm: 500 },
+  bgcolor: "background.paper",
+  borderRadius: 2,
+  boxShadow: 24,
+  p: 4,
 };
 
 export default function BudgetRequestDetail() {
@@ -132,327 +175,502 @@ export default function BudgetRequestDetail() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-slate-500">{t("common_cargando", "Cargando...")}</div>
-      </div>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: 400,
+        }}
+      >
+        <CircularProgress />
+      </Box>
     );
   }
 
   if (!bur) {
     return (
-      <div className="space-y-6">
-        <PageHeader
-          title={t("bur_detail_title", "DETALLE DE SOLICITUD").toUpperCase()}
-          actions={
-            <Button variant="ghost" onClick={() => navigate("/presupuestos")}>
-              <ArrowLeft className="w-4 h-4" />
-              {t("common_volver", "Volver")}
-            </Button>
-          }
-        />
-        <Alert variant="danger">{t("common_no_encontrado", "Solicitud no encontrada")}</Alert>
-      </div>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Typography variant="h5" sx={{ fontWeight: 600, color: "text.primary" }}>
+            {t("bur_detail_title", "DETALLE DE SOLICITUD").toUpperCase()}
+          </Typography>
+          <Button
+            variant="text"
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate("/presupuestos")}
+          >
+            {t("common_volver", "Volver")}
+          </Button>
+        </Box>
+        <Alert severity="error">{t("common_no_encontrado", "Solicitud no encontrada")}</Alert>
+      </Box>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={`${t("bur_detail_title", "SOLICITUD")} #${id}`.toUpperCase()}
-        actions={
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => navigate("/presupuestos")}>
-              <ArrowLeft className="w-4 h-4" />
-              {t("common_volver", "Volver")}
-            </Button>
-            {canApprove && (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      {/* Header */}
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 2 }}>
+        <Typography variant="h5" sx={{ fontWeight: 600, color: "text.primary" }}>
+          {`${t("bur_detail_title", "SOLICITUD")} #${id}`.toUpperCase()}
+        </Typography>
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="text"
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate("/presupuestos")}
+          >
+            {t("common_volver", "Volver")}
+          </Button>
+          {canApprove && (
+            <>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<CheckCircleIcon />}
+                onClick={() => setApproveModal({ open: true, comentario: "" })}
+              >
+                {t("bur_aprobar", "Aprobar")}
+              </Button>
+              <Button
+                variant="contained"
+                color="error"
+                startIcon={<CancelIcon />}
+                onClick={() => setRejectModal({ open: true, motivo: "" })}
+              >
+                {t("bur_rechazar", "Rechazar")}
+              </Button>
+            </>
+          )}
+        </Stack>
+      </Box>
+
+      {/* Alerts */}
+      {error && (
+        <Alert severity="error" onClose={() => setError("")}>
+          {error}
+        </Alert>
+      )}
+      {msg && (
+        <Alert severity="success" onClose={() => setMsg("")}>
+          {msg}
+        </Alert>
+      )}
+
+      {/* Main Content Grid */}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", lg: "2fr 1fr" },
+          gap: 3,
+        }}
+      >
+        {/* Main info */}
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 3, gridColumn: { lg: "span 1" } }}>
+          <Paper sx={{ p: 3 }}>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                {t("bur_detail_title", "Detalle de Solicitud")}
+              </Typography>
+              <Chip
+                label={estadoToBadge[bur.estado] || bur.estado}
+                color={getEstadoColor(bur.estado)}
+                size="small"
+              />
+            </Box>
+
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                gap: 3,
+              }}
+            >
+              {/* Centro */}
+              <Box>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                  <BusinessIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {t("bur_campo_centro", "Centro")}
+                  </Typography>
+                </Stack>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: "text.primary" }}>
+                  {bur.centro || "-"}
+                </Typography>
+              </Box>
+
+              {/* Sector */}
+              <Box>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                  <LocationOnIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {t("bur_campo_sector", "Sector")}
+                  </Typography>
+                </Stack>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: "text.primary" }}>
+                  {bur.sector || "-"}
+                </Typography>
+              </Box>
+
+              {/* Monto */}
+              <Box>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                  <AttachMoneyIcon sx={{ fontSize: 18, color: "warning.main" }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {t("bur_col_monto", "Monto Solicitado")}
+                  </Typography>
+                </Stack>
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: 700, fontFamily: "monospace", color: "primary.main" }}
+                >
+                  {formatCurrency(bur.monto_solicitado_usd)}
+                </Typography>
+              </Box>
+
+              {/* Nivel */}
+              <Box>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                  <SecurityIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {t("bur_col_nivel", "Nivel de Aprobacion")}
+                  </Typography>
+                </Stack>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: "text.primary" }}>
+                  {nivelLabels[bur.nivel_aprobacion_requerido] || bur.nivel_aprobacion_requerido}
+                </Typography>
+              </Box>
+
+              {/* Solicitante */}
+              <Box>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                  <PersonIcon sx={{ fontSize: 18, color: "info.main" }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {t("bur_solicitante", "Solicitante")}
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: "text.primary" }}>
+                    {bur.solicitante_id || "-"}
+                  </Typography>
+                  {bur.solicitante_rol && (
+                    <Chip
+                      label={bur.solicitante_rol}
+                      size="small"
+                      variant="outlined"
+                      sx={{ fontSize: "0.75rem" }}
+                    />
+                  )}
+                </Stack>
+              </Box>
+
+              {/* Fecha */}
+              <Box>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                  <CalendarTodayIcon sx={{ fontSize: 18, color: "info.light" }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {t("bur_fecha_creacion", "Fecha de creacion")}
+                  </Typography>
+                </Stack>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: "text.primary" }}>
+                  {formatDate(bur.created_at)}
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Justificacion */}
+            <Divider sx={{ my: 3 }} />
+            <Box>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                <DescriptionIcon sx={{ fontSize: 18, color: "primary.main" }} />
+                <Typography variant="body2" color="text.secondary">
+                  {t("bur_campo_justificacion", "Justificacion")}
+                </Typography>
+              </Stack>
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: 2,
+                  bgcolor: "grey.50",
+                  color: "text.primary",
+                }}
+              >
+                <Typography variant="body1">{bur.justificacion || "-"}</Typography>
+              </Paper>
+            </Box>
+
+            {/* Rejection reason if rejected */}
+            {bur.estado === "rechazado" && bur.motivo_rechazo && (
               <>
-                <Button onClick={() => setApproveModal({ open: true, comentario: "" })}>
-                  <CheckCircle className="w-4 h-4" />
-                  {t("bur_aprobar", "Aprobar")}
-                </Button>
-                <Button variant="danger" onClick={() => setRejectModal({ open: true, motivo: "" })}>
-                  <XCircle className="w-4 h-4" />
-                  {t("bur_rechazar", "Rechazar")}
-                </Button>
+                <Divider sx={{ my: 3 }} />
+                <Box>
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                    <CancelIcon sx={{ fontSize: 18, color: "error.main" }} />
+                    <Typography variant="body2" color="error.main">
+                      {t("bur_motivo_rechazo", "Motivo de rechazo")}
+                    </Typography>
+                  </Stack>
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      bgcolor: "error.50",
+                      borderColor: "error.200",
+                      color: "text.primary",
+                    }}
+                  >
+                    <Typography variant="body1">{bur.motivo_rechazo}</Typography>
+                  </Paper>
+                </Box>
               </>
             )}
-          </div>
-        }
-      />
 
-      {error && <Alert variant="danger" onDismiss={() => setError("")}>{error}</Alert>}
-      {msg && <Alert variant="success" onDismiss={() => setMsg("")}>{msg}</Alert>}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main info */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>{t("bur_detail_title", "Detalle de Solicitud")}</CardTitle>
-                <StatusBadge estado={estadoToBadge[bur.estado] || bur.estado} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Centro */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <Building className="w-4 h-4 text-slate-600" />
-                    {t("bur_campo_centro", "Centro")}
-                  </div>
-                  <div className="text-lg font-semibold text-slate-800">{bur.centro || "-"}</div>
-                </div>
-
-                {/* Sector */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <MapPin className="w-4 h-4 text-slate-600" />
-                    {t("bur_campo_sector", "Sector")}
-                  </div>
-                  <div className="text-lg font-semibold text-slate-800">{bur.sector || "-"}</div>
-                </div>
-
-                {/* Monto */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <DollarSign className="w-4 h-4 text-amber-700" />
-                    {t("bur_col_monto", "Monto Solicitado")}
-                  </div>
-                  <div className="text-2xl font-bold font-mono text-blue-600">
-                    {formatCurrency(bur.monto_solicitado_usd)}
-                  </div>
-                </div>
-
-                {/* Nivel */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <Shield className="w-4 h-4 text-slate-600" />
-                    {t("bur_col_nivel", "Nivel de Aprobacion")}
-                  </div>
-                  <div className="text-lg font-semibold text-slate-800">
-                    {nivelLabels[bur.nivel_aprobacion_requerido] || bur.nivel_aprobacion_requerido}
-                  </div>
-                </div>
-
-                {/* Solicitante */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <User className="w-4 h-4 text-teal-500" />
-                    {t("bur_solicitante", "Solicitante")}
-                  </div>
-                  <div className="text-lg font-semibold text-slate-800">
-                    {bur.solicitante_id || "-"}
-                    {bur.solicitante_rol && (
-                      <span className="ml-2 text-xs px-2 py-1 rounded bg-slate-50/70 text-slate-500">
-                        {bur.solicitante_rol}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Fecha */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <Calendar className="w-4 h-4 text-cyan-500" />
-                    {t("bur_fecha_creacion", "Fecha de creación")}
-                  </div>
-                  <div className="text-lg font-semibold text-slate-800">{formatDate(bur.created_at)}</div>
-                </div>
-              </div>
-
-              {/* Justificacion */}
-              <div className="mt-6 pt-6 border-t border-white/30">
-                <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
-                  <FileText className="w-4 h-4 text-blue-500" />
-                  {t("bur_campo_justificacion", "Justificación")}
-                </div>
-                <div className="p-4 rounded-lg bg-slate-50/70 text-slate-800">
-                  {bur.justificacion || "-"}
-                </div>
-              </div>
-
-              {/* Rejection reason if rejected */}
-              {bur.estado === "rechazado" && bur.motivo_rechazo && (
-                <div className="mt-6 pt-6 border-t border-white/30">
-                  <div className="flex items-center gap-2 text-sm text-red-600 mb-2">
-                    <XCircle className="w-4 h-4 text-red-500" />
-                    {t("bur_motivo_rechazo", "Motivo de rechazo")}
-                  </div>
-                  <div className="p-4 rounded-lg bg-red-50/70 border border-red-200/50 text-slate-800">
-                    {bur.motivo_rechazo}
-                  </div>
-                </div>
-              )}
-
-              {/* Approval info */}
-              {bur.aprobador_id && (
-                <div className="mt-6 pt-6 border-t border-white/30">
-                  <div className="flex items-center gap-2 text-sm text-emerald-600 mb-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-500" />
-                    {t("common_aprobado_por", "Aprobado por")}
-                  </div>
-                  <div className="text-slate-800">
-                    {bur.aprobador_id}
+            {/* Approval info */}
+            {bur.aprobador_id && (
+              <>
+                <Divider sx={{ my: 3 }} />
+                <Box>
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                    <CheckCircleIcon sx={{ fontSize: 18, color: "success.main" }} />
+                    <Typography variant="body2" color="success.main">
+                      {t("common_aprobado_por", "Aprobado por")}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                    <Typography variant="body1" sx={{ color: "text.primary" }}>
+                      {bur.aprobador_id}
+                    </Typography>
                     {bur.aprobador_rol && (
-                      <span className="ml-2 text-xs px-2 py-1 rounded bg-slate-50/70 text-slate-500">
-                        {bur.aprobador_rol}
-                      </span>
+                      <Chip
+                        label={bur.aprobador_rol}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontSize: "0.75rem" }}
+                      />
                     )}
                     {bur.aprobado_at && (
-                      <span className="ml-2 text-sm text-slate-500">
+                      <Typography variant="body2" color="text.secondary">
                         {formatDate(bur.aprobado_at)}
-                      </span>
+                      </Typography>
                     )}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                  </Stack>
+                </Box>
+              </>
+            )}
+          </Paper>
+        </Box>
 
         {/* Side panel */}
-        <div className="space-y-4">
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {/* Budget impact */}
           {presupuestoInfo && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">{t("common_presupuesto", "Presupuesto")}</CardTitle>
-                <CardDescription>{bur.centro}/{bur.sector}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-500">{t("bur_saldo_actual", "Saldo actual")}</span>
-                    <span className="font-mono text-lg font-semibold text-slate-800">
-                      {formatCurrency(presupuestoInfo.saldo_usd)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-500">{t("bur_col_monto", "Aumento")}</span>
-                    <span className="font-mono text-lg font-semibold text-emerald-600">
-                      +{formatCurrency(bur.monto_solicitado_usd)}
-                    </span>
-                  </div>
-                  <div className="border-t border-white/30 pt-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-500">{t("bur_saldo_nuevo", "Nuevo saldo")}</span>
-                      <span className="font-mono text-xl font-bold text-blue-600">
-                        {formatCurrency(nuevoSaldo)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>
+                {t("common_presupuesto", "Presupuesto")}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                {bur.centro}/{bur.sector}
+              </Typography>
+
+              <Stack spacing={1.5}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {t("bur_saldo_actual", "Saldo actual")}
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontFamily: "monospace", fontWeight: 600, color: "text.primary" }}
+                  >
+                    {formatCurrency(presupuestoInfo.saldo_usd)}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {t("bur_col_monto", "Aumento")}
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontFamily: "monospace", fontWeight: 600, color: "success.main" }}
+                  >
+                    +{formatCurrency(bur.monto_solicitado_usd)}
+                  </Typography>
+                </Box>
+                <Divider />
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {t("bur_saldo_nuevo", "Nuevo saldo")}
+                  </Typography>
+                  <Typography
+                    variant="h5"
+                    sx={{ fontFamily: "monospace", fontWeight: 700, color: "primary.main" }}
+                  >
+                    {formatCurrency(nuevoSaldo)}
+                  </Typography>
+                </Box>
+              </Stack>
+            </Paper>
           )}
 
-          {/* Timeline / History placeholder */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">{t("common_historial", "Historial")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-blue-600" />
-                  <div>
-                    <div className="text-slate-800">{t("bur_estado_pendiente", "Creada")}</div>
-                    <div className="text-xs text-slate-500">{formatDate(bur.created_at)}</div>
-                  </div>
-                </div>
-                {bur.aprobado_at && (
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-emerald-600" />
-                    <div>
-                      <div className="text-slate-800">{t("bur_estado_aprobado", "Aprobada")}</div>
-                      <div className="text-xs text-slate-500">{formatDate(bur.aprobado_at)}</div>
-                    </div>
-                  </div>
-                )}
-                {bur.estado === "rechazado" && (
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-red-600" />
-                    <div>
-                      <div className="text-slate-800">{t("bur_estado_rechazado", "Rechazada")}</div>
-                      <div className="text-xs text-slate-500">{formatDate(bur.updated_at)}</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+          {/* Timeline / History */}
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
+              {t("common_historial", "Historial")}
+            </Typography>
+
+            <Stack spacing={1.5}>
+              <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                <Box
+                  sx={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    bgcolor: "primary.main",
+                    mt: 0.75,
+                    flexShrink: 0,
+                  }}
+                />
+                <Box>
+                  <Typography variant="body2" sx={{ color: "text.primary" }}>
+                    {t("bur_estado_pendiente", "Creada")}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {formatDate(bur.created_at)}
+                  </Typography>
+                </Box>
+              </Stack>
+              {bur.aprobado_at && (
+                <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      bgcolor: "success.main",
+                      mt: 0.75,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <Box>
+                    <Typography variant="body2" sx={{ color: "text.primary" }}>
+                      {t("bur_estado_aprobado", "Aprobada")}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {formatDate(bur.aprobado_at)}
+                    </Typography>
+                  </Box>
+                </Stack>
+              )}
+              {bur.estado === "rechazado" && (
+                <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      bgcolor: "error.main",
+                      mt: 0.75,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <Box>
+                    <Typography variant="body2" sx={{ color: "text.primary" }}>
+                      {t("bur_estado_rechazado", "Rechazada")}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {formatDate(bur.updated_at)}
+                    </Typography>
+                  </Box>
+                </Stack>
+              )}
+            </Stack>
+          </Paper>
+        </Box>
+      </Box>
 
       {/* Approve Modal */}
       <Modal
-        isOpen={approveModal.open}
+        open={approveModal.open}
         onClose={() => setApproveModal({ open: false, comentario: "" })}
-        title={`${t("bur_aprobar", "Aprobar")} #${id}`}
-        size="md"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setApproveModal({ open: false, comentario: "" })}>
+      >
+        <Box sx={modalStyle}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            {`${t("bur_aprobar", "Aprobar")} #${id}`}
+          </Typography>
+
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            {t("bur_confirm_aprobar", "Esta accion aumentara el presupuesto de")} {bur.centro}/{bur.sector}{" "}
+            {t("common_en", "en")} {formatCurrency(bur.monto_solicitado_usd)}.
+          </Typography>
+
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            label={t("bur_comentario_aprobacion", "Comentario (opcional)")}
+            value={approveModal.comentario}
+            onChange={(e) => setApproveModal((prev) => ({ ...prev, comentario: e.target.value }))}
+            sx={{ mb: 3 }}
+          />
+
+          <Stack direction="row" spacing={1} justifyContent="flex-end">
+            <Button
+              variant="text"
+              onClick={() => setApproveModal({ open: false, comentario: "" })}
+            >
               {t("common_cancelar", "Cancelar")}
             </Button>
-            <Button onClick={handleAprobar}>
-              <CheckCircle className="w-4 h-4" />
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<CheckCircleIcon />}
+              onClick={handleAprobar}
+            >
               {t("bur_aprobar", "Aprobar")}
             </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-slate-500">
-            {t("bur_confirm_aprobar", "Esta acción aumentará el presupuesto de")} {bur.centro}/{bur.sector} {t("common_en", "en")} {formatCurrency(bur.monto_solicitado_usd)}.
-          </p>
-          <div className="space-y-2">
-            <label className="text-sm text-slate-500">
-              {t("bur_comentario_aprobacion", "Comentario (opcional)")}
-            </label>
-            <textarea
-              value={approveModal.comentario}
-              onChange={(e) => setApproveModal((prev) => ({ ...prev, comentario: e.target.value }))}
-              rows={3}
-              className="w-full px-4 py-3 rounded-lg border border-white/30 bg-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
-            />
-          </div>
-        </div>
+          </Stack>
+        </Box>
       </Modal>
 
       {/* Reject Modal */}
       <Modal
-        isOpen={rejectModal.open}
+        open={rejectModal.open}
         onClose={() => setRejectModal({ open: false, motivo: "" })}
-        title={`${t("bur_rechazar", "Rechazar")} #${id}`}
-        size="md"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setRejectModal({ open: false, motivo: "" })}>
-              {t("common_cancelar", "Cancelar")}
-            </Button>
-            <Button variant="danger" onClick={handleRechazar}>
-              <XCircle className="w-4 h-4" />
-              {t("bur_rechazar", "Rechazar")}
-            </Button>
-          </>
-        }
       >
-        <div className="space-y-2">
-          <label className="text-sm text-slate-500">
-            {t("bur_motivo_rechazo", "Motivo de rechazo")} *
-          </label>
-          <textarea
+        <Box sx={modalStyle}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            {`${t("bur_rechazar", "Rechazar")} #${id}`}
+          </Typography>
+
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            label={`${t("bur_motivo_rechazo", "Motivo de rechazo")} *`}
             value={rejectModal.motivo}
             onChange={(e) => setRejectModal((prev) => ({ ...prev, motivo: e.target.value }))}
-            rows={3}
-            className="w-full px-4 py-3 rounded-lg border border-white/30 bg-white/50 text-sm text-slate-800 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all"
             placeholder={t("bur_motivo_placeholder", "Indica el motivo del rechazo...")}
+            sx={{ mb: 3 }}
           />
-        </div>
+
+          <Stack direction="row" spacing={1} justifyContent="flex-end">
+            <Button
+              variant="text"
+              onClick={() => setRejectModal({ open: false, motivo: "" })}
+            >
+              {t("common_cancelar", "Cancelar")}
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<CancelIcon />}
+              onClick={handleRechazar}
+            >
+              {t("bur_rechazar", "Rechazar")}
+            </Button>
+          </Stack>
+        </Box>
       </Modal>
-    </div>
+    </Box>
   );
 }

@@ -1,16 +1,26 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  X,
-  Send,
-  User,
-  Clock,
-  FileText,
-  Loader2,
-  MessageSquare
-} from "./ui/Icons";
-import { Button } from "./ui/Button";
-import { Card } from "./ui/Card";
-import { Alert } from "./ui/Alert";
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Box,
+  Typography,
+  TextField,
+  IconButton,
+  Avatar,
+  Paper,
+  Stack,
+  CircularProgress,
+  Alert,
+  Button,
+} from "@mui/material";
+import {
+  Send as SendIcon,
+  AccessTime as ClockIcon,
+  Description as FileTextIcon,
+  Forum as MessageSquareIcon,
+  Close as CloseIcon,
+} from "@mui/icons-material";
 import { useAuthStore } from "../store/authStore";
 import api from "../services/api";
 
@@ -61,18 +71,16 @@ export default function MensajeThreadModal({ message, isOpen, onClose }) {
     }
 
     setSending(true);
-    setError(null);
-
     try {
       const response = await api.post(`/mensajes/${message.id}/reply`, {
-        mensaje: replyText
+        mensaje: replyText.trim()
       });
+
       const data = response.data;
 
       if (data.ok) {
-        // Refresh thread
-        await fetchThread();
         setReplyText("");
+        fetchThread();
       } else {
         setError(data.error || "Error al enviar respuesta");
       }
@@ -85,128 +93,211 @@ export default function MensajeThreadModal({ message, isOpen, onClose }) {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+    if (e.key === "Enter" && e.ctrlKey) {
+      e.preventDefault();
       handleSendReply();
     }
   };
 
-  if (!isOpen) return null;
+  if (!message) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{
-        backgroundColor: 'rgba(15, 23, 42, 0.4)',
-        backdropFilter: 'blur(4px)',
-        WebkitBackdropFilter: 'blur(4px)',
+    <Dialog
+      open={isOpen}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 2,
+          maxHeight: "85vh",
+        }
       }}
     >
-      <div
-        className="relative w-full max-w-3xl max-h-[90vh] rounded-2xl border border-white/50 dark:border-slate-700/50 flex flex-col overflow-hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-glass"
+      <DialogTitle
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          pb: 1,
+        }}
       >
-        {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-[var(--border)]">
-          <div className="flex-1">
-            <h2 className="text-xl font-semibold text-[var(--fg-strong)] mb-1">
-              {message.asunto}
-            </h2>
-            {message.solicitud_id && (
-              <div className="flex items-center gap-1.5 text-sm text-[var(--accent)]">
-                <FileText className="w-4 h-4" />
-                <span>Solicitud #{message.solicitud_id}</span>
-                {message.solicitud_justificacion && (
-                  <span className="text-[var(--fg-subtle)]">
-                    - {message.solicitud_justificacion}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
+        <Box>
+          <Typography variant="h6" component="span">
+            {message.asunto}
+          </Typography>
+          {message.solicitud_id && (
+            <Stack
+              direction="row"
+              spacing={0.75}
+              alignItems="center"
+              sx={{
+                mt: 0.5,
+                color: "primary.main",
+                fontSize: "0.875rem",
+              }}
+            >
+              <FileTextIcon sx={{ width: 16, height: 16 }} />
+              <Typography variant="body2" color="primary">
+                Solicitud #{message.solicitud_id}
+              </Typography>
+              {message.solicitud_justificacion && (
+                <Typography variant="body2" color="text.secondary">
+                  - {message.solicitud_justificacion}
+                </Typography>
+              )}
+            </Stack>
+          )}
+        </Box>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
 
-          <button
-            onClick={onClose}
-            className="flex-shrink-0 ml-4 p-2 rounded-lg text-[var(--fg-muted)] hover:text-[var(--fg-strong)] hover:bg-[var(--bg-elevated)] transition-all"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
+      <DialogContent sx={{ display: "flex", flexDirection: "column", height: "60vh", p: 2 }}>
         {/* Error */}
         {error && (
-          <div className="px-6 pt-4">
-            <Alert variant="error" onDismiss={() => setError(null)}>
+          <Box sx={{ mb: 2 }}>
+            <Alert severity="error" onClose={() => setError(null)}>
               {error}
             </Alert>
-          </div>
+          </Box>
         )}
 
         {/* Messages Thread */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <Box
+          sx={{
+            flex: 1,
+            overflowY: "auto",
+            mb: 2,
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+          }}
+        >
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 text-[var(--primary)] animate-spin" />
-            </div>
+            <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+              <CircularProgress />
+            </Box>
           ) : thread.length === 0 ? (
-            <div className="text-center py-12">
-              <MessageSquare className="w-12 h-12 mx-auto text-[var(--fg-muted)] mb-3" />
-              <p className="text-[var(--fg-muted)]">No se encontraron mensajes</p>
-            </div>
+            <Box sx={{ textAlign: "center", py: 6 }}>
+              <MessageSquareIcon sx={{ width: 48, height: 48, color: "text.disabled", mb: 1.5 }} />
+              <Typography color="text.secondary">
+                No se encontraron mensajes
+              </Typography>
+            </Box>
           ) : (
             <>
-              {thread.map((msg, index) => {
+              {thread.map((msg) => {
                 const isMe = msg.remitente_id === user?.id_spm;
                 const senderName = isMe
                   ? "Tú"
                   : `${msg.remitente_nombre || ""} ${msg.remitente_apellido || ""}`.trim() || "Usuario";
 
                 return (
-                  <div
+                  <Box
                     key={msg.id}
-                    className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                    sx={{
+                      display: "flex",
+                      justifyContent: isMe ? "flex-end" : "flex-start",
+                    }}
                   >
-                    <div className={`max-w-[75%] ${isMe ? "items-end" : "items-start"} space-y-1`}>
+                    <Box
+                      sx={{
+                        maxWidth: "75%",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: isMe ? "flex-end" : "flex-start",
+                        gap: 0.5,
+                      }}
+                    >
                       {/* Sender info */}
-                      <div className={`flex items-center gap-2 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
-                        <div className={`
-                          w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold
-                          ${isMe
-                            ? "bg-gradient-to-br from-[var(--primary)] to-[var(--primary-strong)] text-[var(--on-primary)]"
-                            : "bg-[var(--bg-elevated)] text-[var(--fg-muted)]"
-                          }
-                        `}>
+                      <Stack
+                        direction={isMe ? "row-reverse" : "row"}
+                        spacing={1}
+                        alignItems="center"
+                      >
+                        <Avatar
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            fontSize: "0.75rem",
+                            fontWeight: "bold",
+                            ...(isMe
+                              ? {
+                                  background: "linear-gradient(135deg, var(--primary), var(--primary-strong))",
+                                  color: "var(--on-primary)",
+                                }
+                              : {
+                                  bgcolor: "action.hover",
+                                  color: "text.secondary",
+                                }),
+                          }}
+                        >
                           {senderName[0]?.toUpperCase()}
-                        </div>
-                        <div className={`flex items-center gap-2 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
-                          <span className="text-sm font-medium text-[var(--fg)]">
+                        </Avatar>
+                        <Stack
+                          direction={isMe ? "row-reverse" : "row"}
+                          spacing={1}
+                          alignItems="center"
+                        >
+                          <Typography variant="body2" fontWeight="medium">
                             {senderName}
-                          </span>
+                          </Typography>
                           {msg.remitente_rol && !isMe && (
-                            <span className="text-xs text-[var(--fg-subtle)] uppercase tracking-wider font-mono">
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: "text.secondary",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.05em",
+                                fontFamily: "monospace",
+                              }}
+                            >
                               {msg.remitente_rol}
-                            </span>
+                            </Typography>
                           )}
-                        </div>
-                      </div>
+                        </Stack>
+                      </Stack>
 
                       {/* Message bubble */}
-                      <div
-                        className={`
-                          px-4 py-3 rounded-lg
-                          ${isMe
-                            ? "bg-gradient-to-r from-[var(--primary)] to-[var(--primary-strong)] text-[var(--on-primary)] rounded-tr-none"
-                            : "bg-[var(--bg-elevated)] text-[var(--fg)] border border-[var(--border)] rounded-tl-none"
-                          }
-                        `}
+                      <Paper
+                        elevation={0}
+                        sx={{
+                          px: 2,
+                          py: 1.5,
+                          ...(isMe
+                            ? {
+                                background: "linear-gradient(90deg, var(--primary), var(--primary-strong))",
+                                color: "var(--on-primary)",
+                                borderRadius: "12px 12px 0 12px",
+                              }
+                            : {
+                                bgcolor: "action.hover",
+                                color: "text.primary",
+                                border: 1,
+                                borderColor: "divider",
+                                borderRadius: "12px 12px 12px 0",
+                              }),
+                        }}
                       >
-                        <p className="text-sm whitespace-pre-wrap break-words">
+                        <Typography
+                          variant="body2"
+                          sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+                        >
                           {msg.mensaje}
-                        </p>
-                      </div>
+                        </Typography>
+                      </Paper>
 
                       {/* Timestamp */}
-                      <div className={`flex items-center gap-1 text-xs text-[var(--fg-subtle)] ${isMe ? "flex-row-reverse" : "flex-row"}`}>
-                        <Clock className="w-3 h-3" />
-                        <span>
+                      <Stack
+                        direction={isMe ? "row-reverse" : "row"}
+                        spacing={0.5}
+                        alignItems="center"
+                        sx={{ color: "text.secondary" }}
+                      >
+                        <ClockIcon sx={{ width: 12, height: 12 }} />
+                        <Typography variant="caption">
                           {new Date(msg.created_at).toLocaleString("es-AR", {
                             day: "2-digit",
                             month: "short",
@@ -214,59 +305,98 @@ export default function MensajeThreadModal({ message, isOpen, onClose }) {
                             hour: "2-digit",
                             minute: "2-digit"
                           })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                        </Typography>
+                      </Stack>
+                    </Box>
+                  </Box>
                 );
               })}
               <div ref={messagesEndRef} />
             </>
           )}
-        </div>
+        </Box>
 
         {/* Reply Input */}
-        <div className="p-6 border-t border-[var(--border)] bg-[var(--bg-soft)]">
-          <div className="flex gap-3">
-            <textarea
+        <Box sx={{ pt: 2, borderTop: 1, borderColor: "divider" }}>
+          <Stack direction="row" spacing={1.5}>
+            <TextField
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Escribe tu respuesta... (Ctrl+Enter para enviar)"
-              className="
-                flex-1 px-4 py-3 rounded-lg
-                bg-[var(--input-bg)] border border-[var(--input-border)]
-                text-sm text-[var(--fg)]
-                placeholder:text-[var(--fg-subtle)]
-                focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--input-focus)]
-                focus:outline-none
-                transition-all duration-200
-                resize-none
-                min-h-[80px]
-              "
+              multiline
+              minRows={3}
+              maxRows={5}
+              fullWidth
               disabled={sending}
+              size="small"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  fontSize: "0.875rem",
+                },
+              }}
             />
 
             <Button
+              variant="contained"
               onClick={handleSendReply}
               disabled={!replyText.trim() || sending}
-              className="self-end"
               title="Enviar respuesta (Ctrl+Enter)"
+              sx={{
+                alignSelf: "flex-end",
+                minWidth: "auto",
+                px: 2,
+              }}
             >
               {sending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <CircularProgress size={18} color="inherit" />
               ) : (
-                <Send className="w-4 h-4" />
+                <SendIcon sx={{ width: 18, height: 18 }} />
               )}
-              <span className="hidden sm:inline ml-2">Enviar</span>
+              <Box
+                component="span"
+                sx={{ ml: 1, display: { xs: "none", sm: "inline" } }}
+              >
+                Enviar
+              </Box>
             </Button>
-          </div>
+          </Stack>
 
-          <p className="mt-2 text-xs text-[var(--fg-subtle)]">
-            Presiona <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded font-mono">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 bg-[var(--bg-elevated)] border border-[var(--border)] rounded font-mono">Enter</kbd> para enviar
-          </p>
-        </div>
-      </div>
-    </div>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+            Presiona{" "}
+            <Box
+              component="kbd"
+              sx={{
+                px: 0.75,
+                py: 0.25,
+                bgcolor: "action.hover",
+                border: 1,
+                borderColor: "divider",
+                borderRadius: 0.5,
+                fontFamily: "monospace",
+              }}
+            >
+              Ctrl
+            </Box>
+            {" + "}
+            <Box
+              component="kbd"
+              sx={{
+                px: 0.75,
+                py: 0.25,
+                bgcolor: "action.hover",
+                border: 1,
+                borderColor: "divider",
+                borderRadius: 0.5,
+                fontFamily: "monospace",
+              }}
+            >
+              Enter
+            </Box>
+            {" "}para enviar
+          </Typography>
+        </Box>
+      </DialogContent>
+    </Dialog>
   );
 }

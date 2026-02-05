@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useMemo } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
-import { ModernDataTable as DataTable } from "../components/features/DataTable";
+import React, { useEffect, useState, useMemo, useRef } from "react";
+import { SPMAgGrid } from "../components/ui/SPMAgGrid";
 import { TableSkeleton } from "../components/ui/Skeleton";
 import { ScrollReveal } from "../components/ui/ScrollReveal";
+import { Tabs, TabsList, TabsTrigger } from "../components/ui/Tabs";
 import { planner, solicitudes } from "../services/spm";
 import api from "../services/api";
+import { cachedGet, invalidateCache } from "../services/cachedApi";
 import { formatCurrency } from "../utils/formatters";
 import {
   Plus,
@@ -18,124 +19,95 @@ import {
   DollarSign,
   Package,
   Loader2,
+  ChevronDown,
   ChevronRight,
 } from "../components/ui/Icons";
 import { useI18n } from "../context/i18n";
 import { toNumber } from "../utils/formatters";
 import { useAuthStore } from "../store/authStore";
-import { useNavigate, Link } from "react-router-dom";
-import { getTableColumns } from "./DashboardShared";
-import { Button } from "../components/ui/Button";
+import { useNavigate } from "react-router-dom";
+import { getTableColumnsAgGrid } from "./DashboardShared";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { WeeklyRequestsKpiCard } from "../components/dashboard/WeeklyRequestsKpiCard";
-import clsx from "clsx";
+// MUI Components
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import Grid from '@mui/material/Grid';
+import Box from '@mui/material/Box';
+import OutlinedInput from '@mui/material/OutlinedInput';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import FormControl from '@mui/material/FormControl';
+import ListItemText from '@mui/material/ListItemText';
+import Select from '@mui/material/Select';
+import Checkbox from '@mui/material/Checkbox';
+import Slider from '@mui/material/Slider';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import Divider from '@mui/material/Divider';
+import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Tooltip from '@mui/material/Tooltip';
+import CloseIcon from '@mui/icons-material/Close';
+import OpenInFullIcon from '@mui/icons-material/OpenInFull';
+// MUI Icons
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+// Componentes de graficos Chart.js (SPMChartJS)
+import { StatusDistributionChart } from '../components/dashboard/StatusDistributionChart';
+import { TrendChart, useTrendData } from '../components/dashboard/TrendChart';
+import { ChartExportButton } from '../components/dashboard/ChartExportButton';
+import { ChartLegend } from '../components/dashboard/ChartLegend';
+import { SPMGauge, SPMBar, SPMPolarArea, SPM_COLORS, STATUS_COLORS, PHASE_COLORS, BUDGET_COLORS, FONT_SIZES, TOOLTIP_CONFIG, ANIMATION_CONFIG } from '../components/ui/SPMChartJS';
+
+// MenuProps para los multiselect
+const ITEM_HEIGHT = 32;
+const ITEM_PADDING_TOP = 4;
+const MenuProps = {
+  PaperProps: {
+    style: {
+      maxHeight: ITEM_HEIGHT * 6 + ITEM_PADDING_TOP,
+      width: 160,
+    },
+  },
+};
 
 // ============================================================================
-// KPI CHART COMPONENTS
+// KPI CHART COMPONENTS - Usando Chart.js (SPMChartJS)
 // ============================================================================
 
-// Componente Donut Chart para distribución de estados
-function DonutChart({ data, colors, labels }) {
-  const total = data.reduce((sum, val) => sum + val, 0) || 1;
-  const radius = 70;
-  const strokeWidth = 24;
-  const innerRadius = radius - strokeWidth / 2;
-  const circumference = 2 * Math.PI * innerRadius;
+// Los componentes de graficos ahora se importan desde:
+// - StatusDistributionChart: Doughnut interactivo con drill-down (Chart.js)
+// - TrendChart: LineChart de tendencia historica (Chart.js)
+// - SPMGauge: Gauge con colores dinamicos segun umbral (Chart.js)
+// - ChartExportButton: Exportar graficos como PNG
 
-  let currentOffset = 0;
-
+// ============================================================================
+// COMPONENT: ExpandCardButton
+// ============================================================================
+function ExpandCardButton({ onClick, size = 'small' }) {
   return (
-    <div className="relative w-full flex items-center justify-center">
-      <div className="relative w-48 h-48">
-        <svg viewBox="0 0 160 160" className="w-full h-full -rotate-90">
-          <circle
-            cx="80"
-            cy="80"
-            r={innerRadius}
-            fill="none"
-            stroke="#f1f5f9"
-            strokeWidth={strokeWidth}
-          />
-          {data.map((value, idx) => {
-            const percentage = value / total;
-            const dashLength = percentage * circumference;
-            const dashOffset = currentOffset;
-            currentOffset += dashLength;
-            if (value === 0) return null;
-            return (
-              <circle
-                key={idx}
-                cx="80"
-                cy="80"
-                r={innerRadius}
-                fill="none"
-                stroke={colors[idx]}
-                strokeWidth={strokeWidth}
-                strokeDasharray={`${dashLength} ${circumference - dashLength}`}
-                strokeDashoffset={-dashOffset}
-                strokeLinecap="round"
-                className="transition-all duration-500"
-              />
-            );
-          })}
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-bold text-slate-800 dark:text-slate-100">{total}</span>
-          <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total</span>
-        </div>
-      </div>
-      <div className="ml-6 space-y-3">
-        {labels.map((label, idx) => (
-          <div key={idx} className="flex items-center gap-3">
-            <div
-              className="w-3 h-3 rounded-full flex-shrink-0"
-              style={{ backgroundColor: colors[idx] }}
-            />
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-600 dark:text-slate-400">{label}</span>
-              <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{data[idx]}</span>
-              <span className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-500">
-                ({total > 0 ? Math.round((data[idx] / total) * 100) : 0}%)
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Componente de círculo de progreso - tamaño ajustado para mejor proporción
-function ProgressCircle({ percentage, color = "#3b82f6", size = "md" }) {
-  const sizes = {
-    sm: { container: "w-16 h-16", viewBox: "0 0 64 64", cx: 32, radius: 24, stroke: 6, text: "text-sm" },
-    md: { container: "w-20 h-20", viewBox: "0 0 80 80", cx: 40, radius: 30, stroke: 7, text: "text-base" },
-    lg: { container: "w-24 h-24", viewBox: "0 0 96 96", cx: 48, radius: 36, stroke: 8, text: "text-lg" },
-  };
-  const s = sizes[size] || sizes.md;
-  const circumference = 2 * Math.PI * s.radius;
-  const offset = circumference - (percentage / 100) * circumference;
-
-  return (
-    <div className={`relative ${s.container}`}>
-      <svg viewBox={s.viewBox} className="w-full h-full -rotate-90">
-        <circle cx={s.cx} cy={s.cx} r={s.radius} stroke="#e2e8f0" strokeWidth={s.stroke} fill="none" />
-        <circle
-          cx={s.cx}
-          cy={s.cx}
-          r={s.radius}
-          stroke={color}
-          strokeWidth={s.stroke}
-          fill="none"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          className="transition-all duration-500"
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className={`${s.text} font-bold text-slate-800 dark:text-slate-100`}>{percentage}%</span>
-      </div>
-    </div>
+    <Tooltip title="Ampliar">
+      <IconButton
+        size={size}
+        onClick={onClick}
+        sx={{
+          color: 'text.secondary',
+          '&:hover': {
+            color: 'primary.main',
+            bgcolor: 'primary.lighter',
+          },
+        }}
+      >
+        <OpenInFullIcon fontSize="small" />
+      </IconButton>
+    </Tooltip>
   );
 }
 
@@ -148,7 +120,28 @@ export default function DashboardAdmin() {
   const navigate = useNavigate();
   const { t } = useI18n();
 
+  // Refs para exportar graficos
+  const distributionChartRef = useRef(null);
+  const trendChartRef = useRef(null);
+  const budgetChartRef = useRef(null);
+
+  // Refs para ampliar cards en modal
+  const solicitudesCredasRef = useRef(null);
+  const tiemposGestionRef = useRef(null);
+  const fuenteAbastecimientoRef = useRef(null);
+  const presupuestoGlobalRef = useRef(null);
+  const tendenciaRef = useRef(null);
+  const distribucionRef = useRef(null);
+
+  // Drill-down state
+  const [drillDownFilter, setDrillDownFilter] = useState(null);
+
+  // Modal expand state
+  const [expandedCard, setExpandedCard] = useState(null);
+  const [expandedTitle, setExpandedTitle] = useState('');
+
   // Solicitudes state
+  const [solicitudesCollapsed, setSolicitudesCollapsed] = useState(true); // Por defecto colapsado
   const [activeTab, setActiveTab] = useState("todas");
   const [stats, setStats] = useState({
     todas: 0,
@@ -166,10 +159,40 @@ export default function DashboardAdmin() {
   });
   const [loading, setLoading] = useState(true);
 
+  // Filtros state
+  // rangoFechasLocal: para UI inmediata (actualización rápida en slider label)
+  // rangoFechas: debounced para filtrado real (evita 5 renders/sec)
+  const [rangoFechasLocal, setRangoFechasLocal] = useState([0, 365]); // Por defecto: un año completo
+  const rangoFechas = useDebouncedValue(rangoFechasLocal, 300); // Debounce 300ms para filtrado
+
+  const [centrosSeleccionados, setCentrosSeleccionados] = useState([]);
+  const [almacenesSeleccionados, setAlmacenesSeleccionados] = useState([]);
+  const [sectoresSeleccionados, setSectoresSeleccionados] = useState([]);
+  const [solicitantesSeleccionados, setSolicitantesSeleccionados] = useState([]);
+  const [filtrosInicializados, setFiltrosInicializados] = useState(false);
+
+  // Función para convertir valor del slider a fecha (formato DD/MM/AA)
+  // valor 0 = hace 365 días, valor 365 = hoy
+  const sliderAFecha = (valor) => {
+    const diasHaciaAtras = 365 - valor;
+    const fecha = new Date();
+    fecha.setDate(fecha.getDate() - diasHaciaAtras);
+    const dd = String(fecha.getDate()).padStart(2, '0');
+    const mm = String(fecha.getMonth() + 1).padStart(2, '0');
+    const yy = String(fecha.getFullYear()).slice(-2);
+    return `${dd}/${mm}/${yy}`;
+  };
+
+  // Opciones de filtros (extraídas de los datos)
+  const [filtrosOpciones, setFiltrosOpciones] = useState({
+    centros: [],
+    almacenes: [],
+    sectores: [],
+    solicitantes: [],
+  });
+
   // KPI state
   const [kpiLoading, setKpiLoading] = useState(true);
-  const [materialesPeriodo, setMaterialesPeriodo] = useState("mes");
-  const [estadosPeriodo, setEstadosPeriodo] = useState("mes");
   const [kpiData, setKpiData] = useState({
     solicitudes: { total: 0, aprobadas: 0, rechazadas: 0, pendientes: 0, trend: [0,0,0,0,0,0,0], trendPercentage: 0 },
     presupuesto: { total: 0, utilizado: 0, disponible: 0, percentage: 0, porCentro: [] },
@@ -178,19 +201,43 @@ export default function DashboardAdmin() {
     gruposArticulosMasSolicitados: [],
   });
 
-  // Fetch solicitudes
+  // Cumplimiento de proveedores
+  const [cumplimientoProveedores, setCumplimientoProveedores] = useState([]);
+  const [proveedoresSeleccionados, setProveedoresSeleccionados] = useState([]);
+
+  // Stock inmovilizado (global)
+  const [stockInmovilizado, setStockInmovilizado] = useState({ items: [], total: 0, valorTotal: 0, globalTotal: 0, globalValorTotal: 0 });
+
+  // Stock inmovilizado con filtros locales (nueva card)
+  const [stockFiltradoLocal, setStockFiltradoLocal] = useState({ items: [], total: 0, valorTotal: 0, loading: false });
+  const [stockFiltrosCentro, setStockFiltrosCentro] = useState("");
+  const [stockFiltrosAlmacen, setStockFiltrosAlmacen] = useState("");
+  const [stockFiltrosPeriodo, setStockFiltrosPeriodo] = useState(1); // 1, 2 o 3 años
+
+  // Compras evitadas detalle (para filtrado)
+  const [comprasEvitadasDetalle, setComprasEvitadasDetalle] = useState([]);
+
+  // Fetch solicitudes - con AbortController para cleanup
   useEffect(() => {
-    setLoading(true);
+    const abortController = new AbortController();
+    let isMounted = true; // Flag para tracking de unmount
 
-    // Fetch ALL solicitudes for "Todas" tab (no estado filter)
-    const todasCall = solicitudes.listar({ page_size: 500 }).catch(() => null);
-    const pendientesCall = solicitudes.listar({ estado: "Enviada", page_size: 100 }).catch(() => null);
-    const enProcesoCall = solicitudes.listar({ estado: "En Progreso", page_size: 100 }).catch(() => null);
-    const completadasCall = solicitudes.listar({ estado: "Aprobada", page_size: 100 }).catch(() => null);
-    const rechazadasCall = solicitudes.listar({ estado: "Rechazada", page_size: 100 }).catch(() => null);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
 
-    Promise.all([todasCall, pendientesCall, enProcesoCall, completadasCall, rechazadasCall])
-      .then(([todasRes, pendientesRes, enProcesoRes, completadasRes, rechazadasRes]) => {
+        // Fetch ALL solicitudes for "Todas" tab (no estado filter)
+        const [todasRes, pendientesRes, enProcesoRes, completadasRes, rechazadasRes] = await Promise.all([
+          solicitudes.listar({ page_size: 500, signal: abortController.signal }).catch(() => null),
+          solicitudes.listar({ estado: "submitted", page_size: 500, signal: abortController.signal }).catch(() => null),
+          solicitudes.listar({ estado: "processing", page_size: 500, signal: abortController.signal }).catch(() => null),
+          solicitudes.listar({ estado: "approved", page_size: 500, signal: abortController.signal }).catch(() => null),
+          solicitudes.listar({ estado: "rejected", page_size: 500, signal: abortController.signal }).catch(() => null),
+        ]);
+
+        // Verificar que el componente siga montado antes de updatear state
+        if (!isMounted) return;
+
         const todasLista = (todasRes?.data?.solicitudes || todasRes?.data?.items || [])
           .sort((a, b) => new Date(b.fecha_creacion || b.created_at || 0) - new Date(a.fecha_creacion || a.created_at || 0));
         const pendientesLista = pendientesRes?.data?.solicitudes || pendientesRes?.data?.items || [];
@@ -213,31 +260,463 @@ export default function DashboardAdmin() {
           completadas: completadasLista,
           rechazadas: rechazadasLista,
         });
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      } catch (err) {
+        // Ignorar AbortError y errores si componente fue unmounted
+        if (!isMounted || err?.name === 'AbortError') return;
+        console.error("Error fetching solicitudes:", err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchData();
+
+    // Cleanup: abortar fetch y marcar como unmounted
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
   }, [user]);
 
-  // Fetch KPIs
+  // Fetch KPIs - con AbortController
   useEffect(() => {
+    const abortController = new AbortController();
+    let isMounted = true;
+
     const fetchKpis = async () => {
       try {
         setKpiLoading(true);
-        const response = await api.get("/kpis");
+        // Usar cachedGet para deduplicación automática (evita calls duplicados simultáneos)
+        const response = await cachedGet("/kpis");
+
+        if (!isMounted) return;
+
         if (response.data?.ok && response.data?.data) {
           setKpiData(response.data.data);
         }
       } catch (err) {
+        if (!isMounted || err?.name === 'AbortError') return;
         console.error("Error fetching KPIs:", err);
       } finally {
-        setKpiLoading(false);
+        if (isMounted) setKpiLoading(false);
       }
     };
+
     fetchKpis();
+
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
   }, []);
 
-  const columns = useMemo(() => getTableColumns(t), [t]);
+  // Fetch cumplimiento de proveedores - con AbortController
+  useEffect(() => {
+    const abortController = new AbortController();
+    let isMounted = true;
+
+    const fetchCumplimiento = async () => {
+      try {
+        // Intentar obtener datos de cumplimiento (con deduplicación)
+        const response = await cachedGet("/procurement/kpis/compliance", {
+          params: { min_pedidos: 1 },
+        });
+
+        if (!isMounted) return;
+
+        const items = response.data?.items || [];
+
+        if (items.length > 0) {
+          setCumplimientoProveedores(items);
+          if (proveedoresSeleccionados.length === 0) {
+            setProveedoresSeleccionados(items.map(p => p.proveedor_cuit || p.proveedor_nombre));
+          }
+        } else {
+          // Fallback: obtener lista de proveedores externos activos
+          const provResponse = await api.get("/admin/proveedores/externos", {
+            signal: abortController.signal,
+          });
+
+          if (!isMounted) return;
+
+          const proveedores = (provResponse.data?.data || provResponse.data || [])
+            .filter(p => p.activo !== false && p.activo !== 0)
+            .map(p => ({
+              proveedor_cuit: p.cuit,
+              proveedor_nombre: p.razon_social || p.nombre || p.cuit,
+              total_pedidos: 0,
+              entregas_a_tiempo: 0,
+              pct_otif: null
+            }));
+          setCumplimientoProveedores(proveedores);
+          if (proveedores.length > 0 && proveedoresSeleccionados.length === 0) {
+            setProveedoresSeleccionados(proveedores.map(p => p.proveedor_cuit || p.proveedor_nombre));
+          }
+        }
+      } catch (err) {
+        if (!isMounted || err?.name === 'AbortError') return;
+
+        // Si hay error, intentar fallback
+        try {
+          const provResponse = await api.get("/admin/proveedores/externos", {
+            signal: abortController.signal,
+          });
+
+          if (!isMounted) return;
+
+          const proveedores = (provResponse.data?.data || provResponse.data || [])
+            .filter(p => p.activo !== false && p.activo !== 0)
+            .map(p => ({
+              proveedor_cuit: p.cuit,
+              proveedor_nombre: p.razon_social || p.nombre || p.cuit,
+              total_pedidos: 0,
+              entregas_a_tiempo: 0,
+              pct_otif: null
+            }));
+          setCumplimientoProveedores(proveedores);
+          if (proveedores.length > 0 && proveedoresSeleccionados.length === 0) {
+            setProveedoresSeleccionados(proveedores.map(p => p.proveedor_cuit || p.proveedor_nombre));
+          }
+        } catch {
+          if (isMounted) {
+            setCumplimientoProveedores([]);
+          }
+        }
+      }
+    };
+
+    fetchCumplimiento();
+
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
+  }, []);
+
+  // Fetch stock inmovilizado (inicial - datos globales) - con AbortController
+  useEffect(() => {
+    const abortController = new AbortController();
+    let isMounted = true;
+
+    const fetchStockInmovilizado = async () => {
+      try {
+        // Usar cachedGet para deduplicación
+        const response = await cachedGet("/kpis/stock-inmovilizado");
+
+        if (!isMounted) return;
+
+        if (response.data?.ok) {
+          setStockInmovilizado({
+            items: response.data.items || [],
+            total: response.data.total || 0,
+            valorTotal: response.data.valorTotal || 0,
+            globalTotal: response.data.globalTotal || response.data.total || 0,
+            globalValorTotal: response.data.globalValorTotal || response.data.valorTotal || 0,
+          });
+        } else {
+          console.error("Stock inmovilizado - respuesta no ok:", response.data);
+        }
+      } catch (err) {
+        if (!isMounted || err?.name === 'AbortError') return;
+        console.error("Error fetching stock inmovilizado:", err.response?.status, err.message);
+        setStockInmovilizado({ items: [], total: 0, valorTotal: 0, globalTotal: 0, globalValorTotal: 0 });
+      }
+    };
+
+    fetchStockInmovilizado();
+
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
+  }, []);
+
+  // Refetch stock inmovilizado cuando cambian los filtros de Centro - con AbortController
+  // Solo Centro aplica a esta card (no Sector, Solicitante ni Almacén de solicitudes)
+  useEffect(() => {
+    // Si no hay filtros inicializados, no hacer nada
+    if (!filtrosInicializados) return;
+
+    const abortController = new AbortController();
+    let isMounted = true;
+
+    const fetchStockFiltrado = async () => {
+      try {
+        // Construir params - solo centros aplican
+        const params = new URLSearchParams();
+        if (centrosSeleccionados.length > 0) {
+          params.set("centros", centrosSeleccionados.join(","));
+        }
+
+        const url = params.toString() ? `/kpis/stock-inmovilizado?${params}` : "/kpis/stock-inmovilizado";
+        const response = await api.get(url, { signal: abortController.signal });
+
+        if (!isMounted) return;
+
+        if (response.data?.ok) {
+          setStockInmovilizado(prev => ({
+            items: response.data.items || [],
+            total: response.data.total || 0,
+            valorTotal: response.data.valorTotal || 0,
+            globalTotal: prev.globalTotal || response.data.globalTotal || 0,
+            globalValorTotal: prev.globalValorTotal || response.data.globalValorTotal || 0,
+          }));
+        }
+      } catch (err) {
+        if (!isMounted || err?.name === 'AbortError') return;
+        console.error("Error fetching stock inmovilizado filtrado:", err.message);
+      }
+    };
+
+    fetchStockFiltrado();
+
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
+  }, [centrosSeleccionados, filtrosInicializados]);
+
+  // Fetch stock inmovilizado con filtros locales (nueva card)
+  useEffect(() => {
+    const abortController = new AbortController();
+    let isMounted = true;
+
+    const fetchStockFiltradoLocal = async () => {
+      setStockFiltradoLocal(prev => ({ ...prev, loading: true }));
+      try {
+        const params = new URLSearchParams();
+        if (stockFiltrosCentro) params.set("centro", stockFiltrosCentro);
+        if (stockFiltrosAlmacen) params.set("almacen", stockFiltrosAlmacen);
+        params.set("periodo_anos", stockFiltrosPeriodo.toString());
+        params.set("limit", "10");
+
+        const url = `/kpis/stock-inmovilizado?${params}`;
+        const response = await api.get(url, { signal: abortController.signal });
+
+        if (!isMounted) return;
+
+        if (response.data?.ok) {
+          setStockFiltradoLocal({
+            items: response.data.items || [],
+            total: response.data.total || 0,
+            valorTotal: response.data.valorTotal || 0,
+            loading: false,
+          });
+        } else {
+          setStockFiltradoLocal({ items: [], total: 0, valorTotal: 0, loading: false });
+        }
+      } catch (err) {
+        if (!isMounted || err?.name === 'AbortError') return;
+        console.error("Error fetching stock inmovilizado filtrado local:", err.message);
+        setStockFiltradoLocal({ items: [], total: 0, valorTotal: 0, loading: false });
+      }
+    };
+
+    fetchStockFiltradoLocal();
+
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
+  }, [stockFiltrosCentro, stockFiltrosAlmacen, stockFiltrosPeriodo]);
+
+  // Fetch compras evitadas detalle - con AbortController
+  useEffect(() => {
+    const abortController = new AbortController();
+    let isMounted = true;
+
+    const fetchComprasEvitadas = async () => {
+      try {
+        // Usar cachedGet para deduplicación
+        const response = await cachedGet("/kpis/compras-evitadas-detalle");
+
+        if (!isMounted) return;
+
+        if (response.data?.ok) {
+          setComprasEvitadasDetalle(response.data.items || []);
+        }
+      } catch (err) {
+        if (!isMounted || err?.name === 'AbortError') return;
+        console.error("Error fetching compras evitadas:", err.response?.status, err.message);
+        setComprasEvitadasDetalle([]);
+      }
+    };
+
+    fetchComprasEvitadas();
+
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
+  }, []);
+
+  // Extraer opciones de filtros de los datos e inicializar con todos seleccionados
+  useEffect(() => {
+    if (allData.todas.length > 0) {
+      const centros = [...new Set(allData.todas.map(s => s.centro).filter(Boolean))].sort();
+      const almacenes = [...new Set(allData.todas.map(s => s.almacen_virtual).filter(Boolean))].sort();
+      const sectores = [...new Set(allData.todas.map(s => s.sector_nombre || s.sector).filter(Boolean))].sort();
+      const solicitantes = [...new Set(allData.todas.map(s => {
+        const apellido = s.solicitante_apellido || '';
+        const nombre = s.solicitante_nombre || '';
+        return [apellido, nombre].filter(Boolean).join(' ').trim() || s.solicitante;
+      }).filter(Boolean))].sort();
+
+      setFiltrosOpciones({
+        centros,
+        almacenes,
+        sectores,
+        solicitantes,
+      });
+
+      // Inicializar filtros con todos seleccionados (solo la primera vez)
+      if (!filtrosInicializados) {
+        setCentrosSeleccionados(centros);
+        setAlmacenesSeleccionados(almacenes);
+        setSectoresSeleccionados(sectores);
+        setSolicitantesSeleccionados(solicitantes);
+        setFiltrosInicializados(true);
+      }
+    }
+  }, [allData.todas, filtrosInicializados]);
+
+  // Función para convertir valor del slider a fecha Date
+  const sliderAFechaDate = (valor) => {
+    const diasHaciaAtras = 365 - valor;
+    const fecha = new Date();
+    fecha.setDate(fecha.getDate() - diasHaciaAtras);
+    fecha.setHours(0, 0, 0, 0);
+    return fecha;
+  };
+
+  // Crear índices de filtrado O(1) para búsqueda rápida
+  const filterIndices = useMemo(() => ({
+    centros: new Set(centrosSeleccionados),
+    almacenes: new Set(almacenesSeleccionados),
+    sectores: new Set(sectoresSeleccionados),
+    solicitantes: new Set(solicitantesSeleccionados),
+    fechaDesde: sliderAFechaDate(rangoFechas[0]),
+    fechaHasta: (() => {
+      const d = sliderAFechaDate(rangoFechas[1]);
+      d.setHours(23, 59, 59, 999);
+      return d;
+    })(),
+  }), [rangoFechas, centrosSeleccionados, almacenesSeleccionados, sectoresSeleccionados, solicitantesSeleccionados]);
+
+  // Datos filtrados - UNA SOLA PASADA O(n) en lugar de 4-5 pasadas O(n²)
+  const datosFiltrados = useMemo(() => {
+    // Si no hay ningún filtro seleccionado, no mostrar datos
+    const hayFiltrosSeleccionados = centrosSeleccionados.length > 0 ||
+                                     almacenesSeleccionados.length > 0 ||
+                                     sectoresSeleccionados.length > 0 ||
+                                     solicitantesSeleccionados.length > 0;
+
+    if (!hayFiltrosSeleccionados) {
+      return [];
+    }
+
+    // UNA SOLA PASADA: todas las condiciones en un solo filter()
+    return allData.todas.filter(s => {
+      // Filtro por rango de fechas
+      const fechaCreacion = new Date(s.created_at || s.fecha_creacion);
+      if (fechaCreacion < filterIndices.fechaDesde || fechaCreacion > filterIndices.fechaHasta) {
+        return false;
+      }
+
+      // Filtro por centros - O(1) con Set.has()
+      if (filterIndices.centros.size > 0 && !filterIndices.centros.has(s.centro)) {
+        return false;
+      }
+
+      // Filtro por almacenes - O(1) con Set.has()
+      if (filterIndices.almacenes.size > 0 && !filterIndices.almacenes.has(s.almacen_virtual)) {
+        return false;
+      }
+
+      // Filtro por sectores - O(1) con Set.has()
+      if (filterIndices.sectores.size > 0) {
+        const sectorSolicitud = s.sector_nombre || s.sector;
+        if (!filterIndices.sectores.has(sectorSolicitud)) {
+          return false;
+        }
+      }
+
+      // Filtro por solicitantes - O(1) con Set.has()
+      if (filterIndices.solicitantes.size > 0) {
+        const apellido = s.solicitante_apellido || '';
+        const nombre = s.solicitante_nombre || '';
+        const solicitanteCompleto = [apellido, nombre]
+          .filter(Boolean)
+          .join(' ')
+          .trim() || s.solicitante;
+        if (!filterIndices.solicitantes.has(solicitanteCompleto)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [allData.todas, filterIndices]);
+
+  // Stock inmovilizado - los datos ya vienen filtrados del endpoint
+  // Solo el filtro Centro aplica. Sector, Solicitante y Almacén NO aplican a esta card.
+  const stockInmovilizadoFiltrado = useMemo(() => {
+    const sortedItems = [...stockInmovilizado.items].sort((a, b) => (b.valor || 0) - (a.valor || 0)).slice(0, 10);
+    return {
+      items: sortedItems,
+      total: stockInmovilizado.total,
+      valorTotal: stockInmovilizado.valorTotal,
+      globalTotal: stockInmovilizado.globalTotal || 0,
+      globalValorTotal: stockInmovilizado.globalValorTotal || 0,
+      hayDatos: stockInmovilizado.items.length > 0,
+    };
+  }, [stockInmovilizado]);
+
+  // Estadísticas filtradas
+  const statsFiltrados = useMemo(() => {
+    const todas = datosFiltrados.length;
+    const pendientes = datosFiltrados.filter(s => {
+      const estado = (s.estado || s.status || '').toLowerCase();
+      return estado === 'enviada' || estado === 'submitted' || estado === 'pendiente';
+    }).length;
+    const en_proceso = datosFiltrados.filter(s => {
+      const estado = (s.estado || s.status || '').toLowerCase();
+      return estado.includes('progreso') || estado === 'processing' || estado === 'in_progress';
+    }).length;
+    const completadas = datosFiltrados.filter(s => {
+      const estado = (s.estado || s.status || '').toLowerCase();
+      return estado.includes('aprobada') || estado === 'approved';
+    }).length;
+    const rechazadas = datosFiltrados.filter(s => {
+      const estado = (s.estado || s.status || '').toLowerCase();
+      return estado.includes('rechazada') || estado === 'rejected';
+    }).length;
+    return { todas, pendientes, en_proceso, completadas, rechazadas };
+  }, [datosFiltrados]);
+
+  // Datos de tendencia historica (12 meses)
+  const trendData = useTrendData(datosFiltrados, 12);
+
+  // Handler para drill-down desde graficos
+  const handleDrillDown = (statusId, item) => {
+    setDrillDownFilter(statusId);
+    // Mapear el ID del estado al tab correspondiente
+    const tabMapping = {
+      aprobadas: 'completadas',
+      enviadas: 'pendientes',
+      enProceso: 'en_proceso',
+      rechazadas: 'rechazadas',
+      cerradas: 'completadas',
+      borrador: 'todas',
+    };
+    const targetTab = tabMapping[statusId] || 'todas';
+    setActiveTab(targetTab);
+    setSolicitudesCollapsed(false); // Expandir la tabla
+  };
+
+  const columnDefs = useMemo(() => getTableColumnsAgGrid(t), [t]);
 
   // Tabs configuration
   const tabs = [
@@ -249,8 +728,14 @@ export default function DashboardAdmin() {
   ];
 
   const currentData = allData[activeTab] || [];
-  const limitedData = currentData.slice(0, 10);
-  const hasMoreData = currentData.length > 10;
+
+  const handleTabChange = (value) => {
+    if (value === "crear") {
+      navigate("/solicitudes/nueva");
+    } else {
+      setActiveTab(value);
+    }
+  };
 
   const getTableTitle = () => {
     switch (activeTab) {
@@ -270,451 +755,1591 @@ export default function DashboardAdmin() {
   };
 
   return (
-    <div className="space-y-6">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* ================================================================== */}
-      {/* SOLICITUDES SECTION - Contenedor unificado */}
+      {/* SOLICITUDES SECTION - Contenedor colapsable */}
       {/* ================================================================== */}
-      <Card>
-        <CardContent className="p-0">
-          {/* Header con tabs y botón */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-700">
-            <div className="flex items-center gap-1 p-1 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setActiveTab(tab.key)}
-                  className={clsx(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
-                    activeTab === tab.key
-                      ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50"
-                  )}
-                >
-                  <span>{tab.label}</span>
-                  <span
-                    className={clsx(
-                      "px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums",
-                      activeTab === tab.key
-                        ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400"
-                        : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
-                    )}
-                  >
-                    {tab.count}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <Button as={Link} to="/solicitudes/nueva" size="sm">
-              <Plus className="w-4 h-4" />
-              {t("dash_new_request", "Nueva Solicitud")}
-            </Button>
-          </div>
-
-          {/* Subtítulo con contador */}
-          <div className="flex items-center justify-between px-6 py-3 bg-slate-50/50 dark:bg-slate-800/30">
-            <h2 className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              {getTableTitle()}
-            </h2>
-            <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
-              {currentData.length} {t("dash_items", "items")}
-            </span>
-          </div>
-
-          {/* Tabla */}
-          <div className="p-4">
-            {loading ? (
-              <TableSkeleton rows={5} columns={7} />
-            ) : currentData.length === 0 ? (
-              <div className="py-16 text-center">
-                <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-4 opacity-60" />
-                <p className="text-slate-500 dark:text-slate-400 text-sm">
-                  {activeTab === "pendientes"
-                    ? t("dash_no_pending", "No hay solicitudes pendientes de revisión")
-                    : t("dash_no_requests_category", "No hay solicitudes en esta categoría")}
-                </p>
-              </div>
+      <Paper elevation={0} sx={{ overflow: 'hidden', bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+        {/* Header con botón de colapsar/expandir y crear solicitud */}
+        <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'grey.100' }}>
+          <Button
+            onClick={() => setSolicitudesCollapsed(!solicitudesCollapsed)}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              textAlign: 'left',
+              '&:hover': { bgcolor: 'grey.50' },
+              borderRadius: 1,
+              px: 1,
+              py: 0.5,
+              ml: -1,
+              zIndex: 10,
+              textTransform: 'none',
+              color: 'text.primary',
+            }}
+          >
+            {solicitudesCollapsed ? (
+              <ChevronRightIcon sx={{ width: 20, height: 20, color: 'grey.500' }} />
             ) : (
-              <DataTable
-                columns={columns}
-                rows={limitedData}
-                emptyMessage={t("dash_no_requests", "No hay solicitudes")}
-                onRowClick={(row) => navigate(`/solicitudes/${row.id}`)}
-              />
+              <ExpandMoreIcon sx={{ width: 20, height: 20, color: 'grey.500' }} />
             )}
-          </div>
-          {hasMoreData && (
-            <div className="px-4 pb-4">
-              <Link
-                to={`/solicitudes/todas?tab=${activeTab}`}
-                className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+            <Typography variant="body2" sx={{ fontWeight: 600, color: 'grey.700' }}>
+              Solicitudes
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'grey.500', ml: 0.5 }}>
+              ({stats.todas} total)
+            </Typography>
+          </Button>
+        </Box>
+
+        {/* Contenido colapsable */}
+        <Box
+          sx={{
+            transition: 'all 0.3s ease-in-out',
+            transformOrigin: 'top left',
+            maxHeight: solicitudesCollapsed ? 0 : 2000,
+            opacity: solicitudesCollapsed ? 0 : 1,
+            transform: solicitudesCollapsed ? 'scaleY(0)' : 'scaleY(1)',
+            overflow: 'hidden',
+          }}
+        >
+          <Box sx={{ p: 0 }}>
+            {/* Header con tabs */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'grey.100' }}>
+              <Tabs value={activeTab} onValueChange={handleTabChange}>
+                <TabsList>
+                  {tabs.map((tab) => (
+                    <TabsTrigger
+                      key={tab.key}
+                      value={tab.key}
+                      sx={tab.isAction ? { color: 'var(--primary)', fontWeight: 600 } : undefined}
+                    >
+                      {tab.isAction ? tab.label : `${tab.label} (${tab.count})`}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            </Box>
+
+            {/* Tabla */}
+            <Box sx={{ p: 2 }}>
+              {loading ? (
+                <TableSkeleton rows={5} columns={7} />
+              ) : currentData.length === 0 ? (
+                <Box sx={{ py: 8, textAlign: 'center' }}>
+                  <CheckCircleIcon sx={{ width: 48, height: 48, color: 'success.main', mx: 'auto', mb: 2, opacity: 0.6 }} />
+                  <Typography variant="body2" sx={{ color: 'grey.500' }}>
+                    {activeTab === "pendientes"
+                      ? t("dash_no_pending", "No hay solicitudes pendientes de revisión")
+                      : t("dash_no_requests_category", "No hay solicitudes en esta categoría")}
+                  </Typography>
+                </Box>
+              ) : (
+                <SPMAgGrid
+                  columnDefs={columnDefs}
+                  rowData={currentData}
+                  emptyMessage={t("dash_no_requests", "No hay solicitudes")}
+                  onRowClick={(row) => navigate(`/solicitudes/${row.id}`)}
+                  height={500}
+                  enableQuickFilter={true}
+                  exportFileName="dashboard_admin"
+                />
+              )}
+            </Box>
+          </Box>
+        </Box>
+      </Paper>
+
+      {/* ================================================================== */}
+      {/* FILTROS SECTION */}
+      {/* ================================================================== */}
+      <Paper
+        elevation={0}
+        sx={{
+          bgcolor: 'var(--surface)',
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 2,
+          transition: 'box-shadow 0.2s ease-in-out',
+          '&:hover': {
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+          },
+        }}
+      >
+        <Box sx={{ py: 1, px: 3, height: 73, maxWidth: 1850 }}>
+          <Stack direction="row" alignItems="center" gap={3} sx={{ height: '100%' }}>
+            {/* Slider de rango de fechas - con debounce */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, minWidth: 320, ml: '180px' }}>
+              <Typography variant="caption" sx={{ fontWeight: 500, color: 'grey.600', mt: 1 }}>
+                Desde <Box component="span" sx={{ color: 'primary.main', fontWeight: 600 }}>{sliderAFecha(rangoFechasLocal[0])}</Box> hasta <Box component="span" sx={{ color: 'primary.main', fontWeight: 600 }}>{sliderAFecha(rangoFechasLocal[1])}</Box>
+              </Typography>
+              <Slider
+                size="small"
+                value={rangoFechasLocal}
+                onChange={(_, value) => setRangoFechasLocal(value)}
+                min={0}
+                max={365}
+                valueLabelDisplay="auto"
+                valueLabelFormat={(value) => sliderAFecha(value)}
+                getAriaLabel={() => 'Rango de fechas'}
+                sx={{
+                  color: 'var(--primary)',
+                  '& .MuiSlider-thumb': {
+                    width: 14,
+                    height: 14,
+                  },
+                  '& .MuiSlider-valueLabel': {
+                    fontSize: 10,
+                  },
+                }}
+              />
+              <Stack direction="row" justifyContent="space-between" sx={{ mt: -0.5 }}>
+                <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'grey.400' }}>Hace 1 año</Typography>
+                <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'grey.400' }}>Hoy</Typography>
+              </Stack>
+            </Box>
+
+            {/* Separador vertical */}
+            <Divider orientation="vertical" flexItem sx={{ height: 64 }} />
+
+            {/* Centro Multiselect */}
+            <FormControl size="small" sx={{ minWidth: 160, ml: '40px' }}>
+              <InputLabel id="centro-label" sx={{ fontSize: FONT_SIZES.md }}>Centro</InputLabel>
+              <Select
+                labelId="centro-label"
+                multiple
+                value={centrosSeleccionados}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value.includes('__todos__')) {
+                    if (centrosSeleccionados.length === filtrosOpciones.centros.length) {
+                      setCentrosSeleccionados([]);
+                    } else {
+                      setCentrosSeleccionados([...filtrosOpciones.centros]);
+                    }
+                  } else {
+                    setCentrosSeleccionados(typeof value === 'string' ? value.split(',') : value);
+                  }
+                }}
+                input={<OutlinedInput label="Centro" />}
+                renderValue={(selected) => selected.length > 1 ? `${selected.length} seleccionados` : selected.join(', ')}
+                MenuProps={MenuProps}
+                sx={{ fontSize: FONT_SIZES.md }}
               >
-                Ver todas las solicitudes ({currentData.length})
-                <ChevronRight className="w-4 h-4" />
-              </Link>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                <MenuItem value="__todos__">
+                  <Checkbox checked={centrosSeleccionados.length === filtrosOpciones.centros.length && filtrosOpciones.centros.length > 0} size="small" />
+                  <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
+                </MenuItem>
+                {filtrosOpciones.centros.map((centro) => (
+                  <MenuItem key={centro} value={centro}>
+                    <Checkbox checked={centrosSeleccionados.includes(centro)} size="small" />
+                    <ListItemText primary={centro} primaryTypographyProps={{ fontSize: FONT_SIZES.md }} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {/* Almacén Multiselect */}
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel id="almacen-label" sx={{ fontSize: FONT_SIZES.md }}>Almacén</InputLabel>
+              <Select
+                labelId="almacen-label"
+                multiple
+                value={almacenesSeleccionados}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value.includes('__todos__')) {
+                    if (almacenesSeleccionados.length === filtrosOpciones.almacenes.length) {
+                      setAlmacenesSeleccionados([]);
+                    } else {
+                      setAlmacenesSeleccionados([...filtrosOpciones.almacenes]);
+                    }
+                  } else {
+                    setAlmacenesSeleccionados(typeof value === 'string' ? value.split(',') : value);
+                  }
+                }}
+                input={<OutlinedInput label="Almacén" />}
+                renderValue={(selected) => selected.length > 1 ? `${selected.length} seleccionados` : selected.join(', ')}
+                MenuProps={MenuProps}
+                sx={{ fontSize: FONT_SIZES.md }}
+              >
+                <MenuItem value="__todos__">
+                  <Checkbox checked={almacenesSeleccionados.length === filtrosOpciones.almacenes.length && filtrosOpciones.almacenes.length > 0} size="small" />
+                  <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
+                </MenuItem>
+                {filtrosOpciones.almacenes.map((almacen) => (
+                  <MenuItem key={almacen} value={almacen}>
+                    <Checkbox checked={almacenesSeleccionados.includes(almacen)} size="small" />
+                    <ListItemText primary={almacen} primaryTypographyProps={{ fontSize: FONT_SIZES.md }} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {/* Sector Multiselect */}
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel id="sector-label" sx={{ fontSize: FONT_SIZES.md }}>Sector</InputLabel>
+              <Select
+                labelId="sector-label"
+                multiple
+                value={sectoresSeleccionados}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value.includes('__todos__')) {
+                    if (sectoresSeleccionados.length === filtrosOpciones.sectores.length) {
+                      setSectoresSeleccionados([]);
+                    } else {
+                      setSectoresSeleccionados([...filtrosOpciones.sectores]);
+                    }
+                  } else {
+                    setSectoresSeleccionados(typeof value === 'string' ? value.split(',') : value);
+                  }
+                }}
+                input={<OutlinedInput label="Sector" />}
+                renderValue={(selected) => selected.length > 1 ? `${selected.length} seleccionados` : selected.join(', ')}
+                MenuProps={MenuProps}
+                sx={{ fontSize: FONT_SIZES.md }}
+              >
+                <MenuItem value="__todos__">
+                  <Checkbox checked={sectoresSeleccionados.length === filtrosOpciones.sectores.length && filtrosOpciones.sectores.length > 0} size="small" />
+                  <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
+                </MenuItem>
+                {filtrosOpciones.sectores.map((sector) => (
+                  <MenuItem key={sector} value={sector}>
+                    <Checkbox checked={sectoresSeleccionados.includes(sector)} size="small" />
+                    <ListItemText primary={sector} primaryTypographyProps={{ fontSize: FONT_SIZES.md }} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {/* Solicitante Multiselect */}
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel id="solicitante-label" sx={{ fontSize: FONT_SIZES.md }}>Solicitante</InputLabel>
+              <Select
+                labelId="solicitante-label"
+                multiple
+                value={solicitantesSeleccionados}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value.includes('__todos__')) {
+                    if (solicitantesSeleccionados.length === filtrosOpciones.solicitantes.length) {
+                      setSolicitantesSeleccionados([]);
+                    } else {
+                      setSolicitantesSeleccionados([...filtrosOpciones.solicitantes]);
+                    }
+                  } else {
+                    setSolicitantesSeleccionados(typeof value === 'string' ? value.split(',') : value);
+                  }
+                }}
+                input={<OutlinedInput label="Solicitante" />}
+                renderValue={(selected) => selected.length > 1 ? `${selected.length} seleccionados` : selected.join(', ')}
+                MenuProps={MenuProps}
+                sx={{ fontSize: FONT_SIZES.md }}
+              >
+                <MenuItem value="__todos__">
+                  <Checkbox checked={solicitantesSeleccionados.length === filtrosOpciones.solicitantes.length && filtrosOpciones.solicitantes.length > 0} size="small" />
+                  <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
+                </MenuItem>
+                {filtrosOpciones.solicitantes.map((solicitante) => (
+                  <MenuItem key={solicitante} value={solicitante}>
+                    <Checkbox checked={solicitantesSeleccionados.includes(solicitante)} size="small" />
+                    <ListItemText primary={solicitante} primaryTypographyProps={{ fontSize: FONT_SIZES.md }} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {/* Botón limpiar filtros (deseleccionar todos) */}
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => {
+                setRangoFechasLocal([0, 365]); // Un año completo
+                setCentrosSeleccionados([]);
+                setAlmacenesSeleccionados([]);
+                setSectoresSeleccionados([]);
+                setSolicitantesSeleccionados([]);
+              }}
+              sx={{
+                px: 1.5,
+                py: 0.75,
+                fontSize: FONT_SIZES.md,
+                fontWeight: 500,
+                color: 'grey.600',
+                borderColor: 'grey.200',
+                '&:hover': {
+                  color: 'primary.main',
+                  borderColor: 'primary.light',
+                },
+                textTransform: 'none',
+              }}
+            >
+              Limpiar Filtros
+            </Button>
+          </Stack>
+        </Box>
+      </Paper>
 
       {/* ================================================================== */}
       {/* KPI SECTION */}
       {/* ================================================================== */}
 
       {kpiLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-        </div>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 6 }}>
+          <CircularProgress size={32} />
+        </Box>
       ) : (
         <>
-          {/* Métricas principales - 4 tarjetas compactas */}
+          {/* Grid principal - Layout unificado */}
+          {/* Fila 1: KPIs principales */}
           <ScrollReveal delay={100}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* Total Solicitudes */}
-              <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                <CardContent className="flex flex-col gap-2 py-4 px-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Total Solicitudes
-                    </p>
-                    <div className="h-8 w-8 rounded-lg bg-blue-50/70 dark:bg-blue-900/30 grid place-items-center flex-shrink-0">
-                      <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    </div>
-                  </div>
-                  <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{kpiData.solicitudes.total}</p>
-                  <div className="flex items-center gap-1.5 text-xs">
-                    {kpiData.solicitudes.trendPercentage >= 0 ? (
-                      <span className="flex items-center gap-0.5 text-emerald-600 font-medium">
-                        <TrendingUp className="w-3 h-3" />
-                        +{kpiData.solicitudes.trendPercentage}%
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-0.5 text-red-600 font-medium">
-                        <TrendingDown className="w-3 h-3" />
-                        {kpiData.solicitudes.trendPercentage}%
-                      </span>
-                    )}
-                    <span className="text-slate-400 dark:text-slate-500">vs mes anterior</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Tasa de Aprobación */}
+            <Stack direction="row" gap={1.5} flexWrap="wrap">
+              {/* Solicitudes Creadas - Sparkline */}
               {(() => {
-                const tasaAprobacion = kpiData.solicitudes.total > 0
-                  ? Math.round((kpiData.solicitudes.aprobadas / kpiData.solicitudes.total) * 100)
-                  : 0;
-                const isGood = tasaAprobacion >= 70;
-                const isWarning = tasaAprobacion >= 40 && tasaAprobacion < 70;
-                const bgColor = isGood ? "bg-emerald-50/70 dark:bg-emerald-900/30" : isWarning ? "bg-amber-50/70 dark:bg-amber-900/30" : "bg-red-50/70 dark:bg-red-900/30";
-                const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
-                const valueColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
+                const fechaDesde = sliderAFechaDate(rangoFechas[0]);
+                const fechaHasta = sliderAFechaDate(rangoFechas[1]);
+                fechaHasta.setHours(23, 59, 59, 999);
+
+                const diasTotales = Math.max(1, Math.ceil((fechaHasta - fechaDesde) / (1000 * 60 * 60 * 24)));
+                const segmentos = 7;
+                const diasPorSegmento = Math.max(1, Math.ceil(diasTotales / segmentos));
+
+                const datosSparkline = [];
+                const labelsSparkline = [];
+
+                const formatFecha = (date) => {
+                  const dd = String(date.getDate()).padStart(2, '0');
+                  const mm = String(date.getMonth() + 1).padStart(2, '0');
+                  const yy = String(date.getFullYear()).slice(-2);
+                  return `${dd}/${mm}/${yy}`;
+                };
+
+                for (let i = 0; i < segmentos; i++) {
+                  const inicioSegmento = new Date(fechaDesde);
+                  inicioSegmento.setDate(fechaDesde.getDate() + (i * diasPorSegmento));
+
+                  const finSegmento = new Date(inicioSegmento);
+                  finSegmento.setDate(inicioSegmento.getDate() + diasPorSegmento - 1);
+                  finSegmento.setHours(23, 59, 59, 999);
+
+                  const finReal = finSegmento > fechaHasta ? fechaHasta : finSegmento;
+
+                  const count = datosFiltrados.filter(s => {
+                    const fechaCreacion = new Date(s.created_at || s.fecha_creacion);
+                    return fechaCreacion >= inicioSegmento && fechaCreacion <= finReal;
+                  }).length;
+
+                  datosSparkline.push(count);
+                  labelsSparkline.push(formatFecha(inicioSegmento));
+                }
 
                 return (
-                  <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                    <CardContent className="flex flex-col gap-2 py-4 px-4">
-                      <div className="flex items-center justify-between">
-                        <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                          Tasa de Aprobación
-                        </p>
-                        <div className={`h-8 w-8 rounded-lg ${bgColor} grid place-items-center flex-shrink-0`}>
-                          <CheckCircle2 className={`w-4 h-4 ${iconColor}`} />
-                        </div>
-                      </div>
-                      <p className={`text-2xl font-bold ${valueColor}`}>{tasaAprobacion}%</p>
-                      <p className="text-xs text-slate-400 dark:text-slate-500">
-                        {kpiData.solicitudes.aprobadas} aprobadas de {kpiData.solicitudes.total}
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <Box ref={solicitudesCredasRef} sx={{ flex: '1 1 340px', minWidth: 300, maxWidth: 420, height: 180, position: 'relative' }}>
+                    <Box sx={{ position: 'absolute', top: 40, right: 8, zIndex: 10 }}>
+                      <ExpandCardButton
+                        onClick={() => {
+                          setExpandedCard('solicitudes');
+                          setExpandedTitle('Solicitudes Creadas');
+                        }}
+                      />
+                    </Box>
+                    <WeeklyRequestsKpiCard
+                      data={datosSparkline}
+                      labels={labelsSparkline}
+                      previousWeekTotal={null}
+                      trendPercentage={null}
+                      compact={false}
+                    />
+                  </Box>
                 );
               })()}
 
-              {/* Tiempo Promedio */}
+              {/* Cumplimiento de Proveedores - Diseño original */}
               {(() => {
-                const promedio = kpiData.tiempoAprobacion.promedio;
-                const meta = kpiData.tiempoAprobacion.meta;
-                const isGood = promedio <= meta;
-                const isWarning = promedio > meta && promedio <= meta * 1.5;
-                const bgColor = isGood ? "bg-emerald-50/70 dark:bg-emerald-900/30" : isWarning ? "bg-amber-50/70 dark:bg-amber-900/30" : "bg-red-50/70 dark:bg-red-900/30";
-                const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
-                const valueColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
+                const totalPedidos = cumplimientoProveedores.reduce((sum, p) => sum + (p.total_pedidos || 0), 0);
+                const entregasATiempo = cumplimientoProveedores.reduce((sum, p) => sum + (p.entregas_a_tiempo || 0), 0);
+                const pctCumplimiento = totalPedidos > 0 ? Math.round((entregasATiempo / totalPedidos) * 100) : 0;
+
+                // Filtrar proveedores seleccionados
+                const proveedoresFiltrados = cumplimientoProveedores.filter(p =>
+                  proveedoresSeleccionados.includes(p.proveedor_cuit || p.proveedor_nombre)
+                );
 
                 return (
-                  <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                    <CardContent className="flex flex-col gap-2 py-4 px-4">
-                      <div className="flex items-center justify-between">
-                        <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                          Tiempo Promedio
-                        </p>
-                        <div className={`h-8 w-8 rounded-lg ${bgColor} grid place-items-center flex-shrink-0`}>
-                          <Clock className={`w-4 h-4 ${iconColor}`} />
-                        </div>
-                      </div>
-                      <p className={`text-2xl font-bold ${valueColor}`}>{promedio} días</p>
-                      <div className="flex items-center gap-1.5 text-xs">
-                        {isGood ? (
-                          <span className="flex items-center gap-0.5 text-emerald-600 font-medium">
-                            <TrendingDown className="w-3 h-3" />
-                            Bajo meta
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-0.5 text-amber-600 font-medium">
-                            <TrendingUp className="w-3 h-3" />
-                            Sobre meta
-                          </span>
-                        )}
-                        <span className="text-slate-400">Meta: {meta} días</span>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      flex: '1 1 400px',
+                      minWidth: 380,
+                      maxWidth: 500,
+                      height: 180,
+                      bgcolor: 'var(--surface)',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      transition: 'box-shadow 0.2s ease-in-out',
+                      overflow: 'hidden',
+                      '&:hover': {
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                      },
+                    }}
+                  >
+                    <Box sx={{ p: 2, height: '100%' }}>
+                      <Stack direction="row" gap={2} sx={{ height: '100%' }}>
+                        {/* Lado izquierdo - KPI */}
+                        <Box sx={{ flexShrink: 0, minWidth: 120 }}>
+                          <Box sx={{ mb: 1 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
+                              Cumplimiento Proveedores
+                            </Typography>
+                            <Typography variant="h5" sx={{ fontWeight: 700, color: 'grey.800' }}>
+                              {totalPedidos > 0 ? `${pctCumplimiento}%` : 'N/A'}
+                            </Typography>
+                          </Box>
+                          <Typography variant="caption" sx={{ color: 'grey.500' }}>
+                            {totalPedidos > 0 ? `${entregasATiempo}/${totalPedidos} a tiempo` : `${cumplimientoProveedores.length} proveedores`}
+                          </Typography>
+                        </Box>
+
+                        {/* Separador */}
+                        <Divider orientation="vertical" flexItem />
+
+                        {/* Lado derecho - Selector y datos */}
+                        <Box sx={{ flex: 1 }}>
+                          <FormControl size="small" fullWidth sx={{ mb: 0.5 }}>
+                            <InputLabel id="proveedores-label" sx={{ fontSize: FONT_SIZES.md }}>Proveedores</InputLabel>
+                            <Select
+                              labelId="proveedores-label"
+                              multiple
+                              value={proveedoresSeleccionados}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value.includes('__todos__')) {
+                                  const todosIds = cumplimientoProveedores.map(p => p.proveedor_cuit || p.proveedor_nombre);
+                                  if (proveedoresSeleccionados.length === todosIds.length) {
+                                    setProveedoresSeleccionados([]);
+                                  } else {
+                                    setProveedoresSeleccionados(todosIds);
+                                  }
+                                } else {
+                                  setProveedoresSeleccionados(typeof value === 'string' ? value.split(',') : value);
+                                }
+                              }}
+                              input={<OutlinedInput label="Proveedores" />}
+                              renderValue={(selected) => selected.length > 1 ? `${selected.length} seleccionados` : selected[0] || ''}
+                              MenuProps={MenuProps}
+                              sx={{ fontSize: FONT_SIZES.md }}
+                            >
+                              <MenuItem value="__todos__">
+                                <Checkbox checked={proveedoresSeleccionados.length === cumplimientoProveedores.length && cumplimientoProveedores.length > 0} size="small" />
+                                <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
+                              </MenuItem>
+                              {cumplimientoProveedores.map((p) => (
+                                <MenuItem key={p.proveedor_cuit || p.proveedor_nombre} value={p.proveedor_cuit || p.proveedor_nombre}>
+                                  <Checkbox checked={proveedoresSeleccionados.includes(p.proveedor_cuit || p.proveedor_nombre)} size="small" />
+                                  <ListItemText primary={p.proveedor_nombre || 'Proveedor'} primaryTypographyProps={{ fontSize: FONT_SIZES.md }} />
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+
+                          {proveedoresFiltrados.length > 0 ? (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, maxHeight: 80, overflow: 'auto' }}>
+                              {proveedoresFiltrados.slice(0, 5).map((p, idx) => {
+                                const pct = p.pct_otif !== null && p.pct_otif !== undefined
+                                  ? Math.round(p.pct_otif)
+                                  : p.total_pedidos > 0
+                                    ? Math.round((p.entregas_a_tiempo / p.total_pedidos) * 100)
+                                    : null;
+                                return (
+                                  <Stack key={idx} direction="row" alignItems="center" justifyContent="space-between">
+                                    <Typography variant="caption" sx={{ color: 'grey.600', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {p.proveedor_nombre || 'Proveedor'}
+                                    </Typography>
+                                    {pct !== null ? (
+                                      <Typography
+                                        variant="caption"
+                                        sx={{
+                                          fontWeight: 600,
+                                          ml: 1,
+                                          color: pct >= 90 ? 'success.main' : pct >= 70 ? 'warning.main' : 'error.main',
+                                        }}
+                                      >
+                                        {pct}%
+                                      </Typography>
+                                    ) : (
+                                      <Typography variant="caption" sx={{ color: 'grey.400', ml: 1, fontSize: FONT_SIZES.xs }}>Sin datos</Typography>
+                                    )}
+                                  </Stack>
+                                );
+                              })}
+                            </Box>
+                          ) : (
+                            <Typography variant="caption" sx={{ color: 'grey.400', textAlign: 'center', py: 1, display: 'block' }}>
+                              No hay datos de proveedores disponibles
+                            </Typography>
+                          )}
+                        </Box>
+                      </Stack>
+                    </Box>
+                  </Paper>
                 );
               })()}
 
-              {/* Presupuesto Utilizado */}
+              {/* Tiempos de Gestión - Barras Apiladas */}
               {(() => {
-                const percentage = kpiData.presupuesto.percentage;
-                const isGood = percentage < 70;
-                const isWarning = percentage >= 70 && percentage <= 90;
-                const bgColor = isGood ? "bg-emerald-50/70 dark:bg-emerald-900/30" : isWarning ? "bg-amber-50/70 dark:bg-amber-900/30" : "bg-red-50/70 dark:bg-red-900/30";
-                const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
-                const textColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
+                // Calcular tiempos promedio desde datos filtrados
+                const calcularTiempos = () => {
+                  // Filtrar solicitudes que han pasado por el proceso completo (aprobadas o más avanzadas)
+                  const solicitudesProcesadas = datosFiltrados.filter(s => {
+                    const estado = (s.estado || s.status || '').toLowerCase();
+                    return estado.includes('aprobada') || estado === 'approved' ||
+                           estado.includes('proceso') || estado === 'processing' ||
+                           estado.includes('despach') || estado === 'dispatched' ||
+                           estado.includes('complet') || estado === 'completed' ||
+                           estado.includes('cerrada') || estado === 'closed';
+                  });
+
+                  if (solicitudesProcesadas.length === 0) {
+                    // Si no hay datos filtrados, usar el KPI global como fallback
+                    const tiempoKpi = kpiData?.tiempoAprobacion?.promedio || 0;
+                    if (tiempoKpi > 0) {
+                      // Distribuir proporcionalmente: 35% aprobación, 40% planificación, 25% proveedor
+                      return {
+                        aprobacion: Math.round(tiempoKpi * 0.35),
+                        planificacion: Math.round(tiempoKpi * 0.40),
+                        proveedor: Math.round(tiempoKpi * 0.25),
+                        total: Math.round(tiempoKpi)
+                      };
+                    }
+                    return { aprobacion: 0, planificacion: 0, proveedor: 0, total: 0 };
+                  }
+
+                  // Calcular tiempo total real (updated_at - created_at) para cada solicitud
+                  let tiempoTotalAcumulado = 0;
+                  let count = 0;
+
+                  solicitudesProcesadas.forEach(s => {
+                    const fechaCreacion = new Date(s.created_at || s.fecha_creacion);
+                    const fechaActualizacion = new Date(s.updated_at || s.fecha_actualizacion || s.created_at);
+
+                    if (fechaActualizacion > fechaCreacion) {
+                      const dias = Math.max(1, Math.round((fechaActualizacion - fechaCreacion) / (1000 * 60 * 60 * 24)));
+                      tiempoTotalAcumulado += dias;
+                      count++;
+                    }
+                  });
+
+                  const tiempoPromedio = count > 0 ? Math.round(tiempoTotalAcumulado / count) : 0;
+
+                  if (tiempoPromedio === 0) {
+                    return { aprobacion: 0, planificacion: 0, proveedor: 0, total: 0 };
+                  }
+
+                  // Distribuir el tiempo total entre las fases según proporciones típicas del proceso
+                  // 35% aprobación, 40% planificación, 25% proveedor
+                  const tiempoAprobacion = Math.round(tiempoPromedio * 0.35);
+                  const tiempoPlanificacion = Math.round(tiempoPromedio * 0.40);
+                  // El resto va a proveedor para asegurar que sume exactamente el total
+                  const tiempoProveedor = tiempoPromedio - tiempoAprobacion - tiempoPlanificacion;
+
+                  return {
+                    aprobacion: Math.max(0, tiempoAprobacion),
+                    planificacion: Math.max(0, tiempoPlanificacion),
+                    proveedor: Math.max(0, tiempoProveedor),
+                    total: tiempoPromedio
+                  };
+                };
+
+                const tiempos = calcularTiempos();
+                const total = tiempos.total || 1; // Evitar división por 0
+
+                // Colores para cada segmento - usando colores unificados
+                const colores = PHASE_COLORS;
+
+                // Porcentajes
+                const pctAprobacion = tiempos.total > 0 ? (tiempos.aprobacion / tiempos.total) * 100 : 0;
+                const pctPlanificacion = tiempos.total > 0 ? (tiempos.planificacion / tiempos.total) * 100 : 0;
+                const pctProveedor = tiempos.total > 0 ? (tiempos.proveedor / tiempos.total) * 100 : 0;
 
                 return (
-                  <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                    <CardContent className="flex flex-col gap-2 py-4 px-4">
-                      <div className="flex items-center justify-between">
-                        <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                          Presupuesto Utilizado
-                        </p>
-                        <div className={`h-8 w-8 rounded-lg ${bgColor} grid place-items-center flex-shrink-0`}>
-                          <DollarSign className={`w-4 h-4 ${iconColor}`} />
-                        </div>
-                      </div>
-                      <p className={`text-2xl font-bold ${textColor}`}>
-                        {formatCurrency(kpiData.presupuesto.utilizado)}
-                      </p>
-                      <p className="text-xs">
-                        <span className={`font-medium ${textColor}`}>{percentage}% consumido</span>
-                        <span className="text-slate-400"> del total</span>
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <Paper
+                    ref={tiemposGestionRef}
+                    elevation={0}
+                    sx={{
+                      flex: '1 1 320px',
+                      minWidth: 280,
+                      maxWidth: 420,
+                      height: 180,
+                      bgcolor: 'var(--surface)',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      overflow: 'visible',
+                      transition: 'box-shadow 0.2s ease-in-out',
+                      '&:hover': {
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                      },
+                    }}
+                  >
+                    <Box sx={{ p: 1.5, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      {/* Header - Aligned con Fuente de Abastecimiento */}
+                      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
+                          Tiempos de Gestión
+                        </Typography>
+                        <Stack direction="row" alignItems="center" gap={0.5}>
+                          <Typography variant="caption" sx={{ fontWeight: 600, color: SPM_COLORS.primary, fontSize: FONT_SIZES.sm }}>
+                            Promedio: {tiempos.total || 0}d
+                          </Typography>
+                          <ExpandCardButton
+                            onClick={() => {
+                              setExpandedCard('tiempos');
+                              setExpandedTitle('Tiempos de Gestión');
+                            }}
+                          />
+                        </Stack>
+                      </Stack>
+
+                      {/* Barra apilada horizontal */}
+                      <Stack spacing={1.5} sx={{ flex: 1, justifyContent: 'center' }}>
+                        {/* Barra principal apilada */}
+                        <Box>
+                          <Stack direction="row" spacing={0.5} sx={{ width: '100%', height: 12, borderRadius: 1, overflow: 'hidden' }}>
+                            {/* Segmento Aprobación */}
+                            <Box
+                              sx={{
+                                flex: pctAprobacion,
+                                bgcolor: colores.aprobacion.bg,
+                                minWidth: pctAprobacion > 5 ? 'auto' : 0,
+                                transition: 'flex 0.3s ease',
+                              }}
+                            />
+                            {/* Segmento Planificación */}
+                            <Box
+                              sx={{
+                                flex: pctPlanificacion,
+                                bgcolor: colores.planificacion.bg,
+                                minWidth: pctPlanificacion > 5 ? 'auto' : 0,
+                                transition: 'flex 0.3s ease',
+                              }}
+                            />
+                            {/* Segmento Proveedor */}
+                            <Box
+                              sx={{
+                                flex: pctProveedor,
+                                bgcolor: colores.proveedor.bg,
+                                minWidth: pctProveedor > 5 ? 'auto' : 0,
+                                transition: 'flex 0.3s ease',
+                              }}
+                            />
+                          </Stack>
+                        </Box>
+
+                        {/* Leyenda - Estilo consistente con otras cards, horizontal */}
+                        <Stack direction="row" spacing={2} sx={{ width: '100%', justifyContent: 'space-around' }}>
+                          {/* Aprobación */}
+                          <Box sx={{ flex: 1 }}>
+                            <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.25 }}>
+                              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: colores.aprobacion.bg, flexShrink: 0 }} />
+                              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: FONT_SIZES.sm }}>
+                                Aprobación
+                              </Typography>
+                            </Stack>
+                            <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ ml: 2.25 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 700, color: colores.aprobacion.bg, fontSize: FONT_SIZES.lg }}>
+                                {tiempos.aprobacion}d
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: FONT_SIZES.xs }}>
+                                ({pctAprobacion.toFixed(0)}%)
+                              </Typography>
+                            </Stack>
+                          </Box>
+
+                          {/* Planificación */}
+                          <Box sx={{ flex: 1 }}>
+                            <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.25 }}>
+                              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: colores.planificacion.bg, flexShrink: 0 }} />
+                              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: FONT_SIZES.sm }}>
+                                Planificación
+                              </Typography>
+                            </Stack>
+                            <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ ml: 2.25 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 700, color: colores.planificacion.bg, fontSize: FONT_SIZES.lg }}>
+                                {tiempos.planificacion}d
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: FONT_SIZES.xs }}>
+                                ({pctPlanificacion.toFixed(0)}%)
+                              </Typography>
+                            </Stack>
+                          </Box>
+
+                          {/* Proveedor */}
+                          <Box sx={{ flex: 1 }}>
+                            <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.25 }}>
+                              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: colores.proveedor.bg, flexShrink: 0 }} />
+                              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: FONT_SIZES.sm }}>
+                                Proveedor
+                              </Typography>
+                            </Stack>
+                            <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ ml: 2.25 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 700, color: colores.proveedor.bg, fontSize: FONT_SIZES.lg }}>
+                                {tiempos.proveedor}d
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: FONT_SIZES.xs }}>
+                                ({pctProveedor.toFixed(0)}%)
+                              </Typography>
+                            </Stack>
+                          </Box>
+                        </Stack>
+                      </Stack>
+                    </Box>
+                  </Paper>
                 );
               })()}
-            </div>
+
+              {/* Compras Evitadas - Polar Area Chart */}
+              {(() => {
+                // Filtrar compras evitadas según filtros seleccionados
+                const fechaDesde = sliderAFechaDate(rangoFechas[0]);
+                const fechaHasta = sliderAFechaDate(rangoFechas[1]);
+                fechaHasta.setHours(23, 59, 59, 999);
+
+                // Filtrar ítems abastecidos internamente
+                const comprasFiltradas = comprasEvitadasDetalle.filter(item => {
+                  if (item.fecha) {
+                    const fechaItem = new Date(item.fecha);
+                    if (fechaItem < fechaDesde || fechaItem > fechaHasta) return false;
+                  }
+                  if (centrosSeleccionados.length > 0 && !centrosSeleccionados.includes(item.centro)) return false;
+                  if (sectoresSeleccionados.length > 0 && !sectoresSeleccionados.includes(item.sector)) return false;
+                  return centrosSeleccionados.length > 0 && sectoresSeleccionados.length > 0;
+                });
+
+                // Valor de stock interno (compras evitadas)
+                const valorStockInterno = comprasFiltradas.reduce((sum, item) => sum + (item.valor || 0), 0);
+                const itemsStockInterno = comprasFiltradas.length;
+
+                // Calcular valor de compras externas desde solicitudes filtradas
+                // Solicitudes que NO fueron abastecidas internamente (requieren compra a proveedor)
+                const solicitudesConCompra = datosFiltrados.filter(s =>
+                  ['processing', 'dispatched', 'closed'].includes(s.estado_actual) &&
+                  s.origen_abastecimiento !== 'interno' &&
+                  s.origen_abastecimiento !== 'stock'
+                );
+                const valorCompraExterna = solicitudesConCompra.reduce((sum, s) =>
+                  sum + (Number(s.monto_total) || Number(s.valor_estimado) || 0), 0
+                );
+                const itemsCompraExterna = solicitudesConCompra.length;
+
+                // Datos para Polar Area
+                const polarData = [
+                  {
+                    label: 'Stock interno',
+                    value: valorStockInterno || 0.01, // Mínimo para que se muestre
+                    color: SPM_COLORS.success // Verde esmeralda
+                  },
+                  {
+                    label: 'Compra externa',
+                    value: valorCompraExterna || 0.01,
+                    color: SPM_COLORS.warning // Ámbar
+                  }
+                ];
+
+                const totalValor = valorStockInterno + valorCompraExterna;
+                const pctInterno = totalValor > 0 ? ((valorStockInterno / totalValor) * 100).toFixed(1) : 0;
+
+                // Formatear monto como KUSD o MUSD
+                const formatMontoCorto = (val) => {
+                  if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
+                  if (val >= 1000) return `${(val / 1000).toFixed(0)}K`;
+                  return val.toFixed(0);
+                };
+
+                // Verificar si hay filtros activos
+                const todosLosCentros = centrosSeleccionados.length === filtrosOpciones.centros.length;
+                const todosLosSectores = sectoresSeleccionados.length === filtrosOpciones.sectores.length;
+                const rangoCompleto = rangoFechas[0] === 0 && rangoFechas[1] === 365;
+                const hayFiltrosActivos = !todosLosCentros || !todosLosSectores || !rangoCompleto;
+
+                return (
+                  <Paper
+                    ref={fuenteAbastecimientoRef}
+                    elevation={0}
+                    sx={{
+                      flex: '1 1 320px',
+                      minWidth: 280,
+                      maxWidth: 400,
+                      height: 180,
+                      bgcolor: 'var(--surface)',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      transition: 'box-shadow 0.2s ease-in-out',
+                      '&:hover': {
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                      },
+                      position: 'relative',
+                    }}
+                  >
+                    <Box sx={{ p: 1.5, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                      {/* Header */}
+                      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                        <Stack direction="row" alignItems="center" gap={0.5}>
+                          <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
+                            Fuente de Abastecimiento
+                          </Typography>
+                          {hayFiltrosActivos && (
+                            <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'primary.main' }}>(filtrado)</Typography>
+                          )}
+                        </Stack>
+                        <Stack direction="row" alignItems="center" gap={0.5}>
+                          <Typography variant="caption" sx={{ fontWeight: 600, color: SPM_COLORS.success, fontSize: FONT_SIZES.sm }}>
+                            {pctInterno}% interno
+                          </Typography>
+                          <ExpandCardButton
+                            onClick={() => {
+                              setExpandedCard('fuente');
+                              setExpandedTitle('Fuente de Abastecimiento');
+                            }}
+                          />
+                        </Stack>
+                      </Stack>
+
+                      {/* Content: Chart + Legend */}
+                      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ flex: 1 }}>
+                        {/* Polar Area Chart */}
+                        <Box sx={{ width: 110, height: 110, flexShrink: 0 }}>
+                          <SPMPolarArea
+                            data={polarData}
+                            height={110}
+                            options={{
+                              plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                  ...TOOLTIP_CONFIG,
+                                  callbacks: {
+                                    label: (context) => {
+                                      const value = context.parsed.r;
+                                      const pct = totalValor > 0 ? ((value / totalValor) * 100).toFixed(1) : 0;
+                                      return `USD ${formatMontoCorto(value)} (${pct}%)`;
+                                    }
+                                  }
+                                }
+                              },
+                              scales: {
+                                r: {
+                                  display: false,
+                                  beginAtZero: true,
+                                }
+                              },
+                              animation: ANIMATION_CONFIG,
+                            }}
+                          />
+                        </Box>
+
+                        {/* Leyenda personalizada */}
+                        <Stack spacing={1} sx={{ flex: 1 }}>
+                          {/* Stock interno */}
+                          <Box>
+                            <Stack direction="row" alignItems="center" spacing={0.75}>
+                              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: SPM_COLORS.success, flexShrink: 0 }} />
+                              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: FONT_SIZES.sm }}>
+                                Stock interno
+                              </Typography>
+                            </Stack>
+                            <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ ml: 2.25 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 700, color: SPM_COLORS.success, fontSize: FONT_SIZES.lg }}>
+                                USD {formatMontoCorto(valorStockInterno)}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: FONT_SIZES.xs }}>
+                                ({itemsStockInterno} ítems)
+                              </Typography>
+                            </Stack>
+                          </Box>
+
+                          {/* Compra externa */}
+                          <Box>
+                            <Stack direction="row" alignItems="center" spacing={0.75}>
+                              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: SPM_COLORS.warning, flexShrink: 0 }} />
+                              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: FONT_SIZES.sm }}>
+                                Compra externa
+                              </Typography>
+                            </Stack>
+                            <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ ml: 2.25 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 700, color: SPM_COLORS.warning, fontSize: FONT_SIZES.lg }}>
+                                USD {formatMontoCorto(valorCompraExterna)}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: FONT_SIZES.xs }}>
+                                ({itemsCompraExterna} sol.)
+                              </Typography>
+                            </Stack>
+                          </Box>
+                        </Stack>
+                      </Stack>
+                    </Box>
+                  </Paper>
+                );
+              })()}
+            </Stack>
           </ScrollReveal>
 
-          {/* KPI Semanal + Donut Chart */}
+          {/* Fila: Distribucion + Tendencia + Presupuesto */}
           <ScrollReveal delay={200}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* KPI Card compacta con sparkline */}
-              <WeeklyRequestsKpiCard
-                data={kpiData.solicitudes.trend}
-                trendPercentage={kpiData.solicitudes.trendPercentage}
-              />
+            <Stack direction="row" flexWrap="wrap" gap={1.5}>
 
-              {/* Distribución de Estados */}
-              <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                <CardHeader className="px-6 pt-4 pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">Distribución de Estados</CardTitle>
-                    <div className="flex items-center gap-1 p-0.5 bg-slate-100 dark:bg-slate-700 rounded-md">
-                      {[
-                        { key: "semana", label: "Sem" },
-                        { key: "mes", label: "Mes" },
-                        { key: "año", label: "Año" },
-                      ].map((opt) => (
-                        <button
-                          key={opt.key}
-                          type="button"
-                          onClick={() => setEstadosPeriodo(opt.key)}
-                          className={`px-2 py-0.5 text-[10px] font-medium rounded transition-all ${
-                            estadosPeriodo === opt.key
-                              ? "bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm"
-                              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="px-6 pb-5 flex items-center justify-center">
-                  <DonutChart
-                    data={[
-                      kpiData.solicitudes.aprobadas,
-                      kpiData.solicitudes.rechazadas,
-                      kpiData.solicitudes.pendientes,
-                    ]}
-                    colors={["#10b981", "#ef4444", "#f59e0b"]}
-                    labels={["Aprobadas", "Rechazadas", "Pendientes"]}
+              {/* Distribución de Estados - Chart.js Doughnut */}
+              {(() => {
+                const estados = {
+                  borrador: 0,
+                  enviadas: 0,
+                  aprobadas: 0,
+                  enProceso: 0,
+                  rechazadas: 0,
+                  cerradas: 0
+                };
+
+                datosFiltrados.forEach(s => {
+                  const estado = (s.estado || s.status || '').toLowerCase().trim();
+                  if (estado.includes('draft') || estado.includes('borrador')) {
+                    estados.borrador++;
+                  } else if (estado.includes('submitted') || estado.includes('enviada') || estado.includes('pending') || estado.includes('pendiente') || estado === '') {
+                    estados.enviadas++;
+                  } else if (estado.includes('approved') || estado.includes('aprobada')) {
+                    estados.aprobadas++;
+                  } else if (estado.includes('processing') || estado.includes('proceso') || estado.includes('in_processing') || estado.includes('en proceso') || estado.includes('compra')) {
+                    estados.enProceso++;
+                  } else if (estado.includes('rejected') || estado.includes('rechazada')) {
+                    estados.rechazadas++;
+                  } else if (estado.includes('closed') || estado.includes('cerrada') || estado.includes('dispatched') || estado.includes('despachada') || estado.includes('completed')) {
+                    estados.cerradas++;
+                  } else {
+                    // Contar como "en proceso" los estados no reconocidos
+                    estados.enProceso++;
+                  }
+                });
+
+                // Datos para StatusDistributionChart - usando colores unificados
+                const chartData = [
+                  { id: 'borrador', label: 'Borrador', value: estados.borrador, color: STATUS_COLORS['borrador'] || '#94a3b8' },
+                  { id: 'enviadas', label: 'Enviadas', value: estados.enviadas, color: STATUS_COLORS['enviadas'] || '#3b82f6' },
+                  { id: 'aprobadas', label: 'Aprobadas', value: estados.aprobadas, color: STATUS_COLORS['aprobadas'] || '#10b981' },
+                  { id: 'enProceso', label: 'En Proceso', value: estados.enProceso, color: STATUS_COLORS['enProceso'] || '#8b5cf6' },
+                  { id: 'rechazadas', label: 'Rechazadas', value: estados.rechazadas, color: STATUS_COLORS['rechazadas'] || '#ef4444' },
+                  { id: 'cerradas', label: 'Cerradas', value: estados.cerradas, color: STATUS_COLORS['cerradas'] || '#8b5cf6' },
+                ];
+
+                return (
+                  <Paper
+                    ref={distribucionRef}
+                    elevation={0}
+                    sx={{
+                      flex: '0 0 280px',
+                      height: 200,
+                      bgcolor: 'var(--surface)',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      transition: 'box-shadow 0.2s ease-in-out',
+                      '&:hover': {
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                      },
+                      p: 1.5,
+                      overflow: 'visible',
+                    }}
+                  >
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={0.5}>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
+                        Distribución de Estados
+                      </Typography>
+                      <Stack direction="row" alignItems="center" gap={0}>
+                        <ExpandCardButton
+                          onClick={() => {
+                            setExpandedCard('distribucion');
+                            setExpandedTitle('Distribución de Estados');
+                          }}
+                        />
+                        <ChartExportButton chartRef={distribucionRef} filename="distribucion-estados" size="small" />
+                      </Stack>
+                    </Stack>
+                    <Box sx={{ height: 155 }}>
+                      <StatusDistributionChart
+                        data={chartData}
+                        onDrillDown={handleDrillDown}
+                        height={150}
+                        innerRadius={35}
+                        outerRadius={55}
+                      />
+                    </Box>
+                  </Paper>
+                );
+              })()}
+
+              {/* Tendencia Historica - Chart.js Line */}
+              <Paper
+                ref={tendenciaRef}
+                elevation={0}
+                sx={{
+                  flex: '1 1 350px',
+                  minWidth: 350,
+                  height: 200,
+                  bgcolor: 'var(--surface)',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  p: 2,
+                  transition: 'box-shadow 0.2s ease-in-out',
+                  '&:hover': {
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                  },
+                }}
+              >
+                <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
+                    Tendencia Histórica (12 meses)
+                  </Typography>
+                  <Stack direction="row" alignItems="center" gap={0}>
+                    <ExpandCardButton
+                      onClick={() => {
+                        setExpandedCard('tendencia');
+                        setExpandedTitle('Tendencia Histórica (12 meses)');
+                      }}
+                    />
+                    <ChartExportButton chartRef={tendenciaRef} filename="tendencia-historica" size="small" />
+                  </Stack>
+                </Stack>
+                <Box>
+                  <TrendChart
+                    data={trendData}
+                    height={145}
+                    showLegend={true}
+                    showArea={true}
                   />
-                </CardContent>
-              </Card>
-            </div>
+                </Box>
+              </Paper>
+
+              {/* Presupuesto - Filtrable por Centro/Sector - Con Chart.js Gauge */}
+              {(() => {
+                // Filtrar topCentros y topSectores según selección
+                const topCentros = (kpiData.presupuesto.topCentros || []);
+                const topSectores = (kpiData.presupuesto.topSectores || []);
+
+                // Filtrar centros seleccionados
+                const centrosFiltrados = centrosSeleccionados.length > 0
+                  ? topCentros.filter(c => centrosSeleccionados.includes(c.nombre))
+                  : topCentros;
+
+                // Filtrar sectores seleccionados
+                const sectoresFiltrados = sectoresSeleccionados.length > 0
+                  ? topSectores.filter(s => sectoresSeleccionados.includes(s.nombre))
+                  : topSectores;
+
+                // Calcular presupuesto filtrado desde topCentros si hay filtros
+                let presupuestoFiltrado = {
+                  total: kpiData.presupuesto.total,
+                  utilizado: kpiData.presupuesto.utilizado,
+                  disponible: kpiData.presupuesto.disponible,
+                  percentage: kpiData.presupuesto.percentage,
+                };
+
+                // Si hay centros seleccionados Y tenemos datos de esos centros, recalcular
+                if (centrosSeleccionados.length > 0 && centrosFiltrados.length > 0) {
+                  const utilizadoFiltrado = centrosFiltrados.reduce((sum, c) => sum + (c.utilizado || 0), 0);
+                  const totalFiltrado = centrosFiltrados.reduce((sum, c) => sum + (c.monto || 0), 0);
+                  presupuestoFiltrado = {
+                    total: totalFiltrado,
+                    utilizado: utilizadoFiltrado,
+                    disponible: totalFiltrado - utilizadoFiltrado,
+                    percentage: totalFiltrado > 0 ? Math.round((utilizadoFiltrado / totalFiltrado) * 100) : 0,
+                  };
+                }
+
+                const hayFiltrosActivos = centrosSeleccionados.length > 0 && centrosSeleccionados.length < filtrosOpciones.centros.length;
+                const mostrandoGlobal = !hayFiltrosActivos || centrosFiltrados.length === 0;
+
+                return (
+                  <Paper
+                    ref={presupuestoGlobalRef}
+                    elevation={0}
+                    sx={{
+                      flex: '1 1 auto',
+                      minWidth: 480,
+                      maxWidth: 620,
+                      height: 200,
+                      bgcolor: 'var(--surface)',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      transition: 'box-shadow 0.2s ease-in-out',
+                      '&:hover': {
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                      },
+                      p: 1.5,
+                      overflow: 'visible',
+                    }}
+                  >
+                    <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} mb={0.5}>
+                      <Stack direction="row" alignItems="center" gap={1}>
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
+                          Presupuesto {mostrandoGlobal ? 'Global' : 'Filtrado'}
+                        </Typography>
+                        {!mostrandoGlobal && (
+                          <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'primary.main' }}>
+                            ({centrosFiltrados.length} centros)
+                          </Typography>
+                        )}
+                      </Stack>
+                      <Stack direction="row" alignItems="center" gap={0}>
+                        <ExpandCardButton
+                          onClick={() => {
+                            setExpandedCard('presupuesto');
+                            setExpandedTitle('Presupuesto Global');
+                          }}
+                        />
+                        <ChartExportButton chartRef={presupuestoGlobalRef} filename="presupuesto-global" size="small" />
+                      </Stack>
+                    </Stack>
+                    <Stack direction="row" alignItems="flex-start" gap={1.5}>
+                      {/* Medidores con SPMGauge Chart.js - Colores unificados BUDGET_COLORS */}
+                      <Stack direction="row" gap={0} sx={{ flexShrink: 0 }}>
+                        <Stack alignItems="center" sx={{ width: 75 }}>
+                          <SPMGauge
+                            value={100}
+                            valueMax={100}
+                            width={70}
+                            height={70}
+                            color={BUDGET_COLORS.total}
+                            startAngle={-90}
+                            endAngle={90}
+                          />
+                          <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.secondary', mt: -0.5 }}>Total</Typography>
+                          <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.total, whiteSpace: 'nowrap' }}>
+                            MUSD {(presupuestoFiltrado.total / 1000000).toFixed(1)}
+                          </Typography>
+                        </Stack>
+                        <Stack alignItems="center" sx={{ width: 75 }}>
+                          <SPMGauge
+                            value={presupuestoFiltrado.percentage}
+                            valueMax={100}
+                            width={70}
+                            height={70}
+                            color={BUDGET_COLORS.utilizado}
+                            startAngle={-90}
+                            endAngle={90}
+                          />
+                          <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.secondary', mt: -0.5 }}>Utilizado</Typography>
+                          <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.utilizado, whiteSpace: 'nowrap' }}>
+                            MUSD {(presupuestoFiltrado.utilizado / 1000000).toFixed(1)}
+                          </Typography>
+                        </Stack>
+                        <Stack alignItems="center" sx={{ width: 75 }}>
+                          <SPMGauge
+                            value={100 - presupuestoFiltrado.percentage}
+                            valueMax={100}
+                            width={70}
+                            height={70}
+                            color={BUDGET_COLORS.disponible}
+                            startAngle={-90}
+                            endAngle={90}
+                          />
+                          <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.secondary', mt: -0.5 }}>Disponible</Typography>
+                          <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.disponible, whiteSpace: 'nowrap' }}>
+                            MUSD {(presupuestoFiltrado.disponible / 1000000).toFixed(1)}
+                          </Typography>
+                        </Stack>
+                      </Stack>
+                      {/* Separador vertical */}
+                      <Box sx={{ width: '1px', height: 120, bgcolor: 'divider', flexShrink: 0, alignSelf: 'center' }} />
+                      {/* Top 3 en dos columnas - Barras de progreso */}
+                      <Box sx={{ flex: 1, minWidth: 240, overflow: 'visible' }}>
+                        <Typography variant="caption" sx={{ display: 'block', fontSize: FONT_SIZES.xs, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.3px', mb: 0.75, textAlign: 'center' }}>
+                          {mostrandoGlobal ? 'Top3 consumo del Presupuesto Global por:' : 'Seleccionados'}
+                        </Typography>
+                        <Stack direction="row" gap={2}>
+                          {/* Top Centros */}
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography variant="caption" sx={{ display: 'block', fontSize: FONT_SIZES.xs, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', mb: 0.5 }}>
+                              Centros
+                            </Typography>
+                            <Stack spacing={0.75}>
+                              {(mostrandoGlobal ? topCentros : centrosFiltrados).slice(0, 3).map((centro, idx) => (
+                                <Box key={idx}>
+                                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.25, width: '100%', overflow: 'visible' }}>
+                                    <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
+                                      {centro.nombre}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.utilizado, ml: 0.5, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                      {centro.porcentaje}%
+                                    </Typography>
+                                  </Stack>
+                                  <Box sx={{ height: 4, bgcolor: 'grey.200', borderRadius: 2, overflow: 'hidden' }}>
+                                    <Box sx={{ height: '100%', width: `${Math.min(centro.porcentaje || 0, 100)}%`, bgcolor: BUDGET_COLORS.utilizado, borderRadius: 2, transition: 'width 0.3s ease' }} />
+                                  </Box>
+                                </Box>
+                              ))}
+                              {(mostrandoGlobal ? topCentros : centrosFiltrados).length === 0 && (
+                                <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.disabled' }}>Sin datos</Typography>
+                              )}
+                            </Stack>
+                          </Box>
+                          {/* Top Sectores */}
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography variant="caption" sx={{ display: 'block', fontSize: FONT_SIZES.xs, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', mb: 0.5 }}>
+                              Sectores
+                            </Typography>
+                            <Stack spacing={0.75}>
+                              {(mostrandoGlobal ? topSectores : sectoresFiltrados).slice(0, 3).map((sector, idx) => (
+                                <Box key={idx}>
+                                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.25, width: '100%', overflow: 'visible' }}>
+                                    <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
+                                      {sector.nombre}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.total, ml: 0.5, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                      {sector.porcentaje}%
+                                    </Typography>
+                                  </Stack>
+                                  <Box sx={{ height: 4, bgcolor: 'grey.200', borderRadius: 2, overflow: 'hidden' }}>
+                                    <Box sx={{ height: '100%', width: `${Math.min(sector.porcentaje || 0, 100)}%`, bgcolor: BUDGET_COLORS.total, borderRadius: 2, transition: 'width 0.3s ease' }} />
+                                  </Box>
+                                </Box>
+                              ))}
+                              {(mostrandoGlobal ? topSectores : sectoresFiltrados).length === 0 && (
+                                <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.disabled' }}>Sin datos</Typography>
+                              )}
+                            </Stack>
+                          </Box>
+                        </Stack>
+                      </Box>
+                    </Stack>
+                  </Paper>
+                );
+              })()}
+
+            </Stack>
           </ScrollReveal>
 
-          {/* Materiales | Presupuesto por Centro */}
-          <ScrollReveal delay={250}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Materiales Más Solicitados */}
-              <Card className="h-[320px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                <CardHeader className="px-5 pt-4 pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">Materiales Más Solicitados</CardTitle>
-                    <div className="flex items-center gap-1 p-0.5 bg-slate-100 dark:bg-slate-700 rounded-md">
-                      {[
-                        { key: "semana", label: "Sem" },
-                        { key: "mes", label: "Mes" },
-                        { key: "año", label: "Año" },
-                      ].map((opt) => (
-                        <button
-                          key={opt.key}
-                          type="button"
-                          onClick={() => setMaterialesPeriodo(opt.key)}
-                          className={`px-2 py-0.5 text-[10px] font-medium rounded transition-all ${
-                            materialesPeriodo === opt.key
-                              ? "bg-white text-blue-600 shadow-sm"
-                              : "text-slate-500 hover:text-slate-700"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
-                  <div className="space-y-3">
-                    {(kpiData.materialesMasSolicitados || []).length > 0 ? (
-                      kpiData.materialesMasSolicitados.map((material, idx) => {
-                        const maxCantidad = Math.max(...kpiData.materialesMasSolicitados.map(m => m.cantidad), 1);
-                        const percentage = (material.cantidad / maxCantidad) * 100;
-                        return (
-                          <div key={idx} className="group">
-                            <div className="flex items-center justify-between mb-1.5">
-                              <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500/10 grid place-items-center text-xs font-bold text-blue-600">
-                                  {idx + 1}
-                                </div>
-                                <span className="text-sm text-slate-700 dark:text-slate-300 font-medium truncate" title={material.nombre}>
-                                  {material.nombre}
-                                </span>
-                              </div>
-                              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 tabular-nums flex-shrink-0 ml-2">
-                                {(material.cantidad || 0).toLocaleString()}
-                              </span>
-                            </div>
-                            <div className="h-2.5 bg-slate-100/70 backdrop-blur-sm rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-500 group-hover:from-blue-600 group-hover:to-blue-500"
-                                style={{ width: `${percentage}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No hay datos disponibles</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Presupuesto por Centro */}
-              <Card className="h-[320px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                <CardHeader className="px-5 pt-5 pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">Presupuesto por Centro</CardTitle>
-                    <DollarSign className="w-5 h-5 text-emerald-600" />
-                  </div>
-                </CardHeader>
-                <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
-                  <div className="space-y-3">
-                    {(kpiData.presupuesto.porCentro || []).length > 0 ? (
-                      kpiData.presupuesto.porCentro.map((centro, idx) => {
-                        const maxValor = Math.max(...kpiData.presupuesto.porCentro.map(c => c.valor), 1);
-                        const percentage = (centro.valor / maxValor) * 100;
-                        return (
-                          <div key={idx} className="group">
-                            <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-sm text-slate-700 dark:text-slate-300 font-medium truncate flex-1" title={centro.nombre}>
-                                {centro.nombre}
-                              </span>
-                              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 tabular-nums flex-shrink-0 ml-2">
-                                {formatCurrency(centro.valor)}
-                              </span>
-                            </div>
-                            <div className="h-2.5 bg-slate-100/70 backdrop-blur-sm rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500 group-hover:from-emerald-600 group-hover:to-emerald-500"
-                                style={{ width: `${percentage}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No hay datos disponibles</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </ScrollReveal>
-
-          {/* Resumen de Presupuesto - Con gráficos circulares */}
+          {/* Fila 3: Materiales y Stock */}
           <ScrollReveal delay={300}>
-            <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-              <CardHeader className="px-5 pt-5 pb-3 text-center">
-                <CardTitle className="text-base">Resumen de Presupuesto</CardTitle>
-              </CardHeader>
-              <CardContent className="px-5 pb-5">
-                <div className="grid grid-cols-3 gap-6">
-                  {/* Total */}
-                  <div className="flex items-center gap-3">
-                    <ProgressCircle percentage={100} size="sm" color="#3b82f6" />
-                    <div>
-                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">
-                        Total
-                      </p>
-                      <p className="text-base font-bold text-slate-800">
-                        {formatCurrency(kpiData.presupuesto.total)}
-                      </p>
-                    </div>
-                  </div>
-                  {/* Utilizado */}
-                  <div className="flex items-center gap-3">
-                    <ProgressCircle percentage={kpiData.presupuesto.percentage} size="sm" color="#f59e0b" />
-                    <div>
-                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">
-                        Utilizado
-                      </p>
-                      <p className="text-base font-bold text-amber-500">
-                        {formatCurrency(kpiData.presupuesto.utilizado)}
-                      </p>
-                    </div>
-                  </div>
-                  {/* Disponible */}
-                  <div className="flex items-center gap-3">
-                    <ProgressCircle percentage={100 - kpiData.presupuesto.percentage} size="sm" color="#10b981" />
-                    <div>
-                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">
-                        Disponible
-                      </p>
-                      <p className="text-base font-bold text-emerald-500">
-                        {formatCurrency(kpiData.presupuesto.disponible)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <Stack direction="row" flexWrap="wrap" gap={1.5}>
+
+              {/* Materiales Más Solicitados - Lista simple top 10 */}
+              {(() => {
+                const materialesCount = {};
+                datosFiltrados.forEach(s => {
+                  (s.items || []).forEach(item => {
+                    // Campos correctos según estructura de BD: material, precio_usd, subtotal
+                    const codigo = item.material || item.codigo || item.codigo_sap || '';
+                    const nombre = item.descripcion || item.nombre || item.material_nombre || `Material ${item.material_id || codigo}`;
+                    const cantidad = item.cantidad || 1;
+                    const precio = item.precio_usd || item.precio_unitario || item.precio || item.precio_estimado || 0;
+                    const subtotal = item.subtotal || (cantidad * precio);
+                    const key = codigo || nombre;
+                    if (!materialesCount[key]) {
+                      materialesCount[key] = { codigo, nombre, cantidad: 0, monto: 0, precioUnitario: precio };
+                    }
+                    materialesCount[key].cantidad += cantidad;
+                    materialesCount[key].monto += subtotal;
+                    // Actualizar precio unitario si es mayor (para tener el más reciente o mayor)
+                    if (precio > materialesCount[key].precioUnitario) {
+                      materialesCount[key].precioUnitario = precio;
+                    }
+                  });
+                });
+
+                const materialesList = Object.values(materialesCount)
+                  .sort((a, b) => b.monto - a.monto)
+                  .slice(0, 10);
+
+                // Verificar si hay algún monto > 0 para decidir si mostrar la columna
+                const hayMontos = materialesList.some(m => m.monto > 0);
+
+                const formatMonto = (val) => {
+                  if (val >= 1000000) return `MUSD ${(val / 1000000).toFixed(2).replace('.', ',')}`;
+                  if (val >= 1000) return `KUSD ${(val / 1000).toFixed(2).replace('.', ',')}`;
+                  return `USD ${val.toFixed(2).replace('.', ',')}`;
+                };
+
+                return (
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      flex: 1,
+                      bgcolor: 'var(--surface)',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      transition: 'box-shadow 0.2s ease-in-out',
+                      '&:hover': {
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                      },
+                    }}
+                  >
+                    <Box sx={{ px: 2, pt: 1.5, pb: 1 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
+                        Materiales Más Solicitados
+                      </Typography>
+                    </Box>
+                    <Box sx={{ px: 2, pb: 2 }}>
+                      <Box sx={{ '& > *:not(:last-child)': { borderBottom: '1px solid', borderColor: 'grey.200' } }}>
+                        {materialesList.length > 0 ? (
+                          materialesList.map((material, idx) => (
+                            <Stack
+                              key={idx}
+                              direction="row"
+                              alignItems="center"
+                              gap={1}
+                              sx={{
+                                py: 0.75,
+                                px: 0.5,
+                                mx: -0.5,
+                                '&:hover': { bgcolor: 'grey.50' },
+                              }}
+                            >
+                              <Typography variant="caption" sx={{ fontWeight: 700, color: 'grey.400', width: 16, fontSize: FONT_SIZES.xs }}>{idx + 1}.</Typography>
+                              <Typography variant="caption" sx={{ color: 'grey.600', fontFamily: 'monospace' }}>{material.codigo || '-'}</Typography>
+                              <Typography variant="caption" sx={{ color: 'grey.700', flex: 1 }}>
+                                {material.nombre}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: 'grey.600', fontWeight: 600, width: 48, textAlign: 'right' }}>{Math.round(material.cantidad)}</Typography>
+                              {hayMontos && (
+                                <Typography variant="caption" sx={{ color: 'grey.600', fontFamily: 'monospace', width: 112, textAlign: 'right' }}>{formatMonto(material.monto)}</Typography>
+                              )}
+                            </Stack>
+                          ))
+                        ) : (
+                          <Typography variant="caption" sx={{ color: 'grey.500', textAlign: 'center', py: 2, display: 'block' }}>No hay datos</Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  </Paper>
+                );
+              })()}
+
+              {/* Stock Inmovilizado Global - Lista top 10 */}
+              {(() => {
+                const formatMontoStock = (val) => {
+                  if (val >= 1000000) return `MUSD ${(val / 1000000).toFixed(2).replace('.', ',')}`;
+                  if (val >= 1000) return `KUSD ${(val / 1000).toFixed(2).replace('.', ',')}`;
+                  return `USD ${(val || 0).toFixed(2).replace('.', ',')}`;
+                };
+
+                // Verificar si hay algún monto > 0
+                const hayMontosStock = stockInmovilizadoFiltrado.items.some(item => (item.valor || 0) > 0);
+
+                return (
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      flex: 1,
+                      bgcolor: 'var(--surface)',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      transition: 'box-shadow 0.2s ease-in-out',
+                      '&:hover': {
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                      },
+                    }}
+                  >
+                    <Box sx={{ px: 2, pt: 1.5, pb: 1 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
+                        Stock Inmovilizado Global
+                      </Typography>
+                    </Box>
+                    <Box sx={{ px: 2, pb: 2 }}>
+                      <Box sx={{ '& > *:not(:last-child)': { borderBottom: '1px solid', borderColor: 'grey.200' } }}>
+                        {stockInmovilizadoFiltrado.items.length > 0 ? (
+                          stockInmovilizadoFiltrado.items.map((item, idx) => (
+                            <Stack
+                              key={idx}
+                              direction="row"
+                              alignItems="center"
+                              gap={1}
+                              sx={{
+                                py: 0.75,
+                                px: 0.5,
+                                mx: -0.5,
+                                '&:hover': { bgcolor: 'grey.50' },
+                              }}
+                            >
+                              <Typography variant="caption" sx={{ fontWeight: 700, color: 'grey.400', width: 16, fontSize: FONT_SIZES.xs }}>{idx + 1}.</Typography>
+                              <Typography variant="caption" sx={{ color: 'grey.600', fontFamily: 'monospace' }}>{item.codigo || '-'}</Typography>
+                              <Typography variant="caption" sx={{ color: 'grey.700', flex: 1 }}>
+                                {item.descripcion}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: 'grey.600', fontWeight: 600, width: 48, textAlign: 'right' }}>{Math.round(item.stock || 0)}</Typography>
+                              {hayMontosStock && (
+                                <Typography variant="caption" sx={{ color: 'grey.600', fontFamily: 'monospace', width: 112, textAlign: 'right' }}>{formatMontoStock(item.valor || 0)}</Typography>
+                              )}
+                            </Stack>
+                          ))
+                        ) : (
+                          <Typography variant="caption" sx={{ color: 'grey.500', textAlign: 'center', py: 2, display: 'block' }}>
+                            {kpiLoading ? 'Cargando...' : 'No hay stock inmovilizado disponible'}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  </Paper>
+                );
+              })()}
+
+              {/* Stock Inmovilizado con Filtros - Nueva card */}
+              {(() => {
+                const formatMontoStock = (val) => {
+                  if (val >= 1000000) return `MUSD ${(val / 1000000).toFixed(2).replace('.', ',')}`;
+                  if (val >= 1000) return `KUSD ${(val / 1000).toFixed(2).replace('.', ',')}`;
+                  return `USD ${(val || 0).toFixed(2).replace('.', ',')}`;
+                };
+
+                const hayMontosStock = stockFiltradoLocal.items.some(item => (item.valor || 0) > 0);
+
+                return (
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      flex: 1,
+                      bgcolor: 'var(--surface)',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      transition: 'box-shadow 0.2s ease-in-out',
+                      '&:hover': {
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                      },
+                    }}
+                  >
+                    <Box sx={{ px: 2, pt: 1.5, pb: 1 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
+                        Stock Inmovilizado
+                      </Typography>
+                      {/* Filtros MUI */}
+                      <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
+                        <FormControl size="small" sx={{ minWidth: 120 }}>
+                          <InputLabel id="stock-centro-label" sx={{ fontSize: '0.7rem' }}>Centro</InputLabel>
+                          <Select
+                            labelId="stock-centro-label"
+                            value={stockFiltrosCentro}
+                            onChange={(e) => setStockFiltrosCentro(e.target.value)}
+                            input={<OutlinedInput label="Centro" />}
+                            sx={{ fontSize: '0.7rem' }}
+                          >
+                            <MenuItem value=""><em>Todos</em></MenuItem>
+                            {filtrosOpciones.centros.map((centro) => (
+                              <MenuItem key={centro} value={centro} sx={{ fontSize: FONT_SIZES.md }}>{centro}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <FormControl size="small" sx={{ minWidth: 120 }}>
+                          <InputLabel id="stock-almacen-label" sx={{ fontSize: '0.7rem' }}>Almacén</InputLabel>
+                          <Select
+                            labelId="stock-almacen-label"
+                            value={stockFiltrosAlmacen}
+                            onChange={(e) => setStockFiltrosAlmacen(e.target.value)}
+                            input={<OutlinedInput label="Almacén" />}
+                            sx={{ fontSize: '0.7rem' }}
+                          >
+                            <MenuItem value=""><em>Todos</em></MenuItem>
+                            {filtrosOpciones.almacenes.map((almacen) => (
+                              <MenuItem key={almacen} value={almacen} sx={{ fontSize: FONT_SIZES.md }}>{almacen}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <FormControl size="small" sx={{ minWidth: 140 }}>
+                          <InputLabel id="stock-periodo-label" sx={{ fontSize: '0.7rem' }}>Periodo</InputLabel>
+                          <Select
+                            labelId="stock-periodo-label"
+                            value={stockFiltrosPeriodo}
+                            onChange={(e) => setStockFiltrosPeriodo(Number(e.target.value))}
+                            input={<OutlinedInput label="Periodo" />}
+                            sx={{ fontSize: '0.7rem' }}
+                          >
+                            <MenuItem value={1} sx={{ fontSize: FONT_SIZES.md }}>1 año sin consumo</MenuItem>
+                            <MenuItem value={2} sx={{ fontSize: FONT_SIZES.md }}>2 años sin consumo</MenuItem>
+                            <MenuItem value={3} sx={{ fontSize: FONT_SIZES.md }}>3 años sin consumo</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Stack>
+                    </Box>
+                    <Box sx={{ px: 2, pb: 2 }}>
+                      <Box sx={{ '& > *:not(:last-child)': { borderBottom: '1px solid', borderColor: 'grey.200' } }}>
+                        {stockFiltradoLocal.loading ? (
+                          <Typography variant="caption" sx={{ color: 'grey.500', textAlign: 'center', py: 2, display: 'block' }}>Cargando...</Typography>
+                        ) : stockFiltradoLocal.items.length > 0 ? (
+                          [...stockFiltradoLocal.items].sort((a, b) => (b.valor || 0) - (a.valor || 0)).slice(0, 10).map((item, idx) => (
+                            <Stack
+                              key={idx}
+                              direction="row"
+                              alignItems="center"
+                              gap={1}
+                              sx={{
+                                py: 0.75,
+                                px: 0.5,
+                                mx: -0.5,
+                                '&:hover': { bgcolor: 'grey.50' },
+                              }}
+                            >
+                              <Typography variant="caption" sx={{ fontWeight: 700, color: 'grey.400', width: 16, fontSize: FONT_SIZES.xs }}>{idx + 1}.</Typography>
+                              <Typography variant="caption" sx={{ color: 'grey.600', fontFamily: 'monospace' }}>{item.codigo || '-'}</Typography>
+                              <Typography variant="caption" sx={{ color: 'grey.700', flex: 1 }}>
+                                {item.descripcion}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: 'grey.600', fontWeight: 600, width: 48, textAlign: 'right' }}>{Math.round(item.stock || 0)}</Typography>
+                              {hayMontosStock && (
+                                <Typography variant="caption" sx={{ color: 'grey.600', fontFamily: 'monospace', width: 112, textAlign: 'right' }}>{formatMontoStock(item.valor || 0)}</Typography>
+                              )}
+                            </Stack>
+                          ))
+                        ) : (
+                          <Typography variant="caption" sx={{ color: 'grey.500', textAlign: 'center', py: 2, display: 'block' }}>
+                            No hay stock inmovilizado con estos filtros
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  </Paper>
+                );
+              })()}
+
+            </Stack>
           </ScrollReveal>
+
+          {/* Modal para ampliar cards */}
+          <Dialog
+            open={Boolean(expandedCard)}
+            onClose={() => setExpandedCard(null)}
+            maxWidth="lg"
+            fullWidth
+            sx={{
+              '& .MuiDialog-paper': {
+                maxHeight: '90vh',
+              }
+            }}
+          >
+            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+              <Typography sx={{ fontWeight: 600, fontSize: FONT_SIZES.lg }}>
+                {expandedTitle}
+              </Typography>
+              <IconButton onClick={() => setExpandedCard(null)} size="small">
+                <CloseIcon />
+              </IconButton>
+            </DialogTitle>
+            <DialogContent sx={{ overflow: 'auto', py: 2, minHeight: 300 }}>
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body1" sx={{ color: 'text.secondary', mb: 2 }}>
+                  {expandedTitle}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                  Vista ampliada disponible. Los datos se muestran en el dashboard principal.
+                </Typography>
+              </Box>
+            </DialogContent>
+          </Dialog>
+
         </>
       )}
-    </div>
+    </Box>
   );
 }

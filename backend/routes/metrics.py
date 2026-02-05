@@ -101,7 +101,7 @@ def get_business_metrics():
         # Solicitudes por estado
         cur.execute("""
             SELECT estado, COUNT(*) as cnt
-            FROM solicitudes
+            FROM solicitud
             GROUP BY estado
         """)
         rows = cur.fetchall()
@@ -113,7 +113,7 @@ def get_business_metrics():
 
         # Solicitudes hoy
         cur.execute(f"""
-            SELECT COUNT(*) as cnt FROM solicitudes
+            SELECT COUNT(*) as cnt FROM solicitud
             WHERE DATE(created_at) = {date_today}
         """)
         row = cur.fetchone()
@@ -121,7 +121,7 @@ def get_business_metrics():
 
         # Aprobaciones pendientes
         cur.execute("""
-            SELECT COUNT(*) as cnt FROM solicitudes
+            SELECT COUNT(*) as cnt FROM solicitud
             WHERE estado IN ('Enviada', 'En Revisión', 'En Revision')
         """)
         row = cur.fetchone()
@@ -141,7 +141,7 @@ def get_business_metrics():
             usuarios_activos = 0
 
         # Total usuarios activos
-        cur.execute("SELECT COUNT(*) as cnt FROM usuarios WHERE activo = 1")
+        cur.execute("SELECT COUNT(*) as cnt FROM usuario WHERE activo = 1")
         row = cur.fetchone()
         total_usuarios = row["cnt"] if isinstance(row, dict) else row[0]
 
@@ -149,7 +149,7 @@ def get_business_metrics():
         try:
             cur.execute(f"""
                 SELECT COUNT(DISTINCT codigo_material) as cnt FROM solicitud_items si
-                JOIN solicitudes s ON si.solicitud_id = s.id
+                JOIN solicitud s ON si.solicitud_id = s.id
                 WHERE s.created_at > {date_30days_ago}
             """)
             row = cur.fetchone()
@@ -246,7 +246,7 @@ def get_db_stats():
     # Whitelist de tablas permitidas (defensa en profundidad)
     ALLOWED_TABLES = {
         "usuarios", "solicitudes", "notificaciones", "mensajes", "presupuestos",
-        "solpeds", "purchase_orders", "foro_posts", "stock", "consumo_historico",
+        "solicitud_pedido_sap", "purchase_orders", "foro_posts", "stock", "consumo_historico",
         "materiales_bbdd", "pedidos", "reservas", "equivalencias",
         "materiales_equivalentes", "materiales", "grupos", "categorias"
     }
@@ -287,7 +287,7 @@ def get_db_stats():
                 "notificaciones",
                 "mensajes",
                 "presupuestos",
-                "solpeds",
+                "solicitud_pedido_sap",
                 "purchase_orders",
                 "foro_posts",
             ],

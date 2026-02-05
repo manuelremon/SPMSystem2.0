@@ -173,6 +173,20 @@ try:
 except ImportError:
     logger.info("ARIMA no disponible")
 
+# LSTM Neural Network (FASE 1 - SPM v3.0)
+try:
+    from .lstm_model import LSTMStrategy
+    registrar_estrategia('lstm', LSTMStrategy)
+except ImportError:
+    logger.info("LSTM no disponible. Requiere: pip install tensorflow")
+
+# STL Decomposition (FASE 1 - SPM v3.0)
+try:
+    from .stl_decomposition import STLDecompositionStrategy
+    registrar_estrategia('stl', STLDecompositionStrategy)
+except ImportError:
+    logger.info("STL Decomposition no disponible. Requiere: pip install statsmodels")
+
 
 # =============================================================================
 # Imports principales

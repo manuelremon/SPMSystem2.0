@@ -14,14 +14,9 @@ import jwt
 from flask import Flask, g, request
 from jwt import InvalidTokenError
 
-try:
-    from backend.core.cache import user_cache
-    from backend.core.config import settings
-    from backend.core.db import get_db_connection
-except ImportError:
-    from core.cache import user_cache
-    from core.config import settings
-    from core.db import get_db_connection
+from backend.core.cache import user_cache
+from backend.core.config import settings
+from backend.core.db import get_db_connection
 
 
 logger = logging.getLogger(__name__)
@@ -40,7 +35,7 @@ def _get_user_by_id(user_id: str) -> dict | None:
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT id_spm, nombre, apellido, rol, mail, centros, sector, posicion FROM usuarios WHERE id_spm = ?",
+                "SELECT id_spm, nombre, apellido, rol, mail, centros, sector, posicion FROM usuario WHERE id_spm = ?",
                 (str(user_id),),
             )
             row = cur.fetchone()

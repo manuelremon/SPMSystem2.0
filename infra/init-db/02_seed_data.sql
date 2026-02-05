@@ -1,4 +1,4 @@
--- Datos iniciales para SPM v2.0 (DATOS ANONIMIZADOS)
+-- Datos iniciales para SPM v3.0 (DATOS ANONIMIZADOS)
 -- Todos los usuarios tienen contrasena: "a"
 
 -- Usuarios del sistema

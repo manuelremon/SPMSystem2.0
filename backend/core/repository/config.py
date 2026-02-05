@@ -24,7 +24,7 @@ class ConfigAlmacenesRepository:
                 SELECT ca.id, ca.centro, ca.almacen, ca.nombre, ca.libre_disponibilidad,
                        ca.responsable_id, ca.excluido, u.nombre as responsable_nombre
                 FROM config_almacenes ca
-                LEFT JOIN usuarios u ON ca.responsable_id = u.id_spm
+                LEFT JOIN usuario u ON ca.responsable_id = u.id_spm
                 ORDER BY ca.centro, ca.almacen
             """
             )

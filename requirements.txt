@@ -67,3 +67,6 @@ google-genai>=1.0.0
 
 # Edge TTS - Voces neurales GRATIS de Microsoft (incluye voz argentina)
 edge-tts>=7.0.0
+
+# Desarrollo y testing
+faker>=28.0.0  # Generacion de datos de prueba

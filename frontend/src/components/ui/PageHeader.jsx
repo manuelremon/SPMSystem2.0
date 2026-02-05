@@ -1,4 +1,5 @@
 import React from "react";
+import { useParallax } from "../../hooks/useParallax";
 
 export function PageHeader({
   title,
@@ -14,8 +15,15 @@ export function PageHeader({
   const displayBadge = badge || eyebrow;
   const displayMeta = meta || actions;
 
+  // Parallax effect - light preset (offset: 0.35)
+  const { ref, style, isDisabled } = useParallax({ offset: 0.35 });
+
   return (
-    <div className={`relative ${className}`}>
+    <div
+      ref={ref}
+      className={`relative parallax-element ${className}`}
+      style={isDisabled ? {} : style}
+    >
       {/* Ambient glow de fondo */}
       <div className="absolute -top-20 -left-20 w-64 h-64 ambient-orb primary opacity-30" />
 

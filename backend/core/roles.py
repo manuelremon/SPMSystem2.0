@@ -290,6 +290,14 @@ def format_user_response(user: dict) -> dict:
     roles = normalize_roles(rol_raw)
 
     user_id = user.get("id_spm") or user.get("id")
+
+    # Detectar si es usuario nuevo: solo tiene rol Solicitante y sin sector/centros asignados
+    is_new_user = (
+        roles == ["solicitante"] and
+        not user.get("sector") and
+        not user.get("centros")
+    )
+
     return {
         "id": user_id,
         "id_spm": user_id,  # Alias para compatibilidad con frontend
@@ -299,6 +307,7 @@ def format_user_response(user: dict) -> dict:
         "rol": rol_raw,  # Mantener original para compatibilidad
         "roles": roles,  # Lista normalizada
         "is_admin": is_admin(rol_raw),
+        "is_new_user": is_new_user,  # Flag para redirigir a pagina de nuevo usuario
         "sector_id": user.get("sector"),
         "centro_id": user.get("centros"),
     }

@@ -68,10 +68,7 @@ def train_models():
     Returns:
         Resultado del entrenamiento
     """
-    try:
-        from backend.core.db import get_db_connection, sql_now_minus
-    except ImportError:
-        from core.db import get_db_connection, sql_now_minus
+    from backend.core.db import get_db_connection, sql_now_minus
 
     try:
         service = get_ai_service()
@@ -85,7 +82,7 @@ def train_models():
                 f"""
                 SELECT id, created_at, material_codigo, centro, sector,
                        criticidad, total_monto, data_json
-                FROM solicitudes
+                FROM solicitud
                 WHERE created_at > {sql_now_minus("90 days")}
             """
             )
@@ -125,10 +122,7 @@ def priorizar_solicitudes():
     Returns:
         Solicitudes rankeadas por prioridad
     """
-    try:
-        from backend.core.db import get_db_connection
-    except ImportError:
-        from core.db import get_db_connection
+    from backend.core.db import get_db_connection
 
     # Accept both 'status' and 'estado' for backwards compatibility with frontend
     status = request.args.get("status") or request.args.get("estado", "submitted")
@@ -144,7 +138,7 @@ def priorizar_solicitudes():
             query = """
                 SELECT id, criticidad, fecha_necesidad, total_monto, data_json,
                        status, centro, sector, created_at
-                FROM solicitudes
+                FROM solicitud
                 WHERE status = ?
             """
             params = [status]
@@ -225,6 +219,7 @@ def forecast_demanda(material_codigo):
     almacen = request.args.get("almacen", "")
     dias = int(request.args.get("dias", 30))
     modelo = request.args.get("modelo", "random_forest")
+    meses_historico = int(request.args.get("meses_historico", 0))  # 0 = todo el histórico
 
     # Verificar si modo temporal está activo
     user_id = _get_user_id()
@@ -234,7 +229,8 @@ def forecast_demanda(material_codigo):
     try:
         service = get_ai_service()
         result = service.proyectar_demanda(
-            material_codigo=material_codigo, centro=centro, dias=dias, modelo_tipo=modelo, almacen=almacen
+            material_codigo=material_codigo, centro=centro, dias=dias,
+            modelo_tipo=modelo, almacen=almacen, meses_historico=meses_historico
         )
 
         return jsonify({"ok": True, "data": result})
@@ -401,10 +397,7 @@ def sugerir_accion():
     Returns:
         Accion sugerida con nivel de confianza
     """
-    try:
-        from backend.core.db import get_db_connection
-    except ImportError:
-        from core.db import get_db_connection
+    from backend.core.db import get_db_connection
 
     data = request.get_json() or {}
 
@@ -420,7 +413,7 @@ def sugerir_accion():
                 cursor.execute(
                     """
                     SELECT id, criticidad, fecha_necesidad, total_monto, data_json
-                    FROM solicitudes WHERE id = ?
+                    FROM solicitud WHERE id = ?
                 """,
                     (data["solicitud_id"],),
                 )
@@ -560,16 +553,10 @@ def get_forecast_models():
     Returns:
         Lista de modelos con sus nombres legibles
     """
-    try:
-        from backend.agent.pipelines.forecast import (
-            obtener_estrategias_disponibles,
-            obtener_nombres_modelos
-        )
-    except ImportError:
-        from agent.pipelines.forecast import (
-            obtener_estrategias_disponibles,
-            obtener_nombres_modelos
-        )
+    from backend.agent.pipelines.forecast import (
+        obtener_estrategias_disponibles,
+        obtener_nombres_modelos
+    )
 
     try:
         modelos = obtener_estrategias_disponibles()
@@ -608,12 +595,8 @@ def run_backtest():
     Returns:
         Reporte de backtesting con métricas
     """
-    try:
-        from backend.core.db import get_db_connection
-        from backend.agent.pipelines.forecast import DemandPredictor, Backtester
-    except ImportError:
-        from core.db import get_db_connection
-        from agent.pipelines.forecast import DemandPredictor, Backtester
+    from backend.core.db import get_db_connection
+    from backend.agent.pipelines.forecast import DemandPredictor, Backtester
 
     data = request.get_json() or {}
     material_codigo = data.get("material_codigo")
@@ -676,12 +659,8 @@ def compare_models():
     Returns:
         Comparación con ranking y mejor modelo
     """
-    try:
-        from backend.core.db import get_db_connection
-        from backend.agent.pipelines.forecast import DemandPredictor, ModelComparator
-    except ImportError:
-        from core.db import get_db_connection
-        from agent.pipelines.forecast import DemandPredictor, ModelComparator
+    from backend.core.db import get_db_connection
+    from backend.agent.pipelines.forecast import DemandPredictor, ModelComparator
 
     data = request.get_json() or {}
     material_codigo = data.get("material_codigo")
@@ -751,16 +730,10 @@ def auto_select_model():
     Returns:
         Mejor modelo con métricas y recomendación
     """
-    try:
-        from backend.core.db import get_db_connection
-        from backend.agent.pipelines.forecast import (
-            DemandPredictor, AutoModelSelector, obtener_estrategias_disponibles
-        )
-    except ImportError:
-        from core.db import get_db_connection
-        from agent.pipelines.forecast import (
-            DemandPredictor, AutoModelSelector, obtener_estrategias_disponibles
-        )
+    from backend.core.db import get_db_connection
+    from backend.agent.pipelines.forecast import (
+        DemandPredictor, AutoModelSelector, obtener_estrategias_disponibles
+    )
 
     data = request.get_json() or {}
     material_codigo = data.get("material_codigo")
@@ -838,12 +811,8 @@ def tune_hyperparameters():
     Returns:
         Mejores hiperparámetros encontrados
     """
-    try:
-        from backend.core.db import get_db_connection
-        from backend.agent.pipelines.forecast import DemandPredictor, HyperparameterTuner
-    except ImportError:
-        from core.db import get_db_connection
-        from agent.pipelines.forecast import DemandPredictor, HyperparameterTuner
+    from backend.core.db import get_db_connection
+    from backend.agent.pipelines.forecast import DemandPredictor, HyperparameterTuner
 
     data = request.get_json() or {}
     material_codigo = data.get("material_codigo")
@@ -893,3 +862,204 @@ def tune_hyperparameters():
     except Exception as e:
         logger.error(f"Error en tuning: {e}")
         return jsonify({"ok": False, "error": {"code": "tune_error", "message": str(e)}}), 500
+
+
+# ============================================================================
+# FASE 1 - Forecast Mejorado (LSTM, STL Decomposition)
+# ============================================================================
+
+@bp.route("/forecast/compare-parallel", methods=["POST"])
+@require_auth
+@rate_limit(requests=10, window_seconds=60)
+def compare_models_parallel():
+    """
+    Compara múltiples modelos de forecast en paralelo.
+
+    Body:
+        {
+            "material_codigo": "MAT001",
+            "centro": "AA101",
+            "modelos": ["lstm", "stl", "random_forest"],
+            "periodos": 30
+        }
+
+    Returns:
+        Ranking de modelos con métricas (MAPE, RMSE, R2)
+    """
+    try:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        import pandas as pd
+        from backend.agent.pipelines.forecast import obtener_estrategia
+        from backend.core.db import get_db_connection
+
+        data = request.get_json() or {}
+        material_codigo = data.get("material_codigo")
+        centro = data.get("centro", "1000")
+        modelos = data.get("modelos", ["lstm", "stl", "random_forest"])
+        periodos = int(data.get("periodos", 30))
+
+        if not material_codigo:
+            return jsonify({
+                "ok": False,
+                "error": {"code": "bad_request", "message": "material_codigo es requerido"}
+            }), 400
+
+        # Obtener datos históricos
+        with get_db_connection("sap_data") as conn:
+            query = """
+                SELECT fecha_doc as fecha, cantidad
+                FROM consumo_historico
+                WHERE material = ? AND centro = ?
+                ORDER BY fecha_doc
+                LIMIT 365
+            """
+            df = pd.read_sql_query(query, conn, params=[material_codigo, centro])
+
+        if len(df) < 30:
+            return jsonify({
+                "ok": False,
+                "error": {"code": "insufficient_data", "message": f"Datos insuficientes: {len(df)} registros"}
+            }), 400
+
+        # Entrenar modelos en paralelo
+        resultados = {}
+
+        def entrenar_modelo(modelo_id):
+            try:
+                modelo = obtener_estrategia(modelo_id)
+                if not modelo:
+                    return modelo_id, None
+
+                metricas = modelo.entrenar(df)
+                predicciones = modelo.predecir(df, periodos=periodos)
+
+                return modelo_id, {
+                    'metricas': metricas,
+                    'predicciones': predicciones.to_dict('records')
+                }
+            except Exception as e:
+                logger.warning(f"Error en modelo {modelo_id}: {e}")
+                return modelo_id, None
+
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {executor.submit(entrenar_modelo, mid): mid for mid in modelos}
+
+            for future in as_completed(futures, timeout=300):
+                modelo_id, resultado = future.result()
+                if resultado:
+                    resultados[modelo_id] = resultado
+
+        # Crear ranking
+        ranking = []
+        for modelo_id, resultado in resultados.items():
+            ranking.append({
+                'modelo': modelo_id,
+                'mape': resultado['metricas'].get('mape', 0),
+                'rmse': resultado['metricas'].get('rmse', 0),
+                'r2': resultado['metricas'].get('r2', 0),
+                'mae': resultado['metricas'].get('mae', 0)
+            })
+
+        # Ordenar por MAPE
+        ranking.sort(key=lambda x: x['mape'])
+
+        return jsonify({
+            "ok": True,
+            "data": {
+                "ranking": ranking,
+                "mejor_modelo": ranking[0]['modelo'] if ranking else None,
+                "total_modelos": len(resultados),
+                "periodos": periodos
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error comparando modelos: {e}")
+        return jsonify({"ok": False, "error": {"code": "compare_error", "message": str(e)}}), 500
+
+
+@bp.route("/forecast/decomposition", methods=["POST"])
+@require_auth
+@rate_limit(requests=10, window_seconds=60)
+def get_stl_decomposition():
+    """
+    Obtiene descomposición STL de una serie temporal.
+
+    Body:
+        {
+            "material_codigo": "MAT001",
+            "centro": "AA101",
+            "periodos": 30
+        }
+
+    Returns:
+        Componentes (trend, seasonal, residual) y predicciones
+    """
+    try:
+        import pandas as pd
+        from backend.agent.pipelines.forecast import obtener_estrategia
+        from backend.core.db import get_db_connection
+
+        data = request.get_json() or {}
+        material_codigo = data.get("material_codigo")
+        centro = data.get("centro", "1000")
+        periodos = int(data.get("periodos", 30))
+
+        if not material_codigo:
+            return jsonify({
+                "ok": False,
+                "error": {"code": "bad_request", "message": "material_codigo es requerido"}
+            }), 400
+
+        # Obtener datos históricos
+        with get_db_connection("sap_data") as conn:
+            query = """
+                SELECT fecha_doc as fecha, cantidad
+                FROM consumo_historico
+                WHERE material = ? AND centro = ?
+                ORDER BY fecha_doc
+                LIMIT 365
+            """
+            df = pd.read_sql_query(query, conn, params=[material_codigo, centro])
+
+        if len(df) < 30:
+            return jsonify({
+                "ok": False,
+                "error": {"code": "insufficient_data", "message": f"Datos insuficientes: {len(df)} registros"}
+            }), 400
+
+        # Usar STL
+        stl = obtener_estrategia('stl')
+        if not stl:
+            return jsonify({
+                "ok": False,
+                "error": {"code": "model_unavailable", "message": "STL model not available"}
+            }), 500
+
+        # Entrenar
+        stl.entrenar(df)
+
+        # Obtener componentes
+        descomposicion = stl.get_descomposicion()
+
+        # Obtener predicciones
+        predicciones = stl.predecir(df, periodos=periodos)
+
+        return jsonify({
+            "ok": True,
+            "data": {
+                "componentes": {
+                    "trend": descomposicion['trend'].tolist() if isinstance(descomposicion['trend'], object) else descomposicion['trend'],
+                    "seasonal": descomposicion['seasonal'].tolist() if isinstance(descomposicion['seasonal'], object) else descomposicion['seasonal'],
+                    "residual": descomposicion['residual'].tolist() if isinstance(descomposicion['residual'], object) else descomposicion['residual'],
+                    "fechas": descomposicion['fechas']
+                },
+                "predicciones": predicciones.to_dict('records'),
+                "material": material_codigo,
+                "centro": centro
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error en descomposición STL: {e}")
+        return jsonify({"ok": False, "error": {"code": "decomposition_error", "message": str(e)}}), 500

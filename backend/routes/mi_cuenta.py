@@ -25,7 +25,7 @@ def _get_user_data(user_id: str) -> dict | None:
     """Obtiene datos completos del usuario desde la BD"""
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM usuarios WHERE id_spm=?", (str(user_id),))
+        cur.execute("SELECT * FROM usuario WHERE id_spm=?", (str(user_id),))
         row = cur.fetchone()
         return dict(row) if row else None
 
@@ -77,7 +77,7 @@ def get_mi_cuenta():
             return "-"
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT nombre, apellido FROM usuarios WHERE id_spm=?", (user_id_ref,))
+            cur.execute("SELECT nombre, apellido FROM usuario WHERE id_spm=?", (user_id_ref,))
             row = cur.fetchone()
             if row:
                 return f"{row['nombre']} {row['apellido']}".strip()
@@ -169,7 +169,7 @@ def update_password():
     try:
         with get_db_transaction() as conn:
             cur = conn.cursor()
-            cur.execute("UPDATE usuarios SET contrasena=? WHERE id_spm=?", (password_hash, user_id))
+            cur.execute("UPDATE usuario SET contrasena=? WHERE id_spm=?", (password_hash, user_id))
             affected = cur.rowcount
 
         if affected == 0:
@@ -243,7 +243,7 @@ def update_contacto():
     try:
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("PRAGMA table_info(usuarios)")
+            cur.execute("PRAGMA table_info(usuario)")
             columns = [col[1] for col in cur.fetchall()]
 
         if "mail_respaldo" not in columns and mail_respaldo:
@@ -261,7 +261,7 @@ def update_contacto():
 
         with get_db_transaction() as conn:
             cur = conn.cursor()
-            query = f"UPDATE usuarios SET {', '.join(updates)} WHERE id_spm=?"
+            query = f"UPDATE usuario SET {', '.join(updates)} WHERE id_spm=?"
             cur.execute(query, values)
             affected = cur.rowcount
 
@@ -318,6 +318,8 @@ def solicitar_cambio_perfil():
         "jefe_nuevo",
         "gerente1_nuevo",
         "gerente2_nuevo",
+        "rol_solicitado",
+        "justificacion",
     ]
 
     cambios = {k: v for k, v in data.items() if k in campos_validos and v}
@@ -336,18 +338,18 @@ def solicitar_cambio_perfil():
             cur = conn.cursor()
             request_id = insert_returning_id(
                 cur,
-                """INSERT INTO user_profile_requests
+                """INSERT INTO usuario_solicitud_perfil
                    (usuario_id, tipo, payload, estado, created_at, updated_at)
                    VALUES (?, ?, ?, ?, ?, ?)""",
                 (user_id, "cambio_perfil", payload_json, "pendiente", now, now),
             )
 
-            cur.execute("SELECT nombre, apellido FROM usuarios WHERE id_spm=?", (user_id,))
+            cur.execute("SELECT nombre, apellido FROM usuario WHERE id_spm=?", (user_id,))
             solicitante = cur.fetchone()
             nombre_solicitante = f"{solicitante[0]} {solicitante[1]}" if solicitante else user_id
 
             cur.execute(
-                "SELECT id_spm FROM usuarios WHERE rol LIKE '%admin%' OR rol LIKE '%Admin%'"
+                "SELECT id_spm FROM usuario WHERE rol LIKE '%admin%' OR rol LIKE '%Admin%'"
             )
             admins = cur.fetchall()
 
@@ -356,7 +358,7 @@ def solicitar_cambio_perfil():
             for admin in admins:
                 admin_id = admin[0]
                 cur.execute(
-                    """INSERT INTO notificaciones (destinatario_id, solicitud_id, mensaje, leido, created_at)
+                    """INSERT INTO notificacion (destinatario_id, solicitud_id, mensaje, leido, created_at)
                        VALUES (?, ?, ?, 0, ?)""",
                     (admin_id, request_id, mensaje, now),
                 )
@@ -402,7 +404,7 @@ def listar_cambios_perfil():
             cur = conn.cursor()
             cur.execute(
                 """SELECT id, tipo, payload, estado, created_at, updated_at
-                   FROM user_profile_requests
+                   FROM usuario_solicitud_perfil
                    WHERE usuario_id=?
                    ORDER BY created_at DESC
                    LIMIT 50""",
@@ -475,7 +477,7 @@ def cancelar_solicitud_cambio(request_id: int):
         # Verificar que la solicitud existe y pertenece al usuario
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT * FROM user_profile_requests WHERE id=?", (request_id,))
+            cur.execute("SELECT * FROM usuario_solicitud_perfil WHERE id=?", (request_id,))
             req = cur.fetchone()
 
         if not req:
@@ -500,7 +502,7 @@ def cancelar_solicitud_cambio(request_id: int):
         with get_db_transaction() as conn:
             cur = conn.cursor()
             cur.execute(
-                "UPDATE user_profile_requests SET estado=?, updated_at=? WHERE id=?",
+                "UPDATE usuario_solicitud_perfil SET estado=?, updated_at=? WHERE id=?",
                 ("cancelado", now, request_id),
             )
 
@@ -541,7 +543,7 @@ def enviar_mensaje_solicitud(request_id: int):
         # Verificar que la solicitud existe y pertenece al usuario
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT * FROM user_profile_requests WHERE id=?", (request_id,))
+            cur.execute("SELECT * FROM usuario_solicitud_perfil WHERE id=?", (request_id,))
             req = cur.fetchone()
 
             if not req:
@@ -552,7 +554,7 @@ def enviar_mensaje_solicitud(request_id: int):
 
             # Obtener el primer admin disponible
             cur.execute(
-                "SELECT id_spm FROM usuarios WHERE rol LIKE '%admin%' OR rol LIKE '%Admin%' LIMIT 1"
+                "SELECT id_spm FROM usuario WHERE rol LIKE '%admin%' OR rol LIKE '%Admin%' LIMIT 1"
             )
             admin = cur.fetchone()
 
@@ -578,13 +580,13 @@ def enviar_mensaje_solicitud(request_id: int):
             cur = conn.cursor()
             mensaje_id = insert_returning_id(
                 cur,
-                """INSERT INTO mensajes (remitente_id, destinatario_id, asunto, mensaje, leido, created_at)
+                """INSERT INTO mensaje (remitente_id, destinatario_id, asunto, mensaje, leido, created_at)
                    VALUES (?, ?, ?, ?, 0, ?)""",
                 (user_id, destinatario_id, asunto, mensaje, now),
             )
 
             # Obtener nombre del remitente para la notificación
-            cur.execute("SELECT nombre, apellido FROM usuarios WHERE id_spm=?", (user_id,))
+            cur.execute("SELECT nombre, apellido FROM usuario WHERE id_spm=?", (user_id,))
             remitente = cur.fetchone()
             nombre_remitente = f"{remitente[0]} {remitente[1]}" if remitente else user_id
 
@@ -640,8 +642,8 @@ def admin_listar_profile_requests():
                 upr.id, upr.usuario_id, upr.tipo_cambio, upr.valor_nuevo,
                 upr.estado, upr.created_at, upr.resolved_at,
                 u.nombre, u.apellido, u.mail, u.posicion, u.sector
-            FROM user_profile_requests upr
-            JOIN usuarios u ON upr.usuario_id = u.id_spm
+            FROM usuario_solicitud_perfil upr
+            JOIN usuario u ON upr.usuario_id = u.id_spm
         """
         params = []
 
@@ -704,8 +706,8 @@ def admin_get_profile_request(request_id: int):
                 SELECT
                     upr.*, u.nombre, u.apellido, u.mail, u.posicion, u.sector,
                     u.centros, u.almacenes, u.jefe, u.gerente1, u.gerente2
-                FROM user_profile_requests upr
-                JOIN usuarios u ON upr.usuario_id = u.id_spm
+                FROM usuario_solicitud_perfil upr
+                JOIN usuario u ON upr.usuario_id = u.id_spm
                 WHERE upr.id = ?
             """,
                 (request_id,),
@@ -792,7 +794,7 @@ def admin_aprobar_profile_request(request_id: int):
             cur = conn.cursor()
 
             # Obtener la solicitud
-            cur.execute("SELECT * FROM user_profile_requests WHERE id=?", (request_id,))
+            cur.execute("SELECT * FROM usuario_solicitud_perfil WHERE id=?", (request_id,))
             req = cur.fetchone()
 
             if not req:
@@ -807,7 +809,7 @@ def admin_aprobar_profile_request(request_id: int):
             usuario_id = req["usuario_id"]
 
             # Obtener datos actuales del usuario para poder AGREGAR centros/almacenes
-            cur.execute("SELECT centros, almacenes FROM usuarios WHERE id_spm=?", (usuario_id,))
+            cur.execute("SELECT centros, almacenes FROM usuario WHERE id_spm=?", (usuario_id,))
             usuario_actual = cur.fetchone()
 
         # Parse payload y preparar cambios
@@ -832,6 +834,7 @@ def admin_aprobar_profile_request(request_id: int):
             "jefe_nuevo": "jefe",
             "gerente1_nuevo": "gerente1",
             "gerente2_nuevo": "gerente2",
+            "rol_solicitado": "rol",
         }
 
         for payload_key, db_column in simple_fields.items():
@@ -861,13 +864,13 @@ def admin_aprobar_profile_request(request_id: int):
             # Aplicar cambios al usuario
             if updates:
                 values.append(usuario_id)
-                update_query = f"UPDATE usuarios SET {', '.join(updates)} WHERE id_spm=?"
+                update_query = f"UPDATE usuario SET {', '.join(updates)} WHERE id_spm=?"
                 cur.execute(update_query, values)
                 logger.info(f"Cambios aplicados a usuario {usuario_id}: {updates}")
 
             # Actualizar estado de la solicitud
             cur.execute(
-                "UPDATE user_profile_requests SET estado=?, updated_at=? WHERE id=?",
+                "UPDATE usuario_solicitud_perfil SET estado=?, updated_at=? WHERE id=?",
                 ("aprobado", now, request_id),
             )
 
@@ -877,7 +880,7 @@ def admin_aprobar_profile_request(request_id: int):
                 mensaje += f": {comentario}"
 
             cur.execute(
-                """INSERT INTO notificaciones (destinatario_id, solicitud_id, mensaje, tipo, leido, created_at)
+                """INSERT INTO notificacion (destinatario_id, solicitud_id, mensaje, tipo, leido, created_at)
                    VALUES (?, ?, ?, ?, 0, ?)""",
                 (usuario_id, request_id, mensaje, "profile_approved", now),
             )
@@ -922,7 +925,7 @@ def admin_rechazar_profile_request(request_id: int):
         # Fase 1: Lectura para validar
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT * FROM user_profile_requests WHERE id=?", (request_id,))
+            cur.execute("SELECT * FROM usuario_solicitud_perfil WHERE id=?", (request_id,))
             req = cur.fetchone()
 
         if not req:
@@ -944,13 +947,13 @@ def admin_rechazar_profile_request(request_id: int):
 
             # Actualizar estado
             cur.execute(
-                "UPDATE user_profile_requests SET estado=?, updated_at=? WHERE id=?",
+                "UPDATE usuario_solicitud_perfil SET estado=?, updated_at=? WHERE id=?",
                 ("rechazado", now, request_id),
             )
 
             # Crear notificación para el solicitante
             cur.execute(
-                """INSERT INTO notificaciones (destinatario_id, solicitud_id, mensaje, tipo, leido, created_at)
+                """INSERT INTO notificacion (destinatario_id, solicitud_id, mensaje, tipo, leido, created_at)
                    VALUES (?, ?, ?, ?, 0, ?)""",
                 (usuario_id, request_id, mensaje, "profile_rejected", now),
             )
@@ -988,8 +991,8 @@ def admin_enviar_mensaje_profile_request(request_id: int):
             cur.execute(
                 """
                 SELECT upr.*, u.nombre, u.apellido
-                FROM user_profile_requests upr
-                JOIN usuarios u ON upr.usuario_id = u.id_spm
+                FROM usuario_solicitud_perfil upr
+                JOIN usuario u ON upr.usuario_id = u.id_spm
                 WHERE upr.id = ?
             """,
                 (request_id,),
@@ -1008,7 +1011,7 @@ def admin_enviar_mensaje_profile_request(request_id: int):
             cur = conn.cursor()
             mensaje_id = insert_returning_id(
                 cur,
-                """INSERT INTO mensajes (remitente_id, destinatario_id, asunto, mensaje, leido, created_at)
+                """INSERT INTO mensaje (remitente_id, destinatario_id, asunto, mensaje, leido, created_at)
                    VALUES (?, ?, ?, ?, 0, ?)""",
                 (user_id, destinatario_id, asunto, mensaje, now),
             )
@@ -1045,7 +1048,7 @@ def get_notification_preferences():
             cur.execute(
                 """SELECT push_enabled, sound_enabled, notif_solicitudes, notif_aprobaciones,
                           notif_mensajes, notif_presupuestos, notif_mrp, notif_sla
-                   FROM user_notification_preferences
+                   FROM usuario_preferencia_notificacion
                    WHERE user_id = ?""",
                 (str(user_id),),
             )
@@ -1067,7 +1070,7 @@ def get_notification_preferences():
             with get_db_transaction() as conn:
                 cur = conn.cursor()
                 cur.execute(
-                    "INSERT INTO user_notification_preferences (user_id) VALUES (%s) ON CONFLICT (user_id) DO NOTHING",
+                    "INSERT INTO usuario_preferencia_notificacion (user_id) VALUES (%s) ON CONFLICT (user_id) DO NOTHING",
                     (str(user_id),),
                 )
 
@@ -1160,12 +1163,12 @@ def update_notification_preferences():
 
             # Primero intentar INSERT si no existe
             cur.execute(
-                "INSERT INTO user_notification_preferences (user_id) VALUES (%s) ON CONFLICT (user_id) DO NOTHING",
+                "INSERT INTO usuario_preferencia_notificacion (user_id) VALUES (%s) ON CONFLICT (user_id) DO NOTHING",
                 (str(user_id),),
             )
 
             # Luego UPDATE
-            query = f"UPDATE user_notification_preferences SET {', '.join(updates)} WHERE user_id = %s"
+            query = f"UPDATE usuario_preferencia_notificacion SET {', '.join(updates)} WHERE user_id = %s"
             cur.execute(query, values)
 
         logger.info(f"Preferencias de notificacion actualizadas para usuario {user_id}")

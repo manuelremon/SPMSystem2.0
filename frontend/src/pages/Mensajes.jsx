@@ -1,21 +1,36 @@
 import React, { useState, useEffect } from "react";
-import {
-  Mail,
-  Send,
-  Inbox,
-  MessageSquare,
-  Clock,
-  User,
-  FileText,
-  Reply,
-  Trash2,
-  CheckCircle2,
-  Circle
-} from "../components/ui/Icons";
-import { Card } from "../components/ui/Card";
-import { Button } from "../components/ui/Button";
+
+// MUI Components
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import Stack from "@mui/material/Stack";
+import Chip from "@mui/material/Chip";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import Divider from "@mui/material/Divider";
+import CircularProgress from "@mui/material/CircularProgress";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import Avatar from "@mui/material/Avatar";
+import Alert from "@mui/material/Alert";
+
+// MUI Icons
+import MailIcon from "@mui/icons-material/Mail";
+import SendIcon from "@mui/icons-material/Send";
+import InboxIcon from "@mui/icons-material/Inbox";
+import ChatIcon from "@mui/icons-material/Chat";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import DescriptionIcon from "@mui/icons-material/Description";
+import ReplyIcon from "@mui/icons-material/Reply";
+import DeleteIcon from "@mui/icons-material/Delete";
+import CircleIcon from "@mui/icons-material/Circle";
+
 import { PageHeader } from "../components/ui/PageHeader";
-import { Alert } from "../components/ui/Alert";
 import { useAuthStore } from "../store/authStore";
 import { useI18n } from "../context/i18n";
 import api from "../services/api";
@@ -25,7 +40,7 @@ export default function Mensajes() {
   const { user } = useAuthStore();
   const { t } = useI18n();
 
-  const [activeTab, setActiveTab] = useState("inbox"); // inbox | outbox
+  const [activeTab, setActiveTab] = useState(0); // 0 = inbox, 1 = outbox
   const [inboxMessages, setInboxMessages] = useState([]);
   const [outboxMessages, setOutboxMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -44,12 +59,12 @@ export default function Mensajes() {
     setError(null);
 
     try {
-      const endpoint = activeTab === "inbox" ? "/mensajes/inbox" : "/mensajes/outbox";
+      const endpoint = activeTab === 0 ? "/mensajes/inbox" : "/mensajes/outbox";
       const response = await api.get(endpoint);
       const data = response.data;
 
       if (data.ok) {
-        if (activeTab === "inbox") {
+        if (activeTab === 0) {
           setInboxMessages(data.messages || []);
         } else {
           setOutboxMessages(data.messages || []);
@@ -58,7 +73,7 @@ export default function Mensajes() {
         setError(data.error || "Error al cargar mensajes");
       }
     } catch (err) {
-      setError("Error de conexión al cargar mensajes");
+      setError("Error de conexion al cargar mensajes");
       console.error(err);
     } finally {
       setLoading(false);
@@ -81,8 +96,8 @@ export default function Mensajes() {
     setSelectedMessage(message);
     setShowThreadModal(true);
 
-    // Marcar como leído si es un mensaje recibido no leído
-    if (activeTab === "inbox" && message.leido === 0) {
+    // Marcar como leido si es un mensaje recibido no leido
+    if (activeTab === 0 && message.leido === 0) {
       try {
         await api.post(`/mensajes/${message.id}/mark-read`);
         // Actualizar mensaje local
@@ -97,7 +112,7 @@ export default function Mensajes() {
   };
 
   const handleDeleteMessage = async (messageId) => {
-    if (!confirm("¿Estás seguro de que deseas eliminar este mensaje?")) {
+    if (!confirm("¿Estas seguro de que deseas eliminar este mensaje?")) {
       return;
     }
 
@@ -107,7 +122,7 @@ export default function Mensajes() {
 
       if (data.ok) {
         // Actualizar lista local
-        if (activeTab === "inbox") {
+        if (activeTab === 0) {
           setInboxMessages(prev => prev.filter(m => m.id !== messageId));
         } else {
           setOutboxMessages(prev => prev.filter(m => m.id !== messageId));
@@ -119,108 +134,134 @@ export default function Mensajes() {
         alert(data.error || "Error al eliminar mensaje");
       }
     } catch (err) {
-      alert("Error de conexión al eliminar mensaje");
+      alert("Error de conexion al eliminar mensaje");
       console.error(err);
     }
   };
 
-  const messages = activeTab === "inbox" ? inboxMessages : outboxMessages;
+  const messages = activeTab === 0 ? inboxMessages : outboxMessages;
 
   return (
-    <div className="space-y-6">
+    <Stack spacing={3}>
       <PageHeader
         title={t("mensajes_title", "Mensajes")}
         description={t("mensajes_desc", "Gestiona tus mensajes de entrada y salida")}
-        icon={Mail}
+        icon={MailIcon}
       >
         {unreadCount > 0 && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-blue-100/70 dark:bg-blue-900/30 border border-blue-500 dark:border-blue-600 rounded-lg">
-            <Circle className="w-2 h-2 fill-blue-500 text-blue-500 animate-pulse-dot" />
-            <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-              {unreadCount} {unreadCount === 1 ? "mensaje nuevo" : "mensajes nuevos"}
-            </span>
-          </div>
+          <Chip
+            icon={<CircleIcon sx={{ fontSize: 8, animation: "pulse 2s infinite" }} />}
+            label={`${unreadCount} ${unreadCount === 1 ? "mensaje nuevo" : "mensajes nuevos"}`}
+            color="primary"
+            variant="outlined"
+            sx={{
+              "& .MuiChip-icon": {
+                color: "primary.main",
+              },
+              "@keyframes pulse": {
+                "0%, 100%": { opacity: 1 },
+                "50%": { opacity: 0.5 },
+              },
+            }}
+          />
         )}
       </PageHeader>
 
       {error && (
-        <Alert variant="error" onDismiss={() => setError(null)}>
+        <Alert severity="error" onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
 
-      <Card>
+      <Paper elevation={0} sx={{ border: 1, borderColor: "divider" }}>
         {/* Tabs */}
-        <div className="p-4 border-b border-white/30 dark:border-slate-700/30">
-          <div className="flex items-center gap-1 p-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-white/30 dark:border-slate-700/30 w-fit">
-            <button
-              onClick={() => setActiveTab("inbox")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                activeTab === "inbox"
-                  ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400"
-                  : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
-              }`}
-            >
-              <Inbox className="w-4 h-4 text-blue-500" />
-              <span>Recibidos</span>
-              {unreadCount > 0 && (
-                <span className="ml-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 text-xs font-semibold rounded-full">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setActiveTab("outbox")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                activeTab === "outbox"
-                  ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400"
-                  : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
-              }`}
-            >
-              <Send className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span>Enviados</span>
-            </button>
-          </div>
-        </div>
+        <Box sx={{ p: 2, borderBottom: 1, borderColor: "divider" }}>
+          <Tabs
+            value={activeTab}
+            onChange={(e, newValue) => setActiveTab(newValue)}
+            sx={{
+              minHeight: 40,
+              "& .MuiTab-root": { minHeight: 40, py: 1 },
+            }}
+          >
+            <Tab
+              icon={<InboxIcon sx={{ fontSize: 18, color: "primary.main" }} />}
+              iconPosition="start"
+              label={
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <span>Recibidos</span>
+                  {unreadCount > 0 && (
+                    <Chip
+                      label={unreadCount}
+                      size="small"
+                      color="primary"
+                      sx={{ height: 20, fontSize: "0.75rem" }}
+                    />
+                  )}
+                </Stack>
+              }
+            />
+            <Tab
+              icon={<SendIcon sx={{ fontSize: 18, color: "primary.main" }} />}
+              iconPosition="start"
+              label="Enviados"
+            />
+          </Tabs>
+        </Box>
 
         {/* Messages List */}
-        <div className="p-6">
+        <Box sx={{ p: 0 }}>
           {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">Cargando mensajes...</p>
-            </div>
+            <Box sx={{ textAlign: "center", py: 6 }}>
+              <CircularProgress size={32} sx={{ mb: 2 }} />
+              <Typography color="text.secondary">
+                Cargando mensajes...
+              </Typography>
+            </Box>
           ) : messages.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 mx-auto rounded-full bg-slate-100/70 dark:bg-slate-700/70 flex items-center justify-center mb-4">
-                {activeTab === "inbox" ? (
-                  <Inbox className="w-8 h-8 text-blue-500" />
+            <Box sx={{ textAlign: "center", py: 6 }}>
+              <Box
+                sx={{
+                  width: 64,
+                  height: 64,
+                  mx: "auto",
+                  borderRadius: "50%",
+                  bgcolor: "action.hover",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  mb: 2,
+                }}
+              >
+                {activeTab === 0 ? (
+                  <InboxIcon sx={{ fontSize: 32, color: "primary.main" }} />
                 ) : (
-                  <Send className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                  <SendIcon sx={{ fontSize: 32, color: "primary.main" }} />
                 )}
-              </div>
-              <p className="text-slate-500 dark:text-slate-400">
-                {activeTab === "inbox"
+              </Box>
+              <Typography variant="body1" color="text.secondary">
+                {activeTab === 0
                   ? "No tienes mensajes recibidos"
                   : "No has enviado mensajes"}
-              </p>
-            </div>
+              </Typography>
+            </Box>
           ) : (
-            <div className="space-y-2">
-              {messages.map((message) => (
-                <MessageRow
-                  key={message.id}
-                  message={message}
-                  isInbox={activeTab === "inbox"}
-                  onOpen={() => handleOpenThread(message)}
-                  onDelete={() => handleDeleteMessage(message.id)}
-                />
+            <List disablePadding>
+              {messages.map((message, index) => (
+                <React.Fragment key={message.id}>
+                  {index > 0 && <Divider component="li" />}
+                  <MessageRow
+                    message={message}
+                    isInbox={activeTab === 0}
+                    onOpen={() => handleOpenThread(message)}
+                    onDelete={() => handleDeleteMessage(message.id)}
+                  />
+                </React.Fragment>
               ))}
-            </div>
+            </List>
           )}
-        </div>
-      </Card>
+        </Box>
+      </Paper>
 
       {/* Thread Modal */}
       {showThreadModal && selectedMessage && (
@@ -235,7 +276,7 @@ export default function Mensajes() {
           }}
         />
       )}
-    </div>
+    </Stack>
   );
 }
 
@@ -248,103 +289,182 @@ function MessageRow({ message, isInbox, onOpen, onDelete }) {
 
   const displayRole = isInbox ? message.remitente_rol : message.destinatario_rol;
 
+  // Get initials for avatar
+  const getInitials = (name) => {
+    const parts = name.split(" ");
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
   return (
-    <div
-      className={`
-        group relative
-        flex items-center gap-4 p-4
-        border border-white/30 dark:border-slate-700/30 rounded-lg
-        hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-100/70 dark:hover:bg-slate-700/70
-        transition-all duration-200 cursor-pointer
-        ${isUnread ? "bg-blue-100/20 dark:bg-blue-900/20 border-blue-500/30 dark:border-blue-600/30" : ""}
-      `}
+    <ListItem
+      sx={{
+        py: 2,
+        px: 2,
+        cursor: "pointer",
+        bgcolor: isUnread ? "primary.lighter" : "transparent",
+        borderLeft: isUnread ? 3 : 0,
+        borderColor: "primary.main",
+        "&:hover": { bgcolor: "action.hover" },
+        alignItems: "flex-start",
+      }}
       onClick={onOpen}
     >
-      {/* Icon */}
-      <div className={`
-        flex-shrink-0 w-10 h-10 rounded-full
-        flex items-center justify-center
-        ${isUnread
-          ? "bg-blue-600 text-white"
-          : "bg-slate-100/70 dark:bg-slate-700/70 text-slate-500 dark:text-slate-400"
-        }
-      `}>
+      {/* Avatar/Icon */}
+      <ListItemIcon sx={{ minWidth: 56, mt: 0.5 }}>
         {isUnread ? (
-          <Circle className="w-4 h-4 fill-current" />
+          <Avatar
+            sx={{
+              width: 40,
+              height: 40,
+              bgcolor: "primary.main",
+              color: "primary.contrastText",
+            }}
+          >
+            <CircleIcon sx={{ fontSize: 16 }} />
+          </Avatar>
         ) : (
-          <MessageSquare className="w-5 h-5 text-violet-500 dark:text-violet-400" />
+          <Avatar
+            sx={{
+              width: 40,
+              height: 40,
+              bgcolor: "action.hover",
+              color: "secondary.main",
+            }}
+          >
+            <ChatIcon sx={{ fontSize: 20 }} />
+          </Avatar>
         )}
-      </div>
+      </ListItemIcon>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-2 mb-1">
-          <h3 className={`text-sm font-medium truncate ${isUnread ? "text-slate-900 dark:text-slate-100" : "text-slate-800 dark:text-slate-200"}`}>
-            {displayName}
-          </h3>
-          {displayRole && (
-            <span className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider font-mono">
-              {displayRole}
-            </span>
-          )}
-        </div>
+      <ListItemText
+        primary={
+          <Stack direction="row" spacing={1} alignItems="baseline" sx={{ mb: 0.5 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: isUnread ? 600 : 400,
+                color: isUnread ? "text.primary" : "text.secondary",
+              }}
+            >
+              {displayName}
+            </Typography>
+            {displayRole && (
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.disabled",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  fontFamily: "monospace",
+                }}
+              >
+                {displayRole}
+              </Typography>
+            )}
+          </Stack>
+        }
+        secondary={
+          <Box>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: isUnread ? 500 : 400,
+                color: isUnread ? "text.primary" : "text.secondary",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                mb: 0.5,
+              }}
+            >
+              {message.asunto}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.disabled",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                display: "block",
+              }}
+            >
+              {message.mensaje}
+            </Typography>
+            {message.solicitud_id && (
+              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 1 }}>
+                <DescriptionIcon sx={{ fontSize: 14, color: "primary.main" }} />
+                <Typography variant="caption" color="info.main">
+                  Solicitud #{message.solicitud_id}
+                </Typography>
+              </Stack>
+            )}
+          </Box>
+        }
+      />
 
-        <p className={`text-sm mb-1 truncate ${isUnread ? "font-medium text-slate-800 dark:text-slate-200" : "text-slate-500 dark:text-slate-400"}`}>
-          {message.asunto}
-        </p>
-
-        <p className="text-xs text-slate-400 dark:text-slate-500 line-clamp-1">
-          {message.mensaje}
-        </p>
-
-        {message.solicitud_id && (
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-cyan-600 dark:text-cyan-400">
-            <FileText className="w-3 h-3 text-blue-500" />
-            <span>Solicitud #{message.solicitud_id}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Metadata */}
-      <div className="flex-shrink-0 flex flex-col items-end gap-2">
-        <div className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500">
-          <Clock className="w-3 h-3 text-cyan-500 dark:text-cyan-400" />
-          <span>
+      {/* Metadata and Actions */}
+      <Stack sx={{ ml: 2, flexShrink: 0, alignItems: "flex-end" }} spacing={1}>
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          <AccessTimeIcon sx={{ fontSize: 14, color: "info.main" }} />
+          <Typography variant="caption" color="text.disabled">
             {new Date(message.created_at).toLocaleDateString("es-AR", {
               day: "2-digit",
               month: "short",
               hour: "2-digit",
               minute: "2-digit"
             })}
-          </span>
-        </div>
+          </Typography>
+        </Stack>
 
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
+        <Stack
+          direction="row"
+          spacing={0.5}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <IconButton
+            size="small"
+            color="primary"
             onClick={(e) => {
               e.stopPropagation();
               onOpen();
             }}
-            title="Ver conversación"
+            title="Ver conversacion"
           >
-            <Reply className="w-4 h-4 text-blue-600" />
-          </Button>
+            <ReplyIcon fontSize="small" />
+          </IconButton>
 
-          <Button
-            variant="icon-danger"
-            size="icon-sm"
+          <IconButton
+            size="small"
+            color="error"
             onClick={(e) => {
               e.stopPropagation();
               onDelete();
             }}
             title="Eliminar"
           >
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
-    </div>
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Stack>
+      </Stack>
+
+      {/* Unread indicator */}
+      {isUnread && (
+        <Box
+          sx={{
+            width: 8,
+            height: 8,
+            borderRadius: "50%",
+            bgcolor: "primary.main",
+            ml: 1,
+            mt: 1,
+            flexShrink: 0,
+          }}
+        />
+      )}
+    </ListItem>
   );
 }

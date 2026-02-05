@@ -10,9 +10,23 @@ import { useAuthStore } from "../store/authStore";
 import { useRealtimeEvent } from "../hooks/useRealtime";
 import { useDebounced } from "../hooks/useDebounced";
 import { getSectorNombre, formatDate, exportToExcel } from "../utils/formatters";
+import api from "../services/api";
 
 const DEBOUNCE_MS = 300;
 const ITEMS_PER_PAGE = 20;
+
+// Opciones estáticas para Estado y Criticidad
+const ESTADOS_OPTIONS = [
+  { value: "aprobada", label: "Aprobada" },
+  { value: "progreso", label: "En Progreso" },
+  { value: "finalizada", label: "Finalizada" },
+  { value: "rechazada", label: "Rechazada" },
+];
+
+const CRITICIDAD_OPTIONS = [
+  { value: "normal", label: "Normal" },
+  { value: "alta", label: "Alta" },
+];
 
 /**
  * @typedef {Object} RejectModalState
@@ -31,9 +45,10 @@ const ITEMS_PER_PAGE = 20;
  * Custom hook for Planner page state management and business logic
  * @param {Object} options - Hook options
  * @param {Function} options.t - Translation function from useI18n
+ * @param {string} options.filterMode - Filter mode: "asignadas", "no-asignadas", or undefined for all
  * @returns {Object} Planner state and methods
  */
-export function usePlanner({ t }) {
+export function usePlanner({ t, filterMode }) {
   const { user } = useAuthStore();
 
   // Core state
@@ -46,11 +61,15 @@ export function usePlanner({ t }) {
   const [q, setQ] = useState("");
   const debouncedQ = useDebounced(q, DEBOUNCE_MS);
 
-  // Filters
-  const [filtroCentro, setFiltroCentro] = useState("");
-  const [filtroSector, setFiltroSector] = useState("");
-  const [filtroEstado, setFiltroEstado] = useState("");
-  const [filtroCriticidad, setFiltroCriticidad] = useState("");
+  // Catálogos del sistema
+  const [catalogos, setCatalogos] = useState({ centros: [], almacenes: [], sectores: [] });
+
+  // Filters - Ahora son arrays para multiselect
+  const [filtroCentros, setFiltroCentros] = useState([]);
+  const [filtroAlmacenes, setFiltroAlmacenes] = useState([]);
+  const [filtroSectores, setFiltroSectores] = useState([]);
+  const [filtroEstados, setFiltroEstados] = useState([]);
+  const [filtroCriticidades, setFiltroCriticidades] = useState([]);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -68,21 +87,86 @@ export function usePlanner({ t }) {
     setLoading(true);
     setError("");
     try {
-      const res = await planner.listar({
-        planner_id: user?.rol?.toLowerCase() === "admin" ? undefined : user?.id,
-      });
+      const params = {};
+
+      // Filter by assignment mode
+      if (filterMode === "asignadas") {
+        // Solo solicitudes asignadas al usuario actual
+        params.planner_id = user?.id_spm || user?.id;
+      } else if (filterMode === "no-asignadas") {
+        // Solo solicitudes sin asignar
+        params.sin_asignar = true;
+      } else {
+        // Todas las solicitudes (admin ve todas, otros solo las asignadas a ellos)
+        if (user?.rol?.toLowerCase() !== "admin" && user?.rol?.toLowerCase() !== "administrador") {
+          params.planner_id = user?.id_spm || user?.id;
+        }
+      }
+
+      const res = await planner.listar(params);
       setItems(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       setError(err.response?.data?.error?.message || err.message);
     } finally {
       setLoading(false);
     }
-  }, [user?.rol, user?.id]);
+  }, [user?.rol, user?.id, user?.id_spm, filterMode]);
 
   // Initial load
   useEffect(() => {
     load();
   }, [load]);
+
+  // Cargar catálogos
+  useEffect(() => {
+    const fetchCatalogos = async () => {
+      try {
+        const res = await api.get("/catalogos");
+        setCatalogos({
+          centros: res.data?.centros || [],
+          almacenes: res.data?.almacenes || [],
+          sectores: res.data?.sectores || [],
+        });
+      } catch (err) {
+        // Intentar cargar individualmente si falla el combinado
+        try {
+          const [centrosRes, almacenesRes, sectoresRes] = await Promise.all([
+            api.get("/catalogos/centros"),
+            api.get("/catalogos/almacenes"),
+            api.get("/catalogos/sectores"),
+          ]);
+          setCatalogos({
+            centros: centrosRes.data || [],
+            almacenes: almacenesRes.data || [],
+            sectores: sectoresRes.data || [],
+          });
+        } catch {
+          // Silenciar error de catálogos
+        }
+      }
+    };
+    fetchCatalogos();
+  }, []);
+
+  // Limpiar todos los filtros
+  const limpiarFiltros = useCallback(() => {
+    setQ("");
+    setFiltroCentros([]);
+    setFiltroAlmacenes([]);
+    setFiltroSectores([]);
+    setFiltroEstados([]);
+    setFiltroCriticidades([]);
+  }, []);
+
+  // Verificar si hay filtros activos
+  const hayFiltrosActivos = useMemo(() => {
+    return q.trim() !== "" ||
+      filtroCentros.length > 0 ||
+      filtroAlmacenes.length > 0 ||
+      filtroSectores.length > 0 ||
+      filtroEstados.length > 0 ||
+      filtroCriticidades.length > 0;
+  }, [q, filtroCentros, filtroAlmacenes, filtroSectores, filtroEstados, filtroCriticidades]);
 
   // Auto-refresh on realtime events
   useRealtimeEvent('notification:solicitud_to_plan', () => {
@@ -96,7 +180,7 @@ export function usePlanner({ t }) {
   // Reset pagination when filters or tab change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedQ, filtroCentro, filtroSector, filtroEstado, filtroCriticidad, activeTab]);
+  }, [debouncedQ, filtroCentros, filtroAlmacenes, filtroSectores, filtroEstados, filtroCriticidades, activeTab]);
 
   // Helper to classify state category
   const getEstadoCategoria = useCallback((item) => {
@@ -205,37 +289,49 @@ export function usePlanner({ t }) {
       });
     }
 
-    // Filter by centro
-    if (filtroCentro) {
+    // Filter by centro (multiselect)
+    if (filtroCentros.length > 0) {
+      const centrosIds = filtroCentros.map(c => c.id?.toString() || c.codigo?.toString());
       result = result.filter((s) =>
-        (s.centro || "").toString().toLowerCase().includes(filtroCentro.toLowerCase())
+        centrosIds.includes((s.centro || "").toString())
       );
     }
 
-    // Filter by sector
-    if (filtroSector) {
+    // Filter by almacen (multiselect)
+    if (filtroAlmacenes.length > 0) {
+      const almacenesIds = filtroAlmacenes.map(a => a.codigo?.toString() || a.id?.toString());
       result = result.filter((s) =>
-        getSectorNombre(s.sector).toLowerCase().includes(filtroSector.toLowerCase())
+        almacenesIds.includes((s.almacen || "").toString())
       );
     }
 
-    // Filter by estado
-    if (filtroEstado) {
+    // Filter by sector (multiselect)
+    if (filtroSectores.length > 0) {
+      const sectoresNombres = filtroSectores.map(s => s.nombre?.toLowerCase());
+      result = result.filter((s) =>
+        sectoresNombres.includes(getSectorNombre(s.sector).toLowerCase())
+      );
+    }
+
+    // Filter by estado (multiselect)
+    if (filtroEstados.length > 0) {
+      const estadosValues = filtroEstados.map(e => e.value.toLowerCase());
       result = result.filter((s) => {
         const estado = (s.status || s.estado || "").toLowerCase();
-        return estado.includes(filtroEstado.toLowerCase());
+        return estadosValues.some(ev => estado.includes(ev));
       });
     }
 
-    // Filter by criticidad
-    if (filtroCriticidad) {
+    // Filter by criticidad (multiselect)
+    if (filtroCriticidades.length > 0) {
+      const criticidadesValues = filtroCriticidades.map(c => c.value.toLowerCase());
       result = result.filter((s) =>
-        (s.criticidad || "Normal").toLowerCase() === filtroCriticidad.toLowerCase()
+        criticidadesValues.includes((s.criticidad || "Normal").toLowerCase())
       );
     }
 
     return result;
-  }, [items, activeTab, getEstadoCategoria, debouncedQ, filtroCentro, filtroSector, filtroEstado, filtroCriticidad]);
+  }, [items, activeTab, getEstadoCategoria, debouncedQ, filtroCentros, filtroAlmacenes, filtroSectores, filtroEstados, filtroCriticidades]);
 
   // Pagination
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
@@ -310,15 +406,21 @@ export function usePlanner({ t }) {
     success,
     loading,
     q,
-    filtroCentro,
-    filtroSector,
-    filtroEstado,
-    filtroCriticidad,
+    filtroCentros,
+    filtroAlmacenes,
+    filtroSectores,
+    filtroEstados,
+    filtroCriticidades,
     currentPage,
     activeTab,
     selectedParaTratar,
     rejectModal,
     historialModal,
+
+    // Catálogos y opciones
+    catalogos,
+    estadosOptions: ESTADOS_OPTIONS,
+    criticidadOptions: CRITICIDAD_OPTIONS,
 
     // Derived state
     filtered,
@@ -326,13 +428,15 @@ export function usePlanner({ t }) {
     totalPages,
     tabCounts,
     itemsPerPage: ITEMS_PER_PAGE,
+    hayFiltrosActivos,
 
     // Setters
     setQ,
-    setFiltroCentro,
-    setFiltroSector,
-    setFiltroEstado,
-    setFiltroCriticidad,
+    setFiltroCentros,
+    setFiltroAlmacenes,
+    setFiltroSectores,
+    setFiltroEstados,
+    setFiltroCriticidades,
     setCurrentPage,
     setActiveTab,
 
@@ -343,6 +447,7 @@ export function usePlanner({ t }) {
     rechazar,
     handleExport,
     getEstadoCategoria,
+    limpiarFiltros,
 
     // Modal controls
     closeTratarModal,

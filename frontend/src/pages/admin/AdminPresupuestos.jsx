@@ -1,389 +1,1076 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
-import { admin } from '../../services/spm'
-import { formatCurrency, formatDate } from '../../utils/formatters'
-import { Card, CardContent } from '../../components/ui/Card'
-import { Button } from '../../components/ui/Button'
-import { PageHeader } from '../../components/ui/PageHeader'
-import { Alert } from '../../components/ui/Alert'
-import { Modal } from '../../components/ui/Modal'
-import { Input } from '../../components/ui/Input'
-import { ModernDataTable as DataTable } from '../../components/features/DataTable'
-import { TableSkeleton } from '../../components/ui/Skeleton'
-import { SearchInput } from '../../components/ui/SearchInput'
-import { useDebounced } from '../../hooks/useDebounced'
-import {
-  Plus, Edit3, Trash2, X, Save, History,
-  TrendingUp, TrendingDown, RefreshCw, Clock,
-  ArrowUpCircle, ArrowDownCircle, PlusCircle, MinusCircle
-} from '../../components/ui/Icons'
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { admin } from "../../services/spm";
+import { formatCurrency, formatDate } from "../../utils/formatters";
+import { useI18n } from "../../context/i18n";
 
-const TIPO_CAMBIO_ICONS = {
-  creacion: { icon: PlusCircle, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/30' },
-  aumento: { icon: ArrowUpCircle, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
-  reduccion: { icon: ArrowDownCircle, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-100 dark:bg-amber-900/30' },
-  ajuste: { icon: RefreshCw, color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-100 dark:bg-slate-700' },
-  eliminacion: { icon: MinusCircle, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-100 dark:bg-red-900/30' },
+// MUI Components
+import {
+  Box,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  IconButton,
+  Alert,
+  Skeleton,
+  Stack,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  Drawer,
+  Tabs,
+  Tab,
+  Chip,
+} from "@mui/material";
+
+// MUI Icons
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import CloseIcon from "@mui/icons-material/Close";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import Tooltip from "@mui/material/Tooltip";
+
+// Services
+import { exportToXLSX } from "../../services/export";
+
+const initialForm = {
+  centro: "",
+  sector: "",
+  monto_usd: "",
+  saldo_usd: "",
+};
+
+/* ─────────────────────────────────────────────────────────────
+   Skeleton
+───────────────────────────────────────────────────────────── */
+function TableSkeleton({ rows = 5 }) {
+  return (
+    <Box sx={{ p: 2 }}>
+      {[...Array(rows)].map((_, i) => (
+        <Stack
+          key={i}
+          direction="row"
+          spacing={2}
+          sx={{
+            py: 1.5,
+            px: 2,
+            borderBottom: "1px solid",
+            borderColor: "divider",
+          }}
+        >
+          <Skeleton variant="text" width={80} height={24} />
+          <Skeleton variant="text" sx={{ flex: 1 }} height={24} />
+          <Skeleton variant="text" width={96} height={24} />
+          <Skeleton variant="text" width={96} height={24} />
+          <Skeleton variant="text" width={80} height={24} />
+        </Stack>
+      ))}
+    </Box>
+  );
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Empty State
+───────────────────────────────────────────────────────────── */
+function EmptyState({ message, onAction, actionLabel }) {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        py: 8,
+        color: "text.secondary",
+      }}
+    >
+      <AccountBalanceWalletIcon sx={{ fontSize: 48, mb: 1.5, opacity: 0.5 }} />
+      <Typography variant="body2" sx={{ mb: 2 }}>
+        {message}
+      </Typography>
+      {onAction && (
+        <Button
+          onClick={onAction}
+          size="small"
+          sx={{
+            textTransform: "uppercase",
+            fontSize: "0.75rem",
+            letterSpacing: "0.05em",
+          }}
+        >
+          {actionLabel}
+        </Button>
+      )}
+    </Box>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Main Component
+───────────────────────────────────────────────────────────── */
 export default function AdminPresupuestos() {
-  const [tab, setTab] = useState('presupuestos')
-  const [items, setItems] = useState([])
-  const [historial, setHistorial] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-  const [q, setQ] = useState('')
-  const debouncedQ = useDebounced(q, 300)
+  const navigate = useNavigate();
+  const { t } = useI18n();
 
-  // Form state
-  const [showForm, setShowForm] = useState(false)
-  const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState({ centro: '', sector: '', monto_usd: '', saldo_usd: '' })
+  const [tab, setTab] = useState(0);
+  const [presupuestos, setPresupuestos] = useState([]);
+  const [historial, setHistorial] = useState([]);
+  const [loadingPresupuestos, setLoadingPresupuestos] = useState(true);
+  const [loadingHistorial, setLoadingHistorial] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  // Delete modal
-  const [deleteModal, setDeleteModal] = useState({ open: false, row: null })
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState(initialForm);
 
+  const [deletingId, setDeletingId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // ─── Load Data ────────────────────────────────────────────
   const loadPresupuestos = useCallback(async () => {
-    setLoading(true)
-    setError('')
+    setLoadingPresupuestos(true);
     try {
-      const res = await admin.list('presupuestos')
-      const data = (res.data || []).map(r => ({ ...r, _id: `${r.centro}|${r.sector}` }))
-      setItems(data)
+      const res = await admin.list("presupuestos");
+      const data = (res.data || []).map((r) => ({
+        ...r,
+        _id: `${r.centro}|${r.sector}`,
+      }));
+      setPresupuestos(data);
     } catch (e) {
-      const err = e.response?.data?.error
-      setError(typeof err === 'object' ? (err.message || JSON.stringify(err)) : (err || e.message))
+      const err = e.response?.data?.error;
+      setError(typeof err === "object" ? err.message || JSON.stringify(err) : err || e.message);
     } finally {
-      setLoading(false)
+      setLoadingPresupuestos(false);
     }
-  }, [])
+  }, []);
 
   const loadHistorial = useCallback(async () => {
-    setLoading(true)
-    setError('')
+    setLoadingHistorial(true);
     try {
-      const res = await admin.historialPresupuestos({ limit: 100 })
-      setHistorial(res.data || [])
+      const res = await admin.historialPresupuestos({ limit: 100 });
+      const data = (res.data || []).map((r, idx) => ({
+        ...r,
+        _id: r.id || idx,
+      }));
+      setHistorial(data);
     } catch (e) {
-      const err = e.response?.data?.error
-      setError(typeof err === 'object' ? (err.message || JSON.stringify(err)) : (err || e.message))
+      const err = e.response?.data?.error;
+      setError(typeof err === "object" ? err.message || JSON.stringify(err) : err || e.message);
     } finally {
-      setLoading(false)
+      setLoadingHistorial(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    if (tab === 'presupuestos') {
-      loadPresupuestos()
-    } else {
-      loadHistorial()
-    }
-  }, [tab, loadPresupuestos, loadHistorial])
+    loadPresupuestos();
+    loadHistorial();
+  }, [loadPresupuestos, loadHistorial]);
 
-  const filtered = useMemo(() => {
-    const term = debouncedQ.trim().toLowerCase()
-    if (!term) return tab === 'presupuestos' ? items : historial
+  // ─── Filtered Data ────────────────────────────────────────
+  const filteredPresupuestos = presupuestos.filter((r) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      r.centro?.toLowerCase().includes(term) ||
+      r.sector?.toLowerCase().includes(term)
+    );
+  });
 
-    const data = tab === 'presupuestos' ? items : historial
-    return data.filter(item =>
-      (item.centro || '').toLowerCase().includes(term) ||
-      (item.sector || '').toLowerCase().includes(term)
-    )
-  }, [items, historial, debouncedQ, tab])
+  const filteredHistorial = historial.filter((r) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      r.centro?.toLowerCase().includes(term) ||
+      r.sector?.toLowerCase().includes(term) ||
+      r.tipo_cambio?.toLowerCase().includes(term)
+    );
+  });
+
+  // ─── Handlers ─────────────────────────────────────────────
+  const handleNew = () => {
+    setEditingId(null);
+    setForm(initialForm);
+    setDrawerOpen(true);
+    setError("");
+  };
+
+  const handleEdit = (row) => {
+    setEditingId(row._id);
+    setForm({
+      centro: row.centro || "",
+      sector: row.sector || "",
+      monto_usd: row.monto_usd || "",
+      saldo_usd: row.saldo_usd || "",
+    });
+    setDrawerOpen(true);
+    setError("");
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
+    setError("");
+
     if (!form.centro || !form.sector) {
-      setError('Centro y Sector son requeridos')
-      return
+      setError("Centro y Sector son requeridos");
+      return;
     }
 
-    setLoading(true)
-    setError('')
+    setSubmitting(true);
     try {
       const payload = {
         centro: form.centro,
         sector: form.sector,
         monto_usd: Number(form.monto_usd || 0),
         saldo_usd: Number(form.saldo_usd || form.monto_usd || 0),
-      }
+      };
 
       if (editingId) {
-        const [centro, sector] = editingId.split('|')
-        await admin.updatePresupuesto(centro, sector, payload)
-        setSuccess('Presupuesto actualizado')
+        const [centro, sector] = editingId.split("|");
+        await admin.updatePresupuesto(centro, sector, payload);
+        setSuccess(t("crud_record_updated", "Presupuesto actualizado correctamente"));
       } else {
-        await admin.create('presupuestos', payload)
-        setSuccess('Presupuesto creado')
+        await admin.create("presupuestos", payload);
+        setSuccess(t("crud_record_created", "Presupuesto creado correctamente"));
       }
 
-      setShowForm(false)
-      setForm({ centro: '', sector: '', monto_usd: '', saldo_usd: '' })
-      setEditingId(null)
-      loadPresupuestos()
-      setTimeout(() => setSuccess(''), 3000)
+      setDrawerOpen(false);
+      setForm(initialForm);
+      setEditingId(null);
+      await loadPresupuestos();
+      await loadHistorial();
+      setTimeout(() => setSuccess(""), 3000);
     } catch (e) {
-      const err = e.response?.data?.error
-      setError(typeof err === 'object' ? (err.message || JSON.stringify(err)) : (err || e.message))
+      const err = e.response?.data?.error;
+      setError(typeof err === "object" ? err.message || JSON.stringify(err) : err || e.message);
     } finally {
-      setLoading(false)
+      setSubmitting(false);
     }
-  }
+  };
 
-  const handleEdit = (row) => {
-    setEditingId(row._id)
-    setForm({
-      centro: row.centro,
-      sector: row.sector,
-      monto_usd: row.monto_usd || '',
-      saldo_usd: row.saldo_usd || '',
-    })
-    setShowForm(true)
-  }
-
-  const handleDelete = (row) => {
-    setDeleteModal({ open: true, row })
-  }
-
-  const confirmDelete = async () => {
-    if (!deleteModal.row) return
-    setLoading(true)
+  const handleDelete = async (id) => {
+    setSubmitting(true);
     try {
-      const [centro, sector] = deleteModal.row._id.split('|')
-      await admin.deletePresupuesto(centro, sector)
-      setSuccess('Presupuesto eliminado')
-      loadPresupuestos()
-      setTimeout(() => setSuccess(''), 3000)
-    } catch (e) {
-      const err = e.response?.data?.error
-      setError(typeof err === 'object' ? (err.message || JSON.stringify(err)) : (err || e.message))
+      
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportToXLSX(
+        filteredPresupuestos,
+        "presupuestos",
+        "Presupuestos"
+      );
+      setSuccess("Presupuestos exportados correctamente");
+    } catch (err) {
+      setError(err.message || "Error al exportar presupuestos");
     } finally {
-      setLoading(false)
-      setDeleteModal({ open: false, row: null })
+      setExporting(false);
     }
-  }
+  };
 
-  const presupuestosColumns = [
-    { key: 'centro', header: 'Centro' },
-    { key: 'sector', header: 'Sector' },
-    {
-      key: 'monto_usd',
-      header: 'Monto USD',
-      render: (row) => <span className="font-mono">{formatCurrency(row.monto_usd)}</span>
-    },
-    {
-      key: 'saldo_usd',
-      header: 'Saldo USD',
-      render: (row) => <span className="font-mono">{formatCurrency(row.saldo_usd)}</span>
-    },
-    {
-      key: 'acciones',
-      header: 'Acciones',
-      render: (row) => (
-        <div className="flex gap-1.5 justify-center">
-          <Button variant="icon" className="px-2.5 py-1.5 text-xs" onClick={() => handleEdit(row)}>
-            <Edit3 className="w-4 h-4" />
-          </Button>
-          <Button variant="icon-danger" className="px-2.5 py-1.5 text-xs" onClick={() => handleDelete(row)}>
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
-      )
+const [centro, sector] = id.split("|");
+      await admin.deletePresupuesto(centro, sector);
+      setSuccess(t("crud_record_deleted", "Presupuesto eliminado correctamente"));
+      setDeletingId(null);
+      await loadPresupuestos();
+      await loadHistorial();
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (e) {
+      const err = e.response?.data?.error;
+      setError(typeof err === "object" ? err.message || JSON.stringify(err) : err || e.message);
+    } finally {
+      setSubmitting(false);
     }
-  ]
+  };
 
-  const historialColumns = [
-    {
-      key: 'tipo_cambio',
-      header: 'Tipo',
-      render: (row) => {
-        const config = TIPO_CAMBIO_ICONS[row.tipo_cambio] || TIPO_CAMBIO_ICONS.ajuste
-        const Icon = config.icon
-        return (
-          <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.color}`}>
-            <Icon className="w-3.5 h-3.5" />
-            {row.tipo_cambio}
-          </span>
-        )
-      }
-    },
-    { key: 'centro', header: 'Centro' },
-    { key: 'sector', header: 'Sector' },
-    {
-      key: 'diferencia_usd',
-      header: 'Cambio',
-      render: (row) => {
-        const diff = row.diferencia_usd || 0
-        const isPositive = diff > 0
-        return (
-          <span className={`font-mono flex items-center gap-1 ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : diff < 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
-            {isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : diff < 0 ? <TrendingDown className="w-3.5 h-3.5" /> : null}
-            {isPositive ? '+' : ''}{formatCurrency(diff)}
-          </span>
-        )
-      }
-    },
-    {
-      key: 'monto_nuevo_usd',
-      header: 'Monto Final',
-      render: (row) => <span className="font-mono">{formatCurrency(row.monto_nuevo_usd)}</span>
-    },
-    {
-      key: 'solicitante_nombre',
-      header: 'Usuario',
-      render: (row) => row.solicitante_nombre || '-'
-    },
-    {
-      key: 'created_at',
-      header: 'Fecha',
-      render: (row) => (
-        <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 tabular-nums">
-          <Clock className="w-3 h-3" />
-          {formatDate(row.created_at)}
-        </span>
-      )
-    },
-  ]
+  const getSaldoColor = (saldo, monto) => {
+    const porcentaje = monto > 0 ? (saldo / monto) * 100 : 0;
+    if (porcentaje < 20) return "error.dark";
+    if (porcentaje < 50) return "warning.dark";
+    return "success.dark";
+  };
 
+  const getTipoChipColor = (tipo) => {
+    const colors = {
+      creacion: "info",
+      aumento: "success",
+      reduccion: "warning",
+      ajuste: "default",
+      eliminacion: "error",
+    };
+    return colors[tipo] || "default";
+  };
+
+  // ─── Render ───────────────────────────────────────────────
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="ADMINISTRACIÓN DE PRESUPUESTOS"
-        actions={
-          tab === 'presupuestos' && (
-            <Button onClick={() => { setShowForm(true); setEditingId(null); setForm({ centro: '', sector: '', monto_usd: '', saldo_usd: '' }); }}>
-              <Plus className="w-4 h-4" />
-              Nuevo Presupuesto
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1280, mx: "auto", px: 2, py: 3 }}>
+
+        {/* Header */}
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ mb: 3 }}
+        >
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <IconButton
+              onClick={() => navigate("/admin")}
+              size="small"
+              sx={{
+                color: "text.secondary",
+                "&:hover": { bgcolor: "grey.200" },
+              }}
+            >
+              <ArrowBackIcon fontSize="small" />
+            </IconButton>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: "text.primary",
+              }}
+            >
+              {t("admin_presupuestos", "Presupuestos")}
+            </Typography>
+          </Stack>
+          {tab === 0 && (
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={handleNew}
+              sx={{
+                textTransform: "uppercase",
+                fontSize: "0.75rem",
+                letterSpacing: "0.05em",
+              }}
+            >
+              {t("crud_new", "Nuevo")}
             </Button>
-          )
-        }
-      />
-
-      {error && <Alert variant="danger" onDismiss={() => setError('')}>{error}</Alert>}
-      {success && <Alert variant="success" onDismiss={() => setSuccess('')}>{success}</Alert>}
-
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-slate-100/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl w-fit">
-        <button
-          onClick={() => setTab('presupuestos')}
-          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-            tab === 'presupuestos'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50'
-          }`}
-        >
-          Presupuestos
-        </button>
-        <button
-          onClick={() => setTab('historial')}
-          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-            tab === 'historial'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50'
-          }`}
-        >
-          <History className="w-4 h-4" />
-          Historial de Cambios
-        </button>
-      </div>
-
-      <Card>
-        <CardContent className="pt-6 space-y-4">
-          <div className="flex gap-3">
-            <SearchInput
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar por centro o sector..."
-              className="flex-1"
-            />
-          </div>
-
-          {loading ? (
-            <TableSkeleton rows={5} columns={tab === 'presupuestos' ? 5 : 7} />
-          ) : (
-            <DataTable
-              columns={tab === 'presupuestos' ? presupuestosColumns : historialColumns}
-              rows={filtered}
-              emptyMessage={tab === 'presupuestos' ? 'No hay presupuestos' : 'No hay historial de cambios'}
-            />
           )}
-        </CardContent>
-      </Card>
+        </Stack>
 
-      {/* Form Modal */}
-      <Modal
-        isOpen={showForm}
-        onClose={() => setShowForm(false)}
-        title={editingId ? 'Editar Presupuesto' : 'Nuevo Presupuesto'}
-        size="md"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setShowForm(false)}>
-              <X className="w-4 h-4" /> Cancelar
-            </Button>
-            <Button onClick={handleSubmit} disabled={loading}>
-              <Save className="w-4 h-4" /> Guardar
-            </Button>
-          </>
-        }
+        {/* Alerts */}
+        {error && (
+          <Alert
+            severity="error"
+            sx={{ mb: 2 }}
+            action={
+              <IconButton
+                size="small"
+                color="inherit"
+                onClick={() => setError("")}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            }
+          >
+            {error}
+          </Alert>
+        )}
+        {success && (
+          <Alert
+            severity="success"
+            sx={{ mb: 2 }}
+            action={
+              <IconButton
+                size="small"
+                color="inherit"
+                onClick={() => setSuccess("")}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            }
+          >
+            {success}
+          </Alert>
+        )}
+
+        {/* Tabs */}
+        <Tabs
+          value={tab}
+          onChange={(_, newValue) => setTab(newValue)}
+          sx={{
+            mb: 2,
+            borderBottom: 1,
+            borderColor: "divider",
+            "& .MuiTab-root": {
+              textTransform: "uppercase",
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              letterSpacing: "0.05em",
+              minHeight: 40,
+            },
+          }}
+        >
+          <Tab label="Presupuestos" />
+          <Tab label="Historial de Cambios" />
+        </Tabs>
+
+        {/* Search */}
+        <Box sx={{ mb: 2 }}>
+          <TextField
+            size="small"
+            placeholder="Buscar por centro o sector..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            autoComplete="off"
+            sx={{ width: 320 }}
+          />
+        </Box>
+
+        {/* Tab 0: Presupuestos */}
+        {tab === 0 && (
+          <Paper variant="outlined" sx={{ overflow: "hidden" }}>
+            {loadingPresupuestos ? (
+              <TableSkeleton rows={5} />
+            ) : filteredPresupuestos.length === 0 ? (
+              <EmptyState
+                message={searchTerm ? "No se encontraron presupuestos" : "No hay presupuestos registrados"}
+                onAction={!searchTerm ? handleNew : undefined}
+                actionLabel="Crear primer presupuesto"
+              />
+            ) : (
+              <Box sx={{ overflowX: "auto" }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: "grey.50" }}>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          width: 100,
+                          fontSize: "0.6875rem",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          color: "text.secondary",
+                          borderRight: 1,
+                          borderColor: "divider",
+                        }}
+                      >
+                        Centro
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          width: 180,
+                          fontSize: "0.6875rem",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          color: "text.secondary",
+                          borderRight: 1,
+                          borderColor: "divider",
+                        }}
+                      >
+                        Sector
+                      </TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{
+                          width: 140,
+                          fontSize: "0.6875rem",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          color: "text.secondary",
+                          borderRight: 1,
+                          borderColor: "divider",
+                        }}
+                      >
+                        Monto USD
+                      </TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{
+                          width: 140,
+                          fontSize: "0.6875rem",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          color: "text.secondary",
+                          borderRight: 1,
+                          borderColor: "divider",
+                        }}
+                      >
+                        Saldo USD
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          width: 100,
+                          fontSize: "0.6875rem",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          color: "text.secondary",
+                        }}
+                      >
+                        Acciones
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {filteredPresupuestos.map((row) =>
+                      deletingId === row._id ? (
+                        <TableRow key={row._id} sx={{ bgcolor: "error.lighter" }}>
+                          <TableCell colSpan={5} sx={{ py: 1.5 }}>
+                            <Stack
+                              direction="row"
+                              alignItems="center"
+                              justifyContent="space-between"
+                            >
+                              <Typography variant="body2" sx={{ color: "error.dark" }}>
+                                Eliminar presupuesto <strong>{row.centro}</strong> - <strong>{row.sector}</strong>?
+                              </Typography>
+                              <Stack direction="row" spacing={1}>
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  onClick={() => setDeletingId(null)}
+                                  disabled={submitting}
+                                  sx={{
+                                    textTransform: "uppercase",
+                                    fontSize: "0.75rem",
+                                    letterSpacing: "0.05em",
+                                  }}
+                                >
+                                  Cancelar
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  color="error"
+                                  onClick={() => handleDelete(row._id)}
+                                  disabled={submitting}
+                                  sx={{
+                                    textTransform: "uppercase",
+                                    fontSize: "0.75rem",
+                                    letterSpacing: "0.05em",
+                                  }}
+                                >
+                                  {submitting ? "..." : "Eliminar"}
+                                </Button>
+                              </Stack>
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        <TableRow
+                          key={row._id}
+                          hover
+                          sx={{ "&:hover": { bgcolor: "grey.50" } }}
+                        >
+                          <TableCell
+                            align="center"
+                            sx={{
+                              fontFamily: "monospace",
+                              fontSize: "0.875rem",
+                              color: "text.primary",
+                              borderRight: 1,
+                              borderColor: "grey.100",
+                            }}
+                          >
+                            {row.centro}
+                          </TableCell>
+                          <TableCell
+                            sx={{
+                              fontSize: "0.875rem",
+                              color: "text.primary",
+                              borderRight: 1,
+                              borderColor: "grey.100",
+                            }}
+                          >
+                            {row.sector}
+                          </TableCell>
+                          <TableCell
+                            align="right"
+                            sx={{
+                              fontFamily: "monospace",
+                              fontSize: "0.875rem",
+                              color: "text.primary",
+                              borderRight: 1,
+                              borderColor: "grey.100",
+                            }}
+                          >
+                            {formatCurrency(row.monto_usd)}
+                          </TableCell>
+                          <TableCell
+                            align="right"
+                            sx={{
+                              fontFamily: "monospace",
+                              fontSize: "0.875rem",
+                              fontWeight: 600,
+                              color: getSaldoColor(row.saldo_usd, row.monto_usd),
+                              borderRight: 1,
+                              borderColor: "grey.100",
+                            }}
+                          >
+                            {formatCurrency(row.saldo_usd)}
+                          </TableCell>
+                          <TableCell align="center">
+                            <Stack
+                              direction="row"
+                              spacing={0.5}
+                              justifyContent="center"
+                            >
+                              <Button
+                                size="small"
+                                variant="text"
+                                onClick={() => handleEdit(row)}
+                                sx={{
+                                  textTransform: "none",
+                                  fontWeight: 600,
+                                  color: "primary.main",
+                                  fontSize: "0.75rem",
+                                  minWidth: "auto",
+                                  px: 1,
+                                  "&:hover": {
+                                    bgcolor: "primary.lighter",
+                                  },
+                                }}
+                              >
+                                Editar
+                              </Button>
+                              <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
+                              <Button
+                                size="small"
+                                variant="text"
+                                onClick={() => setDeletingId(row._id)}
+                                sx={{
+                                  textTransform: "none",
+                                  fontWeight: 600,
+                                  color: "error.main",
+                                  fontSize: "0.75rem",
+                                  minWidth: "auto",
+                                  px: 1,
+                                  "&:hover": {
+                                    bgcolor: "error.lighter",
+                                  },
+                                }}
+                              >
+                                Eliminar
+                              </Button>
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    )}
+                  </TableBody>
+                </Table>
+              </Box>
+            )}
+          </Paper>
+        )}
+
+        {/* Tab 1: Historial */}
+        {tab === 1 && (
+          <Paper variant="outlined" sx={{ overflow: "hidden" }}>
+            {loadingHistorial ? (
+              <TableSkeleton rows={5} />
+            ) : filteredHistorial.length === 0 ? (
+              <EmptyState message="No hay historial de cambios" />
+            ) : (
+              <Box sx={{ overflowX: "auto" }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: "grey.50" }}>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          width: 100,
+                          fontSize: "0.6875rem",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          color: "text.secondary",
+                          borderRight: 1,
+                          borderColor: "divider",
+                        }}
+                      >
+                        Tipo
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          width: 80,
+                          fontSize: "0.6875rem",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          color: "text.secondary",
+                          borderRight: 1,
+                          borderColor: "divider",
+                        }}
+                      >
+                        Centro
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          width: 150,
+                          fontSize: "0.6875rem",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          color: "text.secondary",
+                          borderRight: 1,
+                          borderColor: "divider",
+                        }}
+                      >
+                        Sector
+                      </TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{
+                          width: 120,
+                          fontSize: "0.6875rem",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          color: "text.secondary",
+                          borderRight: 1,
+                          borderColor: "divider",
+                        }}
+                      >
+                        Cambio
+                      </TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{
+                          width: 120,
+                          fontSize: "0.6875rem",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          color: "text.secondary",
+                          borderRight: 1,
+                          borderColor: "divider",
+                        }}
+                      >
+                        Monto Final
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontSize: "0.6875rem",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          color: "text.secondary",
+                          borderRight: 1,
+                          borderColor: "divider",
+                        }}
+                      >
+                        Usuario
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          width: 140,
+                          fontSize: "0.6875rem",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          color: "text.secondary",
+                        }}
+                      >
+                        Fecha
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {filteredHistorial.map((row) => (
+                      <TableRow
+                        key={row._id}
+                        hover
+                        sx={{ "&:hover": { bgcolor: "grey.50" } }}
+                      >
+                        <TableCell
+                          align="center"
+                          sx={{
+                            borderRight: 1,
+                            borderColor: "grey.100",
+                          }}
+                        >
+                          <Chip
+                            label={row.tipo_cambio || "-"}
+                            color={getTipoChipColor(row.tipo_cambio)}
+                            size="small"
+                            sx={{
+                              fontSize: "0.625rem",
+                              fontWeight: 600,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              height: 20,
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell
+                          align="center"
+                          sx={{
+                            fontFamily: "monospace",
+                            fontSize: "0.875rem",
+                            color: "text.primary",
+                            borderRight: 1,
+                            borderColor: "grey.100",
+                          }}
+                        >
+                          {row.centro}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            fontSize: "0.875rem",
+                            color: "text.primary",
+                            borderRight: 1,
+                            borderColor: "grey.100",
+                          }}
+                        >
+                          {row.sector}
+                        </TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{
+                            fontFamily: "monospace",
+                            fontSize: "0.875rem",
+                            fontWeight: 600,
+                            color:
+                              row.diferencia_usd > 0
+                                ? "success.dark"
+                                : row.diferencia_usd < 0
+                                ? "error.dark"
+                                : "text.secondary",
+                            borderRight: 1,
+                            borderColor: "grey.100",
+                          }}
+                        >
+                          {row.diferencia_usd > 0 ? "+" : ""}
+                          {formatCurrency(row.diferencia_usd || 0)}
+                        </TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{
+                            fontFamily: "monospace",
+                            fontSize: "0.875rem",
+                            color: "text.primary",
+                            borderRight: 1,
+                            borderColor: "grey.100",
+                          }}
+                        >
+                          {formatCurrency(row.monto_nuevo_usd)}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            fontSize: "0.875rem",
+                            color: "text.primary",
+                            borderRight: 1,
+                            borderColor: "grey.100",
+                          }}
+                        >
+                          {row.solicitante_nombre || "-"}
+                        </TableCell>
+                        <TableCell
+                          align="center"
+                          sx={{
+                            fontSize: "0.75rem",
+                            color: "text.secondary",
+                          }}
+                        >
+                          {formatDate(row.created_at)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Box>
+            )}
+          </Paper>
+        )}
+
+        {/* Footer */}
+        <Typography
+          variant="caption"
+          sx={{ display: "block", mt: 2, color: "text.disabled" }}
+        >
+          {tab === 0
+            ? `${filteredPresupuestos.length} de ${presupuestos.length} presupuestos`
+            : `${filteredHistorial.length} de ${historial.length} registros`}
+        </Typography>
+      </Box>
+
+      {/* Drawer */}
+      <Drawer
+        anchor="right"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        PaperProps={{
+          sx: {
+            width: "100%",
+            maxWidth: 400,
+          },
+        }}
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Input
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            px: 2.5,
+            py: 2,
+            borderBottom: 1,
+            borderColor: "divider",
+            bgcolor: "grey.50",
+          }}
+        >
+          <Typography
+            variant="subtitle2"
+            sx={{
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              fontWeight: 600,
+              color: "text.primary",
+            }}
+          >
+            {editingId ? "Editar Presupuesto" : "Nuevo Presupuesto"}
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={() => setDrawerOpen(false)}
+            sx={{ color: "text.secondary" }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Box>
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{ flex: 1, overflowY: "auto", p: 2.5 }}
+        >
+          <Stack spacing={2.5}>
+            {error && (
+              <Alert severity="error" sx={{ fontSize: "0.875rem" }}>
+                {error}
+              </Alert>
+            )}
+
+            <TextField
               label="Centro"
+              name="centro"
+              size="small"
               value={form.centro}
-              onChange={(e) => setForm({ ...form, centro: e.target.value })}
+              onChange={(e) => setForm((prev) => ({ ...prev, centro: e.target.value }))}
               required
               disabled={!!editingId}
+              fullWidth
+              autoComplete="off"
+              InputLabelProps={{
+                sx: {
+                  fontSize: "0.6875rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                },
+              }}
             />
-            <Input
-              label="Sector"
-              value={form.sector}
-              onChange={(e) => setForm({ ...form, sector: e.target.value })}
-              required
-              disabled={!!editingId}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Monto USD"
-              type="number"
-              value={form.monto_usd}
-              onChange={(e) => setForm({ ...form, monto_usd: e.target.value })}
-              required
-            />
-            <Input
-              label="Saldo USD"
-              type="number"
-              value={form.saldo_usd}
-              onChange={(e) => setForm({ ...form, saldo_usd: e.target.value })}
-              required
-            />
-          </div>
-        </form>
-      </Modal>
 
-      {/* Delete Confirm Modal */}
-      <Modal
-        isOpen={deleteModal.open}
-        onClose={() => setDeleteModal({ open: false, row: null })}
-        title="Confirmar Eliminación"
-        size="sm"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setDeleteModal({ open: false, row: null })}>
-              Cancelar
-            </Button>
-            <Button variant="danger" onClick={confirmDelete}>
-              <Trash2 className="w-4 h-4" /> Eliminar
-            </Button>
-          </>
-        }
-      >
-        <p className="text-slate-600 dark:text-slate-300">
-          ¿Eliminar presupuesto de <strong>{deleteModal.row?.centro}</strong> - <strong>{deleteModal.row?.sector}</strong>?
-        </p>
-      </Modal>
-    </div>
-  )
+            <TextField
+              label="Sector"
+              name="sector"
+              size="small"
+              value={form.sector}
+              onChange={(e) => setForm((prev) => ({ ...prev, sector: e.target.value }))}
+              required
+              disabled={!!editingId}
+              fullWidth
+              autoComplete="off"
+              InputLabelProps={{
+                sx: {
+                  fontSize: "0.6875rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                },
+              }}
+            />
+
+            <TextField
+              label="Monto USD"
+              name="monto_usd"
+              type="number"
+              size="small"
+              value={form.monto_usd}
+              onChange={(e) => setForm((prev) => ({ ...prev, monto_usd: e.target.value }))}
+              required
+              fullWidth
+              autoComplete="off"
+              InputLabelProps={{
+                sx: {
+                  fontSize: "0.6875rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                },
+              }}
+            />
+
+            <TextField
+              label="Saldo USD"
+              name="saldo_usd"
+              type="number"
+              size="small"
+              value={form.saldo_usd}
+              onChange={(e) => setForm((prev) => ({ ...prev, saldo_usd: e.target.value }))}
+              required
+              fullWidth
+              autoComplete="off"
+              InputLabelProps={{
+                sx: {
+                  fontSize: "0.6875rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                },
+              }}
+            />
+
+            <Stack
+              direction="row"
+              spacing={1.5}
+              sx={{ pt: 2, borderTop: 1, borderColor: "divider" }}
+            >
+              <Button
+                variant="outlined"
+                fullWidth
+                onClick={() => setDrawerOpen(false)}
+                disabled={submitting}
+                sx={{
+                  textTransform: "uppercase",
+                  fontSize: "0.75rem",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                fullWidth
+                disabled={submitting}
+                sx={{
+                  textTransform: "uppercase",
+                  fontSize: "0.75rem",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                {submitting ? "Guardando..." : editingId ? "Actualizar" : "Crear"}
+              </Button>
+            </Stack>
+          </Stack>
+        </Box>
+      </Drawer>
+    </Box>
+  );
 }

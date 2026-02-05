@@ -1,12 +1,25 @@
 /**
- * Sidebar Component - Glass Morphism Style
+ * Sidebar Component - Material UI Style
  * Translucent navigation with blur effect
  * Mobile responsive with hamburger menu
  */
 
-import React, { useState, memo, useCallback, useEffect } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import clsx from "clsx";
+import React, { useState, memo, useEffect, useCallback } from "react";
+import { NavLink, useLocation } from "react-router-dom";
+import {
+  Box,
+  Drawer,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  ListItemButton,
+  IconButton,
+  Collapse,
+  Tooltip,
+  Badge,
+  Typography,
+} from "@mui/material";
 import {
   FileText,
   FilePlus2,
@@ -15,9 +28,8 @@ import {
   Package,
   Search,
   GitCompare,
-  MessageSquare,
-  Settings,
   Users,
+  User,
   Building2,
   Boxes,
   Wallet,
@@ -37,100 +49,29 @@ import {
   Activity,
   Truck,
   Database,
-  User,
-  LogOut,
   Bell,
   Clock,
-  Wifi,
-  WifiOff,
   BarChart2,
   LineChart,
-  Menu,
+  FileSpreadsheet,
+  Menu as MenuIcon,
   X,
-  ICON_DEFAULT_COLORS,
   ICON_COLORS,
 } from "./ui/Icons";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
 import { useRealtimeStore } from "../store/realtimeStore";
-import { Tooltip } from "./ui/Tooltip";
-
-// Colores semánticos para iconos del sidebar - usa ICON_COLORS del sistema central
-const SIDEBAR_ICON_COLORS = {
-  // Navegación principal
-  Home: ICON_COLORS.subtle,
-  Bell: ICON_COLORS.notification,
-  FileText: ICON_COLORS.info,
-  FilePlus2: ICON_COLORS.primary,
-  ClipboardList: ICON_COLORS.info,
-  CheckCircle2: ICON_COLORS.success,
-
-  // Materiales
-  Package: ICON_COLORS.logistics,
-  Search: ICON_COLORS.info,
-  GitCompare: ICON_COLORS.info,
-
-  // Planificador
-  Workflow: ICON_COLORS.primary,
-  Layers: ICON_COLORS.logistics,
-  AlertTriangle: ICON_COLORS.warning,
-  TrendingUp: ICON_COLORS.success,
-  LineChart: ICON_COLORS.charts,
-  BarChart2: ICON_COLORS.charts,
-  Clock: ICON_COLORS.time,
-  Activity: ICON_COLORS.charts,
-
-  // Admin
-  Database: ICON_COLORS.secondary,
-  Users: ICON_COLORS.users,
-  User: ICON_COLORS.users,
-  Shield: ICON_COLORS.secondary,
-  Briefcase: ICON_COLORS.money,
-  Building: ICON_COLORS.secondary,
-  Building2: ICON_COLORS.secondary,
-  MapPin: ICON_COLORS.danger,
-  Boxes: ICON_COLORS.logistics,
-  Server: ICON_COLORS.secondary,
-  Truck: ICON_COLORS.logistics,
-
-  // Presupuesto
-  Wallet: ICON_COLORS.money,
-
-  // Comunicación
-  MessageSquare: ICON_COLORS.communication,
-
-  // Sistema
-  Settings: ICON_COLORS.secondary,
-  LogOut: ICON_COLORS.danger,
-  Wifi: ICON_COLORS.success,
-  WifiOff: ICON_COLORS.muted,
-};
 
 // Helper para obtener el color del icono
-const getIconColor = (iconName, isActive) => {
-  if (isActive) return ''; // Cuando está activo, hereda el color del item activo
-  return SIDEBAR_ICON_COLORS[iconName] || 'text-slate-500';
+// Todos los iconos son var(--fg-strong), incluso cuando estan activos (excepto Bell con animacion)
+const getIconColor = (iconName, isActive, hasNotifications = false) => {
+  if (iconName === 'Bell' && hasNotifications) return ''; // Bell con notificaciones usa animacion
+  return 'var(--fg-strong)'; // Todos los iconos siempre en var(--fg-strong)
 };
 
 // Navigation structure
 // Base navigation items (without role-specific items)
 const getMainNavItems = (canApprove) => [
-  {
-    key: "dashboard",
-    trKey: "nav_dashboard",
-    label: "Dashboard",
-    to: "/dashboard",
-    icon: Home,
-    iconName: "Home",
-  },
-  {
-    key: "bandeja-entrada",
-    trKey: "nav_bandeja_entrada",
-    label: "Bandeja de Entrada",
-    to: "/centro-interaccion",
-    icon: Bell,
-    iconName: "Bell",
-  },
   {
     key: "solicitudes",
     trKey: "nav_solicitudes",
@@ -152,9 +93,19 @@ const getMainNavItems = (canApprove) => [
     icon: Package,
     iconName: "Package",
     children: [
-      { trKey: "nav_catalogo_materiales", label: "Catálogo", to: "/materiales/catalogo", icon: Search, iconName: "Search" },
+      { trKey: "nav_catalogo_materiales", label: "Catalogo", to: "/materiales/catalogo", icon: Search, iconName: "Search" },
       { trKey: "nav_equivalencias", label: "Alternativos", to: "/materiales/equivalencias", icon: GitCompare, iconName: "GitCompare" },
+      { trKey: "nav_stock_masivo", label: "Stock Masivo", to: "/materiales/stock", icon: Boxes, iconName: "Boxes" },
+      { trKey: "nav_stock_individual", label: "Stock Individual", to: "/materiales/stock-individual", icon: Package, iconName: "Package" },
     ],
+  },
+  {
+    key: "dashboards",
+    trKey: "nav_dashboards",
+    label: "Dashboards",
+    icon: FileSpreadsheet,
+    iconName: "FileSpreadsheet",
+    to: "/dashboards",
   },
 ];
 
@@ -170,28 +121,6 @@ const plannerNavItems = [
       { trKey: "nav_asignadas", label: "Mis Asignadas", to: "/planificador/asignadas", icon: FileText, iconName: "FileText" },
       { trKey: "nav_no_asignadas", label: "No Asignadas", to: "/planificador/no-asignadas", icon: FilePlus2, iconName: "FilePlus2" },
       {
-        key: "mrp",
-        trKey: "nav_mrp",
-        label: "MRP",
-        icon: Layers,
-        iconName: "Layers",
-        children: [
-          { trKey: "nav_mrp_alertas", label: "Alertas", to: "/planificador/mrp/alertas", icon: AlertTriangle, iconName: "AlertTriangle" },
-          { trKey: "nav_mrp_kpis", label: "KPIs", to: "/planificador/mrp/kpis", icon: TrendingUp, iconName: "TrendingUp" },
-        ],
-      },
-      {
-        key: "forecast",
-        trKey: "nav_forecast",
-        label: "Forecast",
-        icon: LineChart,
-        iconName: "LineChart",
-        children: [
-          { trKey: "nav_forecast_individual", label: "Individual", to: "/planificador/forecast", icon: BarChart2, iconName: "BarChart2" },
-          { trKey: "nav_forecast_masivo", label: "Masivo", to: "/planificador/forecast/masivo", icon: TrendingUp, iconName: "TrendingUp" },
-        ],
-      },
-      {
         key: "procurement",
         trKey: "nav_procurement",
         label: "Compras SAP",
@@ -199,14 +128,73 @@ const plannerNavItems = [
         iconName: "Truck",
         children: [
           { trKey: "nav_procurement_dashboard", label: "Panel General", to: "/procurement", icon: Boxes, iconName: "Boxes" },
-          { trKey: "nav_procurement_analytics", label: "Analítica", to: "/procurement/analytics", icon: BarChart2, iconName: "BarChart2" },
+          { trKey: "nav_procurement_analytics", label: "Analitica", to: "/procurement/analytics", icon: BarChart2, iconName: "BarChart2" },
         ],
       },
       { trKey: "nav_ai", label: "IA Analytics", to: "/planificador/ai", icon: Activity, iconName: "Activity" },
     ],
   },
+  {
+    key: "mrp",
+    trKey: "nav_mrp",
+    label: "MRP",
+    icon: Layers,
+    iconName: "Layers",
+    children: [
+      { trKey: "nav_mrp_portfolio", label: "Portfolio MRP", to: "/mrp/portfolio", icon: Boxes, iconName: "Boxes" },
+      { trKey: "nav_mrp_parametrizar", label: "Parametrizar", to: "/mrp/parametrizar", icon: BarChart2, iconName: "BarChart2" },
+      { trKey: "nav_mrp_alertas", label: "Alertas", to: "/planificador/mrp/alertas", icon: AlertTriangle, iconName: "AlertTriangle" },
+      { trKey: "nav_mrp_kpis", label: "KPIs", to: "/planificador/mrp/kpis", icon: TrendingUp, iconName: "TrendingUp" },
+    ],
+  },
+  {
+    key: "forecast",
+    trKey: "nav_forecast",
+    label: "Forecast",
+    icon: LineChart,
+    iconName: "LineChart",
+    children: [
+      { trKey: "nav_forecast_individual", label: "Individual", to: "/planificador/forecast", icon: BarChart2, iconName: "BarChart2" },
+      { trKey: "nav_forecast_masivo", label: "Masivo", to: "/planificador/forecast/masivo", icon: TrendingUp, iconName: "TrendingUp" },
+    ],
+  },
 ];
 
+
+// TMS/FMS Navigation - visible to admin, dispatcher, fleet_manager, driver
+const tmsNavItems = [
+  {
+    key: "tms",
+    trKey: "nav_tms",
+    label: "Transporte",
+    icon: Truck,
+    iconName: "Truck",
+    children: [
+      { trKey: "nav_tms_envios", label: "Envios", to: "/tms/shipments", icon: Package, iconName: "Package" },
+      { trKey: "nav_tms_consolidacion", label: "Consolidacion LTL", to: "/tms/consolidation", icon: Boxes, iconName: "Boxes" },
+      { trKey: "nav_tms_rutas", label: "Rutas", to: "/tms/routes", icon: MapPin, iconName: "MapPin" },
+      { trKey: "nav_tms_cierres", label: "Cierres Financieros", to: "/tms/settlements", icon: Wallet, iconName: "Wallet" },
+      { trKey: "nav_tms_tarifas", label: "Tarifas", to: "/tms/tariffs", icon: ClipboardList, iconName: "ClipboardList" },
+      { trKey: "nav_tms_kpis", label: "KPIs Transporte", to: "/tms/kpis", icon: BarChart2, iconName: "BarChart2" },
+    ],
+  },
+];
+
+const fmsNavItems = [
+  {
+    key: "fms",
+    trKey: "nav_fms",
+    label: "Flota",
+    icon: Truck,
+    iconName: "Truck",
+    children: [
+      { trKey: "nav_fms_vehiculos", label: "Vehiculos", to: "/fms/vehicles", icon: Truck, iconName: "Truck" },
+      { trKey: "nav_fms_conductores", label: "Conductores", to: "/fms/drivers", icon: User, iconName: "User" },
+      { trKey: "nav_fms_ots", label: "Ordenes de Trabajo", to: "/fms/work-orders", icon: Workflow, iconName: "Workflow" },
+      { trKey: "nav_fms_kpis", label: "KPIs Flota", to: "/fms/kpis", icon: BarChart2, iconName: "BarChart2" },
+    ],
+  },
+];
 
 const adminNavHierarchy = [
   {
@@ -217,6 +205,7 @@ const adminNavHierarchy = [
     iconName: "Database",
     children: [
       { trKey: "admin_usuarios", label: "Usuarios", to: "/admin/usuarios", icon: Users, iconName: "Users" },
+      { trKey: "admin_monitor_usuarios", label: "Monitor Usuarios", to: "/admin/monitor-usuarios", icon: Activity, iconName: "Activity" },
       { trKey: "admin_solicitudes_perfil", label: "Solicitudes Perfil", to: "/admin/solicitudes-perfil", icon: User, iconName: "User" },
       { trKey: "admin_planificadores", label: "Planificadores", to: "/admin/planificadores", icon: Workflow, iconName: "Workflow" },
       { trKey: "admin_roles", label: "Roles", to: "/admin/roles", icon: Shield, iconName: "Shield" },
@@ -237,10 +226,11 @@ const adminNavHierarchy = [
     iconName: "Server",
     children: [
       { trKey: "admin_estado", label: "Estado del Sistema", to: "/admin/estado", icon: Activity, iconName: "Activity" },
+      { trKey: "admin_dashboards", label: "Dashboard 2", to: "/dashboards", icon: FileSpreadsheet, iconName: "FileSpreadsheet" },
       {
         key: "analisis-puntual",
         trKey: "admin_cat_analisis_puntual",
-        label: "Análisis Puntual",
+        label: "Analisis Puntual",
         icon: BarChart2,
         iconName: "BarChart2",
         children: [
@@ -253,13 +243,11 @@ const adminNavHierarchy = [
   },
 ];
 
-function Sidebar({ collapsed, onToggle, isConnected = false }) {
+function Sidebar({ collapsed, onToggle }) {
   const location = useLocation();
-  const navigate = useNavigate();
   const { t } = useI18n();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const [expandedMenus, setExpandedMenus] = useState({});
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Obtener unreadCount directamente del store (reactivo)
@@ -281,12 +269,6 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
       document.body.style.overflow = "";
     };
   }, [mobileOpen]);
-
-  // Handle logout (memoizado para evitar re-renders)
-  const handleLogout = useCallback(() => {
-    logout();
-    navigate("/login");
-  }, [logout, navigate]);
 
   // Role helpers
   const getUserRoles = () => {
@@ -328,6 +310,29 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
 
   const isPathActive = (path) => location.pathname === path || location.pathname.startsWith(path + "/");
 
+  // Common styles
+  const listItemButtonSx = (isActive, depth = 0) => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: 1,
+    width: '100%',
+    transition: 'all 0.2s',
+    fontSize: '10px',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    borderBottom: '1px solid rgba(0, 0, 0, 0.2)',
+    px: depth === 0 ? 2 : 2,
+    py: depth === 0 ? 1 : 0.75,
+    pl: depth === 0 ? 2 : 3,
+    backgroundColor: isActive ? 'var(--primary)' : 'transparent',
+    color: isActive ? 'white' : 'var(--fg-strong)',
+    '&:hover': {
+      color: isActive ? 'white' : 'var(--primary)',
+      backgroundColor: isActive ? 'var(--primary)' : 'var(--border)',
+    },
+  });
+
   // Render a single nav item
   const renderNavItem = (item, depth = 0) => {
     const Icon = item.icon;
@@ -337,39 +342,67 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
     const label = t(item.trKey, item.label);
     const isNotifications = item.key === "bandeja-entrada";
     const hasNotifications = isNotifications && unreadCount > 0;
-    const iconColor = getIconColor(item.iconName, isActive);
-
-    const baseClass = clsx(
-      "flex items-center gap-3 w-full rounded-xl transition-all duration-200",
-      "text-sm font-medium",
-      depth === 0 ? "px-3 py-2.5" : "px-3 py-2 pl-10",
-      isActive
-        ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-sm"
-        : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
-    );
+    const iconColor = getIconColor(item.iconName, isActive, hasNotifications);
 
     // Collapsed mode - show only icon with tooltip
     if (collapsed && depth === 0) {
       return (
-        <Tooltip key={item.key || item.to} content={`${label}${hasNotifications ? ` (${unreadCount})` : ""}`} position="right" delay={0} className="w-full flex justify-center py-0.5">
-          {item.to ? (
-            <NavLink to={item.to} className="relative flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200 hover:bg-white/50">
-              <Icon className={clsx("w-5 h-5 flex-shrink-0", iconColor, hasNotifications && "animate-notification-blink")} />
-              {hasNotifications && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 px-0.5 flex items-center justify-center text-[8px] font-bold text-blue-600 bg-white border-2 border-blue-500 rounded-full">
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </span>
-              )}
-            </NavLink>
-          ) : (
-            <button
-              type="button"
-              onClick={() => hasChildren && toggleMenu(item.key)}
-              className="flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200 hover:bg-white/50"
-            >
-              <Icon className={clsx("w-5 h-5 flex-shrink-0", iconColor)} />
-            </button>
-          )}
+        <Tooltip key={item.key || item.to} title={`${label}${hasNotifications ? ` (${unreadCount})` : ""}`} placement="right">
+          <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', py: 0.25 }}>
+            {item.to ? (
+              <ListItemButton
+                component={NavLink}
+                to={item.to}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 32,
+                  height: 32,
+                  minWidth: 32,
+                  borderRadius: 0,
+                  transition: 'all 0.2s',
+                  '&:hover': { backgroundColor: 'var(--border)' },
+                }}
+              >
+                <Badge
+                  badgeContent={hasNotifications ? unreadCount : 0}
+                  color="primary"
+                  max={99}
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      fontSize: '0.65rem',
+                      minWidth: '16px',
+                      height: '16px',
+                    }
+                  }}
+                >
+                  <Icon
+                    style={{
+                      width: 20,
+                      height: 20,
+                      flexShrink: 0,
+                      color: iconColor,
+                    }}
+                    className={hasNotifications ? "animate-notification-blink" : ""}
+                  />
+                </Badge>
+              </ListItemButton>
+            ) : (
+              <IconButton
+                onClick={() => hasChildren && toggleMenu(item.key)}
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 0,
+                  transition: 'all 0.2s',
+                  '&:hover': { backgroundColor: 'var(--border)' },
+                }}
+              >
+                <Icon style={{ width: 20, height: 20, flexShrink: 0, color: iconColor }} />
+              </IconButton>
+            )}
+          </Box>
         </Tooltip>
       );
     }
@@ -377,38 +410,97 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
     // Expanded mode
     if (item.to && !hasChildren) {
       return (
-        <NavLink key={item.to} to={item.to} className={baseClass}>
-          <Icon className={clsx("w-4 h-4 flex-shrink-0", !isActive && iconColor, hasNotifications && "animate-notification-blink")} />
-          <span className="truncate">{label}</span>
-          {hasNotifications && (
-            <span className="ml-auto min-w-[20px] h-5 px-1.5 flex items-center justify-center text-[11px] font-bold text-[var(--primary)] bg-[var(--card)] border-2 border-[var(--primary)] rounded-full">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </span>
-          )}
-        </NavLink>
+        <Badge
+          key={item.to}
+          badgeContent={hasNotifications ? unreadCount : 0}
+          color="primary"
+          max={99}
+          sx={{
+            width: '100%',
+            '& .MuiBadge-badge': {
+              fontSize: '0.65rem',
+              minWidth: '18px',
+              height: '18px',
+              top: 4,
+              right: 8,
+            }
+          }}
+        >
+          <ListItemButton
+            component={NavLink}
+            to={item.to}
+            sx={listItemButtonSx(isActive, depth)}
+          >
+            <ListItemIcon sx={{ minWidth: 'auto', mr: 1 }}>
+              <Icon
+                style={{
+                  width: 14,
+                  height: 14,
+                  flexShrink: 0,
+                  color: iconColor,
+                }}
+                className={hasNotifications ? "animate-notification-blink" : ""}
+              />
+            </ListItemIcon>
+            <ListItemText
+              primary={label}
+              primaryTypographyProps={{
+                sx: {
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }
+              }}
+            />
+          </ListItemButton>
+        </Badge>
       );
     }
 
     // Parent item with children
     return (
-      <div key={item.key}>
-        <button
-          type="button"
+      <Box key={item.key}>
+        <ListItemButton
           onClick={() => toggleMenu(item.key)}
-          className={clsx(baseClass, "justify-between")}
+          sx={{
+            ...listItemButtonSx(false, depth),
+            justifyContent: 'space-between',
+          }}
         >
-          <div className="flex items-center gap-3">
-            <Icon className={clsx("w-4 h-4 flex-shrink-0", iconColor)} />
-            <span className="truncate">{label}</span>
-          </div>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Icon style={{ width: 14, height: 14, flexShrink: 0, color: iconColor }} />
+            <Typography
+              sx={{
+                fontSize: '10px',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {label}
+            </Typography>
+          </Box>
           <ChevronDown
-            className={clsx("w-4 h-4 transition-transform duration-200 text-slate-400 dark:text-slate-500", isExpanded && "rotate-180")}
+            style={{
+              width: 12,
+              height: 12,
+              color: 'var(--fg-strong)',
+              transition: 'transform 0.2s',
+              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+            }}
           />
-        </button>
+        </ListItemButton>
 
         {/* Children */}
-        {isExpanded && (
-          <div className="mt-1 space-y-0.5 animate-fade-in">
+        <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding sx={{ mt: 0.5 }}>
             {item.children.map((child) => {
               // Nested children (like MRP)
               if (child.children) {
@@ -421,364 +513,345 @@ function Sidebar({ collapsed, onToggle, isConnected = false }) {
               const childIconColor = getIconColor(child.iconName, childActive);
 
               return (
-                <NavLink
+                <ListItemButton
                   key={child.to}
+                  component={NavLink}
                   to={child.to}
-                  className={clsx(
-                    "flex items-center gap-3 px-3 py-2 pl-10 rounded-xl transition-all duration-200",
-                    "text-sm font-medium",
-                    childActive
-                      ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                      : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
-                  )}
+                  sx={listItemButtonSx(childActive, depth + 1)}
                 >
-                  <ChildIcon className={clsx("w-4 h-4 flex-shrink-0", !childActive && childIconColor)} />
-                  <span className="truncate">{childLabel}</span>
-                </NavLink>
+                  <ListItemIcon sx={{ minWidth: 'auto', mr: 1 }}>
+                    <ChildIcon style={{ width: 12, height: 12, flexShrink: 0, color: childIconColor }} />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={childLabel}
+                    primaryTypographyProps={{
+                      sx: {
+                        fontSize: '10px',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }
+                    }}
+                  />
+                </ListItemButton>
               );
             })}
-          </div>
-        )}
-      </div>
+          </List>
+        </Collapse>
+      </Box>
     );
   };
+
+  const drawerWidth = collapsed ? 43 : 160;
+  const mobileDrawerWidth = 288;
+
+  const sidebarContent = (
+    <Box
+      component="nav"
+      sx={{
+        flex: 1,
+        overflowY: 'auto',
+        py: 1,
+        px: 0.5,
+        maxHeight: 'calc(100vh - 43px - 100px)',
+      }}
+    >
+      {/* Section: Principal */}
+      {!collapsed ? (
+        <Box sx={{ pb: 0.5, px: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography
+            sx={{
+              fontSize: '8px',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              color: 'var(--fg-muted)',
+            }}
+          >
+            {t("nav_principal", "Principal")}
+          </Typography>
+          <IconButton
+            onClick={onToggle}
+            size="small"
+            sx={{
+              width: 20,
+              height: 20,
+              borderRadius: 0,
+              color: 'var(--fg-muted)',
+              '&:hover': { color: 'var(--primary)', backgroundColor: 'var(--border)' },
+            }}
+            title={t("tooltip_colapsar", "Colapsar")}
+            aria-label={t("tooltip_colapsar", "Colapsar")}
+          >
+            <ChevronLeft style={{ width: 12, height: 12, color: 'var(--fg-strong)' }} />
+          </IconButton>
+        </Box>
+      ) : (
+        <Box sx={{ pb: 0.5, px: 0.5, display: 'flex', justifyContent: 'center' }}>
+          <IconButton
+            onClick={onToggle}
+            size="small"
+            sx={{
+              width: 24,
+              height: 24,
+              borderRadius: 0,
+              color: 'var(--fg-muted)',
+              '&:hover': { color: 'var(--primary)', backgroundColor: 'var(--border)' },
+            }}
+            title={t("tooltip_expandir", "Expandir")}
+            aria-label={t("tooltip_expandir", "Expandir")}
+          >
+            <ChevronRight style={{ width: 14, height: 14, color: 'var(--fg-strong)' }} />
+          </IconButton>
+        </Box>
+      )}
+
+      {/* Section: Operaciones */}
+      {!collapsed && (
+        <Box sx={{ pt: 1, pb: 0.5, px: 1 }}>
+          <Typography
+            sx={{
+              fontSize: '8px',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              color: 'var(--fg-muted)',
+            }}
+          >
+            {t("nav_operaciones", "Operaciones")}
+          </Typography>
+        </Box>
+      )}
+
+      {/* Solicitudes y Materiales */}
+      <List disablePadding>
+        {mainNavItems.map((item) => renderNavItem(item))}
+      </List>
+
+      {/* Presupuesto - ahora en Operaciones */}
+      {canSeeBudget && (
+        collapsed ? (
+          <Tooltip title={t("nav_presupuesto", "Presupuesto")} placement="right">
+            <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', py: 0.25 }}>
+              <ListItemButton
+                component={NavLink}
+                to="/presupuestos"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 28,
+                  height: 28,
+                  minWidth: 28,
+                  borderRadius: 0,
+                  transition: 'all 0.15s',
+                  backgroundColor: isPathActive("/presupuestos") ? 'var(--primary)' : 'transparent',
+                  color: 'var(--fg-strong)',
+                  '&:hover': { color: 'var(--primary)', backgroundColor: 'var(--border)' },
+                }}
+              >
+                <Wallet style={{ width: 14, height: 14, flexShrink: 0, color: 'var(--fg-strong)' }} />
+              </ListItemButton>
+            </Box>
+          </Tooltip>
+        ) : (
+          <ListItemButton
+            component={NavLink}
+            to="/presupuestos"
+            sx={listItemButtonSx(isPathActive("/presupuestos"))}
+          >
+            <ListItemIcon sx={{ minWidth: 'auto', mr: 1 }}>
+              <Wallet style={{ width: 14, height: 14, flexShrink: 0, color: 'var(--fg-strong)' }} />
+            </ListItemIcon>
+            <ListItemText
+              primary={t("nav_presupuesto", "Presupuesto")}
+              primaryTypographyProps={{
+                sx: {
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }
+              }}
+            />
+          </ListItemButton>
+        )
+      )}
+
+      {/* Section: Planificacion */}
+      {canSeePlanner && (
+        <>
+          {!collapsed && (
+            <Box sx={{ pt: 1, pb: 0.5, px: 1 }}>
+              <Typography
+                sx={{
+                  fontSize: '8px',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  color: 'var(--fg-muted)',
+                }}
+              >
+                {t("nav_planificacion", "Planificacion")}
+              </Typography>
+            </Box>
+          )}
+          <List disablePadding>
+            {plannerNavItems.map((item) => renderNavItem(item))}
+          </List>
+        </>
+      )}
+
+      {/* Section: Transporte (TMS) */}
+      {(isAdmin() || canSeePlanner) && (
+        <>
+          {!collapsed && (
+            <Box sx={{ pt: 1, pb: 0.5, px: 1 }}>
+              <Typography
+                sx={{
+                  fontSize: '8px',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  color: 'var(--fg-muted)',
+                }}
+              >
+                {t("nav_logistica", "Logistica")}
+              </Typography>
+            </Box>
+          )}
+          <List disablePadding>
+            {tmsNavItems.map((item) => renderNavItem(item))}
+            {fmsNavItems.map((item) => renderNavItem(item))}
+          </List>
+        </>
+      )}
+
+      {/* Section: Administracion */}
+      {isAdmin() && (
+        <>
+          {!collapsed && (
+            <Box sx={{ pt: 1, pb: 0.5, px: 1 }}>
+              <Typography
+                sx={{
+                  fontSize: '8px',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  color: 'var(--fg-muted)',
+                }}
+              >
+                {t("nav_admin", "Administracion")}
+              </Typography>
+            </Box>
+          )}
+          <List disablePadding>
+            {adminNavHierarchy.map((item) => renderNavItem(item))}
+          </List>
+        </>
+      )}
+    </Box>
+  );
 
   return (
     <>
       {/* Mobile hamburger button - visible only on small screens */}
-      <button
-        type="button"
+      <IconButton
         onClick={() => setMobileOpen(!mobileOpen)}
-        className={clsx(
-          "fixed top-4 left-4 z-50 md:hidden",
-          "h-10 w-10 rounded-xl grid place-items-center",
-          "bg-[var(--sidebar-bg)] backdrop-blur-lg shadow-lg border border-[var(--border-glass)]",
-          "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-glass)]",
-          "transition-all duration-150"
-        )}
-        aria-label={mobileOpen ? t("menu_close", "Cerrar menú") : t("menu_open", "Abrir menú")}
+        sx={{
+          position: 'fixed',
+          top: 52,
+          left: 12,
+          zIndex: 50,
+          display: { xs: 'grid', md: 'none' },
+          placeItems: 'center',
+          height: 44,
+          width: 44,
+          minHeight: 44,
+          minWidth: 44,
+          borderRadius: 0,
+          backgroundColor: 'var(--border)',
+          boxShadow: 3,
+          border: '1px solid var(--fg-muted)',
+          color: 'var(--fg-strong)',
+          '&:hover': { color: 'var(--primary)', backgroundColor: 'var(--bg-soft)' },
+          transition: 'all 0.15s',
+          '&:active': { transform: 'scale(0.95)' },
+        }}
+        aria-label={mobileOpen ? t("menu_close", "Cerrar menu") : t("menu_open", "Abrir menu")}
         aria-expanded={mobileOpen}
       >
-        {mobileOpen ? <X className={`w-5 h-5 ${ICON_COLORS.danger}`} /> : <Menu className={`w-5 h-5 ${ICON_COLORS.subtle}`} />}
-      </button>
+        {mobileOpen ? (
+          <X style={{ width: 20, height: 20, color: 'var(--fg-strong)' }} />
+        ) : (
+          <MenuIcon style={{ width: 20, height: 20, color: 'var(--fg-strong)' }} />
+        )}
+      </IconButton>
 
       {/* Mobile overlay */}
       {mobileOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden animate-fade-in"
+        <Box
           onClick={() => setMobileOpen(false)}
           aria-hidden="true"
+          sx={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 30,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(4px)',
+            display: { xs: 'block', md: 'none' },
+            animation: 'fadeIn 0.2s ease-in-out',
+          }}
         />
       )}
 
-      <aside
-        className={clsx(
-          "fixed left-0 top-0 h-screen z-40",
-          // Glass effect - usando variables CSS para dark mode
-          "bg-[var(--sidebar-bg)] backdrop-blur-xl",
-          "border-r border-[var(--border-glass)]",
-          "shadow-glass",
-          "flex flex-col transition-all duration-300 ease-spring",
-          // Desktop width
-          collapsed ? "w-14" : "w-56",
-          // Mobile: hidden by default, slide in when open
-          "md:translate-x-0",
-          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        )}
+      {/* Mobile Drawer */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            width: mobileDrawerWidth,
+            top: 43,
+            height: 'calc(100vh - 43px)',
+            backgroundColor: 'var(--border)',
+            borderRight: '1px solid var(--fg-muted)',
+          },
+        }}
       >
-      {/* Header / Logo - Glass style */}
-      <div
-        className={clsx(
-          "h-16 flex items-center border-b border-[var(--border-glass)]",
-          collapsed ? "justify-center px-2" : "justify-between px-4"
-        )}
+        {sidebarContent}
+      </Drawer>
+
+      {/* Desktop Sidebar */}
+      <Box
+        component="aside"
+        sx={{
+          position: 'fixed',
+          left: 0,
+          top: 43,
+          height: 'calc(100vh - 43px)',
+          zIndex: 40,
+          backgroundColor: 'var(--border)',
+          borderRight: '1px solid var(--fg-muted)',
+          boxShadow: 6,
+          display: { xs: 'none', md: 'flex' },
+          flexDirection: 'column',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          width: drawerWidth,
+        }}
       >
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <img
-              src={`${import.meta.env.BASE_URL}images/spm-logo.svg`}
-              alt="SPM Logo"
-              className="h-8 w-auto object-contain"
-            />
-          </div>
-        )}
-        <div className="flex items-center gap-1">
-          {/* Collapse/Expand button */}
-          <button
-            type="button"
-            onClick={onToggle}
-            className={clsx(
-              "h-8 w-8 rounded-lg grid place-items-center",
-              "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200",
-              "hover:bg-white/50 dark:hover:bg-slate-700/50 transition-all duration-150"
-            )}
-            title={collapsed ? t("tooltip_expandir", "Expandir") : t("tooltip_colapsar", "Colapsar")}
-            aria-label={collapsed ? t("tooltip_expandir", "Expandir") : t("tooltip_colapsar", "Colapsar")}
-          >
-            {collapsed ? <ChevronRight className={`w-4 h-4 ${ICON_COLORS.subtle}`} /> : <ChevronLeft className={`w-4 h-4 ${ICON_COLORS.subtle}`} />}
-          </button>
-        </div>
-      </div>
-
-      {/* User Menu - Top - Accordion style like other nav items */}
-      <div className="border-b border-[var(--border-glass)] px-2 py-2">
-        {collapsed ? (
-          // Collapsed: show only avatar with tooltip
-          <Tooltip content={user?.nombre || t("user_default", "Usuario")} position="right" className="w-full flex justify-center">
-            <button
-              type="button"
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200 hover:bg-white/50"
-            >
-              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-sm shadow-md">
-                {user?.nombre?.[0]?.toUpperCase() || <User className="w-4 h-4" />}
-              </div>
-            </button>
-          </Tooltip>
-        ) : (
-          // Expanded: show full user menu with accordion behavior
-          <div>
-            <button
-              type="button"
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className={clsx(
-                "flex items-center gap-3 w-full rounded-xl transition-all duration-200",
-                "text-sm font-medium px-3 py-2.5",
-                "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50 justify-between"
-              )}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-xs shadow-md">
-                  {user?.nombre?.[0]?.toUpperCase() || <User className="w-3 h-3" />}
-                </div>
-                <div className="text-left min-w-0">
-                  <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate max-w-[120px]">
-                    {user?.nombre || t("user_default", "Usuario")}
-                  </p>
-                </div>
-              </div>
-              <ChevronDown
-                className={clsx(
-                  "w-4 h-4 transition-transform duration-200",
-                  userMenuOpen && "rotate-180"
-                )}
-              />
-            </button>
-
-            {/* Accordion children - same style as other nav items */}
-            {userMenuOpen && (
-              <div className="mt-1 space-y-0.5 animate-fade-in">
-                <NavLink
-                  to="/mi-cuenta"
-                  className={clsx(
-                    "flex items-center gap-3 px-3 py-2 pl-10 rounded-xl transition-all duration-200",
-                    "text-sm font-medium",
-                    isPathActive("/mi-cuenta")
-                      ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                      : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
-                  )}
-                >
-                  <User className={clsx("w-4 h-4 flex-shrink-0", !isPathActive("/mi-cuenta") && ICON_COLORS.users)} />
-                  <span className="truncate">{t("user_mi_cuenta", "Mi Cuenta")}</span>
-                </NavLink>
-                <NavLink
-                  to="/ajustes"
-                  className={clsx(
-                    "flex items-center gap-3 px-3 py-2 pl-10 rounded-xl transition-all duration-200",
-                    "text-sm font-medium",
-                    isPathActive("/ajustes")
-                      ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                      : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
-                  )}
-                >
-                  <Settings className={clsx("w-4 h-4 flex-shrink-0", !isPathActive("/ajustes") && ICON_COLORS.secondary)} />
-                  <span className="truncate">{t("user_ajustes", "Ajustes")}</span>
-                </NavLink>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1" style={{ maxHeight: 'calc(100vh - 180px)' }}>
-        {/* Section: Principal */}
-        {!collapsed && (
-          <div className="pb-2 px-3">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              {t("nav_principal", "Principal")}
-            </span>
-          </div>
-        )}
-        {/* Dashboard y Bandeja */}
-        {mainNavItems.slice(0, 2).map((item) => renderNavItem(item))}
-
-        {/* Section: Operaciones */}
-        {!collapsed && (
-          <div className="pt-4 pb-2 px-3">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              {t("nav_operaciones", "Operaciones")}
-            </span>
-          </div>
-        )}
-        {/* Solicitudes y Materiales */}
-        {mainNavItems.slice(2).map((item) => renderNavItem(item))}
-
-        {/* Presupuesto - ahora en Operaciones */}
-        {canSeeBudget && (
-          collapsed ? (
-            <Tooltip content={t("nav_presupuesto", "Presupuesto")} position="right" delay={0} className="w-full flex justify-center py-0.5">
-              <NavLink
-                to="/presupuestos"
-                className={clsx(
-                  "flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-150",
-                  isPathActive("/presupuestos")
-                    ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                    : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
-                )}
-              >
-                <Wallet className={clsx("w-5 h-5 flex-shrink-0", !isPathActive("/presupuestos") && ICON_COLORS.money)} />
-              </NavLink>
-            </Tooltip>
-          ) : (
-            <NavLink
-              to="/presupuestos"
-              className={clsx(
-                "flex items-center gap-3 w-full rounded-xl transition-all duration-150",
-                "text-sm font-medium px-3 py-2.5",
-                isPathActive("/presupuestos")
-                  ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                  : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
-              )}
-            >
-              <Wallet className={clsx("w-4 h-4 flex-shrink-0", !isPathActive("/presupuestos") && ICON_COLORS.money)} />
-              <span className="truncate">{t("nav_presupuesto", "Presupuesto")}</span>
-            </NavLink>
-          )
-        )}
-
-        {/* Section: Planificación */}
-        {canSeePlanner && (
-          <>
-            {!collapsed && (
-              <div className="pt-4 pb-2 px-3">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  {t("nav_planificacion", "Planificación")}
-                </span>
-              </div>
-            )}
-            {plannerNavItems.map((item) => renderNavItem(item))}
-          </>
-        )}
-
-        {/* Section: Administración */}
-        {isAdmin() && (
-          <>
-            {!collapsed && (
-              <div className="pt-4 pb-2 px-3">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  {t("nav_admin", "Administración")}
-                </span>
-              </div>
-            )}
-            {adminNavHierarchy.map((item) => renderNavItem(item))}
-          </>
-        )}
-
-      </nav>
-
-      {/* Bottom fixed section: Connection indicator + Foro + Logout */}
-      <div className="border-t border-[var(--border-glass)] px-2 py-2 space-y-1">
-        {/* Connection indicator */}
-        {collapsed ? (
-          <Tooltip
-            content={isConnected ? t("realtime_connected", "Conectado en tiempo real") : t("realtime_disconnected", "Sin conexion en tiempo real")}
-            position="right"
-            delay={0}
-            className="w-full flex justify-center py-0.5"
-          >
-            <div className="flex items-center justify-center w-8 h-8">
-              {isConnected ? (
-                <Wifi className={`w-4 h-4 ${ICON_COLORS.success}`} />
-              ) : (
-                <WifiOff className={`w-4 h-4 ${ICON_COLORS.muted}`} />
-              )}
-            </div>
-          </Tooltip>
-        ) : (
-          <div className="flex items-center gap-3 px-3 py-2 text-sm">
-            {isConnected ? (
-              <>
-                <Wifi className={`w-4 h-4 ${ICON_COLORS.success}`} />
-                <span className="text-emerald-600 dark:text-emerald-400 text-xs">{t("realtime_live", "En vivo")}</span>
-              </>
-            ) : (
-              <>
-                <WifiOff className={`w-4 h-4 ${ICON_COLORS.muted}`} />
-                <span className={`${ICON_COLORS.muted} text-xs`}>{t("realtime_offline", "Sin conexion")}</span>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Foro button */}
-        {collapsed ? (
-          <Tooltip content={t("nav_foro", "Foro")} position="right" delay={0} className="w-full flex justify-center py-0.5">
-            <NavLink
-              to="/foro"
-              className={clsx(
-                "flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-150",
-                isPathActive("/foro")
-                  ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                  : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
-              )}
-            >
-              <MessageSquare className={clsx("w-5 h-5", !isPathActive("/foro") && ICON_COLORS.communication)} />
-            </NavLink>
-          </Tooltip>
-        ) : (
-          <NavLink
-            to="/foro"
-            className={clsx(
-              "flex items-center gap-3 w-full rounded-xl transition-all duration-150",
-              "text-sm font-medium px-3 py-2.5",
-              isPathActive("/foro")
-                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
-            )}
-          >
-            <MessageSquare className={clsx("w-4 h-4", !isPathActive("/foro") && ICON_COLORS.communication)} />
-            <span>{t("nav_foro", "Foro")}</span>
-          </NavLink>
-        )}
-
-        {/* Logout button */}
-        {collapsed ? (
-          <Tooltip content={t("user_logout", "Cerrar Sesión")} position="right" delay={0} className="w-full flex justify-center">
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-150 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50/50 dark:hover:bg-red-900/30"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
-          </Tooltip>
-        ) : (
-          <button
-            type="button"
-            onClick={handleLogout}
-            className={clsx(
-              "flex items-center gap-3 w-full rounded-xl transition-all duration-150",
-              "text-sm font-medium px-3 py-2.5",
-              "text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50/50 dark:hover:bg-red-900/30"
-            )}
-          >
-            <LogOut className="w-4 h-4" />
-            <span>{t("user_logout", "Cerrar Sesión")}</span>
-          </button>
-        )}
-      </div>
-    </aside>
+        {sidebarContent}
+      </Box>
     </>
   );
 }

@@ -19,8 +19,10 @@ const MODELOS_NOMBRES = {
 export function useForecast() {
   // Estado principal
   const [materialCodigo, setMaterialCodigo] = useState('');
-  const [modeloSeleccionado, setModeloSeleccionado] = useState('random_forest');
+  // Iniciar vacío para evitar warning de MUI Select (se asigna al cargar modelos)
+  const [modeloSeleccionado, setModeloSeleccionado] = useState('');
   const [diasPrediccion, setDiasPrediccion] = useState(30);
+  const [mesesHistorico, setMesesHistorico] = useState(0); // 0 = todo el histórico
   const [centro, setCentro] = useState('');
   const [almacen, setAlmacen] = useState('');
 
@@ -29,6 +31,10 @@ export function useForecast() {
   const [backtestData, setBacktestData] = useState(null);
   const [comparacionData, setComparacionData] = useState(null);
   const [autoSelectData, setAutoSelectData] = useState(null);
+
+  // Estado de simulación (cold start)
+  const [simulationMode, setSimulationMode] = useState(false);
+  const [simulationParams, setSimulationParams] = useState(null);
 
   // Catálogos
   const [centrosDisponibles, setCentrosDisponibles] = useState([]);
@@ -49,27 +55,61 @@ export function useForecast() {
   useEffect(() => {
     const loadCatalogos = async () => {
       setLoadingCatalogos(true);
-      try {
-        const [centrosRes, almacenesRes, modelosRes] = await Promise.all([
-          forecastService.getCentros(),
-          forecastService.getAlmacenes(),
-          forecastService.getModelsDisponibles()
-        ]);
 
+      // Cargar catálogos primero (no requieren auth especial)
+      try {
+        const [centrosRes, almacenesRes] = await Promise.all([
+          forecastService.getCentros(),
+          forecastService.getAlmacenes()
+        ]);
         setCentrosDisponibles(centrosRes || []);
         setAlmacenesDisponibles(almacenesRes || []);
-
-        if (modelosRes?.modelos) {
-          setModelosDisponibles(modelosRes.modelos);
-        } else {
-          setModelosDisponibles(['random_forest', 'gradient_boosting', 'linear']);
-        }
       } catch (err) {
         console.error('Error cargando catálogos:', err);
-        setModelosDisponibles(['random_forest', 'gradient_boosting', 'linear']);
-      } finally {
-        setLoadingCatalogos(false);
       }
+
+      // Cargar modelos (requiere auth, puede fallar independiente)
+      try {
+        const modelosRes = await forecastService.getModelsDisponibles();
+        let modelos = [];
+        if (modelosRes?.modelos && modelosRes?.nombres) {
+          // Transformar a array de objetos {id, nombre}
+          modelos = modelosRes.modelos.map(id => ({
+            id,
+            nombre: modelosRes.nombres[id] || MODELOS_NOMBRES[id] || id
+          }));
+        } else if (modelosRes?.modelos) {
+          // Solo IDs disponibles, usar nombres locales
+          modelos = modelosRes.modelos.map(id => ({
+            id,
+            nombre: MODELOS_NOMBRES[id] || id
+          }));
+        } else {
+          // Fallback con objetos
+          modelos = [
+            { id: 'random_forest', nombre: 'Random Forest' },
+            { id: 'gradient_boosting', nombre: 'Gradient Boosting' },
+            { id: 'linear', nombre: 'Regresión Lineal' }
+          ];
+        }
+        setModelosDisponibles(modelos);
+        // Establecer modelo por defecto si no hay uno seleccionado
+        if (modelos.length > 0) {
+          setModeloSeleccionado(prev => prev || modelos[0].id);
+        }
+      } catch (err) {
+        console.error('Error cargando modelos:', err);
+        // Fallback con objetos
+        const fallbackModelos = [
+          { id: 'random_forest', nombre: 'Random Forest' },
+          { id: 'gradient_boosting', nombre: 'Gradient Boosting' },
+          { id: 'linear', nombre: 'Regresión Lineal' }
+        ];
+        setModelosDisponibles(fallbackModelos);
+        setModeloSeleccionado(prev => prev || 'random_forest');
+      }
+
+      setLoadingCatalogos(false);
     };
     loadCatalogos();
   }, []);
@@ -89,7 +129,8 @@ export function useForecast() {
         dias: diasPrediccion,
         modelo: modeloSeleccionado,
         centro,
-        almacen
+        almacen,
+        mesesHistorico
       });
 
       setForecastData(result);
@@ -105,7 +146,7 @@ export function useForecast() {
     } finally {
       setLoading(false);
     }
-  }, [materialCodigo, diasPrediccion, modeloSeleccionado, centro, almacen]);
+  }, [materialCodigo, diasPrediccion, modeloSeleccionado, centro, almacen, mesesHistorico]);
 
   // Ejecutar backtesting
   const ejecutarBacktest = useCallback(async (codigo = materialCodigo, opciones = {}) => {
@@ -206,17 +247,101 @@ export function useForecast() {
     }
   }, [materialCodigo, centro]);
 
-  // Limpiar datos
-  const limpiar = useCallback(() => {
-    setForecastData(null);
+  // Generar datos sintéticos para cold start (simulación)
+  // Soporta customPredictions para ForecastPlaceholder con formula SS = 1.65 * sqrt(LT/30) * sigma
+  const generateSyntheticData = useCallback(({ consumoMensual, volatilidad, leadTime, customPredictions }) => {
+    let predicciones;
+    let safetyStock;
+
+    if (customPredictions && customPredictions.length > 0) {
+      // Usar predicciones custom del ForecastPlaceholder (formula SS estadistica)
+      predicciones = customPredictions.map(p => ({
+        fecha: p.fecha,
+        cantidad_predicha: p.prediccion,
+        prediccion: p.prediccion,
+        limite_inferior: p.limiteInferior,
+        limite_superior: p.limiteSuperior,
+        limiteInferior: p.limiteInferior,
+        limiteSuperior: p.limiteSuperior,
+      }));
+      // SS ya calculado con formula: 1.65 * sqrt(LT/30) * (consumo * buffer)
+      const sigmaEstimada = consumoMensual * volatilidad;
+      safetyStock = 1.65 * Math.sqrt(leadTime / 30) * sigmaEstimada;
+    } else {
+      // Generacion original con jitter
+      predicciones = [];
+      const today = new Date();
+
+      // Generar 12 meses de predicciones
+      for (let i = 1; i <= 12; i++) {
+        const fecha = new Date(today.getFullYear(), today.getMonth() + i, 1);
+        // Jitter orgánico de ±5% para que no sea línea plana
+        const jitter = 1 + (Math.random() * 0.1 - 0.05);
+
+        const prediccion = consumoMensual * jitter;
+        const limiteSuperior = consumoMensual * (1 + volatilidad) * jitter;
+        const limiteInferior = Math.max(0, consumoMensual * (1 - volatilidad) * jitter);
+
+        predicciones.push({
+          fecha: fecha.toISOString().split('T')[0],
+          cantidad_predicha: prediccion,
+          prediccion: prediccion,
+          limite_inferior: limiteInferior,
+          limite_superior: limiteSuperior,
+          limiteInferior: limiteInferior,
+          limiteSuperior: limiteSuperior,
+        });
+      }
+
+      // Calcular Safety Stock original: (consumo diario) * lead time
+      const consumoDiario = consumoMensual / 30;
+      safetyStock = consumoDiario * leadTime;
+    }
+
+    // Almacenar parámetros de simulación
+    setSimulationParams({ consumoMensual, volatilidad, leadTime });
+    setSimulationMode(true);
+
+    // Actualizar forecastData con datos simulados
+    setForecastData({
+      predicciones,
+      historico: [], // Sin histórico en simulación
+      metricas: null,
+      simulationMode: true,
+      safetyStock,
+      parametros: { consumoMensual, volatilidad, leadTime },
+      nombre_modelo: 'Simulación',
+      dias: 365,
+    });
+
+    // Limpiar datos de backtesting y comparación (no aplican en simulación)
     setBacktestData(null);
     setComparacionData(null);
     setAutoSelectData(null);
     setError(null);
   }, []);
 
+  // Salir del modo simulación
+  const exitSimulationMode = useCallback(() => {
+    setSimulationMode(false);
+    setSimulationParams(null);
+    setForecastData(null);
+  }, []);
+
+  // Limpiar datos
+  const limpiar = useCallback(() => {
+    setForecastData(null);
+    setBacktestData(null);
+    setComparacionData(null);
+    setAutoSelectData(null);
+    setSimulationMode(false);
+    setSimulationParams(null);
+    setError(null);
+  }, []);
+
   // Obtener nombre legible del modelo
   const getNombreModelo = useCallback((modelo) => {
+    if (!modelo) return 'Sin modelo';
     return MODELOS_NOMBRES[modelo] || modelo;
   }, []);
 
@@ -243,6 +368,9 @@ export function useForecast() {
       }))
     : [];
 
+  // Información del histórico utilizado
+  const historicoInfo = forecastData?.historico_info || null;
+
   return {
     // Estado
     materialCodigo,
@@ -251,6 +379,8 @@ export function useForecast() {
     setModeloSeleccionado,
     diasPrediccion,
     setDiasPrediccion,
+    mesesHistorico,
+    setMesesHistorico,
     centro,
     setCentro,
     almacen,
@@ -267,6 +397,7 @@ export function useForecast() {
     metricas,
     prediccionesParaGrafico,
     historicoParaGrafico,
+    historicoInfo,
 
     // Estados de carga
     loading,
@@ -278,6 +409,12 @@ export function useForecast() {
     // Error
     error,
     setError,
+
+    // Simulación (Cold Start)
+    simulationMode,
+    simulationParams,
+    generateSyntheticData,
+    exitSimulationMode,
 
     // Acciones
     ejecutarForecast,

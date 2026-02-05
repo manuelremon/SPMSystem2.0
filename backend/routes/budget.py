@@ -38,7 +38,7 @@ def _get_approvers_for_level(nivel: str) -> list:
     """
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT id_spm, rol FROM usuarios WHERE estado_registro = 'Activo'")
+        cur.execute("SELECT id_spm, rol FROM usuario WHERE estado_registro = 'Activo'")
         rows = cur.fetchall()
 
     approvers = set()
@@ -70,7 +70,7 @@ def _get_approvers_for_level(nivel: str) -> list:
 def _resolve_sector_name(sector_value: str) -> str:
     """
     Resuelve el nombre del sector dado un ID o nombre.
-    Si es numerico, busca en catalog_sectores.
+    Si es numerico, busca en catalogo_sector.
     Si no encuentra, devuelve el valor original.
     """
     if not sector_value:
@@ -79,7 +79,7 @@ def _resolve_sector_name(sector_value: str) -> str:
     if sector_value.isdigit():
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT nombre FROM catalog_sectores WHERE id = ?", (int(sector_value),))
+            cur.execute("SELECT nombre FROM catalogo_sector WHERE id = ?", (int(sector_value),))
             row = cur.fetchone()
             if row:
                 # Compatibilidad PostgreSQL (dict) y SQLite (tuple)
@@ -605,7 +605,7 @@ def get_bur_pendientes():
         # Construir placeholders dinamicos para IN clause (compatible SQLite/PostgreSQL)
         placeholders = ",".join(["?"] * len(niveles_aprobables))
         cur.execute(
-            f"""SELECT * FROM budget_update_requests
+            f"""SELECT * FROM presupuesto_solicitud_cambio
                 WHERE estado IN ('pendiente', 'aprobado_l1', 'aprobado_l2')
                 AND nivel_aprobacion_requerido IN ({placeholders})
                 ORDER BY created_at DESC""",

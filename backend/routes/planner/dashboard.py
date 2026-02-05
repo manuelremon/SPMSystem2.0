@@ -36,8 +36,8 @@ def dashboard_stats():
         with get_db_connection() as conn:
             cur = conn.cursor()
 
-            if _table_exists(conn, "solicitudes"):
-                cur.execute("SELECT status, COUNT(*) as cnt FROM solicitudes GROUP BY status")
+            if _table_exists(conn, "solicitud"):
+                cur.execute("SELECT status, COUNT(*) as cnt FROM solicitud GROUP BY status")
                 rows = cur.fetchall() or []
                 counts = {}
                 for row in rows:
@@ -59,7 +59,7 @@ def dashboard_stats():
                 )
 
             if _table_exists(conn, "presupuestos"):
-                cur.execute("SELECT SUM(saldo_usd) as total FROM presupuestos")
+                cur.execute("SELECT SUM(saldo_usd) as total FROM presupuesto")
                 total_saldo = cur.fetchone()
                 # Compatibilidad PostgreSQL (dict) y SQLite (tuple)
                 if total_saldo:
@@ -109,10 +109,10 @@ def _load_solicitudes(filters: dict):
                 u.nombre AS solicitante_nombre, u.apellido AS solicitante_apellido,
                 ua.nombre AS aprobador_nombre, ua.apellido AS aprobador_apellido,
                 up.nombre AS planner_nombre, up.apellido AS planner_apellido
-            FROM solicitudes s
-            LEFT JOIN usuarios u ON s.id_usuario = u.id_spm
-            LEFT JOIN usuarios ua ON s.aprobador_id = ua.id_spm
-            LEFT JOIN usuarios up ON s.planner_id = up.id_spm
+            FROM solicitud s
+            LEFT JOIN usuario u ON s.id_usuario = u.id_spm
+            LEFT JOIN usuario ua ON s.aprobador_id = ua.id_spm
+            LEFT JOIN usuario up ON s.planner_id = up.id_spm
             {where_sql}
             ORDER BY s.updated_at DESC
             """,
@@ -161,7 +161,7 @@ def obtener_presupuesto():
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT centro, sector, monto_usd, saldo_usd FROM presupuestos WHERE centro=? AND sector=?",
+            "SELECT centro, sector, monto_usd, saldo_usd FROM presupuesto WHERE centro=? AND sector=?",
             (centro, sector),
         )
         row = cur.fetchone()

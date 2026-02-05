@@ -1,98 +1,188 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { PageHeader } from "../components/ui/PageHeader";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
-import { Button } from "../components/ui/Button";
+import { useNavigate } from "react-router-dom";
 import { useI18n } from "../context/i18n";
 import api from "../services/api";
-import clsx from "clsx";
-import {
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  BarChart3,
-  PieChart,
-  Activity,
-  Package,
-  Clock,
-  AlertTriangle,
-  CheckCircle2,
-  Target,
-  Gauge,
-  Loader2,
-  AlertCircle,
-  RefreshCw,
-  Calendar,
-} from "../components/ui/Icons";
 import { TempDataBanner } from "../components/ui/TempDataBanner";
+// MUI Components
+import Container from "@mui/material/Container";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
+import IconButton from "@mui/material/IconButton";
+import CircularProgress from "@mui/material/CircularProgress";
+import Alert from "@mui/material/Alert";
+import Tooltip from "@mui/material/Tooltip";
+import Slider from "@mui/material/Slider";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
+import Checkbox from "@mui/material/Checkbox";
+import ListItemText from "@mui/material/ListItemText";
+import OutlinedInput from "@mui/material/OutlinedInput";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
+// MUI Icons
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import WarningIcon from "@mui/icons-material/Warning";
+import InventoryIcon from "@mui/icons-material/Inventory";
+import SpeedIcon from "@mui/icons-material/Speed";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorIcon from "@mui/icons-material/Error";
+import PieChartIcon from "@mui/icons-material/PieChart";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import ShowChartIcon from "@mui/icons-material/ShowChart";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import TrendingDownIcon from "@mui/icons-material/TrendingDown";
+import TrendingFlatIcon from "@mui/icons-material/TrendingFlat";
+// Chart.js Components
+import { SPMGauge } from "../components/ui/SPMChartJS";
 
-// KPI Card component - Glass Morphism style
-function KPICard({ titulo, valor, unidad, tendencia, objetivo, descripcion, icon: Icon, t }) {
-  const tendenciaConfig = {
-    up: {
-      icon: TrendingUp,
-      color: "text-emerald-600",
-      bg: "bg-emerald-50/70 backdrop-blur-sm border border-emerald-200/50",
-      label: t("mrp_tendencia_up", "Subiendo"),
-    },
-    down: {
-      icon: TrendingDown,
-      color: "text-red-600",
-      bg: "bg-red-50/70 backdrop-blur-sm border border-red-200/50",
-      label: t("mrp_tendencia_down", "Bajando"),
-    },
-    stable: {
-      icon: Minus,
-      color: "text-amber-600",
-      bg: "bg-amber-50/70 backdrop-blur-sm border border-amber-200/50",
-      label: t("mrp_tendencia_stable", "Estable"),
-    },
+// Colores del sistema SPM (usando CSS variables)
+const COLORS = {
+  primary: "var(--primary)",
+  success: "var(--success)",
+  warning: "var(--warning)",
+  error: "var(--danger)",
+  info: "var(--info)",
+};
+
+// Icon mapping for KPIs
+const kpiIcons = {
+  materiales_en_riesgo: WarningIcon,
+  materiales_sobrestock: InventoryIcon,
+  rotacion_promedio: SpeedIcon,
+  lead_time_promedio: AccessTimeIcon,
+  cumplimiento_mrp: CheckCircleIcon,
+  pedidos_vencidos: ErrorIcon,
+  pct_pedidos_vencidos: ErrorIcon,
+  velocidad_respuesta: SpeedIcon,
+};
+
+const kpiColors = {
+  materiales_en_riesgo: COLORS.error,
+  materiales_sobrestock: COLORS.warning,
+  rotacion_promedio: COLORS.info,
+  lead_time_promedio: COLORS.primary,
+  cumplimiento_mrp: COLORS.success,
+  pedidos_vencidos: COLORS.error,
+  pct_pedidos_vencidos: COLORS.error,
+  velocidad_respuesta: COLORS.info,
+};
+
+// KPI Card component
+function KPICard({ titulo, valor, unidad, tendencia, objetivo, descripcion, icon: Icon, color = COLORS.primary }) {
+  const getTendenciaIcon = () => {
+    switch (tendencia) {
+      case "up": return <TrendingUpIcon sx={{ fontSize: 16, color: COLORS.success }} />;
+      case "down": return <TrendingDownIcon sx={{ fontSize: 16, color: COLORS.error }} />;
+      default: return <TrendingFlatIcon sx={{ fontSize: 16, color: COLORS.warning }} />;
+    }
   };
 
-  const config = tendenciaConfig[tendencia] || tendenciaConfig.stable;
-  const TendenciaIcon = config.icon;
+  const getTendenciaLabel = () => {
+    switch (tendencia) {
+      case "up": return "Subiendo";
+      case "down": return "Bajando";
+      default: return "Estable";
+    }
+  };
+
+  const getTendenciaBg = () => {
+    switch (tendencia) {
+      case "up": return "color-mix(in srgb, var(--success) 15%, transparent)";
+      case "down": return "color-mix(in srgb, var(--danger) 15%, transparent)";
+      default: return "color-mix(in srgb, var(--warning) 15%, transparent)";
+    }
+  };
 
   return (
-    <Card className="hover:border-[var(--primary)]/50 hover:shadow-lg hover:shadow-[var(--primary)]/10 transition-all duration-300 ease-spring">
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between mb-3">
-          <div className={clsx("p-2.5 rounded-lg", config.bg)}>
-            <Icon className={clsx("w-5 h-5", config.color)} />
-          </div>
-          <div className={clsx("flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium", config.bg, config.color)}>
-            <TendenciaIcon className="w-4 h-4" />
-            <span>{config.label}</span>
-          </div>
-        </div>
+    <Paper
+      elevation={0}
+      sx={{
+        p: 2,
+        border: "1px solid var(--border)",
+        borderRadius: 2,
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1.5 }}>
+        <Box
+          sx={{
+            p: 1,
+            borderRadius: 1.5,
+            backgroundColor: `${color}15`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon sx={{ fontSize: 20, color }} />
+        </Box>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 0.5,
+            px: 1,
+            py: 0.25,
+            borderRadius: 2,
+            backgroundColor: getTendenciaBg(),
+          }}
+        >
+          {getTendenciaIcon()}
+          <Typography variant="caption" sx={{ fontWeight: 500, fontSize: "0.7rem" }}>
+            {getTendenciaLabel()}
+          </Typography>
+        </Box>
+      </Box>
 
-        <div className="mb-2">
-          <span className="text-3xl font-bold text-[var(--text-primary)]">{valor}</span>
-          <span className="text-lg text-[var(--text-muted)] ml-1">{unidad}</span>
-        </div>
-
-        <h3 className="text-sm font-semibold text-[var(--text-secondary)] mb-1">{titulo}</h3>
-        <p className="text-xs text-[var(--text-muted)]">{descripcion}</p>
-
-        {objetivo && (
-          <div className="mt-3 pt-3 border-t border-[var(--border-glass)]">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-[var(--text-muted)]">{t("mrp_objetivo", "Objetivo:")}</span>
-              <span className={clsx(
-                "font-medium",
-                valor <= objetivo ? "text-emerald-600" : "text-red-600"
-              )}>
-                {objetivo} {unidad}
-              </span>
-            </div>
-          </div>
+      <Box sx={{ mb: 0.5, flex: 1 }}>
+        <Typography variant="h5" component="span" sx={{ fontWeight: 700, color: "var(--fg-strong)" }}>
+          {valor}
+        </Typography>
+        {unidad && (
+          <Typography variant="body2" component="span" sx={{ color: "var(--fg-muted)", ml: 0.5 }}>
+            {unidad}
+          </Typography>
         )}
-      </CardContent>
-    </Card>
+      </Box>
+
+      <Typography variant="caption" sx={{ fontWeight: 600, color: "var(--fg-strong)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+        {titulo}
+      </Typography>
+      {descripcion && (
+        <Typography variant="caption" sx={{ color: "var(--fg-subtle)", fontSize: "0.65rem", mt: 0.25 }}>
+          {descripcion}
+        </Typography>
+      )}
+
+      {objetivo && (
+        <Box sx={{ mt: 1.5, pt: 1, borderTop: "1px solid var(--border)" }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Typography variant="caption" sx={{ color: "var(--fg-subtle)" }}>
+              Objetivo:
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 600,
+                color: valor <= objetivo ? COLORS.success : COLORS.error,
+              }}
+            >
+              {objetivo} {unidad}
+            </Typography>
+          </Box>
+        </Box>
+      )}
+    </Paper>
   );
 }
 
-// Donut Chart component - with memoization and null safety
-function DonutChart({ data = [], size = 200, t }) {
-  // FASE 5: Memoización del total
+// Donut Chart component
+function DonutChart({ data = [], t }) {
   const total = useMemo(() => {
     if (!data || data.length === 0) return 0;
     return data.reduce((sum, item) => sum + (item.valor || 0), 0);
@@ -100,12 +190,12 @@ function DonutChart({ data = [], size = 200, t }) {
 
   let currentAngle = 0;
 
-  const createArc = (startAngle, endAngle, color) => {
+  const createArc = (startAngle, endAngle) => {
     const startRad = (startAngle - 90) * (Math.PI / 180);
     const endRad = (endAngle - 90) * (Math.PI / 180);
-    const radius = 80;
-    const cx = 100;
-    const cy = 100;
+    const radius = 70;
+    const cx = 90;
+    const cy = 90;
 
     const x1 = cx + radius * Math.cos(startRad);
     const y1 = cy + radius * Math.sin(startRad);
@@ -117,169 +207,216 @@ function DonutChart({ data = [], size = 200, t }) {
     return `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
   };
 
-  // FASE 6: Null safety - retornar placeholder si no hay datos
   if (!data || data.length === 0) {
-    return <div className="text-slate-500 text-center py-8">Sin datos disponibles</div>;
+    return (
+      <Typography color="text.secondary" textAlign="center" py={4}>
+        Sin datos disponibles
+      </Typography>
+    );
   }
 
   return (
-    <div className="flex items-center gap-6">
-      {/* FASE 7: aria-label para accesibilidad */}
-      <svg
-        viewBox="0 0 200 200"
-        className="w-48 h-48"
-        role="img"
-        aria-label={t("mrp_grafico_distribucion", "Gráfico de distribución de estados")}
-      >
+    <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
+      <svg viewBox="0 0 180 180" width={160} height={160}>
         {data.map((item, idx) => {
           const angle = total > 0 ? (item.valor / total) * 360 : 0;
-          const path = createArc(currentAngle, currentAngle + angle, item.color);
+          const path = createArc(currentAngle, currentAngle + angle);
           currentAngle += angle;
           return (
-            <path
-              key={idx}
-              d={path}
-              fill={item.color}
-              className="transition-all duration-300 hover:opacity-80"
-            />
+            <path key={idx} d={path} fill={item.color} style={{ transition: "all 0.3s ease" }} />
           );
         })}
-        <circle cx="100" cy="100" r="50" fill="white" fillOpacity="0.8" />
-        <text x="100" y="95" textAnchor="middle" className="text-sm fill-slate-500">
+        <circle cx="90" cy="90" r="45" fill="var(--surface)" />
+        <text x="90" y="85" textAnchor="middle" fontSize="11" fill="var(--fg-muted)">
           {t("mrp_total", "Total")}
         </text>
-        <text x="100" y="115" textAnchor="middle" className="text-2xl font-bold fill-slate-800">
+        <text x="90" y="105" textAnchor="middle" fontSize="18" fontWeight="bold" fill="var(--fg-strong)">
           {total.toFixed(0)}%
         </text>
       </svg>
 
-      <div className="flex flex-col gap-2">
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
         {data.map((item, idx) => (
-          <div key={idx} className="flex items-center gap-2">
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: item.color }}
+          <Box key={idx} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Box
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                backgroundColor: item.color,
+                flexShrink: 0,
+              }}
             />
-            <span className="text-sm text-slate-700">{item.nombre}</span>
-            <span className="text-sm font-medium text-slate-500">{(item.valor || 0).toFixed(1)}%</span>
-          </div>
+            <Typography variant="caption" sx={{ color: "var(--fg-muted)" }}>
+              {item.nombre}
+            </Typography>
+            <Typography variant="caption" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>
+              {(item.valor || 0).toFixed(1)}%
+            </Typography>
+          </Box>
         ))}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }
 
-// Bar Chart component - Glass Morphism style with memoization
-function BarChart({ data = [], height = 200 }) {
-  // FASE 5: Memoización del valor máximo
-  // FASE 6: Null safety para array vacío
+// Bar Chart component
+function SimpleBarChart({ data = [], height = 160 }) {
   const maxValue = useMemo(() => {
     if (!data || data.length === 0) return 1;
     return Math.max(...data.map(d => Math.max(d.alertas || 0, d.resueltas || 0)), 1);
   }, [data]);
 
-  // FASE 6: Null safety - retornar placeholder si no hay datos
   if (!data || data.length === 0) {
-    return <div className="text-slate-500 text-center py-8">Sin datos disponibles</div>;
+    return (
+      <Typography color="text.secondary" textAlign="center" py={4}>
+        Sin datos disponibles
+      </Typography>
+    );
   }
 
   return (
-    <div className="flex items-end gap-4 justify-between" style={{ height }}>
+    <Box sx={{ display: "flex", alignItems: "flex-end", gap: 1.5, justifyContent: "space-between", height }}>
       {data.map((item, idx) => (
-        <div key={idx} className="flex-1 flex flex-col items-center gap-1">
-          <div className="flex gap-1 items-end h-full">
-            <div
-              className="w-4 bg-gradient-to-t from-red-500 to-red-400 rounded-t transition-all duration-500 shadow-sm"
-              style={{ height: `${((item.alertas || 0) / maxValue) * 100}%` }}
-              title={`Alertas: ${item.alertas || 0}`}
-            />
-            <div
-              className="w-4 bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t transition-all duration-500 shadow-sm"
-              style={{ height: `${((item.resueltas || 0) / maxValue) * 100}%` }}
-              title={`Resueltas: ${item.resueltas || 0}`}
-            />
-          </div>
-          <span className="text-xs text-slate-500 rotate-0 whitespace-nowrap">
+        <Box key={idx} sx={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5 }}>
+          <Box sx={{ display: "flex", gap: 0.5, alignItems: "flex-end", height: "100%" }}>
+            <Tooltip title={`Alertas: ${item.alertas || 0}`}>
+              <Box
+                sx={{
+                  width: 14,
+                  backgroundColor: COLORS.error,
+                  borderRadius: "3px 3px 0 0",
+                  transition: "all 0.5s ease",
+                  height: `${((item.alertas || 0) / maxValue) * 100}%`,
+                  minHeight: 3,
+                }}
+              />
+            </Tooltip>
+            <Tooltip title={`Resueltas: ${item.resueltas || 0}`}>
+              <Box
+                sx={{
+                  width: 14,
+                  backgroundColor: COLORS.success,
+                  borderRadius: "3px 3px 0 0",
+                  transition: "all 0.5s ease",
+                  height: `${((item.resueltas || 0) / maxValue) * 100}%`,
+                  minHeight: 3,
+                }}
+              />
+            </Tooltip>
+          </Box>
+          <Typography variant="caption" sx={{ color: "var(--fg-subtle)", whiteSpace: "nowrap", fontSize: "0.65rem" }}>
             {new Date(item.fecha).toLocaleDateString("es", { day: "2-digit", month: "short" })}
-          </span>
-        </div>
+          </Typography>
+        </Box>
       ))}
-    </div>
+    </Box>
   );
 }
 
-// Gauge component - Glass Morphism style with accessibility
-function GaugeChart({ value, max = 100, label, t }) {
-  const percentage = Math.min((value / max) * 100, 100);
-  const angle = (percentage / 100) * 180 - 90;
-
-  const getColor = () => {
-    if (percentage >= 80) return "#22c55e";
-    if (percentage >= 50) return "#eab308";
-    return "#ef4444";
-  };
-
+// Gauge Chart using Chart.js
+function GaugeChartMUI({ value, label }) {
   return (
-    <div className="flex flex-col items-center">
-      {/* FASE 7: aria-label para accesibilidad */}
-      <svg
-        viewBox="0 0 200 120"
-        className="w-40 h-24"
-        role="img"
-        aria-label={t("mrp_grafico_cumplimiento", "Gráfico de nivel de cumplimiento")}
-      >
-        {/* Background arc */}
-        <path
-          d="M 20 100 A 80 80 0 0 1 180 100"
-          fill="none"
-          stroke="#e2e8f0"
-          strokeWidth="16"
-          strokeLinecap="round"
-        />
-        {/* Value arc */}
-        <path
-          d="M 20 100 A 80 80 0 0 1 180 100"
-          fill="none"
-          stroke={getColor()}
-          strokeWidth="16"
-          strokeLinecap="round"
-          strokeDasharray={`${percentage * 2.51} 251`}
-          className="transition-all duration-1000"
-        />
-        {/* Needle */}
-        <line
-          x1="100"
-          y1="100"
-          x2={100 + 60 * Math.cos((angle * Math.PI) / 180)}
-          y2={100 + 60 * Math.sin((angle * Math.PI) / 180)}
-          stroke="#334155"
-          strokeWidth="3"
-          strokeLinecap="round"
-          className="transition-all duration-1000"
-        />
-        <circle cx="100" cy="100" r="6" fill="#334155" />
-      </svg>
-      <div className="text-center mt-2">
-        <span className="text-2xl font-bold" style={{ color: getColor() }}>{value}%</span>
-        <p className="text-sm text-slate-500">{label}</p>
-      </div>
-    </div>
+    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <SPMGauge
+        value={value}
+        max={100}
+        thresholds={{ warning: 50, danger: 80 }}
+        height={140}
+        label={label}
+        unit="%"
+      />
+    </Box>
   );
 }
+
+// Estados posibles para filtro
+const ESTADOS_OPTIONS = [
+  { id: "critico", label: "Crítico" },
+  { id: "bajo_stock", label: "Bajo Stock" },
+  { id: "sobrestock", label: "Sobrestock" },
+  { id: "normal", label: "Normal" },
+];
 
 export default function MRPKPIs() {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [kpisData, setKpisData] = useState(null);
-  const [periodo, setPeriodo] = useState("mes");
+
+  // Estados para filtros
+  const [filtros, setFiltros] = useState({
+    centros: [],
+    almacenes: [],
+    sectores: [],
+    estados: [],
+  });
+  const [catalogos, setCatalogos] = useState({ centros: [], almacenes: [], sectores: [] });
+
+  // Estados para slider de fechas (0 = hace 1 año, 365 = hoy)
+  const [rangoFechasLocal, setRangoFechasLocal] = useState([0, 365]);
+  const rangoFechas = useDebouncedValue(rangoFechasLocal, 300);
+
+  // Función para convertir valor del slider a fecha (formato DD/MM/AA)
+  const sliderAFecha = (valor) => {
+    const diasHaciaAtras = 365 - valor;
+    const fecha = new Date();
+    fecha.setDate(fecha.getDate() - diasHaciaAtras);
+    const dd = String(fecha.getDate()).padStart(2, "0");
+    const mm = String(fecha.getMonth() + 1).padStart(2, "0");
+    const yy = String(fecha.getFullYear()).slice(-2);
+    return `${dd}/${mm}/${yy}`;
+  };
+
+  // Función para convertir valor del slider a fecha ISO (YYYY-MM-DD)
+  const sliderAFechaISO = (valor) => {
+    const diasHaciaAtras = 365 - valor;
+    const fecha = new Date();
+    fecha.setDate(fecha.getDate() - diasHaciaAtras);
+    return fecha.toISOString().split("T")[0];
+  };
+
+  // Cargar catálogos al montar y seleccionar todos por defecto
+  useEffect(() => {
+    const fetchCatalogos = async () => {
+      try {
+        const res = await api.get("/mrp/catalogos");
+        if (res.data?.ok) {
+          const centros = res.data.centros || [];
+          const almacenes = res.data.almacenes || [];
+          const sectores = res.data.sectores || [];
+          setCatalogos({ centros, almacenes, sectores });
+          // Seleccionar todos los filtros por defecto
+          setFiltros({
+            centros: centros.map((c) => c.id),
+            almacenes: almacenes.map((a) => a.id),
+            sectores: sectores.map((s) => s.id),
+            estados: ESTADOS_OPTIONS.map((e) => e.id),
+          });
+        }
+      } catch (err) {
+        console.error("Error cargando catálogos:", err);
+      }
+    };
+    fetchCatalogos();
+  }, []);
 
   const fetchKPIs = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const res = await api.get(`/mrp/kpis?periodo=${periodo}`);
+      const params = new URLSearchParams();
+      // Agregar fechas del slider
+      params.append("fecha_desde", sliderAFechaISO(rangoFechas[0]));
+      params.append("fecha_hasta", sliderAFechaISO(rangoFechas[1]));
+      if (filtros.centros.length) params.append("centros", filtros.centros.join(","));
+      if (filtros.almacenes.length) params.append("almacenes", filtros.almacenes.join(","));
+      if (filtros.sectores.length) params.append("sectores", filtros.sectores.join(","));
+      if (filtros.estados.length) params.append("estados", filtros.estados.join(","));
+
+      const res = await api.get(`/mrp/kpis?${params.toString()}`);
       if (res.data?.ok) {
         setKpisData(res.data);
       } else {
@@ -290,217 +427,409 @@ export default function MRPKPIs() {
     } finally {
       setLoading(false);
     }
-  }, [periodo]);
+  }, [filtros, rangoFechas]);
 
   useEffect(() => {
     fetchKPIs();
   }, [fetchKPIs]);
 
-  const kpiIcons = {
-    materiales_en_riesgo: AlertTriangle,
-    materiales_sobrestock: Package,
-    rotacion_promedio: Activity,
-    lead_time_promedio: Clock,
-    cumplimiento_mrp: Target,
-    pedidos_vencidos: AlertCircle,
-    pct_pedidos_vencidos: AlertCircle,
-    velocidad_respuesta: Gauge,
+  // Handlers para filtros (Select multiselect)
+  const handleFiltroChange = (campo, opciones) => (event) => {
+    const value = event.target.value;
+    if (value.includes("__todos__")) {
+      const currentValues = filtros[campo];
+      if (currentValues.length === opciones.length) {
+        setFiltros((prev) => ({ ...prev, [campo]: [] }));
+      } else {
+        setFiltros((prev) => ({ ...prev, [campo]: opciones.map((o) => o.id || o) }));
+      }
+    } else {
+      setFiltros((prev) => ({ ...prev, [campo]: typeof value === "string" ? value.split(",") : value }));
+    }
   };
 
-  // FASE 4: i18n para periodos
-  const periodos = [
-    { value: "mes", label: t("mrp_periodo_mes", "Último Mes") },
-    { value: "trimestre", label: t("mrp_periodo_trimestre", "Último Trimestre") },
-    { value: "anio", label: t("mrp_periodo_anio", "Último Año") },
-  ];
+  const handleLimpiarFiltros = () => {
+    setFiltros({ centros: [], almacenes: [], sectores: [], estados: [] });
+    setRangoFechasLocal([0, 365]);
+  };
+
+  // MenuProps para los multiselect
+  const MenuProps = {
+    PaperProps: { style: { maxHeight: 32 * 6 + 4, width: 160 } },
+  };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={t("mrp_kpis_titulo", "KPI's MRP")}
-      />
+    <Container maxWidth={false} sx={{ py: 2, px: "75px" }}>
+      {/* Header */}
+      <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
+        <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "var(--fg-muted)" }}>
+          <ArrowBackIcon />
+        </IconButton>
+        <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          {t("mrp_kpis_titulo", "KPI'S MRP")}
+        </Typography>
+      </Box>
 
-      {/* Banner de Modo Temporal */}
+      {/* Temp Data Banner */}
       <TempDataBanner />
 
-      {/* Período selector - Glass Morphism */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-[var(--primary)]" />
-          <span className="text-sm text-[var(--text-muted)]">{t("mrp_periodo", "Período:")}</span>
-          <div className="flex gap-1 p-1 bg-[var(--bg-glass)] backdrop-blur-sm rounded-lg border border-[var(--border-glass)]" role="tablist">
-            {periodos.map(p => (
-              <button
-                key={p.value}
-                role="tab"
-                aria-selected={periodo === p.value}
-                onClick={() => setPeriodo(p.value)}
-                className={clsx(
-                  "px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-300 ease-spring",
-                  periodo === p.value
-                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25"
-                    : "text-[var(--text-secondary)] hover:bg-[var(--bg-glass-strong)]"
-                )}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <Button
-          onClick={fetchKPIs}
-          variant="secondary"
-        >
-          <RefreshCw className="w-4 h-4" />
-          {t("mrp_actualizar", "Actualizar")}
-        </Button>
-      </div>
+      {/* Filtros - estilo Dashboard */}
+      <Paper elevation={0} sx={{ mb: 3, border: "1px solid var(--border)", borderRadius: 2, overflow: "hidden" }}>
+        <Box sx={{ py: 1.5, px: 3, height: "73px" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 3, height: "100%" }}>
+          {/* Slider de fechas */}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 0, minWidth: "320px" }}>
+            <Typography component="label" sx={{ fontSize: "0.75rem", fontWeight: 500, color: "var(--fg-muted)", mt: 1 }}>
+              Desde <Box component="span" sx={{ color: "var(--primary)", fontWeight: 600 }}>{sliderAFecha(rangoFechasLocal[0])}</Box> hasta <Box component="span" sx={{ color: "var(--primary)", fontWeight: 600 }}>{sliderAFecha(rangoFechasLocal[1])}</Box>
+            </Typography>
+            <Slider
+              size="small"
+              value={rangoFechasLocal}
+              onChange={(_, value) => setRangoFechasLocal(value)}
+              min={0}
+              max={365}
+              valueLabelDisplay="auto"
+              valueLabelFormat={(value) => sliderAFecha(value)}
+              getAriaLabel={() => "Rango de fechas"}
+              sx={{ color: "var(--primary)", "& .MuiSlider-thumb": { width: 14, height: 14 }, "& .MuiSlider-valueLabel": { fontSize: 10 } }}
+            />
+            <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--fg-subtle)", mt: -0.5 }}>
+              <Typography variant="caption" sx={{ fontSize: "10px", color: "inherit" }}>Hace 1 año</Typography>
+              <Typography variant="caption" sx={{ fontSize: "10px", color: "inherit" }}>Hoy</Typography>
+            </Box>
+          </Box>
+
+          {/* Separador */}
+          <Box sx={{ height: 64, width: "1px", backgroundColor: "var(--border)" }} />
+
+          {/* Centro */}
+          <FormControl size="small" sx={{ minWidth: 160 }}>
+            <InputLabel id="centro-label" sx={{ fontSize: "0.75rem" }}>Centro</InputLabel>
+            <Select
+              labelId="centro-label"
+              multiple
+              value={filtros.centros}
+              onChange={handleFiltroChange("centros", catalogos.centros)}
+              input={<OutlinedInput label="Centro" />}
+              renderValue={(selected) => selected.length > 1 ? `${selected.length} seleccionados` : selected.join(", ")}
+              MenuProps={MenuProps}
+              sx={{ fontSize: "0.75rem" }}
+            >
+              <MenuItem value="__todos__">
+                <Checkbox checked={filtros.centros.length === catalogos.centros.length && catalogos.centros.length > 0} size="small" />
+                <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: "0.75rem", fontWeight: 600 }} />
+              </MenuItem>
+              {catalogos.centros.map((centro) => (
+                <MenuItem key={centro.id} value={centro.id}>
+                  <Checkbox checked={filtros.centros.includes(centro.id)} size="small" />
+                  <ListItemText primary={centro.nombre} primaryTypographyProps={{ fontSize: "0.75rem" }} />
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Almacén */}
+          <FormControl size="small" sx={{ minWidth: 160 }}>
+            <InputLabel id="almacen-label" sx={{ fontSize: "0.75rem" }}>Almacén</InputLabel>
+            <Select
+              labelId="almacen-label"
+              multiple
+              value={filtros.almacenes}
+              onChange={handleFiltroChange("almacenes", catalogos.almacenes)}
+              input={<OutlinedInput label="Almacén" />}
+              renderValue={(selected) => selected.length > 1 ? `${selected.length} seleccionados` : selected.join(", ")}
+              MenuProps={MenuProps}
+              sx={{ fontSize: "0.75rem" }}
+            >
+              <MenuItem value="__todos__">
+                <Checkbox checked={filtros.almacenes.length === catalogos.almacenes.length && catalogos.almacenes.length > 0} size="small" />
+                <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: "0.75rem", fontWeight: 600 }} />
+              </MenuItem>
+              {catalogos.almacenes.map((almacen) => (
+                <MenuItem key={almacen.id} value={almacen.id}>
+                  <Checkbox checked={filtros.almacenes.includes(almacen.id)} size="small" />
+                  <ListItemText primary={almacen.nombre} primaryTypographyProps={{ fontSize: "0.75rem" }} />
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Sector */}
+          <FormControl size="small" sx={{ minWidth: 160 }}>
+            <InputLabel id="sector-label" sx={{ fontSize: "0.75rem" }}>Sector</InputLabel>
+            <Select
+              labelId="sector-label"
+              multiple
+              value={filtros.sectores}
+              onChange={handleFiltroChange("sectores", catalogos.sectores)}
+              input={<OutlinedInput label="Sector" />}
+              renderValue={(selected) => selected.length > 1 ? `${selected.length} seleccionados` : selected.join(", ")}
+              MenuProps={MenuProps}
+              sx={{ fontSize: "0.75rem" }}
+            >
+              <MenuItem value="__todos__">
+                <Checkbox checked={filtros.sectores.length === catalogos.sectores.length && catalogos.sectores.length > 0} size="small" />
+                <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: "0.75rem", fontWeight: 600 }} />
+              </MenuItem>
+              {catalogos.sectores.map((sector) => (
+                <MenuItem key={sector.id} value={sector.id}>
+                  <Checkbox checked={filtros.sectores.includes(sector.id)} size="small" />
+                  <ListItemText primary={sector.nombre} primaryTypographyProps={{ fontSize: "0.75rem" }} />
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Estado */}
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel id="estado-label" sx={{ fontSize: "0.75rem" }}>Estado</InputLabel>
+            <Select
+              labelId="estado-label"
+              multiple
+              value={filtros.estados}
+              onChange={handleFiltroChange("estados", ESTADOS_OPTIONS)}
+              input={<OutlinedInput label="Estado" />}
+              renderValue={(selected) => selected.length > 1 ? `${selected.length} seleccionados` : selected.join(", ")}
+              MenuProps={MenuProps}
+              sx={{ fontSize: "0.75rem" }}
+            >
+              <MenuItem value="__todos__">
+                <Checkbox checked={filtros.estados.length === ESTADOS_OPTIONS.length} size="small" />
+                <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: "0.75rem", fontWeight: 600 }} />
+              </MenuItem>
+              {ESTADOS_OPTIONS.map((estado) => (
+                <MenuItem key={estado.id} value={estado.id}>
+                  <Checkbox checked={filtros.estados.includes(estado.id)} size="small" />
+                  <ListItemText primary={estado.label} primaryTypographyProps={{ fontSize: "0.75rem" }} />
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+            {/* Limpiar Filtros */}
+            <Box
+              component="button"
+              type="button"
+              onClick={handleLimpiarFiltros}
+              sx={{
+                px: 1.5,
+                py: 0.75,
+                fontSize: "0.75rem",
+                fontWeight: 500,
+                color: "var(--fg-muted)",
+                border: "1px solid var(--border)",
+                borderRadius: 1,
+                backgroundColor: "transparent",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                "&:hover": {
+                  color: "var(--primary)",
+                  borderColor: "var(--primary)",
+                },
+              }}
+            >
+              Limpiar Filtros
+            </Box>
+          </Box>
+        </Box>
+      </Paper>
 
       {loading ? (
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" />
-        </div>
+        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", py: 10 }}>
+          <CircularProgress />
+        </Box>
       ) : error ? (
-        <div className="flex items-center justify-center py-24 text-red-600 bg-red-50/70 backdrop-blur-sm rounded-xl border border-red-200/50">
-          <AlertCircle className="w-6 h-6 mr-2" />
-          {error}
-        </div>
+        <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
       ) : kpisData ? (
         <>
           {/* KPI Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(4, 1fr)" },
+              gap: 2,
+              mb: 3,
+            }}
+          >
             {Object.entries(kpisData.kpis || {}).map(([key, kpi]) => (
               <KPICard
                 key={key}
-                titulo={key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                titulo={key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
                 valor={kpi.valor}
                 unidad={kpi.unidad}
                 tendencia={kpi.tendencia}
                 objetivo={kpi.objetivo}
                 descripcion={kpi.descripcion}
-                icon={kpiIcons[key] || BarChart3}
-                t={t}
+                icon={kpiIcons[key] || BarChartIcon}
+                color={kpiColors[key] || COLORS.primary}
               />
             ))}
-          </div>
+          </Box>
 
-          {/* Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Charts Row */}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" },
+              gap: 2,
+              mb: 3,
+            }}
+          >
             {/* Distribution Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <PieChart className="w-5 h-5 text-blue-600" />
+            <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2, overflow: "hidden" }}>
+              <Box sx={{ p: 1.5, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 1 }}>
+                <PieChartIcon sx={{ color: COLORS.primary, fontSize: 20 }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>
                   {t("mrp_distribucion_estados", "Distribución de Estados")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex items-center justify-center py-6">
+                </Typography>
+              </Box>
+              <Box sx={{ p: 2, display: "flex", justifyContent: "center" }}>
                 {kpisData.graficos?.distribucion_estados && (
                   <DonutChart data={kpisData.graficos.distribucion_estados} t={t} />
                 )}
-              </CardContent>
-            </Card>
+              </Box>
+            </Paper>
 
             {/* Cumplimiento Gauge */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-blue-600" />
+            <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2, overflow: "hidden" }}>
+              <Box sx={{ p: 1.5, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 1 }}>
+                <CheckCircleIcon sx={{ color: COLORS.primary, fontSize: 20 }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>
                   {t("mrp_cumplimiento", "Cumplimiento MRP")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex items-center justify-center py-6">
-                <GaugeChart
+                </Typography>
+              </Box>
+              <Box sx={{ p: 2, display: "flex", justifyContent: "center" }}>
+                <GaugeChartMUI
                   value={kpisData.kpis?.cumplimiento_mrp?.valor || 0}
                   label={t("mrp_nivel_cumplimiento", "Nivel de Cumplimiento")}
-                  t={t}
                 />
-              </CardContent>
-            </Card>
-          </div>
+              </Box>
+            </Paper>
+          </Box>
 
           {/* Evolution Chart */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-blue-600" />
+          <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2, overflow: "hidden", mb: 3 }}>
+            <Box sx={{ p: 1.5, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 1 }}>
+              <ShowChartIcon sx={{ color: COLORS.primary, fontSize: 20 }} />
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>
                 {t("mrp_evolucion_alertas", "Evolución de Alertas")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4 mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-gradient-to-br from-red-500 to-red-400 rounded shadow-sm" />
-                  <span className="text-sm text-slate-500">{t("mrp_alertas_generadas", "Alertas Generadas")}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-gradient-to-br from-emerald-500 to-emerald-400 rounded shadow-sm" />
-                  <span className="text-sm text-slate-500">{t("mrp_alertas_resueltas", "Alertas Resueltas")}</span>
-                </div>
-              </div>
+              </Typography>
+            </Box>
+            <Box sx={{ p: 2 }}>
+              <Box sx={{ display: "flex", gap: 3, mb: 2 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                  <Box sx={{ width: 10, height: 10, borderRadius: 0.5, backgroundColor: COLORS.error }} />
+                  <Typography variant="caption" sx={{ color: "var(--fg-muted)" }}>
+                    {t("mrp_alertas_generadas", "Alertas Generadas")}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                  <Box sx={{ width: 10, height: 10, borderRadius: 0.5, backgroundColor: COLORS.success }} />
+                  <Typography variant="caption" sx={{ color: "var(--fg-muted)" }}>
+                    {t("mrp_alertas_resueltas", "Alertas Resueltas")}
+                  </Typography>
+                </Box>
+              </Box>
               {kpisData.graficos?.evolucion_alertas && (
-                <BarChart data={kpisData.graficos.evolucion_alertas} height={180} />
+                <SimpleBarChart data={kpisData.graficos.evolucion_alertas} height={160} />
               )}
-            </CardContent>
-          </Card>
+            </Box>
+          </Paper>
 
           {/* Top Materials at Risk */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-amber-500" />
+          <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2, overflow: "hidden", mb: 3 }}>
+            <Box sx={{ p: 1.5, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 1 }}>
+              <WarningIcon sx={{ color: COLORS.warning, fontSize: 20 }} />
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>
                 {t("mrp_top_riesgo", "Top Materiales en Riesgo")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {/* FASE 6: Null safety con || [] */}
-                {(kpisData.graficos?.top_materiales_riesgo || []).map((mat, idx) => (
-                  <div
-                    key={mat.codigo}
-                    className={clsx(
-                      "flex items-center justify-between p-3 rounded-lg",
-                      "bg-[var(--bg-glass)] backdrop-blur-sm border border-[var(--border-glass)]",
-                      "hover:bg-[var(--bg-glass-strong)] hover:border-[var(--primary)]/30 transition-all duration-300 ease-spring"
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={clsx(
-                        "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm backdrop-blur-sm",
-                        idx === 0 ? "bg-red-50/70 text-red-600 border border-red-200/50" :
-                        idx === 1 ? "bg-amber-50/70 text-amber-600 border border-amber-200/50" :
-                        "bg-[var(--primary-muted)] text-[var(--primary)] border border-[var(--border-colored)]"
-                      )}>
-                        {idx + 1}
-                      </span>
-                      <div>
-                        <p className="font-mono text-[var(--primary)] font-medium">{mat.codigo}</p>
-                        <p className="text-sm text-[var(--text-muted)]">{mat.descripcion}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-red-600">{mat.dias_sin_stock} {t("mrp_dias", "días")}</p>
-                      <p className="text-xs text-[var(--text-muted)]">{t("mrp_sin_stock", "sin stock")}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+              </Typography>
+            </Box>
+            <Box sx={{ p: 2 }}>
+              {(kpisData.graficos?.top_materiales_riesgo || []).length === 0 ? (
+                <Box sx={{ textAlign: "center", py: 4 }}>
+                  <CheckCircleIcon sx={{ fontSize: 40, color: COLORS.success, opacity: 0.6, mb: 1 }} />
+                  <Typography variant="body2" sx={{ color: "var(--fg-muted)" }}>
+                    No hay materiales en riesgo
+                  </Typography>
+                </Box>
+              ) : (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  {(kpisData.graficos?.top_materiales_riesgo || []).map((mat, idx) => (
+                    <Box
+                      key={mat.codigo}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        p: 1.5,
+                        borderRadius: 1.5,
+                        border: "1px solid var(--border)",
+                        "&:hover": { borderColor: COLORS.primary, backgroundColor: "var(--bg-soft)" },
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                        <Box
+                          sx={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: "50%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 700,
+                            fontSize: 12,
+                            backgroundColor: idx === 0 ? "color-mix(in srgb, var(--danger) 15%, transparent)" : idx === 1 ? "color-mix(in srgb, var(--warning) 15%, transparent)" : "color-mix(in srgb, var(--primary) 15%, transparent)",
+                            color: idx === 0 ? COLORS.error : idx === 1 ? COLORS.warning : COLORS.primary,
+                          }}
+                        >
+                          {idx + 1}
+                        </Box>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: "monospace", color: COLORS.primary }}>
+                            {mat.codigo}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: "var(--fg-muted)" }}>
+                            {mat.descripcion}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box sx={{ textAlign: "right" }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, color: COLORS.error }}>
+                          {mat.dias_sin_stock} {t("mrp_dias", "días")}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: "var(--fg-subtle)" }}>
+                          {t("mrp_sin_stock", "sin stock")}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+            </Box>
+          </Paper>
 
-          {/* Info footer - Glass style */}
-          <div className="mt-6 p-4 bg-[var(--bg-glass)] backdrop-blur-sm rounded-lg border border-[var(--border-glass)]">
-            <div className="flex items-center gap-4 text-sm text-[var(--text-muted)]">
-              <span>
-                <strong className="text-[var(--text-secondary)]">{t("mrp_periodo", "Período:")}</strong> {kpisData.fecha_inicio} a {kpisData.fecha_fin}
-              </span>
-              <span>
-                <strong className="text-[var(--text-secondary)]">{t("mrp_total_materiales", "Total materiales:")}</strong> {kpisData.total_materiales}
-              </span>
-            </div>
-          </div>
+          {/* Info footer */}
+          <Paper
+            elevation={0}
+            sx={{
+              p: 1.5,
+              border: "1px solid var(--border)",
+              borderRadius: 2,
+              backgroundColor: "var(--bg-soft)",
+            }}
+          >
+            <Box sx={{ display: "flex", gap: 4 }}>
+              <Typography variant="body2" sx={{ color: "var(--fg-muted)" }}>
+                <strong>{t("mrp_periodo", "Período:")}</strong> {kpisData.fecha_inicio} a {kpisData.fecha_fin}
+              </Typography>
+              <Typography variant="body2" sx={{ color: "var(--fg-muted)" }}>
+                <strong>{t("mrp_total_materiales", "Total materiales:")}</strong> {kpisData.total_materiales}
+              </Typography>
+            </Box>
+          </Paper>
         </>
       ) : null}
-    </div>
+    </Container>
   );
 }

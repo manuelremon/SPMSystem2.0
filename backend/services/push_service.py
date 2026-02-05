@@ -50,7 +50,7 @@ class PushService:
                 # Sintaxis compatible con PostgreSQL y SQLite
                 cur.execute(
                     """
-                    CREATE TABLE IF NOT EXISTS push_subscriptions (
+                    CREATE TABLE IF NOT EXISTS notificacion_push_suscripcion (
                         id SERIAL PRIMARY KEY,
                         user_id TEXT NOT NULL,
                         endpoint TEXT UNIQUE NOT NULL,
@@ -65,17 +65,17 @@ class PushService:
                 cur.execute(
                     """
                     CREATE INDEX IF NOT EXISTS idx_push_user
-                    ON push_subscriptions(user_id)
+                    ON notificacion_push_suscripcion(user_id)
                 """
                 )
                 cur.execute(
                     """
                     CREATE INDEX IF NOT EXISTS idx_push_endpoint
-                    ON push_subscriptions(endpoint)
+                    ON notificacion_push_suscripcion(endpoint)
                 """
                 )
         except Exception as e:
-            logger.warning(f"[PUSH] No se pudo crear tabla push_subscriptions: {e}")
+            logger.warning(f"[PUSH] No se pudo crear tabla notificacion_push_suscripcion: {e}")
 
     def subscribe(
         self, user_id: str, endpoint: str, p256dh: str, auth: str, user_agent: Optional[str] = None
@@ -99,7 +99,7 @@ class PushService:
                 # Upsert: actualizar si ya existe el endpoint (SQLite 3.24+ compatible)
                 cur.execute(
                     """
-                    INSERT INTO push_subscriptions
+                    INSERT INTO notificacion_push_suscripcion
                     (user_id, endpoint, p256dh, auth, user_agent, created_at)
                     VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                     ON CONFLICT(endpoint) DO UPDATE SET
@@ -132,7 +132,7 @@ class PushService:
                 cur = conn.cursor()
                 cur.execute(
                     """
-                    DELETE FROM push_subscriptions
+                    DELETE FROM notificacion_push_suscripcion
                     WHERE user_id = ? AND endpoint = ?
                 """,
                     (user_id, endpoint),
@@ -155,7 +155,7 @@ class PushService:
                 cur = conn.cursor()
                 cur.execute(
                     """
-                    DELETE FROM push_subscriptions
+                    DELETE FROM notificacion_push_suscripcion
                     WHERE user_id = ?
                 """,
                     (user_id,),
@@ -175,7 +175,7 @@ class PushService:
                 cur.execute(
                     """
                     SELECT id, user_id, endpoint, p256dh, auth, created_at
-                    FROM push_subscriptions
+                    FROM notificacion_push_suscripcion
                     WHERE user_id = ?
                 """,
                     (user_id,),
@@ -215,7 +215,7 @@ class PushService:
                 cur.execute(
                     """
                     SELECT COUNT(*) as count
-                    FROM push_subscriptions
+                    FROM notificacion_push_suscripcion
                     WHERE user_id = ?
                 """,
                     (user_id,),
@@ -297,7 +297,7 @@ class PushService:
                     cur = conn.cursor()
                     cur.execute(
                         """
-                        UPDATE push_subscriptions
+                        UPDATE notificacion_push_suscripcion
                         SET last_used_at = CURRENT_TIMESTAMP
                         WHERE id = ?
                     """,
@@ -340,7 +340,7 @@ class PushService:
                 placeholders = ",".join(["?"] * len(endpoints))
                 cur.execute(
                     f"""
-                    DELETE FROM push_subscriptions
+                    DELETE FROM notificacion_push_suscripcion
                     WHERE endpoint IN ({placeholders})
                 """,
                     tuple(endpoints),
@@ -368,7 +368,7 @@ class PushService:
                 # FIX: Usar sql_now_minus() para compatibilidad PostgreSQL/SQLite
                 cur.execute(
                     f"""
-                    DELETE FROM push_subscriptions
+                    DELETE FROM notificacion_push_suscripcion
                     WHERE last_used_at IS NOT NULL
                       AND last_used_at < {sql_now_minus(f"{days} days")}
                 """
@@ -379,7 +379,7 @@ class PushService:
                 # y tienen más de 7 días de creación (pruebas abandonadas)
                 cur.execute(
                     f"""
-                    DELETE FROM push_subscriptions
+                    DELETE FROM notificacion_push_suscripcion
                     WHERE last_used_at IS NULL
                       AND created_at < {sql_now_minus("7 days")}
                 """

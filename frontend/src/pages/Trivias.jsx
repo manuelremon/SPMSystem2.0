@@ -1,25 +1,31 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
-import { Button } from "../components/ui/Button";
-import { Badge } from "../components/ui/Badge";
 import {
-  Trophy,
-  Star,
-  Zap,
-  Target,
-  HelpCircle,
-  DollarSign,
-  Layers,
-  BookOpen,
-  ArrowRight,
-  ArrowLeft,
-  CheckCircle,
-  XCircle,
-  Timer,
-  Medal,
-  Crown,
-  RefreshCw,
-} from "../components/ui/Icons";
+  Box,
+  Paper,
+  Typography,
+  Button,
+  Stack,
+  Chip,
+  CircularProgress,
+} from "@mui/material";
+import {
+  EmojiEvents as TrophyIcon,
+  Star as StarIcon,
+  Bolt as ZapIcon,
+  TrackChanges as TargetIcon,
+  HelpOutline as HelpCircleIcon,
+  AttachMoney as DollarSignIcon,
+  Layers as LayersIcon,
+  MenuBook as BookOpenIcon,
+  ArrowForward as ArrowRightIcon,
+  ArrowBack as ArrowLeftIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as XCircleIcon,
+  Timer as TimerIcon,
+  MilitaryTech as MedalIcon,
+  WorkspacePremium as CrownIcon,
+  Refresh as RefreshCwIcon,
+} from "@mui/icons-material";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
 import api from "../services/api";
@@ -400,29 +406,39 @@ export default function Trivias() {
   const renderGameContent = () => {
     if (gameOver) {
       return (
-        <div className="text-center py-8">
-          <Trophy className="w-16 h-16 mx-auto mb-4 text-amber-500" />
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">Juego Terminado!</h2>
-          <p className="text-4xl font-bold text-blue-600 mb-4">{score} puntos</p>
-          <p className="text-slate-500 mb-6">
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <TrophyIcon sx={{ width: 64, height: 64, mx: 'auto', mb: 2, color: 'warning.main' }} />
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'text.primary', mb: 1 }}>
+            Juego Terminado!
+          </Typography>
+          <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'primary.main', mb: 2 }}>
+            {score} puntos
+          </Typography>
+          <Typography sx={{ color: 'text.secondary', mb: 3 }}>
             Respuestas correctas: {correctAnswers} / {totalQuestions}
-          </p>
-          <div className="flex justify-center gap-3">
-            <Button onClick={() => {
-              if (activeGame === "quiz") startQuiz();
-              else if (activeGame === "guess") startGuessMaterial();
-              else if (activeGame === "price") startPriceGame();
-              else if (activeGame === "category") startCategoryGame();
-            }}>
-              <RefreshCw className="w-4 h-4" />
+          </Typography>
+          <Stack direction="row" spacing={2} justifyContent="center">
+            <Button
+              variant="contained"
+              startIcon={<RefreshCwIcon />}
+              onClick={() => {
+                if (activeGame === "quiz") startQuiz();
+                else if (activeGame === "guess") startGuessMaterial();
+                else if (activeGame === "price") startPriceGame();
+                else if (activeGame === "category") startCategoryGame();
+              }}
+            >
               Jugar de nuevo
             </Button>
-            <Button variant="outline" onClick={exitGame}>
-              <ArrowLeft className="w-4 h-4" />
+            <Button
+              variant="outlined"
+              startIcon={<ArrowLeftIcon />}
+              onClick={exitGame}
+            >
               Volver
             </Button>
-          </div>
-        </div>
+          </Stack>
+        </Box>
       );
     }
 
@@ -430,54 +446,95 @@ export default function Trivias() {
     if (activeGame === "quiz") {
       const q = quizQuestions[questionIndex];
       return (
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <Badge variant="info">Pregunta {questionIndex + 1} / {quizQuestions.length}</Badge>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1 text-amber-500">
-                <Zap className="w-4 h-4" />
-                <span className="font-bold">{streak}</span>
-              </div>
-              <div className={`flex items-center gap-1 ${timeLeft <= 5 ? 'text-red-600 animate-pulse' : 'text-slate-500'}`}>
-                <Timer className="w-4 h-4" />
-                <span className="font-mono font-bold">{timeLeft}s</span>
-              </div>
-            </div>
-          </div>
+        <Box>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+            <Chip label={`Pregunta ${questionIndex + 1} / ${quizQuestions.length}`} color="info" />
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: 'warning.main' }}>
+                <ZapIcon sx={{ width: 16, height: 16 }} />
+                <Typography sx={{ fontWeight: 'bold' }}>{streak}</Typography>
+              </Stack>
+              <Stack
+                direction="row"
+                spacing={0.5}
+                alignItems="center"
+                sx={{
+                  color: timeLeft <= 5 ? 'error.main' : 'text.secondary',
+                  animation: timeLeft <= 5 ? 'pulse 1s infinite' : 'none',
+                  '@keyframes pulse': {
+                    '0%, 100%': { opacity: 1 },
+                    '50%': { opacity: 0.5 },
+                  },
+                }}
+              >
+                <TimerIcon sx={{ width: 16, height: 16 }} />
+                <Typography sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{timeLeft}s</Typography>
+              </Stack>
+            </Stack>
+          </Stack>
 
-          <h3 className="text-lg font-semibold text-slate-800 mb-6">{q.question}</h3>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', mb: 3 }}>
+            {q.question}
+          </Typography>
 
-          <div className="grid gap-3">
+          <Stack spacing={1.5}>
             {q.options.map((opt, idx) => (
-              <button
+              <Box
                 key={idx}
+                component="button"
                 onClick={() => handleAnswer(idx)}
                 disabled={answered}
-                className={`
-                  w-full p-4 rounded-lg border text-left transition-all
-                  ${answered
+                sx={{
+                  width: '100%',
+                  p: 2,
+                  borderRadius: 2,
+                  border: '1px solid',
+                  textAlign: 'left',
+                  transition: 'all 0.2s',
+                  cursor: answered ? 'default' : 'pointer',
+                  backgroundColor: answered
                     ? idx === q.correct
-                      ? 'bg-emerald-100/70 border-emerald-500 text-emerald-600'
+                      ? 'success.light'
                       : idx === selectedAnswer
-                        ? 'bg-red-100/70 border-red-500 text-red-600'
-                        : 'bg-slate-50/70 border-white/30 text-slate-500'
-                    : 'bg-slate-50/70 border-white/30 text-slate-800 hover:border-blue-500 hover:bg-blue-600/10'
-                  }
-                `}
+                        ? 'error.light'
+                        : 'grey.100'
+                    : 'grey.50',
+                  borderColor: answered
+                    ? idx === q.correct
+                      ? 'success.main'
+                      : idx === selectedAnswer
+                        ? 'error.main'
+                        : 'grey.300'
+                    : 'grey.300',
+                  color: answered
+                    ? idx === q.correct
+                      ? 'success.dark'
+                      : idx === selectedAnswer
+                        ? 'error.dark'
+                        : 'text.secondary'
+                    : 'text.primary',
+                  '&:hover': !answered ? {
+                    borderColor: 'primary.main',
+                    backgroundColor: 'primary.light',
+                  } : {},
+                  '&:disabled': {
+                    cursor: 'default',
+                  },
+                }}
               >
-                <span className="font-medium">{opt}</span>
-              </button>
+                <Typography sx={{ fontWeight: 500 }}>{opt}</Typography>
+              </Box>
             ))}
-          </div>
+          </Stack>
 
           {answered && (
-            <div className="mt-4 p-3 rounded-lg bg-slate-50/70 border border-white/30">
-              <p className="text-sm text-slate-500">
-                <strong className="text-slate-800">Explicacion:</strong> {q.explanation}
-              </p>
-            </div>
+            <Paper sx={{ mt: 2, p: 2, backgroundColor: 'grey.50' }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                <Box component="span" sx={{ fontWeight: 'bold', color: 'text.primary' }}>Explicacion:</Box> {q.explanation}
+              </Typography>
+            </Paper>
           )}
-        </div>
+        </Box>
       );
     }
 
@@ -485,50 +542,91 @@ export default function Trivias() {
     if (activeGame === "guess") {
       const m = guessMaterials[questionIndex];
       return (
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <Badge variant="success">Material {questionIndex + 1} / {guessMaterials.length}</Badge>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1 text-amber-500">
-                <Zap className="w-4 h-4" />
-                <span className="font-bold">{streak}</span>
-              </div>
-              <div className={`flex items-center gap-1 ${timeLeft <= 5 ? 'text-red-600 animate-pulse' : 'text-slate-500'}`}>
-                <Timer className="w-4 h-4" />
-                <span className="font-mono font-bold">{timeLeft}s</span>
-              </div>
-            </div>
-          </div>
+        <Box>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+            <Chip label={`Material ${questionIndex + 1} / ${guessMaterials.length}`} color="success" />
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: 'warning.main' }}>
+                <ZapIcon sx={{ width: 16, height: 16 }} />
+                <Typography sx={{ fontWeight: 'bold' }}>{streak}</Typography>
+              </Stack>
+              <Stack
+                direction="row"
+                spacing={0.5}
+                alignItems="center"
+                sx={{
+                  color: timeLeft <= 5 ? 'error.main' : 'text.secondary',
+                  animation: timeLeft <= 5 ? 'pulse 1s infinite' : 'none',
+                  '@keyframes pulse': {
+                    '0%, 100%': { opacity: 1 },
+                    '50%': { opacity: 0.5 },
+                  },
+                }}
+              >
+                <TimerIcon sx={{ width: 16, height: 16 }} />
+                <Typography sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{timeLeft}s</Typography>
+              </Stack>
+            </Stack>
+          </Stack>
 
-          <div className="p-4 rounded-lg bg-blue-600/10 border border-blue-500/30 mb-6">
-            <p className="text-slate-800 italic">"{m.description}"</p>
-          </div>
+          <Paper sx={{ p: 2, mb: 3, backgroundColor: 'primary.light', border: '1px solid', borderColor: 'primary.main' }}>
+            <Typography sx={{ color: 'text.primary', fontStyle: 'italic' }}>"{m.description}"</Typography>
+          </Paper>
 
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">¿Que material es?</h3>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', mb: 2 }}>
+            ¿Que material es?
+          </Typography>
 
-          <div className="grid gap-3">
+          <Stack spacing={1.5}>
             {m.options.map((opt, idx) => (
-              <button
+              <Box
                 key={idx}
+                component="button"
                 onClick={() => handleAnswer(idx)}
                 disabled={answered}
-                className={`
-                  w-full p-4 rounded-lg border text-left transition-all
-                  ${answered
+                sx={{
+                  width: '100%',
+                  p: 2,
+                  borderRadius: 2,
+                  border: '1px solid',
+                  textAlign: 'left',
+                  transition: 'all 0.2s',
+                  cursor: answered ? 'default' : 'pointer',
+                  backgroundColor: answered
                     ? idx === m.correct
-                      ? 'bg-emerald-100/70 border-emerald-500 text-emerald-600'
+                      ? 'success.light'
                       : idx === selectedAnswer
-                        ? 'bg-red-100/70 border-red-500 text-red-600'
-                        : 'bg-slate-50/70 border-white/30 text-slate-500'
-                    : 'bg-slate-50/70 border-white/30 text-slate-800 hover:border-blue-500 hover:bg-blue-600/10'
-                  }
-                `}
+                        ? 'error.light'
+                        : 'grey.100'
+                    : 'grey.50',
+                  borderColor: answered
+                    ? idx === m.correct
+                      ? 'success.main'
+                      : idx === selectedAnswer
+                        ? 'error.main'
+                        : 'grey.300'
+                    : 'grey.300',
+                  color: answered
+                    ? idx === m.correct
+                      ? 'success.dark'
+                      : idx === selectedAnswer
+                        ? 'error.dark'
+                        : 'text.secondary'
+                    : 'text.primary',
+                  '&:hover': !answered ? {
+                    borderColor: 'primary.main',
+                    backgroundColor: 'primary.light',
+                  } : {},
+                  '&:disabled': {
+                    cursor: 'default',
+                  },
+                }}
               >
-                <span className="font-medium">{opt}</span>
-              </button>
+                <Typography sx={{ fontWeight: 500 }}>{opt}</Typography>
+              </Box>
             ))}
-          </div>
-        </div>
+          </Stack>
+        </Box>
       );
     }
 
@@ -536,61 +634,107 @@ export default function Trivias() {
     if (activeGame === "price") {
       const m = priceMaterials[questionIndex];
       return (
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <Badge variant="warning">Precio {questionIndex + 1} / {priceMaterials.length}</Badge>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1 text-amber-500">
-                <Zap className="w-4 h-4" />
-                <span className="font-bold">{streak}</span>
-              </div>
-              <div className={`flex items-center gap-1 ${timeLeft <= 5 ? 'text-red-600 animate-pulse' : 'text-slate-500'}`}>
-                <Timer className="w-4 h-4" />
-                <span className="font-mono font-bold">{timeLeft}s</span>
-              </div>
-            </div>
-          </div>
+        <Box>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+            <Chip label={`Precio ${questionIndex + 1} / ${priceMaterials.length}`} color="warning" />
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: 'warning.main' }}>
+                <ZapIcon sx={{ width: 16, height: 16 }} />
+                <Typography sx={{ fontWeight: 'bold' }}>{streak}</Typography>
+              </Stack>
+              <Stack
+                direction="row"
+                spacing={0.5}
+                alignItems="center"
+                sx={{
+                  color: timeLeft <= 5 ? 'error.main' : 'text.secondary',
+                  animation: timeLeft <= 5 ? 'pulse 1s infinite' : 'none',
+                  '@keyframes pulse': {
+                    '0%, 100%': { opacity: 1 },
+                    '50%': { opacity: 0.5 },
+                  },
+                }}
+              >
+                <TimerIcon sx={{ width: 16, height: 16 }} />
+                <Typography sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{timeLeft}s</Typography>
+              </Stack>
+            </Stack>
+          </Stack>
 
-          <div className="text-center mb-6">
-            <DollarSign className="w-12 h-12 mx-auto mb-3 text-amber-500" />
-            <h3 className="text-xl font-bold text-slate-800">{m.name}</h3>
-            <p className="text-slate-500 mt-2">¿Cual es el precio aproximado?</p>
-          </div>
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <DollarSignIcon sx={{ width: 48, height: 48, mx: 'auto', mb: 1.5, color: 'warning.main' }} />
+            <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+              {m.name}
+            </Typography>
+            <Typography sx={{ color: 'text.secondary', mt: 1 }}>
+              ¿Cual es el precio aproximado?
+            </Typography>
+          </Box>
 
-          <div className="grid grid-cols-3 gap-4">
+          <Stack direction="row" spacing={2}>
             {m.options.map((price, idx) => (
-              <button
+              <Box
                 key={idx}
+                component="button"
                 onClick={() => handleAnswer(idx)}
                 disabled={answered}
-                className={`
-                  p-4 rounded-lg border text-center transition-all
-                  ${answered
+                sx={{
+                  flex: 1,
+                  p: 2,
+                  borderRadius: 2,
+                  border: '1px solid',
+                  textAlign: 'center',
+                  transition: 'all 0.2s',
+                  cursor: answered ? 'default' : 'pointer',
+                  backgroundColor: answered
                     ? price === m.correctPrice
-                      ? 'bg-emerald-100/70 border-emerald-500'
+                      ? 'success.light'
                       : idx === selectedAnswer
-                        ? 'bg-red-100/70 border-red-500'
-                        : 'bg-slate-50/70 border-white/30'
-                    : 'bg-slate-50/70 border-white/30 hover:border-amber-500 hover:bg-amber-500/10'
-                  }
-                `}
+                        ? 'error.light'
+                        : 'grey.100'
+                    : 'grey.50',
+                  borderColor: answered
+                    ? price === m.correctPrice
+                      ? 'success.main'
+                      : idx === selectedAnswer
+                        ? 'error.main'
+                        : 'grey.300'
+                    : 'grey.300',
+                  '&:hover': !answered ? {
+                    borderColor: 'warning.main',
+                    backgroundColor: 'warning.light',
+                  } : {},
+                  '&:disabled': {
+                    cursor: 'default',
+                  },
+                }}
               >
-                <span className={`text-2xl font-bold ${answered && price === m.correctPrice ? 'text-emerald-600' : answered && idx === selectedAnswer ? 'text-red-600' : 'text-slate-800'}`}>
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: 'bold',
+                    color: answered && price === m.correctPrice
+                      ? 'success.dark'
+                      : answered && idx === selectedAnswer
+                        ? 'error.dark'
+                        : 'text.primary',
+                  }}
+                >
                   ${price.toLocaleString()}
-                </span>
-                <p className="text-xs text-slate-500 mt-1">USD</p>
-              </button>
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>USD</Typography>
+              </Box>
             ))}
-          </div>
+          </Stack>
 
           {answered && (
-            <div className="mt-4 text-center">
-              <p className="text-sm text-slate-500">
-                Precio correcto: <strong className="text-emerald-600">${m.correctPrice.toLocaleString()} USD</strong>
-              </p>
-            </div>
+            <Box sx={{ mt: 2, textAlign: 'center' }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                Precio correcto: <Box component="span" sx={{ fontWeight: 'bold', color: 'success.main' }}>${m.correctPrice.toLocaleString()} USD</Box>
+              </Typography>
+            </Box>
           )}
-        </div>
+        </Box>
       );
     }
 
@@ -600,76 +744,125 @@ export default function Trivias() {
       const unassigned = round.materials.filter(m => !categoryAssignments[m.id]);
 
       return (
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <Badge variant="info">Ronda {categoryRound + 1} / {categoryGame.rounds.length}</Badge>
-            <div className="text-slate-500">
-              Puntaje: <span className="font-bold text-blue-600">{score}</span>
-            </div>
-          </div>
+        <Box>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+            <Chip label={`Ronda ${categoryRound + 1} / ${categoryGame.rounds.length}`} color="info" />
+            <Typography sx={{ color: 'text.secondary' }}>
+              Puntaje: <Box component="span" sx={{ fontWeight: 'bold', color: 'primary.main' }}>{score}</Box>
+            </Typography>
+          </Stack>
 
-          <h3 className="text-lg font-semibold text-slate-800 mb-2">Arrastra cada material a su categoria</h3>
-          <p className="text-sm text-slate-500 mb-6">Clasifica los 3 materiales correctamente</p>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', mb: 1 }}>
+            Arrastra cada material a su categoria
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
+            Clasifica los 3 materiales correctamente
+          </Typography>
 
           {/* Materiales sin asignar */}
-          <div className="mb-6 p-4 rounded-lg bg-slate-50/70 border border-dashed border-white/30 min-h-[80px]">
-            <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Materiales:</p>
-            <div className="flex flex-wrap gap-2">
+          <Paper
+            sx={{
+              mb: 3,
+              p: 2,
+              backgroundColor: 'grey.50',
+              border: '2px dashed',
+              borderColor: 'grey.300',
+              minHeight: 80,
+            }}
+          >
+            <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1, mb: 1.5, display: 'block' }}>
+              Materiales:
+            </Typography>
+            <Stack direction="row" flexWrap="wrap" spacing={1}>
               {unassigned.map(m => (
-                <div
+                <Box
                   key={m.id}
                   draggable
                   onDragStart={() => handleDragStart(m)}
-                  className="px-4 py-2 rounded-lg bg-white border border-white/30 cursor-grab active:cursor-grabbing hover:border-blue-500 transition-all"
+                  sx={{
+                    px: 2,
+                    py: 1,
+                    borderRadius: 2,
+                    backgroundColor: 'background.paper',
+                    border: '1px solid',
+                    borderColor: 'grey.300',
+                    cursor: 'grab',
+                    '&:active': { cursor: 'grabbing' },
+                    '&:hover': { borderColor: 'primary.main' },
+                    transition: 'all 0.2s',
+                  }}
                 >
-                  <span className="text-sm font-medium text-slate-800">{m.name}</span>
-                </div>
+                  <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>{m.name}</Typography>
+                </Box>
               ))}
               {unassigned.length === 0 && (
-                <p className="text-sm text-slate-400 italic">Todos los materiales asignados</p>
+                <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic' }}>
+                  Todos los materiales asignados
+                </Typography>
               )}
-            </div>
-          </div>
+            </Stack>
+          </Paper>
 
           {/* Categorias */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={2}
+            sx={{ mb: 3 }}
+          >
             {categoryGame.categories.map(cat => {
               const assigned = round.materials.filter(m => categoryAssignments[m.id] === cat.id);
               return (
-                <div
+                <Box
                   key={cat.id}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={() => handleDrop(cat.id)}
-                  className="p-4 rounded-lg border-2 border-dashed transition-all min-h-[120px]"
-                  style={{ borderColor: `${cat.color}50`, backgroundColor: `${cat.color}10` }}
+                  sx={{
+                    flex: 1,
+                    p: 2,
+                    borderRadius: 2,
+                    border: '2px dashed',
+                    borderColor: `${cat.color}50`,
+                    backgroundColor: `${cat.color}10`,
+                    minHeight: 120,
+                    transition: 'all 0.2s',
+                  }}
                 >
-                  <p className="text-sm font-semibold mb-3" style={{ color: cat.color }}>{cat.name}</p>
-                  <div className="space-y-2">
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5, color: cat.color }}>
+                    {cat.name}
+                  </Typography>
+                  <Stack spacing={1}>
                     {assigned.map(m => (
-                      <div
+                      <Box
                         key={m.id}
-                        className="px-3 py-2 rounded bg-white border text-sm"
-                        style={{ borderColor: cat.color }}
+                        sx={{
+                          px: 1.5,
+                          py: 1,
+                          borderRadius: 1,
+                          backgroundColor: 'background.paper',
+                          border: '1px solid',
+                          borderColor: cat.color,
+                        }}
                       >
-                        {m.name}
-                      </div>
+                        <Typography variant="body2">{m.name}</Typography>
+                      </Box>
                     ))}
-                  </div>
-                </div>
+                  </Stack>
+                </Box>
               );
             })}
-          </div>
+          </Stack>
 
-          <div className="flex justify-center">
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
             <Button
+              variant="contained"
+              startIcon={<CheckCircleIcon />}
               onClick={checkCategoryAnswers}
               disabled={unassigned.length > 0}
             >
-              <CheckCircle className="w-4 h-4" />
               Verificar Respuestas
             </Button>
-          </div>
-        </div>
+          </Box>
+        </Box>
       );
     }
 
@@ -679,193 +872,289 @@ export default function Trivias() {
   // Menu principal de juegos
   if (!activeGame) {
     return (
-      <div className="space-y-6 max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2 uppercase">
-              <Trophy className="w-6 h-6 text-amber-500" />
-              Trivias SPM
-            </h1>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-slate-500">Tu puntaje total</p>
-            <p className="text-2xl font-bold text-blue-600">{myStats.total_score.toLocaleString()}</p>
-          </div>
-        </div>
+      <Box sx={{ maxWidth: 1024, mx: 'auto' }}>
+        <Stack spacing={3}>
+          {/* Header */}
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1, textTransform: 'uppercase' }}>
+                <TrophyIcon sx={{ color: 'warning.main' }} />
+                Trivias SPM
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>Tu puntaje total</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.main' }}>{myStats.total_score.toLocaleString()}</Typography>
+            </Box>
+          </Stack>
 
-        {/* Grid de juegos */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Quiz SPM */}
-          <Card className="hover:border-blue-500 transition-all cursor-pointer group" onClick={startQuiz}>
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-xl bg-blue-600/20 grid place-items-center flex-shrink-0 group-hover:bg-blue-600/30 transition-all">
-                  <BookOpen className="w-6 h-6 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-slate-800 text-lg">Quiz SPM</h3>
-                  <p className="text-sm text-slate-500 mt-1">Responde preguntas sobre el sistema y sus procesos</p>
-                  <div className="flex items-center gap-2 mt-3">
-                    <Badge variant="neutral">{quizQuestions.length} preguntas</Badge>
-                    <Badge variant="info">15s por pregunta</Badge>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-slate-500 group-hover:text-blue-600 transition-all" />
-              </div>
-            </CardContent>
-          </Card>
+          {/* Grid de juegos */}
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            flexWrap="wrap"
+            sx={{ gap: 2 }}
+          >
+            {/* Quiz SPM */}
+            <Paper
+              onClick={startQuiz}
+              sx={{
+                flex: { xs: '1 1 100%', md: '1 1 calc(50% - 8px)' },
+                p: 3,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  borderColor: 'primary.main',
+                  boxShadow: 2,
+                },
+              }}
+            >
+              <Stack direction="row" spacing={2} alignItems="flex-start">
+                <Box
+                  sx={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 2,
+                    backgroundColor: 'primary.light',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <BookOpenIcon sx={{ color: 'primary.main' }} />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>Quiz SPM</Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Responde preguntas sobre el sistema y sus procesos</Typography>
+                  <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
+                    <Chip label={`${quizQuestions.length} preguntas`} size="small" />
+                    <Chip label="15s por pregunta" size="small" color="info" />
+                  </Stack>
+                </Box>
+                <ArrowRightIcon sx={{ color: 'text.secondary' }} />
+              </Stack>
+            </Paper>
 
-          {/* Adivina el Material */}
-          <Card className="hover:border-emerald-500 transition-all cursor-pointer group" onClick={startGuessMaterial}>
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-xl bg-emerald-500/20 grid place-items-center flex-shrink-0 group-hover:bg-emerald-500/30 transition-all">
-                  <HelpCircle className="w-6 h-6 text-emerald-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-slate-800 text-lg">Adivina el Material</h3>
-                  <p className="text-sm text-slate-500 mt-1">Lee la descripcion y elige el material correcto</p>
-                  <div className="flex items-center gap-2 mt-3">
-                    <Badge variant="neutral">{guessMaterials.length} materiales</Badge>
-                    <Badge variant="success">20s por pregunta</Badge>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-slate-500 group-hover:text-emerald-600 transition-all" />
-              </div>
-            </CardContent>
-          </Card>
+            {/* Adivina el Material */}
+            <Paper
+              onClick={startGuessMaterial}
+              sx={{
+                flex: { xs: '1 1 100%', md: '1 1 calc(50% - 8px)' },
+                p: 3,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  borderColor: 'success.main',
+                  boxShadow: 2,
+                },
+              }}
+            >
+              <Stack direction="row" spacing={2} alignItems="flex-start">
+                <Box
+                  sx={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 2,
+                    backgroundColor: 'success.light',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <HelpCircleIcon sx={{ color: 'success.main' }} />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>Adivina el Material</Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Lee la descripcion y elige el material correcto</Typography>
+                  <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
+                    <Chip label={`${guessMaterials.length} materiales`} size="small" />
+                    <Chip label="20s por pregunta" size="small" color="success" />
+                  </Stack>
+                </Box>
+                <ArrowRightIcon sx={{ color: 'text.secondary' }} />
+              </Stack>
+            </Paper>
 
-          {/* Cuanto Cuesta */}
-          <Card className="hover:border-amber-500 transition-all cursor-pointer group" onClick={startPriceGame}>
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-xl bg-amber-500/20 grid place-items-center flex-shrink-0 group-hover:bg-amber-500/30 transition-all">
-                  <DollarSign className="w-6 h-6 text-amber-500" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-slate-800 text-lg">¿Cuanto Cuesta?</h3>
-                  <p className="text-sm text-slate-500 mt-1">Adivina el precio correcto del material</p>
-                  <div className="flex items-center gap-2 mt-3">
-                    <Badge variant="neutral">{priceMaterials.length} materiales</Badge>
-                    <Badge variant="warning">12s por pregunta</Badge>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-slate-500 group-hover:text-amber-500 transition-all" />
-              </div>
-            </CardContent>
-          </Card>
+            {/* Cuanto Cuesta */}
+            <Paper
+              onClick={startPriceGame}
+              sx={{
+                flex: { xs: '1 1 100%', md: '1 1 calc(50% - 8px)' },
+                p: 3,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  borderColor: 'warning.main',
+                  boxShadow: 2,
+                },
+              }}
+            >
+              <Stack direction="row" spacing={2} alignItems="flex-start">
+                <Box
+                  sx={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 2,
+                    backgroundColor: 'warning.light',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <DollarSignIcon sx={{ color: 'warning.main' }} />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>¿Cuanto Cuesta?</Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Adivina el precio correcto del material</Typography>
+                  <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
+                    <Chip label={`${priceMaterials.length} materiales`} size="small" />
+                    <Chip label="12s por pregunta" size="small" color="warning" />
+                  </Stack>
+                </Box>
+                <ArrowRightIcon sx={{ color: 'text.secondary' }} />
+              </Stack>
+            </Paper>
 
-          {/* Categorias */}
-          <Card className="hover:border-cyan-500 transition-all cursor-pointer group" onClick={startCategoryGame}>
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-xl bg-cyan-500/20 grid place-items-center flex-shrink-0 group-hover:bg-cyan-500/30 transition-all">
-                  <Layers className="w-6 h-6 text-cyan-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-slate-800 text-lg">Categorias</h3>
-                  <p className="text-sm text-slate-500 mt-1">Arrastra cada material a su grupo correcto</p>
-                  <div className="flex items-center gap-2 mt-3">
-                    <Badge variant="neutral">{categoryGame.rounds.length} rondas</Badge>
-                    <Badge variant="info">Drag & Drop</Badge>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-slate-500 group-hover:text-cyan-600 transition-all" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            {/* Categorias */}
+            <Paper
+              onClick={startCategoryGame}
+              sx={{
+                flex: { xs: '1 1 100%', md: '1 1 calc(50% - 8px)' },
+                p: 3,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  borderColor: 'info.main',
+                  boxShadow: 2,
+                },
+              }}
+            >
+              <Stack direction="row" spacing={2} alignItems="flex-start">
+                <Box
+                  sx={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 2,
+                    backgroundColor: 'info.light',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <LayersIcon sx={{ color: 'info.main' }} />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>Categorias</Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Arrastra cada material a su grupo correcto</Typography>
+                  <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
+                    <Chip label={`${categoryGame.rounds.length} rondas`} size="small" />
+                    <Chip label="Drag & Drop" size="small" color="info" />
+                  </Stack>
+                </Box>
+                <ArrowRightIcon sx={{ color: 'text.secondary' }} />
+              </Stack>
+            </Paper>
+          </Stack>
 
-        {/* Ranking */}
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <Medal className="w-5 h-5 text-amber-500" />
-              <CardTitle className="text-base">Ranking de Jugadores</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
+          {/* Ranking */}
+          <Paper sx={{ p: 3 }}>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+              <MedalIcon sx={{ color: 'warning.main' }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Ranking de Jugadores</Typography>
+            </Stack>
+
             {loadingRankings ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-              </div>
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <CircularProgress size={32} />
+              </Box>
             ) : rankings.length === 0 ? (
-              <div className="text-center py-8 text-slate-500">
-                <Trophy className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>Aun no hay puntuaciones. Se el primero en jugar!</p>
-              </div>
+              <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+                <TrophyIcon sx={{ width: 48, height: 48, mx: 'auto', mb: 1.5, opacity: 0.3 }} />
+                <Typography>Aun no hay puntuaciones. Se el primero en jugar!</Typography>
+              </Box>
             ) : (
-              <div className="space-y-2">
+              <Stack spacing={1}>
                 {rankings.slice(0, 10).map((r, idx) => (
-                  <div
+                  <Box
                     key={r.user_id}
-                    className={`flex items-center gap-3 p-3 rounded-lg ${
-                      r.user_id === user?.id
-                        ? 'bg-blue-600/10 border border-blue-500/30'
-                        : 'bg-slate-50/70'
-                    }`}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.5,
+                      p: 1.5,
+                      borderRadius: 2,
+                      backgroundColor: r.user_id === user?.id ? 'primary.light' : 'grey.50',
+                      border: r.user_id === user?.id ? '1px solid' : 'none',
+                      borderColor: 'primary.main',
+                    }}
                   >
-                    <div className="w-8 h-8 rounded-full grid place-items-center flex-shrink-0">
+                    <Box
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: '50%',
+                        display: 'grid',
+                        placeItems: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
                       {idx === 0 ? (
-                        <Crown className="w-5 h-5 text-amber-500" />
+                        <CrownIcon sx={{ color: 'warning.main' }} />
                       ) : idx === 1 ? (
-                        <Medal className="w-5 h-5 text-slate-500" />
+                        <MedalIcon sx={{ color: 'grey.500' }} />
                       ) : idx === 2 ? (
-                        <Medal className="w-5 h-5 text-amber-600" />
+                        <MedalIcon sx={{ color: '#CD7F32' }} />
                       ) : (
-                        <span className="text-sm font-bold text-slate-500">{idx + 1}</span>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>{idx + 1}</Typography>
                       )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-slate-800">{r.user_name}</p>
-                      <p className="text-xs text-slate-500">{r.games_played} partidas</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-blue-600">{r.total_score.toLocaleString()}</p>
-                      <p className="text-xs text-slate-500">puntos</p>
-                    </div>
-                  </div>
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography sx={{ fontWeight: 500, color: 'text.primary' }}>{r.user_name}</Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>{r.games_played} partidas</Typography>
+                    </Box>
+                    <Box sx={{ textAlign: 'right' }}>
+                      <Typography sx={{ fontWeight: 'bold', color: 'primary.main' }}>{r.total_score.toLocaleString()}</Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>puntos</Typography>
+                    </Box>
+                  </Box>
                 ))}
-              </div>
+              </Stack>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </Paper>
+        </Stack>
+      </Box>
     );
   }
 
   // Pantalla de juego activo
   return (
-    <div className="max-w-2xl mx-auto">
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
-              {activeGame === "quiz" && <><BookOpen className="w-5 h-5 text-blue-600" /> Quiz SPM</>}
-              {activeGame === "guess" && <><HelpCircle className="w-5 h-5 text-emerald-600" /> Adivina el Material</>}
-              {activeGame === "price" && <><DollarSign className="w-5 h-5 text-amber-500" /> ¿Cuanto Cuesta?</>}
-              {activeGame === "category" && <><Layers className="w-5 h-5 text-cyan-600" /> Categorias</>}
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <Star className="w-4 h-4 text-amber-500" />
-              <span className="font-bold text-slate-800">{score}</span>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {renderGameContent()}
-        </CardContent>
-      </Card>
+    <Box sx={{ maxWidth: 672, mx: 'auto' }}>
+      <Paper sx={{ p: 3 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {activeGame === "quiz" && <><BookOpenIcon sx={{ color: 'primary.main' }} /> Quiz SPM</>}
+            {activeGame === "guess" && <><HelpCircleIcon sx={{ color: 'success.main' }} /> Adivina el Material</>}
+            {activeGame === "price" && <><DollarSignIcon sx={{ color: 'warning.main' }} /> ¿Cuanto Cuesta?</>}
+            {activeGame === "category" && <><LayersIcon sx={{ color: 'info.main' }} /> Categorias</>}
+          </Typography>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <StarIcon sx={{ width: 16, height: 16, color: 'warning.main' }} />
+            <Typography sx={{ fontWeight: 'bold', color: 'text.primary' }}>{score}</Typography>
+          </Stack>
+        </Stack>
+        {renderGameContent()}
+      </Paper>
 
       {!gameOver && (
-        <div className="mt-4 text-center">
-          <Button variant="ghost" onClick={exitGame}>
-            <ArrowLeft className="w-4 h-4" />
+        <Box sx={{ mt: 2, textAlign: 'center' }}>
+          <Button
+            variant="text"
+            startIcon={<ArrowLeftIcon />}
+            onClick={exitGame}
+          >
             Salir del juego
           </Button>
-        </div>
+        </Box>
       )}
-    </div>
+    </Box>
   );
 }

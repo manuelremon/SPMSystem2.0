@@ -7,11 +7,24 @@
  * - Two-line descriptions with line-clamp
  * - Organized grid layout for price alignment
  * - Professional typography and spacing
+ *
+ * Migrated to MUI (2026-02)
  */
 import { createPortal } from 'react-dom'
 import { useI18n } from '../../context/i18n'
 import { formatCurrency } from '../../utils/formatters'
-import { Search, X, Loader2, Check } from '../ui/Icons'
+import {
+  Box,
+  Paper,
+  Typography,
+  IconButton,
+  CircularProgress,
+  Stack,
+  Chip,
+} from '@mui/material'
+import SearchIcon from '@mui/icons-material/Search'
+import CloseIcon from '@mui/icons-material/Close'
+import CheckIcon from '@mui/icons-material/Check'
 
 /**
  * Escape regex special characters for safe string matching
@@ -32,12 +45,19 @@ function highlight(text, query) {
     .split(regex)
     .map((part, idx) =>
       regex.test(part) ? (
-        <mark
+        <Box
+          component="mark"
           key={idx}
-          className="bg-sky-400/30 text-[var(--fg-strong)] rounded-sm px-0.5 font-semibold"
+          sx={{
+            bgcolor: 'info.light',
+            color: 'text.primary',
+            borderRadius: 0.5,
+            px: 0.5,
+            fontWeight: 600,
+          }}
         >
           {part}
-        </mark>
+        </Box>
       ) : (
         <span key={idx}>{part}</span>
       )
@@ -63,66 +83,105 @@ export function SearchDropdown({
   if (!dropdownOpen) return null
 
   return createPortal(
-    <div
+    <Paper
       ref={dropdownRef}
-      className="fixed bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-elevated overflow-hidden animate-scale-in"
-      style={{
+      elevation={8}
+      sx={{
+        position: 'fixed',
         top: dropdownPosition.top,
         left: dropdownPosition.left,
         width: dropdownPosition.width,
         minWidth: '320px',
         zIndex: 9999,
         maxHeight: '380px',
+        overflow: 'hidden',
+        borderRadius: 3,
+        animation: 'scaleIn 0.15s ease-out',
+        '@keyframes scaleIn': {
+          '0%': { opacity: 0, transform: 'scale(0.95)' },
+          '100%': { opacity: 1, transform: 'scale(1)' },
+        },
       }}
       role="listbox"
       aria-label={t('materials_resultados', 'Resultados de busqueda')}
     >
       {/* Header del dropdown - Sticky con blur */}
-      <div className="sticky top-0 z-10 bg-[var(--bg-elevated)]/95 backdrop-blur-sm border-b border-[var(--border)] px-4 py-2.5 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <Box
+        sx={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          bgcolor: 'background.paper',
+          backdropFilter: 'blur(8px)',
+          borderBottom: 1,
+          borderColor: 'divider',
+          px: 2,
+          py: 1.5,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <Stack direction="row" spacing={1} alignItems="center">
           {loadingSearch ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin text-[var(--primary)]" />
-              <span className="text-sm font-medium text-[var(--fg-muted)]">
+              <CircularProgress size={16} color="primary" />
+              <Typography variant="body2" color="text.secondary" fontWeight={500}>
                 {t('common_buscando', 'Buscando...')}
-              </span>
+              </Typography>
             </>
           ) : (
             <>
-              <span className="text-sm font-semibold text-[var(--fg)]">
+              <Typography variant="body2" fontWeight={600} color="text.primary">
                 {results.length}
-              </span>
-              <span className="text-sm text-[var(--fg-muted)]">
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
                 {results.length !== 1 ? t('common_resultados', 'resultados') : t('common_resultado', 'resultado')}
-              </span>
+              </Typography>
             </>
           )}
-        </div>
-        <button
-          type="button"
+        </Stack>
+        <IconButton
+          size="small"
           onClick={onClose}
-          className="p-1.5 hover:bg-[var(--bg-soft)] rounded-lg transition-colors group"
           aria-label={t('common_cerrar', 'Cerrar')}
+          sx={{
+            '&:hover': {
+              bgcolor: 'action.hover',
+            },
+          }}
         >
-          <X className="h-4 w-4 text-[var(--fg-muted)] group-hover:text-[var(--fg)]" />
-        </button>
-      </div>
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </Box>
 
       {/* Lista de resultados */}
-      <div className="overflow-y-auto" style={{ maxHeight: '320px' }}>
+      <Box sx={{ overflowY: 'auto', maxHeight: '320px' }}>
         {/* Estado vacio */}
         {!loadingSearch && results.length === 0 && (
-          <div className="p-8 text-center">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[var(--bg-soft)] flex items-center justify-center">
-              <Search className="h-6 w-6 text-[var(--fg-muted)]" />
-            </div>
-            <p className="text-sm font-medium text-[var(--fg)]">
+          <Box sx={{ p: 4, textAlign: 'center' }}>
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                mx: 'auto',
+                mb: 1.5,
+                borderRadius: '50%',
+                bgcolor: 'action.hover',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <SearchIcon sx={{ fontSize: 24, color: 'text.secondary' }} />
+            </Box>
+            <Typography variant="body2" fontWeight={500} color="text.primary">
               {t('materials_sin_resultados', 'No se encontraron materiales')}
-            </p>
-            <p className="text-xs text-[var(--fg-muted)] mt-1">
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
               {t('materials_intenta_otro_termino', 'Intenta con otro termino de busqueda')}
-            </p>
-          </div>
+            </Typography>
+          </Box>
         )}
 
         {/* Items de resultado */}
@@ -132,80 +191,202 @@ export function SearchDropdown({
             const isHighlighted = highlightedIndex === idx
 
             return (
-              <button
+              <Box
+                component="button"
                 key={m.codigo}
                 role="option"
                 aria-selected={isSelected}
-                className={`
-                  w-full text-left px-4 py-3
-                  border-b border-[var(--border)]/40 last:border-b-0
-                  transition-all duration-150 ease-out
-                  ${isSelected
-                    ? 'bg-[var(--primary)]/10 border-l-[3px] border-l-[var(--primary)]'
-                    : 'border-l-[3px] border-l-transparent'}
-                  ${isHighlighted
-                    ? 'bg-[var(--primary)]/5'
-                    : 'hover:bg-[var(--bg-soft)]/70'}
-                `}
                 onClick={() => onSelect(m)}
                 onMouseEnter={() => setHighlightedIndex(idx)}
                 type="button"
+                sx={{
+                  width: '100%',
+                  textAlign: 'left',
+                  px: 2,
+                  py: 1.5,
+                  borderBottom: 1,
+                  borderColor: 'divider',
+                  borderLeft: 3,
+                  borderLeftColor: isSelected ? 'primary.main' : 'transparent',
+                  transition: 'all 0.15s ease-out',
+                  bgcolor: isSelected
+                    ? 'primary.lighter'
+                    : isHighlighted
+                    ? 'action.hover'
+                    : 'transparent',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    bgcolor: isSelected ? 'primary.lighter' : 'action.hover',
+                  },
+                  '&:last-child': {
+                    borderBottom: 0,
+                  },
+                }}
               >
                 {/* Grid layout para mejor alineacion */}
-                <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto',
+                    gap: 1.5,
+                    alignItems: 'start',
+                  }}
+                >
                   {/* Columna izquierda: Codigo + Descripcion */}
-                  <div className="min-w-0">
+                  <Box sx={{ minWidth: 0 }}>
                     {/* Codigo SAP con badge de seleccion */}
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono text-sm font-semibold text-[var(--primary)]">
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontFamily: 'monospace',
+                          fontWeight: 600,
+                          color: 'primary.main',
+                        }}
+                      >
                         {highlight(m.codigo, debouncedCodigo)}
-                      </span>
+                      </Typography>
                       {isSelected && (
-                        <span className="flex items-center gap-1 text-xs font-medium text-[var(--primary)] bg-[var(--primary)]/10 px-1.5 py-0.5 rounded-full">
-                          <Check className="h-3 w-3" />
-                          <span>Seleccionado</span>
-                        </span>
+                        <Chip
+                          icon={<CheckIcon sx={{ fontSize: 12 }} />}
+                          label="Seleccionado"
+                          size="small"
+                          color="primary"
+                          sx={{
+                            height: 20,
+                            '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' },
+                            '& .MuiChip-icon': { ml: 0.5 },
+                          }}
+                        />
                       )}
-                    </div>
+                    </Stack>
                     {/* Descripcion en 2 lineas con line-clamp */}
-                    <p className="text-sm text-[var(--fg)] leading-snug line-clamp-2">
+                    <Typography
+                      variant="body2"
+                      color="text.primary"
+                      sx={{
+                        lineHeight: 1.4,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
                       {highlight(m.descripcion, debouncedDesc)}
-                    </p>
-                  </div>
+                    </Typography>
+                  </Box>
 
                   {/* Columna derecha: Precio alineado */}
-                  <div className="text-right shrink-0 pt-0.5">
-                    <span className="inline-block text-sm font-mono font-semibold text-[var(--fg-strong)] bg-[var(--bg-soft)] px-2.5 py-1 rounded-lg">
+                  <Box sx={{ textAlign: 'right', flexShrink: 0, pt: 0.5 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontFamily: 'monospace',
+                        fontWeight: 600,
+                        bgcolor: 'action.hover',
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: 1,
+                        display: 'inline-block',
+                      }}
+                    >
                       {formatCurrency(m.precio_usd || 0)}
-                    </span>
-                  </div>
-                </div>
-              </button>
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
             )
           })}
-      </div>
+      </Box>
 
       {/* Footer con hint de teclado */}
       {results.length > 0 && (
-        <div className="sticky bottom-0 bg-[var(--bg-elevated)]/95 backdrop-blur-sm border-t border-[var(--border)] px-4 py-2">
-          <div className="flex items-center justify-between text-xs text-[var(--fg-muted)]">
-            <span>
-              <kbd className="px-1.5 py-0.5 bg-[var(--bg-soft)] rounded text-[10px] font-mono mr-1">↑</kbd>
-              <kbd className="px-1.5 py-0.5 bg-[var(--bg-soft)] rounded text-[10px] font-mono mr-1">↓</kbd>
+        <Box
+          sx={{
+            position: 'sticky',
+            bottom: 0,
+            bgcolor: 'background.paper',
+            backdropFilter: 'blur(8px)',
+            borderTop: 1,
+            borderColor: 'divider',
+            px: 2,
+            py: 1,
+          }}
+        >
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            sx={{ typography: 'caption', color: 'text.secondary' }}
+          >
+            <Box>
+              <Box
+                component="kbd"
+                sx={{
+                  px: 0.75,
+                  py: 0.25,
+                  bgcolor: 'action.hover',
+                  borderRadius: 0.5,
+                  fontSize: '10px',
+                  fontFamily: 'monospace',
+                  mr: 0.5,
+                }}
+              >
+                ↑
+              </Box>
+              <Box
+                component="kbd"
+                sx={{
+                  px: 0.75,
+                  py: 0.25,
+                  bgcolor: 'action.hover',
+                  borderRadius: 0.5,
+                  fontSize: '10px',
+                  fontFamily: 'monospace',
+                  mr: 0.5,
+                }}
+              >
+                ↓
+              </Box>
               navegar
-            </span>
-            <span>
-              <kbd className="px-1.5 py-0.5 bg-[var(--bg-soft)] rounded text-[10px] font-mono mr-1">Enter</kbd>
+            </Box>
+            <Box>
+              <Box
+                component="kbd"
+                sx={{
+                  px: 0.75,
+                  py: 0.25,
+                  bgcolor: 'action.hover',
+                  borderRadius: 0.5,
+                  fontSize: '10px',
+                  fontFamily: 'monospace',
+                  mr: 0.5,
+                }}
+              >
+                Enter
+              </Box>
               seleccionar
-            </span>
-            <span>
-              <kbd className="px-1.5 py-0.5 bg-[var(--bg-soft)] rounded text-[10px] font-mono mr-1">Esc</kbd>
+            </Box>
+            <Box>
+              <Box
+                component="kbd"
+                sx={{
+                  px: 0.75,
+                  py: 0.25,
+                  bgcolor: 'action.hover',
+                  borderRadius: 0.5,
+                  fontSize: '10px',
+                  fontFamily: 'monospace',
+                  mr: 0.5,
+                }}
+              >
+                Esc
+              </Box>
               cerrar
-            </span>
-          </div>
-        </div>
+            </Box>
+          </Stack>
+        </Box>
       )}
-    </div>,
+    </Paper>,
     document.body
   )
 }

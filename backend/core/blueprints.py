@@ -26,6 +26,7 @@ def register_blueprints(app: Flask) -> None:
         auth,
         budget,
         catalogos,
+        dashboards,
         database,
         docs,
         equivalencias,
@@ -39,11 +40,13 @@ def register_blueprints(app: Flask) -> None:
         metrics,
         mi_cuenta,
         mrp,
+        mrp_portfolio,
         notificaciones,
         procurement,
         push,
         sla,
         solicitudes,
+        stock,
         trivias,
         vertex_ia,
     )
@@ -62,6 +65,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(mi_cuenta.bp, url_prefix="/api")
     app.register_blueprint(materiales.bp)
     app.register_blueprint(materiales_detalle.bp_detalle)
+    app.register_blueprint(stock.bp)  # Stock management at /api/stock
 
     # Administration
     app.register_blueprint(admin.bp)
@@ -76,6 +80,7 @@ def register_blueprints(app: Flask) -> None:
     # Budget and planning
     app.register_blueprint(budget.bp)  # Budget/BUR management at /api
     app.register_blueprint(mrp.bp)  # MRP (Material Requirements Planning) at /api/mrp
+    app.register_blueprint(mrp_portfolio.bp)  # MRP Portfolio at /api/mrp/portfolio
     app.register_blueprint(equivalencias.bp)  # Material equivalences at /api/equivalencias
 
     # AI and analytics
@@ -99,3 +104,11 @@ def register_blueprints(app: Flask) -> None:
 
     # External integrations
     app.register_blueprint(procurement.procurement_bp)  # SAP Procurement data at /api/procurement
+
+    # Dashboards editables
+    app.register_blueprint(dashboards.bp)  # Editable spreadsheet dashboards at /api/dashboards
+
+    # Transport and Fleet Management
+    from backend.routes import tms, fms
+    app.register_blueprint(tms.bp)  # TMS (Transport Management) at /api/tms
+    app.register_blueprint(fms.bp)  # FMS (Fleet Management) at /api/fms

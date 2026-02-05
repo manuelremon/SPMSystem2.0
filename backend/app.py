@@ -1,5 +1,5 @@
 """
-Backend v2.0 - Flask Application Factory
+Backend v3.0 - Flask Application Factory
 
 API REST limpia con CORS, blueprints, error handlers.
 Refactorizado para mejor legibilidad y testabilidad.
@@ -85,12 +85,15 @@ def create_app(config_override: dict | None = None) -> Flask:
     init_csrf_protection(app)
     init_security_headers(app)
 
-    # Rate limiting
-    rate_limit_disabled = os.environ.get("DISABLE_RATE_LIMIT") == "1"
+    # Rate limiting (deshabilitado en desarrollo)
+    rate_limit_disabled = os.environ.get("DISABLE_RATE_LIMIT") == "1" or settings.ENV == "development"
     if not rate_limit_disabled and app.config.get("RATE_LIMIT_ENABLED", True) and settings.ENV != "test":
         init_rate_limiting(app)
     elif rate_limit_disabled:
-        app.logger.warning("Rate limiting DESHABILITADO por variable de entorno")
+        if settings.ENV == "development":
+            app.logger.warning("Rate limiting DESHABILITADO en desarrollo")
+        else:
+            app.logger.warning("Rate limiting DESHABILITADO por variable de entorno")
 
     # Request validation (sanitizacion de inputs)
     init_request_validation(app, max_content_length=10 * 1024 * 1024)  # 10MB max
@@ -122,7 +125,7 @@ def create_app(config_override: dict | None = None) -> Flask:
     register_spm_error_handler(app)
 
     # Logging de inicio
-    app.logger.info(f"SPM Backend v2.0 initialized (ENV={settings.ENV})")
+    app.logger.info(f"SPM Backend v3.0 initialized (ENV={settings.ENV})")
 
     return app
 

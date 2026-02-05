@@ -68,7 +68,7 @@ class NotificationRateLimiter:
                 # Contar notificaciones del usuario en el último minuto
                 cursor.execute(
                     f"""
-                    SELECT COUNT(*) as count FROM notificaciones
+                    SELECT COUNT(*) as count FROM notificacion
                     WHERE destinatario_id = ?
                     AND created_at > {sql_now_minus(f"{self.window_seconds} seconds")}
                     """,
@@ -97,7 +97,7 @@ class NotificationRateLimiter:
                 cursor = conn.cursor()
                 cursor.execute(
                     f"""
-                    SELECT COUNT(*) as count FROM notificaciones
+                    SELECT COUNT(*) as count FROM notificacion
                     WHERE destinatario_id = ?
                     AND created_at > {sql_now_minus(f"{self.window_seconds} seconds")}
                     """,
@@ -178,7 +178,7 @@ class NotificationService:
                     # PostgreSQL: SERIAL para auto-increment
                     cursor.execute(
                         """
-                        CREATE TABLE IF NOT EXISTS user_notification_preferences (
+                        CREATE TABLE IF NOT EXISTS usuario_preferencia_notificacion (
                             id SERIAL PRIMARY KEY,
                             user_id TEXT UNIQUE NOT NULL,
                             push_enabled INTEGER DEFAULT 1,
@@ -198,7 +198,7 @@ class NotificationService:
                     # SQLite: INTEGER PRIMARY KEY AUTOINCREMENT
                     cursor.execute(
                         """
-                        CREATE TABLE IF NOT EXISTS user_notification_preferences (
+                        CREATE TABLE IF NOT EXISTS usuario_preferencia_notificacion (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             user_id TEXT UNIQUE NOT NULL,
                             push_enabled INTEGER DEFAULT 1,
@@ -218,11 +218,11 @@ class NotificationService:
                 cursor.execute(
                     """
                     CREATE INDEX IF NOT EXISTS idx_user_notif_prefs_user
-                    ON user_notification_preferences(user_id)
+                    ON usuario_preferencia_notificacion(user_id)
                 """
                 )
             cls._preferences_table_ensured = True
-            logger.debug("[NOTIF] Tabla user_notification_preferences verificada/creada")
+            logger.debug("[NOTIF] Tabla usuario_preferencia_notificacion verificada/creada")
         except Exception as e:
             logger.warning(f"[NOTIF] Error asegurando tabla preferencias: {e}")
 
@@ -254,7 +254,7 @@ class NotificationService:
                 cursor.execute(
                     """SELECT push_enabled, sound_enabled, notif_solicitudes, notif_aprobaciones,
                               notif_mensajes, notif_presupuestos, notif_mrp, notif_sla
-                       FROM user_notification_preferences
+                       FROM usuario_preferencia_notificacion
                        WHERE user_id = ?""",
                     (str(user_id),),
                 )
@@ -347,7 +347,7 @@ class NotificationService:
                 # (aumentado de 5s para prevenir duplicados en operaciones lentas)
                 cursor.execute(
                     f"""
-                    SELECT id FROM notificaciones
+                    SELECT id FROM notificacion
                     WHERE destinatario_id = ? AND mensaje = ? AND tipo = ?
                     AND created_at > {sql_now_minus("60 seconds")}
                     LIMIT 1
@@ -362,7 +362,7 @@ class NotificationService:
 
                 cursor.execute(
                     """
-                    INSERT INTO notificaciones (destinatario_id, mensaje, tipo, solicitud_id, leido, created_at)
+                    INSERT INTO notificacion (destinatario_id, mensaje, tipo, solicitud_id, leido, created_at)
                     VALUES (?, ?, ?, ?, 0, ?)
                     RETURNING id
                     """,
@@ -400,10 +400,7 @@ class NotificationService:
             try:
                 from backend.core.redis_pubsub import publish_user_notification
             except ImportError:
-                try:
-                    from core.redis_pubsub import publish_user_notification
-                except ImportError:
-                    publish_user_notification = None
+                publish_user_notification = None
 
             if publish_user_notification:
                 try:
@@ -501,7 +498,7 @@ class NotificationService:
                 cursor.execute(
                     f"""
                     SELECT id, destinatario_id, mensaje, tipo, solicitud_id, leido, created_at
-                    FROM notificaciones
+                    FROM notificacion
                     {where_clause}
                     ORDER BY created_at DESC
                     LIMIT ?
@@ -545,7 +542,7 @@ class NotificationService:
                 cursor = conn.cursor()
                 # Column is INTEGER (0/1), not BOOLEAN
                 cursor.execute(
-                    "SELECT COUNT(*) as count FROM notificaciones WHERE destinatario_id = ? AND leido = 0",
+                    "SELECT COUNT(*) as count FROM notificacion WHERE destinatario_id = ? AND leido = 0",
                     (user_id,),
                 )
                 result = cursor.fetchone()
@@ -612,7 +609,7 @@ class NotificationService:
                 # Column is INTEGER (0/1), not BOOLEAN
                 cursor.execute(
                     """
-                    UPDATE notificaciones
+                    UPDATE notificacion
                     SET leido = 1
                     WHERE id = ? AND destinatario_id = ?
                     """,
@@ -640,7 +637,7 @@ class NotificationService:
                 # Column is INTEGER (0/1), not BOOLEAN
                 cursor.execute(
                     """
-                    UPDATE notificaciones
+                    UPDATE notificacion
                     SET leido = 1
                     WHERE destinatario_id = ? AND leido = 0
                     """,
@@ -668,7 +665,7 @@ class NotificationService:
                 cursor = conn.cursor()
                 cursor.execute(
                     """
-                    DELETE FROM notificaciones
+                    DELETE FROM notificacion
                     WHERE id = ? AND destinatario_id = ?
                     """,
                     (notification_id, user_id),
@@ -752,7 +749,7 @@ def cleanup_old_notifications(days_old: int = 30) -> int:
             # Eliminar notificaciones leídas con más de X días
             cursor.execute(
                 f"""
-                DELETE FROM notificaciones
+                DELETE FROM notificacion
                 WHERE leido = 1
                 AND created_at < {sql_now_minus(f"{days_old} days")}
                 """

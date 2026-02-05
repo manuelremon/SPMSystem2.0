@@ -1,115 +1,323 @@
-import { useState, useEffect, useCallback } from "react";
-import { PageHeader } from "../components/ui/PageHeader";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
-import { Select } from "../components/ui/Select";
-import { SearchInput } from "../components/ui/SearchInput";
+/**
+ * MRPTableroAlertas - Tablero de Alertas MRP
+ * SAP/Enterprise UI - Migrated to MUI components
+ */
+
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useI18n } from "../context/i18n";
-import { formatCurrency } from "../utils/formatters";
 import api from "../services/api";
-import { Button } from "../components/ui/Button";
-import { ExportButton } from "../components/export/ExportButton";
-import exportService from "../services/export";
-import clsx from "clsx";
-import {
-  AlertTriangle,
-  Package,
-  TrendingUp,
-  TrendingDown,
-  RefreshCw,
-  Filter,
-  ChevronDown,
-  ChevronUp,
-  Search,
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
-  Info,
-  XCircle,
-  ICON_COLORS,
-} from "../components/ui/Icons";
-import { TempDataBanner } from "../components/ui/TempDataBanner";
+import { exportToExcel } from "../utils/formatters";
+import { SPMAgGrid } from "../components/ui/SPMAgGrid";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
+import { SPMGauge } from "../components/ui/SPMChartJS";
 
-// Estado badge component - Glass style
-function EstadoBadge({ estado, clase }) {
-  const config = {
-    danger: { bg: "bg-red-50/70 backdrop-blur-sm border-red-200/50", text: "text-red-700", icon: XCircle },
-    warning: { bg: "bg-amber-50/70 backdrop-blur-sm border-amber-200/50", text: "text-amber-700", icon: AlertTriangle },
-    success: { bg: "bg-emerald-50/70 backdrop-blur-sm border-emerald-200/50", text: "text-emerald-700", icon: CheckCircle2 },
-    info: { bg: "bg-blue-50/70 backdrop-blur-sm border-blue-200/50", text: "text-blue-700", icon: Info },
+// MUI Components
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
+import TextField from "@mui/material/TextField";
+import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
+import Alert from "@mui/material/Alert";
+import Skeleton from "@mui/material/Skeleton";
+import Stack from "@mui/material/Stack";
+import Chip from "@mui/material/Chip";
+import Checkbox from "@mui/material/Checkbox";
+import ListItemText from "@mui/material/ListItemText";
+import Slider from "@mui/material/Slider";
+import Menu from "@mui/material/Menu";
+import Divider from "@mui/material/Divider";
+import CircularProgress from "@mui/material/CircularProgress";
+
+// MUI Icons
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import DownloadIcon from "@mui/icons-material/Download";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import CheckIcon from "@mui/icons-material/Check";
+import FilterListOffIcon from "@mui/icons-material/FilterListOff";
+
+
+/* ─────────────────────────────────────────────────────────────
+   Constants
+───────────────────────────────────────────────────────────── */
+const ESTADOS_OPTIONS = [
+  { value: "quiebre", label: "Quiebre de Stock" },
+  { value: "bajo punto", label: "Bajo Punto de Pedido" },
+  { value: "bajo stock", label: "Bajo Stock de Seguridad" },
+  { value: "exceso", label: "Exceso/Sobrestock" },
+  { value: "normal", label: "Normal" },
+];
+
+const estadoColors = {
+  danger: { color: "error.dark", bg: "error.lighter" },
+  warning: { color: "warning.dark", bg: "warning.lighter" },
+  success: { color: "success.dark", bg: "success.lighter" },
+  info: { color: "info.dark", bg: "info.lighter" },
+};
+
+/* ─────────────────────────────────────────────────────────────
+   Multi-Select Dropdown Component
+───────────────────────────────────────────────────────────── */
+function MultiSelect({ label, options, selected, onChange, keyField = "codigo", labelField = "nombre" }) {
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+
+  const allSelected = selected.length === options.length && options.length > 0;
+
+  const toggleAll = () => {
+    if (allSelected) {
+      onChange([]);
+    } else {
+      onChange(options.map((o) => o[keyField] || o.value || o));
+    }
   };
 
-  const { bg, text, icon: Icon } = config[clase] || config.info;
+  const toggleOption = (value) => {
+    if (selected.includes(value)) {
+      onChange(selected.filter((v) => v !== value));
+    } else {
+      onChange([...selected, value]);
+    }
+  };
+
+  const displayText =
+    selected.length === 0
+      ? "Ninguno"
+      : selected.length === 1
+      ? selected[0]
+      : `${selected.length} seleccionados`;
 
   return (
-    <span className={clsx("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border", bg, text)}>
-      <Icon className="w-4 h-4" />
-      {estado}
-    </span>
+    <Box sx={{ minWidth: 150 }}>
+      <Typography
+        variant="caption"
+        sx={{
+          display: "block",
+          fontSize: "10px",
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          color: "text.secondary",
+          mb: 0.5,
+        }}
+      >
+        {label}
+      </Typography>
+      <Button
+        size="small"
+        variant="outlined"
+        onClick={(e) => setAnchorEl(e.currentTarget)}
+        endIcon={<KeyboardArrowDownIcon />}
+        sx={{
+          width: "100%",
+          justifyContent: "space-between",
+          textTransform: "none",
+          fontSize: "12px",
+          py: 0.75,
+          px: 1.5,
+          color: selected.length === 0 ? "text.disabled" : "text.primary",
+          borderColor: "divider",
+          bgcolor: "background.paper",
+          "&:hover": {
+            bgcolor: "grey.50",
+            borderColor: "divider",
+          },
+        }}
+      >
+        {displayText}
+      </Button>
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={() => setAnchorEl(null)}
+        PaperProps={{
+          sx: {
+            maxHeight: 208,
+            minWidth: anchorEl?.offsetWidth || 150,
+          },
+        }}
+      >
+        {/* Select All */}
+        <MenuItem
+          onClick={toggleAll}
+          sx={{
+            borderBottom: 1,
+            borderColor: "divider",
+            py: 1,
+          }}
+        >
+          <Checkbox
+            checked={allSelected}
+            size="small"
+            sx={{ p: 0, mr: 1 }}
+          />
+          <ListItemText
+            primary="Seleccionar todos"
+            primaryTypographyProps={{
+              fontSize: "12px",
+              fontWeight: 600,
+            }}
+          />
+        </MenuItem>
+        {/* Options */}
+        {options.map((opt) => {
+          const value = opt[keyField] || opt.value || opt;
+          const optLabel = opt[labelField] || opt.label || (opt[keyField] ? `${opt[keyField]} - ${opt[labelField] || opt.nombre}` : opt);
+          const isSelected = selected.includes(value);
+          return (
+            <MenuItem
+              key={value}
+              onClick={() => toggleOption(value)}
+              sx={{ py: 1 }}
+            >
+              <Checkbox
+                checked={isSelected}
+                size="small"
+                sx={{ p: 0, mr: 1 }}
+              />
+              <ListItemText
+                primary={optLabel}
+                primaryTypographyProps={{
+                  fontSize: "12px",
+                  noWrap: true,
+                }}
+              />
+            </MenuItem>
+          );
+        })}
+      </Menu>
+    </Box>
   );
 }
 
-// Resumen card - Glass style
-function ResumenCard({ titulo, valor, icon: Icon, color }) {
-  const colorClasses = {
-    danger: { card: "bg-red-50/70 backdrop-blur-sm border-red-200/50", text: "text-red-700", iconBg: "bg-red-500/10" },
-    warning: { card: "bg-amber-50/70 backdrop-blur-sm border-amber-200/50", text: "text-amber-700", iconBg: "bg-amber-500/10" },
-    success: { card: "bg-emerald-50/70 backdrop-blur-sm border-emerald-200/50", text: "text-emerald-700", iconBg: "bg-emerald-500/10" },
-    info: { card: "bg-blue-50/70 backdrop-blur-sm border-blue-200/50", text: "text-blue-700", iconBg: "bg-blue-500/10" },
-    primary: { card: "bg-white/60 backdrop-blur-md border-white/40", text: "text-blue-600", iconBg: "bg-blue-500/10" },
+/* ─────────────────────────────────────────────────────────────
+   Summary Card Component
+───────────────────────────────────────────────────────────── */
+function SummaryCard({ titulo, valor, color, pct, showChart, total }) {
+  const colorMap = {
+    "var(--primary-dark)": "primary.main",
+    "var(--danger)": "error.dark",
+    "var(--info)": "secondary.main",
+    "var(--warning)": "warning.dark",
+    "var(--warning-light)": "warning.main",
+    "var(--success)": "success.dark",
   };
 
-  const styles = colorClasses[color] || colorClasses.primary;
+  const muiColor = colorMap[color] || "text.primary";
 
   return (
-    <div className={clsx("rounded-[16px] border p-4 shadow-glass-sm", styles.card)}>
-      <div className="flex items-center gap-3">
-        <div className={clsx("p-2 rounded-xl", styles.iconBg)}>
-          <Icon className={clsx("w-5 h-5", styles.text)} />
-        </div>
-        <div>
-          <p className={clsx("text-2xl font-bold", styles.text)}>{valor}</p>
-          <p className="text-sm text-slate-500">{titulo}</p>
-        </div>
-      </div>
-    </div>
+    <Box
+      sx={{
+        flex: 1,
+        textAlign: "center",
+        py: 1.5,
+        px: 1,
+        borderRight: 1,
+        borderColor: "divider",
+        "&:last-child": {
+          borderRight: 0,
+        },
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Typography
+        sx={{
+          fontSize: "1.875rem",
+          fontWeight: 700,
+          color: muiColor,
+        }}
+      >
+        {valor}
+      </Typography>
+      <Typography
+        sx={{
+          fontSize: "11px",
+          fontWeight: 600,
+          textTransform: "uppercase",
+          color: "text.secondary",
+          letterSpacing: "0.05em",
+          mb: 0.5,
+        }}
+      >
+        {titulo}
+      </Typography>
+      {showChart && (
+        <Box sx={{ width: 60, height: 40, mt: 0.5 }}>
+          <SPMGauge
+            value={pct}
+            max={100}
+            height={40}
+            width={60}
+            color={color}
+            unit="%"
+            showText={true}
+          />
+        </Box>
+      )}
+    </Box>
   );
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Main Component
+───────────────────────────────────────────────────────────── */
 export default function MRPTableroAlertas() {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [alertas, setAlertas] = useState([]);
   const [resumen, setResumen] = useState({});
-  const [pagination, setPagination] = useState({ total: 0, limit: 50, offset: 0, has_more: false });
+  const [exporting, setExporting] = useState(false);
 
-  // Filtros
+  // Filtros multiselect
   const [filtros, setFiltros] = useState({
-    centro: "",
-    almacen: "",
-    sector: "",
-    estado: "",
+    centros: [],
+    almacenes: [],
+    sectores: [],
+    estados: [],
   });
   const [catalogos, setCatalogos] = useState({ centros: [], almacenes: [], sectores: [] });
-  const [showFiltros, setShowFiltros] = useState(true);
 
-  // Ordenamiento
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
-
-  // Búsqueda
+  // Busqueda local
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Cargar catálogos
+  // Estados para slider de fechas (0 = hace 1 ano, 365 = hoy)
+  const [rangoFechasLocal, setRangoFechasLocal] = useState([0, 365]);
+  const rangoFechas = useDebouncedValue(rangoFechasLocal, 300);
+
+  // Funcion para convertir valor del slider a fecha (formato DD/MM/AA)
+  const sliderAFecha = (valor) => {
+    const diasHaciaAtras = 365 - valor;
+    const fecha = new Date();
+    fecha.setDate(fecha.getDate() - diasHaciaAtras);
+    const dd = String(fecha.getDate()).padStart(2, "0");
+    const mm = String(fecha.getMonth() + 1).padStart(2, "0");
+    const yy = String(fecha.getFullYear()).slice(-2);
+    return `${dd}/${mm}/${yy}`;
+  };
+
+  // Cargar catalogos y seleccionar todos por defecto
   useEffect(() => {
     const fetchCatalogos = async () => {
       try {
         const res = await api.get("/mrp/catalogos");
         if (res.data?.ok) {
           setCatalogos(res.data);
-          // Set default centro if available
-          if (res.data.centros?.length > 0) {
-            setFiltros(prev => ({ ...prev, centro: res.data.centros[0].codigo }));
-          }
+          setFiltros({
+            centros: (res.data.centros || []).map((c) => c.codigo),
+            almacenes: (res.data.almacenes || []).map((a) => a.codigo),
+            sectores: (res.data.sectores || []).map((s) => s.nombre),
+            estados: ESTADOS_OPTIONS.map((e) => e.value),
+          });
         }
       } catch (err) {
         console.error("Error loading catalogos:", err);
@@ -118,391 +326,674 @@ export default function MRPTableroAlertas() {
     fetchCatalogos();
   }, []);
 
+  const handleLimpiarFiltros = () => {
+    setFiltros({ centros: [], almacenes: [], sectores: [], estados: [] });
+    setSearchTerm("");
+    setRangoFechasLocal([0, 365]);
+  };
+
   // Cargar alertas
   const fetchAlertas = useCallback(async () => {
-    // No requiere centro obligatorio - permite cargar todos los datos
     setLoading(true);
     setError(null);
 
     try {
       const params = new URLSearchParams();
-      if (filtros.centro) params.append("centro", filtros.centro);
-      if (filtros.almacen) params.append("almacen", filtros.almacen);
-      if (filtros.sector) params.append("sector", filtros.sector);
-      if (filtros.estado) params.append("estado", filtros.estado);
-      params.append("limit", pagination.limit);
-      params.append("offset", pagination.offset);
+
+      const allCentros = catalogos.centros || [];
+      const allAlmacenes = catalogos.almacenes || [];
+      const allSectores = catalogos.sectores || [];
+
+      if (filtros.centros.length > 0 && filtros.centros.length < allCentros.length) {
+        filtros.centros.forEach((c) => params.append("centro", c));
+      }
+      if (filtros.almacenes.length > 0 && filtros.almacenes.length < allAlmacenes.length) {
+        filtros.almacenes.forEach((a) => params.append("almacen", a));
+      }
+      if (filtros.sectores.length > 0 && filtros.sectores.length < allSectores.length) {
+        filtros.sectores.forEach((s) => params.append("sector", s));
+      }
+      if (filtros.estados.length > 0 && filtros.estados.length < ESTADOS_OPTIONS.length) {
+        filtros.estados.forEach((e) => params.append("estado", e));
+      }
+      params.append("limit", "500");
 
       const res = await api.get(`/mrp/alertas?${params.toString()}`);
       if (res.data?.ok) {
         setAlertas(res.data.data || []);
         setResumen(res.data.resumen || {});
-        setPagination(prev => ({ ...prev, ...res.data.pagination }));
       } else {
         setError(res.data?.error?.message || "Error al cargar alertas");
       }
     } catch (err) {
-      setError(err.response?.data?.error?.message || "Error de conexión");
+      setError(err.response?.data?.error?.message || "Error de conexion");
     } finally {
       setLoading(false);
     }
-  }, [filtros, pagination.limit, pagination.offset]);
+  }, [filtros, catalogos]);
 
   useEffect(() => {
     fetchAlertas();
   }, [fetchAlertas]);
 
-  // Ordenar datos
-  const sortedAlertas = [...alertas].sort((a, b) => {
-    if (!sortConfig.key) return 0;
-    const aVal = a[sortConfig.key];
-    const bVal = b[sortConfig.key];
-    if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
-    if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
-    return 0;
-  });
+  // Filtrar por busqueda local
+  const filteredAlertas = useMemo(() => {
+    if (!searchTerm) return alertas;
+    const term = searchTerm.toLowerCase();
+    return alertas.filter(
+      (alerta) =>
+        alerta.codigo?.toLowerCase().includes(term) ||
+        alerta.descripcion?.toLowerCase().includes(term)
+    );
+  }, [alertas, searchTerm]);
 
-  // Filtrar por búsqueda
-  const filteredAlertas = sortedAlertas.filter(alerta =>
-    searchTerm === "" ||
-    alerta.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    alerta.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
+  // Exportar a XLSX
+  const handleExportXLSX = useCallback(() => {
+    if (filteredAlertas.length === 0) return;
+    setExporting(true);
+
+    const dataToExport = filteredAlertas.map((row) => ({
+      Material: row.codigo || "",
+      Descripcion: row.descripcion || "",
+      "Demanda Est. Anual": Math.round(row.demanda_estimada_anual || 0),
+      "Cons. Prom. Anual": Math.round(row.consumo_promedio_anual || 0),
+      "Stock Seguridad": row.stock_seguridad || 0,
+      "Punto Pedido": row.punto_pedido || 0,
+      "Stock Maximo": row.stock_maximo || 0,
+      "Stock Actual": row.stock_actual || 0,
+      "Pedidos en Curso": row.pedidos_en_curso || 0,
+      "Rotacion %": Math.round(row.rotacion_pct || 0),
+      Estado: row.estado || "",
+      Sugerencia: row.sugerencia || "",
+    }));
+
+    try {
+      exportToExcel(dataToExport, `alertas_mrp_${new Date().toISOString().split("T")[0]}.xls`);
+    } finally {
+      setExporting(false);
+    }
+  }, [filteredAlertas]);
+
+  // Exportar a PDF
+  const handleExportPDF = useCallback(() => {
+    if (filteredAlertas.length === 0) return;
+    setExporting(true);
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      alert("Por favor permite ventanas emergentes para exportar a PDF");
+      setExporting(false);
+      return;
+    }
+
+    // PDF colors (must be hardcoded since CSS variables don't work in separate document)
+    const pdfColors = {
+      primaryDark: getComputedStyle(document.documentElement).getPropertyValue('--primary-dark').trim() || '#1565c0',
+      danger: getComputedStyle(document.documentElement).getPropertyValue('--danger').trim() || '#ef4444',
+      info: getComputedStyle(document.documentElement).getPropertyValue('--info').trim() || '#0ea5e9',
+      warning: getComputedStyle(document.documentElement).getPropertyValue('--warning').trim() || '#f59e0b',
+      warningLight: '#ff3d00',
+      success: getComputedStyle(document.documentElement).getPropertyValue('--success').trim() || '#22c55e',
+      border: getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#e2e8f0',
+      fgMuted: getComputedStyle(document.documentElement).getPropertyValue('--fg-muted').trim() || '#64748b',
+      fgStrong: getComputedStyle(document.documentElement).getPropertyValue('--fg-strong').trim() || '#1e293b',
+      bgSoft: getComputedStyle(document.documentElement).getPropertyValue('--bg-soft').trim() || '#f8fafc',
+    };
+
+    const cardsData = [
+      { titulo: "Total", valor: resumen.total || 0, color: pdfColors.primaryDark },
+      { titulo: "Quiebre de Stock", valor: resumen.quiebre_stock || 0, color: pdfColors.danger },
+      { titulo: "Bajo Stock Seg.", valor: resumen.bajo_stock_seguridad || 0, color: pdfColors.info },
+      { titulo: "Bajo Punto Pedido", valor: resumen.bajo_punto_pedido || 0, color: pdfColors.warning },
+      { titulo: "Sobrestock", valor: resumen.sobrestock || 0, color: pdfColors.warningLight },
+      { titulo: "Normal", valor: resumen.normal || 0, color: pdfColors.success },
+    ];
+
+    const cardsHtml = cardsData
+      .map(
+        (card) => `
+      <div style="flex: 1; text-align: center; padding: 8px; border-right: 1px solid ${pdfColors.border};">
+        <div style="font-size: 24px; font-weight: 700; color: ${card.color};">${card.valor}</div>
+        <div style="font-size: 10px; text-transform: uppercase; color: ${pdfColors.fgMuted}; font-weight: 600;">${card.titulo}</div>
+      </div>
+    `
+      )
+      .join("");
+
+    const headers = [
+      "Material",
+      "Descripcion",
+      "Demanda",
+      "Cons. Prom.",
+      "SS",
+      "PP",
+      "SM",
+      "Stock",
+      "Ped. Curso",
+      "Rot. %",
+      "Estado",
+      "Sugerencia",
+    ];
+    const headerCells = headers
+      .map(
+        (h) =>
+          `<th style="border: 1px solid ${pdfColors.border}; padding: 6px 4px; background: ${pdfColors.bgSoft}; color: ${pdfColors.fgStrong}; font-size: 9px; text-align: center; font-weight: 600;">${h}</th>`
+      )
+      .join("");
+
+    const tableRows = filteredAlertas
+      .map((row) => {
+        const stockColor =
+          (row.stock_actual || 0) <= 0
+            ? pdfColors.danger
+            : (row.stock_actual || 0) < (row.punto_pedido || 0)
+            ? pdfColors.warning
+            : pdfColors.success;
+        const rotColor =
+          (row.rotacion_pct || 0) > 300
+            ? pdfColors.success
+            : (row.rotacion_pct || 0) > 100
+            ? pdfColors.warning
+            : pdfColors.danger;
+
+        return `<tr>
+        <td style="border: 1px solid ${pdfColors.border}; padding: 4px; font-size: 9px; text-align: center;">${row.codigo || ""}</td>
+        <td style="border: 1px solid ${pdfColors.border}; padding: 4px; font-size: 9px;">${row.descripcion || ""}</td>
+        <td style="border: 1px solid ${pdfColors.border}; padding: 4px; font-size: 9px; text-align: center;">${Math.round(row.demanda_estimada_anual || 0)}</td>
+        <td style="border: 1px solid ${pdfColors.border}; padding: 4px; font-size: 9px; text-align: center;">${Math.round(row.consumo_promedio_anual || 0)}</td>
+        <td style="border: 1px solid ${pdfColors.border}; padding: 4px; font-size: 9px; text-align: center;">${row.stock_seguridad || 0}</td>
+        <td style="border: 1px solid ${pdfColors.border}; padding: 4px; font-size: 9px; text-align: center;">${row.punto_pedido || 0}</td>
+        <td style="border: 1px solid ${pdfColors.border}; padding: 4px; font-size: 9px; text-align: center;">${row.stock_maximo || 0}</td>
+        <td style="border: 1px solid ${pdfColors.border}; padding: 4px; font-size: 9px; text-align: center; color: ${stockColor}; font-weight: 600;">${row.stock_actual || 0}</td>
+        <td style="border: 1px solid ${pdfColors.border}; padding: 4px; font-size: 9px; text-align: center;">${row.pedidos_en_curso || 0}</td>
+        <td style="border: 1px solid ${pdfColors.border}; padding: 4px; font-size: 9px; text-align: center; color: ${rotColor}; font-weight: 600;">${Math.round(row.rotacion_pct || 0)}%</td>
+        <td style="border: 1px solid ${pdfColors.border}; padding: 4px; font-size: 9px; text-align: center; text-transform: uppercase;">${row.estado || ""}</td>
+        <td style="border: 1px solid ${pdfColors.border}; padding: 4px; font-size: 9px;">${row.sugerencia || ""}</td>
+      </tr>`;
+      })
+      .join("");
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Tablero de Alertas MRP</title>
+        <style>
+          @page { size: landscape; margin: 10mm; }
+          @media print {
+            thead { display: table-header-group; }
+          }
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+          h1 { margin: 0 0 15px 0; font-size: 20px; color: ${pdfColors.fgStrong}; }
+          .cards-container { display: flex; border: 1px solid ${pdfColors.border}; border-radius: 8px; margin-bottom: 15px; }
+          .cards-container > div:last-child { border-right: none; }
+          table { width: 100%; border-collapse: collapse; font-size: 9px; }
+          .fecha { font-size: 11px; color: ${pdfColors.fgMuted}; margin-bottom: 10px; }
+        </style>
+      </head>
+      <body>
+        <h1>Tablero de Alertas MRP</h1>
+        <div class="fecha">Fecha de exportacion: ${new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
+        <div class="cards-container">${cardsHtml}</div>
+        <table>
+          <thead><tr>${headerCells}</tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+        <script>window.onload = function() { window.print(); }</script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    setExporting(false);
+  }, [filteredAlertas, resumen]);
+
+  // Columnas del DataGrid - AG Grid format
+  const columnDefs = useMemo(
+    () => [
+      {
+        field: "codigo",
+        headerName: "Material",
+        flex: 0.7,
+        minWidth: 100,
+      },
+      {
+        field: "descripcion",
+        headerName: "Descripcion",
+        flex: 1.5,
+        minWidth: 200,
+      },
+      {
+        field: "demanda_estimada_anual",
+        headerName: "Demanda",
+        flex: 0.5,
+        minWidth: 70,
+        headerTooltip: "Demanda Estimada Anual",
+        valueFormatter: (params) => Math.round(params.value || 0).toLocaleString("es-AR"),
+      },
+      {
+        field: "consumo_promedio_anual",
+        headerName: "Cons. Prom.",
+        flex: 0.6,
+        minWidth: 80,
+        valueFormatter: (params) => Math.round(params.value || 0).toLocaleString("es-AR"),
+      },
+      {
+        field: "stock_seguridad",
+        headerName: "SS",
+        flex: 0.4,
+        minWidth: 50,
+        headerTooltip: "Stock de Seguridad",
+      },
+      {
+        field: "punto_pedido",
+        headerName: "PP",
+        flex: 0.4,
+        minWidth: 50,
+        headerTooltip: "Punto de Pedido",
+      },
+      {
+        field: "stock_maximo",
+        headerName: "SM",
+        flex: 0.4,
+        minWidth: 50,
+        headerTooltip: "Stock Maximo",
+      },
+      {
+        field: "stock_actual",
+        headerName: "Stock",
+        flex: 0.4,
+        minWidth: 60,
+        headerTooltip: "Stock HOY",
+        cellRenderer: (params) => {
+          const stock = params.value || 0;
+          const pp = params.data.punto_pedido || 0;
+          let color = "success.main";
+          if (stock <= 0) color = "error.main";
+          else if (stock < pp) color = "warning.main";
+          return (
+            <Typography sx={{ fontWeight: 600, color }}>
+              {stock}
+            </Typography>
+          );
+        },
+      },
+      {
+        field: "pedidos_en_curso",
+        headerName: "Ped. Curso",
+        flex: 0.5,
+        minWidth: 70,
+      },
+      {
+        field: "rotacion_pct",
+        headerName: "Rotacion",
+        flex: 0.5,
+        minWidth: 70,
+        cellRenderer: (params) => {
+          const rot = Math.round(params.value || 0);
+          let color = "error.main";
+          if (rot > 300) color = "success.main";
+          else if (rot > 100) color = "warning.main";
+          return (
+            <Typography sx={{ fontWeight: 600, color }}>
+              {rot}%
+            </Typography>
+          );
+        },
+      },
+      {
+        field: "estado",
+        headerName: "Estado",
+        flex: 0.6,
+        minWidth: 120,
+        cellRenderer: (params) => {
+          const clase = params.data.estado_clase || "info";
+          const colors = estadoColors[clase] || estadoColors.info;
+          return (
+            <Typography
+              sx={{
+                fontSize: "11px",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                color: colors.color,
+              }}
+            >
+              {params.value || "-"}
+            </Typography>
+          );
+        },
+      },
+      {
+        field: "sugerencia",
+        headerName: "Sugerencia",
+        flex: 1,
+        minWidth: 150,
+      },
+    ],
+    []
   );
 
-  const handleSort = (key) => {
-    setSortConfig(prev => ({
-      key,
-      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
-    }));
-  };
-
-  const SortIcon = ({ columnKey }) => {
-    if (sortConfig.key !== columnKey) return null;
-    return sortConfig.direction === "asc" ? (
-      <ChevronUp className="w-4 h-4" />
-    ) : (
-      <ChevronDown className="w-4 h-4" />
-    );
-  };
-
-  const estados = [
-    { value: "", label: "Todos" },
-    { value: "quiebre", label: "Quiebre de Stock" },
-    { value: "bajo punto", label: "Bajo Punto de Pedido" },
-    { value: "bajo stock", label: "Bajo Stock de Seguridad" },
-    { value: "exceso", label: "Exceso/Sobrestock" },
-    { value: "normal", label: "Normal" },
+  // Summary cards data
+  const summaryCards = [
+    { titulo: "Total", valor: resumen.total || 0, color: "var(--primary-dark)", showChart: false },
+    { titulo: "Quiebre de Stock", valor: resumen.quiebre_stock || 0, color: "var(--danger)", showChart: true },
+    { titulo: "Bajo Stock Seg.", valor: resumen.bajo_stock_seguridad || 0, color: "var(--info)", showChart: true },
+    { titulo: "Bajo Punto Pedido", valor: resumen.bajo_punto_pedido || 0, color: "var(--warning)", showChart: true },
+    { titulo: "Sobrestock", valor: resumen.sobrestock || 0, color: "var(--warning-light)", showChart: true },
+    { titulo: "Normal", valor: resumen.normal || 0, color: "var(--success)", showChart: true },
   ];
 
+  const total = resumen.total || 1;
+
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={t("mrp_alertas_titulo", "Tablero de Alertas MRP")}
-        subtitle={t("mrp_alertas_subtitulo", "Estado general de materiales planificados")}
-        actions={
-          <div className="flex items-center gap-2">
-            <ExportButton
-              onExport={(formato) => exportService.exportAlertasMRP({ formato })}
-              label={t("common_export", "Exportar")}
-            />
-            <Button
-              variant="ghost"
-              onClick={fetchAlertas}
-              disabled={loading}
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
+        {/* Header */}
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ mb: 3 }}
+        >
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <IconButton
+              onClick={() => navigate(-1)}
+              sx={{
+                color: "text.secondary",
+                border: 1,
+                borderColor: "transparent",
+                "&:hover": {
+                  color: "text.primary",
+                  bgcolor: "background.paper",
+                  borderColor: "divider",
+                },
+              }}
             >
-              <RefreshCw className={`w-4 h-4 text-slate-600 ${loading ? 'animate-spin' : ''}`} />
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 700,
+                color: "text.primary",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
+              {t("mrp_alertas_titulo", "Tablero de Alertas MRP")}
+            </Typography>
+          </Stack>
+          <Stack direction="row" spacing={1}>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={handleExportXLSX}
+              disabled={loading || exporting || filteredAlertas.length === 0}
+              startIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
+              sx={{
+                fontSize: "12px",
+                fontWeight: 500,
+                color: "success.dark",
+                borderColor: "success.light",
+                "&:hover": {
+                  bgcolor: "success.lighter",
+                  borderColor: "success.light",
+                },
+                "&:disabled": {
+                  opacity: 0.5,
+                },
+              }}
+            >
+              XLSX
             </Button>
-          </div>
-        }
-      />
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={handleExportPDF}
+              disabled={loading || exporting || filteredAlertas.length === 0}
+              startIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
+              sx={{
+                fontSize: "12px",
+                fontWeight: 500,
+                color: "error.dark",
+                borderColor: "error.light",
+                "&:hover": {
+                  bgcolor: "error.lighter",
+                  borderColor: "error.light",
+                },
+                "&:disabled": {
+                  opacity: 0.5,
+                },
+              }}
+            >
+              PDF
+            </Button>
+          </Stack>
+        </Stack>
 
-      {/* Banner de Modo Temporal */}
-      <TempDataBanner />
+        {/* Summary Cards */}
+        <Paper
+          elevation={0}
+          sx={{
+            display: "flex",
+            mb: 3,
+            overflow: "hidden",
+            border: 1,
+            borderColor: "divider",
+            borderRadius: 2,
+          }}
+        >
+          {summaryCards.map((card) => (
+            <SummaryCard
+              key={card.titulo}
+              titulo={card.titulo}
+              valor={card.valor}
+              color={card.color}
+              showChart={card.showChart}
+              pct={card.showChart ? Math.round((card.valor / total) * 100) : 0}
+              total={total}
+            />
+          ))}
+        </Paper>
 
-      {/* Resumen Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-        <ResumenCard
-          titulo={t("mrp_total", "Total Materiales")}
-          valor={resumen.total || 0}
-          icon={Package}
-          color="primary"
-        />
-        <ResumenCard
-          titulo={t("mrp_quiebre", "Quiebre de Stock")}
-          valor={resumen.quiebre_stock || 0}
-          icon={XCircle}
-          color="danger"
-        />
-        <ResumenCard
-          titulo={t("mrp_bajo_pp", "Bajo Punto Pedido")}
-          valor={resumen.bajo_punto_pedido || 0}
-          icon={AlertTriangle}
-          color="warning"
-        />
-        <ResumenCard
-          titulo={t("mrp_bajo_ss", "Bajo Stock Seg.")}
-          valor={resumen.bajo_stock_seguridad || 0}
-          icon={AlertCircle}
-          color="warning"
-        />
-        <ResumenCard
-          titulo={t("mrp_sobrestock", "Sobrestock")}
-          valor={resumen.sobrestock || 0}
-          icon={Info}
-          color="info"
-        />
-        <ResumenCard
-          titulo={t("mrp_normal", "Normal")}
-          valor={resumen.normal || 0}
-          icon={CheckCircle2}
-          color="success"
-        />
-      </div>
+        {/* Filters */}
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2,
+            mb: 3,
+            border: 1,
+            borderColor: "divider",
+            borderRadius: 2,
+          }}
+        >
+          <Stack
+            direction="row"
+            flexWrap="wrap"
+            alignItems="flex-end"
+            spacing={2}
+          >
+            {/* Date Range Slider */}
+            <Box sx={{ minWidth: 300 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  fontSize: "10px",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  color: "text.secondary",
+                  mb: 0.5,
+                }}
+              >
+                Desde{" "}
+                <Box component="span" sx={{ color: "primary.main", fontWeight: 600 }}>
+                  {sliderAFecha(rangoFechasLocal[0])}
+                </Box>{" "}
+                hasta{" "}
+                <Box component="span" sx={{ color: "primary.main", fontWeight: 600 }}>
+                  {sliderAFecha(rangoFechasLocal[1])}
+                </Box>
+              </Typography>
+              <Slider
+                value={rangoFechasLocal}
+                onChange={(_, newValue) => setRangoFechasLocal(newValue)}
+                min={0}
+                max={365}
+                size="small"
+                sx={{
+                  "& .MuiSlider-thumb": {
+                    width: 14,
+                    height: 14,
+                  },
+                }}
+              />
+              <Stack direction="row" justifyContent="space-between">
+                <Typography sx={{ fontSize: "10px", color: "text.disabled" }}>
+                  Hace 1 ano
+                </Typography>
+                <Typography sx={{ fontSize: "10px", color: "text.disabled" }}>
+                  Hoy
+                </Typography>
+              </Stack>
+            </Box>
 
-      {/* Filtros */}
-      <Card className="mb-6">
-        <CardHeader className="cursor-pointer" onClick={() => setShowFiltros(!showFiltros)}>
-          <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-slate-600" />
-              {t("mrp_filtros", "Filtros")}
-            </span>
-            {showFiltros ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />}
-          </CardTitle>
-        </CardHeader>
-        {showFiltros && (
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              {/* Centro */}
-              <div>
-                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
-                  {t("mrp_centro", "Centro")}
-                </label>
-                <Select
-                  value={filtros.centro}
-                  onChange={(e) => setFiltros(prev => ({ ...prev, centro: e.target.value }))}
-                >
-                  <option value="">Seleccionar...</option>
-                  {catalogos.centros?.map(c => (
-                    <option key={c.codigo} value={c.codigo}>{c.codigo} - {c.nombre}</option>
-                  ))}
-                </Select>
-              </div>
+            {/* Separator */}
+            <Divider orientation="vertical" flexItem sx={{ height: 48, my: "auto" }} />
 
-              {/* Almacén */}
-              <div>
-                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
-                  {t("mrp_almacen", "Almacén")}
-                </label>
-                <Select
-                  value={filtros.almacen}
-                  onChange={(e) => setFiltros(prev => ({ ...prev, almacen: e.target.value }))}
-                >
-                  <option value="">Todos</option>
-                  {catalogos.almacenes?.map(a => (
-                    <option key={a.codigo} value={a.codigo}>{a.codigo} - {a.nombre}</option>
-                  ))}
-                </Select>
-              </div>
+            {/* Centro */}
+            <MultiSelect
+              label="Centro"
+              options={catalogos.centros || []}
+              selected={filtros.centros}
+              onChange={(val) => setFiltros((prev) => ({ ...prev, centros: val }))}
+              keyField="codigo"
+              labelField="nombre"
+            />
 
-              {/* Sector */}
-              <div>
-                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
-                  {t("mrp_sector", "Sector")}
-                </label>
-                <Select
-                  value={filtros.sector}
-                  onChange={(e) => setFiltros(prev => ({ ...prev, sector: e.target.value }))}
-                >
-                  <option value="">Todos</option>
-                  {catalogos.sectores?.map(s => (
-                    <option key={s.nombre} value={s.nombre}>{s.nombre}</option>
-                  ))}
-                </Select>
-              </div>
+            {/* Almacen */}
+            <MultiSelect
+              label="Almacen"
+              options={catalogos.almacenes || []}
+              selected={filtros.almacenes}
+              onChange={(val) => setFiltros((prev) => ({ ...prev, almacenes: val }))}
+              keyField="codigo"
+              labelField="nombre"
+            />
 
-              {/* Estado */}
-              <div>
-                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
-                  {t("mrp_estado", "Estado")}
-                </label>
-                <Select
-                  value={filtros.estado}
-                  onChange={(e) => setFiltros(prev => ({ ...prev, estado: e.target.value }))}
-                >
-                  {estados.map(e => (
-                    <option key={e.value} value={e.value}>{e.label}</option>
-                  ))}
-                </Select>
-              </div>
+            {/* Sector */}
+            <MultiSelect
+              label="Sector"
+              options={catalogos.sectores || []}
+              selected={filtros.sectores}
+              onChange={(val) => setFiltros((prev) => ({ ...prev, sectores: val }))}
+              keyField="nombre"
+              labelField="nombre"
+            />
 
-              {/* Búsqueda */}
-              <div>
-                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
-                  {t("mrp_buscar", "Buscar")}
-                </label>
-                <SearchInput
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Código o descripción..."
-                />
-              </div>
-            </div>
+            {/* Estado */}
+            <MultiSelect
+              label="Estado"
+              options={ESTADOS_OPTIONS}
+              selected={filtros.estados}
+              onChange={(val) => setFiltros((prev) => ({ ...prev, estados: val }))}
+              keyField="value"
+              labelField="label"
+            />
 
-            <div className="flex justify-end mt-4">
-              <Button onClick={fetchAlertas}>
-                <RefreshCw className="w-4 h-4 text-slate-600" />
-                {t("mrp_actualizar", "Actualizar")}
-              </Button>
-            </div>
-          </CardContent>
+            {/* Search */}
+            <Box sx={{ minWidth: 140 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  fontSize: "10px",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  color: "text.secondary",
+                  mb: 0.5,
+                }}
+              >
+                Buscar
+              </Typography>
+              <TextField
+                size="small"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Codigo..."
+                sx={{
+                  "& .MuiInputBase-root": {
+                    fontSize: "12px",
+                  },
+                  "& .MuiInputBase-input": {
+                    py: 0.75,
+                    px: 1.5,
+                  },
+                }}
+              />
+            </Box>
+
+            {/* Clear Filters */}
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={handleLimpiarFiltros}
+              startIcon={<FilterListOffIcon sx={{ fontSize: 16 }} />}
+              sx={{
+                fontSize: "12px",
+                fontWeight: 500,
+                color: "text.secondary",
+                borderColor: "divider",
+                "&:hover": {
+                  color: "primary.main",
+                  borderColor: "primary.light",
+                },
+              }}
+            >
+              Limpiar Filtros
+            </Button>
+          </Stack>
+        </Paper>
+
+        {/* Error Alert */}
+        {error && (
+          <Alert
+            severity="error"
+            onClose={() => setError(null)}
+            sx={{ mb: 2 }}
+          >
+            {error}
+          </Alert>
         )}
-      </Card>
 
-      {/* Tabla de Alertas */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className={`w-5 h-5 ${ICON_COLORS.warning}`} />
-            {t("mrp_lista_alertas", "Lista de Alertas")}
-            <span className="ml-2 text-sm font-normal text-slate-500">
-              ({filteredAlertas.length} materiales)
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className={`w-8 h-8 animate-spin ${ICON_COLORS.primary}`} />
-            </div>
-          ) : error ? (
-            <div className="flex items-center justify-center py-12 text-red-500">
-              <AlertCircle className={`w-6 h-6 mr-2 ${ICON_COLORS.danger}`} />
-              {error}
-            </div>
-          ) : filteredAlertas.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-slate-500">
-              <Package className={`w-12 h-12 mb-4 opacity-50 ${ICON_COLORS.logistics}`} />
-              <p>{t("mrp_sin_alertas", "No hay alertas para mostrar")}</p>
-              <p className="text-sm">{t("mrp_ajustar_filtros", "Ajuste los filtros o intente de nuevo")}</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto rounded-xl border border-white/30">
-              <table className="w-full text-sm">
-                <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
-                  <tr>
-                    <th
-                      className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] cursor-pointer hover:bg-slate-100 transition-colors border-r border-b border-slate-200"
-                      onClick={() => handleSort("codigo")}
-                    >
-                      <span className="flex items-center justify-center gap-1">
-                        {t("mrp_col_codigo", "Código SAP")}
-                        <SortIcon columnKey="codigo" />
-                      </span>
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">{t("mrp_col_descripcion", "Descripción")}</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">{t("mrp_col_demanda", "Demanda Anual")}</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">{t("mrp_col_ss", "Stock Seg.")}</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">{t("mrp_col_pp", "Pto. Pedido")}</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">{t("mrp_col_smax", "Stock Máx.")}</th>
-                    <th
-                      className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] cursor-pointer hover:bg-slate-100 transition-colors border-r border-b border-slate-200"
-                      onClick={() => handleSort("stock_actual")}
-                    >
-                      <span className="flex items-center justify-center gap-1">
-                        {t("mrp_col_stock", "Stock Actual")}
-                        <SortIcon columnKey="stock_actual" />
-                      </span>
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">{t("mrp_col_pedidos", "Pedidos Curso")}</th>
-                    <th
-                      className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] cursor-pointer hover:bg-slate-100 transition-colors border-r border-b border-slate-200"
-                      onClick={() => handleSort("rotacion_pct")}
-                    >
-                      <span className="flex items-center justify-center gap-1">
-                        {t("mrp_col_rotacion", "Rotación %")}
-                        <SortIcon columnKey="rotacion_pct" />
-                      </span>
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">{t("mrp_col_estado", "Estado")}</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">{t("mrp_col_sugerencia", "Sugerencia")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAlertas.map((alerta, idx) => (
-                    <tr
-                      key={alerta.codigo}
-                      className={clsx(
-                        "border-b border-white/20 hover:bg-white/50 transition-colors",
-                        idx % 2 === 0 ? "bg-transparent" : "bg-white/20"
-                      )}
-                    >
-                      <td className="px-4 py-3 font-mono text-blue-600 border-r border-b border-slate-200">{alerta.codigo}</td>
-                      <td className="px-4 py-3 max-w-xs truncate border-r border-b border-slate-200" title={alerta.descripcion}>
-                        {alerta.descripcion}
-                      </td>
-                      <td className="px-4 py-3 text-center border-r border-b border-slate-200">{alerta.demanda_estimada_anual?.toLocaleString()}</td>
-                      <td className="px-4 py-3 text-center border-r border-b border-slate-200">{alerta.stock_seguridad}</td>
-                      <td className="px-4 py-3 text-center border-r border-b border-slate-200">{alerta.punto_pedido}</td>
-                      <td className="px-4 py-3 text-center border-r border-b border-slate-200">{alerta.stock_maximo}</td>
-                      <td className={clsx(
-                        "px-4 py-3 text-center font-medium border-r border-b border-slate-200",
-                        alerta.stock_actual <= 0 ? "text-red-400" :
-                        alerta.stock_actual < alerta.punto_pedido ? "text-yellow-400" : "text-green-400"
-                      )}>
-                        {alerta.stock_actual}
-                      </td>
-                      <td className="px-4 py-3 text-center border-r border-b border-slate-200">{alerta.pedidos_en_curso}</td>
-                      <td className="px-4 py-3 text-center border-r border-b border-slate-200">
-                        <span className={clsx(
-                          "font-medium",
-                          alerta.rotacion_pct > 300 ? "text-green-400" :
-                          alerta.rotacion_pct > 100 ? "text-yellow-400" : "text-red-400"
-                        )}>
-                          {alerta.rotacion_pct}%
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center border-r border-b border-slate-200">
-                        <EstadoBadge estado={alerta.estado} clase={alerta.estado_clase} />
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-500 max-w-xs truncate" title={alerta.sugerencia}>
-                        {alerta.sugerencia || "-"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Paginación */}
-          {pagination.total > pagination.limit && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/30">
-              <span className="text-sm text-slate-500">
-                Mostrando {pagination.offset + 1} - {Math.min(pagination.offset + pagination.limit, pagination.total)} de {pagination.total}
-              </span>
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setPagination(prev => ({ ...prev, offset: Math.max(0, prev.offset - prev.limit) }))}
-                  disabled={pagination.offset === 0}
-                >
-                  Anterior
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setPagination(prev => ({ ...prev, offset: prev.offset + prev.limit }))}
-                  disabled={!pagination.has_more}
-                >
-                  Siguiente
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+        {/* AG Grid */}
+        <Paper
+          elevation={0}
+          sx={{
+            overflow: "hidden",
+            border: 1,
+            borderColor: "divider",
+            borderRadius: 2,
+          }}
+        >
+          <SPMAgGrid
+            rowData={filteredAlertas}
+            columnDefs={columnDefs}
+            loading={loading}
+            height={600}
+            paginationPageSize={50}
+            paginationPageSizeSelector={[20, 50, 100]}
+            enableQuickFilter={true}
+            exportFileName="alertas_mrp"
+            emptyMessage="No hay alertas para mostrar"
+            getRowId={(params) => params.data.codigo}
+          />
+        </Paper>
+      </Box>
+    </Box>
   );
 }

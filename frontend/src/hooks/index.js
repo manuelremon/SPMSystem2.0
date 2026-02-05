@@ -11,3 +11,4 @@ export {
   useRealtimeAlerts
 } from './useRealtime'
 export { usePlanner, renderSolicitante } from './usePlanner'
+export { useParallax, parallaxPresets } from './useParallax'

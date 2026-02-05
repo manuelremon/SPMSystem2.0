@@ -4,11 +4,19 @@
  * Refresh, auto-refresh, reset metricas, exportar
  */
 
-import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/Card'
-import { Button } from '../../../components/ui/Button'
 import {
-  RefreshCw, Pause, Play, Activity, Download
-} from '../../../components/ui/Icons'
+  Box,
+  Paper,
+  Typography,
+  Button,
+  Stack,
+  Divider,
+} from '@mui/material'
+import RefreshIcon from '@mui/icons-material/Refresh'
+import PauseIcon from '@mui/icons-material/Pause'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import TimelineIcon from '@mui/icons-material/Timeline'
+import FileDownloadIcon from '@mui/icons-material/FileDownload'
 import { useI18n } from '../../../context/i18n'
 
 /**
@@ -26,65 +34,96 @@ export function ControlPanel({
   const { t } = useI18n()
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <RefreshCw className="w-5 h-5 text-slate-500" />
-          {t('controls', 'Controles')}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRefresh}
-            disabled={loading}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            {t('refresh', 'Actualizar')}
-          </Button>
+    <Paper sx={{ overflow: 'hidden' }}>
+      {/* Header */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          p: 2,
+          borderBottom: 1,
+          borderColor: 'divider',
+        }}
+      >
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <RefreshIcon sx={{ color: 'grey.500' }} />
+          <Typography variant="h6" component="h2">
+            {t('controls', 'Controles')}
+          </Typography>
+        </Stack>
+      </Box>
 
-          <Button
-            variant={autoRefresh ? 'primary' : 'outline'}
-            size="sm"
-            onClick={onToggleAutoRefresh}
-          >
-            {autoRefresh ? (
-              <Pause className="w-4 h-4 mr-2" />
-            ) : (
-              <Play className="w-4 h-4 mr-2" />
-            )}
-            Auto-refresh {autoRefresh ? 'ON' : 'OFF'}
-          </Button>
+      {/* Content */}
+      <Box sx={{ p: 2 }}>
+        <Stack spacing={2}>
+          <Stack direction="row" flexWrap="wrap" gap={1.5}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={onRefresh}
+              disabled={loading}
+              startIcon={
+                <RefreshIcon
+                  sx={{
+                    animation: loading ? 'spin 1s linear infinite' : 'none',
+                    '@keyframes spin': {
+                      '0%': { transform: 'rotate(0deg)' },
+                      '100%': { transform: 'rotate(360deg)' },
+                    },
+                  }}
+                />
+              }
+            >
+              {t('refresh', 'Actualizar')}
+            </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onResetMetrics}
-            disabled={resetting}
-          >
-            <Activity className={`w-4 h-4 mr-2 ${resetting ? 'animate-spin' : ''}`} />
-            {t('reset_metrics', 'Reiniciar Metricas')}
-          </Button>
+            <Button
+              variant={autoRefresh ? 'contained' : 'outlined'}
+              size="small"
+              onClick={onToggleAutoRefresh}
+              startIcon={autoRefresh ? <PauseIcon /> : <PlayArrowIcon />}
+            >
+              Auto-refresh {autoRefresh ? 'ON' : 'OFF'}
+            </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onExport}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            {t('export_json', 'Exportar JSON')}
-          </Button>
-        </div>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={onResetMetrics}
+              disabled={resetting}
+              startIcon={
+                <TimelineIcon
+                  sx={{
+                    animation: resetting ? 'spin 1s linear infinite' : 'none',
+                    '@keyframes spin': {
+                      '0%': { transform: 'rotate(0deg)' },
+                      '100%': { transform: 'rotate(360deg)' },
+                    },
+                  }}
+                />
+              }
+            >
+              {t('reset_metrics', 'Reiniciar Metricas')}
+            </Button>
 
-        <div className="border-t dark:border-slate-700 pt-4">
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={onExport}
+              startIcon={<FileDownloadIcon />}
+            >
+              {t('export_json', 'Exportar JSON')}
+            </Button>
+          </Stack>
+
+          <Divider />
+
+          <Typography variant="caption" color="text.secondary">
             {t('auto_refresh_info', 'Auto-refresh cada 30 segundos cuando esta activado. Las metricas se acumulan desde el ultimo reinicio del servidor.')}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+          </Typography>
+        </Stack>
+      </Box>
+    </Paper>
   )
 }
 

@@ -1,15 +1,35 @@
+/**
+ * Switch Component - MUI Switch
+ * Toggle switch profesional con estilo MUI
+ */
+
 import React from "react";
 import PropTypes from "prop-types";
-import clsx from "clsx";
+import MuiSwitch from "@mui/material/Switch";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormHelperText from "@mui/material/FormHelperText";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+
+// Mapeo de tamaños legacy a MUI
+const sizeMap = {
+  sm: 'small',
+  md: 'medium',
+  lg: 'medium', // MUI solo tiene small y medium
+};
 
 /**
- * Switch/Toggle component
- * @param {boolean} checked - Current state
- * @param {function} onChange - Callback when state changes
- * @param {string} label - Optional label text
- * @param {string} description - Optional description text
- * @param {boolean} disabled - Disabled state
- * @param {string} size - Size variant: "sm" | "md" | "lg"
+ * Switch - Toggle switch con MUI
+ *
+ * @param {string} className - Clases adicionales (compatibilidad)
+ * @param {string} label - Texto del label
+ * @param {string} description - Descripción adicional debajo del label
+ * @param {boolean} checked - Estado checked
+ * @param {function} onChange - Callback cuando cambia el estado
+ * @param {boolean} disabled - Estado deshabilitado
+ * @param {string} size - Tamaño: 'sm' | 'md' | 'lg' | 'small' | 'medium'
+ * @param {string} color - Color MUI: 'primary' | 'secondary' | 'success' | 'error' | 'info' | 'warning'
+ * @param {object} sx - Estilos MUI adicionales
  */
 export const Switch = React.forwardRef(({
   className,
@@ -19,99 +39,92 @@ export const Switch = React.forwardRef(({
   onChange,
   disabled = false,
   size = "md",
+  color = "primary",
+  sx,
   ...props
 }, ref) => {
-  const sizes = {
-    sm: {
-      track: "w-8 h-4",
-      thumb: "w-3 h-3",
-      translate: "translate-x-4",
-    },
-    md: {
-      track: "w-11 h-6",
-      thumb: "w-5 h-5",
-      translate: "translate-x-5",
-    },
-    lg: {
-      track: "w-14 h-7",
-      thumb: "w-6 h-6",
-      translate: "translate-x-7",
-    },
-  };
+  const muiSize = sizeMap[size] || size;
 
-  const sizeConfig = sizes[size] || sizes.md;
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      if (!disabled && onChange) {
-        onChange(!checked);
+  // Handler para compatibilidad con API anterior (recibe boolean directamente)
+  const handleChange = (event) => {
+    if (onChange) {
+      // Detectar si el onChange espera el evento o solo el valor
+      if (onChange.length === 1) {
+        // Compatibilidad: onChange espera solo el valor booleano
+        onChange(event.target.checked);
+      } else {
+        // Standard MUI: onChange recibe el evento
+        onChange(event, event.target.checked);
       }
     }
   };
 
-  return (
-    <label
-      className={clsx(
-        "inline-flex items-start gap-3 cursor-pointer group",
-        disabled && "cursor-not-allowed opacity-50",
-        className
-      )}
-    >
-      <button
+  // Si no hay label, renderizar solo el switch
+  if (!label && !description) {
+    return (
+      <MuiSwitch
         ref={ref}
-        type="button"
-        role="switch"
-        aria-checked={checked}
+        checked={checked}
+        onChange={handleChange}
         disabled={disabled}
-        onClick={() => !disabled && onChange && onChange(!checked)}
-        onKeyDown={handleKeyDown}
-        className={clsx(
-          // Track
-          "relative inline-flex flex-shrink-0 rounded-full",
-          "transition-colors duration-[var(--transition-fast)]",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]",
-          sizeConfig.track,
-          checked
-            ? "bg-[var(--primary)]"
-            : "bg-[var(--border-strong)]"
-        )}
+        size={muiSize}
+        color={color}
+        className={className}
+        sx={sx}
         {...props}
-      >
-        {/* Thumb */}
-        <span
-          className={clsx(
-            "pointer-events-none inline-block rounded-full",
-            "bg-white shadow-sm",
-            "transform transition-transform duration-[var(--transition-fast)]",
-            "ring-0",
-            sizeConfig.thumb,
-            // Position
-            "absolute top-1/2 -translate-y-1/2 left-0.5",
-            checked && sizeConfig.translate
-          )}
-        />
-      </button>
+      />
+    );
+  }
 
-      {(label || description) && (
-        <div className="flex flex-col">
-          {label && (
-            <span className={clsx(
-              "text-sm font-medium text-[var(--fg)]",
-              "transition-colors duration-[var(--transition-fast)]",
-              "group-hover:text-[var(--fg-strong)]"
-            )}>
+  return (
+    <Box className={className}>
+      <FormControlLabel
+        control={
+          <MuiSwitch
+            ref={ref}
+            checked={checked}
+            onChange={handleChange}
+            disabled={disabled}
+            size={muiSize}
+            color={color}
+            {...props}
+          />
+        }
+        label={
+          <Box>
+            <Typography
+              variant="body2"
+              component="span"
+              sx={{
+                fontWeight: 500,
+                color: disabled ? 'text.disabled' : 'text.primary',
+              }}
+            >
               {label}
-            </span>
-          )}
-          {description && (
-            <span className="text-xs text-[var(--fg-muted)] mt-0.5">
-              {description}
-            </span>
-          )}
-        </div>
-      )}
-    </label>
+            </Typography>
+            {description && (
+              <Typography
+                variant="caption"
+                component="p"
+                sx={{
+                  color: 'text.secondary',
+                  mt: 0.25,
+                }}
+              >
+                {description}
+              </Typography>
+            )}
+          </Box>
+        }
+        sx={{
+          alignItems: 'flex-start',
+          '& .MuiFormControlLabel-label': {
+            mt: 0.75,
+          },
+          ...sx,
+        }}
+      />
+    </Box>
   );
 });
 
@@ -124,11 +137,9 @@ Switch.propTypes = {
   checked: PropTypes.bool,
   onChange: PropTypes.func,
   disabled: PropTypes.bool,
-  size: PropTypes.oneOf(["sm", "md", "lg"]),
+  size: PropTypes.oneOf(["sm", "md", "lg", "small", "medium"]),
+  color: PropTypes.oneOf(["primary", "secondary", "success", "error", "info", "warning"]),
+  sx: PropTypes.object,
 };
 
-Switch.defaultProps = {
-  checked: false,
-  disabled: false,
-  size: "md",
-};
+export default Switch;

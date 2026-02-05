@@ -17,7 +17,7 @@ class PresupuestoRepository:
         try:
             cur = conn.cursor()
             cur.execute(
-                "SELECT monto_usd, saldo_usd FROM presupuestos WHERE centro = ? AND sector = ?",
+                "SELECT monto_usd, saldo_usd FROM presupuesto WHERE centro = ? AND sector = ?",
                 (centro, sector),
             )
             row = cur.fetchone()

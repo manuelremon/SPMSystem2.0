@@ -24,144 +24,245 @@ import {
 export const estadoConfig = {
   // Estados de Solicitudes
   "Borrador": {
-    color: "var(--fg-muted)",
+    color: "#6b7280",
     icon: FileText,
     label: "Borrador"
   },
   "Draft": {
-    color: "var(--fg-muted)",
+    color: "#6b7280",
     icon: FileText,
     label: "Borrador"
   },
   "Enviada": {
-    color: "var(--info)",
+    color: "#06b6d4",
     icon: Send,
     label: "Enviada"
   },
   "Submitted": {
-    color: "var(--info)",
+    color: "#06b6d4",
     icon: Send,
     label: "Enviada"
   },
   "Pendiente": {
-    color: "var(--fg-muted)",
+    color: "#1e40af",
     icon: Clock,
     label: "Pendiente"
   },
   "Pending": {
-    color: "var(--fg-muted)",
+    color: "#1e40af",
+    icon: Clock,
+    label: "Pendiente"
+  },
+  "Pendiente_de_Aprobacion": {
+    color: "#1e40af",
     icon: Clock,
     label: "Pendiente"
   },
   "En Proceso": {
-    color: "var(--primary)",
+    color: "#ea580c",
     icon: Play,
     label: "En Proceso"
   },
   "Processing": {
-    color: "var(--primary)",
+    color: "#ea580c",
+    icon: Play,
+    label: "En Proceso"
+  },
+  "En Progreso": {
+    color: "#ea580c",
     icon: Play,
     label: "En Proceso"
   },
   "Aprobada": {
-    color: "var(--success)",
+    color: "#059669",
     icon: CheckCircle,
     label: "Aprobada"
   },
   "Approved": {
-    color: "var(--success)",
+    color: "#059669",
     icon: CheckCircle,
     label: "Aprobada"
   },
+  "Completada": {
+    color: "#16a34a",
+    icon: CheckCircle,
+    label: "Completada"
+  },
+  "Completed": {
+    color: "#16a34a",
+    icon: CheckCircle,
+    label: "Completada"
+  },
   "Rechazada": {
-    color: "var(--danger)",
+    color: "#dc2626",
     icon: XCircle,
     label: "Rechazada"
   },
   "Rejected": {
-    color: "var(--danger)",
+    color: "#dc2626",
     icon: XCircle,
     label: "Rechazada"
   },
   "En Despacho": {
-    color: "var(--accent)",
+    color: "#f59e0b",
     icon: Package,
     label: "En Despacho"
   },
   "Dispatching": {
-    color: "var(--accent)",
+    color: "#f59e0b",
     icon: Package,
     label: "En Despacho"
   },
   "Despachada": {
-    color: "var(--accent)",
+    color: "#0891b2",
     icon: Truck,
     label: "Despachada"
   },
   "Dispatched": {
-    color: "var(--accent)",
+    color: "#0891b2",
     icon: Truck,
     label: "Despachada"
   },
   "Cerrada": {
-    color: "var(--fg-subtle)",
+    color: "#166534",
     icon: Archive,
     label: "Cerrada"
   },
   "Closed": {
-    color: "var(--fg-subtle)",
+    color: "#166534",
     icon: Archive,
     label: "Cerrada"
   },
   "Cancelada": {
-    color: "var(--danger)",
+    color: "#991b1b",
     icon: XCircle,
     label: "Cancelada"
   },
   "Cancelled": {
-    color: "var(--danger)",
+    color: "#991b1b",
     icon: XCircle,
     label: "Cancelada"
   },
   "En Pausa": {
-    color: "var(--fg-muted)",
+    color: "#9ca3af",
     icon: Pause,
     label: "En Pausa"
   },
+  "En Tratamiento": {
+    color: "#7c3aed",
+    icon: Package,
+    label: "En tratamiento"
+  },
+  "Tratado": {
+    color: "#10b981",
+    icon: CheckCircle,
+    label: "Tratado"
+  },
+  "Treated": {
+    color: "#10b981",
+    icon: CheckCircle,
+    label: "Tratado"
+  },
+  // Estados en minúsculas (desde BD)
+  "draft": {
+    color: "#6b7280",
+    icon: FileText,
+    label: "Borrador"
+  },
+  "submitted": {
+    color: "#06b6d4",
+    icon: Send,
+    label: "Enviada"
+  },
+  "pending": {
+    color: "#1e40af",
+    icon: Clock,
+    label: "Pendiente"
+  },
+  "processing": {
+    color: "#ea580c",
+    icon: Play,
+    label: "En Proceso"
+  },
+  "in_planning": {
+    color: "#ea580c",
+    icon: Play,
+    label: "En Progreso"
+  },
+  "in_treatment": {
+    color: "#7c3aed",
+    icon: Package,
+    label: "En tratamiento"
+  },
+  "treated": {
+    color: "#10b981",
+    icon: Package,
+    label: "Tratado"
+  },
+  "approved": {
+    color: "#059669",
+    icon: CheckCircle,
+    label: "Aprobada"
+  },
+  "completed": {
+    color: "#16a34a",
+    icon: CheckCircle,
+    label: "Completada"
+  },
+  "closed": {
+    color: "#166534",
+    icon: Archive,
+    label: "Cerrada"
+  },
+  "rejected": {
+    color: "#dc2626",
+    icon: XCircle,
+    label: "Rechazada"
+  },
+  "dispatched": {
+    color: "#0891b2",
+    icon: Truck,
+    label: "Despachada"
+  },
+  "cancelled": {
+    color: "#991b1b",
+    icon: XCircle,
+    label: "Cancelada"
+  },
   "On Hold": {
-    color: "var(--fg-muted)",
+    color: "#9ca3af",
     icon: Pause,
     label: "En Pausa"
   },
 
   // Estados genéricos
   "Activo": {
-    color: "var(--success)",
+    color: "#059669",
     icon: CheckCircle,
     label: "Activo"
   },
   "Active": {
-    color: "var(--success)",
+    color: "#059669",
     icon: CheckCircle,
     label: "Activo"
   },
   "Inactivo": {
-    color: "var(--fg-muted)",
+    color: "#9ca3af",
     icon: Pause,
     label: "Inactivo"
   },
   "Inactive": {
-    color: "var(--fg-muted)",
+    color: "#9ca3af",
     icon: Pause,
     label: "Inactivo"
   },
   "Suspendido": {
-    color: "var(--danger)",
+    color: "#991b1b",
     icon: XCircle,
     label: "Suspendido"
   },
   "Suspended": {
-    color: "var(--danger)",
+    color: "#991b1b",
     icon: XCircle,
     label: "Suspendido"
   },
@@ -172,42 +273,42 @@ export const estadoConfig = {
 // ═══════════════════════════════════════════════════════════════
 export const criticidadConfig = {
   "Urgente": {
-    color: "var(--danger)",
+    color: "#d32f2f",
     icon: AlertTriangle,
     label: "Urgente"
   },
   "Urgent": {
-    color: "var(--danger)",
+    color: "#d32f2f",
     icon: AlertTriangle,
     label: "Urgente"
   },
   "Alta": {
-    color: "var(--primary)",
+    color: "#d32f2f",
     icon: AlertCircle,
     label: "Alta"
   },
   "High": {
-    color: "var(--primary)",
+    color: "#d32f2f",
     icon: AlertCircle,
     label: "Alta"
   },
   "Normal": {
-    color: "var(--info)",
+    color: "#1976d2",
     icon: Clock,
     label: "Normal"
   },
   "Medium": {
-    color: "var(--info)",
+    color: "#1976d2",
     icon: Clock,
     label: "Normal"
   },
   "Baja": {
-    color: "var(--success)",
+    color: "#689f38",
     icon: Clock,
     label: "Baja"
   },
   "Low": {
-    color: "var(--success)",
+    color: "#689f38",
     icon: Clock,
     label: "Baja"
   },

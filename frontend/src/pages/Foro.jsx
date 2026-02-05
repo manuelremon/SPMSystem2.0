@@ -1,26 +1,41 @@
+/**
+ * Foro - Foro de la comunidad SPM
+ * Full MUI Migration
+ */
 import React, { useState, useEffect, useCallback } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
-import { Button } from "../components/ui/Button";
-import { Badge } from "../components/ui/Badge";
-import {
-  MessageCircle,
-  Send,
-  ThumbsUp,
-  MessageSquare,
-  Clock,
-  User,
-  Plus,
-  ChevronDown,
-  ChevronUp,
-  Trash2,
-  AlertCircle,
-  Search,
-  Filter,
-  Hash,
-} from "../components/ui/Icons";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
 import api from "../services/api";
+
+// MUI Components
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
+import TextField from "@mui/material/TextField";
+import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import Stack from "@mui/material/Stack";
+import Chip from "@mui/material/Chip";
+import Avatar from "@mui/material/Avatar";
+import CircularProgress from "@mui/material/CircularProgress";
+import InputAdornment from "@mui/material/InputAdornment";
+import Divider from "@mui/material/Divider";
+
+// MUI Icons
+import ForumIcon from "@mui/icons-material/Forum";
+import SendIcon from "@mui/icons-material/Send";
+import ThumbUpIcon from "@mui/icons-material/ThumbUp";
+import ThumbUpOutlinedIcon from "@mui/icons-material/ThumbUpOutlined";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import AddIcon from "@mui/icons-material/Add";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import SearchIcon from "@mui/icons-material/Search";
+import FilterListIcon from "@mui/icons-material/FilterList";
+import TagIcon from "@mui/icons-material/Tag";
+import CloseIcon from "@mui/icons-material/Close";
 
 export default function Foro() {
   const { t } = useI18n();
@@ -127,7 +142,7 @@ export default function Foro() {
     if (diffMins < 1) return "Ahora mismo";
     if (diffMins < 60) return `Hace ${diffMins} min`;
     if (diffHours < 24) return `Hace ${diffHours}h`;
-    if (diffDays < 7) return `Hace ${diffDays} días`;
+    if (diffDays < 7) return `Hace ${diffDays} dias`;
     return date.toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
   };
 
@@ -155,266 +170,363 @@ export default function Foro() {
   };
 
   return (
-    <div className="space-y-4">
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       {/* Header con busqueda */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 uppercase">
-            <MessageCircle className="w-6 h-6 text-violet-500" />
+      <Box sx={{
+        display: "flex",
+        flexDirection: { xs: "column", sm: "row" },
+        alignItems: { xs: "flex-start", sm: "center" },
+        justifyContent: "space-between",
+        gap: 2
+      }}>
+        <Box>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: 700,
+              color: "text.primary",
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              textTransform: "uppercase"
+            }}
+          >
+            <ForumIcon sx={{ color: "secondary.main" }} />
             Foro SPM
-          </h1>
-        </div>
-        <Button onClick={() => setNewPostOpen(!newPostOpen)}>
-          <Plus className="w-4 h-4" />
-          Nueva Publicación
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setNewPostOpen(!newPostOpen)}
+        >
+          Nueva Publicacion
         </Button>
-      </div>
+      </Box>
 
       {/* Barra de busqueda */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Buscar publicaciones por título, contenido o autor..."
-          className="w-full pl-10 pr-4 py-3 rounded-lg bg-slate-50/70 dark:bg-slate-800/70 border border-white/30 dark:border-slate-700/30 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
-        />
-        {searchQuery && (
-          <button
-            onClick={() => setSearchQuery("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
-          >
-            <span className="text-lg">&times;</span>
-          </button>
-        )}
-      </div>
+      <TextField
+        fullWidth
+        placeholder="Buscar publicaciones por titulo, contenido o autor..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon sx={{ color: "text.secondary" }} />
+            </InputAdornment>
+          ),
+          endAdornment: searchQuery && (
+            <InputAdornment position="end">
+              <IconButton size="small" onClick={() => setSearchQuery("")}>
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
+        sx={{
+          "& .MuiOutlinedInput-root": {
+            bgcolor: "background.paper",
+          }
+        }}
+      />
 
       {/* Layout con sidebar */}
-      <div className="flex gap-6">
+      <Box sx={{ display: "flex", gap: 3 }}>
         {/* Sidebar - Indice de temas */}
-        <aside className="w-56 flex-shrink-0 hidden lg:block">
-          <Card className="sticky top-4">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Filter className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                Categorías
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <nav className="space-y-1">
-                {/* Todas las categorias */}
-                <button
-                  onClick={() => setSelectedCategoria(null)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
-                    selectedCategoria === null
-                      ? "bg-blue-600/10 text-blue-600 dark:text-blue-400 font-medium"
-                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-700/70 hover:text-slate-800 dark:hover:text-slate-200"
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <Hash className="w-4 h-4" />
-                    Todos
-                  </span>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100/70 dark:bg-slate-700/70">
-                    {posts.length}
-                  </span>
-                </button>
+        <Box
+          component="aside"
+          sx={{
+            width: 224,
+            flexShrink: 0,
+            display: { xs: "none", lg: "block" }
+          }}
+        >
+          <Paper sx={{ position: "sticky", top: 16, p: 2 }}>
+            <Typography
+              variant="subtitle2"
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                mb: 2,
+                color: "text.secondary"
+              }}
+            >
+              <FilterListIcon fontSize="small" />
+              Categorias
+            </Typography>
+            <Stack spacing={0.5}>
+              {/* Todas las categorias */}
+              <Box
+                component="button"
+                onClick={() => setSelectedCategoria(null)}
+                sx={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  px: 1.5,
+                  py: 1,
+                  borderRadius: 1,
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: "0.875rem",
+                  transition: "all 0.2s",
+                  bgcolor: selectedCategoria === null ? "primary.50" : "transparent",
+                  color: selectedCategoria === null ? "primary.main" : "text.secondary",
+                  fontWeight: selectedCategoria === null ? 600 : 400,
+                  "&:hover": {
+                    bgcolor: selectedCategoria === null ? "primary.50" : "action.hover",
+                    color: selectedCategoria === null ? "primary.main" : "text.primary",
+                  }
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <TagIcon sx={{ fontSize: 16 }} />
+                  Todos
+                </Box>
+                <Chip
+                  label={posts.length}
+                  size="small"
+                  sx={{
+                    height: 20,
+                    fontSize: "0.75rem",
+                    bgcolor: "action.selected"
+                  }}
+                />
+              </Box>
 
-                {/* Categorias individuales */}
-                {categorias.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategoria(cat.id === selectedCategoria ? null : cat.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
-                      selectedCategoria === cat.id
-                        ? "font-medium"
-                        : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-700/70 hover:text-slate-800 dark:hover:text-slate-200"
-                    }`}
-                    style={{
-                      backgroundColor: selectedCategoria === cat.id ? `${cat.color}15` : undefined,
-                      color: selectedCategoria === cat.id ? cat.color : undefined,
+              {/* Categorias individuales */}
+              {categorias.map((cat) => (
+                <Box
+                  component="button"
+                  key={cat.id}
+                  onClick={() => setSelectedCategoria(cat.id === selectedCategoria ? null : cat.id)}
+                  sx={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    px: 1.5,
+                    py: 1,
+                    borderRadius: 1,
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "0.875rem",
+                    transition: "all 0.2s",
+                    bgcolor: selectedCategoria === cat.id ? `${cat.color}15` : "transparent",
+                    color: selectedCategoria === cat.id ? cat.color : "text.secondary",
+                    fontWeight: selectedCategoria === cat.id ? 600 : 400,
+                    "&:hover": {
+                      bgcolor: selectedCategoria === cat.id ? `${cat.color}15` : "action.hover",
+                      color: selectedCategoria === cat.id ? cat.color : "text.primary",
+                    }
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        bgcolor: cat.color,
+                      }}
+                    />
+                    {cat.label}
+                  </Box>
+                  <Chip
+                    label={getCategoriaCount(cat.id)}
+                    size="small"
+                    sx={{
+                      height: 20,
+                      fontSize: "0.75rem",
+                      bgcolor: "action.selected"
                     }}
-                  >
-                    <span className="flex items-center gap-2">
-                      <span
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: cat.color }}
-                      />
-                      {cat.label}
-                    </span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100/70 dark:bg-slate-700/70">
-                      {getCategoriaCount(cat.id)}
-                    </span>
-                  </button>
-                ))}
-              </nav>
-            </CardContent>
-          </Card>
-        </aside>
+                  />
+                </Box>
+              ))}
+            </Stack>
+          </Paper>
+        </Box>
 
         {/* Main content */}
-        <main className="flex-1 min-w-0 space-y-4">
+        <Box component="main" sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
           {/* Formulario nuevo post */}
           {newPostOpen && (
-            <Card className="border-blue-500/30">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Nueva Publicación</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleCreatePost} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
-                      Título
-                    </label>
-                    <input
-                      type="text"
-                      value={newPost.titulo}
-                      onChange={(e) => setNewPost({ ...newPost, titulo: e.target.value })}
-                      placeholder="Escribe un título descriptivo..."
-                      className="w-full px-4 py-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/70 border border-white/30 dark:border-slate-700/30 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
-                      maxLength={100}
-                    />
-                  </div>
+            <Paper sx={{ p: 3, borderLeft: 4, borderColor: "primary.main" }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
+                Nueva Publicacion
+              </Typography>
+              <Box component="form" onSubmit={handleCreatePost} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <Box>
+                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                    Titulo
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    value={newPost.titulo}
+                    onChange={(e) => setNewPost({ ...newPost, titulo: e.target.value })}
+                    placeholder="Escribe un titulo descriptivo..."
+                    inputProps={{ maxLength: 100 }}
+                  />
+                </Box>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
-                      Categoría
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {categorias.map((cat) => (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => setNewPost({ ...newPost, categoria: cat.id })}
-                          className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                            newPost.categoria === cat.id
-                              ? "border-transparent text-white"
-                              : "border-white/30 dark:border-slate-700/30 text-slate-500 dark:text-slate-400 hover:border-blue-500"
-                          }`}
-                          style={{
-                            backgroundColor: newPost.categoria === cat.id ? cat.color : "transparent",
-                          }}
-                        >
-                          {cat.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                <Box>
+                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                    Categoria
+                  </Typography>
+                  <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
+                    {categorias.map((cat) => (
+                      <Chip
+                        key={cat.id}
+                        label={cat.label}
+                        size="small"
+                        onClick={() => setNewPost({ ...newPost, categoria: cat.id })}
+                        sx={{
+                          cursor: "pointer",
+                          fontWeight: 600,
+                          bgcolor: newPost.categoria === cat.id ? cat.color : "transparent",
+                          color: newPost.categoria === cat.id ? "white" : "text.secondary",
+                          border: newPost.categoria === cat.id ? "none" : "1px solid",
+                          borderColor: "divider",
+                          "&:hover": {
+                            bgcolor: newPost.categoria === cat.id ? cat.color : "action.hover",
+                          }
+                        }}
+                      />
+                    ))}
+                  </Stack>
+                </Box>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
-                      Contenido
-                    </label>
-                    <textarea
-                      value={newPost.contenido}
-                      onChange={(e) => setNewPost({ ...newPost, contenido: e.target.value })}
-                      placeholder="Describe tu pregunta, idea o comentario..."
-                      rows={4}
-                      className="w-full px-4 py-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/70 border border-white/30 dark:border-slate-700/30 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition-colors resize-none"
-                      maxLength={2000}
-                    />
-                  </div>
+                <Box>
+                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                    Contenido
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={4}
+                    value={newPost.contenido}
+                    onChange={(e) => setNewPost({ ...newPost, contenido: e.target.value })}
+                    placeholder="Describe tu pregunta, idea o comentario..."
+                    inputProps={{ maxLength: 2000 }}
+                  />
+                </Box>
 
-                  <div className="flex justify-end gap-2">
-                    <Button type="button" variant="ghost" onClick={() => setNewPostOpen(false)}>
-                      Cancelar
-                    </Button>
-                    <Button type="submit" disabled={submitting || !newPost.titulo.trim() || !newPost.contenido.trim()}>
-                      {submitting ? "Publicando..." : "Publicar"}
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
+                <Stack direction="row" spacing={1} justifyContent="flex-end">
+                  <Button variant="text" onClick={() => setNewPostOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={submitting || !newPost.titulo.trim() || !newPost.contenido.trim()}
+                  >
+                    {submitting ? "Publicando..." : "Publicar"}
+                  </Button>
+                </Stack>
+              </Box>
+            </Paper>
           )}
 
           {/* Lista de posts */}
           {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mx-auto"></div>
-              <p className="text-slate-500 dark:text-slate-400 mt-4">Cargando publicaciones...</p>
-            </div>
+            <Box sx={{ textAlign: "center", py: 6 }}>
+              <CircularProgress size={40} />
+              <Typography sx={{ color: "text.secondary", mt: 2 }}>
+                Cargando publicaciones...
+              </Typography>
+            </Box>
           ) : error ? (
-            <Card className="border-red-500/30">
-              <CardContent className="py-8 text-center">
-                <AlertCircle className="w-12 h-12 mx-auto mb-3 text-amber-500" />
-                <p className="text-slate-500 dark:text-slate-400">{error}</p>
-                <Button variant="outline" onClick={loadPosts} className="mt-4">
-                  Reintentar
-                </Button>
-              </CardContent>
-            </Card>
+            <Paper sx={{ p: 4, textAlign: "center", borderLeft: 4, borderColor: "error.main" }}>
+              <WarningAmberIcon sx={{ fontSize: 48, color: "warning.main", mb: 1.5 }} />
+              <Typography sx={{ color: "text.secondary" }}>{error}</Typography>
+              <Button variant="outlined" onClick={loadPosts} sx={{ mt: 2 }}>
+                Reintentar
+              </Button>
+            </Paper>
           ) : filteredPosts.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <MessageCircle className="w-16 h-16 mx-auto mb-4 text-violet-500 opacity-50" />
-                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">
-                  {posts.length === 0 ? "No hay publicaciones aún" : "No se encontraron resultados"}
-                </h3>
-                <p className="text-slate-500 dark:text-slate-400 mb-4">
-                  {posts.length === 0
-                    ? "Sé el primero en iniciar una conversación!"
-                    : "Intenta con otros términos de búsqueda o categoría"}
-                </p>
-                {posts.length === 0 && (
-                  <Button onClick={() => setNewPostOpen(true)}>
-                    <Plus className="w-4 h-4" />
-                    Crear primera publicación
-                  </Button>
-                )}
-                {(searchQuery || selectedCategoria) && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSearchQuery("");
-                      setSelectedCategoria(null);
-                    }}
-                  >
-                    Limpiar filtros
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {/* Mobile category filter */}
-              <div className="flex flex-wrap gap-2 lg:hidden">
-                <button
-                  onClick={() => setSelectedCategoria(null)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                    selectedCategoria === null
-                      ? "bg-blue-600 text-white border-transparent"
-                      : "border-white/30 dark:border-slate-700/30 text-slate-500 dark:text-slate-400 hover:border-blue-500"
-                  }`}
+            <Paper sx={{ p: 6, textAlign: "center" }}>
+              <ForumIcon sx={{ fontSize: 64, color: "secondary.main", opacity: 0.5, mb: 2 }} />
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                {posts.length === 0 ? "No hay publicaciones aun" : "No se encontraron resultados"}
+              </Typography>
+              <Typography sx={{ color: "text.secondary", mb: 2 }}>
+                {posts.length === 0
+                  ? "Se el primero en iniciar una conversacion!"
+                  : "Intenta con otros terminos de busqueda o categoria"}
+              </Typography>
+              {posts.length === 0 && (
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => setNewPostOpen(true)}
                 >
-                  Todos ({posts.length})
-                </button>
+                  Crear primera publicacion
+                </Button>
+              )}
+              {(searchQuery || selectedCategoria) && (
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedCategoria(null);
+                  }}
+                >
+                  Limpiar filtros
+                </Button>
+              )}
+            </Paper>
+          ) : (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {/* Mobile category filter */}
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{
+                  flexWrap: "wrap",
+                  gap: 1,
+                  display: { xs: "flex", lg: "none" }
+                }}
+              >
+                <Chip
+                  label={`Todos (${posts.length})`}
+                  size="small"
+                  onClick={() => setSelectedCategoria(null)}
+                  sx={{
+                    fontWeight: 600,
+                    bgcolor: selectedCategoria === null ? "primary.main" : "transparent",
+                    color: selectedCategoria === null ? "white" : "text.secondary",
+                    border: selectedCategoria === null ? "none" : "1px solid",
+                    borderColor: "divider",
+                  }}
+                />
                 {categorias.map((cat) => (
-                  <button
+                  <Chip
                     key={cat.id}
+                    label={`${cat.label} (${getCategoriaCount(cat.id)})`}
+                    size="small"
                     onClick={() => setSelectedCategoria(cat.id === selectedCategoria ? null : cat.id)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                      selectedCategoria === cat.id
-                        ? "border-transparent text-white"
-                        : "border-white/30 dark:border-slate-700/30 text-slate-500 dark:text-slate-400 hover:border-blue-500"
-                    }`}
-                    style={{
-                      backgroundColor: selectedCategoria === cat.id ? cat.color : "transparent",
+                    sx={{
+                      fontWeight: 600,
+                      bgcolor: selectedCategoria === cat.id ? cat.color : "transparent",
+                      color: selectedCategoria === cat.id ? "white" : "text.secondary",
+                      border: selectedCategoria === cat.id ? "none" : "1px solid",
+                      borderColor: "divider",
                     }}
-                  >
-                    {cat.label} ({getCategoriaCount(cat.id)})
-                  </button>
+                  />
                 ))}
-              </div>
+              </Stack>
 
               {/* Results count */}
               {(searchQuery || selectedCategoria) && (
-                <p className="text-sm text-slate-500 dark:text-slate-400">
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
                   {filteredPosts.length} resultado{filteredPosts.length !== 1 ? "s" : ""}
                   {selectedCategoria && ` en ${getCategoriaLabel(selectedCategoria)}`}
                   {searchQuery && ` para "${searchQuery}"`}
-                </p>
+                </Typography>
               )}
 
               {filteredPosts.map((post) => {
@@ -422,92 +534,154 @@ export default function Foro() {
                 const hasReplies = post.respuestas && post.respuestas.length > 0;
 
                 return (
-                  <Card key={post.id} className="hover:border-blue-500/30 transition-colors">
-                    <CardContent className="p-5">
-                      {/* Header del post */}
-                      <div className="flex items-start gap-3">
-                        <div
-                          className="w-10 h-10 rounded-full grid place-items-center flex-shrink-0 text-white font-bold text-sm"
-                          style={{ backgroundColor: getCategoriaColor(post.categoria) }}
+                  <Paper
+                    key={post.id}
+                    sx={{
+                      p: 2.5,
+                      transition: "border-color 0.2s",
+                      "&:hover": {
+                        borderColor: "primary.light",
+                      }
+                    }}
+                  >
+                    {/* Header del post */}
+                    <Box sx={{ display: "flex", gap: 1.5 }}>
+                      <Avatar
+                        sx={{
+                          bgcolor: getCategoriaColor(post.categoria),
+                          width: 40,
+                          height: 40,
+                          fontSize: "0.875rem",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {post.autor_nombre?.[0]?.toUpperCase() || "U"}
+                      </Avatar>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {post.autor_nombre}
+                          </Typography>
+                          <Chip
+                            label={getCategoriaLabel(post.categoria)}
+                            size="small"
+                            sx={{
+                              height: 20,
+                              fontSize: "0.625rem",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              bgcolor: `${getCategoriaColor(post.categoria)}20`,
+                              color: getCategoriaColor(post.categoria),
+                            }}
+                          />
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "text.secondary",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5
+                            }}
+                          >
+                            <AccessTimeIcon sx={{ fontSize: 12, color: "info.main" }} />
+                            {formatDate(post.created_at)}
+                          </Typography>
+                        </Stack>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, mt: 0.5 }}>
+                          {post.titulo}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "text.secondary",
+                            mt: 1,
+                            whiteSpace: "pre-wrap"
+                          }}
                         >
-                          {post.autor_nombre?.[0]?.toUpperCase() || "U"}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-slate-800 dark:text-slate-200">{post.autor_nombre}</span>
-                            <span
-                              className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
-                              style={{
-                                backgroundColor: `${getCategoriaColor(post.categoria)}20`,
-                                color: getCategoriaColor(post.categoria),
-                              }}
-                            >
-                              {getCategoriaLabel(post.categoria)}
-                            </span>
-                            <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-cyan-500 dark:text-cyan-400" />
-                              {formatDate(post.created_at)}
-                            </span>
-                          </div>
-                          <h3 className="font-semibold text-slate-800 dark:text-slate-200 mt-1">{post.titulo}</h3>
-                          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 whitespace-pre-wrap">
-                            {post.contenido}
-                          </p>
-                        </div>
-                      </div>
+                          {post.contenido}
+                        </Typography>
+                      </Box>
+                    </Box>
 
-                      {/* Acciones del post */}
-                      <div className="flex items-center gap-4 mt-4 pt-3 border-t border-white/30 dark:border-slate-700/30">
-                        <button
-                          onClick={() => handleLike(post.id)}
-                          className={`flex items-center gap-1.5 text-sm transition-colors ${
-                            post.user_liked
-                              ? "text-blue-600 dark:text-blue-400"
-                              : "text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
-                          }`}
-                        >
-                          <ThumbsUp className="w-4 h-4" />
-                          <span>{post.likes || 0}</span>
-                        </button>
-                        <button
-                          onClick={() => toggleExpand(post.id)}
-                          className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                        >
-                          <MessageSquare className="w-4 h-4 text-violet-500" />
-                          <span>{post.respuestas?.length || 0} respuestas</span>
-                          {hasReplies && (
-                            isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
-                          )}
-                        </button>
-                      </div>
+                    {/* Acciones del post */}
+                    <Divider sx={{ my: 2 }} />
+                    <Stack direction="row" spacing={2}>
+                      <Button
+                        size="small"
+                        startIcon={post.user_liked ? <ThumbUpIcon /> : <ThumbUpOutlinedIcon />}
+                        onClick={() => handleLike(post.id)}
+                        sx={{
+                          color: post.user_liked ? "primary.main" : "text.secondary",
+                          "&:hover": {
+                            color: "primary.main",
+                          }
+                        }}
+                      >
+                        {post.likes || 0}
+                      </Button>
+                      <Button
+                        size="small"
+                        startIcon={<ChatBubbleOutlineIcon sx={{ color: "secondary.main" }} />}
+                        endIcon={hasReplies ? (isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />) : null}
+                        onClick={() => toggleExpand(post.id)}
+                        sx={{ color: "text.secondary" }}
+                      >
+                        {post.respuestas?.length || 0} respuestas
+                      </Button>
+                    </Stack>
 
-                      {/* Respuestas */}
-                      {isExpanded && (
-                        <div className="mt-4 pt-4 border-t border-white/30 dark:border-slate-700/30 space-y-4">
+                    {/* Respuestas */}
+                    {isExpanded && (
+                      <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: "divider" }}>
+                        <Stack spacing={2}>
                           {/* Lista de respuestas */}
                           {post.respuestas?.map((resp) => (
-                            <div key={resp.id} className="flex gap-3 pl-4 border-l-2 border-white/30 dark:border-slate-700/30">
-                              <div className="w-8 h-8 rounded-full bg-slate-100/70 dark:bg-slate-700/70 grid place-items-center flex-shrink-0 text-slate-500 dark:text-slate-400 text-xs font-bold">
+                            <Box
+                              key={resp.id}
+                              sx={{
+                                display: "flex",
+                                gap: 1.5,
+                                pl: 2,
+                                borderLeft: 2,
+                                borderColor: "divider"
+                              }}
+                            >
+                              <Avatar
+                                sx={{
+                                  bgcolor: "action.selected",
+                                  width: 32,
+                                  height: 32,
+                                  fontSize: "0.75rem",
+                                  fontWeight: 700,
+                                  color: "text.secondary",
+                                }}
+                              >
                                 {resp.autor_nombre?.[0]?.toUpperCase() || "U"}
-                              </div>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{resp.autor_nombre}</span>
-                                  <span className="text-xs text-slate-400 dark:text-slate-500">{formatDate(resp.created_at)}</span>
-                                </div>
-                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{resp.contenido}</p>
-                              </div>
-                            </div>
+                              </Avatar>
+                              <Box sx={{ flex: 1 }}>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                    {resp.autor_nombre}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                                    {formatDate(resp.created_at)}
+                                  </Typography>
+                                </Stack>
+                                <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
+                                  {resp.contenido}
+                                </Typography>
+                              </Box>
+                            </Box>
                           ))}
 
                           {/* Input para nueva respuesta */}
-                          <div className="flex gap-2 pl-4">
-                            <input
-                              type="text"
+                          <Box sx={{ display: "flex", gap: 1, pl: 2 }}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              placeholder="Escribe una respuesta..."
                               value={replyContent[post.id] || ""}
                               onChange={(e) => setReplyContent({ ...replyContent, [post.id]: e.target.value })}
-                              placeholder="Escribe una respuesta..."
-                              className="flex-1 px-3 py-2 rounded-lg bg-slate-50/70 dark:bg-slate-800/70 border border-white/30 dark:border-slate-700/30 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                               onKeyDown={(e) => {
                                 if (e.key === "Enter" && !e.shiftKey) {
                                   e.preventDefault();
@@ -516,23 +690,25 @@ export default function Foro() {
                               }}
                             />
                             <Button
-                              size="sm"
+                              variant="contained"
+                              size="small"
                               onClick={() => handleReply(post.id)}
                               disabled={!replyContent[post.id]?.trim()}
+                              sx={{ minWidth: "auto", px: 2 }}
                             >
-                              <Send className="w-4 h-4" />
+                              <SendIcon fontSize="small" />
                             </Button>
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                          </Box>
+                        </Stack>
+                      </Box>
+                    )}
+                  </Paper>
                 );
               })}
-            </div>
+            </Box>
           )}
-        </main>
-      </div>
-    </div>
+        </Box>
+      </Box>
+    </Box>
   );
 }

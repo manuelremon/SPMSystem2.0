@@ -478,7 +478,7 @@ def obtener_metricas_sla(periodo_dias: int = 30, por_criticidad: bool = False) -
         cursor.execute(
             """
             SELECT COUNT(*) as total
-            FROM solicitudes
+            FROM solicitud
             WHERE created_at >= ?
         """,
             (fecha_str,),
@@ -490,7 +490,7 @@ def obtener_metricas_sla(periodo_dias: int = 30, por_criticidad: bool = False) -
         cursor.execute(
             """
             SELECT COUNT(*) as on_time
-            FROM solicitudes
+            FROM solicitud
             WHERE created_at >= ?
               AND sla_estado = 'on_time'
         """,
@@ -503,7 +503,7 @@ def obtener_metricas_sla(periodo_dias: int = 30, por_criticidad: bool = False) -
         cursor.execute(
             """
             SELECT COUNT(*) as warning
-            FROM solicitudes
+            FROM solicitud
             WHERE created_at >= ?
               AND sla_estado = 'warning'
         """,
@@ -516,7 +516,7 @@ def obtener_metricas_sla(periodo_dias: int = 30, por_criticidad: bool = False) -
         cursor.execute(
             """
             SELECT COUNT(*) as breach
-            FROM solicitudes
+            FROM solicitud
             WHERE created_at >= ?
               AND sla_estado = 'breach'
         """,
@@ -529,7 +529,7 @@ def obtener_metricas_sla(periodo_dias: int = 30, por_criticidad: bool = False) -
         cursor.execute(
             """
             SELECT COUNT(*) as sin_sla
-            FROM solicitudes
+            FROM solicitud
             WHERE created_at >= ?
               AND sla_estado IS NULL
         """,
@@ -562,7 +562,7 @@ def obtener_metricas_sla(periodo_dias: int = 30, por_criticidad: bool = False) -
                     SUM(CASE WHEN sla_estado = 'warning' THEN 1 ELSE 0 END) as warning,
                     SUM(CASE WHEN sla_estado = 'breach' THEN 1 ELSE 0 END) as breach,
                     SUM(CASE WHEN sla_estado IS NULL THEN 1 ELSE 0 END) as sin_sla
-                FROM solicitudes
+                FROM solicitud
                 WHERE created_at >= ?
                 GROUP BY criticidad
             """,
@@ -598,7 +598,7 @@ def actualizar_sla_solicitud(
         now_iso = datetime.now().isoformat()
         cursor.execute(
             """
-            UPDATE solicitudes
+            UPDATE solicitud
             SET sla_fecha_limite = ?,
                 sla_estado = ?,
                 updated_at = ?
@@ -638,7 +638,7 @@ def actualizar_sla_solicitudes_lote(
 
         cursor.execute(
             f"""
-            UPDATE solicitudes
+            UPDATE solicitud
             SET sla_estado = ?,
                 updated_at = ?
             WHERE id IN ({placeholders})

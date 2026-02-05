@@ -27,7 +27,8 @@ export const getAlmacenes = async () => {
  */
 export const getModelsDisponibles = async () => {
   const response = await api.get('/ai/forecast/models');
-  return response.data;
+  // Backend retorna {ok, data: {modelos, nombres}}, extraer solo data
+  return response.data?.data || response.data;
 };
 
 /**
@@ -36,14 +37,29 @@ export const getModelsDisponibles = async () => {
  * @param {object} options - Opciones de forecast
  */
 export const getForecast = async (codigo, options = {}) => {
-  const { dias = 30, modelo = 'random_forest', centro = null, almacen = null } = options;
-  const params = { dias, modelo };
+  const { dias = 30, modelo = 'random_forest', centro = null, almacen = null, mesesHistorico = 0 } = options;
+  const params = { dias, modelo, meses_historico: mesesHistorico };
   if (centro) params.centro = centro;
   if (almacen) params.almacen = almacen;
 
+  console.log('[Forecast] Enviando request con dias:', dias, 'params:', params);
+
   const response = await api.get(`/ai/materiales/forecast/${codigo}`, { params });
+  const result = response.data?.data || response.data;
+
+  console.log('[Forecast] Respuesta - dias solicitados:', dias, ', predicciones recibidas:', result?.predicciones?.length);
+  if (result?.predicciones?.length > 0) {
+    console.log('[Forecast] Primera predicción:', result.predicciones[0]);
+    console.log('[Forecast] Última predicción:', result.predicciones[result.predicciones.length - 1]);
+  }
+  if (result?.historico?.length > 0) {
+    console.log('[Forecast] Histórico - registros:', result.historico.length);
+    console.log('[Forecast] Histórico primera fecha:', result.historico[0]);
+    console.log('[Forecast] Histórico última fecha:', result.historico[result.historico.length - 1]);
+  }
+
   // Backend retorna { ok: true, data: {...} }, extraemos solo data
-  return response.data?.data || response.data;
+  return result;
 };
 
 /**

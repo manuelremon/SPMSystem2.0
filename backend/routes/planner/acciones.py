@@ -72,7 +72,7 @@ def ejecutar_acciones_post_tratamiento(solicitud_id):
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT centro, id_usuario, data_json FROM solicitudes WHERE id=?",
+                "SELECT centro, id_usuario, data_json FROM solicitud WHERE id=?",
                 (solicitud_id,),
             )
             sol_row = cur.fetchone()
@@ -93,7 +93,7 @@ def ejecutar_acciones_post_tratamiento(solicitud_id):
         for decision in decisiones:
             item_idx = decision.get("item_index", 0)
             item = items[item_idx] if item_idx < len(items) else {}
-            codigo_material = item.get("codigo") or item.get("codigo_material", "")
+            codigo_material = item.get("material") or item.get("codigo") or item.get("codigo_material", "")
             descripcion = item.get("descripcion", "")
 
             # Obtener fuentes de esta decision
@@ -358,8 +358,8 @@ def obtener_mis_consultas_pendientes():
                     u.nombre || ' ' || u.apellido as planner_nombre
                 FROM decision_abastecimiento_fuentes f
                 JOIN decision_abastecimiento d ON d.id = f.decision_id
-                JOIN solicitudes s ON s.id = d.solicitud_id
-                LEFT JOIN usuarios u ON u.id_spm = s.planner_id
+                JOIN solicitud s ON s.id = d.solicitud_id
+                LEFT JOIN usuario u ON u.id_spm = s.planner_id
                 LEFT JOIN config_almacenes ca
                     ON ca.centro = f.centro_origen AND ca.almacen = f.almacen_origen
                 WHERE (f.estado_consulta = 'pendiente' OR f.estado_consulta IS NULL)
@@ -368,14 +368,14 @@ def obtener_mis_consultas_pendientes():
                   AND (
                       ca.responsable_id = %s
                       OR EXISTS (
-                          SELECT 1 FROM usuarios u2
+                          SELECT 1 FROM usuario u2
                           WHERE u2.id_spm = %s
                           AND f.centro_origen = ANY(string_to_array(u2.centros, ','))
                           AND (u2.rol LIKE '%%coordinador%%' OR u2.rol LIKE '%%jefe%%')
                       )
                       OR EXISTS (
-                          SELECT 1 FROM proveedores_internos pi
-                          JOIN usuarios u3 ON pi.referente_email = u3.mail
+                          SELECT 1 FROM proveedor_interno pi
+                          JOIN usuario u3 ON pi.referente_email = u3.mail
                           WHERE u3.id_spm = %s
                           AND pi.centro = f.centro_origen
                           AND pi.almacen = f.almacen_origen
@@ -449,7 +449,7 @@ def responder_consulta_stock(fuente_id):
                        s.planner_id
                 FROM decision_abastecimiento_fuentes f
                 JOIN decision_abastecimiento d ON d.id = f.decision_id
-                JOIN solicitudes s ON s.id = d.solicitud_id
+                JOIN solicitud s ON s.id = d.solicitud_id
                 WHERE f.id = ?
                 """,
                 (fuente_id,),
@@ -663,7 +663,7 @@ def responder_consulta_referente(decision_id):
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT planner_id FROM solicitudes WHERE id=?",
+                "SELECT planner_id FROM solicitud WHERE id=?",
                 (decision["solicitud_id"],),
             )
             sol = cur.fetchone()
@@ -718,7 +718,7 @@ def obtener_estado_acciones(solicitud_id):
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT data_json FROM solicitudes WHERE id=?",
+                "SELECT data_json FROM solicitud WHERE id=?",
                 (solicitud_id,),
             )
             sol_row = cur.fetchone()
@@ -742,7 +742,7 @@ def obtener_estado_acciones(solicitud_id):
                 {
                     "decision_id": decision["id"],
                     "item_index": item_idx,
-                    "codigo_material": item.get("codigo") or item.get("codigo_material", ""),
+                    "codigo_material": item.get("material") or item.get("codigo") or item.get("codigo_material", ""),
                     "descripcion": item.get("descripcion", ""),
                     "estado": decision.get("estado", "pendiente"),
                     "cantidad_solicitada": decision.get("cantidad_solicitada", 0),

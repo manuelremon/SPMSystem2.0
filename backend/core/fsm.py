@@ -12,17 +12,9 @@ import logging
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-try:
-    from backend.core.db import get_db_connection, get_db_transaction
-    from backend.services.push_service import send_push_notification
-    from backend.services.sla_service import resolver_alertas_solicitud
-except ImportError:
-    from core.db import get_db_connection, get_db_transaction
-    from services.push_service import send_push_notification
-    try:
-        from services.sla_service import resolver_alertas_solicitud
-    except ImportError:
-        resolver_alertas_solicitud = None  # Fallback si no está disponible
+from backend.core.db import get_db_connection, get_db_transaction
+from backend.services.push_service import send_push_notification
+from backend.services.sla_service import resolver_alertas_solicitud
 
 logger = logging.getLogger(__name__)
 
@@ -207,7 +199,7 @@ def normalizar_estado(estado: str) -> str:
         "en aprobacion": "submitted",
         "aprobada": "approved",
         "rechazada": "rejected",
-        "en progreso": "in_planning",
+        "en progreso": "processing",
         "en tratamiento": "in_treatment",
         "tratado": "treated",
         "tratada": "treated",
@@ -372,7 +364,7 @@ def cambiar_estado(
 
         # 1. Obtener solicitud actual
         cursor.execute(
-            "SELECT id, status, id_usuario, aprobador_id, planner_id FROM solicitudes WHERE id = ?",
+            "SELECT id, status, id_usuario, aprobador_id, planner_id FROM solicitud WHERE id = ?",
             (solicitud_id,),
         )
         solicitud = cursor.fetchone()
@@ -390,7 +382,7 @@ def cambiar_estado(
         if estado_actual == "in_treatment" and nuevo_estado_str == "in_planning":
             cursor.execute(
                 """
-                SELECT COUNT(*) as retrocesos FROM solicitudes_historial_estados
+                SELECT COUNT(*) as retrocesos FROM solicitud_historial_estado
                 WHERE solicitud_id = ? AND estado_anterior = 'in_treatment' AND estado_nuevo = 'in_planning'
                 """,
                 (solicitud_id,),
@@ -408,7 +400,7 @@ def cambiar_estado(
         if estado_actual == "rejected" and nuevo_estado_str == "draft":
             cursor.execute(
                 """
-                SELECT COUNT(*) as reenvios FROM solicitudes_historial_estados
+                SELECT COUNT(*) as reenvios FROM solicitud_historial_estado
                 WHERE solicitud_id = ? AND estado_anterior = 'rejected' AND estado_nuevo = 'draft'
                 """,
                 (solicitud_id,),
@@ -423,7 +415,7 @@ def cambiar_estado(
 
         # 3. Actualizar estado de solicitud
         cursor.execute(
-            "UPDATE solicitudes SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            "UPDATE solicitud SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
             (nuevo_estado_str, solicitud_id),
         )
 
@@ -431,7 +423,7 @@ def cambiar_estado(
         metadata_json = json.dumps(metadata) if metadata else None
         cursor.execute(
             """
-            INSERT INTO solicitudes_historial_estados
+            INSERT INTO solicitud_historial_estado
             (solicitud_id, estado_anterior, estado_nuevo, actor_id, razon, metadata_json)
             VALUES (?, ?, ?, ?, ?, ?)
             """,
@@ -498,7 +490,7 @@ def obtener_historial_estados(solicitud_id: int) -> List[Dict[str, Any]]:
                 razon,
                 metadata_json,
                 created_at
-            FROM solicitudes_historial_estados
+            FROM solicitud_historial_estado
             WHERE solicitud_id = ?
             ORDER BY created_at ASC
             """,
@@ -521,7 +513,7 @@ def obtener_estado_actual(solicitud_id: int) -> Optional[str]:
     """
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT status FROM solicitudes WHERE id = ?", (solicitud_id,))
+        cursor.execute("SELECT status FROM solicitud WHERE id = ?", (solicitud_id,))
         row = cursor.fetchone()
 
     if row is None:
@@ -591,7 +583,7 @@ def _disparar_notificaciones(
         crear_notificacion(cursor, destinatario, solicitud_id, mensaje, tipo)
 
 
-def _get_user_notification_preferences(user_id: str) -> dict:
+def _get_usuario_preferencia_notificacion(user_id: str) -> dict:
     """
     Obtiene las preferencias de notificación del usuario.
 
@@ -605,7 +597,7 @@ def _get_user_notification_preferences(user_id: str) -> dict:
             cursor = conn.cursor()
             cursor.execute(
                 """SELECT push_enabled, notif_solicitudes, notif_aprobaciones
-                   FROM user_notification_preferences
+                   FROM usuario_preferencia_notificacion
                    WHERE user_id = ?""",
                 (str(user_id),),
             )
@@ -652,7 +644,7 @@ def crear_notificacion(
         tipo: Tipo de notificacion (info, warning, error)
     """
     # Verificar preferencias del usuario
-    prefs = _get_user_notification_preferences(destinatario_id)
+    prefs = _get_usuario_preferencia_notificacion(destinatario_id)
 
     # Verificar si el usuario desea este tipo de notificación
     pref_key = TIPO_TO_PREFERENCE.get(tipo)
@@ -663,7 +655,7 @@ def crear_notificacion(
     # Crear notificacion en BD
     cursor.execute(
         """
-        INSERT INTO notificaciones (destinatario_id, solicitud_id, mensaje, tipo)
+        INSERT INTO notificacion (destinatario_id, solicitud_id, mensaje, tipo)
         VALUES (?, ?, ?, ?)
         """,
         (destinatario_id, solicitud_id, mensaje, tipo),

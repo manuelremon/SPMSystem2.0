@@ -4,10 +4,18 @@
  * Muestra el estado de las bases de datos y el cache
  */
 
-import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/Card'
-import { Badge } from '../../../components/ui/Badge'
-import { Tooltip } from '../../../components/ui/Tooltip'
-import { Activity, Clock, HelpCircle } from '../../../components/ui/Icons'
+import {
+  Box,
+  Paper,
+  Typography,
+  Grid,
+  Chip,
+  Stack,
+  Tooltip,
+} from '@mui/material'
+import MonitorHeartIcon from '@mui/icons-material/MonitorHeart'
+import AccessTimeIcon from '@mui/icons-material/AccessTime'
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import { useI18n } from '../../../context/i18n'
 
 /**
@@ -15,15 +23,24 @@ import { useI18n } from '../../../context/i18n'
  */
 function StatusDot({ status }) {
   const colors = {
-    connected: 'bg-emerald-500',
-    healthy: 'bg-emerald-500',
-    warning: 'bg-amber-500',
-    error: 'bg-red-500',
-    disconnected: 'bg-red-500',
-    unavailable: 'bg-slate-400'
+    connected: '#10b981', // emerald-500
+    healthy: '#10b981',
+    warning: '#f59e0b', // amber-500
+    error: '#ef4444', // red-500
+    disconnected: '#ef4444',
+    unavailable: '#94a3b8', // slate-400
   }
   return (
-    <span className={`inline-block w-2.5 h-2.5 rounded-full ${colors[status] || 'bg-slate-400'}`} />
+    <Box
+      component="span"
+      sx={{
+        display: 'inline-block',
+        width: 10,
+        height: 10,
+        borderRadius: '50%',
+        bgcolor: colors[status] || '#94a3b8',
+      }}
+    />
   )
 }
 
@@ -43,22 +60,52 @@ function formatUptime(seconds) {
  */
 function DatabaseItem({ name, status, latency, tooltip }) {
   return (
-    <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.5,
+        p: 1.5,
+        bgcolor: 'grey.50',
+        borderRadius: 2,
+      }}
+    >
       <StatusDot status={status} />
-      <div>
-        <div className="flex items-center gap-1">
-          <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-medium">{name}</p>
+      <Box>
+        <Stack direction="row" alignItems="center" spacing={0.5}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: 'text.secondary',
+              textTransform: 'uppercase',
+              fontWeight: 500,
+            }}
+          >
+            {name}
+          </Typography>
           {tooltip && (
-            <Tooltip content={tooltip} position="top">
-              <HelpCircle className="w-3 h-3 text-slate-400 dark:text-slate-500 cursor-help" />
+            <Tooltip title={tooltip} placement="top" arrow>
+              <HelpOutlineIcon
+                sx={{
+                  fontSize: 12,
+                  color: 'grey.400',
+                  cursor: 'help',
+                }}
+              />
             </Tooltip>
           )}
-        </div>
-        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+        </Stack>
+        <Typography
+          variant="body2"
+          sx={{
+            fontWeight: 600,
+            color: 'text.primary',
+          }}
+        >
           {latency ? `${latency.toFixed(1)}ms` : '--'}
-        </p>
-      </div>
-    </div>
+        </Typography>
+      </Box>
+    </Box>
   )
 }
 
@@ -72,74 +119,130 @@ export function HealthStatus({ health, cacheHitRate = 0 }) {
   const databases = health?.checks?.database || {}
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="w-5 h-5 text-blue-500" />
+    <Paper sx={{ overflow: 'hidden' }}>
+      {/* Header */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          p: 2,
+          borderBottom: 1,
+          borderColor: 'divider',
+        }}
+      >
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <MonitorHeartIcon sx={{ color: 'primary.main' }} />
+          <Typography variant="h6" component="h2">
             {isHealthy
               ? t('system_healthy', 'Sistema Operativo')
               : t('system_degraded', 'Sistema Degradado')}
-          </CardTitle>
-          <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <Clock className="w-4 h-4 text-cyan-500" />
+          </Typography>
+        </Stack>
+        <Stack direction="row" alignItems="center" spacing={2}>
+          <Stack direction="row" alignItems="center" spacing={0.75}>
+            <AccessTimeIcon sx={{ fontSize: 16, color: 'info.main' }} />
+            <Typography variant="body2" color="text.secondary">
               Uptime: {formatUptime(health?.uptime_seconds)}
-            </span>
-            <Badge variant={isHealthy ? 'success' : 'warning'}>
-              {health?.status || 'unknown'}
-            </Badge>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            </Typography>
+          </Stack>
+          <Chip
+            label={health?.status || 'unknown'}
+            size="small"
+            color={isHealthy ? 'success' : 'warning'}
+          />
+        </Stack>
+      </Box>
+
+      {/* Content */}
+      <Box sx={{ p: 2 }}>
+        <Grid container spacing={2}>
           {/* Bases de datos */}
-          <DatabaseItem
-            name="SPM"
-            status={databases.spm?.status}
-            latency={databases.spm?.latency_ms}
-            tooltip="Base de datos principal: usuarios, solicitudes, autenticacion"
-          />
-          <DatabaseItem
-            name="SAP"
-            status={databases.sap_data?.status}
-            latency={databases.sap_data?.latency_ms}
-            tooltip="Datos importados de SAP: stock, consumo historico, pedidos"
-          />
-          <DatabaseItem
-            name="EQUIV"
-            status={databases.equivalentes?.status}
-            latency={databases.equivalentes?.latency_ms}
-            tooltip="Equivalencias de materiales entre codigos SAP"
-          />
-          <DatabaseItem
-            name="CATALOGO"
-            status={databases.catalogo_materiales?.status}
-            latency={databases.catalogo_materiales?.latency_ms}
-            tooltip="Catalogo completo de materiales SAP (~28,000 items)"
-          />
+          <Grid item xs={6} md={2.4}>
+            <DatabaseItem
+              name="SPM"
+              status={databases.spm?.status}
+              latency={databases.spm?.latency_ms}
+              tooltip="Base de datos principal: usuarios, solicitudes, autenticacion"
+            />
+          </Grid>
+          <Grid item xs={6} md={2.4}>
+            <DatabaseItem
+              name="SAP"
+              status={databases.sap_data?.status}
+              latency={databases.sap_data?.latency_ms}
+              tooltip="Datos importados de SAP: stock, consumo historico, pedidos"
+            />
+          </Grid>
+          <Grid item xs={6} md={2.4}>
+            <DatabaseItem
+              name="EQUIV"
+              status={databases.equivalentes?.status}
+              latency={databases.equivalentes?.latency_ms}
+              tooltip="Equivalencias de materiales entre codigos SAP"
+            />
+          </Grid>
+          <Grid item xs={6} md={2.4}>
+            <DatabaseItem
+              name="CATALOGO"
+              status={databases.catalogo_materiales?.status}
+              latency={databases.catalogo_materiales?.latency_ms}
+              tooltip="Catalogo completo de materiales SAP (~28,000 items)"
+            />
+          </Grid>
 
           {/* Cache Status */}
-          <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-            <StatusDot
-              status={cacheHitRate >= 90 ? 'healthy' : cacheHitRate >= 70 ? 'warning' : 'error'}
-            />
-            <div>
-              <div className="flex items-center gap-1">
-                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-medium">Cache</p>
-                <Tooltip content="Porcentaje de consultas servidas desde cache en memoria" position="top">
-                  <HelpCircle className="w-3 h-3 text-slate-400 dark:text-slate-500 cursor-help" />
-                </Tooltip>
-              </div>
-              <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                {cacheHitRate.toFixed(0)}% hit
-              </p>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+          <Grid item xs={6} md={2.4}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                p: 1.5,
+                bgcolor: 'grey.50',
+                borderRadius: 2,
+              }}
+            >
+              <StatusDot
+                status={cacheHitRate >= 90 ? 'healthy' : cacheHitRate >= 70 ? 'warning' : 'error'}
+              />
+              <Box>
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: 'text.secondary',
+                      textTransform: 'uppercase',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Cache
+                  </Typography>
+                  <Tooltip title="Porcentaje de consultas servidas desde cache en memoria" placement="top" arrow>
+                    <HelpOutlineIcon
+                      sx={{
+                        fontSize: 12,
+                        color: 'grey.400',
+                        cursor: 'help',
+                      }}
+                    />
+                  </Tooltip>
+                </Stack>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 600,
+                    color: 'text.primary',
+                  }}
+                >
+                  {cacheHitRate.toFixed(0)}% hit
+                </Typography>
+              </Box>
+            </Box>
+          </Grid>
+        </Grid>
+      </Box>
+    </Paper>
   )
 }
 

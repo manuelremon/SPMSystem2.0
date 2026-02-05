@@ -5,13 +5,95 @@ import Paso3RevisionFinal from "./Paso3RevisionFinal";
 import Paso4AccionesPendientes from "./Paso4AccionesPendientes";
 import api from "../../services/api";
 import { ensureCsrfToken } from "../../services/csrf";
-import { Card, CardContent } from "../ui/Card";
 import { Button } from "../ui/Button";
-import { Check, TrendingUp, Layers } from "../ui/Icons";
+import { Modal } from "../ui/Modal";
 import StatusBadge from "../ui/StatusBadge";
 import { renderSector as renderSectorUtil } from "../../constants/sectores";
 import { formatAlmacen } from "../../utils/formatters";
 import { getCriticidadConfig } from "../../utils/styleConfig";
+
+// MUI Components
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
+import TextField from "@mui/material/TextField";
+import IconButton from "@mui/material/IconButton";
+import LinearProgress from "@mui/material/LinearProgress";
+import Alert from "@mui/material/Alert";
+import Stepper from "@mui/material/Stepper";
+import Step from "@mui/material/Step";
+import StepLabel from "@mui/material/StepLabel";
+import StepConnector, { stepConnectorClasses } from "@mui/material/StepConnector";
+import { styled } from "@mui/material/styles";
+
+// MUI Icons
+import AnalyticsIcon from "@mui/icons-material/Analytics";
+import AssignmentIcon from "@mui/icons-material/Assignment";
+import FactCheckIcon from "@mui/icons-material/FactCheck";
+import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CloseIcon from "@mui/icons-material/Close";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import LayersIcon from "@mui/icons-material/Layers";
+
+// Connector personalizado
+const CustomConnector = styled(StepConnector)(({ theme }) => ({
+  [`&.${stepConnectorClasses.alternativeLabel}`]: {
+    top: 22,
+  },
+  [`&.${stepConnectorClasses.active}`]: {
+    [`& .${stepConnectorClasses.line}`]: {
+      backgroundColor: theme.palette.primary.main,
+    },
+  },
+  [`&.${stepConnectorClasses.completed}`]: {
+    [`& .${stepConnectorClasses.line}`]: {
+      backgroundColor: theme.palette.success.main,
+    },
+  },
+  [`& .${stepConnectorClasses.line}`]: {
+    height: 3,
+    border: 0,
+    backgroundColor: theme.palette.grey[300],
+    borderRadius: 1,
+  },
+}));
+
+// Icono personalizado para cada paso
+const CustomStepIconRoot = styled("div")(({ theme, ownerState }) => ({
+  backgroundColor: ownerState.completed
+    ? theme.palette.success.main
+    : ownerState.active
+    ? theme.palette.primary.main
+    : theme.palette.grey[300],
+  zIndex: 1,
+  color: "#fff",
+  width: 44,
+  height: 44,
+  display: "flex",
+  borderRadius: "50%",
+  justifyContent: "center",
+  alignItems: "center",
+  boxShadow: ownerState.active ? `0 4px 10px 0 ${theme.palette.primary.main}35` : "none",
+  transition: "all 0.3s ease",
+}));
+
+function CustomStepIcon(props) {
+  const { active, completed, className, icon } = props;
+
+  const icons = {
+    1: <AnalyticsIcon />,
+    2: <AssignmentIcon />,
+    3: <FactCheckIcon />,
+    4: <PlaylistAddCheckIcon />,
+  };
+
+  return (
+    <CustomStepIconRoot ownerState={{ completed, active }} className={className}>
+      {completed ? <CheckCircleIcon /> : icons[String(icon)]}
+    </CustomStepIconRoot>
+  );
+}
 
 const PasoLabels = ["Analisis", "Decision", "Resumen", "Acciones"];
 
@@ -513,40 +595,64 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
   if (!isOpen || !solicitud) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2"
-      style={{
-        backgroundColor: 'rgba(15, 23, 42, 0.4)',
+    <Box
+      sx={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 50,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        p: 1,
+        backgroundColor: 'rgba(15, 23, 42, 0.5)',
         backdropFilter: 'blur(4px)',
         WebkitBackdropFilter: 'blur(4px)',
       }}
     >
-      <div
-        className="w-[98vw] h-[96vh] flex flex-col rounded-xl border border-white/50 overflow-hidden"
-        style={{
-          background: 'rgba(255, 255, 255, 0.92)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.6)',
+      <Paper
+        elevation={24}
+        sx={{
+          width: '98vw',
+          height: '96vh',
+          display: 'flex',
+          flexDirection: 'column',
+          borderRadius: 3,
+          overflow: 'hidden',
         }}
       >
-        <div className="relative px-4 py-2 border-b border-[var(--border)] bg-[var(--bg-soft)] flex items-center gap-3">
+        {/* Header */}
+        <Box
+          sx={{
+            position: 'relative',
+            px: 2,
+            py: 1,
+            borderBottom: 1,
+            borderColor: 'divider',
+            bgcolor: 'grey.50',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+          }}
+        >
           {/* Título + Info de solicitud */}
-          <div className="flex items-center gap-3 min-w-0 shrink-0">
-            <h2 className="text-base font-black text-[var(--fg)] whitespace-nowrap">
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0, flexShrink: 0 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 900, whiteSpace: 'nowrap' }}>
               #{solicitud.id}
-            </h2>
-            <div className="flex items-center gap-2 text-xs text-[var(--fg-muted)]">
-              <span>{solicitud.centro || "N/D"}/{formatAlmacen(solicitud.almacen_virtual)}</span>
-              <span className="text-[var(--border)]">·</span>
-              <span>{renderSector(solicitud)}</span>
-              <span className="text-[var(--border)]">·</span>
-              <span>{renderSolicitante(solicitud)}</span>
-              <span className="text-[var(--border)]">·</span>
-              <span className="font-bold" style={{ color: getCriticidadConfig(solicitud.criticidad || analisis?.resumen?.criticidad).color }}>
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '0.75rem', color: 'text.secondary' }}>
+              <Typography variant="caption">{solicitud.centro || "N/D"}/{formatAlmacen(solicitud.almacen_virtual)}</Typography>
+              <Typography variant="caption" sx={{ color: 'divider' }}>·</Typography>
+              <Typography variant="caption">{renderSector(solicitud)}</Typography>
+              <Typography variant="caption" sx={{ color: 'divider' }}>·</Typography>
+              <Typography variant="caption">{renderSolicitante(solicitud)}</Typography>
+              <Typography variant="caption" sx={{ color: 'divider' }}>·</Typography>
+              <Typography
+                variant="caption"
+                sx={{ fontWeight: 700, color: getCriticidadConfig(solicitud.criticidad || analisis?.resumen?.criticidad).color }}
+              >
                 {solicitud.criticidad || analisis?.resumen?.criticidad || "N/D"}
-              </span>
-            </div>
+              </Typography>
+            </Box>
 
             {/* Barra de progreso inline - Solo visible en paso 2+ */}
             {paso >= 2 && totalItems > 0 && (() => {
@@ -565,34 +671,39 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
               const todoCompleto = completos === totalItems;
 
               return (
-                <div className="flex items-center gap-2 ml-2 pl-2 border-l border-[var(--border)]">
-                  <span className="text-[10px] uppercase font-bold tracking-wide text-[var(--fg-muted)]">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 1, pl: 1, borderLeft: 1, borderColor: 'divider' }}>
+                  <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', color: 'text.secondary' }}>
                     Progreso
-                  </span>
-                  <span className={`text-xs font-bold ${todoCompleto ? "text-[var(--success)]" : "text-[var(--fg)]"}`}>
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{ fontWeight: 700, color: todoCompleto ? 'success.main' : 'text.primary' }}
+                  >
                     {completos}/{totalItems}
-                  </span>
-                  <div className="w-20 h-1.5 bg-[var(--border)] rounded-full overflow-hidden">
-                    <div
-                      className="h-full transition-all duration-300 rounded-full"
-                      style={{
+                  </Typography>
+                  <Box sx={{ width: 80, height: 6, bgcolor: 'grey.200', borderRadius: 3, overflow: 'hidden' }}>
+                    <Box
+                      sx={{
+                        height: '100%',
+                        transition: 'all 0.3s',
+                        borderRadius: 3,
                         width: `${porcentaje}%`,
-                        backgroundColor: todoCompleto ? "var(--success)" : "var(--primary)"
+                        bgcolor: todoCompleto ? 'success.main' : 'primary.main',
                       }}
                     />
-                  </div>
-                </div>
+                  </Box>
+                </Box>
               );
             })()}
-          </div>
+          </Box>
 
           {/* Spacer para empujar el botón cerrar a la derecha */}
-          <div className="flex-1" />
+          <Box sx={{ flex: 1 }} />
 
-          <Button variant="ghost" type="button" onClick={onClose} className="shrink-0 text-xs px-2 py-1">
-            ✕
-          </Button>
-        </div>
+          <IconButton onClick={onClose} size="small" sx={{ flexShrink: 0 }}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Box>
 
         {/* Info del material - Solo visible en Paso 2 */}
         {paso === 2 && itemsAnalisis[currentIdx] && (
@@ -605,16 +716,16 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
         )}
 
         {error && (
-          <div className="px-6 py-3 bg-[var(--danger-bg)] text-[var(--danger)] border-b border-[var(--danger-border)]">
+          <Alert severity="error" sx={{ borderRadius: 0 }}>
             {error}
-          </div>
+          </Alert>
         )}
 
-        <div className="p-6 overflow-y-auto flex-1 min-h-0">
+        <Box sx={{ p: 3, overflowY: 'auto', flex: 1, minHeight: 0 }}>
           {loading && paso === 1 ? (
-            <Card>
-              <CardContent className="p-6 text-center text-[var(--fg-muted)]">Cargando analisis...</CardContent>
-            </Card>
+            <Paper sx={{ p: 3, textAlign: 'center' }}>
+              <Typography color="text.secondary">Cargando analisis...</Typography>
+            </Paper>
           ) : paso === 1 ? (
             <Paso1AnalisisInicial
               analisis={analisis || {}}
@@ -655,56 +766,65 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
               onEjecutarAcciones={ejecutarAcciones}
             />
           )}
-        </div>
+        </Box>
 
-        <div className="px-20 py-3 border-t border-[var(--border)] bg-[var(--bg-soft)] flex items-center justify-between shrink-0">
+        {/* Footer */}
+        <Box
+          sx={{
+            px: 10,
+            py: 1.5,
+            borderTop: 1,
+            borderColor: 'divider',
+            bgcolor: 'grey.50',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexShrink: 0,
+          }}
+        >
           {/* Boton Anterior */}
           <Button
             type="button"
             onClick={() => setPaso(Math.max(1, paso - 1))}
             disabled={paso === 1 || paso === 4 || saving}
-            className="min-w-[120px]"
+            style={{ minWidth: 120 }}
           >
             Anterior
           </Button>
 
-          {/* Stepper centrado */}
-          <div className="flex items-center gap-2">
+          {/* Stepper MUI centrado */}
+          <Stepper
+            activeStep={paso - 1}
+            connector={<CustomConnector />}
+            sx={{ minWidth: 500 }}
+          >
             {PasoLabels.map((label, idx) => {
               const step = idx + 1;
-              const active = paso === step;
-              const done = paso > step;
-              const canNavigate = (done || active) && step !== 4; // No permitir navegacion manual al paso 4
+              const canNavigate = (paso > step || paso === step) && step !== 4;
 
               return (
-                <button
+                <Step
                   key={label}
-                  type="button"
+                  completed={paso > step}
+                  sx={{ cursor: canNavigate ? "pointer" : "default" }}
                   onClick={() => canNavigate && setPaso(step)}
-                  disabled={!canNavigate}
-                  title={label}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${
-                    canNavigate ? "cursor-pointer hover:bg-[var(--bg-hover)]" : "cursor-not-allowed opacity-50"
-                  }`}
                 >
-                  <div
-                    className={`w-7 h-7 rounded-full grid place-items-center font-bold text-xs transition-all border-2 ${
-                      active
-                        ? "border-[var(--primary)] text-[var(--primary)] bg-[var(--card)]"
-                        : done
-                          ? "border-[var(--success)] text-[var(--success)] bg-[var(--card)]"
-                          : "border-[var(--border)] text-[var(--fg-muted)] bg-[var(--card)]"
-                    }`}
+                  <StepLabel
+                    StepIconComponent={CustomStepIcon}
+                    sx={{
+                      "& .MuiStepLabel-label": {
+                        fontWeight: paso === step ? 600 : 400,
+                        color: paso === step ? "primary.main" : paso > step ? "success.main" : "grey.500",
+                        fontSize: "0.875rem",
+                      },
+                    }}
                   >
-                    {done ? <Check className="w-3.5 h-3.5" /> : step}
-                  </div>
-                  <span className={`text-sm ${active ? "text-[var(--fg)] font-semibold" : done ? "text-[var(--success)]" : "text-[var(--fg-muted)]"}`}>
                     {label}
-                  </span>
-                </button>
+                  </StepLabel>
+                </Step>
               );
             })}
-          </div>
+          </Stepper>
 
           {/* Boton Siguiente / Guardar / Finalizar */}
           {paso === 4 ? (
@@ -712,7 +832,7 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
               type="button"
               onClick={handleFinalizar}
               disabled={finalizando || !acciones}
-              className="min-w-[120px]"
+              style={{ minWidth: 120 }}
             >
               {finalizando ? "Finalizando..." : "Finalizar"}
             </Button>
@@ -721,156 +841,102 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
               type="button"
               onClick={handleNext}
               disabled={saving || (paso === 2 && loadingOpciones)}
-              className="min-w-[120px]"
+              style={{ minWidth: 120 }}
             >
               {saving ? "Guardando..." : "Siguiente"}
             </Button>
           )}
-        </div>
-      </div>
+        </Box>
+      </Paper>
 
       {/* Modal de Rechazo */}
-      {showRejectModal && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center px-4"
-          style={{
-            backgroundColor: 'rgba(15, 23, 42, 0.4)',
-            backdropFilter: 'blur(4px)',
-            WebkitBackdropFilter: 'blur(4px)',
-          }}
-        >
-          <div
-            className="w-full max-w-lg rounded-2xl border border-white/50 p-6 space-y-4"
-            style={{
-              background: 'rgba(255, 255, 255, 0.92)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.6)',
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.18em] font-extrabold text-[var(--fg-muted)]">
-                  Rechazar Solicitud
-                </p>
-                <h3 className="text-xl font-black text-[var(--fg)]">
-                  #{solicitud.id}
-                </h3>
-              </div>
-              <button
-                type="button"
-                className="text-sm font-semibold text-[var(--fg-muted)] hover:text-[var(--fg)]"
-                onClick={() => {
-                  setShowRejectModal(false);
-                  setRejectReason("");
-                }}
-              >
-                Cancelar
-              </button>
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm text-[var(--fg-muted)]">
-                Motivo del rechazo
-              </p>
-              <textarea
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                rows={4}
-                className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] outline-none"
-                placeholder="Explique por qué se rechaza esta solicitud..."
-              />
-            </div>
-            <div className="flex justify-end gap-3">
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setShowRejectModal(false);
-                  setRejectReason("");
-                }}
-                type="button"
-                disabled={saving}
-              >
-                Cancelar
-              </Button>
-              <Button variant="danger" onClick={handleConfirmReject} type="button" disabled={saving}>
-                {saving ? "Rechazando..." : "Confirmar rechazo"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={showRejectModal}
+        onClose={() => {
+          setShowRejectModal(false);
+          setRejectReason("");
+        }}
+        title={`Rechazar Solicitud #${solicitud?.id}`}
+        size="md"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowRejectModal(false);
+                setRejectReason("");
+              }}
+              type="button"
+              disabled={saving}
+            >
+              Cancelar
+            </Button>
+            <Button variant="danger" onClick={handleConfirmReject} type="button" disabled={saving}>
+              {saving ? "Rechazando..." : "Confirmar rechazo"}
+            </Button>
+          </>
+        }
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            Motivo del rechazo
+          </Typography>
+          <TextField
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            multiline
+            rows={4}
+            fullWidth
+            placeholder="Explique por qué se rechaza esta solicitud..."
+            size="small"
+          />
+        </Box>
+      </Modal>
 
       {/* Modal de Solicitud de Información */}
-      {showRequestInfoModal && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center px-4"
-          style={{
-            backgroundColor: 'rgba(15, 23, 42, 0.4)',
-            backdropFilter: 'blur(4px)',
-            WebkitBackdropFilter: 'blur(4px)',
-          }}
-        >
-          <div
-            className="w-full max-w-lg rounded-2xl border border-white/50 p-6 space-y-4"
-            style={{
-              background: 'rgba(255, 255, 255, 0.92)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.6)',
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.18em] font-extrabold text-[var(--fg-muted)]">
-                  Solicitar Información
-                </p>
-                <h3 className="text-xl font-black text-[var(--fg)]">
-                  Solicitud #{solicitud.id}
-                </h3>
-              </div>
-              <button
-                type="button"
-                className="text-sm font-semibold text-[var(--fg-muted)] hover:text-[var(--fg)]"
-                onClick={() => {
-                  setShowRequestInfoModal(false);
-                  setInfoRequest("");
-                }}
-              >
-                Cancelar
-              </button>
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm text-[var(--fg-muted)]">
-                ¿Qué información necesita del solicitante?
-              </p>
-              <textarea
-                value={infoRequest}
-                onChange={(e) => setInfoRequest(e.target.value)}
-                rows={4}
-                className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] outline-none"
-                placeholder="Especifique qué información adicional requiere..."
-              />
-            </div>
-            <div className="flex justify-end gap-3">
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setShowRequestInfoModal(false);
-                  setInfoRequest("");
-                }}
-                type="button"
-                disabled={saving}
-              >
-                Cancelar
-              </Button>
-              <Button onClick={handleConfirmRequestInfo} type="button" disabled={saving}>
-                {saving ? "Enviando..." : "Enviar solicitud"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <Modal
+        isOpen={showRequestInfoModal}
+        onClose={() => {
+          setShowRequestInfoModal(false);
+          setInfoRequest("");
+        }}
+        title={`Solicitar Información - #${solicitud?.id}`}
+        size="md"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowRequestInfoModal(false);
+                setInfoRequest("");
+              }}
+              type="button"
+              disabled={saving}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmRequestInfo} type="button" disabled={saving}>
+              {saving ? "Enviando..." : "Enviar solicitud"}
+            </Button>
+          </>
+        }
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            ¿Qué información necesita del solicitante?
+          </Typography>
+          <TextField
+            value={infoRequest}
+            onChange={(e) => setInfoRequest(e.target.value)}
+            multiline
+            rows={4}
+            fullWidth
+            placeholder="Especifique qué información adicional requiere..."
+            size="small"
+          />
+        </Box>
+      </Modal>
+    </Box>
   );
 }
 
@@ -909,64 +975,96 @@ function ProgresoDecisiones({ decisiones, totalItems, items, currentIdx, onSelec
   const todoCompleto = completos === totalItems;
 
   return (
-    <div className="px-6 py-2 border-b border-[var(--border)] bg-[var(--bg-soft)] flex items-center gap-4">
+    <Box
+      sx={{
+        px: 3,
+        py: 1,
+        borderBottom: 1,
+        borderColor: 'divider',
+        bgcolor: 'grey.50',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+      }}
+    >
       {/* Título + estado */}
-      <div className="flex items-center gap-2 shrink-0">
-        <span className="text-[10px] uppercase font-bold tracking-[0.1em] text-[var(--fg-muted)]">
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+        <Typography
+          variant="caption"
+          sx={{ textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.1em', color: 'text.secondary' }}
+        >
           Progreso
-        </span>
-        <span className={`text-xs font-bold ${todoCompleto ? "text-[var(--success)]" : "text-[var(--fg)]"}`}>
+        </Typography>
+        <Typography
+          variant="caption"
+          sx={{ fontWeight: 700, color: todoCompleto ? 'success.main' : 'text.primary' }}
+        >
           {completos}/{totalItems}
-        </span>
+        </Typography>
         {parciales > 0 && (
-          <span className="text-[10px] text-[var(--warning)]">
+          <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'warning.main' }}>
             ({parciales} parciales)
-          </span>
+          </Typography>
         )}
-      </div>
+      </Box>
 
       {/* Barra de progreso */}
-      <div className="flex-1 h-1.5 bg-[var(--border)] rounded-full overflow-hidden">
-        <div
-          className="h-full transition-all duration-300 rounded-full"
-          style={{
+      <Box sx={{ flex: 1, height: 6, bgcolor: 'grey.200', borderRadius: 3, overflow: 'hidden' }}>
+        <Box
+          sx={{
+            height: '100%',
+            transition: 'all 0.3s',
+            borderRadius: 3,
             width: `${porcentaje}%`,
-            backgroundColor: todoCompleto ? "var(--success)" : "var(--primary)"
+            bgcolor: todoCompleto ? 'success.main' : 'primary.main',
           }}
         />
-      </div>
+      </Box>
 
       {/* Indicadores de ítems (si hay pocos) */}
       {totalItems <= 15 && (
-        <div className="flex items-center gap-1 shrink-0">
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
           {items.map((item, idx) => {
             const status = itemsStatus[idx]?.status || "pendiente";
             const isCurrent = idx === currentIdx;
 
             // Colores por estado
-            const statusClasses = {
-              completo: "bg-[var(--success)] text-white",
-              parcial: "bg-[var(--warning)] text-white",
-              pendiente: "bg-[var(--card)] text-[var(--fg-muted)] border border-[var(--border)] hover:border-[var(--primary)]"
+            const statusStyles = {
+              completo: { bgcolor: 'success.main', color: 'white' },
+              parcial: { bgcolor: 'warning.main', color: 'white' },
+              pendiente: { bgcolor: 'background.paper', color: 'text.secondary', border: 1, borderColor: 'divider', '&:hover': { borderColor: 'primary.main' } }
             };
 
             return (
-              <button
+              <Box
                 key={idx}
+                component="button"
                 type="button"
                 onClick={() => onSelectItem?.(idx)}
                 title={`Ítem ${idx + 1}: ${item?.codigo || "N/D"} (${status})`}
-                className={`w-5 h-5 rounded text-[9px] font-bold transition-all ${
-                  isCurrent ? "ring-1 ring-[var(--primary)]" : ""
-                } ${statusClasses[status]}`}
+                sx={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: 1,
+                  fontSize: '0.5625rem',
+                  fontWeight: 700,
+                  transition: 'all 0.2s',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  outline: isCurrent ? '1px solid' : 'none',
+                  outlineColor: 'primary.main',
+                  ...statusStyles[status],
+                }}
               >
                 {idx + 1}
-              </button>
+              </Box>
             );
           })}
-        </div>
+        </Box>
       )}
-    </div>
+    </Box>
   );
 }
 
@@ -978,104 +1076,120 @@ function MaterialInfoBar({ item, solicitud, mostrarMrp, setMostrarMrp }) {
   const mrpStatus = getMrpStatus(item);
 
   return (
-    <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--bg-soft)]">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+    <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider', bgcolor: 'grey.50' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
         {/* Código y descripción */}
-        <p className="text-base font-black text-[var(--fg)]">
+        <Typography variant="body1" sx={{ fontWeight: 900 }}>
           {item.codigo} — {item.descripcion || "Sin descripción"}
-        </p>
+        </Typography>
 
         {/* Info adicional inline */}
-        <div className="flex items-center gap-4 text-sm">
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: '0.875rem' }}>
           {/* Consumo anual */}
-          <div
-            className="flex items-center gap-1.5 cursor-help"
+          <Box
+            sx={{ display: 'flex', alignItems: 'center', gap: 0.75, cursor: 'help' }}
             title={`Consumo promedio anual del centro ${solicitud?.centro || "N/D"}`}
           >
-            <TrendingUp className="w-4 h-4 text-[var(--info)]" />
-            <span className="text-[var(--fg-muted)]">Consumo:</span>
-            <span className="font-bold text-[var(--fg)]">
+            <TrendingUpIcon sx={{ width: 16, height: 16, color: 'info.main' }} />
+            <Typography variant="caption" color="text.secondary">Consumo:</Typography>
+            <Typography variant="caption" sx={{ fontWeight: 700 }}>
               {item.consumo_promedio_anual != null
                 ? `${Math.round(item.consumo_promedio_anual)} un/año`
                 : item.consumo_promedio != null
                   ? `${Math.round(Number(item.consumo_promedio) * 12)} un/año`
                   : "N/D"}
-            </span>
-          </div>
+            </Typography>
+          </Box>
 
           {/* Separador */}
-          <span className="text-[var(--border)]">|</span>
+          <Typography variant="caption" sx={{ color: 'divider' }}>|</Typography>
 
           {/* MRP inline */}
-          <div className="flex items-center gap-2">
-            <Layers className="w-4 h-4 text-[var(--accent)]" />
-            <span className="text-[var(--fg-muted)]">MRP:</span>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <LayersIcon sx={{ width: 16, height: 16, color: 'secondary.main' }} />
+            <Typography variant="caption" color="text.secondary">MRP:</Typography>
             {!mrpStatus.planificado ? (
-              <span className="font-bold text-[var(--danger)]">No planificado</span>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: 'error.main' }}>No planificado</Typography>
             ) : mrpStatus.warn ? (
-              <button
-                type="button"
+              <Typography
+                component="button"
+                variant="caption"
                 onClick={() => setMostrarMrp?.(!mostrarMrp)}
-                className="font-bold text-[var(--danger)] hover:underline"
+                sx={{ fontWeight: 700, color: 'error.main', cursor: 'pointer', '&:hover': { textDecoration: 'underline' }, background: 'none', border: 'none', p: 0 }}
               >
                 ⚠ Bajo punto pedido
-              </button>
+              </Typography>
             ) : (
-              <button
-                type="button"
+              <Typography
+                component="button"
+                variant="caption"
                 onClick={() => setMostrarMrp?.(!mostrarMrp)}
-                className="font-bold text-[var(--success)] hover:underline"
+                sx={{ fontWeight: 700, color: 'success.main', cursor: 'pointer', '&:hover': { textDecoration: 'underline' }, background: 'none', border: 'none', p: 0 }}
               >
                 Planificado
-              </button>
+              </Typography>
             )}
-          </div>
+          </Box>
 
           {/* Separador */}
-          <span className="text-[var(--border)]">|</span>
+          <Typography variant="caption" sx={{ color: 'divider' }}>|</Typography>
 
           {/* Cantidad solicitada */}
-          <p className="font-black text-[var(--fg)]">
+          <Typography variant="body2" sx={{ fontWeight: 900 }}>
             CANT. SOLICITADA: {cantidadSolicitada}
-          </p>
-        </div>
-      </div>
+          </Typography>
+        </Box>
+      </Box>
 
       {/* Detalle MRP expandido */}
       {mostrarMrp && mrpStatus.planificado && (
-        <div className="mt-3 p-4 rounded-xl border border-[var(--border)] bg-[var(--card)] space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-bold text-[var(--fg)]">Detalle MRP</p>
-            <button type="button" className="text-xs text-[var(--fg-muted)] hover:text-[var(--fg)]" onClick={() => setMostrarMrp(false)}>
+        <Paper variant="outlined" sx={{ mt: 1.5, p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>Detalle MRP</Typography>
+            <Typography
+              component="button"
+              variant="caption"
+              color="text.secondary"
+              onClick={() => setMostrarMrp(false)}
+              sx={{ cursor: 'pointer', '&:hover': { color: 'text.primary' }, background: 'none', border: 'none', p: 0 }}
+            >
               Cerrar
-            </button>
-          </div>
+            </Typography>
+          </Box>
           {mrpStatus.warn && (
-            <div className="px-3 py-2 rounded-lg bg-red-50 border border-red-300 text-red-800 text-sm font-semibold">
+            <Alert severity="error" sx={{ py: 0.5 }}>
               Alerta: stock actual + pedidos ({mrpStatus.total}) está por debajo del punto de pedido ({mrpStatus.detalle.punto_pedido ?? "N/D"}).
-            </div>
+            </Alert>
           )}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-            <div className="p-2 rounded-lg bg-[var(--bg-soft)]">
-              <p className="text-[10px] uppercase font-bold text-[var(--fg-muted)]">Stock seguridad</p>
-              <p className="font-bold text-[var(--fg)]">{mrpStatus.detalle.stock_seguridad ?? "N/D"}</p>
-            </div>
-            <div className="p-2 rounded-lg bg-[var(--bg-soft)]">
-              <p className="text-[10px] uppercase font-bold text-[var(--fg-muted)]">Punto pedido</p>
-              <p className="font-bold text-[var(--fg)]">{mrpStatus.detalle.punto_pedido ?? "N/D"}</p>
-            </div>
-            <div className="p-2 rounded-lg bg-[var(--bg-soft)]">
-              <p className="text-[10px] uppercase font-bold text-[var(--fg-muted)]">Stock actual</p>
-              <p className="font-bold text-[var(--fg)]">{mrpStatus.detalle.stock_actual ?? "N/D"}</p>
-            </div>
-            <div className="p-2 rounded-lg bg-[var(--bg-soft)]">
-              <p className="text-[10px] uppercase font-bold text-[var(--fg-muted)]">Pedidos curso</p>
-              <p className="font-bold text-[var(--fg)]">{mrpStatus.detalle.pedidos_en_curso ?? "N/D"}</p>
-            </div>
-          </div>
-        </div>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
+            <Paper variant="outlined" sx={{ p: 1, bgcolor: 'grey.50' }}>
+              <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 700, color: 'text.secondary', fontSize: '0.625rem' }}>
+                Stock seguridad
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>{mrpStatus.detalle.stock_seguridad ?? "N/D"}</Typography>
+            </Paper>
+            <Paper variant="outlined" sx={{ p: 1, bgcolor: 'grey.50' }}>
+              <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 700, color: 'text.secondary', fontSize: '0.625rem' }}>
+                Punto pedido
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>{mrpStatus.detalle.punto_pedido ?? "N/D"}</Typography>
+            </Paper>
+            <Paper variant="outlined" sx={{ p: 1, bgcolor: 'grey.50' }}>
+              <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 700, color: 'text.secondary', fontSize: '0.625rem' }}>
+                Stock actual
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>{mrpStatus.detalle.stock_actual ?? "N/D"}</Typography>
+            </Paper>
+            <Paper variant="outlined" sx={{ p: 1, bgcolor: 'grey.50' }}>
+              <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 700, color: 'text.secondary', fontSize: '0.625rem' }}>
+                Pedidos curso
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>{mrpStatus.detalle.pedidos_en_curso ?? "N/D"}</Typography>
+            </Paper>
+          </Box>
+        </Paper>
       )}
-    </div>
+    </Box>
   );
 }
 

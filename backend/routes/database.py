@@ -45,10 +45,10 @@ ALLOWED_TABLES = {
         "solicitud_tratamiento_log", "solicitudes_historial_estados",
         # Decisiones y planificacion
         "decision_abastecimiento", "decision_abastecimiento_fuentes", "ordenes_planificadas",
-        "planificador_asignaciones", "solpeds", "purchase_orders", "traslados",
+        "planificador_asignaciones", "solicitud_pedido_sap", "orden_compra", "solicitud_traslado",
         # Presupuestos
         "presupuestos", "presupuesto_ledger", "presupuesto_incorporaciones",
-        "budget_update_requests", "budget_history",
+        "presupuesto_solicitud_cambio", "budget_history",
         # Proveedores
         "proveedores", "proveedores_externos", "proveedores_internos",
         "proveedor_ext_contactos", "proveedor_ext_emails", "proveedor_ext_telefonos",
@@ -58,14 +58,14 @@ ALLOWED_TABLES = {
         # SAP data (migrada a PostgreSQL)
         "sap_stock", "sap_consumo_historico", "sap_pedidos", "sap_materiales_bbdd",
         # Catalogos
-        "catalog_centros", "catalog_almacenes", "catalog_sectores", "catalog_roles", "catalog_puestos",
+        "catalogo_centro", "catalogo_almacen", "catalogo_sector", "catalogo_rol", "catalogo_puesto",
         # Comunicacion
-        "mensajes", "notificaciones", "push_subscriptions", "outbox_emails",
-        "user_notification_preferences",
+        "mensajes", "notificaciones", "notificacion_push_suscripcion", "email_bandeja_salida",
+        "usuario_preferencia_notificacion",
         # Foro
         "foro_posts", "foro_respuestas", "foro_likes",
         # Trivias
-        "trivias_scores",
+        "trivia_score",
         # Configuracion
         "config_almacenes", "config_equivalencia_scores", "config_lotes_excluidos",
         "reglas_aprobacion", "aprobadores_delegados",
@@ -74,7 +74,7 @@ ALLOWED_TABLES = {
         # Metricas
         "metrics_history",
         # Usuario
-        "user_profile_requests", "archivos_adjuntos",
+        "usuario_solicitud_perfil", "archivos_adjuntos",
         # Audit (read-only)
         "audit_trail", "schema_migrations",
     ],
@@ -1469,18 +1469,19 @@ def get_audit_logs():
                 conn.close()
                 return jsonify({"ok": True, "logs": [], "total": 0, "message": "Tabla audit_trail no existe"}), 200
 
-            # Construir query
+            # Construir query - usar nombres de columnas correctos de SQLite
+            # La tabla usa: actor_id, accion, entidad, entidad_id
             conditions = ["datetime(created_at) >= datetime('now', ?)"]
             params = [f"-{days} days"]
 
             if table:
-                conditions.append("entity_type LIKE ?")
+                conditions.append("entidad LIKE ?")
                 params.append(f"%{table}%")
             if user_id:
-                conditions.append("user_id = ?")
-                params.append(user_id)
+                conditions.append("actor_id = ?")
+                params.append(str(user_id))
             if operation:
-                conditions.append("action LIKE ?")
+                conditions.append("accion LIKE ?")
                 params.append(f"%{operation}%")
 
             where_clause = " AND ".join(conditions)
@@ -1492,7 +1493,9 @@ def get_audit_logs():
             # Obtener logs
             params.extend([limit, offset])
             cur.execute(f"""
-                SELECT id, user_id, action, entity_type, entity_id, details, created_at
+                SELECT id, actor_id, accion, entidad, entidad_id,
+                       COALESCE(valor_nuevo, valor_anterior, campo_modificado) as details,
+                       created_at, ip_address
                 FROM audit_trail
                 WHERE {where_clause}
                 ORDER BY created_at DESC
@@ -1501,14 +1504,20 @@ def get_audit_logs():
 
             logs = []
             for row in cur.fetchall():
+                details = row[5]
+                try:
+                    details = json.loads(details) if details else None
+                except (json.JSONDecodeError, TypeError):
+                    pass
                 logs.append({
                     "id": row[0],
                     "user_id": row[1],
                     "action": row[2],
                     "entity_type": row[3],
                     "entity_id": row[4],
-                    "details": json.loads(row[5]) if row[5] else None,
+                    "details": details,
                     "created_at": row[6],
+                    "ip_address": row[7] if len(row) > 7 else None,
                 })
 
             conn.close()

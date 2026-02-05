@@ -5,7 +5,7 @@ Migracion 003: Sistema de Presupuestos con Ledger y Budget Update Requests
 Esta migracion:
 1. Agrega columnas de centavos y versionado a tabla presupuestos
 2. Crea tabla presupuesto_ledger (transacciones inmutables)
-3. Crea tabla budget_update_requests (solicitudes de aumento)
+3. Crea tabla presupuesto_solicitud_cambio (solicitudes de aumento)
 4. Migra datos existentes de USD a centavos
 """
 
@@ -70,11 +70,11 @@ CREATE INDEX IF NOT EXISTS idx_ledger_fecha ON presupuesto_ledger(created_at DES
 """
 
 # ============================================================================
-# 3. Tabla budget_update_requests
+# 3. Tabla presupuesto_solicitud_cambio
 # ============================================================================
 
 CREATE_BUR = """
-CREATE TABLE IF NOT EXISTS budget_update_requests (
+CREATE TABLE IF NOT EXISTS presupuesto_solicitud_cambio (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     centro TEXT NOT NULL,
     sector TEXT NOT NULL,
@@ -105,10 +105,10 @@ CREATE TABLE IF NOT EXISTS budget_update_requests (
 """
 
 CREATE_BUR_INDEXES = """
-CREATE INDEX IF NOT EXISTS idx_bur_estado ON budget_update_requests(estado);
-CREATE INDEX IF NOT EXISTS idx_bur_centro_sector ON budget_update_requests(centro, sector);
-CREATE INDEX IF NOT EXISTS idx_bur_solicitante ON budget_update_requests(solicitante_id);
-CREATE INDEX IF NOT EXISTS idx_bur_nivel ON budget_update_requests(nivel_aprobacion_requerido);
+CREATE INDEX IF NOT EXISTS idx_bur_estado ON presupuesto_solicitud_cambio(estado);
+CREATE INDEX IF NOT EXISTS idx_bur_centro_sector ON presupuesto_solicitud_cambio(centro, sector);
+CREATE INDEX IF NOT EXISTS idx_bur_solicitante ON presupuesto_solicitud_cambio(solicitante_id);
+CREATE INDEX IF NOT EXISTS idx_bur_nivel ON presupuesto_solicitud_cambio(nivel_aprobacion_requerido);
 """
 
 
@@ -151,7 +151,7 @@ def run_migration():
         print("   OK: Tabla e indices creados")
 
         # 4. Crear tabla BUR
-        print(">> [4/5] Creando tabla budget_update_requests...")
+        print(">> [4/5] Creando tabla presupuesto_solicitud_cambio...")
         cursor.execute(CREATE_BUR)
         cursor.executescript(CREATE_BUR_INDEXES)
         print("   OK: Tabla e indices creados")
@@ -162,7 +162,7 @@ def run_migration():
 
         # Verificar tablas creadas
         print("\n>> Verificando tablas...")
-        for table in ["presupuesto_ledger", "budget_update_requests"]:
+        for table in ["presupuesto_ledger", "presupuesto_solicitud_cambio"]:
             cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}'")
             if cursor.fetchone():
                 cursor.execute(f"SELECT COUNT(*) FROM {table}")

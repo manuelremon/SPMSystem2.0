@@ -1,20 +1,40 @@
 /**
  * TechnicalMetrics - Panel colapsable de metricas tecnicas
+ * Enterprise Design - MUI Components
  *
  * Incluye: Latencia, Cache, Sistema, Infraestructura
  */
 
 import { useState } from 'react'
-import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/Card'
-import { Badge } from '../../../components/ui/Badge'
-import { ProgressBar, ProgressCircle } from '../../../components/ui/Charts'
 import {
-  Zap, HardDrive, Server, Cpu, Database, Activity,
-  CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp,
-  Boxes, GitCompare
-} from '../../../components/ui/Icons'
+  Box,
+  Paper,
+  Typography,
+  Stack,
+  Chip,
+  IconButton,
+  Collapse,
+  Grid,
+} from "@mui/material";
+
+// MUI Icons
+import FlashOnIcon from "@mui/icons-material/FlashOn";
+import StorageIcon from "@mui/icons-material/Storage";
+import DnsIcon from "@mui/icons-material/Dns";
+import MemoryIcon from "@mui/icons-material/Memory";
+import DataUsageIcon from "@mui/icons-material/DataUsage";
+import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import WarningIcon from "@mui/icons-material/Warning";
+import CancelIcon from "@mui/icons-material/Cancel";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ViewInArIcon from "@mui/icons-material/ViewInAr";
+import GitHubIcon from "@mui/icons-material/GitHub";
+
+import { ProgressBar, ProgressCircle } from '../../../components/ui/SPMChartJS'
 import { useI18n } from '../../../context/i18n'
-import { getColorByMetric, getVariantByMetric } from '../../../config/thresholds'
+import { getColorByMetric } from '../../../config/thresholds'
 
 /**
  * Seccion colapsable
@@ -23,27 +43,51 @@ function CollapsibleSection({ title, icon: Icon, iconColor, defaultOpen = false,
   const [isOpen, setIsOpen] = useState(defaultOpen)
 
   return (
-    <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
-      <button
+    <Paper
+      variant="outlined"
+      sx={{
+        borderRadius: 2,
+        overflow: 'hidden',
+        border: '1px solid',
+        borderColor: 'divider',
+      }}
+    >
+      <Box
+        component="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        sx={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          p: 2,
+          transition: 'opacity 0.2s',
+          bgcolor: 'action.hover',
+          border: 'none',
+          cursor: 'pointer',
+          '&:hover': {
+            opacity: 0.9,
+          },
+        }}
       >
-        <div className="flex items-center gap-2">
-          <Icon className={`w-5 h-5 ${iconColor}`} />
-          <span className="font-medium text-slate-800 dark:text-slate-100">{title}</span>
-        </div>
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Icon sx={{ width: 20, height: 20, color: iconColor }} />
+          <Typography variant="subtitle2" sx={{ fontWeight: 500, color: 'text.primary' }}>
+            {title}
+          </Typography>
+        </Stack>
         {isOpen ? (
-          <ChevronUp className="w-5 h-5 text-slate-400" />
+          <ExpandLessIcon sx={{ width: 20, height: 20, color: 'text.secondary' }} />
         ) : (
-          <ChevronDown className="w-5 h-5 text-slate-400" />
+          <ExpandMoreIcon sx={{ width: 20, height: 20, color: 'text.secondary' }} />
         )}
-      </button>
-      {isOpen && (
-        <div className="p-4 bg-white dark:bg-slate-900/50">
+      </Box>
+      <Collapse in={isOpen}>
+        <Box sx={{ p: 2, bgcolor: 'background.paper' }}>
           {children}
-        </div>
-      )}
-    </div>
+        </Box>
+      </Collapse>
+    </Paper>
   )
 }
 
@@ -54,55 +98,55 @@ function LatencyPanel({ metrics }) {
   const { t } = useI18n()
 
   return (
-    <div className="space-y-4">
+    <Stack spacing={2}>
       {/* Barras de latencia */}
-      <div className="space-y-4">
+      <Stack spacing={2}>
         {['p50', 'p95', 'p99'].map((percentile) => {
           const value = metrics?.latency?.[`${percentile}_ms`] || 0
           const label = percentile.toUpperCase()
           return (
-            <div key={percentile}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-slate-600 dark:text-slate-400">{label}</span>
-                <span className="text-lg font-bold text-slate-800 dark:text-slate-100">
+            <Box key={percentile}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                <Typography variant="body2" color="text.secondary">{label}</Typography>
+                <Typography variant="subtitle1" fontWeight="bold" color="text.primary">
                   {Math.round(value)}ms
-                </span>
-              </div>
+                </Typography>
+              </Stack>
               <ProgressBar
                 value={value}
                 max={500}
                 height={6}
                 color={getColorByMetric(value, 'latency')}
               />
-            </div>
+            </Box>
           )
         })}
-      </div>
+      </Stack>
 
       {/* Status codes */}
       {metrics?.status_codes && (
-        <div className="border-t dark:border-slate-700 pt-4 mt-4">
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3">
+        <Box sx={{ pt: 2, mt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="body2" fontWeight={500} color="text.secondary" sx={{ mb: 1.5 }}>
             {t('by_status', 'Por Status')}
-          </p>
-          <div className="space-y-2">
+          </Typography>
+          <Stack spacing={1}>
             {Object.entries(metrics.status_codes).map(([status, count]) => (
-              <div key={status} className="flex justify-between text-sm">
-                <span className="flex items-center gap-2">
-                  {status.startsWith('2') && <CheckCircle className="w-4 h-4 text-emerald-500" />}
-                  {status.startsWith('4') && <AlertTriangle className="w-4 h-4 text-amber-500" />}
-                  {status.startsWith('5') && <XCircle className="w-4 h-4 text-red-500" />}
-                  <span className="text-slate-700 dark:text-slate-300">{status}xx</span>
-                </span>
-                <span className="font-medium text-slate-800 dark:text-slate-100">
+              <Stack key={status} direction="row" justifyContent="space-between" alignItems="center">
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  {status.startsWith('2') && <CheckCircleIcon sx={{ width: 16, height: 16, color: 'success.main' }} />}
+                  {status.startsWith('4') && <WarningIcon sx={{ width: 16, height: 16, color: 'warning.main' }} />}
+                  {status.startsWith('5') && <CancelIcon sx={{ width: 16, height: 16, color: 'error.main' }} />}
+                  <Typography variant="body2" color="text.primary">{status}xx</Typography>
+                </Stack>
+                <Typography variant="body2" fontWeight={500} color="text.primary">
                   {count.toLocaleString()}
-                </span>
-              </div>
+                </Typography>
+              </Stack>
             ))}
-          </div>
-        </div>
+          </Stack>
+        </Box>
       )}
-    </div>
+    </Stack>
   )
 }
 
@@ -114,8 +158,8 @@ function CachePanel({ cacheMetrics, dbMetrics }) {
   const overallHitRate = cacheMetrics?.overall_hit_rate || 0
 
   return (
-    <div>
-      <div className="flex items-center justify-center py-4">
+    <Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
         <ProgressCircle
           percentage={Math.round(overallHitRate)}
           size={120}
@@ -123,61 +167,71 @@ function CachePanel({ cacheMetrics, dbMetrics }) {
           color={getColorByMetric(overallHitRate, 'cacheHit')}
           label="Hit Rate"
         />
-      </div>
+      </Box>
 
       {cacheMetrics?.caches && Object.entries(cacheMetrics.caches).length > 0 && (
-        <div className="mt-4 space-y-3">
+        <Stack spacing={1.5} sx={{ mt: 2 }}>
           {Object.entries(cacheMetrics.caches).map(([name, cache]) => (
-            <div key={name}>
-              <div className="flex items-center justify-between text-sm mb-1">
-                <span className="text-slate-600 dark:text-slate-400 truncate">
+            <Box key={name}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                >
                   {name.replace(/_/g, ' ')}
-                </span>
-                <span className="font-medium text-slate-800 dark:text-slate-100">
+                </Typography>
+                <Typography variant="body2" fontWeight={500} color="text.primary">
                   {(cache.hit_rate || 0).toFixed(1)}%
-                </span>
-              </div>
+                </Typography>
+              </Stack>
               <ProgressBar
                 value={cache.hit_rate || 0}
                 max={100}
                 height={4}
                 color={getColorByMetric(cache.hit_rate || 0, 'cacheHit')}
               />
-            </div>
+            </Box>
           ))}
-        </div>
+        </Stack>
       )}
 
       {/* Database Pool */}
       {dbMetrics && (
-        <div className="border-t dark:border-slate-700 pt-4 mt-4">
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3 flex items-center gap-2">
-            <Database className="w-4 h-4 text-emerald-500" />
-            {t('connection_pool', 'Pool de Conexiones')}
-          </p>
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            <div>
-              <span className="text-slate-500 dark:text-slate-400">{t('active', 'Activas')}</span>
-              <p className="font-semibold text-slate-800 dark:text-slate-100">
+        <Box sx={{ pt: 2, mt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+            <DataUsageIcon sx={{ width: 16, height: 16, color: 'success.main' }} />
+            <Typography variant="body2" fontWeight={500} color="text.secondary">
+              {t('connection_pool', 'Pool de Conexiones')}
+            </Typography>
+          </Stack>
+          <Grid container spacing={2}>
+            <Grid item xs={4}>
+              <Typography variant="caption" color="text.disabled">
+                {t('active', 'Activas')}
+              </Typography>
+              <Typography variant="body2" fontWeight={600} color="text.primary">
                 {dbMetrics.active_connections || 0}
-              </p>
-            </div>
-            <div>
-              <span className="text-slate-500 dark:text-slate-400">Max</span>
-              <p className="font-semibold text-slate-800 dark:text-slate-100">
+              </Typography>
+            </Grid>
+            <Grid item xs={4}>
+              <Typography variant="caption" color="text.disabled">Max</Typography>
+              <Typography variant="body2" fontWeight={600} color="text.primary">
                 {dbMetrics.max_connections || '--'}
-              </p>
-            </div>
-            <div>
-              <span className="text-slate-500 dark:text-slate-400">{t('total_queries', 'Queries')}</span>
-              <p className="font-semibold text-slate-800 dark:text-slate-100">
+              </Typography>
+            </Grid>
+            <Grid item xs={4}>
+              <Typography variant="caption" color="text.disabled">
+                {t('total_queries', 'Queries')}
+              </Typography>
+              <Typography variant="body2" fontWeight={600} color="text.primary">
                 {(dbMetrics.total_queries || 0).toLocaleString()}
-              </p>
-            </div>
-          </div>
-        </div>
+              </Typography>
+            </Grid>
+          </Grid>
+        </Box>
       )}
-    </div>
+    </Box>
   )
 }
 
@@ -189,105 +243,113 @@ function SystemPanel({ systemMetrics, health }) {
 
   if (!systemMetrics?.system) {
     return (
-      <div className="text-center text-slate-500 dark:text-slate-400 py-8">
-        <Server className="w-12 h-12 mx-auto mb-2 opacity-50" />
-        <p>{t('no_system_metrics', 'Sin metricas de sistema')}</p>
-      </div>
+      <Box sx={{ textAlign: 'center', py: 4, color: 'text.disabled' }}>
+        <DnsIcon sx={{ fontSize: 48, mb: 1, opacity: 0.5 }} />
+        <Typography variant="body2">{t('no_system_metrics', 'Sin metricas de sistema')}</Typography>
+      </Box>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <Stack spacing={3}>
       {/* System-wide metrics */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 mb-2">
-            <Cpu className="w-4 h-4 text-blue-500" />
-            <span className="text-sm">CPU Sistema</span>
-          </div>
-          <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+      <Grid container spacing={2}>
+        <Grid item xs={6}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1, color: 'text.secondary' }}>
+            <MemoryIcon sx={{ width: 16, height: 16, color: 'primary.main' }} />
+            <Typography variant="body2">CPU Sistema</Typography>
+          </Stack>
+          <Typography variant="h5" fontWeight="bold" color="text.primary">
             {systemMetrics.system.cpu_percent?.toFixed(1) || '--'}%
-          </p>
+          </Typography>
           <ProgressBar
             value={systemMetrics.system.cpu_percent || 0}
             max={100}
             height={4}
             color={getColorByMetric(systemMetrics.system.cpu_percent || 0, 'cpu')}
           />
-        </div>
-        <div>
-          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 mb-2">
-            <HardDrive className="w-4 h-4" />
-            <span className="text-sm">{t('memory', 'Memoria')} Sistema</span>
-          </div>
-          <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+        </Grid>
+        <Grid item xs={6}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1, color: 'text.secondary' }}>
+            <StorageIcon sx={{ width: 16, height: 16 }} />
+            <Typography variant="body2">{t('memory', 'Memoria')} Sistema</Typography>
+          </Stack>
+          <Typography variant="h5" fontWeight="bold" color="text.primary">
             {systemMetrics.system.memory_percent?.toFixed(1) || '--'}%
-          </p>
+          </Typography>
           <ProgressBar
             value={systemMetrics.system.memory_percent || 0}
             max={100}
             height={4}
             color={getColorByMetric(systemMetrics.system.memory_percent || 0, 'memory')}
           />
-        </div>
-      </div>
+        </Grid>
+      </Grid>
 
       {/* Process metrics */}
       {systemMetrics.process && (
-        <div className="border-t dark:border-slate-700 pt-4">
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3">
+        <Box sx={{ pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="body2" fontWeight={500} color="text.secondary" sx={{ mb: 1.5 }}>
             {t('process_metrics', 'Proceso SPM')}
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <span className="text-slate-500 dark:text-slate-400">CPU</span>
-              <p className="font-semibold text-slate-800 dark:text-slate-100">
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={6} md={3}>
+              <Typography variant="caption" color="text.disabled">CPU</Typography>
+              <Typography variant="body2" fontWeight={600} color="text.primary">
                 {systemMetrics.process.cpu_percent?.toFixed(1) || '--'}%
-              </p>
-            </div>
-            <div>
-              <span className="text-slate-500 dark:text-slate-400">{t('memory', 'Memoria')}</span>
-              <p className="font-semibold text-slate-800 dark:text-slate-100">
+              </Typography>
+            </Grid>
+            <Grid item xs={6} md={3}>
+              <Typography variant="caption" color="text.disabled">
+                {t('memory', 'Memoria')}
+              </Typography>
+              <Typography variant="body2" fontWeight={600} color="text.primary">
                 {systemMetrics.process.memory_mb?.toFixed(0) || '--'} MB
-              </p>
-            </div>
-            <div>
-              <span className="text-slate-500 dark:text-slate-400">Threads</span>
-              <p className="font-semibold text-slate-800 dark:text-slate-100">
+              </Typography>
+            </Grid>
+            <Grid item xs={6} md={3}>
+              <Typography variant="caption" color="text.disabled">Threads</Typography>
+              <Typography variant="body2" fontWeight={600} color="text.primary">
                 {systemMetrics.process.threads || '--'}
-              </p>
-            </div>
-            <div>
-              <span className="text-slate-500 dark:text-slate-400">{t('open_files', 'Archivos')}</span>
-              <p className="font-semibold text-slate-800 dark:text-slate-100">
+              </Typography>
+            </Grid>
+            <Grid item xs={6} md={3}>
+              <Typography variant="caption" color="text.disabled">
+                {t('open_files', 'Archivos')}
+              </Typography>
+              <Typography variant="body2" fontWeight={600} color="text.primary">
                 {systemMetrics.process.open_files || '--'}
-              </p>
-            </div>
-          </div>
-        </div>
+              </Typography>
+            </Grid>
+          </Grid>
+        </Box>
       )}
 
       {/* Server info */}
       {health && (
-        <div className="border-t dark:border-slate-700 pt-4">
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3">
+        <Box sx={{ pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="body2" fontWeight={500} color="text.secondary" sx={{ mb: 1.5 }}>
             {t('server_info', 'Informacion del Servidor')}
-          </p>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-slate-500 dark:text-slate-400">{t('version', 'Version')}</span>
-              <span className="font-medium text-slate-800 dark:text-slate-100">
+          </Typography>
+          <Stack spacing={1}>
+            <Stack direction="row" justifyContent="space-between">
+              <Typography variant="body2" color="text.disabled">
+                {t('version', 'Version')}
+              </Typography>
+              <Typography variant="body2" fontWeight={500} color="text.primary">
                 {health.version || 'SPM 2.0'}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500 dark:text-slate-400">{t('environment', 'Entorno')}</span>
-              <Badge variant="default">{health.environment || 'development'}</Badge>
-            </div>
-          </div>
-        </div>
+              </Typography>
+            </Stack>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography variant="body2" color="text.disabled">
+                {t('environment', 'Entorno')}
+              </Typography>
+              <Chip label={health.environment || 'development'} size="small" />
+            </Stack>
+          </Stack>
+        </Box>
       )}
-    </div>
+    </Stack>
   )
 }
 
@@ -299,208 +361,312 @@ function InfrastructurePanel({ infrastructure }) {
 
   if (!infrastructure) return null
 
+  const getResourceBarColor = (percent) => {
+    if (percent > 80) return 'error.main'
+    if (percent > 60) return 'warning.main'
+    return 'success.main'
+  }
+
   return (
-    <div className="space-y-6">
+    <Stack spacing={3}>
       {/* Oracle Cloud Instance */}
       {infrastructure.oci?.available && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Database className="w-4 h-4 text-red-500" />
-            <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+        <Box>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+            <DataUsageIcon sx={{ width: 16, height: 16, color: 'error.main' }} />
+            <Typography variant="body2" fontWeight={500} color="text.secondary">
               Oracle Cloud Instance
-            </span>
-            <Badge variant="success" className="text-xs">
-              {infrastructure.oci.instance?.state}
-            </Badge>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-3 bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-lg border border-red-100 dark:border-red-900/50">
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Instancia</p>
-              <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                {infrastructure.oci.instance?.name}
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                {infrastructure.oci.instance?.hostname}
-              </p>
-            </div>
-            <div className="p-3 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-lg border border-blue-100 dark:border-blue-900/50">
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Shape</p>
-              <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                {infrastructure.oci.shape?.name}
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                {infrastructure.oci.shape?.ocpus} OCPU - {infrastructure.oci.shape?.memory_gb} GB RAM
-              </p>
-            </div>
-            <div className="p-3 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg border border-emerald-100 dark:border-emerald-900/50">
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Region</p>
-              <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                {infrastructure.oci.location?.region}
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                {infrastructure.oci.location?.availability_domain}
-              </p>
-            </div>
-          </div>
-        </div>
+            </Typography>
+            <Chip
+              label={infrastructure.oci.instance?.state}
+              size="small"
+              color="success"
+            />
+          </Stack>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={4}>
+              <Paper
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: 'error.lighter',
+                  border: '1px solid',
+                  borderColor: 'error.light',
+                }}
+              >
+                <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
+                  Instancia
+                </Typography>
+                <Typography variant="body2" fontWeight="bold" color="text.primary">
+                  {infrastructure.oci.instance?.name}
+                </Typography>
+                <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }}>
+                  {infrastructure.oci.instance?.hostname}
+                </Typography>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Paper
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: 'info.lighter',
+                  border: '1px solid',
+                  borderColor: 'info.light',
+                }}
+              >
+                <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
+                  Shape
+                </Typography>
+                <Typography variant="body2" fontWeight="bold" color="text.primary">
+                  {infrastructure.oci.shape?.name}
+                </Typography>
+                <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }}>
+                  {infrastructure.oci.shape?.ocpus} OCPU - {infrastructure.oci.shape?.memory_gb} GB RAM
+                </Typography>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Paper
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: 'success.lighter',
+                  border: '1px solid',
+                  borderColor: 'success.light',
+                }}
+              >
+                <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
+                  Region
+                </Typography>
+                <Typography variant="body2" fontWeight="bold" color="text.primary">
+                  {infrastructure.oci.location?.region}
+                </Typography>
+                <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }}>
+                  {infrastructure.oci.location?.availability_domain}
+                </Typography>
+              </Paper>
+            </Grid>
+          </Grid>
+        </Box>
       )}
 
       {/* System resources */}
-      <div className={infrastructure.oci?.available ? 'border-t dark:border-slate-700 pt-4' : ''}>
-        <div className="flex items-center gap-2 mb-3">
-          <Activity className="w-4 h-4 text-emerald-500" />
-          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+      <Box
+        sx={infrastructure.oci?.available ? { pt: 2, borderTop: '1px solid', borderColor: 'divider' } : {}}
+      >
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+          <MonitorHeartIcon sx={{ width: 16, height: 16, color: 'success.main' }} />
+          <Typography variant="body2" fontWeight={500} color="text.secondary">
             Recursos del Sistema
-          </span>
+          </Typography>
           {infrastructure.system?.uptime && (
-            <Badge variant="default" className="text-xs">
-              Uptime: {infrastructure.system.uptime.formatted}
-            </Badge>
+            <Chip
+              label={`Uptime: ${infrastructure.system.uptime.formatted}`}
+              size="small"
+            />
           )}
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        </Stack>
+        <Grid container spacing={2}>
           {/* Memory */}
           {infrastructure.system?.memory && (
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Memoria RAM</p>
-              <p className="text-lg font-bold text-slate-800 dark:text-slate-100">
-                {infrastructure.system.memory.percent_used}%
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {infrastructure.system.memory.used_gb} / {infrastructure.system.memory.total_gb} GB
-              </p>
-              <div className="mt-2 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full ${
-                    infrastructure.system.memory.percent_used > 80
-                      ? 'bg-red-500'
-                      : infrastructure.system.memory.percent_used > 60
-                        ? 'bg-amber-500'
-                        : 'bg-emerald-500'
-                  }`}
-                  style={{ width: `${infrastructure.system.memory.percent_used}%` }}
-                />
-              </div>
-            </div>
+            <Grid item xs={6} md={3}>
+              <Paper sx={{ p: 1.5, borderRadius: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
+                  Memoria RAM
+                </Typography>
+                <Typography variant="h6" fontWeight="bold" color="text.primary">
+                  {infrastructure.system.memory.percent_used}%
+                </Typography>
+                <Typography variant="caption" color="text.disabled">
+                  {infrastructure.system.memory.used_gb} / {infrastructure.system.memory.total_gb} GB
+                </Typography>
+                <Box
+                  sx={{
+                    mt: 1,
+                    height: 6,
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    bgcolor: 'divider',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      height: '100%',
+                      borderRadius: 1,
+                      width: `${infrastructure.system.memory.percent_used}%`,
+                      bgcolor: getResourceBarColor(infrastructure.system.memory.percent_used),
+                    }}
+                  />
+                </Box>
+              </Paper>
+            </Grid>
           )}
           {/* Disk */}
           {infrastructure.services?.system?.disk && (
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Disco</p>
-              <p className="text-lg font-bold text-slate-800 dark:text-slate-100">
-                {infrastructure.services.system.disk.percent_used}%
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {infrastructure.services.system.disk.used_gb} / {infrastructure.services.system.disk.total_gb} GB
-              </p>
-              <div className="mt-2 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full ${
-                    infrastructure.services.system.disk.percent_used > 85
-                      ? 'bg-red-500'
-                      : infrastructure.services.system.disk.percent_used > 70
-                        ? 'bg-amber-500'
-                        : 'bg-emerald-500'
-                  }`}
-                  style={{ width: `${infrastructure.services.system.disk.percent_used}%` }}
-                />
-              </div>
-            </div>
+            <Grid item xs={6} md={3}>
+              <Paper sx={{ p: 1.5, borderRadius: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
+                  Disco
+                </Typography>
+                <Typography variant="h6" fontWeight="bold" color="text.primary">
+                  {infrastructure.services.system.disk.percent_used}%
+                </Typography>
+                <Typography variant="caption" color="text.disabled">
+                  {infrastructure.services.system.disk.used_gb} / {infrastructure.services.system.disk.total_gb} GB
+                </Typography>
+                <Box
+                  sx={{
+                    mt: 1,
+                    height: 6,
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    bgcolor: 'divider',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      height: '100%',
+                      borderRadius: 1,
+                      width: `${infrastructure.services.system.disk.percent_used}%`,
+                      bgcolor: getResourceBarColor(infrastructure.services.system.disk.percent_used),
+                    }}
+                  />
+                </Box>
+              </Paper>
+            </Grid>
           )}
           {/* Load Average */}
           {infrastructure.services?.system?.load && (
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">CPU Load</p>
-              <p className="text-lg font-bold text-slate-800 dark:text-slate-100">
-                {infrastructure.services.system.load['1min']}
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                5m: {infrastructure.services.system.load['5min']} - 15m: {infrastructure.services.system.load['15min']}
-              </p>
-            </div>
+            <Grid item xs={6} md={3}>
+              <Paper sx={{ p: 1.5, borderRadius: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
+                  CPU Load
+                </Typography>
+                <Typography variant="h6" fontWeight="bold" color="text.primary">
+                  {infrastructure.services.system.load['1min']}
+                </Typography>
+                <Typography variant="caption" color="text.disabled">
+                  5m: {infrastructure.services.system.load['5min']} - 15m: {infrastructure.services.system.load['15min']}
+                </Typography>
+              </Paper>
+            </Grid>
           )}
           {/* Network */}
           {infrastructure.oci?.shape?.network_gbps && (
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Network</p>
-              <p className="text-lg font-bold text-slate-800 dark:text-slate-100">
-                {infrastructure.oci.shape.network_gbps} Gbps
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Bandwidth disponible</p>
-            </div>
+            <Grid item xs={6} md={3}>
+              <Paper sx={{ p: 1.5, borderRadius: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
+                  Network
+                </Typography>
+                <Typography variant="h6" fontWeight="bold" color="text.primary">
+                  {infrastructure.oci.shape.network_gbps} Gbps
+                </Typography>
+                <Typography variant="caption" color="text.disabled">
+                  Bandwidth disponible
+                </Typography>
+              </Paper>
+            </Grid>
           )}
-        </div>
-      </div>
+        </Grid>
+      </Box>
 
       {/* Docker Containers */}
       {infrastructure.docker?.available && (
-        <div className="border-t dark:border-slate-700 pt-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Boxes className="w-4 h-4 text-blue-500" />
-            <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+        <Box sx={{ pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+            <ViewInArIcon sx={{ width: 16, height: 16, color: 'primary.main' }} />
+            <Typography variant="body2" fontWeight={500} color="text.secondary">
               Docker Containers
-            </span>
-            <Badge variant="default" className="text-xs">
-              v{infrastructure.docker.docker_version}
-            </Badge>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            </Typography>
+            <Chip
+              label={`v${infrastructure.docker.docker_version}`}
+              size="small"
+            />
+          </Stack>
+          <Grid container spacing={1.5}>
             {infrastructure.docker.containers?.map((container) => (
-              <div
-                key={container.name}
-                className={`p-3 rounded-lg border ${
-                  container.running
-                    ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-900/50'
-                    : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/50'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      container.running ? 'bg-emerald-500' : 'bg-red-500'
-                    }`}
-                  />
-                  <span className="font-medium text-sm text-slate-800 dark:text-slate-100 truncate">
-                    {container.name}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                  {container.status}
-                </p>
-              </div>
+              <Grid item xs={12} sm={6} md={4} key={container.name}>
+                <Paper
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 2,
+                    bgcolor: container.running ? 'success.lighter' : 'error.lighter',
+                    border: '1px solid',
+                    borderColor: container.running ? 'success.light' : 'error.light',
+                  }}
+                >
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        bgcolor: container.running ? 'success.main' : 'error.main',
+                      }}
+                    />
+                    <Typography
+                      variant="body2"
+                      fontWeight={500}
+                      color="text.primary"
+                      sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    >
+                      {container.name}
+                    </Typography>
+                  </Stack>
+                  <Typography
+                    variant="caption"
+                    color="text.disabled"
+                    sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}
+                  >
+                    {container.status}
+                  </Typography>
+                </Paper>
+              </Grid>
             ))}
-          </div>
-        </div>
+          </Grid>
+        </Box>
       )}
 
       {/* Git Status */}
       {infrastructure.git?.available && (
-        <div className="border-t dark:border-slate-700 pt-4">
-          <div className="flex items-center gap-2 mb-3">
-            <GitCompare className="w-4 h-4 text-orange-500" />
-            <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+        <Box sx={{ pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+            <GitHubIcon sx={{ width: 16, height: 16, color: 'warning.main' }} />
+            <Typography variant="body2" fontWeight={500} color="text.secondary">
               Git Status
-            </span>
-            <Badge variant="default">{infrastructure.git.branch}</Badge>
-          </div>
+            </Typography>
+            <Chip label={infrastructure.git.branch} size="small" />
+          </Stack>
           {infrastructure.git.last_commit && (
-            <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
-              <div className="flex items-center gap-2 mb-1">
-                <code className="text-xs bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded font-mono text-slate-700 dark:text-slate-300">
+            <Paper sx={{ p: 1.5, borderRadius: 2, bgcolor: 'action.hover' }}>
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+                <Box
+                  component="code"
+                  sx={{
+                    px: 0.75,
+                    py: 0.25,
+                    borderRadius: 0.5,
+                    bgcolor: 'divider',
+                    color: 'text.primary',
+                    fontFamily: 'monospace',
+                    fontSize: '0.75rem',
+                  }}
+                >
                   {infrastructure.git.last_commit.hash}
-                </code>
-                <span className="text-xs text-slate-500 dark:text-slate-400">
+                </Box>
+                <Typography variant="caption" color="text.disabled">
                   {infrastructure.git.last_commit.time_ago}
-                </span>
-              </div>
-              <p className="text-sm text-slate-700 dark:text-slate-300">
+                </Typography>
+              </Stack>
+              <Typography variant="body2" color="text.primary">
                 {infrastructure.git.last_commit.message}
-              </p>
-            </div>
+              </Typography>
+            </Paper>
           )}
-        </div>
+        </Box>
       )}
-    </div>
+    </Stack>
   )
 }
 
@@ -518,18 +684,20 @@ export function TechnicalMetrics({
   const { t } = useI18n()
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Server className="w-5 h-5 text-violet-500" />
-          {t('technical_metrics', 'Metricas Tecnicas')}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <Paper sx={{ overflow: 'hidden' }}>
+      <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <DnsIcon sx={{ width: 20, height: 20, color: 'primary.main' }} />
+          <Typography variant="h6" fontWeight={600}>
+            {t('technical_metrics', 'Metricas Tecnicas')}
+          </Typography>
+        </Stack>
+      </Box>
+      <Stack spacing={2} sx={{ p: 2 }}>
         <CollapsibleSection
           title={t('latency', 'Latencia')}
-          icon={Zap}
-          iconColor="text-amber-500"
+          icon={FlashOnIcon}
+          iconColor="warning.main"
           defaultOpen={false}
         >
           <LatencyPanel metrics={metrics} />
@@ -537,8 +705,8 @@ export function TechnicalMetrics({
 
         <CollapsibleSection
           title={t('cache_performance', 'Cache Performance')}
-          icon={HardDrive}
-          iconColor="text-purple-500"
+          icon={StorageIcon}
+          iconColor="primary.main"
           defaultOpen={false}
         >
           <CachePanel cacheMetrics={cacheMetrics} dbMetrics={dbMetrics} />
@@ -546,8 +714,8 @@ export function TechnicalMetrics({
 
         <CollapsibleSection
           title={t('system_resources', 'Recursos del Sistema')}
-          icon={Server}
-          iconColor="text-blue-500"
+          icon={DnsIcon}
+          iconColor="info.main"
           defaultOpen={false}
         >
           <SystemPanel systemMetrics={systemMetrics} health={health} />
@@ -556,15 +724,15 @@ export function TechnicalMetrics({
         {infrastructure && (
           <CollapsibleSection
             title={t('infrastructure', 'Infraestructura')}
-            icon={Boxes}
-            iconColor="text-violet-500"
+            icon={ViewInArIcon}
+            iconColor="primary.main"
             defaultOpen={false}
           >
             <InfrastructurePanel infrastructure={infrastructure} />
           </CollapsibleSection>
         )}
-      </CardContent>
-    </Card>
+      </Stack>
+    </Paper>
   )
 }
 

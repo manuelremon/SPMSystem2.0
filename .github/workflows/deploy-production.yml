@@ -212,6 +212,20 @@ jobs:
             echo "=== Restart completed ==="
           SCRIPT
 
+      - name: Run database migrations
+        continue-on-error: true
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'MIGRATION_SCRIPT'
+            echo "=== Running database migrations ==="
+            cd /opt/spm
+
+            # Copy migration file into postgres container and execute
+            docker cp infra/migrations/029_add_tms_fms_dashboard.sql spm-postgres:/tmp/migration.sql
+            docker exec spm-postgres psql -U spm -d spm_production -f /tmp/migration.sql
+
+            echo "=== Database migration completed ==="
+          MIGRATION_SCRIPT
+
       - name: Show container logs
         continue-on-error: true
         run: |

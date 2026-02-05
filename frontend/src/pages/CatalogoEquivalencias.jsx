@@ -1,943 +1,1160 @@
-import { useEffect, useState, useCallback } from 'react'
-import { equivalencias, materiales } from '../services/spm'
-import { formatCurrency } from '../utils/formatters'
-import { useI18n } from '../context/i18n'
-import { useAuthStore } from '../store/authStore'
+/**
+ * CatalogoEquivalencias - Catalogo de Materiales Alternativos
+ * Migrated to MUI components
+ */
 
-// UI Components
-import { Button } from '../components/ui/Button'
-import { Input } from '../components/ui/Input'
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
-import { Alert } from '../components/ui/Alert'
-import { PageHeader } from '../components/ui/PageHeader'
-import { Modal } from '../components/ui/Modal'
-import { ConfirmModal } from '../components/ui/ConfirmModal'
-import { Badge } from '../components/ui/Badge'
-import { TableSkeleton } from '../components/ui/Skeleton'
-import { MaterialDetailModal } from '../components/materials/MaterialDetailModal'
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { equivalencias, materiales } from "../services/spm";
+import { useI18n } from "../context/i18n";
+import { useAuthStore } from "../store/authStore";
+import { SPMAgGrid } from "../components/ui/SPMAgGrid";
+import { useNavigate } from "react-router-dom";
+
+// MUI Components
 import {
-  Search,
-  Loader2,
-  GitCompare,
-  Plus,
-  Edit2,
-  Trash2,
-  X,
-  ArrowRight,
-  Check,
-  ExternalLink
-} from '../components/ui/Icons'
+  Box,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  IconButton,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Alert,
+  Skeleton,
+  Stack,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Slider,
+  InputAdornment,
+  CircularProgress,
+  List,
+  ListItemButton,
+  ListItemText,
+  Backdrop,
+} from "@mui/material";
 
-const DEBOUNCE_MS = 300
-const PAGE_SIZE = 50
+// MUI Icons
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import CloseIcon from "@mui/icons-material/Close";
+import CheckIcon from "@mui/icons-material/Check";
+import AddIcon from "@mui/icons-material/Add";
+import ClearIcon from "@mui/icons-material/Clear";
 
+const PAGE_SIZE = 50;
+const DEBOUNCE_MS = 300;
+
+/* ---------------------------------------------------------------
+   Helpers
+--------------------------------------------------------------- */
 function useDebouncedValue(value, delay) {
-  const [debounced, setDebounced] = useState(value)
+  const [debounced, setDebounced] = useState(value);
 
   useEffect(() => {
-    const handler = setTimeout(() => setDebounced(value), delay)
-    return () => clearTimeout(handler)
-  }, [value, delay])
+    const handler = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
 
-  return debounced
+  return debounced;
 }
 
-export default function CatalogoEquivalencias() {
-  const { t } = useI18n()
-  const { user } = useAuthStore()
+const tipoStyles = {
+  E0_DUPLICADO: { bgcolor: "success.lighter", color: "success.dark", label: "Duplicado" },
+  E1_ESTRICTA: { bgcolor: "info.lighter", color: "info.dark", label: "Estricta" },
+  E2_SUPLIBLE: { bgcolor: "warning.lighter", color: "warning.dark", label: "Suplible" },
+};
 
-  // Check if user can manage (Admin or Planificador)
-  const canManage = user?.rol?.toLowerCase().includes('admin') ||
-                    user?.rol?.toLowerCase().includes('planificador')
+/* ---------------------------------------------------------------
+   Material Search Field Component
+--------------------------------------------------------------- */
+function MaterialSearchField({ label, value, onChange, results, loading, onSelect, selected, onClear, disabled, color = "primary" }) {
+  const textColor = color === "primary" ? "primary.main" : "secondary.main";
+
+  if (disabled) {
+    return (
+      <Box>
+        <Typography
+          variant="caption"
+          sx={{
+            display: "block",
+            fontWeight: 600,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            color: "text.secondary",
+            mb: 0.5,
+          }}
+        >
+          {label} *
+        </Typography>
+        <Box
+          sx={{
+            px: 1.5,
+            py: 1.25,
+            bgcolor: "grey.50",
+            border: 1,
+            borderColor: "grey.200",
+            borderRadius: 1,
+          }}
+        >
+          <Typography sx={{ fontFamily: "monospace", fontWeight: 600, color: textColor }}>
+            {value}
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
+
+  if (selected) {
+    return (
+      <Box>
+        <Typography
+          variant="caption"
+          sx={{
+            display: "block",
+            fontWeight: 600,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            color: "text.secondary",
+            mb: 0.5,
+          }}
+        >
+          {label} *
+        </Typography>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            px: 1.5,
+            py: 1,
+            border: 1,
+            borderColor: "grey.200",
+            borderRadius: 1,
+            bgcolor: "background.paper",
+          }}
+        >
+          <CheckIcon sx={{ fontSize: 20, color: "success.main" }} />
+          <Typography sx={{ fontFamily: "monospace", fontWeight: 600, color: textColor }}>
+            {selected.codigo}
+          </Typography>
+          <Typography
+            sx={{
+              flex: 1,
+              fontSize: "0.875rem",
+              color: "text.secondary",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {selected.descripcion}
+          </Typography>
+          <IconButton size="small" onClick={onClear} sx={{ color: "grey.400", "&:hover": { color: "grey.600" } }}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Box>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ position: "relative" }}>
+      <Typography
+        variant="caption"
+        sx={{
+          display: "block",
+          fontWeight: 600,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          color: "text.secondary",
+          mb: 0.5,
+        }}
+      >
+        {label} *
+      </Typography>
+      <TextField
+        size="small"
+        fullWidth
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Buscar material..."
+        InputProps={{
+          endAdornment: loading ? (
+            <InputAdornment position="end">
+              <CircularProgress size={16} color="primary" />
+            </InputAdornment>
+          ) : null,
+        }}
+      />
+      {results.length > 0 && (
+        <Paper
+          elevation={8}
+          sx={{
+            position: "absolute",
+            zIndex: 20,
+            width: "100%",
+            mt: 0.5,
+            maxHeight: 192,
+            overflow: "auto",
+          }}
+        >
+          <List disablePadding>
+            {results.map((mat) => (
+              <ListItemButton
+                key={mat.codigo}
+                onClick={() => onSelect(mat)}
+                sx={{
+                  borderBottom: 1,
+                  borderColor: "grey.100",
+                  "&:last-child": { borderBottom: 0 },
+                }}
+              >
+                <ListItemText
+                  primary={
+                    <Typography sx={{ fontFamily: "monospace", fontWeight: 600, color: textColor }}>
+                      {mat.codigo}
+                    </Typography>
+                  }
+                  secondary={
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        display: "block",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {mat.descripcion}
+                    </Typography>
+                  }
+                />
+              </ListItemButton>
+            ))}
+          </List>
+        </Paper>
+      )}
+    </Box>
+  );
+}
+
+/* ---------------------------------------------------------------
+   Form Modal Component
+--------------------------------------------------------------- */
+function FormModal({
+  open,
+  onClose,
+  editingId,
+  formData,
+  setFormData,
+  formError,
+  setFormError,
+  formLoading,
+  onSubmit,
+  // Material search props
+  searchOriginal,
+  setSearchOriginal,
+  originalResults,
+  loadingOriginal,
+  selectedOriginal,
+  selectOriginal,
+  clearOriginal,
+  searchEquivalente,
+  setSearchEquivalente,
+  equivalenteResults,
+  loadingEquivalente,
+  selectedEquivalente,
+  selectEquivalente,
+  clearEquivalente,
+  t,
+}) {
+  const isEditing = editingId !== null;
+
+  const getCompatibilityColor = (value) => {
+    if (value >= 80) return "success.main";
+    if (value >= 50) return "warning.main";
+    return "error.main";
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: 1,
+          borderColor: "grey.200",
+          py: 2,
+        }}
+      >
+        <Typography variant="h6" sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          {isEditing
+            ? t("equivalencias_editar_titulo", "Editar Equivalencia")
+            : t("equivalencias_crear_titulo", "Crear Nueva Equivalencia")}
+        </Typography>
+        <IconButton onClick={onClose} size="small" sx={{ color: "grey.400" }}>
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+
+      <form onSubmit={onSubmit}>
+        <DialogContent sx={{ py: 3 }}>
+          <Stack spacing={3}>
+            {/* Form Error */}
+            {formError && (
+              <Alert severity="error" onClose={() => setFormError("")}>
+                {formError}
+              </Alert>
+            )}
+
+            {/* Materials Row */}
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                gap: 2,
+              }}
+            >
+              <MaterialSearchField
+                label={t("equivalencias_material_original", "Material Original")}
+                value={isEditing ? formData.codigo_original : searchOriginal}
+                onChange={setSearchOriginal}
+                results={originalResults}
+                loading={loadingOriginal}
+                onSelect={selectOriginal}
+                selected={selectedOriginal}
+                onClear={clearOriginal}
+                disabled={isEditing}
+                color="primary"
+              />
+              <MaterialSearchField
+                label={t("equivalencias_material_equivalente", "Material Equivalente")}
+                value={isEditing ? formData.codigo_equivalente : searchEquivalente}
+                onChange={setSearchEquivalente}
+                results={equivalenteResults}
+                loading={loadingEquivalente}
+                onSelect={selectEquivalente}
+                selected={selectedEquivalente}
+                onClear={clearEquivalente}
+                disabled={isEditing}
+                color="secondary"
+              />
+            </Box>
+
+            {/* Compatibilidad Slider */}
+            <Box>
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  color: "text.secondary",
+                  mb: 1,
+                }}
+              >
+                {t("equivalencias_compatibilidad", "Porcentaje de Compatibilidad")} *
+              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Slider
+                  value={formData.compatibilidad_pct}
+                  onChange={(e, value) => setFormData((prev) => ({ ...prev, compatibilidad_pct: value }))}
+                  min={0}
+                  max={100}
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  size="small"
+                  type="number"
+                  value={formData.compatibilidad_pct}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      compatibilidad_pct: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)),
+                    }))
+                  }
+                  inputProps={{ min: 0, max: 100 }}
+                  sx={{ width: 80 }}
+                />
+                <Typography sx={{ fontWeight: 700, color: getCompatibilityColor(formData.compatibilidad_pct), minWidth: 48 }}>
+                  {formData.compatibilidad_pct}%
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Descripcion */}
+            <Box>
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  color: "text.secondary",
+                  mb: 0.5,
+                }}
+              >
+                {t("equivalencias_descripcion", "Descripcion")}
+              </Typography>
+              <TextField
+                size="small"
+                fullWidth
+                value={formData.descripcion}
+                onChange={(e) => setFormData((prev) => ({ ...prev, descripcion: e.target.value }))}
+                placeholder={t("equivalencias_desc_placeholder", "Descripcion de la equivalencia...")}
+              />
+            </Box>
+
+            {/* Notas */}
+            <Box>
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  color: "text.secondary",
+                  mb: 0.5,
+                }}
+              >
+                {t("equivalencias_notas", "Notas")}
+              </Typography>
+              <TextField
+                size="small"
+                fullWidth
+                multiline
+                rows={2}
+                value={formData.notas}
+                onChange={(e) => setFormData((prev) => ({ ...prev, notas: e.target.value }))}
+                placeholder={t("equivalencias_notas_placeholder", "Notas adicionales...")}
+              />
+            </Box>
+          </Stack>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, py: 2, borderTop: 1, borderColor: "grey.200", bgcolor: "grey.50" }}>
+          <Button onClick={onClose} disabled={formLoading} color="inherit">
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={formLoading || (!isEditing && (!formData.codigo_original || !formData.codigo_equivalente))}
+            startIcon={formLoading ? <CircularProgress size={16} color="inherit" /> : null}
+          >
+            {formLoading ? "Guardando..." : isEditing ? "Actualizar" : "Crear"}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
+}
+
+/* ---------------------------------------------------------------
+   Delete Modal Component
+--------------------------------------------------------------- */
+function DeleteModal({ open, item, onClose, onConfirm, loading }) {
+  if (!item) return null;
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: 1,
+          borderColor: "grey.200",
+          color: "error.main",
+        }}
+      >
+        <Typography variant="h6" sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          Eliminar Equivalencia
+        </Typography>
+        <IconButton onClick={onClose} size="small" sx={{ color: "grey.400" }}>
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+
+      <DialogContent sx={{ py: 3 }}>
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          Eliminar la equivalencia entre{" "}
+          <Box component="strong" sx={{ fontFamily: "monospace", color: "primary.main" }}>
+            {item.codigo_original}
+          </Box>{" "}
+          y{" "}
+          <Box component="strong" sx={{ fontFamily: "monospace", color: "secondary.main" }}>
+            {item.codigo_equivalente}
+          </Box>
+          ?
+        </Typography>
+      </DialogContent>
+
+      <DialogActions sx={{ px: 3, py: 2, borderTop: 1, borderColor: "grey.200", bgcolor: "grey.50" }}>
+        <Button onClick={onClose} disabled={loading} color="inherit">
+          Cancelar
+        </Button>
+        <Button
+          onClick={onConfirm}
+          variant="contained"
+          color="error"
+          disabled={loading}
+          startIcon={loading ? <CircularProgress size={16} color="inherit" /> : null}
+        >
+          {loading ? "Eliminando..." : "Eliminar"}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+/* ---------------------------------------------------------------
+   Main Component
+--------------------------------------------------------------- */
+export default function CatalogoEquivalencias() {
+  const { t } = useI18n();
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
+
+  const canManage =
+    user?.rol?.toLowerCase().includes("admin") ||
+    user?.rol?.toLowerCase().includes("planificador");
 
   // Search state
-  const [searchQuery, setSearchQuery] = useState('')
-  const debouncedQuery = useDebouncedValue(searchQuery, DEBOUNCE_MS)
+  const [searchCodigo, setSearchCodigo] = useState("");
+  const [searchDesc, setSearchDesc] = useState("");
+  const [searchTipo, setSearchTipo] = useState("");
+  const [tiposOptions, setTiposOptions] = useState([]);
+
+  const debouncedCodigo = useDebouncedValue(searchCodigo, DEBOUNCE_MS);
+  const debouncedDesc = useDebouncedValue(searchDesc, DEBOUNCE_MS);
 
   // Results state
-  const [results, setResults] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [successMsg, setSuccessMsg] = useState('')
-  const [pagination, setPagination] = useState({ total: 0, offset: 0, hasMore: false })
-
-  // Modal states
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [selectedEquivalencia, setSelectedEquivalencia] = useState(null)
-
-  // Material detail modal state
-  const [showMaterialDetail, setShowMaterialDetail] = useState(false)
-  const [selectedMaterialForDetail, setSelectedMaterialForDetail] = useState(null)
-  const [materialDetail, setMaterialDetail] = useState(null)
-  const [loadingMaterialDetail, setLoadingMaterialDetail] = useState(false)
-
-  // Open material detail - load material data
-  const openMaterialDetail = async (codigo) => {
-    setShowMaterialDetail(true)
-    setLoadingMaterialDetail(true)
-    setMaterialDetail(null)
-
-    try {
-      // Get basic material info - search by codigo exactly
-      const res = await materiales.buscar({ codigo: codigo, limit: 10 })
-      // API returns {data: [...], ok, total} - find exact match by codigo
-      const materialesArray = res.data?.data || res.data || []
-      const mat = materialesArray.find(m => String(m.codigo) === String(codigo)) || materialesArray[0]
-
-      if (mat) {
-        setSelectedMaterialForDetail(mat)
-
-        // Get full detail including stock, mrp, consumo
-        const detailRes = await materiales.detalle(codigo)
-        // axios response has data in .data property
-        const detailData = detailRes.data || {}
-        setMaterialDetail(detailData)
-      } else {
-        // Material not found in catalog, create minimal object
-        setSelectedMaterialForDetail({
-          codigo: codigo,
-          descripcion: 'Material no encontrado en catálogo',
-          descripcion_larga: ''
-        })
-      }
-    } catch (err) {
-      console.error('Error loading material detail:', err)
-      setSelectedMaterialForDetail({
-        codigo: codigo,
-        descripcion: 'Error al cargar material',
-        descripcion_larga: ''
-      })
-    } finally {
-      setLoadingMaterialDetail(false)
-    }
-  }
-
-  // Close material detail modal
-  const closeMaterialDetail = () => {
-    setShowMaterialDetail(false)
-    setSelectedMaterialForDetail(null)
-    setMaterialDetail(null)
-  }
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [pagination, setPagination] = useState({ total: 0, offset: 0, hasMore: false });
 
   // Form state
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
-    codigo_original: '',
-    codigo_equivalente: '',
+    codigo_original: "",
+    codigo_equivalente: "",
     compatibilidad_pct: 80,
-    descripcion: '',
-    notas: ''
-  })
-  const [formLoading, setFormLoading] = useState(false)
-  const [formError, setFormError] = useState('')
+    descripcion: "",
+    notas: "",
+  });
+  const [formLoading, setFormLoading] = useState(false);
+  const [formError, setFormError] = useState("");
 
   // Material search for form
-  const [searchOriginal, setSearchOriginal] = useState('')
-  const [searchEquivalente, setSearchEquivalente] = useState('')
-  const [originalResults, setOriginalResults] = useState([])
-  const [equivalenteResults, setEquivalenteResults] = useState([])
-  const [loadingOriginal, setLoadingOriginal] = useState(false)
-  const [loadingEquivalente, setLoadingEquivalente] = useState(false)
-  const [selectedOriginal, setSelectedOriginal] = useState(null)
-  const [selectedEquivalente, setSelectedEquivalente] = useState(null)
+  const [searchOriginal, setSearchOriginal] = useState("");
+  const [searchEquivalente, setSearchEquivalente] = useState("");
+  const [originalResults, setOriginalResults] = useState([]);
+  const [equivalenteResults, setEquivalenteResults] = useState([]);
+  const [loadingOriginal, setLoadingOriginal] = useState(false);
+  const [loadingEquivalente, setLoadingEquivalente] = useState(false);
+  const [selectedOriginal, setSelectedOriginal] = useState(null);
+  const [selectedEquivalente, setSelectedEquivalente] = useState(null);
 
-  const debouncedOriginal = useDebouncedValue(searchOriginal, DEBOUNCE_MS)
-  const debouncedEquivalente = useDebouncedValue(searchEquivalente, DEBOUNCE_MS)
+  const debouncedOriginal = useDebouncedValue(searchOriginal, DEBOUNCE_MS);
+  const debouncedEquivalente = useDebouncedValue(searchEquivalente, DEBOUNCE_MS);
+
+  // Delete dialog
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, item: null });
+
+  // Load tipos de equivalencia
+  useEffect(() => {
+    equivalencias.tipos()
+      .then((res) => setTiposOptions(res.data?.data || []))
+      .catch(() => setTiposOptions([]));
+  }, []);
 
   // Load equivalencias
-  const loadEquivalencias = useCallback(async (offset = 0) => {
-    setLoading(true)
-    setError('')
+  const loadEquivalencias = useCallback(
+    async (offset = 0) => {
+      setLoading(true);
+      setError("");
 
-    try {
-      const res = await equivalencias.listar({
-        q: debouncedQuery,
-        limit: PAGE_SIZE,
-        offset
-      })
-      const data = res.data
+      try {
+        const res = await equivalencias.listar({
+          codigo: debouncedCodigo,
+          descripcion: debouncedDesc,
+          tipo: searchTipo || "",
+          limit: PAGE_SIZE,
+          offset,
+        });
+        const data = res.data;
 
-      setResults(data.data || [])
-      setPagination({
-        total: data.pagination?.total || 0,
-        offset: data.pagination?.offset || 0,
-        hasMore: data.pagination?.has_more || false
-      })
-    } catch (err) {
-      console.error('load equivalencias', err)
-      setError(err.response?.data?.error?.message || err.message)
-      setResults([])
-    } finally {
-      setLoading(false)
-    }
-  }, [debouncedQuery])
+        setResults(
+          (data.data || []).map((eq, idx) => ({
+            ...eq,
+            _id: eq.id ?? idx,
+          }))
+        );
+        setPagination({
+          total: data.pagination?.total || 0,
+          offset: data.pagination?.offset || 0,
+          hasMore: data.pagination?.has_more || false,
+        });
+      } catch (err) {
+        setError(err.response?.data?.error?.message || err.message);
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [debouncedCodigo, debouncedDesc, searchTipo]
+  );
 
-  // Initial load and search
   useEffect(() => {
-    loadEquivalencias(0)
-  }, [loadEquivalencias])
+    loadEquivalencias(0);
+  }, [loadEquivalencias]);
 
   // Search materials for form (original)
   useEffect(() => {
     if (!debouncedOriginal.trim()) {
-      setOriginalResults([])
-      return
+      setOriginalResults([]);
+      return;
     }
 
-    setLoadingOriginal(true)
+    setLoadingOriginal(true);
     materiales
       .buscar({ descripcion: debouncedOriginal, limit: 10 })
-      .then((res) => setOriginalResults(res.data || []))
+      .then((res) => setOriginalResults(res.data?.data || res.data || []))
       .catch(() => setOriginalResults([]))
-      .finally(() => setLoadingOriginal(false))
-  }, [debouncedOriginal])
+      .finally(() => setLoadingOriginal(false));
+  }, [debouncedOriginal]);
 
   // Search materials for form (equivalente)
   useEffect(() => {
     if (!debouncedEquivalente.trim()) {
-      setEquivalenteResults([])
-      return
+      setEquivalenteResults([]);
+      return;
     }
 
-    setLoadingEquivalente(true)
+    setLoadingEquivalente(true);
     materiales
       .buscar({ descripcion: debouncedEquivalente, limit: 10 })
-      .then((res) => setEquivalenteResults(res.data || []))
+      .then((res) => setEquivalenteResults(res.data?.data || res.data || []))
       .catch(() => setEquivalenteResults([]))
-      .finally(() => setLoadingEquivalente(false))
-  }, [debouncedEquivalente])
+      .finally(() => setLoadingEquivalente(false));
+  }, [debouncedEquivalente]);
 
   // Auto-dismiss success message
   useEffect(() => {
-    if (successMsg) {
-      const timer = setTimeout(() => setSuccessMsg(''), 3000)
-      return () => clearTimeout(timer)
+    if (success) {
+      const timer = setTimeout(() => setSuccess(""), 3000);
+      return () => clearTimeout(timer);
     }
-  }, [successMsg])
+  }, [success]);
 
-  // Handle create
-  const handleCreate = async () => {
-    setFormError('')
-    setFormLoading(true)
+  // Handlers - definidos antes de los cell renderers que los usan
+  const resetForm = useCallback(() => {
+    setFormData({
+      codigo_original: "",
+      codigo_equivalente: "",
+      compatibilidad_pct: 80,
+      descripcion: "",
+      notas: "",
+    });
+    setSearchOriginal("");
+    setSearchEquivalente("");
+    setOriginalResults([]);
+    setEquivalenteResults([]);
+    setSelectedOriginal(null);
+    setSelectedEquivalente(null);
+    setFormError("");
+  }, []);
 
-    try {
-      await equivalencias.crear({
-        codigo_original: formData.codigo_original,
-        codigo_equivalente: formData.codigo_equivalente,
-        compatibilidad_pct: formData.compatibilidad_pct,
-        descripcion: formData.descripcion,
-        notas: formData.notas
-      })
+  const openCreateModal = useCallback(() => {
+    resetForm();
+    setEditingId(null);
+    setShowForm(true);
+  }, [resetForm]);
 
-      setSuccessMsg(t('equivalencias_creada', 'Equivalencia creada exitosamente'))
-      setShowCreateModal(false)
-      resetForm()
-      loadEquivalencias(0)
-    } catch (err) {
-      setFormError(err.response?.data?.error?.message || err.message)
-    } finally {
-      setFormLoading(false)
-    }
-  }
-
-  // Handle update
-  const handleUpdate = async () => {
-    if (!selectedEquivalencia) return
-
-    setFormError('')
-    setFormLoading(true)
-
-    try {
-      await equivalencias.actualizar(selectedEquivalencia.id, {
-        compatibilidad_pct: formData.compatibilidad_pct,
-        descripcion: formData.descripcion,
-        notas: formData.notas
-      })
-
-      setSuccessMsg(t('equivalencias_actualizada', 'Equivalencia actualizada exitosamente'))
-      setShowEditModal(false)
-      resetForm()
-      loadEquivalencias(pagination.offset)
-    } catch (err) {
-      setFormError(err.response?.data?.error?.message || err.message)
-    } finally {
-      setFormLoading(false)
-    }
-  }
-
-  // Handle delete
-  const handleDelete = async () => {
-    if (!selectedEquivalencia) return
-
-    setFormLoading(true)
-
-    try {
-      await equivalencias.eliminar(selectedEquivalencia.id)
-
-      setSuccessMsg(t('equivalencias_eliminada', 'Equivalencia eliminada exitosamente'))
-      setShowDeleteModal(false)
-      setSelectedEquivalencia(null)
-      loadEquivalencias(0)
-    } catch (err) {
-      setError(err.response?.data?.error?.message || err.message)
-    } finally {
-      setFormLoading(false)
-    }
-  }
-
-  // Open edit modal
-  const openEditModal = (eq) => {
-    setSelectedEquivalencia(eq)
+  const openEditModal = useCallback((eq) => {
+    setEditingId(eq.id);
     setFormData({
       codigo_original: eq.codigo_original,
       codigo_equivalente: eq.codigo_equivalente,
       compatibilidad_pct: eq.compatibilidad_pct,
-      descripcion: eq.descripcion || '',
-      notas: eq.notas || ''
-    })
-    setShowEditModal(true)
-  }
+      descripcion: eq.descripcion || "",
+      notas: eq.notas || "",
+    });
+    setShowForm(true);
+  }, []);
 
-  // Open delete modal
-  const openDeleteModal = (eq) => {
-    setSelectedEquivalencia(eq)
-    setShowDeleteModal(true)
-  }
+  // Columns - AG Grid format con cellRenderer inline para evitar problemas de orden
+  const columnDefs = useMemo(
+    () => [
+      {
+        field: "codigo_original",
+        headerName: "Material Original",
+        flex: 1,
+        minWidth: 220,
+        cellRenderer: (params) => (
+          <Box sx={{ py: 0.5 }}>
+            <Typography sx={{ fontFamily: "monospace", fontWeight: 600, color: "primary.main", fontSize: "0.875rem" }}>
+              {params.value}
+            </Typography>
+            {params.data.descripcion_original && (
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  color: "text.secondary",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  maxWidth: 200,
+                }}
+              >
+                {params.data.descripcion_original}
+              </Typography>
+            )}
+          </Box>
+        ),
+      },
+      {
+        field: "arrow",
+        headerName: "",
+        width: 50,
+        maxWidth: 50,
+        sortable: false,
+        filter: false,
+        cellRenderer: () => <ArrowForwardIcon sx={{ fontSize: 16, color: "grey.400" }} />,
+        cellStyle: { display: "flex", alignItems: "center", justifyContent: "center" },
+      },
+      {
+        field: "codigo_equivalente",
+        headerName: "Material Equivalente",
+        flex: 1,
+        minWidth: 220,
+        cellRenderer: (params) => (
+          <Box sx={{ py: 0.5 }}>
+            <Typography sx={{ fontFamily: "monospace", fontWeight: 600, color: "secondary.main", fontSize: "0.875rem" }}>
+              {params.value}
+            </Typography>
+            {params.data.descripcion_equivalente && (
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  color: "text.secondary",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  maxWidth: 200,
+                }}
+              >
+                {params.data.descripcion_equivalente}
+              </Typography>
+            )}
+          </Box>
+        ),
+      },
+      {
+        field: "tipo_equivalencia",
+        headerName: "Tipo",
+        width: 140,
+        maxWidth: 140,
+        cellRenderer: (params) => {
+          const style = tipoStyles[params.value] || { bgcolor: "grey.100", color: "grey.600", label: params.value || "-" };
+          return (
+            <Chip
+              label={style.label}
+              size="small"
+              sx={{
+                bgcolor: style.bgcolor,
+                color: style.color,
+                fontWeight: 700,
+                fontSize: "0.625rem",
+                textTransform: "uppercase",
+              }}
+            />
+          );
+        },
+        cellStyle: { display: "flex", alignItems: "center" },
+      },
+      ...(canManage
+        ? [
+            {
+              field: "acciones",
+              headerName: "Acciones",
+              width: 160,
+              maxWidth: 160,
+              sortable: false,
+              filter: false,
+              cellRenderer: (params) => (
+                <Stack direction="row" spacing={0.5}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="primary"
+                    onClick={() => openEditModal(params.data)}
+                    sx={{ fontSize: "0.625rem", fontWeight: 700, textTransform: "uppercase", minWidth: "auto", px: 1 }}
+                  >
+                    Editar
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="error"
+                    onClick={() => setDeleteDialog({ open: true, item: params.data })}
+                    sx={{ fontSize: "0.625rem", fontWeight: 700, textTransform: "uppercase", minWidth: "auto", px: 1 }}
+                  >
+                    Eliminar
+                  </Button>
+                </Stack>
+              ),
+              cellStyle: { display: "flex", alignItems: "center" },
+            },
+          ]
+        : []),
+    ],
+    [canManage, openEditModal]
+  );
 
-  // Reset form
-  const resetForm = () => {
-    setFormData({
-      codigo_original: '',
-      codigo_equivalente: '',
-      compatibilidad_pct: 80,
-      descripcion: '',
-      notas: ''
-    })
-    setSearchOriginal('')
-    setSearchEquivalente('')
-    setOriginalResults([])
-    setEquivalenteResults([])
-    setSelectedOriginal(null)
-    setSelectedEquivalente(null)
-    setFormError('')
-  }
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+      setFormError("");
+      setFormLoading(true);
 
-  // Select material for form
-  const selectOriginal = (mat) => {
-    setSelectedOriginal(mat)
-    setFormData(prev => ({ ...prev, codigo_original: mat.codigo }))
-    setSearchOriginal(mat.codigo + ' - ' + mat.descripcion)
-    setOriginalResults([])
-  }
+      try {
+        if (editingId !== null) {
+          await equivalencias.actualizar(editingId, {
+            compatibilidad_pct: formData.compatibilidad_pct,
+            descripcion: formData.descripcion,
+            notas: formData.notas,
+          });
+          setSuccess(t("equivalencias_actualizada", "Equivalencia actualizada correctamente"));
+        } else {
+          await equivalencias.crear({
+            codigo_original: formData.codigo_original,
+            codigo_equivalente: formData.codigo_equivalente,
+            compatibilidad_pct: formData.compatibilidad_pct,
+            descripcion: formData.descripcion,
+            notas: formData.notas,
+          });
+          setSuccess(t("equivalencias_creada", "Equivalencia creada correctamente"));
+        }
 
-  const selectEquivalente = (mat) => {
-    setSelectedEquivalente(mat)
-    setFormData(prev => ({ ...prev, codigo_equivalente: mat.codigo }))
-    setSearchEquivalente(mat.codigo + ' - ' + mat.descripcion)
-    setEquivalenteResults([])
-  }
+        setShowForm(false);
+        resetForm();
+        loadEquivalencias(0);
+      } catch (err) {
+        setFormError(err.response?.data?.error?.message || err.message);
+      } finally {
+        setFormLoading(false);
+      }
+    },
+    [formData, editingId, resetForm, loadEquivalencias, t]
+  );
 
-  // Pagination
-  const handleNextPage = () => {
-    if (pagination.hasMore) {
-      loadEquivalencias(pagination.offset + PAGE_SIZE)
+  const handleDelete = useCallback(async () => {
+    if (!deleteDialog.item) return;
+    setFormLoading(true);
+
+    try {
+      await equivalencias.eliminar(deleteDialog.item.id);
+      setSuccess(t("equivalencias_eliminada", "Equivalencia eliminada correctamente"));
+      setDeleteDialog({ open: false, item: null });
+      loadEquivalencias(0);
+    } catch (err) {
+      setError(err.response?.data?.error?.message || err.message);
+    } finally {
+      setFormLoading(false);
     }
-  }
+  }, [deleteDialog.item, loadEquivalencias, t]);
 
-  const handlePrevPage = () => {
-    if (pagination.offset > 0) {
-      loadEquivalencias(Math.max(0, pagination.offset - PAGE_SIZE))
-    }
-  }
+  const selectOriginal = useCallback((mat) => {
+    setSelectedOriginal(mat);
+    setFormData((prev) => ({ ...prev, codigo_original: mat.codigo }));
+    setSearchOriginal("");
+    setOriginalResults([]);
+  }, []);
+
+  const selectEquivalente = useCallback((mat) => {
+    setSelectedEquivalente(mat);
+    setFormData((prev) => ({ ...prev, codigo_equivalente: mat.codigo }));
+    setSearchEquivalente("");
+    setEquivalenteResults([]);
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setSearchCodigo("");
+    setSearchDesc("");
+    setSearchTipo("");
+  }, []);
+
+  const hasFilters = searchCodigo || searchDesc || searchTipo;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <PageHeader
-        title={t('equivalencias_titulo', 'Catálogo de Materiales Alternativos')}
-        actions={
-          canManage && (
-            <Button onClick={() => { resetForm(); setShowCreateModal(true) }}>
-              <Plus className="h-4 w-4" />
-              {t('equivalencias_nueva', 'Nueva Equivalencia')}
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1600, mx: "auto", px: 3, py: 3 }}>
+        {/* Header */}
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <IconButton
+              onClick={() => navigate(-1)}
+              sx={{
+                color: "grey.400",
+                border: 1,
+                borderColor: "transparent",
+                "&:hover": {
+                  color: "grey.600",
+                  bgcolor: "background.paper",
+                  borderColor: "grey.200",
+                },
+              }}
+            >
+              <ArrowBackIcon />
+            </IconButton>
+            <Box>
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: 700, color: "text.primary", textTransform: "uppercase", letterSpacing: "0.05em" }}
+              >
+                {t("equivalencias_titulo", "Catalogo de Materiales Alternativos")}
+              </Typography>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                {t("equivalencias_subtitulo", "Gestiona equivalencias y materiales sustitutos")}
+              </Typography>
+            </Box>
+          </Box>
+          {canManage && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateModal}>
+              Nueva Equivalencia
             </Button>
-          )
-        }
-      />
+          )}
+        </Box>
 
-      {/* Search Card */}
-      <Card hover={false}>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-end">
-            <div className="flex-1">
-              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
-                {t('equivalencias_buscar', 'Buscar por código o descripción')}
-              </label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-500" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('equivalencias_placeholder', 'Código SAP o descripción...')}
-                  className="pl-10"
-                />
-                {searchQuery && (
-                  <Button
-                    type="button"
-                    variant="icon"
-                    size="icon-xs"
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2"
-                  >
-                    <X className="h-4 w-4 text-red-500" />
-                  </Button>
-                )}
-              </div>
-            </div>
-            {searchQuery && (
-              <Badge variant="primary">
-                {pagination.total} {t('common_resultados', 'resultados')}
-              </Badge>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+        {/* Alerts */}
+        {error && (
+          <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+        {success && (
+          <Alert severity="success" onClose={() => setSuccess("")} sx={{ mb: 2 }}>
+            {success}
+          </Alert>
+        )}
 
-      {/* Messages */}
-      {error && (
-        <Alert variant="danger" onDismiss={() => setError('')}>
-          {error}
-        </Alert>
-      )}
-      {successMsg && (
-        <Alert variant="success" onDismiss={() => setSuccessMsg('')}>
-          {successMsg}
-        </Alert>
-      )}
+        {/* Search Card */}
+        <Paper elevation={0} sx={{ border: 1, borderColor: "grey.200", p: 2.5, mb: 3 }}>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "flex-end" }}>
+            {/* Codigo SAP */}
+            <Box sx={{ minWidth: 150 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  color: "text.secondary",
+                  mb: 0.5,
+                }}
+              >
+                {t("equivalencias_codigo", "Codigo SAP")}
+              </Typography>
+              <TextField
+                size="small"
+                fullWidth
+                value={searchCodigo}
+                onChange={(e) => setSearchCodigo(e.target.value)}
+                placeholder="Ej: 100012345"
+                InputProps={{ sx: { fontFamily: "monospace" } }}
+              />
+            </Box>
 
-      {/* Results Table */}
-      <Card hover={false}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <GitCompare className="h-5 w-5 text-violet-500" />
-            {t('equivalencias_lista', 'Equivalencias')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <TableSkeleton rows={5} columns={6} />
-          ) : results.length === 0 ? (
-            <div className="py-12 text-center">
-              <GitCompare className="h-12 w-12 text-violet-500/30 mx-auto mb-4" />
-              <p className="text-slate-500">
-                {searchQuery
-                  ? t('equivalencias_sin_resultados', 'No se encontraron equivalencias con los criterios de búsqueda')
-                  : t('equivalencias_vacio', 'No hay equivalencias registradas')}
-              </p>
-              {canManage && !searchQuery && (
-                <Button
-                  variant="secondary"
-                  className="mt-4"
-                  onClick={() => { resetForm(); setShowCreateModal(true) }}
+            {/* Descripcion */}
+            <Box sx={{ flex: 1, minWidth: 200 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  color: "text.secondary",
+                  mb: 0.5,
+                }}
+              >
+                {t("equivalencias_descripcion", "Descripcion")}
+              </Typography>
+              <TextField
+                size="small"
+                fullWidth
+                value={searchDesc}
+                onChange={(e) => setSearchDesc(e.target.value)}
+                placeholder={t("equivalencias_buscar_desc", "Buscar por descripcion...")}
+              />
+            </Box>
+
+            {/* Tipo Equivalencia */}
+            <Box sx={{ minWidth: 180 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  color: "text.secondary",
+                  mb: 0.5,
+                }}
+              >
+                {t("equivalencias_tipo", "Tipo de Equivalencia")}
+              </Typography>
+              <FormControl size="small" fullWidth>
+                <Select
+                  value={searchTipo}
+                  onChange={(e) => setSearchTipo(e.target.value)}
+                  displayEmpty
                 >
-                  <Plus className="h-4 h-4 text-blue-600" />
-                  {t('equivalencias_crear_primera', 'Crear la primera equivalencia')}
+                  <MenuItem value="">{t("equivalencias_todos_tipos", "Todos")}</MenuItem>
+                  {tiposOptions.map((opt) => (
+                    <MenuItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Results & Clear */}
+            {!loading && hasFilters && (
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Chip
+                  label={`${pagination.total} ${t("common_resultados", "resultados")}`}
+                  size="small"
+                  sx={{
+                    bgcolor: pagination.total > 0 ? "primary.lighter" : "grey.100",
+                    color: pagination.total > 0 ? "primary.main" : "text.secondary",
+                    fontWeight: 500,
+                  }}
+                />
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  startIcon={<ClearIcon />}
+                  onClick={clearFilters}
+                >
+                  {t("common_limpiar", "Limpiar")}
+                </Button>
+              </Stack>
+            )}
+          </Box>
+        </Paper>
+
+        {/* DataGrid Card */}
+        <Paper elevation={0} sx={{ border: 1, borderColor: "grey.200", height: 550 }}>
+          {results.length === 0 && !loading ? (
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                py: 8,
+              }}
+            >
+              <SwapHorizIcon sx={{ fontSize: 48, color: "grey.300", mb: 2 }} />
+              <Typography variant="body1" sx={{ color: "text.secondary", textAlign: "center", mb: 2 }}>
+                {hasFilters
+                  ? t("equivalencias_sin_resultados", "No se encontraron equivalencias con los criterios de busqueda")
+                  : t("equivalencias_vacio", "No hay equivalencias registradas")}
+              </Typography>
+              {canManage && !hasFilters && (
+                <Button variant="outlined" onClick={openCreateModal}>
+                  Crear la primera equivalencia
                 </Button>
               )}
-            </div>
+            </Box>
           ) : (
-            <>
-              <div className="overflow-x-auto border border-white/30 rounded-lg">
-                <table className="w-full text-sm">
-                  <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
-                    <tr>
-                      <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
-                        {t('equivalencias_col_original', 'Material Original')}
-                      </th>
-                      <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
-                      </th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
-                        {t('equivalencias_col_equivalente', 'Material Equivalente')}
-                      </th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
-                        {t('equivalencias_col_tipo', 'Tipo')}
-                      </th>
-                      <th className={`px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] ${canManage ? 'border-r border-b border-slate-200' : ''}`}>
-                        {t('equivalencias_col_similitud', 'Similitud')}
-                      </th>
-                      {canManage && (
-                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">
-                          {t('equivalencias_col_acciones', 'Acciones')}
-                        </th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {results.map((eq, idx) => (
-                      <tr
-                        key={eq.id}
-                        className={`
-                          border-b border-white/30 transition-colors
-                          ${idx % 2 === 0 ? 'bg-transparent' : 'bg-slate-50/70/30'}
-                          hover:bg-slate-100/70
-                        `}
-                      >
-                        <td className="px-4 py-3 border-r border-b border-slate-200">
-                          <div>
-                            <button
-                              type="button"
-                              onClick={() => openMaterialDetail(eq.codigo_original)}
-                              className="font-mono font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer inline-flex items-center gap-1 group"
-                              title={t('equivalencias_ver_detalle', 'Ver detalle del material')}
-                            >
-                              {eq.codigo_original}
-                              <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </button>
-                            <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
-                              {eq.descripcion_original}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="px-2 py-3 text-center border-r border-b border-slate-200">
-                          <ArrowRight className="h-4 w-4 text-slate-600 mx-auto" />
-                        </td>
-                        <td className="px-4 py-3 border-r border-b border-slate-200">
-                          <div>
-                            <button
-                              type="button"
-                              onClick={() => openMaterialDetail(eq.codigo_equivalente)}
-                              className="font-mono font-semibold text-cyan-600 hover:text-cyan-800 hover:underline cursor-pointer inline-flex items-center gap-1 group"
-                              title={t('equivalencias_ver_detalle', 'Ver detalle del material')}
-                            >
-                              {eq.codigo_equivalente}
-                              <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </button>
-                            <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
-                              {eq.descripcion_equivalente}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-center border-r border-b border-slate-200">
-                          <Badge variant={eq.tipo_equivalencia === 'SUSTITUTO' ? 'success' : 'secondary'}>
-                            {eq.tipo_equivalencia || '-'}
-                          </Badge>
-                          {eq.criterio && eq.criterio.toUpperCase() !== 'SIMILITUD' && (
-                            <p className="text-xs text-slate-500 mt-0.5">{eq.criterio}</p>
-                          )}
-                        </td>
-                        <td className={`px-4 py-3 text-slate-800 ${canManage ? 'border-r border-b border-slate-200' : ''}`}>
-                          {(() => {
-                            // Filtrar texto genérico "Generado automaticamente" y "Similitud:"
-                            let motivoClean = eq.motivo || '';
-                            motivoClean = motivoClean.replace(/^Generado automaticamente\.?\s*/i, '').trim();
-                            motivoClean = motivoClean.replace(/^Similitud:\s*/i, '').trim();
-                            const displayMotivo = motivoClean || '-';
-                            return (
-                              <div className="group relative">
-                                <p className="line-clamp-2 cursor-help">{displayMotivo}</p>
-                                {motivoClean && motivoClean.length > 60 && (
-                                  <div className="absolute z-20 hidden group-hover:block bg-slate-800 text-white text-xs rounded-lg px-3 py-2 bottom-full left-0 mb-1 w-72 shadow-lg">
-                                    {motivoClean}
-                                    <div className="absolute top-full left-4 border-4 border-transparent border-t-slate-800" />
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </td>
-                        {canManage && (
-                          <td className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <Button
-                                type="button"
-                                variant="icon-primary"
-                                size="icon-sm"
-                                onClick={() => openEditModal(eq)}
-                                title={t('common_editar', 'Editar')}
-                              >
-                                <Edit2 className="h-4 w-4 text-blue-600" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="icon-danger"
-                                size="icon-sm"
-                                onClick={() => openDeleteModal(eq)}
-                                title={t('common_eliminar', 'Eliminar')}
-                              >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination */}
-              {(pagination.offset > 0 || pagination.hasMore) && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/30">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handlePrevPage}
-                    disabled={pagination.offset === 0}
-                  >
-                    {t('common_anterior', 'Anterior')}
-                  </Button>
-                  <span className="text-sm text-slate-500">
-                    {pagination.offset + 1} - {Math.min(pagination.offset + PAGE_SIZE, pagination.total)} de {pagination.total}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleNextPage}
-                    disabled={!pagination.hasMore}
-                  >
-                    {t('common_siguiente', 'Siguiente')}
-                  </Button>
-                </div>
-              )}
-            </>
+            <SPMAgGrid
+              rowData={results}
+              columnDefs={columnDefs}
+              loading={loading}
+              height="100%"
+              pagination={true}
+              paginationPageSize={20}
+              paginationPageSizeSelector={[20, 50, 100]}
+              enableQuickFilter={true}
+              exportFileName="equivalencias"
+              emptyMessage={t("equivalencias_sin_resultados", "No se encontraron equivalencias")}
+              gridOptions={{
+                getRowId: (params) => String(params.data._id),
+                rowHeight: 60,
+                headerHeight: 48,
+              }}
+            />
           )}
-        </CardContent>
-      </Card>
+        </Paper>
 
-      {/* Create Modal */}
-      <Modal
-        isOpen={showCreateModal}
-        onClose={() => { setShowCreateModal(false); resetForm() }}
-        title={t('equivalencias_crear_titulo', 'Crear Nueva Equivalencia')}
-        size="lg"
-      >
-        <div className="space-y-4">
-          {formError && (
-            <Alert variant="danger" size="sm">
-              {formError}
-            </Alert>
-          )}
-
-          {/* Material Original */}
-          <div>
-            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
-              {t('equivalencias_material_original', 'Material Original')} *
-            </label>
-            {selectedOriginal ? (
-              <div className="flex items-center gap-2 p-3 bg-slate-50/70 border border-blue-500/30 rounded-lg">
-                <Check className="h-4 w-4 text-emerald-600" />
-                <span className="font-mono text-blue-600">{selectedOriginal.codigo}</span>
-                <span className="text-sm text-slate-800">{selectedOriginal.descripcion}</span>
-                <button
-                  type="button"
-                  onClick={() => { setSelectedOriginal(null); setSearchOriginal(''); setFormData(prev => ({ ...prev, codigo_original: '' })) }}
-                  className="ml-auto p-1 hover:bg-slate-100/70 rounded"
-                >
-                  <X className="h-4 w-4 text-slate-500" />
-                </button>
-              </div>
-            ) : (
-              <div className="relative">
-                <Input
-                  value={searchOriginal}
-                  onChange={(e) => setSearchOriginal(e.target.value)}
-                  placeholder={t('equivalencias_buscar_material', 'Buscar material por código o descripción...')}
-                />
-                {loadingOriginal && (
-                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-slate-500" />
-                )}
-                {originalResults.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-white/30 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                    {originalResults.map((mat) => (
-                      <button
-                        key={mat.codigo}
-                        type="button"
-                        onClick={() => selectOriginal(mat)}
-                        className="w-full text-left px-4 py-2 hover:bg-slate-100/70 transition-colors"
-                      >
-                        <span className="font-mono text-sm text-blue-600">{mat.codigo}</span>
-                        <span className="text-sm text-slate-800 ml-2">{mat.descripcion}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Material Equivalente */}
-          <div>
-            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
-              {t('equivalencias_material_equivalente', 'Material Equivalente')} *
-            </label>
-            {selectedEquivalente ? (
-              <div className="flex items-center gap-2 p-3 bg-slate-50/70 border border-cyan-500/30 rounded-lg">
-                <Check className="h-4 w-4 text-emerald-600" />
-                <span className="font-mono text-cyan-600">{selectedEquivalente.codigo}</span>
-                <span className="text-sm text-slate-800">{selectedEquivalente.descripcion}</span>
-                <button
-                  type="button"
-                  onClick={() => { setSelectedEquivalente(null); setSearchEquivalente(''); setFormData(prev => ({ ...prev, codigo_equivalente: '' })) }}
-                  className="ml-auto p-1 hover:bg-slate-100/70 rounded"
-                >
-                  <X className="h-4 w-4 text-slate-500" />
-                </button>
-              </div>
-            ) : (
-              <div className="relative">
-                <Input
-                  value={searchEquivalente}
-                  onChange={(e) => setSearchEquivalente(e.target.value)}
-                  placeholder={t('equivalencias_buscar_material', 'Buscar material por código o descripción...')}
-                />
-                {loadingEquivalente && (
-                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-slate-500" />
-                )}
-                {equivalenteResults.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-white/30 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                    {equivalenteResults.map((mat) => (
-                      <button
-                        key={mat.codigo}
-                        type="button"
-                        onClick={() => selectEquivalente(mat)}
-                        className="w-full text-left px-4 py-2 hover:bg-slate-100/70 transition-colors"
-                      >
-                        <span className="font-mono text-sm text-cyan-600">{mat.codigo}</span>
-                        <span className="text-sm text-slate-800 ml-2">{mat.descripcion}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Compatibilidad */}
-          <div>
-            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
-              {t('equivalencias_compatibilidad', 'Porcentaje de Compatibilidad')} *
-            </label>
-            <div className="flex items-center gap-4">
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={formData.compatibilidad_pct}
-                onChange={(e) => setFormData(prev => ({ ...prev, compatibilidad_pct: parseInt(e.target.value) }))}
-                className="flex-1"
-              />
-              <div className="w-20">
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={formData.compatibilidad_pct}
-                  onChange={(e) => setFormData(prev => ({ ...prev, compatibilidad_pct: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) }))}
-                  className="text-center"
-                />
-              </div>
-              <CompatibilityBar percent={formData.compatibilidad_pct} showLabel={false} />
-            </div>
-          </div>
-
-          {/* Descripción */}
-          <div>
-            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
-              {t('equivalencias_descripcion', 'Descripción')}
-            </label>
-            <Input
-              value={formData.descripcion}
-              onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
-              placeholder={t('equivalencias_desc_placeholder', 'Descripción de la equivalencia...')}
-            />
-          </div>
-
-          {/* Notas */}
-          <div>
-            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
-              {t('equivalencias_notas', 'Notas')}
-            </label>
-            <textarea
-              value={formData.notas}
-              onChange={(e) => setFormData(prev => ({ ...prev, notas: e.target.value }))}
-              placeholder={t('equivalencias_notas_placeholder', 'Notas adicionales...')}
-              rows={2}
-              className="w-full px-3 py-2.5 rounded-xl border border-white/50 bg-white/50 backdrop-blur-sm text-sm text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all resize-none"
-            />
-          </div>
-
-          {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/30">
-            <Button variant="ghost" onClick={() => { setShowCreateModal(false); resetForm() }}>
-              {t('common_cancelar', 'Cancelar')}
-            </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={!formData.codigo_original || !formData.codigo_equivalente || formLoading}
-            >
-              {formLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Plus className="h-4 w-4 text-blue-600" />
-              )}
-              {t('equivalencias_crear', 'Crear Equivalencia')}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Edit Modal */}
-      <Modal
-        isOpen={showEditModal}
-        onClose={() => { setShowEditModal(false); resetForm() }}
-        title={t('equivalencias_editar_titulo', 'Editar Equivalencia')}
-        size="lg"
-      >
-        <div className="space-y-4">
-          {formError && (
-            <Alert variant="danger" size="sm">
-              {formError}
-            </Alert>
-          )}
-
-          {/* Show readonly material info */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-3 bg-slate-50/70 border border-white/30 rounded-lg">
-              <p className="text-xs text-slate-500 uppercase mb-1">Material Original</p>
-              <p className="font-mono text-blue-600">{formData.codigo_original}</p>
-            </div>
-            <div className="p-3 bg-slate-50/70 border border-white/30 rounded-lg">
-              <p className="text-xs text-slate-500 uppercase mb-1">Material Equivalente</p>
-              <p className="font-mono text-cyan-600">{formData.codigo_equivalente}</p>
-            </div>
-          </div>
-
-          {/* Compatibilidad */}
-          <div>
-            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
-              {t('equivalencias_compatibilidad', 'Porcentaje de Compatibilidad')}
-            </label>
-            <div className="flex items-center gap-4">
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={formData.compatibilidad_pct}
-                onChange={(e) => setFormData(prev => ({ ...prev, compatibilidad_pct: parseInt(e.target.value) }))}
-                className="flex-1"
-              />
-              <div className="w-20">
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={formData.compatibilidad_pct}
-                  onChange={(e) => setFormData(prev => ({ ...prev, compatibilidad_pct: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) }))}
-                  className="text-center"
-                />
-              </div>
-              <CompatibilityBar percent={formData.compatibilidad_pct} showLabel={false} />
-            </div>
-          </div>
-
-          {/* Descripción */}
-          <div>
-            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
-              {t('equivalencias_descripcion', 'Descripción')}
-            </label>
-            <Input
-              value={formData.descripcion}
-              onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
-              placeholder={t('equivalencias_desc_placeholder', 'Descripción de la equivalencia...')}
-            />
-          </div>
-
-          {/* Notas */}
-          <div>
-            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
-              {t('equivalencias_notas', 'Notas')}
-            </label>
-            <textarea
-              value={formData.notas}
-              onChange={(e) => setFormData(prev => ({ ...prev, notas: e.target.value }))}
-              placeholder={t('equivalencias_notas_placeholder', 'Notas adicionales...')}
-              rows={2}
-              className="w-full px-3 py-2.5 rounded-xl border border-white/50 bg-white/50 backdrop-blur-sm text-sm text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all resize-none"
-            />
-          </div>
-
-          {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/30">
-            <Button variant="ghost" onClick={() => { setShowEditModal(false); resetForm() }}>
-              {t('common_cancelar', 'Cancelar')}
-            </Button>
-            <Button onClick={handleUpdate} disabled={formLoading}>
-              {formLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Check className="h-4 w-4 text-emerald-500" />
-              )}
-              {t('equivalencias_guardar', 'Guardar Cambios')}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Delete Confirmation Modal */}
-      <ConfirmModal
-        isOpen={showDeleteModal}
-        onClose={() => { setShowDeleteModal(false); setSelectedEquivalencia(null) }}
-        onConfirm={handleDelete}
-        title={t('equivalencias_eliminar_titulo', 'Eliminar Equivalencia')}
-        description={
-          selectedEquivalencia
-            ? t('equivalencias_eliminar_confirm', `¿Estás seguro de eliminar la equivalencia entre ${selectedEquivalencia.codigo_original} y ${selectedEquivalencia.codigo_equivalente}?`)
-            : ''
-        }
-        confirmText={t('common_eliminar', 'Eliminar')}
-        cancelText={t('common_cancelar', 'Cancelar')}
-        variant="danger"
-        loading={formLoading}
-      />
-
-      {/* Material Detail Modal */}
-      <MaterialDetailModal
-        isOpen={showMaterialDetail}
-        onClose={closeMaterialDetail}
-        selectedMaterial={selectedMaterialForDetail}
-        detail={materialDetail}
-        loadingDetail={loadingMaterialDetail}
-      />
-    </div>
-  )
-}
-
-// Helper Component: Compatibility Bar
-function CompatibilityBar({ percent, showLabel = true }) {
-  let colorClass = 'text-emerald-600'
-  let bgClass = 'bg-emerald-500'
-  if (percent < 50) {
-    colorClass = 'text-red-600'
-    bgClass = 'bg-red-500'
-  } else if (percent < 80) {
-    colorClass = 'text-amber-600'
-    bgClass = 'bg-amber-500'
-  }
-
-  return (
-    <div className="flex items-center gap-2">
-      <div className="w-24 h-2 bg-slate-50/70 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all ${bgClass}`}
-          style={{ width: `${percent}%` }}
+        {/* Form Modal */}
+        <FormModal
+          open={showForm}
+          onClose={() => setShowForm(false)}
+          editingId={editingId}
+          formData={formData}
+          setFormData={setFormData}
+          formError={formError}
+          setFormError={setFormError}
+          formLoading={formLoading}
+          onSubmit={handleSubmit}
+          searchOriginal={searchOriginal}
+          setSearchOriginal={setSearchOriginal}
+          originalResults={originalResults}
+          loadingOriginal={loadingOriginal}
+          selectedOriginal={selectedOriginal}
+          selectOriginal={selectOriginal}
+          clearOriginal={() => {
+            setSelectedOriginal(null);
+            setFormData((prev) => ({ ...prev, codigo_original: "" }));
+          }}
+          searchEquivalente={searchEquivalente}
+          setSearchEquivalente={setSearchEquivalente}
+          equivalenteResults={equivalenteResults}
+          loadingEquivalente={loadingEquivalente}
+          selectedEquivalente={selectedEquivalente}
+          selectEquivalente={selectEquivalente}
+          clearEquivalente={() => {
+            setSelectedEquivalente(null);
+            setFormData((prev) => ({ ...prev, codigo_equivalente: "" }));
+          }}
+          t={t}
         />
-      </div>
-      {showLabel && (
-        <span className={`text-sm font-semibold ${colorClass}`}>
-          {percent}%
-        </span>
-      )}
-    </div>
-  )
+
+        {/* Delete Modal */}
+        <DeleteModal
+          open={deleteDialog.open}
+          item={deleteDialog.item}
+          onClose={() => setDeleteDialog({ open: false, item: null })}
+          onConfirm={handleDelete}
+          loading={formLoading}
+        />
+      </Box>
+    </Box>
+  );
 }

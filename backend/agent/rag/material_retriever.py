@@ -19,7 +19,9 @@ logger = logging.getLogger(__name__)
 
 # Rutas a bases de datos
 SAP_DATA_DB = Path("data/sap_data.db")
-CATALOGO_DB = Path("data/catalogo_materiales.db")
+MASTER_MATERIALES_DB = Path("data/master_materiales.db")
+# Alias para compatibilidad
+CATALOGO_DB = MASTER_MATERIALES_DB
 
 # Nombre de la colección para materiales
 MATERIALS_COLLECTION = "materiales"
@@ -197,18 +199,18 @@ class MaterialRetriever:
             conn.row_factory = sqlite3.Row
             cur = conn.cursor()
 
-            # Query optimizada para catálogo de materiales
+            # Query optimizada para catálogo de materiales (master_materiales.db)
             cur.execute("""
                 SELECT
-                    codigo,
+                    id_material as codigo,
                     descripcion,
                     descripcion_larga,
                     precio_usd,
                     grupo_articulos,
                     unidad_medida
-                FROM materiales
+                FROM catalogo_materiales
                 WHERE activo = 1
-                AND codigo IS NOT NULL
+                AND id_material IS NOT NULL
                 AND descripcion IS NOT NULL
             """)
 
@@ -413,11 +415,11 @@ class MaterialRetriever:
             db_path = CATALOGO_DB
             query = """
                 SELECT DISTINCT
-                    codigo,
+                    id_material as codigo,
                     descripcion,
                     unidad_medida
-                FROM materiales
-                WHERE codigo IS NOT NULL
+                FROM catalogo_materiales
+                WHERE id_material IS NOT NULL
                 AND descripcion IS NOT NULL
             """
         else:

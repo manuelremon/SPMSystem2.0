@@ -1,21 +1,33 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
-import {
-  CheckCircle,
-  XCircle,
-  Package,
-  Calendar,
-  MessageSquare,
-  RefreshCw,
-  AlertCircle,
-  Send,
-} from "../ui/Icons";
-import { Modal } from "../ui/Modal";
-import { Button } from "../ui/Button";
-import { Input } from "../ui/Input";
-import { Badge } from "../ui/Badge";
 import { useI18n } from "../../context/i18n";
 import api from "../../services/api";
+
+// MUI Components
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
+import TextField from "@mui/material/TextField";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import Stack from "@mui/material/Stack";
+import Chip from "@mui/material/Chip";
+import Alert from "@mui/material/Alert";
+import IconButton from "@mui/material/IconButton";
+
+// MUI Icons
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
+import InventoryIcon from "@mui/icons-material/Inventory";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import ChatIcon from "@mui/icons-material/Chat";
+import SyncIcon from "@mui/icons-material/Sync";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import SendIcon from "@mui/icons-material/Send";
+import CloseIcon from "@mui/icons-material/Close";
 
 /**
  * Opciones de respuesta a consulta de stock
@@ -170,300 +182,331 @@ export default function ResponderConsultaModal({ consulta, onClose, onSuccess })
   const opciones = [
     {
       id: OPCIONES_RESPUESTA.CONFIRMAR_TOTAL,
-      icon: CheckCircle,
+      icon: CheckCircleIcon,
       label: "Confirmar Total",
       desc: `Cedo las ${cantidadSolicitada} unidades solicitadas`,
-      color: "emerald",
+      color: "success",
     },
     {
       id: OPCIONES_RESPUESTA.CONFIRMAR_PARCIAL,
-      icon: AlertCircle,
+      icon: WarningAmberIcon,
       label: "Confirmar Parcial",
       desc: "Puedo ceder una cantidad menor",
-      color: "amber",
+      color: "warning",
     },
     {
       id: OPCIONES_RESPUESTA.CEDER_CON_DEVOLUCION,
-      icon: RefreshCw,
+      icon: SyncIcon,
       label: "Ceder con Devolucion",
       desc: "Cedo temporalmente, requiero devolucion",
-      color: "blue",
+      color: "info",
     },
     {
       id: OPCIONES_RESPUESTA.ENVIAR_MENSAJE,
-      icon: MessageSquare,
+      icon: ChatIcon,
       label: "Enviar Mensaje",
       desc: "Negociar o consultar antes de decidir",
-      color: "purple",
+      color: "secondary",
     },
     {
       id: OPCIONES_RESPUESTA.NO_DISPONIBLE,
-      icon: XCircle,
+      icon: CancelIcon,
       label: "No Disponible",
       desc: "No puedo ceder el material",
-      color: "red",
+      color: "error",
     },
   ];
 
-  const getColorClasses = (color, isSelected) => {
-    const colors = {
-      emerald: isSelected
-        ? "bg-emerald-600 text-white border-emerald-600"
-        : "border-[var(--border)] hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20",
-      amber: isSelected
-        ? "bg-amber-600 text-white border-amber-600"
-        : "border-[var(--border)] hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20",
-      blue: isSelected
-        ? "bg-blue-600 text-white border-blue-600"
-        : "border-[var(--border)] hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20",
-      purple: isSelected
-        ? "bg-purple-600 text-white border-purple-600"
-        : "border-[var(--border)] hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20",
-      red: isSelected
-        ? "bg-red-600 text-white border-red-600"
-        : "border-[var(--border)] hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-900/20",
+  const getOptionStyles = (color, isSelected) => {
+    const colorMap = {
+      success: { main: "success.main", light: "success.light", bg: "rgba(46, 125, 50, 0.08)" },
+      warning: { main: "warning.main", light: "warning.light", bg: "rgba(237, 108, 2, 0.08)" },
+      info: { main: "info.main", light: "info.light", bg: "rgba(2, 136, 209, 0.08)" },
+      secondary: { main: "secondary.main", light: "secondary.light", bg: "rgba(156, 39, 176, 0.08)" },
+      error: { main: "error.main", light: "error.light", bg: "rgba(211, 47, 47, 0.08)" },
     };
-    return colors[color] || colors.emerald;
+    const colors = colorMap[color] || colorMap.success;
+
+    if (isSelected) {
+      return {
+        bgcolor: colors.main,
+        color: "white",
+        borderColor: colors.main,
+        "&:hover": { bgcolor: colors.main },
+      };
+    }
+    return {
+      bgcolor: "background.paper",
+      borderColor: "divider",
+      "&:hover": { borderColor: colors.main, bgcolor: colors.bg },
+    };
   };
 
   return (
-    <Modal
-      isOpen={true}
+    <Dialog
+      open={true}
       onClose={onClose}
-      title={t("consulta_responder_titulo", "Responder Consulta de Stock")}
-      size="lg"
+      maxWidth="md"
+      fullWidth
+      PaperProps={{ sx: { borderRadius: 3 } }}
     >
-      <div className="space-y-5">
-        {/* Info de la consulta */}
-        <div className="bg-[var(--bg-soft)] p-4 rounded-xl border border-[var(--border)]">
-          <div className="flex items-center gap-2 mb-3">
-            <Package className="w-5 h-5 text-[var(--primary)]" />
-            <span className="font-semibold text-[var(--fg)]">
-              {t("consulta_solicitud", "Solicitud")} #{consulta.solicitud_id}
-            </span>
-            {consulta.criticidad && (
-              <Badge variant={consulta.criticidad === "alta" ? "danger" : "secondary"}>
-                {consulta.criticidad}
-              </Badge>
-            )}
-          </div>
+      <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+          {t("consulta_responder_titulo", "Responder Consulta de Stock")}
+        </Typography>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
 
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <span className="text-[var(--fg-muted)]">Centro/Almacen:</span>
-              <span className="ml-2 font-medium text-[var(--fg)]">
-                {consulta.centro_origen}/{consulta.almacen_origen}
-              </span>
-            </div>
-            <div>
-              <span className="text-[var(--fg-muted)]">Cantidad Solicitada:</span>
-              <span className="ml-2 font-medium text-[var(--fg)]">
-                {cantidadSolicitada} uds
-              </span>
-            </div>
-            {(consulta.material_id || materialInfo) && (
-              <div className="col-span-2">
-                <span className="text-[var(--fg-muted)]">Material:</span>
-                <span className="ml-2 font-medium text-[var(--fg)]">
-                  {consulta.material_id || materialInfo?.codigo} - {consulta.material_descripcion || materialInfo?.descripcion}
-                </span>
-              </div>
-            )}
-            <div className="col-span-2">
-              <span className="text-[var(--fg-muted)]">Solicitado por:</span>
-              <span className="ml-2 font-medium text-[var(--fg)]">
-                {consulta.planner_nombre || `Planificador #${consulta.planner_id}`}
-              </span>
-            </div>
-          </div>
-        </div>
+      <DialogContent>
+        <Stack spacing={3}>
+          {/* Info de la consulta */}
+          <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: "grey.50" }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+              <InventoryIcon sx={{ color: "primary.main" }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                {t("consulta_solicitud", "Solicitud")} #{consulta.solicitud_id}
+              </Typography>
+              {consulta.criticidad && (
+                <Chip
+                  label={consulta.criticidad}
+                  size="small"
+                  color={consulta.criticidad === "alta" ? "error" : "default"}
+                />
+              )}
+            </Box>
 
-        {/* Opciones de respuesta */}
-        <div>
-          <label className="block text-sm font-medium text-[var(--fg)] mb-3">
-            Selecciona tu respuesta:
-          </label>
-          <div className="grid grid-cols-1 gap-2">
-            {opciones.map((opcion) => {
-              const Icon = opcion.icon;
-              const isSelected = opcionSeleccionada === opcion.id;
-              return (
-                <button
-                  key={opcion.id}
-                  type="button"
-                  onClick={() => {
-                    setOpcionSeleccionada(opcion.id);
-                    setError("");
-                    // Reset cantidad al cambiar opcion
-                    if (opcion.id === OPCIONES_RESPUESTA.CONFIRMAR_TOTAL) {
-                      setCantidadConfirmada(cantidadSolicitada);
-                    }
-                  }}
-                  className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${getColorClasses(opcion.color, isSelected)}`}
-                >
-                  <Icon className={`w-5 h-5 flex-shrink-0 ${isSelected ? "" : `text-${opcion.color}-600`}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className={`font-medium ${isSelected ? "" : "text-[var(--fg)]"}`}>
-                      {opcion.label}
-                    </div>
-                    <div className={`text-xs ${isSelected ? "opacity-80" : "text-[var(--fg-muted)]"}`}>
-                      {opcion.desc}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 1.5 }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Centro/Almacen:</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  {consulta.centro_origen}/{consulta.almacen_origen}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Cantidad Solicitada:</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  {cantidadSolicitada} uds
+                </Typography>
+              </Box>
+              {(consulta.material_id || materialInfo) && (
+                <Box sx={{ gridColumn: "span 2" }}>
+                  <Typography variant="caption" color="text.secondary">Material:</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {consulta.material_id || materialInfo?.codigo} - {consulta.material_descripcion || materialInfo?.descripcion}
+                  </Typography>
+                </Box>
+              )}
+              <Box sx={{ gridColumn: "span 2" }}>
+                <Typography variant="caption" color="text.secondary">Solicitado por:</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  {consulta.planner_nombre || `Planificador #${consulta.planner_id}`}
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
 
-        {/* Campos adicionales segun opcion */}
-        {opcionSeleccionada === OPCIONES_RESPUESTA.CONFIRMAR_PARCIAL && (
-          <div className="space-y-4 p-4 rounded-xl bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800">
-            <div>
-              <label className="block text-sm font-medium text-[var(--fg)] mb-1.5">
-                Cantidad que puedo ceder *
-              </label>
-              <Input
-                type="number"
-                min="1"
-                max={cantidadSolicitada - 1}
-                value={cantidadConfirmada}
-                onChange={(e) => setCantidadConfirmada(e.target.value)}
-                placeholder={`Maximo ${cantidadSolicitada - 1}`}
-              />
-              <p className="mt-1 text-xs text-[var(--fg-muted)]">
-                Se solicitaron {cantidadSolicitada} unidades
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[var(--fg)] mb-1.5">
-                <Calendar className="w-4 h-4 inline mr-1" />
-                Fecha disponibilidad (opcional)
-              </label>
-              <Input
-                type="date"
-                value={fechaDisponibilidad}
-                onChange={(e) => setFechaDisponibilidad(e.target.value)}
-              />
-            </div>
-          </div>
-        )}
+          {/* Opciones de respuesta */}
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
+              Selecciona tu respuesta:
+            </Typography>
+            <Stack spacing={1}>
+              {opciones.map((opcion) => {
+                const Icon = opcion.icon;
+                const isSelected = opcionSeleccionada === opcion.id;
+                return (
+                  <Paper
+                    key={opcion.id}
+                    component="button"
+                    type="button"
+                    onClick={() => {
+                      setOpcionSeleccionada(opcion.id);
+                      setError("");
+                      if (opcion.id === OPCIONES_RESPUESTA.CONFIRMAR_TOTAL) {
+                        setCantidadConfirmada(cantidadSolicitada);
+                      }
+                    }}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 2,
+                      p: 1.5,
+                      borderRadius: 2,
+                      border: 2,
+                      textAlign: "left",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      ...getOptionStyles(opcion.color, isSelected),
+                    }}
+                  >
+                    <Icon sx={{ fontSize: 24, color: isSelected ? "inherit" : `${opcion.color}.main` }} />
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {opcion.label}
+                      </Typography>
+                      <Typography variant="caption" sx={{ opacity: isSelected ? 0.8 : 0.7 }}>
+                        {opcion.desc}
+                      </Typography>
+                    </Box>
+                  </Paper>
+                );
+              })}
+            </Stack>
+          </Box>
 
-        {opcionSeleccionada === OPCIONES_RESPUESTA.CEDER_CON_DEVOLUCION && (
-          <div className="space-y-4 p-4 rounded-xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800">
-            <div>
-              <label className="block text-sm font-medium text-[var(--fg)] mb-1.5">
-                Cantidad a ceder temporalmente
-              </label>
-              <Input
-                type="number"
-                min="1"
-                max={cantidadSolicitada}
-                value={cantidadConfirmada}
-                onChange={(e) => setCantidadConfirmada(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[var(--fg)] mb-1.5">
-                <Calendar className="w-4 h-4 inline mr-1" />
-                Fecha esperada de devolucion *
-              </label>
-              <Input
-                type="date"
-                value={fechaDevolucion}
-                onChange={(e) => setFechaDevolucion(e.target.value)}
-                min={new Date().toISOString().split("T")[0]}
-              />
-            </div>
-            <p className="text-xs text-blue-600 dark:text-blue-400">
-              El solicitante sera notificado del compromiso de devolucion
-            </p>
-          </div>
-        )}
+          {/* Campos adicionales segun opcion */}
+          {opcionSeleccionada === OPCIONES_RESPUESTA.CONFIRMAR_PARCIAL && (
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: "rgba(237, 108, 2, 0.05)", borderColor: "warning.light" }}>
+              <Stack spacing={2}>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                    Cantidad que puedo ceder *
+                  </Typography>
+                  <TextField
+                    type="number"
+                    size="small"
+                    fullWidth
+                    inputProps={{ min: 1, max: cantidadSolicitada - 1 }}
+                    value={cantidadConfirmada}
+                    onChange={(e) => setCantidadConfirmada(e.target.value)}
+                    placeholder={`Maximo ${cantidadSolicitada - 1}`}
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+                    Se solicitaron {cantidadSolicitada} unidades
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1, display: "flex", alignItems: "center", gap: 0.5 }}>
+                    <CalendarTodayIcon sx={{ fontSize: 16 }} />
+                    Fecha disponibilidad (opcional)
+                  </Typography>
+                  <TextField
+                    type="date"
+                    size="small"
+                    fullWidth
+                    value={fechaDisponibilidad}
+                    onChange={(e) => setFechaDisponibilidad(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Box>
+              </Stack>
+            </Paper>
+          )}
 
-        {opcionSeleccionada === OPCIONES_RESPUESTA.CONFIRMAR_TOTAL && (
-          <div className="p-4 rounded-xl bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800">
-            <div>
-              <label className="block text-sm font-medium text-[var(--fg)] mb-1.5">
-                <Calendar className="w-4 h-4 inline mr-1" />
-                Fecha disponibilidad (opcional)
-              </label>
-              <Input
-                type="date"
-                value={fechaDisponibilidad}
-                onChange={(e) => setFechaDisponibilidad(e.target.value)}
-              />
-              <p className="mt-1 text-xs text-[var(--fg-muted)]">
-                Indica cuando estara listo para ser retirado/transferido
-              </p>
-            </div>
-          </div>
-        )}
+          {opcionSeleccionada === OPCIONES_RESPUESTA.CEDER_CON_DEVOLUCION && (
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: "rgba(2, 136, 209, 0.05)", borderColor: "info.light" }}>
+              <Stack spacing={2}>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                    Cantidad a ceder temporalmente
+                  </Typography>
+                  <TextField
+                    type="number"
+                    size="small"
+                    fullWidth
+                    inputProps={{ min: 1, max: cantidadSolicitada }}
+                    value={cantidadConfirmada}
+                    onChange={(e) => setCantidadConfirmada(e.target.value)}
+                  />
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1, display: "flex", alignItems: "center", gap: 0.5 }}>
+                    <CalendarTodayIcon sx={{ fontSize: 16 }} />
+                    Fecha esperada de devolucion *
+                  </Typography>
+                  <TextField
+                    type="date"
+                    size="small"
+                    fullWidth
+                    value={fechaDevolucion}
+                    onChange={(e) => setFechaDevolucion(e.target.value)}
+                    inputProps={{ min: new Date().toISOString().split("T")[0] }}
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Box>
+                <Typography variant="caption" color="info.main">
+                  El solicitante sera notificado del compromiso de devolucion
+                </Typography>
+              </Stack>
+            </Paper>
+          )}
 
-        {/* Comentario/Mensaje */}
-        {opcionSeleccionada && (
-          <div>
-            <label className="block text-sm font-medium text-[var(--fg)] mb-1.5">
-              <MessageSquare className="w-4 h-4 inline mr-1" />
-              {opcionSeleccionada === OPCIONES_RESPUESTA.ENVIAR_MENSAJE
-                ? "Mensaje para el planificador *"
-                : opcionSeleccionada === OPCIONES_RESPUESTA.NO_DISPONIBLE
-                  ? "Motivo del rechazo *"
-                  : "Notas adicionales (opcional)"}
-            </label>
-            <textarea
-              className="w-full bg-[var(--card)] rounded-xl px-4 py-3 text-sm text-[var(--fg)] placeholder:text-[var(--fg-muted)] border border-[var(--border)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 focus:outline-none transition-all duration-200 resize-none"
-              placeholder={
-                opcionSeleccionada === OPCIONES_RESPUESTA.ENVIAR_MENSAJE
-                  ? "Escribe tu consulta o propuesta..."
+          {opcionSeleccionada === OPCIONES_RESPUESTA.CONFIRMAR_TOTAL && (
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: "rgba(46, 125, 50, 0.05)", borderColor: "success.light" }}>
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 1, display: "flex", alignItems: "center", gap: 0.5 }}>
+                  <CalendarTodayIcon sx={{ fontSize: 16 }} />
+                  Fecha disponibilidad (opcional)
+                </Typography>
+                <TextField
+                  type="date"
+                  size="small"
+                  fullWidth
+                  value={fechaDisponibilidad}
+                  onChange={(e) => setFechaDisponibilidad(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                />
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+                  Indica cuando estara listo para ser retirado/transferido
+                </Typography>
+              </Box>
+            </Paper>
+          )}
+
+          {/* Comentario/Mensaje */}
+          {opcionSeleccionada && (
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1, display: "flex", alignItems: "center", gap: 0.5 }}>
+                <ChatIcon sx={{ fontSize: 16 }} />
+                {opcionSeleccionada === OPCIONES_RESPUESTA.ENVIAR_MENSAJE
+                  ? "Mensaje para el planificador *"
                   : opcionSeleccionada === OPCIONES_RESPUESTA.NO_DISPONIBLE
-                    ? "Indica el motivo (material comprometido, stock critico, etc.)..."
-                    : "Notas adicionales sobre la disponibilidad..."
-              }
-              value={comentario}
-              onChange={(e) => setComentario(e.target.value)}
-              rows={3}
-            />
-          </div>
-        )}
+                    ? "Motivo del rechazo *"
+                    : "Notas adicionales (opcional)"}
+              </Typography>
+              <TextField
+                multiline
+                rows={3}
+                fullWidth
+                size="small"
+                placeholder={
+                  opcionSeleccionada === OPCIONES_RESPUESTA.ENVIAR_MENSAJE
+                    ? "Escribe tu consulta o propuesta..."
+                    : opcionSeleccionada === OPCIONES_RESPUESTA.NO_DISPONIBLE
+                      ? "Indica el motivo (material comprometido, stock critico, etc.)..."
+                      : "Notas adicionales sobre la disponibilidad..."
+                }
+                value={comentario}
+                onChange={(e) => setComentario(e.target.value)}
+              />
+            </Box>
+          )}
 
-        {/* Error message */}
-        {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm border border-red-200 dark:border-red-800">
-            {error}
-          </div>
-        )}
+          {/* Error message */}
+          {error && (
+            <Alert severity="error" sx={{ borderRadius: 2 }}>
+              {error}
+            </Alert>
+          )}
+        </Stack>
+      </DialogContent>
 
-        {/* Submit button */}
-        <div className="flex justify-end gap-3 pt-2">
-          <Button variant="secondary" onClick={onClose} disabled={loading}>
-            {t("common_cancel", "Cancelar")}
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleSubmit}
-            disabled={!opcionSeleccionada || loading}
-          >
-            {loading ? (
-              <>
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                Enviando...
-              </>
-            ) : opcionSeleccionada === OPCIONES_RESPUESTA.ENVIAR_MENSAJE ? (
-              <>
-                <Send className="w-4 h-4 mr-2" />
-                Enviar Mensaje
-              </>
-            ) : (
-              <>
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Confirmar Respuesta
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-    </Modal>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button variant="outlined" onClick={onClose} disabled={loading}>
+          {t("common_cancel", "Cancelar")}
+        </Button>
+        <Button
+          variant="contained"
+          onClick={handleSubmit}
+          disabled={!opcionSeleccionada || loading}
+          startIcon={loading ? <SyncIcon sx={{ animation: "spin 1s linear infinite", "@keyframes spin": { "0%": { transform: "rotate(0deg)" }, "100%": { transform: "rotate(360deg)" } } }} /> : opcionSeleccionada === OPCIONES_RESPUESTA.ENVIAR_MENSAJE ? <SendIcon /> : <CheckCircleIcon />}
+        >
+          {loading ? "Enviando..." : opcionSeleccionada === OPCIONES_RESPUESTA.ENVIAR_MENSAJE ? "Enviar Mensaje" : "Confirmar Respuesta"}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 

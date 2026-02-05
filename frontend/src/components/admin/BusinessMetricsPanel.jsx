@@ -4,48 +4,93 @@
  * Muestra contadores de solicitudes, usuarios y materiales
  */
 
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card'
-import { Tooltip } from '../ui/Tooltip'
-import { FileText, Clock, Users, Package, TrendingUp, CheckCircle, HelpCircle } from '../ui/Icons'
+import { Box, Paper, Typography, Stack, Skeleton, Tooltip } from '@mui/material'
+import DescriptionIcon from '@mui/icons-material/Description'
+import AccessTimeIcon from '@mui/icons-material/AccessTime'
+import PeopleIcon from '@mui/icons-material/People'
+import InventoryIcon from '@mui/icons-material/Inventory'
+import TrendingUpIcon from '@mui/icons-material/TrendingUp'
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 
 /**
  * Tarjeta de metrica individual con tooltip
  */
 function MetricCard({ title, value, icon: Icon, variant = 'default', subtitle, tooltip }) {
   const variants = {
-    default: 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200',
-    primary: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
-    success: 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300',
-    warning: 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300',
-    danger: 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300',
+    default: {
+      bgcolor: 'grey.50',
+      borderColor: 'grey.200',
+      color: 'text.primary',
+    },
+    primary: {
+      bgcolor: 'primary.50',
+      borderColor: 'primary.200',
+      color: 'primary.dark',
+    },
+    success: {
+      bgcolor: 'success.50',
+      borderColor: 'success.200',
+      color: 'success.dark',
+    },
+    warning: {
+      bgcolor: 'warning.50',
+      borderColor: 'warning.200',
+      color: 'warning.dark',
+    },
+    danger: {
+      bgcolor: 'error.50',
+      borderColor: 'error.200',
+      color: 'error.dark',
+    },
   }
 
+  const styles = variants[variant] || variants.default
+
   return (
-    <div className={`border rounded-lg p-4 ${variants[variant]}`}>
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-1">
-            <p className="text-xs font-medium opacity-70 uppercase tracking-wide">
+    <Box
+      sx={{
+        border: 1,
+        borderColor: styles.borderColor,
+        borderRadius: 2,
+        p: 2,
+        bgcolor: styles.bgcolor,
+        color: styles.color,
+      }}
+    >
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+        <Box>
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 500,
+                opacity: 0.7,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}
+            >
               {title}
-            </p>
+            </Typography>
             {tooltip && (
-              <Tooltip content={tooltip} position="top">
-                <HelpCircle className="w-3 h-3 opacity-50 cursor-help" />
+              <Tooltip title={tooltip} placement="top">
+                <HelpOutlineIcon sx={{ fontSize: 12, opacity: 0.5, cursor: 'help' }} />
               </Tooltip>
             )}
-          </div>
-          <p className="text-2xl font-bold mt-1">
+          </Stack>
+          <Typography variant="h5" sx={{ fontWeight: 700, mt: 0.5 }}>
             {typeof value === 'number' ? value.toLocaleString() : value}
-          </p>
+          </Typography>
           {subtitle && (
-            <p className="text-xs opacity-60 mt-1">{subtitle}</p>
+            <Typography variant="caption" sx={{ opacity: 0.6, mt: 0.5, display: 'block' }}>
+              {subtitle}
+            </Typography>
           )}
-        </div>
-        <div className="opacity-50">
-          <Icon className="w-6 h-6" />
-        </div>
-      </div>
-    </div>
+        </Box>
+        <Box sx={{ opacity: 0.5 }}>
+          <Icon sx={{ fontSize: 24 }} />
+        </Box>
+      </Stack>
+    </Box>
   )
 }
 
@@ -60,12 +105,12 @@ function EstadosChart({ estados }) {
 
   // Colores por estado
   const estadoColors = {
-    'Borrador': '#94a3b8',
-    'Enviada': '#3b82f6',
-    'En Revision': '#f59e0b',
-    'En Revisión': '#f59e0b',
-    'Aprobada': '#10b981',
-    'Rechazada': '#ef4444',
+    'Borrador': 'var(--fg-subtle)',
+    'Enviada': 'var(--primary)',
+    'En Revision': 'var(--warning)',
+    'En Revisión': 'var(--warning)',
+    'Aprobada': 'var(--success)',
+    'Rechazada': 'var(--danger)',
     'En Planificacion': '#8b5cf6',
     'En Planificación': '#8b5cf6',
     'Despachada': '#06b6d4',
@@ -73,41 +118,62 @@ function EstadosChart({ estados }) {
   }
 
   return (
-    <div className="mt-4">
-      <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Distribucion por estado</p>
-      <div className="h-3 rounded-full overflow-hidden flex bg-slate-100 dark:bg-slate-700">
+    <Box sx={{ mt: 2 }}>
+      <Typography variant="caption" sx={{ color: 'text.secondary', mb: 1, display: 'block' }}>
+        Distribucion por estado
+      </Typography>
+      <Box
+        sx={{
+          height: 12,
+          borderRadius: 6,
+          overflow: 'hidden',
+          display: 'flex',
+          bgcolor: 'grey.100',
+        }}
+      >
         {Object.entries(estados).map(([estado, count]) => {
           const width = (count / total) * 100
           if (width < 1) return null
           return (
-            <div
-              key={estado}
-              style={{
-                width: `${width}%`,
-                backgroundColor: estadoColors[estado] || '#94a3b8',
-              }}
-              title={`${estado}: ${count}`}
-              className="h-full"
-            />
+            <Tooltip key={estado} title={`${estado}: ${count}`}>
+              <Box
+                sx={{
+                  width: `${width}%`,
+                  height: '100%',
+                  bgcolor: estadoColors[estado] || 'var(--fg-subtle)',
+                }}
+              />
+            </Tooltip>
           )
         })}
-      </div>
-      <div className="flex flex-wrap gap-2 mt-2">
+      </Box>
+      <Stack direction="row" flexWrap="wrap" spacing={1} sx={{ mt: 1 }}>
         {Object.entries(estados).map(([estado, count]) => (
-          <span
+          <Stack
             key={estado}
-            className="text-xs flex items-center gap-1"
-            style={{ color: estadoColors[estado] || '#94a3b8' }}
+            direction="row"
+            alignItems="center"
+            spacing={0.5}
+            sx={{ typography: 'caption' }}
           >
-            <span
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: estadoColors[estado] || '#94a3b8' }}
+            <Box
+              sx={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                bgcolor: estadoColors[estado] || 'var(--fg-subtle)',
+              }}
             />
-            {estado}: {count}
-          </span>
+            <Typography
+              variant="caption"
+              sx={{ color: estadoColors[estado] || 'var(--fg-subtle)' }}
+            >
+              {estado}: {count}
+            </Typography>
+          </Stack>
         ))}
-      </div>
-    </div>
+      </Stack>
+    </Box>
   )
 }
 
@@ -117,65 +183,83 @@ function EstadosChart({ estados }) {
 export function BusinessMetricsPanel({ data, isLoading = false }) {
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-blue-500" />
-            Metricas de Negocio
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="animate-pulse space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-24 bg-slate-100 dark:bg-slate-700 rounded-lg" />
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <Paper elevation={0} sx={{ border: 1, borderColor: 'divider' }}>
+        <Box sx={{ px: 2, pt: 2, pb: 1.5 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <TrendingUpIcon sx={{ fontSize: 20, color: 'primary.main' }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+              Metricas de Negocio
+            </Typography>
+          </Stack>
+        </Box>
+        <Box sx={{ px: 2, pb: 2 }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+              gap: 2,
+            }}
+          >
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} variant="rounded" height={96} />
+            ))}
+          </Box>
+        </Box>
+      </Paper>
     )
   }
 
   if (!data) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-blue-500" />
-            Metricas de Negocio
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-slate-500 dark:text-slate-400">No hay datos disponibles</p>
-        </CardContent>
-      </Card>
+      <Paper elevation={0} sx={{ border: 1, borderColor: 'divider' }}>
+        <Box sx={{ px: 2, pt: 2, pb: 1.5 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <TrendingUpIcon sx={{ fontSize: 20, color: 'primary.main' }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+              Metricas de Negocio
+            </Typography>
+          </Stack>
+        </Box>
+        <Box sx={{ px: 2, pb: 2 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            No hay datos disponibles
+          </Typography>
+        </Box>
+      </Paper>
     )
   }
 
   const { solicitudes = {}, usuarios = {}, materiales = {} } = data
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-blue-500" />
-          Metricas de Negocio
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <Paper elevation={0} sx={{ border: 1, borderColor: 'divider' }}>
+      <Box sx={{ px: 2, pt: 2, pb: 1.5 }}>
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <TrendingUpIcon sx={{ fontSize: 20, color: 'primary.main' }} />
+          <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+            Metricas de Negocio
+          </Typography>
+        </Stack>
+      </Box>
+      <Box sx={{ px: 2, pb: 2 }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+            gap: 2,
+          }}
+        >
           <MetricCard
             title="Solicitudes Hoy"
             value={solicitudes.hoy || 0}
-            icon={FileText}
+            icon={DescriptionIcon}
             variant="primary"
             tooltip="Cantidad de solicitudes de materiales creadas en el dia actual"
           />
           <MetricCard
             title="Pendientes"
             value={solicitudes.pendientes || 0}
-            icon={Clock}
+            icon={AccessTimeIcon}
             variant={solicitudes.pendientes > 10 ? 'warning' : 'default'}
             subtitle={solicitudes.pendientes > 10 ? 'Requiere atencion' : null}
             tooltip="Solicitudes en estado 'Enviada' esperando aprobacion o revision"
@@ -183,7 +267,7 @@ export function BusinessMetricsPanel({ data, isLoading = false }) {
           <MetricCard
             title="Usuarios Activos (24h)"
             value={usuarios.activos_24h || 0}
-            icon={Users}
+            icon={PeopleIcon}
             variant="success"
             subtitle={`${usuarios.total || 0} total`}
             tooltip="Usuarios unicos que iniciaron sesion en las ultimas 24 horas"
@@ -191,24 +275,35 @@ export function BusinessMetricsPanel({ data, isLoading = false }) {
           <MetricCard
             title="Materiales (Mes)"
             value={materiales.unicos_mes || 0}
-            icon={Package}
+            icon={InventoryIcon}
             subtitle="Unicos solicitados"
             tooltip="Cantidad de materiales distintos (por codigo SAP) solicitados en los ultimos 30 dias"
           />
-        </div>
+        </Box>
 
         {/* Grafico de estados */}
         <EstadosChart estados={solicitudes.por_estado} />
 
         {/* Resumen */}
-        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-500 dark:text-slate-400">Total solicitudes:</span>
-            <span className="font-medium text-slate-800 dark:text-slate-100">{solicitudes.total || 0}</span>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        <Box
+          sx={{
+            mt: 2,
+            pt: 2,
+            borderTop: 1,
+            borderColor: 'divider',
+          }}
+        >
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              Total solicitudes:
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              {solicitudes.total || 0}
+            </Typography>
+          </Stack>
+        </Box>
+      </Box>
+    </Paper>
   )
 }
 

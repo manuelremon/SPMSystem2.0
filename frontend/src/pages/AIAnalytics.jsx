@@ -10,65 +10,138 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import {
-  Brain,
-  Sparkles,
-  TrendingUp,
-  AlertCircle,
-  CheckCircle,
-  RefreshCw,
-  ChevronDown,
-  Zap,
-  Target,
-  BarChart3,
-  Clock,
-  XCircle,
-  AlertTriangle,
-  Filter
-} from '../components/ui/Icons'
+import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../context/i18n'
 import aiService from '../services/ai'
 import slaService from '../services/sla'
 import { useAuthStore } from '../store/authStore'
-import { MetricCard } from '../components/ui/MetricCard'
-import { ProgressCircle, ProgressBar, MiniBarChart } from '../components/ui/Charts'
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
-import { Badge } from '../components/ui/Badge'
-import { PageHeader } from '../components/ui/PageHeader'
-import { Button } from '../components/ui/Button'
-import { Skeleton } from '../components/ui/Skeleton'
-import { Alert } from '../components/ui/Alert'
+
+// Chart.js Components
+import { SPMDoughnut } from '../components/ui/SPMChartJS'
+
+// MUI Components
+import Container from '@mui/material/Container'
+import Paper from '@mui/material/Paper'
+import Typography from '@mui/material/Typography'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import IconButton from '@mui/material/IconButton'
+import Alert from '@mui/material/Alert'
+import Tabs from '@mui/material/Tabs'
+import Tab from '@mui/material/Tab'
+import FormControl from '@mui/material/FormControl'
+import InputLabel from '@mui/material/InputLabel'
+import Select from '@mui/material/Select'
+import MenuItem from '@mui/material/MenuItem'
+import Chip from '@mui/material/Chip'
+import CircularProgress from '@mui/material/CircularProgress'
+import Skeleton from '@mui/material/Skeleton'
+import LinearProgress from '@mui/material/LinearProgress'
+
+// MUI Icons
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import PsychologyIcon from '@mui/icons-material/Psychology'
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
+import TrendingUpIcon from '@mui/icons-material/TrendingUp'
+import WarningAmberIcon from '@mui/icons-material/WarningAmber'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import RefreshIcon from '@mui/icons-material/Refresh'
+import BoltIcon from '@mui/icons-material/Bolt'
+import GpsFixedIcon from '@mui/icons-material/GpsFixed'
+import BarChartIcon from '@mui/icons-material/BarChart'
+import AccessTimeIcon from '@mui/icons-material/AccessTime'
+import CancelIcon from '@mui/icons-material/Cancel'
+
+// Periodos disponibles para SLA
+const PERIODOS = [
+  { value: 7, label: '7 días' },
+  { value: 30, label: '30 días' },
+  { value: 90, label: '90 días' }
+]
 
 // Colores por score de prioridad
 const getScoreColor = (score) => {
-  if (score >= 0.8) return 'text-red-600'
-  if (score >= 0.5) return 'text-amber-600'
-  return 'text-emerald-600'
+  if (score >= 0.8) return 'var(--danger)'
+  if (score >= 0.5) return 'var(--warning-light)'
+  return 'var(--success)'
 }
 
 // Colores por tipo de alerta SLA
 const ALERT_COLORS = {
-  warning: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', badge: 'warning' },
-  breach: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', badge: 'danger' },
-  escalated: { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', badge: 'info' }
+  warning: { bg: 'var(--warning-bg)', border: 'var(--warning-border)', text: 'var(--warning-text)', chip: 'warning' },
+  breach: { bg: 'var(--danger-bg)', border: 'var(--danger-border)', text: 'var(--danger-text)', chip: 'error' },
+  escalated: { bg: 'var(--purple-bg-light)', border: 'var(--purple)', text: 'var(--purple-dark)', chip: 'secondary' }
 }
-
-// Periodos disponibles para SLA
-const PERIODOS = [
-  { value: 7, label: '7 dias' },
-  { value: 30, label: '30 dias' },
-  { value: 90, label: '90 dias' }
-]
 
 // Color del porcentaje de cumplimiento
 const getCumplimientoColor = (porcentaje) => {
-  if (porcentaje >= 90) return '#10B981' // green
-  if (porcentaje >= 70) return '#F59E0B' // amber
-  return '#EF4444' // red
+  if (porcentaje >= 90) return 'var(--success)'
+  if (porcentaje >= 70) return 'var(--warning-light)'
+  return 'var(--danger)'
 }
+
+// Componente MetricCard MUI
+const MetricCard = ({ icon: Icon, label, value, color = 'var(--primary)', highlight = false }) => (
+  <Paper
+    elevation={0}
+    sx={{
+      p: 2.5,
+      border: highlight ? `2px solid ${color}` : "1px solid var(--border)",
+      borderRadius: 2,
+      bgcolor: highlight ? `${color}08` : "var(--card)"
+    }}
+  >
+    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+      <Box sx={{
+        p: 1.5,
+        bgcolor: `${color}15`,
+        borderRadius: 2,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }}>
+        <Icon sx={{ fontSize: 24, color }} />
+      </Box>
+      <Box>
+        <Typography variant="h5" fontWeight={700} color="var(--fg-strong)">
+          {value}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          {label}
+        </Typography>
+      </Box>
+    </Box>
+  </Paper>
+)
+
+// Componente ProgressCircle (usando Chart.js SPMDoughnut)
+const ProgressCircle = ({ percentage, size = 140, color = 'var(--primary)', label }) => (
+  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+    <SPMDoughnut
+      data={[
+        { label: 'Cumplimiento', value: percentage, color: color },
+        { label: 'Restante', value: 100 - percentage, color: 'var(--border)' }
+      ]}
+      height={size}
+      centerText={`${percentage}%`}
+      options={{
+        plugins: {
+          legend: { display: false },
+          tooltip: { enabled: false }
+        }
+      }}
+    />
+    {label && (
+      <Typography variant="body2" fontWeight={500} color="text.secondary" sx={{ mt: 1 }}>
+        {label}
+      </Typography>
+    )}
+  </Box>
+)
 
 export default function AIAnalytics() {
   const { t } = useI18n()
+  const navigate = useNavigate()
   const { user } = useAuthStore()
 
   // Estado AI
@@ -80,7 +153,7 @@ export default function AIAnalytics() {
   const [metricasSLA, setMetricasSLA] = useState(null)
   const [alertasSLA, setAlertasSLA] = useState([])
   const [periodoDias, setPeriodoDias] = useState(30)
-  const [tipoFiltroSLA, setTipoFiltroSLA] = useState(null)
+  const [tipoFiltroSLA, setTipoFiltroSLA] = useState('')
 
   // Estado general
   const [isLoading, setIsLoading] = useState(true)
@@ -88,8 +161,8 @@ export default function AIAnalytics() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isTraining, setIsTraining] = useState(false)
 
-  // Tab activa (ai o sla)
-  const [activeTab, setActiveTab] = useState('ai')
+  // Tab activa (0=AI, 1=SLA)
+  const [activeTab, setActiveTab] = useState(0)
 
   // Centro del usuario
   const centro = user?.centro || '1000'
@@ -100,13 +173,12 @@ export default function AIAnalytics() {
     else setIsLoading(true)
 
     try {
-      // Cargar AI y SLA en paralelo
       const [statusData, solicitudesData, alertasIAData, metricasSLAData, alertasSLAData] = await Promise.all([
         aiService.getStatus().catch(() => null),
         aiService.priorizarSolicitudes({ limit: 10 }).catch(() => []),
         aiService.getAlertasInteligentes(centro).catch(() => []),
         slaService.getMetricas({ periodoDias, porCriticidad: true }).catch(() => null),
-        slaService.getAlertas({ tipo: tipoFiltroSLA }).catch(() => [])
+        slaService.getAlertas({ tipo: tipoFiltroSLA || undefined }).catch(() => [])
       ])
 
       setStatus(statusData)
@@ -124,18 +196,15 @@ export default function AIAnalytics() {
     }
   }, [centro, periodoDias, tipoFiltroSLA, t])
 
-  // Cargar al montar
   useEffect(() => {
     fetchData()
   }, [fetchData])
 
-  // Auto-refresh cada 60 segundos
   useEffect(() => {
     const interval = setInterval(() => fetchData(true), 60000)
     return () => clearInterval(interval)
   }, [fetchData])
 
-  // Entrenar modelos
   const handleTrain = async () => {
     setIsTraining(true)
     try {
@@ -149,7 +218,6 @@ export default function AIAnalytics() {
     }
   }
 
-  // Resolver alerta SLA
   const handleResolverAlertaSLA = async (alertaId) => {
     try {
       await slaService.resolverAlerta(alertaId)
@@ -159,526 +227,578 @@ export default function AIAnalytics() {
     }
   }
 
-  // Estado del pipeline como texto
   const getPipelineStatus = (pipelineStatus) => {
-    if (!pipelineStatus) return { text: 'No disponible', variant: 'default' }
+    if (!pipelineStatus) return { text: 'No disponible', color: 'var(--fg-subtle)' }
     if (pipelineStatus === 'fitted' || pipelineStatus === 'ready') {
-      return { text: 'Listo', variant: 'success' }
+      return { text: 'Listo', color: 'var(--success)' }
     }
     if (pipelineStatus === 'training') {
-      return { text: 'Entrenando', variant: 'warning' }
+      return { text: 'Entrenando', color: 'var(--warning-light)' }
     }
-    return { text: 'Pendiente', variant: 'default' }
+    return { text: 'Pendiente', color: 'var(--fg-subtle)' }
   }
-
-  // Datos para grafico SLA por criticidad
-  const chartDataSLA = metricasSLA?.por_criticidad?.map(c => c.on_time) || []
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <PageHeader
-          title={t('ai_dashboard', 'IA Analytics')}
-          subtitle={t('ai_subtitle', 'Inteligencia artificial, ML y metricas SLA')}
-        />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => (
-            <Skeleton key={i} className="h-24 rounded-xl" />
+      <Container maxWidth={false} sx={{ py: 2, px: "75px" }}>
+        <Box sx={{ mb: 3 }}>
+          <Skeleton variant="text" width={300} height={40} />
+        </Box>
+        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2, mb: 3 }}>
+          {[1, 2, 3].map(i => (
+            <Skeleton key={i} variant="rectangular" height={100} sx={{ borderRadius: 2 }} />
           ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Skeleton className="h-80 rounded-xl" />
-          <Skeleton className="h-80 rounded-xl" />
-        </div>
-      </div>
+        </Box>
+        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}>
+          <Skeleton variant="rectangular" height={350} sx={{ borderRadius: 2 }} />
+          <Skeleton variant="rectangular" height={350} sx={{ borderRadius: 2 }} />
+        </Box>
+      </Container>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <Container maxWidth={false} sx={{ py: 2, px: "75px" }}>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <PageHeader
-          title={t('ai_dashboard', 'IA Analytics')}
-          subtitle={t('ai_subtitle', 'Inteligencia artificial, ML y metricas SLA')}
-        />
+      <Box sx={{ mb: 2, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "var(--fg-muted)" }}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {t('ai_dashboard', 'IA ANALYTICS')}
+          </Typography>
+        </Box>
 
-        <div className="flex items-center gap-3">
-          {/* Selector de periodo SLA */}
-          {activeTab === 'sla' && (
-            <div className="relative">
-              <select
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          {activeTab === 1 && (
+            <FormControl size="small" sx={{ minWidth: 130 }}>
+              <InputLabel sx={{ fontSize: "0.75rem" }}>Período</InputLabel>
+              <Select
                 value={periodoDias}
                 onChange={(e) => setPeriodoDias(Number(e.target.value))}
-                className="appearance-none bg-white border border-slate-200 rounded-lg px-4 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                label="Período"
+                sx={{ fontSize: "0.75rem" }}
               >
                 {PERIODOS.map(p => (
-                  <option key={p.value} value={p.value}>{p.label}</option>
+                  <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>
                 ))}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-            </div>
+              </Select>
+            </FormControl>
           )}
 
-          {/* Boton entrenar (solo admin/planner) */}
-          {(user?.rol === 'admin' || user?.rol === 'planificador' || user?.rol === 'administrador') && activeTab === 'ai' && (
+          {(user?.rol === 'admin' || user?.rol === 'planificador' || user?.rol === 'administrador') && activeTab === 0 && (
             <Button
-              variant="outline"
-              size="sm"
+              variant="outlined"
+              size="small"
               onClick={handleTrain}
               disabled={isTraining}
+              startIcon={isTraining ? <CircularProgress size={16} /> : <BoltIcon />}
+              sx={{ color: isTraining ? undefined : "var(--warning-light)", borderColor: isTraining ? undefined : "var(--warning-light)" }}
             >
-              {isTraining ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  {t('ai_training', 'Entrenando...')}
-                </>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4 mr-2 text-amber-500" />
-                  {t('ai_train', 'Entrenar')}
-                </>
-              )}
+              {isTraining ? t('ai_training', 'Entrenando...') : t('ai_train', 'Entrenar')}
             </Button>
           )}
 
-          {/* Boton refresh */}
-          <Button
-            variant="ghost"
-            size="sm"
+          <IconButton
             onClick={() => fetchData(true)}
             disabled={isRefreshing}
+            size="small"
+            sx={{ color: "var(--fg-muted)" }}
           >
-            <RefreshCw className={`w-4 h-4 text-blue-600 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </Button>
-        </div>
-      </div>
+            <RefreshIcon className={isRefreshing ? 'animate-spin' : ''} />
+          </IconButton>
+        </Box>
+      </Box>
 
-      {/* Error */}
       {error && (
-        <Alert variant="destructive">{error}</Alert>
+        <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>
       )}
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-200">
-        <button
-          onClick={() => setActiveTab('ai')}
-          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
-            activeTab === 'ai'
-              ? 'border-purple-500 text-purple-600'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
-          }`}
+      <Box sx={{ mb: 3 }}>
+        <Tabs
+          value={activeTab}
+          onChange={(e, v) => setActiveTab(v)}
+          sx={{
+            minHeight: 44,
+            bgcolor: "var(--card)",
+            borderRadius: "8px 8px 0 0",
+            borderBottom: "2px solid var(--border)",
+            "& .MuiTab-root": {
+              minHeight: 44,
+              textTransform: "none",
+              fontWeight: 600,
+              fontSize: "0.875rem",
+              color: "var(--fg-muted)",
+              "&.Mui-selected": { color: "var(--primary)" },
+              "&:hover": { color: "var(--primary)", bgcolor: "var(--primary-bg-light)" },
+            },
+            "& .MuiTabs-indicator": { bgcolor: "var(--primary)", height: 3 },
+          }}
         >
-          <Brain className="w-4 h-4 inline mr-2" />
-          ML & IA
-        </button>
-        <button
-          onClick={() => setActiveTab('sla')}
-          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
-            activeTab === 'sla'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <Clock className="w-4 h-4 inline mr-2" />
-          SLA
-        </button>
-      </div>
+          <Tab label="ML & IA" disableRipple />
+          <Tab label="SLA" disableRipple />
+        </Tabs>
+      </Box>
 
       {/* ======================= TAB: ML & IA ======================= */}
-      {activeTab === 'ai' && (
+      {activeTab === 0 && (
         <>
           {/* Estado de Pipelines */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <MetricCard
-              icon={Brain}
-              label={t('ai_clustering', 'Clustering')}
-              value={getPipelineStatus(status?.clustering?.status).text}
-              variant={getPipelineStatus(status?.clustering?.status).variant === 'success' ? 'success' : 'default'}
-            />
-            <MetricCard
-              icon={Target}
-              label={t('ai_scoring', 'Scoring')}
-              value={getPipelineStatus(status?.scoring?.status).text}
-              variant={getPipelineStatus(status?.scoring?.status).variant === 'success' ? 'success' : 'default'}
-            />
-            <MetricCard
-              icon={TrendingUp}
-              label={t('ai_forecast', 'Forecast')}
-              value={getPipelineStatus(status?.forecast?.status).text}
-              variant={getPipelineStatus(status?.forecast?.status).variant === 'success' ? 'success' : 'default'}
-            />
-          </div>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" }, gap: 2, mb: 3 }}>
+            <Paper elevation={0} sx={{ p: 2.5, border: "1px solid var(--border)", borderRadius: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Box sx={{ p: 1.5, bgcolor: "var(--purple-bg-light)", borderRadius: 2 }}>
+                  <PsychologyIcon sx={{ fontSize: 24, color: "var(--purple-dark)" }} />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="body2" color="text.secondary">{t('ai_clustering', 'Clustering')}</Typography>
+                  <Typography variant="h6" fontWeight={600} sx={{ color: getPipelineStatus(status?.clustering?.status).color }}>
+                    {getPipelineStatus(status?.clustering?.status).text}
+                  </Typography>
+                </Box>
+              </Box>
+            </Paper>
+
+            <Paper elevation={0} sx={{ p: 2.5, border: "1px solid var(--border)", borderRadius: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Box sx={{ p: 1.5, bgcolor: "var(--warning-bg)", borderRadius: 2 }}>
+                  <GpsFixedIcon sx={{ fontSize: 24, color: "var(--warning-light)" }} />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="body2" color="text.secondary">{t('ai_scoring', 'Scoring')}</Typography>
+                  <Typography variant="h6" fontWeight={600} sx={{ color: getPipelineStatus(status?.scoring?.status).color }}>
+                    {getPipelineStatus(status?.scoring?.status).text}
+                  </Typography>
+                </Box>
+              </Box>
+            </Paper>
+
+            <Paper elevation={0} sx={{ p: 2.5, border: "1px solid var(--border)", borderRadius: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Box sx={{ p: 1.5, bgcolor: "var(--success-bg)", borderRadius: 2 }}>
+                  <TrendingUpIcon sx={{ fontSize: 24, color: "var(--success)" }} />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="body2" color="text.secondary">{t('ai_forecast', 'Forecast')}</Typography>
+                  <Typography variant="h6" fontWeight={600} sx={{ color: getPipelineStatus(status?.forecast?.status).color }}>
+                    {getPipelineStatus(status?.forecast?.status).text}
+                  </Typography>
+                </Box>
+              </Box>
+            </Paper>
+          </Box>
 
           {/* Info de entrenamiento */}
           {status?.pipelines_trained && status?.last_training_date && (
-            <Alert variant="info" className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-purple-500" />
-              {t('ai_last_training', 'Ultimo entrenamiento')}:{' '}
+            <Alert severity="info" icon={<AutoAwesomeIcon />} sx={{ mb: 3 }}>
+              {t('ai_last_training', 'Último entrenamiento')}:{' '}
               {new Date(status.last_training_date).toLocaleString()}
             </Alert>
           )}
 
           {/* Contenido principal AI */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 3 }}>
             {/* Solicitudes Priorizadas */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-pink-500" />
-                  {t('ai_prioridad', 'Solicitudes Priorizadas')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+            <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2 }}>
+              <Box sx={{ p: 2.5, borderBottom: "1px solid var(--border)" }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  <BarChartIcon sx={{ color: "var(--chart-8)" }} />
+                  <Typography variant="subtitle1" fontWeight={600} color="var(--fg-strong)">
+                    {t('ai_prioridad', 'Solicitudes Priorizadas')}
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{ p: 2.5, maxHeight: 380, overflowY: "auto" }}>
                 {solicitudesPriorizadas.length === 0 ? (
-                  <div className="text-center py-8 text-slate-500">
-                    <Brain className="w-12 h-12 mx-auto mb-3 text-purple-300" />
-                    <p>{t('ai_no_solicitudes', 'Sin solicitudes pendientes')}</p>
-                  </div>
+                  <Box sx={{ textAlign: "center", py: 6 }}>
+                    <PsychologyIcon sx={{ fontSize: 48, color: "var(--purple-light)", mb: 1.5 }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {t('ai_no_solicitudes', 'Sin solicitudes pendientes')}
+                    </Typography>
+                  </Box>
                 ) : (
-                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
                     {solicitudesPriorizadas.map((sol, idx) => (
-                      <div
+                      <Paper
                         key={sol.id || idx}
-                        className="p-3 bg-slate-50 rounded-lg border border-slate-100"
+                        elevation={0}
+                        sx={{ p: 2, bgcolor: "var(--bg)", border: "1px solid var(--border)", borderRadius: 1.5 }}
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-sm font-medium text-slate-700">
+                        <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                          <Box sx={{ flex: 1 }}>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                              <Typography variant="body2" fontWeight={600} color="var(--fg-strong)">
                                 #{sol.id}
-                              </span>
+                              </Typography>
                               {sol.criticidad && (
-                                <Badge variant={
-                                  sol.criticidad === 'alta' ? 'danger' :
-                                  sol.criticidad === 'media' ? 'warning' : 'default'
-                                }>
-                                  {sol.criticidad}
-                                </Badge>
+                                <Chip
+                                  label={sol.criticidad}
+                                  size="small"
+                                  sx={{
+                                    height: 20,
+                                    fontSize: "0.65rem",
+                                    bgcolor: sol.criticidad === 'alta' ? 'var(--danger-bg)' : sol.criticidad === 'media' ? 'var(--warning-bg)' : 'var(--bg-soft)',
+                                    color: sol.criticidad === 'alta' ? 'var(--danger-text)' : sol.criticidad === 'media' ? 'var(--warning-text)' : 'var(--fg-muted)'
+                                  }}
+                                />
                               )}
-                            </div>
+                            </Box>
                             {sol.razon && (
-                              <p className="text-xs text-slate-500 mt-1">
+                              <Typography variant="caption" color="text.secondary" display="block">
                                 {sol.razon}
-                              </p>
+                              </Typography>
                             )}
                             {sol.recomendacion && (
-                              <p className="text-xs text-blue-600 mt-1 font-medium">
+                              <Typography variant="caption" color="var(--primary)" fontWeight={500} display="block" sx={{ mt: 0.5 }}>
                                 {sol.recomendacion}
-                              </p>
+                              </Typography>
                             )}
-                          </div>
-                          <div className="text-right">
+                          </Box>
+                          <Box sx={{ textAlign: "right", ml: 2 }}>
                             {sol.score !== undefined && (
-                              <div className={`text-lg font-bold ${getScoreColor(sol.score)}`}>
+                              <Typography variant="h6" fontWeight={700} sx={{ color: getScoreColor(sol.score) }}>
                                 {Math.round(sol.score * 100)}%
-                              </div>
+                              </Typography>
                             )}
-                            <span className="text-xs text-slate-400">
-                              {t('ai_score', 'Score')}
-                            </span>
-                          </div>
-                        </div>
+                            <Typography variant="caption" color="text.secondary">Score</Typography>
+                          </Box>
+                        </Box>
                         {sol.score !== undefined && (
-                          <div className="mt-2">
-                            <ProgressBar
-                              value={sol.score * 100}
-                              max={100}
-                              height={4}
-                              color={sol.score >= 0.8 ? '#EF4444' : sol.score >= 0.5 ? '#F59E0B' : '#10B981'}
-                            />
-                          </div>
+                          <LinearProgress
+                            variant="determinate"
+                            value={sol.score * 100}
+                            sx={{
+                              mt: 1.5,
+                              height: 4,
+                              borderRadius: 2,
+                              bgcolor: "var(--border)",
+                              "& .MuiLinearProgress-bar": {
+                                bgcolor: getScoreColor(sol.score),
+                                borderRadius: 2
+                              }
+                            }}
+                          />
                         )}
-                      </div>
+                      </Paper>
                     ))}
-                  </div>
+                  </Box>
                 )}
-              </CardContent>
-            </Card>
+              </Box>
+            </Paper>
 
             {/* Alertas Inteligentes */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 text-amber-500" />
-                  {t('ai_alertas', 'Alertas Inteligentes')}
-                  {alertasIA.length > 0 && (
-                    <Badge variant="warning">{alertasIA.length}</Badge>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {alertasIA.length === 0 ? (
-                  <div className="text-center py-8 text-slate-500">
-                    <CheckCircle className="w-12 h-12 mx-auto mb-3 text-emerald-300" />
-                    <p>{t('ai_no_alertas', 'Sin alertas detectadas')}</p>
-                    <p className="text-xs mt-1 text-slate-400">
-                      {t('ai_alertas_hint', 'Los modelos ML analizan patrones automaticamente')}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3 max-h-80 overflow-y-auto">
-                    {alertasIA.map((alerta, idx) => (
-                      <div
-                        key={alerta.id || idx}
-                        className={`p-3 rounded-lg border ${
-                          alerta.severidad === 'alta' || alerta.severity === 'high'
-                            ? 'bg-red-50 border-red-200'
-                            : alerta.severidad === 'media' || alerta.severity === 'medium'
-                            ? 'bg-amber-50 border-amber-200'
-                            : 'bg-blue-50 border-blue-200'
-                        }`}
-                      >
-                        <div className="flex items-start gap-2">
-                          <AlertCircle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-                            alerta.severidad === 'alta' || alerta.severity === 'high'
-                              ? 'text-red-500'
-                              : alerta.severidad === 'media' || alerta.severity === 'medium'
-                              ? 'text-amber-500'
-                              : 'text-blue-500'
-                          }`} />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-slate-700">
-                              {alerta.titulo || alerta.title || alerta.mensaje || alerta.message}
-                            </p>
-                            {(alerta.descripcion || alerta.description) && (
-                              <p className="text-xs text-slate-500 mt-1">
-                                {alerta.descripcion || alerta.description}
-                              </p>
-                            )}
-                            {(alerta.recomendacion || alerta.recommendation) && (
-                              <p className="text-xs text-blue-600 mt-1 font-medium">
-                                {alerta.recomendacion || alerta.recommendation}
-                              </p>
-                            )}
-                          </div>
-                          <Badge variant={
-                            alerta.severidad === 'alta' || alerta.severity === 'high' ? 'danger' :
-                            alerta.severidad === 'media' || alerta.severity === 'medium' ? 'warning' : 'info'
-                          }>
-                            {alerta.severidad || alerta.severity || 'info'}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+            <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2 }}>
+              <Box sx={{ p: 2.5, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  <WarningAmberIcon sx={{ color: "var(--warning-light)" }} />
+                  <Typography variant="subtitle1" fontWeight={600} color="var(--fg-strong)">
+                    {t('ai_alertas', 'Alertas Inteligentes')}
+                  </Typography>
+                </Box>
+                {alertasIA.length > 0 && (
+                  <Chip label={alertasIA.length} size="small" color="warning" />
                 )}
-              </CardContent>
-            </Card>
-          </div>
+              </Box>
+              <Box sx={{ p: 2.5, maxHeight: 380, overflowY: "auto" }}>
+                {alertasIA.length === 0 ? (
+                  <Box sx={{ textAlign: "center", py: 6 }}>
+                    <CheckCircleIcon sx={{ fontSize: 48, color: "var(--success-light)", mb: 1.5 }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {t('ai_no_alertas', 'Sin alertas detectadas')}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+                      {t('ai_alertas_hint', 'Los modelos ML analizan patrones automáticamente')}
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                    {alertasIA.map((alerta, idx) => {
+                      const severity = alerta.severidad || alerta.severity || 'info'
+                      const isHigh = severity === 'alta' || severity === 'high'
+                      const isMedium = severity === 'media' || severity === 'medium'
+                      return (
+                        <Paper
+                          key={alerta.id || idx}
+                          elevation={0}
+                          sx={{
+                            p: 2,
+                            bgcolor: isHigh ? 'var(--danger-bg)' : isMedium ? 'var(--warning-bg)' : 'var(--info-bg)',
+                            border: `1px solid ${isHigh ? 'var(--danger-border)' : isMedium ? 'var(--warning-border)' : 'var(--info-border)'}`,
+                            borderRadius: 1.5
+                          }}
+                        >
+                          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+                            <WarningAmberIcon
+                              sx={{
+                                fontSize: 18,
+                                mt: 0.25,
+                                color: isHigh ? 'var(--danger)' : isMedium ? 'var(--warning-light)' : 'var(--primary)'
+                              }}
+                            />
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="body2" fontWeight={500} color="var(--fg-strong)">
+                                {alerta.titulo || alerta.title || alerta.mensaje || alerta.message}
+                              </Typography>
+                              {(alerta.descripcion || alerta.description) && (
+                                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                                  {alerta.descripcion || alerta.description}
+                                </Typography>
+                              )}
+                              {(alerta.recomendacion || alerta.recommendation) && (
+                                <Typography variant="caption" color="var(--primary)" fontWeight={500} display="block" sx={{ mt: 0.5 }}>
+                                  {alerta.recomendacion || alerta.recommendation}
+                                </Typography>
+                              )}
+                            </Box>
+                            <Chip
+                              label={severity}
+                              size="small"
+                              sx={{
+                                height: 20,
+                                fontSize: "0.65rem",
+                                bgcolor: isHigh ? 'var(--danger-bg)' : isMedium ? 'var(--warning-bg)' : 'var(--info-bg)',
+                                color: isHigh ? 'var(--danger-text)' : isMedium ? 'var(--warning-text)' : 'var(--info-text)'
+                              }}
+                            />
+                          </Box>
+                        </Paper>
+                      )
+                    })}
+                  </Box>
+                )}
+              </Box>
+            </Paper>
+          </Box>
         </>
       )}
 
       {/* ======================= TAB: SLA ======================= */}
-      {activeTab === 'sla' && (
+      {activeTab === 1 && (
         <>
           {/* Metricas SLA principales */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2, mb: 3 }}>
             <MetricCard
-              icon={Clock}
+              icon={AccessTimeIcon}
               label={t('sla_total', 'Total Solicitudes')}
               value={metricasSLA?.total_solicitudes || 0}
-              variant="primary"
+              color="var(--primary)"
             />
             <MetricCard
-              icon={CheckCircle}
+              icon={CheckCircleIcon}
               label={t('sla_on_time', 'A Tiempo')}
               value={metricasSLA?.on_time || 0}
-              variant="success"
+              color="var(--success)"
             />
             <MetricCard
-              icon={AlertTriangle}
+              icon={WarningAmberIcon}
               label={t('sla_warning', 'En Riesgo')}
               value={metricasSLA?.warning || 0}
-              variant="warning"
+              color="var(--warning-light)"
               highlight={metricasSLA?.warning > 0}
             />
             <MetricCard
-              icon={XCircle}
+              icon={CancelIcon}
               label={t('sla_breach', 'Incumplidas')}
               value={metricasSLA?.breach || 0}
-              variant="danger"
+              color="var(--danger)"
               highlight={metricasSLA?.breach > 0}
             />
-          </div>
+          </Box>
 
           {/* Graficos SLA */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 3, mb: 3 }}>
             {/* Cumplimiento general */}
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('sla_cumplimiento', 'Cumplimiento General')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-center py-4">
-                  <ProgressCircle
-                    percentage={Math.round(metricasSLA?.porcentaje_cumplimiento || 0)}
-                    size={160}
-                    strokeWidth={12}
-                    color={getCumplimientoColor(metricasSLA?.porcentaje_cumplimiento || 0)}
-                    label={t('sla_cumplimiento', 'Cumplimiento')}
-                  />
-                </div>
-                <div className="mt-4 text-center text-sm text-slate-500">
-                  {t('sla_periodo', 'Periodo')}: {t('sla_ultimos', 'Ultimos')} {periodoDias} {t('sla_dias', 'dias')}
-                </div>
-              </CardContent>
-            </Card>
+            <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2 }}>
+              <Box sx={{ p: 2.5, borderBottom: "1px solid var(--border)" }}>
+                <Typography variant="subtitle1" fontWeight={600} color="var(--fg-strong)">
+                  {t('sla_cumplimiento', 'Cumplimiento General')}
+                </Typography>
+              </Box>
+              <Box sx={{ p: 4, display: "flex", justifyContent: "center" }}>
+                <ProgressCircle
+                  percentage={Math.round(metricasSLA?.porcentaje_cumplimiento || 0)}
+                  size={160}
+                  color={getCumplimientoColor(metricasSLA?.porcentaje_cumplimiento || 0)}
+                  label={t('sla_cumplimiento', 'Cumplimiento')}
+                />
+              </Box>
+              <Box sx={{ px: 2.5, pb: 2.5, textAlign: "center" }}>
+                <Typography variant="caption" color="text.secondary">
+                  {t('sla_periodo', 'Período')}: {t('sla_ultimos', 'Últimos')} {periodoDias} {t('sla_dias', 'días')}
+                </Typography>
+              </Box>
+            </Paper>
 
             {/* Por criticidad */}
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('sla_por_criticidad', 'Por Criticidad')}</CardTitle>
-              </CardHeader>
-              <CardContent>
+            <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2 }}>
+              <Box sx={{ p: 2.5, borderBottom: "1px solid var(--border)" }}>
+                <Typography variant="subtitle1" fontWeight={600} color="var(--fg-strong)">
+                  {t('sla_por_criticidad', 'Por Criticidad')}
+                </Typography>
+              </Box>
+              <Box sx={{ p: 2.5 }}>
                 {metricasSLA?.por_criticidad?.length > 0 ? (
-                  <div className="space-y-4">
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                     {metricasSLA.por_criticidad.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Badge variant={
-                            item.criticidad === 'alta' ? 'danger' :
-                            item.criticidad === 'media' ? 'warning' : 'default'
-                          }>
-                            {item.criticidad}
-                          </Badge>
-                          <span className="text-sm text-slate-600">
+                      <Box key={idx} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                          <Chip
+                            label={item.criticidad}
+                            size="small"
+                            sx={{
+                              height: 22,
+                              fontSize: "0.7rem",
+                              bgcolor: item.criticidad === 'alta' ? 'var(--danger-bg)' : item.criticidad === 'media' ? 'var(--warning-bg)' : 'var(--bg-soft)',
+                              color: item.criticidad === 'alta' ? 'var(--danger-text)' : item.criticidad === 'media' ? 'var(--warning-text)' : 'var(--fg-muted)'
+                            }}
+                          />
+                          <Typography variant="body2" color="text.secondary">
                             {item.total} {t('sla_solicitudes', 'solicitudes')}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-emerald-600">
-                            {item.on_time} {t('sla_on_time_short', 'OK')}
-                          </span>
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                          <Typography variant="body2" fontWeight={500} color="var(--success)">
+                            {item.on_time} OK
+                          </Typography>
                           {item.breach > 0 && (
-                            <span className="text-sm font-medium text-red-600">
-                              {item.breach} {t('sla_breach_short', 'SLA')}
-                            </span>
+                            <Typography variant="body2" fontWeight={500} color="var(--danger)">
+                              {item.breach} SLA
+                            </Typography>
                           )}
-                        </div>
-                      </div>
+                        </Box>
+                      </Box>
                     ))}
-
-                    {/* Mini chart */}
-                    {chartDataSLA.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-slate-100">
-                        <p className="text-xs text-slate-500 mb-2">{t('sla_chart_label', 'A tiempo por criticidad')}</p>
-                        <MiniBarChart data={chartDataSLA} color="#10B981" height={48} />
-                      </div>
-                    )}
-                  </div>
+                  </Box>
                 ) : (
-                  <div className="text-center text-slate-500 py-8">
-                    {t('sla_no_data', 'Sin datos de criticidad')}
-                  </div>
+                  <Box sx={{ textAlign: "center", py: 6 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      {t('sla_no_data', 'Sin datos de criticidad')}
+                    </Typography>
+                  </Box>
                 )}
-              </CardContent>
-            </Card>
-          </div>
+              </Box>
+            </Paper>
+          </Box>
 
           {/* Alertas SLA activas */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-amber-500" />
+          <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2 }}>
+            <Box sx={{ p: 2.5, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                <WarningAmberIcon sx={{ color: "var(--warning-light)" }} />
+                <Typography variant="subtitle1" fontWeight={600} color="var(--fg-strong)">
                   {t('sla_alertas_activas', 'Alertas SLA Activas')}
-                  {alertasSLA.length > 0 && (
-                    <Badge variant="danger">{alertasSLA.length}</Badge>
-                  )}
-                </CardTitle>
+                </Typography>
+                {alertasSLA.length > 0 && (
+                  <Chip label={alertasSLA.length} size="small" color="error" />
+                )}
+              </Box>
 
-                {/* Filtro de tipo */}
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-slate-500" />
-                  <select
-                    value={tipoFiltroSLA || ''}
-                    onChange={(e) => setTipoFiltroSLA(e.target.value || null)}
-                    className="text-sm border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">{t('sla_todos', 'Todos')}</option>
-                    <option value="warning">Warning</option>
-                    <option value="breach">Breach</option>
-                    <option value="escalated">Escalated</option>
-                  </select>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
+              <FormControl size="small" sx={{ minWidth: 120 }}>
+                <Select
+                  value={tipoFiltroSLA}
+                  onChange={(e) => setTipoFiltroSLA(e.target.value)}
+                  displayEmpty
+                  sx={{ fontSize: "0.75rem" }}
+                >
+                  <MenuItem value="">{t('sla_todos', 'Todos')}</MenuItem>
+                  <MenuItem value="warning">Warning</MenuItem>
+                  <MenuItem value="breach">Breach</MenuItem>
+                  <MenuItem value="escalated">Escalated</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ p: 2.5, maxHeight: 350, overflowY: "auto" }}>
               {alertasSLA.length === 0 ? (
-                <div className="text-center py-8 text-slate-500">
-                  <CheckCircle className="w-12 h-12 mx-auto mb-3 text-emerald-300" />
-                  <p>{t('sla_sin_alertas', 'No hay alertas activas')}</p>
-                </div>
+                <Box sx={{ textAlign: "center", py: 6 }}>
+                  <CheckCircleIcon sx={{ fontSize: 48, color: "var(--success-light)", mb: 1.5 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {t('sla_sin_alertas', 'No hay alertas activas')}
+                  </Typography>
+                </Box>
               ) : (
-                <div className="space-y-3 max-h-80 overflow-y-auto">
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
                   {alertasSLA.map((alerta) => {
                     const colors = ALERT_COLORS[alerta.tipo] || ALERT_COLORS.warning
                     return (
-                      <div
+                      <Paper
                         key={alerta.id}
-                        className={`p-4 rounded-lg border ${colors.bg} ${colors.border}`}
+                        elevation={0}
+                        sx={{
+                          p: 2,
+                          bgcolor: colors.bg,
+                          border: `1px solid ${colors.border}`,
+                          borderRadius: 1.5
+                        }}
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge variant={colors.badge}>
-                                {alerta.tipo?.toUpperCase()}
-                              </Badge>
-                              <span className="text-sm font-medium text-slate-700">
+                        <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                          <Box sx={{ flex: 1 }}>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                              <Chip
+                                label={alerta.tipo?.toUpperCase()}
+                                size="small"
+                                color={colors.chip}
+                                sx={{ height: 20, fontSize: "0.65rem" }}
+                              />
+                              <Typography variant="body2" fontWeight={500} color="var(--fg-strong)">
                                 {t('sla_solicitud', 'Solicitud')} #{alerta.solicitud_id}
-                              </span>
-                            </div>
-                            <p className={`text-sm ${colors.text}`}>
+                              </Typography>
+                            </Box>
+                            <Typography variant="body2" sx={{ color: colors.text }}>
                               {alerta.mensaje || t('sla_alerta_default', 'Alerta de SLA activa')}
-                            </p>
+                            </Typography>
                             {alerta.tiempo_transcurrido_horas && (
-                              <p className="text-xs text-slate-500 mt-1">
+                              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
                                 {t('sla_tiempo_transcurrido', 'Tiempo transcurrido')}:{' '}
                                 {Math.round(alerta.tiempo_transcurrido_horas)}h /{' '}
                                 {alerta.tiempo_objetivo_horas}h {t('sla_objetivo', 'objetivo')}
-                              </p>
+                              </Typography>
                             )}
-                          </div>
+                          </Box>
                           <Button
-                            size="sm"
-                            variant="ghost"
+                            size="small"
+                            variant="text"
                             onClick={() => handleResolverAlertaSLA(alerta.id)}
-                            className="text-slate-600 hover:text-emerald-600"
+                            startIcon={<CheckCircleIcon />}
+                            sx={{ color: "var(--success)", ml: 2, whiteSpace: "nowrap" }}
                           >
-                            <CheckCircle className="w-4 h-4 mr-1" />
                             {t('sla_resolver', 'Resolver')}
                           </Button>
-                        </div>
-                      </div>
+                        </Box>
+                      </Paper>
                     )
                   })}
-                </div>
+                </Box>
               )}
-            </CardContent>
-          </Card>
+            </Box>
+          </Paper>
         </>
       )}
 
       {/* Info adicional */}
-      <Card>
-        <CardContent className="py-4">
-          <div className="flex items-center justify-between text-sm text-slate-500">
-            <div className="flex items-center gap-2">
-              <Brain className="w-4 h-4 text-purple-500" />
-              <span>{t('ai_powered_by', 'Potenciado por ML')}</span>
-            </div>
-            <div className="flex items-center gap-4">
-              {status?.cache_size !== undefined && (
-                <span>Cache: {status.cache_size} {t('ai_items', 'items')}</span>
-              )}
-              {metricasSLA?.total_solicitudes !== undefined && (
-                <span>SLA: {metricasSLA.total_solicitudes} solicitudes</span>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+      <Paper elevation={0} sx={{ mt: 3, p: 2, border: "1px solid var(--border)", borderRadius: 2 }}>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <PsychologyIcon sx={{ fontSize: 18, color: "var(--purple-dark)" }} />
+            <Typography variant="caption" color="text.secondary">
+              {t('ai_powered_by', 'Potenciado por ML')}
+            </Typography>
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
+            {status?.cache_size !== undefined && (
+              <Typography variant="caption" color="text.secondary">
+                Cache: {status.cache_size} {t('ai_items', 'items')}
+              </Typography>
+            )}
+            {metricasSLA?.total_solicitudes !== undefined && (
+              <Typography variant="caption" color="text.secondary">
+                SLA: {metricasSLA.total_solicitudes} solicitudes
+              </Typography>
+            )}
+          </Box>
+        </Box>
+      </Paper>
+    </Container>
   )
 }

@@ -183,9 +183,9 @@ def obtener_regla_aprobacion(
                 SELECT * FROM reglas_aprobacion
                 WHERE activo = 1
                     AND criticidad = ?
-                    AND (monto_minimo_usd <= ? OR monto_minimo_usd IS NULL)
-                    AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)
-                ORDER BY nivel_aprobacion DESC
+                    AND (monto_minimo <= ? OR monto_minimo IS NULL)
+                    AND (monto_maximo >= ? OR monto_maximo IS NULL)
+                ORDER BY nivel DESC
                 LIMIT 1
             """,
                 (criticidad, monto_usd, monto_usd),
@@ -201,9 +201,9 @@ def obtener_regla_aprobacion(
                 SELECT * FROM reglas_aprobacion
                 WHERE activo = 1
                     AND centro = ?
-                    AND (monto_minimo_usd <= ? OR monto_minimo_usd IS NULL)
-                    AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)
-                ORDER BY nivel_aprobacion DESC
+                    AND (monto_minimo <= ? OR monto_minimo IS NULL)
+                    AND (monto_maximo >= ? OR monto_maximo IS NULL)
+                ORDER BY nivel DESC
                 LIMIT 1
             """,
                 (centro, monto_usd, monto_usd),
@@ -213,7 +213,7 @@ def obtener_regla_aprobacion(
                 return dict(row)
 
         # Buscar regla general por monto
-        # Prioriza reglas con monto_minimo_usd mas alto (mas especificas)
+        # Prioriza reglas con monto_minimo mas alto (mas especificas)
         # Excluye la regla Admin (que cubre todo el rango) a menos que sea la unica
         cursor.execute(
             """
@@ -222,10 +222,10 @@ def obtener_regla_aprobacion(
                 AND centro IS NULL
                 AND sector IS NULL
                 AND criticidad IS NULL
-                AND monto_minimo_usd <= ?
-                AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)
-                AND LOWER(posicion_requerida) != 'admin'
-            ORDER BY monto_minimo_usd DESC
+                AND monto_minimo <= ?
+                AND (monto_maximo >= ? OR monto_maximo IS NULL)
+                AND LOWER(rol_aprobador) != 'admin'
+            ORDER BY monto_minimo DESC
             LIMIT 1
         """,
             (monto_usd, monto_usd),
@@ -239,9 +239,9 @@ def obtener_regla_aprobacion(
                 """
                 SELECT * FROM reglas_aprobacion
                 WHERE activo = 1
-                    AND LOWER(posicion_requerida) = 'admin'
-                    AND monto_minimo_usd <= ?
-                    AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)
+                    AND LOWER(rol_aprobador) = 'admin'
+                    AND monto_minimo <= ?
+                    AND (monto_maximo >= ? OR monto_maximo IS NULL)
                 LIMIT 1
             """,
                 (monto_usd, monto_usd),
@@ -321,7 +321,7 @@ def puede_aprobar(
         cursor = conn.cursor()
 
         # Obtener rol y posicion del usuario
-        cursor.execute("SELECT rol, posicion FROM usuarios WHERE id_spm = ?", (usuario_id,))
+        cursor.execute("SELECT rol, posicion FROM usuario WHERE id_spm = ?", (usuario_id,))
         user_row = cursor.fetchone()
         if not user_row:
             return {"puede_aprobar": False, "razon": "Usuario no encontrado"}
@@ -353,8 +353,8 @@ def puede_aprobar(
             "razon": "No hay regla de aprobacion definida para este monto",
         }
 
-    # Usar posicion_requerida si existe
-    posicion_requerida = regla.get("posicion_requerida") or regla.get("rol_requerido", "admin")
+    # Usar rol_aprobador de la tabla, con fallbacks por backward compatibility
+    posicion_requerida = regla.get("rol_aprobador") or regla.get("posicion_requerida") or regla.get("rol_requerido", "admin")
 
     # Verificar si el usuario tiene el ROL de aprobador
     if "aprobador_solicitudes" not in rol_usuario:
@@ -362,7 +362,7 @@ def puede_aprobar(
             "puede_aprobar": False,
             "posicion_usuario": posicion_usuario,
             "posicion_requerida": posicion_requerida,
-            "nivel_aprobacion": regla.get("nivel_aprobacion", 0),
+            "nivel_aprobacion": regla.get("nivel", 0),
             "razon": "Se requiere rol 'aprobador_solicitudes'",
         }
 
@@ -372,7 +372,7 @@ def puede_aprobar(
             "puede_aprobar": True,
             "posicion_usuario": posicion_usuario,
             "posicion_requerida": posicion_requerida,
-            "nivel_aprobacion": regla.get("nivel_aprobacion", 0),
+            "nivel_aprobacion": regla.get("nivel", 0),
         }
 
     # Verificar si el usuario es delegado de alguien que puede aprobar
@@ -389,7 +389,7 @@ def puede_aprobar(
                     "puede_aprobar": True,
                     "posicion_usuario": posicion_usuario,
                     "posicion_requerida": posicion_requerida,
-                    "nivel_aprobacion": regla.get("nivel_aprobacion", 0),
+                    "nivel_aprobacion": regla.get("nivel", 0),
                     "es_delegado": True,
                     "delegado_de": aprobador_original_id,
                     "posicion_delegante": posicion_original,
@@ -399,7 +399,7 @@ def puede_aprobar(
         "puede_aprobar": False,
         "posicion_usuario": posicion_usuario,
         "posicion_requerida": posicion_requerida,
-        "nivel_aprobacion": regla.get("nivel_aprobacion", 0),
+        "nivel_aprobacion": regla.get("nivel", 0),
         "razon": f"Se requiere posicion '{posicion_requerida}' o superior",
     }
 
@@ -437,8 +437,8 @@ def buscar_aprobador(
     if not regla:
         return None
 
-    # Usar posicion_requerida si existe, sino rol_requerido para backward compat
-    posicion_requerida = regla.get("posicion_requerida") or regla.get("rol_requerido", "admin")
+    # Usar rol_aprobador de la tabla, con fallbacks por backward compatibility
+    posicion_requerida = regla.get("rol_aprobador") or regla.get("posicion_requerida") or regla.get("rol_requerido", "admin")
 
     # Mapeo de POSICION requerida a puestos validos (jerarquia)
     # Si se requiere jefe: jefe, gerente1, gerente2, admin pueden aprobar
@@ -470,7 +470,7 @@ def buscar_aprobador(
         if centro:
             query = f"""
                 SELECT id_spm, nombre, apellido, rol, posicion, centros
-                FROM usuarios
+                FROM usuario
                 WHERE LOWER(rol) LIKE '%%aprobador_solicitudes%%'
                     AND LOWER(posicion) IN ({placeholders})
                     AND (',' || centros || ',') LIKE ?
@@ -493,7 +493,7 @@ def buscar_aprobador(
         else:
             query = f"""
                 SELECT id_spm, nombre, apellido, rol, posicion, centros
-                FROM usuarios
+                FROM usuario
                 WHERE LOWER(rol) LIKE '%%aprobador_solicitudes%%'
                     AND LOWER(posicion) IN ({placeholders})
                     AND estado_registro = 'Activo'
@@ -675,7 +675,7 @@ def obtener_delegaciones_como_delegado(delegado_id: str) -> List[Dict[str, Any]]
             """
             SELECT d.*, u.rol as rol_original, u.posicion as posicion_original
             FROM aprobadores_delegados d
-            JOIN usuarios u ON d.aprobador_original_id = u.id_spm
+            JOIN usuario u ON d.aprobador_original_id = u.id_spm
             WHERE d.delegado_id = ?
                 AND d.activo = 1
                 AND d.fecha_inicio <= ?
@@ -786,14 +786,14 @@ def listar_reglas(solo_activas: bool = True) -> List[Dict[str, Any]]:
                 """
                 SELECT * FROM reglas_aprobacion
                 WHERE activo = 1
-                ORDER BY nivel_aprobacion, monto_minimo_usd
+                ORDER BY nivel, monto_minimo
             """
             )
         else:
             cursor.execute(
                 """
                 SELECT * FROM reglas_aprobacion
-                ORDER BY nivel_aprobacion, monto_minimo_usd
+                ORDER BY nivel, monto_minimo
             """
             )
 
@@ -986,7 +986,7 @@ def obtener_aprobador_por_monto(monto: float, centro: Optional[str] = None) -> s
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT id_spm FROM usuarios
+            SELECT id_spm FROM usuario
             WHERE LOWER(rol) LIKE '%%aprobador_solicitudes%%'
                 AND LOWER(posicion) IN ('jefe', 'gerente1', 'gerente2', 'admin', 'administrador')
                 AND estado_registro = 'Activo'

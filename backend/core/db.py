@@ -19,10 +19,7 @@ from typing import Generator
 
 from flask_sqlalchemy import SQLAlchemy
 
-try:
-    from backend.core.config import settings
-except ImportError:
-    from core.config import settings
+from backend.core.config import settings
 
 db = SQLAlchemy()
 
@@ -385,7 +382,7 @@ def get_db_connection(db_name: str = "spm") -> Generator:
     Example:
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT * FROM usuarios")
+            cur.execute("SELECT * FROM usuario")
             rows = cur.fetchall()
         # conn se cierra automáticamente aquí
     """
@@ -480,9 +477,12 @@ def get_db_path(db_name: str = "spm") -> Path:
     # Mapeo de nombres a archivos
     db_files = {
         "spm": "spm.db",
-        "equivalentes": "equivalentes.db",
         "sap_data": "sap_data.db",
-        "catalogo_materiales": "catalogo_materiales.db",
+        # Nueva BD consolidada de materiales (v3.0)
+        "master_materiales": "master_materiales.db",
+        # Alias para compatibilidad hacia atrás (ambas apuntan a master_materiales.db)
+        "equivalentes": "master_materiales.db",
+        "catalogo_materiales": "master_materiales.db",
     }
 
     filename = db_files.get(db_name, f"{db_name}.db")
@@ -494,19 +494,40 @@ def get_spm_db_path() -> Path:
     return get_db_path("spm")
 
 
+def get_master_materiales_db_path() -> Path:
+    """Obtiene la ruta a la BD consolidada de materiales (master_materiales.db)
+
+    Contiene:
+    - catalogo_materiales: catálogo de materiales SAP
+    - materiales_equivalencias: equivalencias entre materiales
+    - materiales_mrp: parámetros MRP por material
+    """
+    return get_db_path("master_materiales")
+
+
 def get_equivalentes_db_path() -> Path:
-    """Obtiene la ruta a la BD de equivalencias (equivalentes.db)"""
-    return get_db_path("equivalentes")
+    """Obtiene la ruta a la BD de equivalencias.
+
+    DEPRECADO: Usar get_master_materiales_db_path() - tabla materiales_equivalencias
+    """
+    return get_db_path("master_materiales")
 
 
 def get_sap_data_db_path() -> Path:
-    """Obtiene la ruta a la BD de datos SAP (sap_data.db)"""
+    """Obtiene la ruta a la BD de datos SAP (sap_data.db)
+
+    Contiene: stock, consumo_historico, pedidos_sap
+    NOTA: materiales_bbdd movida a master_materiales.db como materiales_mrp
+    """
     return get_db_path("sap_data")
 
 
 def get_catalogo_materiales_db_path() -> Path:
-    """Obtiene la ruta a la BD del catálogo de materiales (catalogo_materiales.db)"""
-    return get_db_path("catalogo_materiales")
+    """Obtiene la ruta a la BD del catálogo de materiales.
+
+    DEPRECADO: Usar get_master_materiales_db_path() - tabla catalogo_materiales
+    """
+    return get_db_path("master_materiales")
 
 
 # =============================================================================
@@ -529,15 +550,80 @@ def _is_db_empty(db_path: Path) -> bool:
         with sqlite3.connect(db_path) as conn:
             cursor = conn.cursor()
             # Verificar si la tabla usuarios existe
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='usuarios'")
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='usuario'")
             if cursor.fetchone() is None:
                 return True
             # La tabla existe, verificar si tiene datos
-            cursor.execute("SELECT COUNT(*) FROM usuarios")
+            cursor.execute("SELECT COUNT(*) FROM usuario")
             count = cursor.fetchone()[0]
             return count == 0  # Vacía = necesita inicialización
     except Exception:
         return True
+
+
+def _sync_materiales_bbdd():
+    """
+    Sincroniza materiales_bbdd en sap_data desde materiales_mrp en master_materiales.
+
+    Esta función se ejecuta en cada startup de la aplicación para asegurar
+    que stock.py tiene acceso a los parámetros MRP necesarios.
+
+    En producción, consideraría migrar stock.py para leer directamente
+    desde master_materiales.db.
+    """
+    try:
+        # Obtener datos desde master_materiales (materiales_mrp)
+        with get_db_connection("master_materiales") as conn_src:
+            cur_src = conn_src.cursor()
+            cur_src.execute("SELECT * FROM materiales_mrp")
+            rows = cur_src.fetchall()
+
+        if not rows:
+            return  # No hay datos que sincronizar
+
+        # Copiar a sap_data (materiales_bbdd)
+        with get_db_connection("sap_data") as conn_dst:
+            cur_dst = conn_dst.cursor()
+
+            # Recrear la tabla (más simple que hacer UPDATE/INSERT selectivo)
+            cur_dst.execute("DROP TABLE IF EXISTS materiales_bbdd")
+            cur_dst.execute("""
+                CREATE TABLE materiales_bbdd (
+                    id INTEGER PRIMARY KEY,
+                    sector TEXT,
+                    almacen TEXT,
+                    centro TEXT,
+                    codigo_material TEXT,
+                    descripcion TEXT,
+                    stock_de_seguridad INTEGER,
+                    punto_de_pedido INTEGER,
+                    stock_maximo INTEGER,
+                    demanda_estimada_anual REAL,
+                    consumo_promedio_anual INTEGER,
+                    rotacion REAL
+                )
+            """)
+
+            # Insertar datos
+            for row in rows:
+                cur_dst.execute("""
+                    INSERT INTO materiales_bbdd
+                    (id, sector, almacen, centro, codigo_material, descripcion,
+                     stock_de_seguridad, punto_de_pedido, stock_maximo,
+                     demanda_estimada_anual, consumo_promedio_anual, rotacion)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    row["id"], row["sector"], row["almacen"], row["centro"],
+                    row["codigo_material"], row["descripcion"],
+                    row["stock_de_seguridad"], row["punto_de_pedido"], row["stock_maximo"],
+                    row["demanda_estimada_anual"], row["consumo_promedio_anual"], row["rotacion"]
+                ))
+
+            conn_dst.commit()
+    except Exception as e:
+        # No fallar el startup si hay error de sincronización
+        import logging
+        logging.warning(f"Error syncing materiales_bbdd: {e}")
 
 
 def init_db():
@@ -590,3 +676,9 @@ def init_db():
             raise
     else:
         current_app.logger.info("Database already initialized")
+
+    # Sincronizar materiales_bbdd desde materiales_mrp (siempre se ejecuta)
+    try:
+        _sync_materiales_bbdd()
+    except Exception as e:
+        current_app.logger.warning(f"Error syncing materiales_bbdd: {e}")

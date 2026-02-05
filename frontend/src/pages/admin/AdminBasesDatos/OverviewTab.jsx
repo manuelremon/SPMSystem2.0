@@ -2,17 +2,21 @@
  * OverviewTab - Vista general de bases de datos
  */
 
-import { Card, CardHeader, CardTitle, CardContent } from "../../../components/ui/Card";
-import { Button } from "../../../components/ui/Button";
-import { Badge } from "../../../components/ui/Badge";
-import { TableSkeleton } from "../../../components/ui/Skeleton";
-import { useI18n } from "../../../context/i18n";
 import {
-  Database,
-  RefreshCcw,
-  HardDrive,
-  ICON_COLORS,
-} from "../../../components/ui/Icons";
+  Box,
+  Paper,
+  Typography,
+  Button,
+  Stack,
+  Chip,
+  Grid,
+  CircularProgress,
+  LinearProgress,
+} from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import StorageIcon from '@mui/icons-material/Storage';
+import DnsIcon from '@mui/icons-material/Dns';
+import { useI18n } from "../../../context/i18n";
 import { formatSize } from "./useAdminDatabase";
 
 export function OverviewTab({
@@ -24,84 +28,159 @@ export function OverviewTab({
   const { t } = useI18n();
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button variant="ghost" onClick={onRefresh} disabled={loading}>
-          <RefreshCcw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Refresh Button */}
+      <Stack direction="row" justifyContent="flex-end">
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={loading ? <CircularProgress size={14} /> : <RefreshIcon />}
+          onClick={onRefresh}
+          disabled={loading}
+          sx={{ textTransform: 'none', fontWeight: 600 }}
+        >
           {t("common_actualizar", "Actualizar")}
         </Button>
-      </div>
+      </Stack>
 
+      {/* Database Cards */}
       {loading ? (
-        <TableSkeleton rows={4} columns={6} />
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+          <CircularProgress />
+        </Box>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {databases.map((db) => (
-            <Card key={db.name} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Database className={`w-5 h-5 ${ICON_COLORS.primary}`} />
-                    <CardTitle className="text-sm font-semibold uppercase">{db.name}</CardTitle>
-                  </div>
-                  <Badge variant={db.status === "online" ? "success" : "danger"}>
-                    {db.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[var(--fg-muted)]">Tipo</span>
-                  <span className="font-mono">{db.type}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[var(--fg-muted)]">Tamano</span>
-                  <span className="font-mono">{formatSize(db.size_mb)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[var(--fg-muted)]">Tablas</span>
-                  <span className="font-mono">{db.tables}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[var(--fg-muted)]">Registros</span>
-                  <span className="font-mono">{db.records?.toLocaleString() || "-"}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[var(--fg-muted)]">Latencia</span>
-                  <span className="font-mono">{db.latency_ms} ms</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Grid container spacing={3}>
+          {databases.map((db) => {
+            const maxSize = Math.max(...databases.map(d => d.size_mb || 1), 1);
+            const pct = ((db.size_mb || 0) / maxSize) * 100;
+            return (
+              <Grid item xs={12} sm={6} lg={6} key={db.name}>
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    transition: 'border-color 0.2s',
+                    '&:hover': { borderColor: 'primary.main' },
+                  }}
+                >
+                  {/* Card Header */}
+                  <Box sx={{ px: 2, py: 1.5, bgcolor: 'grey.50', borderBottom: 1, borderColor: 'divider' }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <StorageIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+                        <Typography variant="body2" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          {db.name}
+                        </Typography>
+                      </Stack>
+                      <Chip
+                        label={db.status}
+                        size="small"
+                        color={db.status === "online" ? "success" : "error"}
+                        sx={{ height: 20, fontSize: '0.625rem', fontWeight: 700 }}
+                      />
+                    </Stack>
+                  </Box>
+
+                  {/* Card Content */}
+                  <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    {[
+                      { label: 'Tipo', value: db.type },
+                      { label: 'Tablas', value: db.tables },
+                      { label: 'Registros', value: db.records?.toLocaleString() || "0" },
+                      { label: 'Latencia', value: `${db.latency_ms} ms` },
+                    ].map(({ label, value }) => (
+                      <Stack key={label} direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                          {label}
+                        </Typography>
+                        <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                          {value}
+                        </Typography>
+                      </Stack>
+                    ))}
+
+                    {/* Size bar */}
+                    <Box sx={{ mt: 0.5 }}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                          Tamano
+                        </Typography>
+                        <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 700, color: 'primary.main' }}>
+                          {formatSize(db.size_mb)}
+                        </Typography>
+                      </Stack>
+                      <LinearProgress
+                        variant="determinate"
+                        value={pct}
+                        sx={{
+                          height: 4,
+                          borderRadius: 2,
+                          bgcolor: 'grey.100',
+                          '& .MuiLinearProgress-bar': { borderRadius: 2 },
+                        }}
+                      />
+                    </Box>
+                  </Box>
+                </Paper>
+              </Grid>
+            );
+          })}
+        </Grid>
       )}
 
       {/* Pool Stats */}
       {poolStats && Object.keys(poolStats).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <HardDrive className={`w-5 h-5 ${ICON_COLORS.secondary}`} />
-              {t("db_pool_stats", "Pool de Conexiones")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+          <Box sx={{ px: 2, py: 1.5, bgcolor: 'grey.50', borderBottom: 1, borderColor: 'divider' }}>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <DnsIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+              <Typography variant="body2" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                {t("db_pool_stats", "Pool de Conexiones")}
+              </Typography>
+            </Stack>
+          </Box>
+
+          <Box sx={{ p: 2 }}>
+            <Grid container spacing={2}>
               {Object.entries(poolStats).map(([name, stats]) => (
-                <div key={name} className="p-3 rounded-lg bg-[var(--bg-soft)] border border-[var(--border)]">
-                  <p className="text-sm font-medium text-[var(--fg)]">{name}</p>
-                  <div className="mt-2 space-y-1 text-xs text-[var(--fg-muted)]">
-                    <p>Creadas: {stats.created || 0}</p>
-                    <p>Reutilizadas: {stats.reused || 0}</p>
-                    <p>Expiradas: {stats.expired || 0}</p>
-                    <p>Errores: {stats.errors || 0}</p>
-                  </div>
-                </div>
+                <Grid item xs={12} md={4} key={name}>
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: 1,
+                      bgcolor: 'grey.50',
+                      border: 1,
+                      borderColor: 'divider',
+                    }}
+                  >
+                    <Typography variant="body2" fontWeight={600} color="text.primary" sx={{ mb: 1 }}>
+                      {name}
+                    </Typography>
+                    <Stack spacing={0.5}>
+                      {[
+                        { label: 'Creadas', value: stats.created || 0, color: 'success.main' },
+                        { label: 'Reutilizadas', value: stats.reused || 0, color: 'info.main' },
+                        { label: 'Expiradas', value: stats.expired || 0, color: 'warning.main' },
+                        { label: 'Errores', value: stats.errors || 0, color: stats.errors > 0 ? 'error.main' : 'text.secondary' },
+                      ].map(({ label, value, color }) => (
+                        <Stack key={label} direction="row" justifyContent="space-between" alignItems="center">
+                          <Typography variant="caption" color="text.secondary">
+                            {label}
+                          </Typography>
+                          <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 600, color }}>
+                            {value}
+                          </Typography>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  </Box>
+                </Grid>
               ))}
-            </div>
-          </CardContent>
-        </Card>
+            </Grid>
+          </Box>
+        </Paper>
       )}
-    </div>
+    </Box>
   );
 }

@@ -1,92 +1,116 @@
+/**
+ * Checkbox Component - MUI Checkbox
+ * Checkbox profesional con estilo MUI
+ */
+
 import React from "react";
 import PropTypes from "prop-types";
-import clsx from "clsx";
-import { Check } from "./Icons";
+import MuiCheckbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormHelperText from "@mui/material/FormHelperText";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 
 /**
- * Checkbox Component - Glass Morphism Style
- * Translucent checkbox with glow effect on focus
+ * Checkbox - Checkbox con MUI
+ *
+ * @param {string} className - Clases adicionales (compatibilidad)
+ * @param {string} label - Texto del label
+ * @param {string} description - Descripción adicional debajo del label
+ * @param {boolean} error - Estado de error
+ * @param {string} helperText - Texto de ayuda o error
+ * @param {boolean} checked - Estado checked
+ * @param {function} onChange - Callback cuando cambia el estado
+ * @param {boolean} disabled - Estado deshabilitado
+ * @param {string} size - Tamaño: 'small' | 'medium'
+ * @param {string} color - Color MUI: 'primary' | 'secondary' | 'success' | 'error' | 'info' | 'warning'
+ * @param {object} sx - Estilos MUI adicionales
  */
 export const Checkbox = React.forwardRef(({
   className,
   label,
   description,
   error = false,
+  helperText,
   checked,
   onChange,
   disabled = false,
+  size = "medium",
+  color = "primary",
+  sx,
   ...props
 }, ref) => {
+  // Si no hay label, renderizar solo el checkbox
+  if (!label && !description) {
+    return (
+      <MuiCheckbox
+        ref={ref}
+        checked={checked}
+        onChange={onChange}
+        disabled={disabled}
+        size={size}
+        color={error ? "error" : color}
+        className={className}
+        sx={sx}
+        {...props}
+      />
+    );
+  }
+
   return (
-    <label
-      className={clsx(
-        "inline-flex items-start gap-3 cursor-pointer group",
-        disabled && "cursor-not-allowed opacity-50",
-        className
-      )}
-    >
-      <div className="relative flex-shrink-0 mt-0.5">
-        <input
-          ref={ref}
-          type="checkbox"
-          checked={checked}
-          onChange={onChange}
-          disabled={disabled}
-          className="sr-only peer"
-          aria-invalid={error ? "true" : undefined}
-          {...props}
-        />
-        <div
-          className={clsx(
-            // Glass base
-            "w-5 h-5 rounded-lg relative",
-            "border-2 transition-all duration-200",
-            // Glass effect
-            "bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm",
-            "border-white/50 dark:border-white/10",
-            // Hover
-            "group-hover:bg-white/70 dark:group-hover:bg-slate-700/70 group-hover:border-slate-300/50 dark:group-hover:border-slate-500/50",
-            // Focus - glass glow
-            "peer-focus-visible:ring-2 peer-focus-visible:ring-blue-400/30 peer-focus-visible:ring-offset-2",
-            // Checked state - gradient
-            "peer-checked:bg-gradient-to-br peer-checked:from-blue-500 peer-checked:to-blue-600",
-            "peer-checked:border-blue-400/50 peer-checked:shadow-lg peer-checked:shadow-blue-500/25",
-            // Error state
-            error && "border-red-400/50"
-          )}
-        />
-        <Check
-          className={clsx(
-            "w-4 h-4 text-white",
-            "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-            "pointer-events-none",
-            "transition-all duration-200",
-            checked
-              ? "opacity-100 scale-100"
-              : "opacity-0 scale-50"
-          )}
-          strokeWidth={3}
-        />
-      </div>
-      {(label || description) && (
-        <div className="flex flex-col">
-          {label && (
-            <span className={clsx(
-              "text-sm font-medium text-slate-700 dark:text-slate-300",
-              "transition-colors duration-200",
-              "group-hover:text-slate-900 dark:group-hover:text-slate-100"
-            )}>
+    <Box className={className}>
+      <FormControlLabel
+        control={
+          <MuiCheckbox
+            ref={ref}
+            checked={checked}
+            onChange={onChange}
+            disabled={disabled}
+            size={size}
+            color={error ? "error" : color}
+            {...props}
+          />
+        }
+        label={
+          <Box>
+            <Typography
+              variant="body2"
+              component="span"
+              sx={{
+                fontWeight: 500,
+                color: disabled ? 'text.disabled' : 'text.primary',
+              }}
+            >
               {label}
-            </span>
-          )}
-          {description && (
-            <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              {description}
-            </span>
-          )}
-        </div>
+            </Typography>
+            {description && (
+              <Typography
+                variant="caption"
+                component="p"
+                sx={{
+                  color: 'text.secondary',
+                  mt: 0.25,
+                }}
+              >
+                {description}
+              </Typography>
+            )}
+          </Box>
+        }
+        sx={{
+          alignItems: 'flex-start',
+          '& .MuiFormControlLabel-label': {
+            mt: 0.5,
+          },
+          ...sx,
+        }}
+      />
+      {helperText && (
+        <FormHelperText error={error} sx={{ ml: 4 }}>
+          {helperText}
+        </FormHelperText>
       )}
-    </label>
+    </Box>
   );
 });
 
@@ -97,14 +121,15 @@ Checkbox.propTypes = {
   label: PropTypes.string,
   description: PropTypes.string,
   error: PropTypes.bool,
+  helperText: PropTypes.string,
   checked: PropTypes.bool,
   onChange: PropTypes.func,
   disabled: PropTypes.bool,
+  size: PropTypes.oneOf(["small", "medium"]),
+  color: PropTypes.oneOf(["primary", "secondary", "success", "error", "info", "warning"]),
+  sx: PropTypes.object,
   id: PropTypes.string,
   name: PropTypes.string,
 };
 
-Checkbox.defaultProps = {
-  error: false,
-  disabled: false,
-};
+export default Checkbox;

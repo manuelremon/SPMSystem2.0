@@ -1,4 +1,4 @@
-# SPM v2.0 - Gunicorn Configuration
+# SPM v3.0 - Gunicorn Configuration
 # https://docs.gunicorn.org/en/stable/settings.html
 
 import multiprocessing
@@ -117,7 +117,7 @@ def on_starting(server):
     """
     import logging
     logger = logging.getLogger("gunicorn.server")
-    logger.info("SPM v2.0 Backend iniciando...")
+    logger.info("SPM v3.0 Backend iniciando...")
 
 
 def on_exit(server):
@@ -126,4 +126,4 @@ def on_exit(server):
     """
     import logging
     logger = logging.getLogger("gunicorn.server")
-    logger.info("SPM v2.0 Backend terminando...")
+    logger.info("SPM v3.0 Backend terminando...")

@@ -2,19 +2,24 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   MessageSquare,
   RefreshCw,
-  User,
   FileText,
 } from "../ui/Icons";
-import { Button } from "../ui/Button";
-import { Badge } from "../ui/Badge";
-import { Card, CardContent } from "../ui/Card";
+import {
+  Box,
+  Paper,
+  Typography,
+  IconButton,
+  Chip,
+  Alert,
+  CircularProgress,
+  Avatar,
+} from "@mui/material";
 import { useI18n } from "../../context/i18n";
 import { useAuthStore } from "../../store/authStore";
 import api from "../../services/api";
 import MensajeThreadModal from "../MensajeThreadModal";
 import ProfileRequestActionModal from "./ProfileRequestActionModal";
 
-// Detectar si un mensaje es sobre solicitud de cambio de perfil
 function isProfileRequestMessage(mensaje) {
   const asunto = (mensaje.asunto || "").toLowerCase();
   const contenido = (mensaje.mensaje || mensaje.contenido || "").toLowerCase();
@@ -84,7 +89,6 @@ export default function MensajesInline({ onUpdate }) {
   }, [loadMensajes]);
 
   const handleMensajeClick = async (mensaje) => {
-    // Marcar como leido al abrir
     if (!mensaje.leido) {
       try {
         await api.post(`/mensajes/${mensaje.id}/mark-read`);
@@ -101,7 +105,6 @@ export default function MensajesInline({ onUpdate }) {
 
   const handleModalClose = () => {
     setSelectedMensaje(null);
-    // Refrescar lista por si se envio respuesta
     loadMensajes();
     if (onUpdate) onUpdate();
   };
@@ -109,47 +112,75 @@ export default function MensajesInline({ onUpdate }) {
   const unreadCount = mensajes.filter((m) => !m.leido).length;
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <h3 className="text-lg font-semibold">
-              {t("centro_mensajes_recientes", "Mensajes Recientes")}
-            </h3>
-            {unreadCount > 0 && (
-              <Badge variant="danger">{unreadCount} sin leer</Badge>
-            )}
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={loadMensajes}
-            disabled={loading}
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-          </Button>
-        </div>
+    <Paper elevation={2}>
+      {/* Header */}
+      <Box
+        sx={{
+          px: 3,
+          py: 2,
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Typography variant="subtitle1" fontWeight={700} sx={{ textTransform: "uppercase" }}>
+            {t("centro_mensajes_recientes", "Mensajes Recientes")}
+          </Typography>
+          {unreadCount > 0 && (
+            <Chip
+              label={`${unreadCount} sin leer`}
+              size="small"
+              sx={{
+                height: 22,
+                fontSize: "0.7rem",
+                fontWeight: 600,
+                bgcolor: "rgba(239, 68, 68, 0.12)",
+                color: "var(--danger)",
+              }}
+            />
+          )}
+        </Box>
+        <IconButton
+          onClick={loadMensajes}
+          disabled={loading}
+          size="small"
+          sx={{ border: "1px solid var(--border)", borderRadius: 1 }}
+        >
+          <RefreshCw
+            style={{
+              width: 16,
+              height: 16,
+              color: "var(--fg-muted)",
+              animation: loading ? "spin 1s linear infinite" : "none",
+            }}
+          />
+        </IconButton>
+      </Box>
 
-        {/* Error */}
+      {/* Content */}
+      <Box sx={{ p: 3 }}>
         {error && (
-          <div className="mb-4 p-3 bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg text-sm border border-red-500/20">
+          <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
             {error}
-          </div>
+          </Alert>
         )}
 
-        {/* Lista */}
         {loading ? (
-          <div className="flex justify-center py-8">
-            <RefreshCw className="w-6 h-6 animate-spin text-[var(--fg-muted)]" />
-          </div>
+          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+            <CircularProgress size={32} sx={{ color: "var(--primary)" }} />
+          </Box>
         ) : mensajes.length === 0 ? (
-          <div className="text-center py-8 text-[var(--fg-muted)]">
-            <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>{t("centro_sin_mensajes", "No tienes mensajes")}</p>
-          </div>
+          <Box sx={{ textAlign: "center", py: 4 }}>
+            <MessageSquare style={{ width: 48, height: 48, color: "var(--border)", margin: "0 auto 12px" }} />
+            <Typography variant="body2" sx={{ color: "var(--fg-muted)" }}>
+              {t("centro_sin_mensajes", "No tienes mensajes")}
+            </Typography>
+          </Box>
         ) : (
-          <div className="space-y-2 max-h-[400px] overflow-y-auto">
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1, maxHeight: 400, overflowY: "auto" }}>
             {mensajes.map((mensaje) => {
               const initials = getInitials(
                 mensaje.remitente_nombre,
@@ -160,109 +191,160 @@ export default function MensajesInline({ onUpdate }) {
               }`.trim();
 
               return (
-                <div
+                <Paper
                   key={mensaje.id}
+                  elevation={0}
                   onClick={() => handleMensajeClick(mensaje)}
-                  className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all
-                    border border-transparent hover:border-[var(--border)] hover:shadow-sm
-                    ${mensaje.leido ? "bg-[var(--card)]" : "bg-purple-100/50 dark:bg-purple-900/20"}`}
+                  sx={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 2,
+                    p: 2,
+                    borderRadius: 2,
+                    cursor: "pointer",
+                    border: "1px solid transparent",
+                    bgcolor: mensaje.leido ? "transparent" : "rgba(168, 85, 247, 0.05)",
+                    transition: "all 0.15s ease",
+                    "&:hover": {
+                      bgcolor: "var(--bg-soft)",
+                      borderColor: "var(--border)",
+                    },
+                  }}
                 >
                   {/* Avatar */}
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0
-                      ${
-                        mensaje.leido
-                          ? "bg-[var(--bg-soft)] text-[var(--fg-muted)]"
-                          : "bg-purple-200 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300"
-                      }`}
+                  <Avatar
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      fontSize: "0.875rem",
+                      fontWeight: 600,
+                      bgcolor: mensaje.leido ? "var(--bg-soft)" : "rgba(168, 85, 247, 0.15)",
+                      color: mensaje.leido ? "var(--fg-muted)" : "#a855f7",
+                    }}
                   >
                     {initials}
-                  </div>
+                  </Avatar>
 
                   {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p
-                          className={`text-sm ${
-                            mensaje.leido
-                              ? "text-[var(--fg)]"
-                              : "text-[var(--fg)] font-semibold"
-                          }`}
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}>
+                      <Box>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "var(--fg-strong)",
+                            fontWeight: mensaje.leido ? 400 : 600,
+                          }}
                         >
                           {nombreCompleto || "Usuario"}
-                        </p>
+                        </Typography>
                         {mensaje.remitente_rol && (
-                          <span className="text-xs text-[var(--fg-muted)] uppercase tracking-wider">
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "var(--fg-muted)",
+                              textTransform: "uppercase",
+                              letterSpacing: 0.5,
+                              fontSize: "0.6rem",
+                            }}
+                          >
                             {mensaje.remitente_rol}
-                          </span>
+                          </Typography>
                         )}
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="text-xs text-[var(--fg-muted)]">
+                      </Box>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
+                        <Typography variant="caption" sx={{ color: "var(--fg-muted)" }}>
                           {formatTimeAgo(mensaje.created_at)}
-                        </span>
+                        </Typography>
                         {!mensaje.leido && (
-                          <span className="w-2 h-2 bg-purple-500 rounded-full" />
+                          <Box sx={{ width: 8, height: 8, bgcolor: "#a855f7", borderRadius: "50%" }} />
                         )}
-                      </div>
-                    </div>
+                      </Box>
+                    </Box>
 
                     {/* Asunto */}
-                    <p
-                      className={`text-sm mt-1 ${
-                        mensaje.leido ? "text-[var(--fg-muted)]" : "text-[var(--fg)] font-medium"
-                      }`}
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: mensaje.leido ? "var(--fg-muted)" : "var(--fg-strong)",
+                        fontWeight: mensaje.leido ? 400 : 500,
+                        mt: 0.5,
+                      }}
                     >
                       {mensaje.asunto}
-                    </p>
+                    </Typography>
 
-                    {/* Preview del mensaje */}
-                    <p className="text-xs text-[var(--fg-muted)] mt-1 line-clamp-1">
+                    {/* Preview */}
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "var(--fg-muted)",
+                        mt: 0.5,
+                        display: "block",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {truncateText(mensaje.mensaje || mensaje.contenido, 80)}
-                    </p>
+                    </Typography>
 
-                    {/* Indicadores */}
-                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    {/* Tags */}
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1, flexWrap: "wrap" }}>
                       {mensaje.solicitud_id && (
-                        <div className="flex items-center gap-1">
-                          <FileText className="w-3 h-3 text-[var(--primary)]" />
-                          <span className="text-xs text-[var(--primary)]">
-                            Solicitud #{mensaje.solicitud_id}
-                          </span>
-                        </div>
+                        <Chip
+                          icon={<FileText style={{ width: 12, height: 12 }} />}
+                          label={`Solicitud #${mensaje.solicitud_id}`}
+                          size="small"
+                          sx={{
+                            height: 20,
+                            fontSize: "0.65rem",
+                            fontWeight: 600,
+                            bgcolor: "rgba(86, 126, 187, 0.1)",
+                            color: "var(--primary)",
+                            "& .MuiChip-icon": { color: "var(--primary)" },
+                          }}
+                        />
                       )}
                       {isProfileRequestMessage(mensaje) && (
-                        <Badge variant="warning" className="text-xs py-0">
-                          Requiere acción
-                        </Badge>
+                        <Chip
+                          label="Requiere accion"
+                          size="small"
+                          sx={{
+                            height: 20,
+                            fontSize: "0.65rem",
+                            fontWeight: 600,
+                            bgcolor: "rgba(245, 158, 11, 0.12)",
+                            color: "var(--warning)",
+                          }}
+                        />
                       )}
-                    </div>
-                  </div>
-                </div>
+                    </Box>
+                  </Box>
+                </Paper>
               );
             })}
-          </div>
+          </Box>
         )}
+      </Box>
 
-        {/* Modal - diferente según tipo de mensaje */}
-        {selectedMensaje && isProfileRequestMessage(selectedMensaje) ? (
-          <ProfileRequestActionModal
-            notif={{ mensaje: selectedMensaje.asunto, ...selectedMensaje }}
-            onClose={handleModalClose}
-            onAction={() => {
-              loadMensajes();
-              if (onUpdate) onUpdate();
-            }}
-          />
-        ) : selectedMensaje ? (
-          <MensajeThreadModal
-            message={selectedMensaje}
-            isOpen={!!selectedMensaje}
-            onClose={handleModalClose}
-          />
-        ) : null}
-      </CardContent>
-    </Card>
+      {/* Modals */}
+      {selectedMensaje && isProfileRequestMessage(selectedMensaje) ? (
+        <ProfileRequestActionModal
+          notif={{ mensaje: selectedMensaje.asunto, ...selectedMensaje }}
+          onClose={handleModalClose}
+          onAction={() => {
+            loadMensajes();
+            if (onUpdate) onUpdate();
+          }}
+        />
+      ) : selectedMensaje ? (
+        <MensajeThreadModal
+          message={selectedMensaje}
+          isOpen={!!selectedMensaje}
+          onClose={handleModalClose}
+        />
+      ) : null}
+    </Paper>
   );
 }

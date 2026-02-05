@@ -4,11 +4,11 @@
  * Muestra alertas criticas y warnings con opcion de reconocer
  */
 
-import { useState } from 'react'
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card'
-import { Button } from '../ui/Button'
-import { Badge } from '../ui/Badge'
-import { AlertTriangle, Bell, CheckCircle, Clock, X } from '../ui/Icons'
+import { Box, Paper, Typography, Stack, Chip, Button, IconButton, CircularProgress } from '@mui/material'
+import WarningAmberIcon from '@mui/icons-material/WarningAmber'
+import NotificationsIcon from '@mui/icons-material/Notifications'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import AccessTimeIcon from '@mui/icons-material/AccessTime'
 
 /**
  * Formatea timestamp relativo
@@ -32,64 +32,91 @@ function AlertItem({ alert, onAcknowledge, isAcknowledging }) {
   const isCritical = alert.alert_type === 'critical'
   const isWarning = alert.alert_type === 'warning'
 
+  const getAlertStyles = () => {
+    if (isCritical) {
+      return {
+        bgcolor: 'error.50',
+        borderColor: 'error.200',
+        iconColor: 'error.main',
+      }
+    }
+    if (isWarning) {
+      return {
+        bgcolor: 'warning.50',
+        borderColor: 'warning.200',
+        iconColor: 'warning.main',
+      }
+    }
+    return {
+      bgcolor: 'info.50',
+      borderColor: 'info.200',
+      iconColor: 'info.main',
+    }
+  }
+
+  const styles = getAlertStyles()
+
   return (
-    <div
-      className={`
-        flex items-start gap-3 p-3 rounded-lg border
-        ${isCritical ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800' : ''}
-        ${isWarning ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800' : ''}
-        ${!isCritical && !isWarning ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800' : ''}
-      `}
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 1.5,
+        p: 1.5,
+        borderRadius: 2,
+        border: 1,
+        borderColor: styles.borderColor,
+        bgcolor: styles.bgcolor,
+      }}
     >
-      <div className={`
-        flex-shrink-0 mt-0.5
-        ${isCritical ? 'text-red-500 dark:text-red-400' : ''}
-        ${isWarning ? 'text-amber-500 dark:text-amber-400' : ''}
-        ${!isCritical && !isWarning ? 'text-blue-500 dark:text-blue-400' : ''}
-      `}>
+      <Box sx={{ flexShrink: 0, mt: 0.25, color: styles.iconColor }}>
         {isCritical ? (
-          <AlertTriangle className="w-5 h-5" />
+          <WarningAmberIcon sx={{ fontSize: 20 }} />
         ) : (
-          <Bell className="w-5 h-5" />
+          <NotificationsIcon sx={{ fontSize: 20 }} />
         )}
-      </div>
+      </Box>
 
-      <div className="flex-grow min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <Badge
-            variant={isCritical ? 'destructive' : isWarning ? 'warning' : 'default'}
-            className="text-xs"
+      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+          <Chip
+            label={alert.metric_name}
+            size="small"
+            color={isCritical ? 'error' : isWarning ? 'warning' : 'default'}
+            sx={{ fontSize: '0.75rem', height: 20 }}
+          />
+          <Typography
+            variant="caption"
+            sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}
           >
-            {alert.metric_name}
-          </Badge>
-          <span className="text-xs text-slate-500 flex items-center gap-1">
-            <Clock className="w-3 h-3" />
+            <AccessTimeIcon sx={{ fontSize: 12 }} />
             {formatRelativeTime(alert.timestamp)}
-          </span>
-        </div>
+          </Typography>
+        </Stack>
 
-        <p className="text-sm text-slate-700 dark:text-slate-200">{alert.message}</p>
+        <Typography variant="body2" sx={{ color: 'text.primary' }}>
+          {alert.message}
+        </Typography>
 
         {alert.actual_value !== undefined && alert.threshold_value !== undefined && (
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Valor: <span className="font-medium">{alert.actual_value}</span>
+          <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
+            Valor: <Box component="span" sx={{ fontWeight: 500 }}>{alert.actual_value}</Box>
             {' / '}
-            Umbral: <span className="font-medium">{alert.threshold_value}</span>
-          </p>
+            Umbral: <Box component="span" sx={{ fontWeight: 500 }}>{alert.threshold_value}</Box>
+          </Typography>
         )}
-      </div>
+      </Box>
 
-      <Button
-        variant="ghost"
-        size="sm"
+      <IconButton
+        size="small"
         onClick={() => onAcknowledge(alert.id)}
         disabled={isAcknowledging}
-        className="flex-shrink-0"
         title="Reconocer alerta"
+        sx={{ flexShrink: 0 }}
       >
-        <CheckCircle className="w-4 h-4" />
-      </Button>
-    </div>
+        <CheckCircleIcon sx={{ fontSize: 16 }} />
+      </IconButton>
+    </Box>
   )
 }
 
@@ -109,77 +136,123 @@ export function AlertsPanel({
 
   if (!activeAlerts.length && !isLoading) {
     return (
-      <Card className="border-l-4 border-green-500 dark:border-green-400">
-        <CardContent className="py-6">
-          <div className="flex items-center gap-3 text-green-600 dark:text-green-400">
-            <CheckCircle className="w-6 h-6" />
-            <div>
-              <p className="font-medium">Sistema Operando Normalmente</p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">No hay alertas activas</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <Paper
+        elevation={0}
+        sx={{
+          borderLeft: 4,
+          borderColor: 'success.main',
+          border: 1,
+          borderLeftWidth: 4,
+        }}
+      >
+        <Box sx={{ py: 3, px: 2 }}>
+          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ color: 'success.main' }}>
+            <CheckCircleIcon sx={{ fontSize: 24 }} />
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
+                Sistema Operando Normalmente
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                No hay alertas activas
+              </Typography>
+            </Box>
+          </Stack>
+        </Box>
+      </Paper>
     )
   }
 
   return (
-    <Card className={`border-l-4 ${criticalCount > 0 ? 'border-red-500' : 'border-amber-500'}`}>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <AlertTriangle className={`w-5 h-5 ${criticalCount > 0 ? 'text-red-500' : 'text-amber-500'}`} />
-            Alertas Activas
-            <Badge variant={criticalCount > 0 ? 'destructive' : 'warning'}>
-              {activeAlerts.length}
-            </Badge>
-          </CardTitle>
+    <Paper
+      elevation={0}
+      sx={{
+        borderLeft: 4,
+        borderColor: criticalCount > 0 ? 'error.main' : 'warning.main',
+        border: 1,
+        borderLeftWidth: 4,
+      }}
+    >
+      <Box sx={{ px: 2, pt: 2, pb: 1.5 }}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between">
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <WarningAmberIcon
+              sx={{ fontSize: 20, color: criticalCount > 0 ? 'error.main' : 'warning.main' }}
+            />
+            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+              Alertas Activas
+            </Typography>
+            <Chip
+              label={activeAlerts.length}
+              size="small"
+              color={criticalCount > 0 ? 'error' : 'warning'}
+              sx={{ height: 20, fontSize: '0.75rem' }}
+            />
+          </Stack>
 
           {activeAlerts.length > 1 && (
             <Button
-              variant="outline"
-              size="sm"
+              variant="outlined"
+              size="small"
               onClick={onAcknowledgeAll}
               disabled={acknowledging === 'all'}
             >
               {acknowledging === 'all' ? 'Reconociendo...' : 'Reconocer Todas'}
             </Button>
           )}
-        </div>
+        </Stack>
 
         {(criticalCount > 0 || warningCount > 0) && (
-          <div className="flex gap-2 mt-2">
+          <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
             {criticalCount > 0 && (
-              <span className="text-xs text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/40 px-2 py-1 rounded">
-                {criticalCount} criticas
-              </span>
+              <Chip
+                label={`${criticalCount} criticas`}
+                size="small"
+                sx={{
+                  bgcolor: 'error.100',
+                  color: 'error.dark',
+                  fontSize: '0.75rem',
+                  height: 22,
+                }}
+              />
             )}
             {warningCount > 0 && (
-              <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-2 py-1 rounded">
-                {warningCount} warnings
-              </span>
+              <Chip
+                label={`${warningCount} warnings`}
+                size="small"
+                sx={{
+                  bgcolor: 'warning.100',
+                  color: 'warning.dark',
+                  fontSize: '0.75rem',
+                  height: 22,
+                }}
+              />
             )}
-          </div>
+          </Stack>
         )}
-      </CardHeader>
+      </Box>
 
-      <CardContent className="space-y-2 max-h-[400px] overflow-y-auto">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8 text-slate-400">
-            Cargando alertas...
-          </div>
-        ) : (
-          activeAlerts.map((alert) => (
-            <AlertItem
-              key={alert.id}
-              alert={alert}
-              onAcknowledge={onAcknowledge}
-              isAcknowledging={acknowledging === alert.id}
-            />
-          ))
-        )}
-      </CardContent>
-    </Card>
+      <Box sx={{ px: 2, pb: 2, maxHeight: 400, overflowY: 'auto' }}>
+        <Stack spacing={1}>
+          {isLoading ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4 }}>
+              <CircularProgress size={24} />
+              <Typography variant="body2" sx={{ ml: 2, color: 'text.secondary' }}>
+                Cargando alertas...
+              </Typography>
+            </Box>
+          ) : (
+            activeAlerts.map((alert) => (
+              <AlertItem
+                key={alert.id}
+                alert={alert}
+                onAcknowledge={onAcknowledge}
+                isAcknowledging={acknowledging === alert.id}
+              />
+            ))
+          )}
+        </Stack>
+      </Box>
+    </Paper>
   )
 }
 

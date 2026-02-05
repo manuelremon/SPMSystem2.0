@@ -1,4 +1,4 @@
-# SPM v2.0 - Dockerfile de Produccion
+# SPM v3.0 - Dockerfile de Produccion
 # Multi-stage build para imagen optimizada
 
 # === Stage 1: Builder ===

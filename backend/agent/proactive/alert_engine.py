@@ -12,10 +12,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List
 
-try:
-    from backend.core.db import get_db_connection, get_db_transaction
-except ImportError:
-    from core.db import get_db_connection, get_db_transaction
+from backend.core.db import get_db_connection, get_db_transaction
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +79,7 @@ class AlertEngine:
                 cursor.execute(
                     """
                     SELECT id, status, created_at, sla_deadline
-                    FROM solicitudes
+                    FROM solicitud
                     WHERE id_usuario = ?
                     AND status NOT IN ('closed', 'rejected', 'cancelled')
                     AND sla_deadline IS NOT NULL
@@ -141,7 +138,7 @@ class AlertEngine:
 
                 # Obtener centro/sector del usuario
                 cursor.execute(
-                    "SELECT centros FROM usuarios WHERE id_spm = ?",
+                    "SELECT centros FROM usuario WHERE id_spm = ?",
                     (self.user_id,),
                 )
                 user_row = cursor.fetchone()
@@ -160,7 +157,7 @@ class AlertEngine:
                 cursor.execute(
                     """
                     SELECT monto_total, monto_usado, monto_reservado
-                    FROM presupuestos
+                    FROM presupuesto
                     WHERE centro = ? AND anio = EXTRACT(YEAR FROM NOW())
                     """,
                     (centro,),

@@ -14,6 +14,7 @@ from jwt import InvalidTokenError
 
 from backend.core.config import settings
 from backend.core.db import get_db_connection, get_db_transaction
+from backend.core.helpers import safe_json as _safe_json
 
 
 bp = Blueprint("trivias", __name__)
@@ -21,12 +22,12 @@ logger = logging.getLogger(__name__)
 
 
 def _ensure_trivias_table():
-    """Create trivias_scores table if not exists"""
+    """Create trivia_score table if not exists"""
     with get_db_transaction() as conn:
         cur = conn.cursor()
         cur.execute(
             """
-            CREATE TABLE IF NOT EXISTS trivias_scores (
+            CREATE TABLE IF NOT EXISTS trivia_score (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id TEXT NOT NULL,
                 user_name TEXT NOT NULL,
@@ -63,7 +64,7 @@ def _get_current_user() -> Dict[str, Any] | None:
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT id_spm, nombre, apellido FROM usuarios WHERE id_spm=?", (str(user_id),)
+                "SELECT id_spm, nombre, apellido FROM usuario WHERE id_spm=?", (str(user_id),)
             )
             row = cur.fetchone()
 
@@ -72,13 +73,6 @@ def _get_current_user() -> Dict[str, Any] | None:
         return None
     except InvalidTokenError:
         return None
-
-
-def _safe_json():
-    data = request.get_json(silent=True)
-    if not isinstance(data, dict):
-        return None
-    return data
 
 
 @bp.route("/trivias/rankings", methods=["GET"])
@@ -113,7 +107,7 @@ def get_rankings():
                     MAX(score) as best_score,
                     SUM(correct_answers) as total_correct,
                     SUM(total_questions) as total_questions
-                FROM trivias_scores
+                FROM trivia_score
                 WHERE game_mode = ?
                 GROUP BY user_id, user_name, game_mode
                 ORDER BY total_score DESC
@@ -133,7 +127,7 @@ def get_rankings():
                     MAX(score) as best_score,
                     SUM(correct_answers) as total_correct,
                     SUM(total_questions) as total_questions
-                FROM trivias_scores
+                FROM trivia_score
                 GROUP BY user_id, user_name
                 ORDER BY total_score DESC
                 LIMIT ?
@@ -150,7 +144,7 @@ def get_rankings():
                 SELECT
                     COALESCE(SUM(score), 0) as total_score,
                     COUNT(*) as games_played
-                FROM trivias_scores
+                FROM trivia_score
                 WHERE user_id = ?
             """,
                 (str(user["id"]),),
@@ -270,7 +264,7 @@ def save_score():
         cur = conn.cursor()
         cur.execute(
             """
-            INSERT INTO trivias_scores (user_id, user_name, game_mode, score, correct_answers, total_questions, time_spent, created_at)
+            INSERT INTO trivia_score (user_id, user_name, game_mode, score, correct_answers, total_questions, time_spent, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
@@ -290,10 +284,10 @@ def save_score():
             SELECT COUNT(*) + 1 as rank
             FROM (
                 SELECT user_id, SUM(score) as total_score
-                FROM trivias_scores
+                FROM trivia_score
                 GROUP BY user_id
                 HAVING total_score > (
-                    SELECT COALESCE(SUM(score), 0) FROM trivias_scores WHERE user_id = ?
+                    SELECT COALESCE(SUM(score), 0) FROM trivia_score WHERE user_id = ?
                 )
             )
         """,
@@ -305,7 +299,7 @@ def save_score():
         cur.execute(
             """
             SELECT SUM(score) as total_score, COUNT(*) as games_played
-            FROM trivias_scores
+            FROM trivia_score
             WHERE user_id = ?
         """,
             (str(user["id"]),),
@@ -358,7 +352,7 @@ def get_my_stats():
                 SUM(correct_answers) as total_correct,
                 SUM(total_questions) as total_questions,
                 AVG(score) as avg_score
-            FROM trivias_scores
+            FROM trivia_score
             WHERE user_id = ?
         """,
             (str(user["id"]),),
@@ -375,7 +369,7 @@ def get_my_stats():
                 MAX(score) as best_score,
                 SUM(correct_answers) as total_correct,
                 SUM(total_questions) as total_questions
-            FROM trivias_scores
+            FROM trivia_score
             WHERE user_id = ?
             GROUP BY game_mode
         """,
@@ -388,10 +382,10 @@ def get_my_stats():
             SELECT COUNT(*) + 1 as rank
             FROM (
                 SELECT user_id, SUM(score) as total_score
-                FROM trivias_scores
+                FROM trivia_score
                 GROUP BY user_id
                 HAVING total_score > (
-                    SELECT COALESCE(SUM(score), 0) FROM trivias_scores WHERE user_id = ?
+                    SELECT COALESCE(SUM(score), 0) FROM trivia_score WHERE user_id = ?
                 )
             )
         """,

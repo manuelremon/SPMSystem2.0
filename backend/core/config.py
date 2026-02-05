@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     # Incluye: desarrollo local, GitHub Pages, y cualquier túnel de Cloudflare
     CORS_ORIGINS: str = os.getenv(
         "CORS_ORIGINS",
-        "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:4173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:5175,http://127.0.0.1:4173,https://manuelremon.github.io,https://*.trycloudflare.com,https://*.loca.lt",
+        "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:5177,http://localhost:5178,http://localhost:4173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:5175,http://127.0.0.1:5176,http://127.0.0.1:5177,http://127.0.0.1:4173,https://manuelremon.github.io,https://*.trycloudflare.com,https://*.loca.lt",
     )
 
     # JWT - Clave segura (requerida en producción)
@@ -64,7 +64,9 @@ class Settings(BaseSettings):
     # - Desarrollo: SQLite en data/spm.db
     _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent  # SPMv2.0/
     _DEFAULT_DB = _PROJECT_ROOT / "data" / "spm.db"
-    DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{_DEFAULT_DB}")
+    # Convertir Path a string con forward slashes para SQLite en Windows
+    _DB_PATH = str(_DEFAULT_DB).replace("\\", "/")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{_DB_PATH}")
 
     # Logging
     LOG_LEVEL: str = "INFO"

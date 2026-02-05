@@ -52,6 +52,12 @@ def get_usuarios():
     return jsonify(_usuarios()), 200
 
 
+@bp.route("/roles", methods=["GET"])
+def get_roles():
+    """Retorna catalogo de roles disponibles para solicitud"""
+    return jsonify(_roles()), 200
+
+
 def _activo_condition():
     """Retorna la condición de activo correcta para la BD"""
     # Usar =1 para ambos porque la columna es INTEGER en ambas BDs
@@ -61,7 +67,7 @@ def _activo_condition():
 @cached(catalog_cache, "centros", ttl=600)  # 10 min TTL
 def _centros():
     return _fetch(
-        f"SELECT codigo, nombre FROM catalog_centros WHERE {_activo_condition()}",
+        f"SELECT codigo, nombre FROM catalogo_centro WHERE {_activo_condition()}",
         lambda r: {"id": r["codigo"], "nombre": r["nombre"]},
     )
 
@@ -69,7 +75,7 @@ def _centros():
 @cached(catalog_cache, "sectores", ttl=600)  # 10 min TTL
 def _sectores():
     return _fetch(
-        f"SELECT nombre FROM catalog_sectores WHERE {_activo_condition()}",
+        f"SELECT nombre FROM catalogo_sector WHERE {_activo_condition()}",
         lambda r: {"id": r["nombre"], "nombre": r["nombre"]},
     )
 
@@ -77,7 +83,7 @@ def _sectores():
 @cached(catalog_cache, "almacenes", ttl=600)  # 10 min TTL
 def _almacenes():
     return _fetch(
-        f"SELECT codigo, nombre FROM catalog_almacenes WHERE {_activo_condition()}",
+        f"SELECT codigo, nombre FROM catalogo_almacen WHERE {_activo_condition()}",
         lambda r: {"id": r["codigo"], "nombre": r["nombre"] or r["codigo"]},
     )
 
@@ -85,11 +91,20 @@ def _almacenes():
 @cached(catalog_cache, "usuarios", ttl=300)  # 5 min TTL (changes more often)
 def _usuarios():
     return _fetch(
-        "SELECT id_spm, nombre, apellido, mail, posicion FROM usuarios WHERE estado_registro='Activo'",
+        "SELECT id_spm, nombre, apellido, mail, posicion FROM usuario WHERE estado_registro='Activo'",
         lambda r: {
             "id": r["id_spm"],
             "nombre": f"{r['nombre']} {r['apellido']}",
             "mail": r["mail"] or "",
             "posicion": r.get("posicion") or "",
         },
+    )
+
+
+@cached(catalog_cache, "roles", ttl=600)  # 10 min TTL
+def _roles():
+    """Retorna roles disponibles para solicitud (excluye admin)"""
+    return _fetch(
+        f"SELECT nombre FROM catalogo_rol WHERE {_activo_condition()} AND LOWER(nombre) NOT LIKE '%admin%' ORDER BY nombre",
+        lambda r: {"id": r["nombre"], "nombre": r["nombre"]},
     )

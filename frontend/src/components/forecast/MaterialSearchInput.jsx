@@ -55,7 +55,8 @@ const MaterialSearchInput = ({
   selectedMaterial = null,
   placeholder = '',
   disabled = false,
-  className = ''
+  className = '',
+  showSelectedInfo = true
 }) => {
   const { t } = useI18n();
   const inputRef = useRef(null);
@@ -231,7 +232,7 @@ const MaterialSearchInput = ({
       </div>
 
       {/* Selected material info */}
-      {selectedMaterial && (
+      {showSelectedInfo && selectedMaterial && (
         <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg text-sm">
           <div className="flex items-center gap-2">
             <Check className="h-4 w-4 text-blue-600" />

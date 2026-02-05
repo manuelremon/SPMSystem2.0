@@ -61,32 +61,39 @@ def _table_exists(conn, table_name: str) -> bool:
         return False
 
 
-def _connect_catalogo():
-    """Crea conexión a BD de catálogo de materiales
+def _connect_master_materiales():
+    """Crea conexión a BD consolidada de materiales (master_materiales.db)
+
+    Contiene las tablas:
+    - catalogo_materiales: catálogo de materiales SAP
+    - materiales_equivalencias: equivalencias entre materiales
+    - materiales_mrp: parámetros MRP por material (antes materiales_bbdd)
 
     En producción (PostgreSQL), todos los datos están en la misma BD.
-    En desarrollo (SQLite), conecta a catalogo_materiales.db separado.
+    En desarrollo (SQLite), conecta a master_materiales.db
     """
     if is_using_postgresql():
         return _get_postgres_connection()
-    catalogo_path = _db_path().parent / "catalogo_materiales.db"
-    conn = sqlite3.connect(catalogo_path)
+    master_path = _db_path().parent / "master_materiales.db"
+    conn = sqlite3.connect(master_path)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def _connect_catalogo():
+    """Crea conexión a BD de catálogo de materiales
+
+    DEPRECADO: Usar _connect_master_materiales() - tabla catalogo_materiales
+    """
+    return _connect_master_materiales()
 
 
 def _connect_equivalentes():
     """Crea conexión a BD de equivalencias
 
-    En producción (PostgreSQL), todos los datos están en la misma BD.
-    En desarrollo (SQLite), conecta a equivalentes.db separado.
+    DEPRECADO: Usar _connect_master_materiales() - tabla materiales_equivalencias
     """
-    if is_using_postgresql():
-        return _get_postgres_connection()
-    equiv_path = _db_path().parent / "equivalentes.db"
-    conn = sqlite3.connect(equiv_path)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return _connect_master_materiales()
 
 
 def _connect_sap_data():

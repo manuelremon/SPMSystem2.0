@@ -15,10 +15,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-try:
-    from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
-except ImportError:
-    from core.db import get_db_connection, get_db_transaction, insert_returning_id
+from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
 
 logger = logging.getLogger(__name__)
 

@@ -1,34 +1,44 @@
 import React, { useState } from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/Card";
-import { PageHeader } from "../components/ui/PageHeader";
-import { Select } from "../components/ui/Select";
-import { Button } from "../components/ui/Button";
-import { Input } from "../components/ui/Input";
-import { Textarea } from "../components/ui/Textarea";
 import {
-  Send,
-  Book,
-  AlertTriangle,
-  Phone,
-  Mail,
-  MessageSquare,
-  FileText,
-  CheckCircle,
-  HelpCircle,
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  Users,
-  Workflow,
-  Settings,
-  Package,
-} from "../components/ui/Icons";
+  Box,
+  Paper,
+  Typography,
+  Button,
+  Stack,
+  TextField,
+  MenuItem,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Alert,
+  CircularProgress,
+  Tabs,
+  Tab,
+  Grid,
+} from "@mui/material";
+import {
+  Send as SendIcon,
+  MenuBook as BookIcon,
+  Warning as AlertTriangleIcon,
+  Phone as PhoneIcon,
+  Email as MailIcon,
+  Chat as MessageSquareIcon,
+  Description as FileTextIcon,
+  CheckCircle as CheckCircleIcon,
+  HelpOutline as HelpCircleIcon,
+  ExpandMore as ExpandMoreIcon,
+  AccessTime as ClockIcon,
+  People as UsersIcon,
+  AccountTree as WorkflowIcon,
+  Settings as SettingsIcon,
+  Inventory as PackageIcon,
+} from "@mui/icons-material";
 import { useAuthStore } from "../store/authStore";
 import api from "../services/api";
 
 export default function Ayuda() {
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState("contacto");
+  const [activeTab, setActiveTab] = useState(0);
   const [formData, setFormData] = useState({
     asunto: "",
     mensaje: "",
@@ -37,59 +47,48 @@ export default function Ayuda() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState(null);
-  const [expandedFaq, setExpandedFaq] = useState(null);
+  const [expandedFaq, setExpandedFaq] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSending(true);
     setError(null);
-
     try {
-      // Enviar mensaje al administrador
       await api.post("/mensajes/send", {
-        destinatario_id: "admin", // El admin recibirá el mensaje
+        destinatario_id: "admin",
         asunto: `[Ayuda - ${formData.tipo.toUpperCase()}] ${formData.asunto}`,
         cuerpo: `
 Usuario: ${user?.nombre || user?.username}
 Email: ${user?.email}
 Tipo: ${formData.tipo}
-
 Mensaje:
 ${formData.mensaje}
         `.trim(),
       });
-
       setSent(true);
       setFormData({ asunto: "", mensaje: "", tipo: "consulta" });
     } catch (err) {
       setError("No se pudo enviar el mensaje. Intenta de nuevo.");
-      console.error("Error enviando ayuda:", err);
     } finally {
       setSending(false);
     }
   };
 
-  const tabs = [
-    { id: "contacto", label: "Contactar Administrador", icon: Send },
-    { id: "instrucciones", label: "Instrucciones de Uso", icon: Book },
-    { id: "urgente", label: "Ayuda Urgente", icon: AlertTriangle },
-  ];
-
   const instrucciones = [
     {
       titulo: "Crear una Nueva Solicitud",
-      icon: FileText,
+      icon: FileTextIcon,
       pasos: [
-        "Ve a 'Solicitudes' > 'Nueva Solicitud' en el menú superior",
-        "Completa los datos del formulario: centro, sector, justificación",
+        "Ve a 'Solicitudes' > 'Nueva Solicitud' en el menu superior",
+        "Completa los datos del formulario: centro, sector, justificacion",
         "Agrega los materiales que necesitas usando el buscador",
         "Revisa el resumen y haz clic en 'Enviar Solicitud'",
-        "La solicitud pasará a estado 'Enviada' para aprobación",
+        "La solicitud pasara a estado 'Enviada' para aprobacion",
       ],
     },
     {
       titulo: "Ver Mis Solicitudes",
-      icon: Package,
+      icon: PackageIcon,
       pasos: [
         "Ve a 'Solicitudes' > 'Mis Solicitudes'",
         "Filtra por estado: Borradores, Enviadas, Aprobadas, etc.",
@@ -99,420 +98,306 @@ ${formData.mensaje}
     },
     {
       titulo: "Aprobar Solicitudes",
-      icon: CheckCircle,
+      icon: CheckCircleIcon,
       pasos: [
-        "Ve a 'Aprobaciones' en el menú superior",
-        "Verás las solicitudes pendientes de tu aprobación",
+        "Ve a 'Aprobaciones' en el menu superior",
+        "Veras las solicitudes pendientes de tu aprobacion",
         "Revisa los detalles, materiales y montos",
-        "Haz clic en 'Aprobar' o 'Rechazar' según corresponda",
+        "Haz clic en 'Aprobar' o 'Rechazar' segun corresponda",
         "Si rechazas, debes indicar el motivo",
       ],
     },
     {
-      titulo: "Panel de Planificación",
-      icon: Workflow,
+      titulo: "Panel de Planificacion",
+      icon: WorkflowIcon,
       pasos: [
-        "Accede a 'Planificador' en el menú (solo planificadores)",
-        "Verás las solicitudes aprobadas asignadas a ti",
+        "Accede a 'Planificador' en el menu (solo planificadores)",
+        "Veras las solicitudes aprobadas asignadas a ti",
         "Trata cada solicitud: asigna materiales, cantidades y almacenes",
         "Finaliza el tratamiento para completar el proceso",
       ],
     },
     {
       titulo: "Configurar Mi Cuenta",
-      icon: Settings,
+      icon: SettingsIcon,
       pasos: [
         "Haz clic en tu nombre en la esquina superior derecha",
         "Selecciona 'Mi Cuenta'",
-        "Aquí puedes actualizar tu información personal",
-        "Cambiar tu contraseña o preferencias",
+        "Aqui puedes actualizar tu informacion personal",
+        "Cambiar tu contrasena o preferencias",
       ],
     },
   ];
 
   const faqs = [
     {
-      pregunta: "¿Cómo puedo editar una solicitud ya enviada?",
+      pregunta: "Como puedo editar una solicitud ya enviada?",
       respuesta: "Las solicitudes enviadas no pueden editarse. Si necesitas hacer cambios, solicita al aprobador que la rechace para que vuelva a estado Borrador, o crea una nueva solicitud.",
     },
     {
-      pregunta: "¿Por qué no veo el botón de aprobar en las solicitudes?",
-      respuesta: "El botón de aprobar solo aparece si tienes rol de aprobador y la solicitud está asignada a ti. Contacta al administrador si crees que deberías poder aprobar.",
+      pregunta: "Por que no veo el boton de aprobar en las solicitudes?",
+      respuesta: "El boton de aprobar solo aparece si tienes rol de aprobador y la solicitud esta asignada a ti. Contacta al administrador si crees que deberias poder aprobar.",
     },
     {
-      pregunta: "¿Cómo agrego materiales que no aparecen en el buscador?",
-      respuesta: "Si un material no aparece, puede que no esté en el catálogo del sistema. Contacta al administrador para que lo agregue.",
+      pregunta: "Como agrego materiales que no aparecen en el buscador?",
+      respuesta: "Si un material no aparece, puede que no este en el catalogo del sistema. Contacta al administrador para que lo agregue.",
     },
     {
-      pregunta: "¿Qué significa cada estado de solicitud?",
-      respuesta: "Borrador: aún no enviada. Enviada: esperando aprobación. Aprobada: lista para planificación. Rechazada: requiere revisión. En Proceso: siendo planificada. Completada: entregada.",
+      pregunta: "Que significa cada estado de solicitud?",
+      respuesta: "Borrador: aun no enviada. Enviada: esperando aprobacion. Aprobada: lista para planificacion. Rechazada: requiere revision. En Proceso: siendo planificada. Completada: entregada.",
     },
     {
-      pregunta: "¿Puedo cancelar una solicitud después de enviarla?",
+      pregunta: "Puedo cancelar una solicitud despues de enviarla?",
       respuesta: "No puedes cancelar directamente. Debes solicitar al aprobador que la rechace, o contactar al administrador para casos especiales.",
     },
   ];
 
+  const handleTabChange = (event, newValue) => setActiveTab(newValue);
+  const handleFaqChange = (panel) => (event, isExpanded) => setExpandedFaq(isExpanded ? panel : false);
+
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="CENTRO DE AYUDA"
-        description="Obtén asistencia, aprende a usar el sistema o contacta al administrador"
-      />
+    <Stack spacing={3}>
+      <Box>
+        <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          Centro de Ayuda
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
+          Obten asistencia, aprende a usar el sistema o contacta al administrador
+        </Typography>
+      </Box>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30 w-fit">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                isActive
-                  ? "bg-white shadow-sm text-blue-600"
-                  : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
+      <Paper sx={{ width: 'fit-content' }}>
+        <Tabs value={activeTab} onChange={handleTabChange}>
+          <Tab icon={<SendIcon />} iconPosition="start" label="Contactar Administrador" />
+          <Tab icon={<BookIcon />} iconPosition="start" label="Instrucciones de Uso" />
+          <Tab icon={<AlertTriangleIcon />} iconPosition="start" label="Ayuda Urgente" />
+        </Tabs>
+      </Paper>
 
-      {/* Tab Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Formulario de Contacto */}
-        {activeTab === "contacto" && (
+      <Grid container spacing={3}>
+        {activeTab === 0 && (
           <>
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-violet-500" />
-                    Enviar Mensaje al Administrador
-                  </CardTitle>
-                  <CardDescription>
-                    Completa el formulario para enviar tu consulta o reporte
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+            <Grid item xs={12} lg={8}>
+              <Paper sx={{ p: 3 }}>
+                <Stack spacing={3}>
+                  <Box>
+                    <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                      <MessageSquareIcon sx={{ color: 'secondary.main' }} />
+                      <Typography variant="h6" fontWeight="bold">
+                        Enviar Mensaje al Administrador
+                      </Typography>
+                    </Stack>
+                    <Typography variant="body2" color="text.secondary">
+                      Completa el formulario para enviar tu consulta o reporte
+                    </Typography>
+                  </Box>
+
                   {sent ? (
-                    <div className="text-center py-8">
-                      <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                    <Box sx={{ textAlign: 'center', py: 4 }}>
+                      <CheckCircleIcon sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
+                      <Typography variant="h6" fontWeight="bold" sx={{ mb: 1 }}>
                         Mensaje Enviado
-                      </h3>
-                      <p className="text-slate-500 mb-4">
-                        Tu mensaje ha sido enviado al administrador. Recibirás una respuesta pronto.
-                      </p>
-                      <Button onClick={() => setSent(false)}>
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                        Tu mensaje ha sido enviado al administrador. Recibiras una respuesta pronto.
+                      </Typography>
+                      <Button variant="contained" onClick={() => setSent(false)}>
                         Enviar otro mensaje
                       </Button>
-                    </div>
+                    </Box>
                   ) : (
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-800 mb-1.5">
-                          Tipo de Consulta
-                        </label>
-                        <Select
-                          value={formData.tipo}
-                          onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
-                        >
-                          <option value="consulta">Consulta General</option>
-                          <option value="problema">Reportar Problema</option>
-                          <option value="sugerencia">Sugerencia</option>
-                          <option value="acceso">Problema de Acceso</option>
-                          <option value="otro">Otro</option>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-slate-800 mb-1.5">
-                          Asunto
-                        </label>
-                        <Input
-                          type="text"
-                          value={formData.asunto}
-                          onChange={(e) => setFormData({ ...formData, asunto: e.target.value })}
-                          placeholder="Describe brevemente tu consulta"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-slate-800 mb-1.5">
-                          Mensaje
-                        </label>
-                        <Textarea
-                          value={formData.mensaje}
-                          onChange={(e) => setFormData({ ...formData, mensaje: e.target.value })}
-                          placeholder="Describe tu consulta o problema en detalle..."
-                          required
-                          rows={6}
-                          className="resize-none"
-                        />
-                      </div>
-
-                      {error && (
-                        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-600 text-sm">
-                          {error}
-                        </div>
-                      )}
-
-                      <Button
-                        type="submit"
-                        disabled={sending}
-                        className="w-full"
-                      >
-                        {sending ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            Enviando...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="w-4 h-4 text-blue-600" />
-                            Enviar Mensaje
-                          </>
-                        )}
+                    <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                      <TextField select label="Tipo de Consulta" value={formData.tipo} onChange={(e) => setFormData({ ...formData, tipo: e.target.value })} fullWidth>
+                        <MenuItem value="consulta">Consulta General</MenuItem>
+                        <MenuItem value="problema">Reportar Problema</MenuItem>
+                        <MenuItem value="sugerencia">Sugerencia</MenuItem>
+                        <MenuItem value="acceso">Problema de Acceso</MenuItem>
+                        <MenuItem value="otro">Otro</MenuItem>
+                      </TextField>
+                      <TextField label="Asunto" value={formData.asunto} onChange={(e) => setFormData({ ...formData, asunto: e.target.value })} placeholder="Describe brevemente tu consulta" required fullWidth />
+                      <TextField label="Mensaje" value={formData.mensaje} onChange={(e) => setFormData({ ...formData, mensaje: e.target.value })} placeholder="Describe tu consulta o problema en detalle..." required multiline rows={6} fullWidth />
+                      {error && <Alert severity="error">{error}</Alert>}
+                      <Button type="submit" variant="contained" disabled={sending} startIcon={sending ? <CircularProgress size={20} color="inherit" /> : <SendIcon />} fullWidth>
+                        {sending ? "Enviando..." : "Enviar Mensaje"}
                       </Button>
-                    </form>
+                    </Box>
                   )}
-                </CardContent>
-              </Card>
-            </div>
+                </Stack>
+              </Paper>
+            </Grid>
 
-            {/* Información de Contacto */}
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Información de Contacto</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <Mail className="w-5 h-5 text-violet-500 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-slate-900">Email</p>
-                      <p className="text-sm text-slate-500">solicitudespuntualesmateriales@gmail.com</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Phone className="w-5 h-5 text-blue-500 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-slate-900">Teléfono</p>
-                      <p className="text-sm text-slate-500">+54 11 1234-5678</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Clock className="w-5 h-5 text-cyan-500 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-slate-900">Horario de Atención</p>
-                      <p className="text-sm text-slate-500">Lun - Vie: 8:00 - 18:00</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Preguntas Frecuentes</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {faqs.slice(0, 3).map((faq, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setExpandedFaq(expandedFaq === idx ? null : idx)}
-                      className="w-full text-left p-3 rounded-lg bg-slate-50/70 hover:bg-slate-100/70 transition-colors"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-medium text-slate-800">{faq.pregunta}</span>
-                        {expandedFaq === idx ? (
-                          <ChevronDown className="w-4 h-4 text-slate-600 flex-shrink-0" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4 text-slate-600 flex-shrink-0" />
-                        )}
-                      </div>
-                      {expandedFaq === idx && (
-                        <p className="mt-2 text-sm text-slate-500">{faq.respuesta}</p>
-                      )}
-                    </button>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
+            <Grid item xs={12} lg={4}>
+              <Stack spacing={3}>
+                <Paper sx={{ p: 3 }}>
+                  <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 2 }}>
+                    Informacion de Contacto
+                  </Typography>
+                  <Stack spacing={2}>
+                    <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                      <MailIcon sx={{ color: 'secondary.main', mt: 0.5 }} />
+                      <Box>
+                        <Typography variant="body2" fontWeight="medium">Email</Typography>
+                        <Typography variant="body2" color="text.secondary">solicitudespuntualesmateriales@gmail.com</Typography>
+                      </Box>
+                    </Stack>
+                    <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                      <PhoneIcon sx={{ color: 'primary.main', mt: 0.5 }} />
+                      <Box>
+                        <Typography variant="body2" fontWeight="medium">Telefono</Typography>
+                        <Typography variant="body2" color="text.secondary">+54 11 1234-5678</Typography>
+                      </Box>
+                    </Stack>
+                    <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                      <ClockIcon sx={{ color: 'info.main', mt: 0.5 }} />
+                      <Box>
+                        <Typography variant="body2" fontWeight="medium">Horario de Atencion</Typography>
+                        <Typography variant="body2" color="text.secondary">Lun - Vie: 8:00 - 18:00</Typography>
+                      </Box>
+                    </Stack>
+                  </Stack>
+                </Paper>
+                <Paper sx={{ p: 3 }}>
+                  <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 2 }}>
+                    Preguntas Frecuentes
+                  </Typography>
+                  <Stack spacing={1}>
+                    {faqs.slice(0, 3).map((faq, idx) => (
+                      <Accordion key={idx} expanded={expandedFaq === `contacto-faq-${idx}`} onChange={handleFaqChange(`contacto-faq-${idx}`)} disableGutters elevation={0} sx={{ bgcolor: 'action.hover', '&:before': { display: 'none' }, borderRadius: 1 }}>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="body2" fontWeight="medium">{faq.pregunta}</Typography></AccordionSummary>
+                        <AccordionDetails><Typography variant="body2" color="text.secondary">{faq.respuesta}</Typography></AccordionDetails>
+                      </Accordion>
+                    ))}
+                  </Stack>
+                </Paper>
+              </Stack>
+            </Grid>
           </>
         )}
 
-        {/* Instrucciones de Uso */}
-        {activeTab === "instrucciones" && (
-          <div className="lg:col-span-3 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {activeTab === 1 && (
+          <Grid item xs={12}>
+            <Grid container spacing={3}>
               {instrucciones.map((instruccion, idx) => {
                 const Icon = instruccion.icon;
                 return (
-                  <Card key={idx}>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Icon className="w-5 h-5 text-blue-500" />
-                        {instruccion.titulo}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ol className="space-y-2">
-                        {instruccion.pasos.map((paso, pasoIdx) => (
-                          <li key={pasoIdx} className="flex items-start gap-3">
-                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600/20 text-blue-600 text-xs font-bold flex items-center justify-center">
-                              {pasoIdx + 1}
-                            </span>
-                            <span className="text-sm text-slate-500">{paso}</span>
-                          </li>
-                        ))}
-                      </ol>
-                    </CardContent>
-                  </Card>
+                  <Grid item xs={12} md={6} key={idx}>
+                    <Paper sx={{ p: 3, height: '100%' }}>
+                      <Stack spacing={2}>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <Icon color="primary" />
+                          <Typography variant="h6" fontWeight="bold">{instruccion.titulo}</Typography>
+                        </Stack>
+                        <Stack component="ol" spacing={1.5} sx={{ p: 0, m: 0, listStyle: 'none' }}>
+                          {instruccion.pasos.map((paso, pasoIdx) => (
+                            <Stack component="li" key={pasoIdx} direction="row" alignItems="flex-start" spacing={1.5}>
+                              <Box sx={{ flexShrink: 0, width: 24, height: 24, borderRadius: '50%', bgcolor: 'primary.light', color: 'primary.contrastText', fontSize: '0.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {pasoIdx + 1}
+                              </Box>
+                              <Typography variant="body2" color="text.secondary">{paso}</Typography>
+                            </Stack>
+                          ))}
+                        </Stack>
+                      </Stack>
+                    </Paper>
+                  </Grid>
                 );
               })}
-            </div>
-
-            {/* FAQs Completas */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <HelpCircle className="w-5 h-5 text-blue-500" />
-                  Preguntas Frecuentes
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
+            </Grid>
+            <Paper sx={{ p: 3, mt: 3 }}>
+              <Stack direction="row" alignItems="center" spacing={1} mb={2}>
+                <HelpCircleIcon color="primary" />
+                <Typography variant="h6" fontWeight="bold">Preguntas Frecuentes</Typography>
+              </Stack>
+              <Stack spacing={1}>
                 {faqs.map((faq, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setExpandedFaq(expandedFaq === `faq-${idx}` ? null : `faq-${idx}`)}
-                    className="w-full text-left p-4 rounded-lg bg-slate-50/70 hover:bg-slate-100/70 transition-colors"
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="font-medium text-slate-800">{faq.pregunta}</span>
-                      {expandedFaq === `faq-${idx}` ? (
-                        <ChevronDown className="w-5 h-5 text-slate-600 flex-shrink-0" />
-                      ) : (
-                        <ChevronRight className="w-5 h-5 text-slate-600 flex-shrink-0" />
-                      )}
-                    </div>
-                    {expandedFaq === `faq-${idx}` && (
-                      <p className="mt-3 text-slate-500 border-t border-white/30 pt-3">
-                        {faq.respuesta}
-                      </p>
-                    )}
-                  </button>
+                  <Accordion key={idx} expanded={expandedFaq === `instrucciones-faq-${idx}`} onChange={handleFaqChange(`instrucciones-faq-${idx}`)} disableGutters elevation={0} sx={{ bgcolor: 'action.hover', '&:before': { display: 'none' }, borderRadius: 1 }}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="body2" fontWeight="medium">{faq.pregunta}</Typography></AccordionSummary>
+                    <AccordionDetails sx={{ borderTop: 1, borderColor: 'divider' }}><Typography variant="body2" color="text.secondary">{faq.respuesta}</Typography></AccordionDetails>
+                  </Accordion>
                 ))}
-              </CardContent>
-            </Card>
-          </div>
+              </Stack>
+            </Paper>
+          </Grid>
         )}
 
-        {/* Ayuda Urgente */}
-        {activeTab === "urgente" && (
-          <div className="lg:col-span-3">
-            <Card className="border-amber-500/50 bg-amber-500/5">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-amber-500">
-                  <AlertTriangle className="w-6 h-6" />
-                  Ayuda Urgente
-                </CardTitle>
-                <CardDescription>
-                  Para situaciones críticas que requieren atención inmediata
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Contacto de Emergencia */}
-                  <div className="p-6 rounded-xl bg-white border border-white/30">
-                    <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                      <Phone className="w-5 h-5 text-blue-500" />
-                      Contacto de Emergencia
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="p-3 rounded-lg bg-slate-50/70">
-                        <p className="text-sm text-slate-500">Línea directa soporte:</p>
-                        <p className="text-lg font-mono font-bold text-blue-500">+54 11 1234-5678</p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-slate-50/70">
-                        <p className="text-sm text-slate-500">WhatsApp urgencias:</p>
-                        <p className="text-lg font-mono font-bold text-emerald-500">+54 9 11 9876-5432</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Situaciones Urgentes */}
-                  <div className="p-6 rounded-xl bg-white border border-white/30">
-                    <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                      <AlertTriangle className="w-5 h-5 text-amber-500" />
-                      ¿Cuándo usar Ayuda Urgente?
-                    </h3>
-                    <ul className="space-y-2">
-                      <li className="flex items-start gap-2 text-sm text-slate-500">
-                        <span className="text-amber-500">•</span>
-                        No puedes acceder al sistema y tienes una solicitud crítica
-                      </li>
-                      <li className="flex items-start gap-2 text-sm text-slate-500">
-                        <span className="text-amber-500">•</span>
-                        Error que bloquea operaciones de producción
-                      </li>
-                      <li className="flex items-start gap-2 text-sm text-slate-500">
-                        <span className="text-amber-500">•</span>
-                        Problema de seguridad o acceso no autorizado
-                      </li>
-                      <li className="flex items-start gap-2 text-sm text-slate-500">
-                        <span className="text-amber-500">•</span>
-                        Pérdida de datos o información crítica
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Administradores del Sistema */}
-                <div className="p-6 rounded-xl bg-white border border-white/30">
-                  <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-teal-500" />
-                    Administradores del Sistema
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-lg bg-slate-50/70">
-                      <p className="font-medium text-slate-900">Admin Principal</p>
-                      <p className="text-sm text-slate-500">solicitudespuntualesmateriales@gmail.com</p>
-                      <p className="text-xs text-slate-400">Horario: 24/7</p>
-                    </div>
-                    <div className="p-4 rounded-lg bg-slate-50/70">
-                      <p className="font-medium text-slate-900">Soporte Técnico</p>
-                      <p className="text-sm text-slate-500">solicitudespuntualesmateriales@gmail.com</p>
-                      <p className="text-xs text-slate-400">Horario: 8:00 - 20:00</p>
-                    </div>
-                    <div className="p-4 rounded-lg bg-slate-50/70">
-                      <p className="font-medium text-slate-900">Mesa de Ayuda</p>
-                      <p className="text-sm text-slate-500">solicitudespuntualesmateriales@gmail.com</p>
-                      <p className="text-xs text-slate-400">Horario: 8:00 - 18:00</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Botón de Contacto Urgente */}
-                <div className="flex justify-center">
-                  <a
-                    href="tel:+541112345678"
-                    className="flex items-center gap-3 px-8 py-4 bg-amber-500 text-black rounded-xl font-semibold text-lg hover:bg-amber-500/90 transition-colors shadow-lg"
-                  >
-                    <Phone className="w-6 h-6 text-blue-500" />
+        {activeTab === 2 && (
+          <Grid item xs={12}>
+            <Paper sx={{ p: 3, border: 2, borderColor: 'warning.main', bgcolor: 'warning.lighter' }}>
+              <Stack spacing={3}>
+                <Box>
+                  <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                    <AlertTriangleIcon sx={{ color: 'warning.main', fontSize: 28 }} />
+                    <Typography variant="h6" fontWeight="bold" color="warning.dark">Ayuda Urgente</Typography>
+                  </Stack>
+                  <Typography variant="body2" color="text.secondary">
+                    Para situaciones criticas que requieren atencion inmediata
+                  </Typography>
+                </Box>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Paper variant="outlined" sx={{ p: 3, height: '100%' }}>
+                      <Stack spacing={2}>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <PhoneIcon color="primary" />
+                          <Typography variant="subtitle1" fontWeight="bold">Contacto de Emergencia</Typography>
+                        </Stack>
+                        <Paper elevation={0} sx={{ p: 2, bgcolor: 'action.hover' }}>
+                          <Typography variant="body2" color="text.secondary">Linea directa soporte:</Typography>
+                          <Typography variant="h6" fontWeight="bold" color="primary.main" fontFamily="monospace">+54 11 1234-5678</Typography>
+                        </Paper>
+                        <Paper elevation={0} sx={{ p: 2, bgcolor: 'action.hover' }}>
+                          <Typography variant="body2" color="text.secondary">WhatsApp urgencias:</Typography>
+                          <Typography variant="h6" fontWeight="bold" color="success.main" fontFamily="monospace">+54 9 11 9876-5432</Typography>
+                        </Paper>
+                      </Stack>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Paper variant="outlined" sx={{ p: 3, height: '100%' }}>
+                      <Stack spacing={2}>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <AlertTriangleIcon color="warning" />
+                          <Typography variant="subtitle1" fontWeight="bold">Cuando usar Ayuda Urgente?</Typography>
+                        </Stack>
+                        <Stack component="ul" spacing={1} sx={{ p: 0, m: 0, listStyle: 'none' }}>
+                          {["No puedes acceder al sistema y tienes una solicitud critica", "Error que bloquea operaciones de produccion", "Problema de seguridad o acceso no autorizado", "Perdida de datos o informacion critica"].map((item, idx) => (
+                            <Stack component="li" key={idx} direction="row" spacing={1} alignItems="flex-start">
+                              <Typography component="span" color="warning.main">-</Typography>
+                              <Typography variant="body2" color="text.secondary">{item}</Typography>
+                            </Stack>
+                          ))}
+                        </Stack>
+                      </Stack>
+                    </Paper>
+                  </Grid>
+                </Grid>
+                <Paper variant="outlined" sx={{ p: 3 }}>
+                  <Stack direction="row" alignItems="center" spacing={1} mb={2}>
+                    <UsersIcon color="info" />
+                    <Typography variant="subtitle1" fontWeight="bold">Administradores del Sistema</Typography>
+                  </Stack>
+                  <Grid container spacing={2}>
+                    {[{ nombre: "Admin Principal", email: "solicitudespuntualesmateriales@gmail.com", horario: "24/7" }, { nombre: "Soporte Tecnico", email: "solicitudespuntualesmateriales@gmail.com", horario: "8:00 - 20:00" }, { nombre: "Mesa de Ayuda", email: "solicitudespuntualesmateriales@gmail.com", horario: "8:00 - 18:00" }].map((admin, idx) => (
+                      <Grid item xs={12} md={4} key={idx}>
+                        <Paper elevation={0} sx={{ p: 2, bgcolor: 'action.hover', height: '100%' }}>
+                          <Typography variant="body2" fontWeight="medium">{admin.nombre}</Typography>
+                          <Typography variant="body2" color="text.secondary">{admin.email}</Typography>
+                          <Typography variant="caption" color="text.disabled">Horario: {admin.horario}</Typography>
+                        </Paper>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Paper>
+                <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                  <Button component="a" href="tel:+541112345678" variant="contained" color="warning" size="large" startIcon={<PhoneIcon />} sx={{ px: 4, py: 1.5, fontWeight: 'bold', fontSize: '1.1rem' }}>
                     Llamar Ahora
-                  </a>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                  </Button>
+                </Box>
+              </Stack>
+            </Paper>
+          </Grid>
         )}
-      </div>
-    </div>
+      </Grid>
+    </Stack>
   );
 }

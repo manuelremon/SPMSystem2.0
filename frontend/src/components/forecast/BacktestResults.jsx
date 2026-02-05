@@ -1,29 +1,103 @@
 /**
- * BacktestResults - Resultados de backtesting
+ * BacktestResults - Resultados de backtesting con AG Grid y Chart.js
  *
- * Muestra métricas y gráficos de validación walk-forward
+ * Muestra metricas y graficos de validacion walk-forward
  */
 
-import React from 'react';
-import LazyPlot from './LazyPlot';
+import React, { useMemo } from 'react';
+import {
+  Box,
+  Paper,
+  Typography,
+  Stack,
+  Chip,
+  Skeleton,
+} from '@mui/material';
 import { useI18n } from '../../context/i18n';
+import { SPMAgGrid } from '../ui/SPMAgGrid';
+import { SPMBar, SPM_COLORS } from '../ui/SPMChartJS';
 
-const BacktestResults = ({ data, loading = false, className = '' }) => {
+const BacktestResults = ({ data, loading = false }) => {
   const { t } = useI18n();
+
+  // Preparar filas para el DataGrid
+  const rows = useMemo(() => {
+    if (!data?.steps) return [];
+    return data.steps.map((step, i) => ({
+      id: i,
+      paso: i + 1,
+      fecha_corte: new Date(step.fecha_corte),
+      n_train: step.n_train,
+      n_test: step.n_test,
+      mae: step.mae,
+      r2: step.r2,
+    }));
+  }, [data?.steps]);
+
+  // Definir columnas para AG Grid
+  const columnDefs = useMemo(() => [
+    {
+      field: 'paso',
+      headerName: 'Paso',
+      width: 80,
+      type: 'numericColumn',
+    },
+    {
+      field: 'fecha_corte',
+      headerName: 'Fecha Corte',
+      width: 130,
+      valueFormatter: (params) => {
+        if (!params.value) return '-';
+        return params.value.toLocaleDateString('es-ES');
+      },
+    },
+    {
+      field: 'n_train',
+      headerName: 'Train',
+      width: 90,
+      type: 'numericColumn',
+    },
+    {
+      field: 'n_test',
+      headerName: 'Test',
+      width: 90,
+      type: 'numericColumn',
+    },
+    {
+      field: 'mae',
+      headerName: 'MAE',
+      width: 100,
+      type: 'numericColumn',
+      cellRenderer: (params) => (
+        <Typography variant="body2" fontWeight={500}>
+          {params.value?.toFixed(2) || '-'}
+        </Typography>
+      ),
+    },
+    {
+      field: 'r2',
+      headerName: 'R2',
+      width: 100,
+      type: 'numericColumn',
+      cellRenderer: (params) => (
+        <Typography variant="body2" fontWeight={500}>
+          {params.value?.toFixed(4) || '-'}
+        </Typography>
+      ),
+    },
+  ], []);
 
   if (loading) {
     return (
-      <div className={`p-6 bg-white rounded-lg border ${className}`}>
-        <div className="animate-pulse">
-          <div className="h-6 bg-slate-200 rounded w-48 mb-4"></div>
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-20 bg-slate-100 rounded"></div>
-            ))}
-          </div>
-          <div className="h-64 bg-slate-100 rounded"></div>
-        </div>
-      </div>
+      <Paper sx={{ p: 3, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+        <Skeleton variant="text" width={192} height={28} sx={{ mb: 2 }} />
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2, mb: 3 }}>
+          {[1, 2, 3, 4].map(i => (
+            <Skeleton key={i} variant="rounded" height={80} />
+          ))}
+        </Box>
+        <Skeleton variant="rounded" height={256} />
+      </Paper>
     );
   }
 
@@ -31,131 +105,146 @@ const BacktestResults = ({ data, loading = false, className = '' }) => {
     return null;
   }
 
-  const { metricas_agregadas, steps, es_estable, modelo_tipo } = data;
+  const { metricas_agregadas, steps, es_estable } = data;
 
-  // Datos para el gráfico de métricas por paso
-  const chartData = [
-    {
-      x: steps?.map((_, i) => `Paso ${i + 1}`) || [],
-      y: steps?.map(s => s.mae) || [],
-      type: 'bar',
-      name: 'MAE',
-      marker: { color: '#3b82f6' }
-    },
-    {
-      x: steps?.map((_, i) => `Paso ${i + 1}`) || [],
-      y: steps?.map(s => s.rmse) || [],
-      type: 'bar',
-      name: 'RMSE',
-      marker: { color: '#8b5cf6' }
-    }
-  ];
-
-  const chartLayout = {
-    title: t('forecast_backtest_metricas_paso', 'Métricas por Paso de Validación'),
-    barmode: 'group',
-    xaxis: { title: '' },
-    yaxis: { title: t('forecast_error', 'Error') },
-    showlegend: true,
-    legend: { orientation: 'h', y: 1.1 },
-    margin: { t: 60, r: 20, b: 40, l: 60 },
-    height: 300
-  };
+  // Datos para el grafico de metricas por paso (MUI X Charts)
+  const chartData = useMemo(() => {
+    if (!steps || steps.length === 0) return { labels: [], mae: [], rmse: [] };
+    return {
+      labels: steps.map((_, i) => `Paso ${i + 1}`),
+      mae: steps.map(s => s.mae || 0),
+      rmse: steps.map(s => s.rmse || 0),
+    };
+  }, [steps]);
 
   return (
-    <div className={`p-6 bg-white rounded-lg border ${className}`}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-slate-900">
+    <Paper sx={{ p: 3, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Typography variant="h6" fontWeight={600} color="text.primary">
           {t('forecast_backtest_resultados', 'Resultados de Backtesting')}
-        </h3>
-        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-          es_estable
-            ? 'bg-green-100 text-green-700'
-            : 'bg-yellow-100 text-yellow-700'
-        }`}>
-          {es_estable
+        </Typography>
+        <Chip
+          label={es_estable
             ? t('forecast_modelo_estable', 'Modelo Estable')
             : t('forecast_modelo_variable', 'Modelo Variable')
           }
-        </span>
-      </div>
-
-      {/* Métricas resumidas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="p-3 bg-blue-50 rounded-lg">
-          <p className="text-xs text-blue-600 font-medium">MAE Promedio</p>
-          <p className="text-xl font-bold text-blue-700">
-            {metricas_agregadas?.mae_mean?.toFixed(2) || '-'}
-          </p>
-          <p className="text-xs text-blue-500">
-            ±{metricas_agregadas?.mae_std?.toFixed(2) || '0'}
-          </p>
-        </div>
-
-        <div className="p-3 bg-purple-50 rounded-lg">
-          <p className="text-xs text-purple-600 font-medium">RMSE Promedio</p>
-          <p className="text-xl font-bold text-purple-700">
-            {metricas_agregadas?.rmse_mean?.toFixed(2) || '-'}
-          </p>
-        </div>
-
-        <div className="p-3 bg-green-50 rounded-lg">
-          <p className="text-xs text-green-600 font-medium">R² Promedio</p>
-          <p className="text-xl font-bold text-green-700">
-            {metricas_agregadas?.r2_mean?.toFixed(4) || '-'}
-          </p>
-        </div>
-
-        <div className="p-3 bg-slate-50 rounded-lg">
-          <p className="text-xs text-slate-600 font-medium">Pasos Exitosos</p>
-          <p className="text-xl font-bold text-slate-700">
-            {metricas_agregadas?.n_pasos_exitosos || 0}
-          </p>
-        </div>
-      </div>
-
-      {/* Gráfico de métricas por paso */}
-      {steps && steps.length > 0 && (
-        <LazyPlot
-          data={chartData}
-          layout={chartLayout}
-          config={{ responsive: true, displaylogo: false }}
-          style={{ width: '100%' }}
+          size="small"
+          color={es_estable ? 'success' : 'warning'}
+          sx={{ fontWeight: 500 }}
         />
+      </Stack>
+
+      {/* Metricas resumidas */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+          gap: 2,
+          mb: 3
+        }}
+      >
+        <Paper
+          elevation={0}
+          sx={{ p: 1.5, bgcolor: 'primary.50', borderRadius: 2 }}
+        >
+          <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 500 }}>
+            MAE Promedio
+          </Typography>
+          <Typography variant="h5" fontWeight={700} color="primary.dark">
+            {metricas_agregadas?.mae_mean?.toFixed(2) || '-'}
+          </Typography>
+          <Typography variant="caption" color="primary.main">
+            +/-{metricas_agregadas?.mae_std?.toFixed(2) || '0'}
+          </Typography>
+        </Paper>
+
+        <Paper
+          elevation={0}
+          sx={{ p: 1.5, bgcolor: 'secondary.50', borderRadius: 2 }}
+        >
+          <Typography variant="caption" sx={{ color: 'secondary.main', fontWeight: 500 }}>
+            RMSE Promedio
+          </Typography>
+          <Typography variant="h5" fontWeight={700} color="secondary.dark">
+            {metricas_agregadas?.rmse_mean?.toFixed(2) || '-'}
+          </Typography>
+        </Paper>
+
+        <Paper
+          elevation={0}
+          sx={{ p: 1.5, bgcolor: 'success.50', borderRadius: 2 }}
+        >
+          <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 500 }}>
+            R2 Promedio
+          </Typography>
+          <Typography variant="h5" fontWeight={700} color="success.dark">
+            {metricas_agregadas?.r2_mean?.toFixed(4) || '-'}
+          </Typography>
+        </Paper>
+
+        <Paper
+          elevation={0}
+          sx={{ p: 1.5, bgcolor: 'grey.100', borderRadius: 2 }}
+        >
+          <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+            Pasos Exitosos
+          </Typography>
+          <Typography variant="h5" fontWeight={700} color="text.primary">
+            {metricas_agregadas?.n_pasos_exitosos || 0}
+          </Typography>
+        </Paper>
+      </Box>
+
+      {/* Grafico de metricas por paso - Chart.js */}
+      {steps && steps.length > 0 && (
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+            {t('forecast_backtest_metricas_paso', 'Metricas por Paso de Validacion')}
+          </Typography>
+          <SPMBar
+            labels={chartData.labels}
+            datasets={[
+              {
+                label: 'MAE',
+                data: chartData.mae,
+                backgroundColor: SPM_COLORS.primary,
+              },
+              {
+                label: 'RMSE',
+                data: chartData.rmse,
+                backgroundColor: SPM_COLORS.secondary,
+              },
+            ]}
+            height={280}
+            options={{
+              plugins: {
+                tooltip: {
+                  callbacks: {
+                    label: (ctx) => `${ctx.dataset.label}: ${ctx.raw?.toFixed(2) || '-'}`,
+                  },
+                },
+              },
+            }}
+          />
+        </Box>
       )}
 
-      {/* Tabla de detalle por paso */}
-      {steps && steps.length > 0 && (
-        <div className="mt-4 overflow-x-auto rounded-xl border border-white/30">
-          <table className="w-full text-sm">
-            <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
-              <tr>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Paso</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Fecha Corte</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Train</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Test</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">MAE</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">R²</th>
-              </tr>
-            </thead>
-            <tbody>
-              {steps.map((step, i) => (
-                <tr key={i} className="border-b border-slate-100">
-                  <td className="px-3 py-2 font-medium">{i + 1}</td>
-                  <td className="px-3 py-2 text-slate-600">
-                    {new Date(step.fecha_corte).toLocaleDateString()}
-                  </td>
-                  <td className="px-3 py-2 text-right">{step.n_train}</td>
-                  <td className="px-3 py-2 text-right">{step.n_test}</td>
-                  <td className="px-3 py-2 text-right font-medium">{step.mae?.toFixed(2)}</td>
-                  <td className="px-3 py-2 text-right font-medium">{step.r2?.toFixed(4)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {/* Tabla de detalle por paso con AG Grid */}
+      {rows.length > 0 && (
+        <Box sx={{ mt: 2 }}>
+          <SPMAgGrid
+            rowData={rows}
+            columnDefs={columnDefs}
+            height={300}
+            pagination={true}
+            paginationPageSize={5}
+            paginationPageSizeSelector={[5, 10, 25]}
+            enableQuickFilter={true}
+            exportFileName="backtest_resultados"
+          />
+        </Box>
       )}
-    </div>
+    </Paper>
   );
 };
 

@@ -86,7 +86,7 @@ INDEXES_POSTGRESQL = [
     # Indice para push subscriptions por usuario
     """
     CREATE INDEX IF NOT EXISTS idx_push_subs_last_used
-    ON push_subscriptions(last_used_at)
+    ON notificacion_push_suscripcion(last_used_at)
     """,
 ]
 
@@ -130,7 +130,7 @@ INDEXES_SQLITE = [
     # Indice para push subscriptions por usuario
     """
     CREATE INDEX IF NOT EXISTS idx_push_subs_last_used
-    ON push_subscriptions(last_used_at)
+    ON notificacion_push_suscripcion(last_used_at)
     """,
 ]
 

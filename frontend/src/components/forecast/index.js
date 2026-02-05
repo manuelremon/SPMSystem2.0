@@ -12,3 +12,5 @@ export { default as ModelComparison } from './ModelComparison';
 export { default as PatternCharts } from './PatternCharts';
 export { default as PredictionsTable } from './PredictionsTable';
 export { default as MaterialSearchInput } from './MaterialSearchInput';
+export { default as ForecastSimulationPanel } from './ForecastSimulationPanel';
+export { default as ForecastPlaceholder } from './ForecastPlaceholder';

@@ -11,12 +11,12 @@ logger = logging.getLogger(__name__)
 
 
 class EquivalenciasRepository:
-    """Repositorio para equivalencias de materiales desde equivalentes.db"""
+    """Repositorio para equivalencias de materiales desde master_materiales.db"""
 
     @staticmethod
     def get_equivalencias_con_score(codigo_material: str) -> List[Dict[str, Any]]:
         """
-        Obtiene equivalencias desde equivalentes.db con score dinámico.
+        Obtiene equivalencias desde master_materiales.db - tabla materiales_equivalencias.
         Integra con config_equivalencia_scores para obtener compatibilidad_pct.
         """
         # Primero obtener los scores de configuración
@@ -26,55 +26,30 @@ class EquivalenciasRepository:
         equivalencias = []
         try:
             cur = conn_equiv.cursor()
-            # Intentar diferentes estructuras de tabla
+
+            # Tabla materiales_equivalencias en master_materiales.db
             cur.execute(
                 """
-                SELECT name FROM sqlite_master WHERE type='table'
-            """
+                SELECT material_base, texto_breve_base, material_equivalente,
+                       texto_breve_equivalente, tipo_equiv, criterio, motivo_equivalencia
+                FROM materiales_equivalencias
+                WHERE material_base = ? OR material_equivalente = ?
+            """,
+                (codigo_material, codigo_material),
             )
-            tables = [row[0] for row in cur.fetchall()]
-
-            # Buscar tabla de equivalencias
-            equiv_table = None
-            for t in tables:
-                if "equiv" in t.lower():
-                    equiv_table = t
-                    break
-
-            if not equiv_table:
-                logger.warning("No se encontró tabla de equivalencias en equivalentes.db")
-                return []
-
-            # Obtener columnas de la tabla
-            cur.execute(f"PRAGMA table_info({equiv_table})")
-            columns = {row[1].lower() for row in cur.fetchall()}
-
-            # Construir query según columnas disponibles
-            if "codigo_original" in columns and "codigo_equivalente" in columns:
-                cur.execute(
-                    f"""
-                    SELECT * FROM {equiv_table}
-                    WHERE codigo_original = ? OR codigo_equivalente = ?
-                """,
-                    (codigo_material, codigo_material),
-                )
-            elif "material" in columns and "equivalente" in columns:
-                cur.execute(
-                    f"""
-                    SELECT * FROM {equiv_table}
-                    WHERE material = ? OR equivalente = ?
-                """,
-                    (codigo_material, codigo_material),
-                )
-            else:
-                # Query genérica
-                cur.execute(f"SELECT * FROM {equiv_table} LIMIT 100")
 
             for row in cur.fetchall():
                 row_dict = dict(row)
-                # Normalizar campos
-                codigo_equiv = row_dict.get("codigo_equivalente", row_dict.get("equivalente", ""))
-                tipo_equiv = row_dict.get("tipo_equiv", row_dict.get("tipo", "E1_ESTRICTA"))
+
+                # Determinar cuál es el equivalente (el que no es el material buscado)
+                if row_dict["material_base"] == codigo_material:
+                    codigo_equiv = row_dict["material_equivalente"]
+                    desc_equiv = row_dict["texto_breve_equivalente"]
+                else:
+                    codigo_equiv = row_dict["material_base"]
+                    desc_equiv = row_dict["texto_breve_base"]
+
+                tipo_equiv = row_dict.get("tipo_equiv") or "E1_ESTRICTA"
 
                 # Obtener compatibilidad desde config
                 compatibilidad = scores_config.get(tipo_equiv, 85)
@@ -83,12 +58,10 @@ class EquivalenciasRepository:
                     {
                         "codigo_original": codigo_material,
                         "codigo_equivalente": codigo_equiv,
-                        "descripcion_equivalente": row_dict.get(
-                            "descripcion", row_dict.get("desc_equivalente", "")
-                        ),
+                        "descripcion_equivalente": desc_equiv or "",
                         "tipo_equiv": tipo_equiv,
-                        "criterio": row_dict.get("criterio", ""),
-                        "motivo_equivalencia": row_dict.get("motivo", row_dict.get("notas", "")),
+                        "criterio": row_dict.get("criterio") or "",
+                        "motivo_equivalencia": row_dict.get("motivo_equivalencia") or "",
                         "compatibilidad_pct": compatibilidad,
                     }
                 )

@@ -1,8 +1,7 @@
 /**
  * Icons - Punto central de exportacion
  *
- * Este archivo proporciona una API compatible con lucide-react
- * usando SVGs locales del paquete SF Symbols.
+ * Este archivo proporciona una API compatible usando Material UI Icons.
  *
  * Uso:
  * import { Check, X, AlertCircle } from "@/components/ui/Icons";
@@ -18,7 +17,7 @@ export {
   Icon,
   SuccessIcon,
   ErrorIcon,
-  WarningIcon,
+  WarningIconPreset as WarningIcon,
   InfoIcon,
   LoadingIcon,
   ICON_COLORS,
@@ -26,5 +25,5 @@ export {
   getIconSemanticColor,
 } from './Icon';
 
-// Exportar todos los iconos mapeados (compatibles con lucide-react)
+// Exportar todos los iconos mapeados
 export * from './iconMap';

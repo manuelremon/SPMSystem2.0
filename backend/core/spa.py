@@ -42,15 +42,15 @@ def init_spa_routes(app: Flask) -> None:
             jsonify(
                 {
                     "ok": True,
-                    "message": "SPM v2.0 Backend API",
-                    "version": "2.0.0",
+                    "message": "SPM v3.0 Backend API",
+                    "version": "3.0.0",
                     "endpoints": {
                         "health": "/api/health",
                         "auth": "/api/auth/login",
                         "solicitudes": "/api/solicitudes",
                         "planificador": "/api/planificador",
                         "catalogos": "/api/catalogos",
-                        "docs": "https://github.com/manuelremon/SPMSystem2.0",
+                        "docs": "https://github.com/manuelremon/SPMV3.0",
                     },
                 }
             ),

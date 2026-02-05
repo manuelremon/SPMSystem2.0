@@ -9,38 +9,125 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        // Inter - Modern, clean typography for everything
-        sans: ["'Inter'", "system-ui", "-apple-system", "sans-serif"],
-        mono: ["'Inter'", "system-ui", "-apple-system", "sans-serif"],
-        display: ["'Inter'", "system-ui", "-apple-system", "sans-serif"],
+        // Roboto - Material UI typography
+        sans: ["'Roboto'", "system-ui", "-apple-system", "BlinkMacSystemFont", "'Segoe UI'", "'Helvetica Neue'", "Arial", "sans-serif"],
+        mono: ["'Roboto Mono'", "ui-monospace", "SFMono-Regular", "monospace"],
+        display: ["'Roboto'", "system-ui", "-apple-system", "sans-serif"],
       },
 
-      // Glass Morphism Colors
+      // MUI Palette Colors - Synchronized with CSS variables
       colors: {
-        // Primary - iOS Blue
+        // Primary - MUI Blue (uses CSS variables for consistency)
         primary: {
-          DEFAULT: "hsl(217, 91%, 60%)",
-          50: "hsl(217, 91%, 97%)",
-          100: "hsl(217, 91%, 95%)",
-          200: "hsl(217, 91%, 85%)",
-          300: "hsl(217, 91%, 75%)",
-          400: "hsl(217, 91%, 65%)",
-          500: "hsl(217, 91%, 60%)",
-          600: "hsl(217, 91%, 50%)",
-          700: "hsl(217, 91%, 40%)",
-          800: "hsl(217, 91%, 30%)",
-          900: "hsl(217, 91%, 20%)",
+          DEFAULT: "var(--primary)",
+          light: "var(--primary-light)",
+          dark: "var(--primary-dark)",
+          50: "#e3f2fd",
+          100: "#bbdefb",
+          200: "#90caf9",
+          300: "#64b5f6",
+          400: "#42a5f5",
+          500: "#2196f3",
+          600: "#1e88e5",
+          700: "#1976d2",
+          800: "#1565c0",
+          900: "#0d47a1",
         },
-        // Accent - Pink/Magenta
+        // Secondary - MUI Purple
+        secondary: {
+          DEFAULT: "var(--secondary)",
+          light: "var(--secondary-light)",
+          dark: "var(--secondary-dark)",
+          50: "#f3e5f5",
+          100: "#e1bee7",
+          200: "#ce93d8",
+          300: "#ba68c8",
+          400: "#ab47bc",
+          500: "#9c27b0",
+          600: "#8e24aa",
+          700: "#7b1fa2",
+          800: "#6a1b9a",
+          900: "#4a148c",
+        },
+        // Success - MUI Green
+        success: {
+          DEFAULT: "var(--success)",
+          light: "var(--success-light)",
+          bg: "var(--success-bg)",
+          50: "#e8f5e9",
+          100: "#c8e6c9",
+          200: "#a5d6a7",
+          300: "#81c784",
+          400: "#66bb6a",
+          500: "#4caf50",
+          600: "#43a047",
+          700: "#388e3c",
+          800: "#2e7d32",
+          900: "#1b5e20",
+        },
+        // Danger/Error - MUI Red
+        danger: {
+          DEFAULT: "var(--danger)",
+          light: "var(--danger-light)",
+          bg: "var(--danger-bg)",
+          50: "#ffebee",
+          100: "#ffcdd2",
+          200: "#ef9a9a",
+          300: "#e57373",
+          400: "#ef5350",
+          500: "#f44336",
+          600: "#e53935",
+          700: "#d32f2f",
+          800: "#c62828",
+          900: "#b71c1c",
+        },
+        // Warning - MUI Orange
+        warning: {
+          DEFAULT: "var(--warning)",
+          light: "var(--warning-light)",
+          bg: "var(--warning-bg)",
+          50: "#fff3e0",
+          100: "#ffe0b2",
+          200: "#ffcc80",
+          300: "#ffb74d",
+          400: "#ffa726",
+          500: "#ff9800",
+          600: "#fb8c00",
+          700: "#f57c00",
+          800: "#ef6c00",
+          900: "#e65100",
+        },
+        // Info - MUI Light Blue
+        info: {
+          DEFAULT: "var(--info)",
+          light: "var(--info-light)",
+          bg: "var(--info-bg)",
+          50: "#e1f5fe",
+          100: "#b3e5fc",
+          200: "#81d4fa",
+          300: "#4fc3f7",
+          400: "#29b6f6",
+          500: "#03a9f4",
+          600: "#039be5",
+          700: "#0288d1",
+          800: "#0277bd",
+          900: "#01579b",
+        },
+        // Accent - MUI Pink
         accent: {
-          DEFAULT: "hsl(330, 81%, 60%)",
-          50: "hsl(330, 81%, 97%)",
-          100: "hsl(330, 81%, 95%)",
-          200: "hsl(330, 81%, 85%)",
-          300: "hsl(330, 81%, 75%)",
-          400: "hsl(330, 81%, 65%)",
-          500: "hsl(330, 81%, 60%)",
-          600: "hsl(330, 81%, 50%)",
+          DEFAULT: "var(--accent)",
+          strong: "var(--accent-strong)",
+          muted: "var(--accent-muted)",
+          50: "#fce4ec",
+          100: "#f8bbd9",
+          200: "#f48fb1",
+          300: "#f06292",
+          400: "#ec407a",
+          500: "#e91e63",
+          600: "#d81b60",
+          700: "#c2185b",
+          800: "#ad1457",
+          900: "#880e4f",
         },
         // Glass backgrounds
         glass: {
@@ -52,15 +139,17 @@ export default {
         },
       },
 
-      // Glass style border radius - Synchronized with index.css --radius-*
+      // Border radius - All set to 0 (no rounded corners)
       borderRadius: {
-        DEFAULT: "16px",    // --radius (inputs, buttons, cards)
-        sm: "12px",         // --radius-sm (badges, tags)
-        md: "16px",         // --radius (default)
-        lg: "16px",         // --radius (inputs, buttons, cards)
-        xl: "20px",         // --radius-lg (modals, panels)
-        "2xl": "24px",      // --radius-xl (hero sections)
-        "3xl": "32px",
+        none: "0",
+        sm: "0",
+        DEFAULT: "0",
+        md: "0",
+        lg: "0",
+        xl: "0",
+        "2xl": "0",
+        "3xl": "0",
+        full: "0",
       },
 
       // Glass Morphism Shadows

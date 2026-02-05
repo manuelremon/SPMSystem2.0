@@ -1,5 +1,6 @@
 /**
  * Materials Page - Add materials to a request
+ * Material UI Implementation
  *
  * This page has been refactored into:
  * - useMaterials hook: State management and handlers
@@ -7,35 +8,74 @@
  * - MaterialsTable: Table of added items
  * - SearchDropdown: Search results dropdown
  */
-import { Link } from 'react-router-dom'
-import { useMaterials } from '../hooks/useMaterials'
-import { formatCurrency } from '../utils/formatters'
-import { useI18n } from '../context/i18n'
-import { renderSector } from '../constants/sectores'
+import { Link } from "react-router-dom";
+import { useMaterials } from "../hooks/useMaterials";
+import { formatCurrency } from "../utils/formatters";
+import { useI18n } from "../context/i18n";
+import { renderSector } from "../constants/sectores";
 
-// UI Components
-import { Button } from '../components/ui/Button'
-import { Input } from '../components/ui/Input'
-import { Textarea } from '../components/ui/Textarea'
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
-import { Alert } from '../components/ui/Alert'
-import { PageHeader } from '../components/ui/PageHeader'
-import { Modal } from '../components/ui/Modal'
-import { ConfirmModal } from '../components/ui/ConfirmModal'
-import { TableSkeleton } from '../components/ui/Skeleton'
-import { Badge } from '../components/ui/Badge'
-import { ScrollReveal } from '../components/ui/ScrollReveal'
-import { Loader2, Check, X, Sparkles, Eye } from '../components/ui/Icons'
+// MUI Components
+import {
+  Box,
+  Paper,
+  Typography,
+  Button,
+  IconButton,
+  TextField,
+  Alert,
+  Stack,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress,
+  Divider,
+  InputAdornment,
+} from "@mui/material";
+
+// MUI Icons
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
+import CheckIcon from "@mui/icons-material/Check";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 // Material-specific components
-import { MaterialDetailModal, MaterialsTable, SearchDropdown } from '../components/materials'
-import { AssistantModal } from '../components/AssistantModal'
+import { MaterialDetailModal, MaterialsTable, SearchDropdown } from "../components/materials";
+import { AssistantModal } from "../components/AssistantModal";
+
+// Skeleton for loading state
+function TableSkeleton() {
+  return (
+    <Box sx={{ p: 3 }}>
+      {[...Array(5)].map((_, i) => (
+        <Box
+          key={i}
+          sx={{
+            height: 48,
+            bgcolor: "grey.100",
+            borderRadius: 1,
+            mb: 1,
+            animation: "pulse 1.5s ease-in-out infinite",
+            "@keyframes pulse": {
+              "0%, 100%": { opacity: 1 },
+              "50%": { opacity: 0.5 },
+            },
+          }}
+        />
+      ))}
+    </Box>
+  );
+}
 
 export default function Materials() {
-  const { t } = useI18n()
+  const { t } = useI18n();
 
   // Get all state and handlers from custom hook
-  const m = useMaterials()
+  const m = useMaterials();
 
   // ═══════════════════════════════════════════════════════════════════
   // LOADING STATE
@@ -43,15 +83,20 @@ export default function Materials() {
 
   if (m.loading) {
     return (
-      <div className="space-y-6">
-        <PageHeader title={t('materials_title', 'Agregar Materiales')} />
-        <Card>
-          <CardContent className="pt-6">
-            <TableSkeleton rows={5} columns={6} />
-          </CardContent>
-        </Card>
-      </div>
-    )
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        {/* Header */}
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {t("materials_title", "Agregar Materiales")}
+          </Typography>
+        </Box>
+        <Paper variant="outlined" sx={{ borderRadius: 2 }}>
+          <Box sx={{ pt: 3 }}>
+            <TableSkeleton />
+          </Box>
+        </Paper>
+      </Box>
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -59,106 +104,127 @@ export default function Materials() {
   // ═══════════════════════════════════════════════════════════════════
 
   return (
-    <div className="space-y-6">
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
       {/* Header */}
-      <ScrollReveal>
-        <PageHeader
-          title={t('materials_title', 'Agregar Materiales')}
-          actions={
-            <Button
-              as={Link}
-              to="/mis-solicitudes"
-              variant="ghost"
-              aria-label={t('common_volver_mis_solicitudes', 'Volver a Mis Solicitudes')}
-            >
-              {t('common_volver', 'Volver')}
-            </Button>
-          }
-        />
-      </ScrollReveal>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Typography variant="h5" fontWeight={600} color="text.primary">
+          {t("materials_title", "Agregar Materiales")}
+        </Typography>
+        <Button
+          component={Link}
+          to="/mis-solicitudes"
+          variant="text"
+          startIcon={<ArrowBackIcon />}
+          sx={{ textTransform: "none" }}
+          aria-label={t("common_volver_mis_solicitudes", "Volver a Mis Solicitudes")}
+        >
+          {t("common_volver", "Volver")}
+        </Button>
+      </Box>
 
       {/* Messages */}
       {m.error && (
-        <Alert variant="danger" onDismiss={() => m.setError('')}>
+        <Alert severity="error" onClose={() => m.setError("")}>
           {m.error}
         </Alert>
       )}
       {m.actionMsg && (
-        <Alert variant="success" onDismiss={() => m.setActionMsg('')}>
+        <Alert severity="success" onClose={() => m.setActionMsg("")}>
           {m.actionMsg}
         </Alert>
       )}
 
       {/* Search and Context Section */}
-      <ScrollReveal delay={100}>
-        <Card hover={false}>
-          <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left: Search */}
-              <SearchSection m={m} t={t} />
+      <Paper variant="outlined" sx={{ borderRadius: 2, p: 3 }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr 1fr" },
+            gap: 3,
+          }}
+        >
+          {/* Left: Search */}
+          <SearchSection m={m} t={t} />
 
-              {/* Center: Selected Material */}
-              <SelectedMaterialSection m={m} t={t} />
+          {/* Center: Selected Material */}
+          <SelectedMaterialSection m={m} t={t} />
 
-              {/* Right: Context Info */}
-              <ContextSection m={m} t={t} />
-            </div>
-          </CardContent>
-        </Card>
-      </ScrollReveal>
+          {/* Right: Context Info */}
+          <ContextSection m={m} t={t} />
+        </Box>
+      </Paper>
 
       {/* Materials Summary Section */}
-      <ScrollReveal delay={200}>
-        <Card hover={false}>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <CardTitle>{t('materials_resumen', 'Resumen de Materiales')}</CardTitle>
-              {m.items.length > 0 && (
-                <Badge variant="primary">
-                  {m.items.length} {m.items.length === 1 ? t('common_item', 'item') : t('common_items', 'items')}
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <MaterialsTable
-              items={m.itemsSorted}
-              onQtyChange={m.handleQtyChange}
-              onDelete={m.handleDelete}
-              onOpenComment={m.handleOpenComment}
+      <Paper variant="outlined" sx={{ borderRadius: 2 }}>
+        {/* Header */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            px: 3,
+            py: 2,
+            borderBottom: 1,
+            borderColor: "divider",
+          }}
+        >
+          <Typography variant="subtitle1" fontWeight={600} color="text.primary">
+            {t("materials_resumen", "Resumen de Materiales")}
+          </Typography>
+          {m.items.length > 0 && (
+            <Chip
+              label={`${m.items.length} ${m.items.length === 1 ? t("common_item", "item") : t("common_items", "items")}`}
+              size="small"
+              color="primary"
+              sx={{ height: 24 }}
             />
+          )}
+        </Box>
 
-            {/* Action Buttons */}
-            <div className="flex flex-wrap gap-3 justify-end mt-6 pt-4 border-t border-white/30">
-              <Button
-                variant="ghost"
-                onClick={m.handleCancelar}
-                disabled={m.submitting || m.savingDraft}
-                className="hover:bg-red-50 hover:text-red-600 hover:border-red-200"
-              >
-                {t('materials_cancelar_solicitud', 'Cancelar Solicitud')}
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={m.handleSaveDraft}
-                disabled={m.items.length === 0 || m.savingDraft || m.submitting}
-              >
-                {m.savingDraft
-                  ? t('materials_guardando', 'Guardando...')
-                  : t('materials_guardar_borrador', 'Guardar como borrador')}
-              </Button>
-              <Button
-                onClick={m.handleFinalizar}
-                disabled={m.items.length === 0 || m.submitting || m.savingDraft}
-              >
-                {m.submitting
-                  ? t('materials_enviando', 'Enviando...')
-                  : t('materials_enviar', 'Enviar Solicitud')}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </ScrollReveal>
+        {/* Content */}
+        <Box sx={{ p: 3 }}>
+          <MaterialsTable
+            items={m.itemsSorted}
+            onQtyChange={m.handleQtyChange}
+            onDelete={m.handleDelete}
+            onOpenComment={m.handleOpenComment}
+          />
+
+          {/* Action Buttons */}
+          <Divider sx={{ my: 3 }} />
+          <Stack direction="row" spacing={2} justifyContent="flex-end" flexWrap="wrap">
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={m.handleCancelar}
+              disabled={m.submitting || m.savingDraft}
+              sx={{ textTransform: "none" }}
+            >
+              {t("materials_cancelar_solicitud", "Cancelar Solicitud")}
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={m.handleSaveDraft}
+              disabled={m.items.length === 0 || m.savingDraft || m.submitting}
+              sx={{ textTransform: "none" }}
+            >
+              {m.savingDraft
+                ? t("materials_guardando", "Guardando...")
+                : t("materials_guardar_borrador", "Guardar como borrador")}
+            </Button>
+            <Button
+              variant="contained"
+              onClick={m.handleFinalizar}
+              disabled={m.items.length === 0 || m.submitting || m.savingDraft}
+              sx={{ textTransform: "none" }}
+            >
+              {m.submitting
+                ? t("materials_enviando", "Enviando...")
+                : t("materials_enviar", "Enviar Solicitud")}
+            </Button>
+          </Stack>
+        </Box>
+      </Paper>
 
       {/* Material Detail Modal */}
       <MaterialDetailModal
@@ -174,72 +240,43 @@ export default function Materials() {
       />
 
       {/* Cancel Confirmation Modal */}
-      <ConfirmModal
-        isOpen={m.showCancelModal}
+      <ConfirmDialog
+        open={m.showCancelModal}
         onClose={() => m.setShowCancelModal(false)}
         onConfirm={m.confirmCancelar}
-        title={t('materials_cancelar_titulo', 'Cancelar Solicitud')}
-        description={t('materials_cancelar_confirm', 'Se borraran todos los datos ingresados. Continuar?')}
-        confirmText={t('common_confirmar', 'Confirmar')}
-        cancelText={t('common_cancelar', 'Cancelar')}
+        title={t("materials_cancelar_titulo", "Cancelar Solicitud")}
+        description={t("materials_cancelar_confirm", "Se borraran todos los datos ingresados. Continuar?")}
+        confirmText={t("common_confirmar", "Confirmar")}
+        cancelText={t("common_cancelar", "Cancelar")}
         variant="warning"
       />
 
       {/* Submit Confirmation Modal */}
-      <ConfirmModal
-        isOpen={m.showSubmitModal}
+      <ConfirmDialog
+        open={m.showSubmitModal}
         onClose={() => m.setShowSubmitModal(false)}
         onConfirm={m.confirmFinalizar}
-        title={t('materials_enviar_titulo', 'Enviar Solicitud')}
+        title={t("materials_enviar_titulo", "Enviar Solicitud")}
         description={t(
-          'materials_enviar_confirm',
+          "materials_enviar_confirm",
           `Confirmas el envio de la solicitud con ${m.items.length} material(es) por un total de ${formatCurrency(m.total)}?`
         )}
-        confirmText={t('materials_enviar_btn', 'Si, enviar solicitud')}
-        cancelText={t('common_cancelar', 'Cancelar')}
+        confirmText={t("materials_enviar_btn", "Si, enviar solicitud")}
+        cancelText={t("common_cancelar", "Cancelar")}
         variant="info"
         loading={m.submitting}
       />
 
       {/* Comment Modal */}
-      <Modal
-        isOpen={m.commentModal.open}
+      <CommentDialog
+        open={m.commentModal.open}
         onClose={m.closeCommentModal}
-        title={t('materials_nota_titulo', 'Nota para el material')}
-        size="md"
-      >
-        <div className="space-y-4">
-          {m.commentModal.codigo && (
-            <p className="text-sm text-slate-500">
-              {t('materials_nota_para', 'Material:')} <span className="font-mono font-semibold text-slate-800">{m.commentModal.codigo}</span>
-            </p>
-          )}
-          <div className="space-y-1.5">
-            <label
-              htmlFor="commentInput"
-              className="text-xs uppercase font-semibold tracking-wider text-slate-500"
-            >
-              {t('materials_nota_label_input', 'Comentario / Nota')}
-            </label>
-            <Textarea
-              id="commentInput"
-              value={m.commentModal.comment}
-              onChange={(e) => m.updateCommentText(e.target.value)}
-              rows={4}
-              placeholder={t('materials_nota_placeholder', 'Escribe una nota o comentario para este material...')}
-              className="resize-none min-h-[100px]"
-            />
-          </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="ghost" onClick={m.closeCommentModal}>
-              {t('common_cancelar', 'Cancelar')}
-            </Button>
-            <Button onClick={m.handleSaveComment}>
-              {t('materials_nota_guardar', 'Guardar nota')}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        codigo={m.commentModal.codigo}
+        comment={m.commentModal.comment}
+        onCommentChange={(value) => m.updateCommentText(value)}
+        onSave={m.handleSaveComment}
+        t={t}
+      />
 
       {/* Search Dropdown */}
       <SearchDropdown
@@ -262,200 +299,474 @@ export default function Materials() {
         isOpen={m.showAssistant}
         onClose={() => m.setShowAssistant(false)}
         onUseSuggestions={(suggestions) => {
-          m.handleAddSuggestedItems(suggestions.items)
+          m.handleAddSuggestedItems(suggestions.items);
         }}
       />
-    </div>
-  )
+    </Box>
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SUB-COMPONENTS (inline for simplicity)
+// SUB-COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════
 
 function SearchSection({ m, t }) {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-4">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-          {t('materials_buscar', 'Buscar material')}
-        </p>
-        <button
-          type="button"
-          onClick={() => m.setShowAssistant && m.setShowAssistant(true)}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold uppercase tracking-wider text-amber-700 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/60 shadow-sm hover:from-amber-100 hover:to-yellow-100 hover:border-amber-300 transition-all duration-200"
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <Typography
+          variant="caption"
+          fontWeight={600}
+          color="text.secondary"
+          sx={{ textTransform: "uppercase", letterSpacing: "0.05em" }}
         >
-          <Sparkles className="w-3.5 h-3.5 text-purple-500" />
-          {t('materials_asistente_ia', 'Asistente IA')}
-        </button>
-      </div>
-      {/* Ref en la fila de inputs para posicionar el dropdown correctamente */}
-      <div ref={m.searchContainerRef} className="flex flex-col sm:flex-row gap-3">
+          {t("materials_buscar", "Buscar material")}
+        </Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<AutoAwesomeIcon sx={{ fontSize: 16, color: "secondary.main" }} />}
+          onClick={() => m.setShowAssistant && m.setShowAssistant(true)}
+          sx={{
+            textTransform: "none",
+            fontSize: "0.75rem",
+            py: 0.5,
+            px: 1.5,
+            borderColor: "warning.light",
+            color: "warning.dark",
+            bgcolor: "warning.50",
+            "&:hover": {
+              borderColor: "warning.main",
+              bgcolor: "warning.100",
+            },
+          }}
+        >
+          {t("materials_asistente_ia", "Asistente IA")}
+        </Button>
+      </Box>
+
+      {/* Search inputs container */}
+      <Box
+        ref={m.searchContainerRef}
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          gap: 1.5,
+        }}
+      >
         {/* Codigo SAP */}
-        <div className="relative w-full sm:w-36 shrink-0">
-          <Input
-            id="searchCodigo"
-            value={m.searchCodigo}
-            onChange={(e) => m.setSearchCodigo(e.target.value)}
-            onKeyDown={m.handleSearchKeyDown}
-            placeholder={t('materials_codigo_sap', 'Código SAP')}
-            className="font-mono"
-            aria-label={t('materials_codigo_sap', 'Código SAP')}
-          />
-        </div>
+        <TextField
+          id="searchCodigo"
+          value={m.searchCodigo}
+          onChange={(e) => m.setSearchCodigo(e.target.value)}
+          onKeyDown={m.handleSearchKeyDown}
+          placeholder={t("materials_codigo_sap", "Codigo SAP")}
+          size="small"
+          sx={{
+            width: { xs: "100%", sm: 144 },
+            flexShrink: 0,
+            "& .MuiInputBase-input": { fontFamily: "monospace" },
+          }}
+          aria-label={t("materials_codigo_sap", "Codigo SAP")}
+        />
+
         {/* Descripcion */}
-        <div className="relative flex-1 sm:max-w-sm">
-          <div className="relative">
-            <Input
-              id="searchDesc"
-              value={m.searchDesc}
-              onChange={(e) => m.setSearchDesc(e.target.value)}
-              onKeyDown={m.handleSearchKeyDown}
-              placeholder={t('materials_buscar_desc', 'Buscar por descripción...')}
-              aria-label={t('materials_descripcion', 'Descripción')}
-            />
-            {/* Indicators */}
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-              {m.loadingSearch && (
-                <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
-              )}
-              {!m.loadingSearch && m.results.length > 0 && (
-                <span className="text-xs text-slate-500 bg-slate-100/70 px-1.5 py-0.5 rounded">
-                  {m.results.length}
-                </span>
-              )}
-              {(m.searchCodigo || m.searchDesc) && (
-                <button
-                  type="button"
-                  onClick={m.handleClearSearch}
-                  className="p-0.5 hover:bg-white/70 rounded transition-colors"
-                  aria-label={t('materials_limpiar_busqueda', 'Limpiar busqueda')}
-                >
-                  <X className="h-4 w-4 text-red-500" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+        <TextField
+          id="searchDesc"
+          value={m.searchDesc}
+          onChange={(e) => m.setSearchDesc(e.target.value)}
+          onKeyDown={m.handleSearchKeyDown}
+          placeholder={t("materials_buscar_desc", "Buscar por descripcion...")}
+          size="small"
+          sx={{ flex: 1, maxWidth: { sm: 320 } }}
+          aria-label={t("materials_descripcion", "Descripcion")}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <Stack direction="row" spacing={0.5} alignItems="center">
+                  {m.loadingSearch && <CircularProgress size={16} />}
+                  {!m.loadingSearch && m.results.length > 0 && (
+                    <Chip
+                      label={m.results.length}
+                      size="small"
+                      sx={{
+                        height: 20,
+                        fontSize: "0.7rem",
+                        bgcolor: "grey.100",
+                        color: "text.secondary",
+                      }}
+                    />
+                  )}
+                  {(m.searchCodigo || m.searchDesc) && (
+                    <IconButton
+                      size="small"
+                      onClick={m.handleClearSearch}
+                      aria-label={t("materials_limpiar_busqueda", "Limpiar busqueda")}
+                      sx={{ p: 0.25 }}
+                    >
+                      <CloseIcon sx={{ fontSize: 18, color: "error.main" }} />
+                    </IconButton>
+                  )}
+                </Stack>
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Box>
+
       {/* Results indicator */}
       {(m.searchCodigo || m.searchDesc) && !m.loadingSearch && m.results.length > 0 && (
-        <p className="text-xs text-slate-500">
-          {m.results.length} {m.results.length === 1 ? t('common_resultado', 'resultado') : t('common_resultados', 'resultados')}
-          <span className="opacity-60"> — {t('materials_selecciona_uno', 'selecciona uno')}</span>
-        </p>
+        <Typography variant="caption" color="text.secondary">
+          {m.results.length} {m.results.length === 1 ? t("common_resultado", "resultado") : t("common_resultados", "resultados")}
+          <Box component="span" sx={{ opacity: 0.6 }}>
+            {" "}
+            — {t("materials_selecciona_uno", "selecciona uno")}
+          </Box>
+        </Typography>
       )}
-    </div>
-  )
+    </Box>
+  );
 }
 
 function SelectedMaterialSection({ m, t }) {
   return (
-    <div className="flex flex-col">
-      <p className="text-xs font-semibold text-[var(--fg-muted)] uppercase tracking-wider mb-3">
-        {t('materials_selected', 'Material seleccionado')}
-      </p>
+    <Box sx={{ display: "flex", flexDirection: "column" }}>
+      <Typography
+        variant="caption"
+        fontWeight={600}
+        color="text.secondary"
+        sx={{ textTransform: "uppercase", letterSpacing: "0.05em", mb: 1.5 }}
+      >
+        {t("materials_selected", "Material seleccionado")}
+      </Typography>
+
       {m.selectedMaterial ? (
-        <div className="p-3 bg-[var(--bg-soft)] border border-[var(--primary)]/30 rounded-lg flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            {m.detailViewed && <Check className="h-4 w-4 text-emerald-500" />}
-            <span className="font-mono text-sm text-[var(--primary)] font-medium">
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 2,
+            borderColor: "primary.light",
+            bgcolor: "primary.50",
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+            {m.detailViewed && <CheckIcon sx={{ fontSize: 18, color: "success.main" }} />}
+            <Typography
+              variant="body2"
+              sx={{
+                fontFamily: "monospace",
+                color: "primary.main",
+                fontWeight: 500,
+              }}
+            >
               {m.selectedMaterial.codigo}
-            </span>
-          </div>
-          <p className="text-sm text-[var(--fg)] font-medium mb-1 line-clamp-2">
+            </Typography>
+          </Stack>
+
+          <Typography
+            variant="body2"
+            fontWeight={500}
+            color="text.primary"
+            sx={{
+              mb: 0.5,
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
             {m.selectedMaterial.descripcion}
-          </p>
+          </Typography>
+
           {m.selectedMaterial.precio_usd > 0 && (
-            <p className="text-sm text-[var(--fg-muted)]">
-              {t('materials_precio', 'Precio')}: <span className="font-mono font-medium text-[var(--fg)]">{formatCurrency(m.selectedMaterial.precio_usd)}</span>
-            </p>
+            <Typography variant="body2" color="text.secondary">
+              {t("materials_precio", "Precio")}:{" "}
+              <Box component="span" sx={{ fontFamily: "monospace", fontWeight: 500, color: "text.primary" }}>
+                {formatCurrency(m.selectedMaterial.precio_usd)}
+              </Box>
+            </Typography>
           )}
+
           {!m.detailViewed && (
-            <p className="text-xs text-amber-500 mt-2 flex items-center gap-1">
-              <span className="inline-block w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
-              {t('materials_view_detail_first', 'Ver detalles antes de agregar')}
-            </p>
+            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 1 }}>
+              <Box
+                sx={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  bgcolor: "warning.main",
+                }}
+              />
+              <Typography variant="caption" color="warning.dark">
+                {t("materials_view_detail_first", "Ver detalles antes de agregar")}
+              </Typography>
+            </Stack>
           )}
+
           {/* Actions */}
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--border)]">
+          <Divider sx={{ my: 1.5 }} />
+          <Stack direction="row" spacing={1}>
             <Button
-              size="sm"
-              variant="outline"
-              className="flex-1"
+              size="small"
+              variant="outlined"
+              startIcon={m.loadingDetail ? <CircularProgress size={14} /> : <VisibilityIcon sx={{ fontSize: 16 }} />}
               onClick={m.openDetailModal}
               disabled={m.loadingDetail}
+              sx={{ flex: 1, textTransform: "none" }}
             >
-              {m.loadingDetail ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <Eye className="h-4 w-4 text-[var(--primary)]" />
-                  {t('materials_mas_detalles', 'Ver detalles')}
-                </>
-              )}
+              {t("materials_mas_detalles", "Ver detalles")}
             </Button>
             <Button
-              size="sm"
-              className="flex-1"
+              size="small"
+              variant="contained"
+              startIcon={<AddIcon />}
               onClick={m.handleAdd}
               disabled={!m.detailViewed}
+              sx={{ flex: 1, textTransform: "none" }}
             >
-              {t('materials_agregar', 'Agregar')}
+              {t("materials_agregar", "Agregar")}
             </Button>
-          </div>
-        </div>
+          </Stack>
+        </Paper>
       ) : (
-        <div className="p-4 border border-dashed border-[var(--border)] rounded-lg flex-1 flex items-center justify-center">
-          <p className="text-sm text-[var(--fg-muted)] text-center">
-            {t('materials_busca_selecciona', 'Busca y selecciona un material')}
-          </p>
-        </div>
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 3,
+            borderStyle: "dashed",
+            borderColor: "grey.300",
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Typography variant="body2" color="text.secondary" textAlign="center">
+            {t("materials_busca_selecciona", "Busca y selecciona un material")}
+          </Typography>
+        </Paper>
       )}
-    </div>
-  )
+    </Box>
+  );
 }
 
 function ContextSection({ m, t }) {
   return (
-    <div>
-      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-        {t('materials_contexto', 'Contexto')}
-      </p>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-        <div>
-          <span className="text-slate-500">{t('common_solicitud', 'Solicitud')}</span>
-          <p className="font-semibold text-slate-800">#{m.id}</p>
-        </div>
-        <div>
-          <span className="text-slate-500">{t('common_centro', 'Centro')}</span>
-          <p className="font-semibold text-slate-800">{m.sol?.centro || '—'}</p>
-        </div>
-        <div>
-          <span className="text-slate-500">{t('common_sector', 'Sector')}</span>
-          <p className="font-semibold text-slate-800">{renderSector(m.sol) || '—'}</p>
-        </div>
-        <div>
-          <span className="text-slate-500">{t('common_almacen', 'Almacen')}</span>
-          <p className="font-semibold text-slate-800">{m.sol?.almacen_virtual || '—'}</p>
-        </div>
-        <div className="col-span-2 pt-2 mt-2 border-t border-white/30">
-          <div className="flex justify-between items-center">
-            <div>
-              <span className="text-slate-500">{t('common_total', 'Total')}</span>
-              <p className="font-bold text-lg text-slate-800 font-mono">{formatCurrency(m.total)}</p>
-            </div>
+    <Box>
+      <Typography
+        variant="caption"
+        fontWeight={600}
+        color="text.secondary"
+        sx={{ textTransform: "uppercase", letterSpacing: "0.05em", mb: 1.5, display: "block" }}
+      >
+        {t("materials_contexto", "Contexto")}
+      </Typography>
+
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 2,
+        }}
+      >
+        <Box>
+          <Typography variant="caption" color="text.secondary">
+            {t("common_solicitud", "Solicitud")}
+          </Typography>
+          <Typography variant="body2" fontWeight={600} color="text.primary">
+            #{m.id}
+          </Typography>
+        </Box>
+        <Box>
+          <Typography variant="caption" color="text.secondary">
+            {t("common_centro", "Centro")}
+          </Typography>
+          <Typography variant="body2" fontWeight={600} color="text.primary">
+            {m.sol?.centro || "—"}
+          </Typography>
+        </Box>
+        <Box>
+          <Typography variant="caption" color="text.secondary">
+            {t("common_sector", "Sector")}
+          </Typography>
+          <Typography variant="body2" fontWeight={600} color="text.primary">
+            {renderSector(m.sol) || "—"}
+          </Typography>
+        </Box>
+        <Box>
+          <Typography variant="caption" color="text.secondary">
+            {t("common_almacen", "Almacen")}
+          </Typography>
+          <Typography variant="body2" fontWeight={600} color="text.primary">
+            {m.sol?.almacen_virtual || "—"}
+          </Typography>
+        </Box>
+
+        {/* Total section */}
+        <Box sx={{ gridColumn: "1 / -1", pt: 2, mt: 1, borderTop: 1, borderColor: "divider" }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-end">
+            <Box>
+              <Typography variant="caption" color="text.secondary">
+                {t("common_total", "Total")}
+              </Typography>
+              <Typography variant="h6" fontWeight={700} color="text.primary" sx={{ fontFamily: "monospace" }}>
+                {formatCurrency(m.total)}
+              </Typography>
+            </Box>
             {m.presupuesto && (
-              <div className="text-right">
-                <span className="text-slate-500">{t('materials_saldo_disponible', 'Saldo disponible')}</span>
-                <p className={`font-semibold font-mono ${m.presupuestoInsuf ? 'text-red-600' : 'text-emerald-600'}`}>
+              <Box sx={{ textAlign: "right" }}>
+                <Typography variant="caption" color="text.secondary">
+                  {t("materials_saldo_disponible", "Saldo disponible")}
+                </Typography>
+                <Typography
+                  variant="body1"
+                  fontWeight={600}
+                  sx={{
+                    fontFamily: "monospace",
+                    color: m.presupuestoInsuf ? "error.main" : "success.main",
+                  }}
+                >
                   {formatCurrency(m.presupuesto.saldo_usd || 0)}
-                </p>
-              </div>
+                </Typography>
+              </Box>
             )}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+          </Stack>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DIALOG COMPONENTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ConfirmDialog({ open, onClose, onConfirm, title, description, confirmText, cancelText, variant = "info", loading }) {
+  const getVariantColor = () => {
+    switch (variant) {
+      case "warning":
+        return "warning";
+      case "error":
+        return "error";
+      default:
+        return "primary";
+    }
+  };
+
+  const getVariantIcon = () => {
+    switch (variant) {
+      case "warning":
+      case "error":
+        return <WarningAmberIcon sx={{ fontSize: 24 }} />;
+      default:
+        return <CheckIcon sx={{ fontSize: 24 }} />;
+    }
+  };
+
+  const color = getVariantColor();
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
+      <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1 }}>
+        <Box
+          sx={{
+            p: 1,
+            borderRadius: "50%",
+            bgcolor: `${color}.lighter`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: `${color}.main`,
+          }}
+        >
+          {getVariantIcon()}
+        </Box>
+        <Typography variant="subtitle1" component="span" fontWeight={600} color="text.primary">
+          {title}
+        </Typography>
+      </DialogTitle>
+
+      <DialogContent>
+        <Typography variant="body2" color="text.secondary">
+          {description}
+        </Typography>
+      </DialogContent>
+
+      <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50" }}>
+        <Button onClick={onClose} variant="outlined" size="small" sx={{ textTransform: "none" }}>
+          {cancelText}
+        </Button>
+        <Button
+          onClick={onConfirm}
+          disabled={loading}
+          variant="contained"
+          color={color}
+          size="small"
+          sx={{ textTransform: "none" }}
+        >
+          {loading ? <CircularProgress size={16} sx={{ color: "inherit" }} /> : confirmText}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+function CommentDialog({ open, onClose, codigo, comment, onCommentChange, onSave, t }) {
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
+      <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Typography variant="subtitle1" component="span" fontWeight={600} color="text.primary">
+          {t("materials_nota_titulo", "Nota para el material")}
+        </Typography>
+        <IconButton size="small" onClick={onClose}>
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
+
+      <DialogContent>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+          {codigo && (
+            <Typography variant="body2" color="text.secondary">
+              {t("materials_nota_para", "Material:")}{" "}
+              <Box component="span" sx={{ fontFamily: "monospace", fontWeight: 600, color: "text.primary" }}>
+                {codigo}
+              </Box>
+            </Typography>
+          )}
+          <Box>
+            <Typography
+              variant="caption"
+              fontWeight={600}
+              color="text.secondary"
+              sx={{ textTransform: "uppercase", letterSpacing: "0.05em", mb: 0.5, display: "block" }}
+            >
+              {t("materials_nota_label_input", "Comentario / Nota")}
+            </Typography>
+            <TextField
+              id="commentInput"
+              value={comment}
+              onChange={(e) => onCommentChange(e.target.value)}
+              multiline
+              rows={4}
+              fullWidth
+              placeholder={t("materials_nota_placeholder", "Escribe una nota o comentario para este material...")}
+              sx={{ "& .MuiInputBase-root": { resize: "none" } }}
+            />
+          </Box>
+        </Box>
+      </DialogContent>
+
+      <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50" }}>
+        <Button onClick={onClose} variant="outlined" size="small" sx={{ textTransform: "none" }}>
+          {t("common_cancelar", "Cancelar")}
+        </Button>
+        <Button onClick={onSave} variant="contained" size="small" sx={{ textTransform: "none" }}>
+          {t("materials_nota_guardar", "Guardar nota")}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
 }

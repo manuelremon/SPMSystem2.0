@@ -30,6 +30,7 @@ export const catalogs = {
   centros: () => api.get('/catalogos/centros', { headers: authHeaders() }),
   almacenes: () => api.get('/catalogos/almacenes', { headers: authHeaders() }),
   usuarios: () => api.get('/catalogos/usuarios', { headers: authHeaders() }),
+  roles: () => api.get('/catalogos/roles', { headers: authHeaders() }),
 }
 
 // Preferencias de notificacion

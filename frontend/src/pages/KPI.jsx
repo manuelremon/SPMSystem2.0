@@ -1,69 +1,92 @@
 import { useState, useEffect } from "react";
+import {
+  Box,
+  Paper,
+  Typography,
+  Stack,
+  CircularProgress,
+  Grid,
+  Divider,
+} from "@mui/material";
+import {
+  TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon,
+  Description as FileTextIcon,
+  CheckCircle as CheckCircle2Icon,
+  Cancel as XCircleIcon,
+  AccessTime as ClockIcon,
+  AttachMoney as DollarSignIcon,
+  Inventory as PackageIcon,
+  BarChart as BarChart3Icon,
+} from "@mui/icons-material";
 import { PageHeader } from "../components/ui/PageHeader";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
 import { ScrollReveal } from "../components/ui/ScrollReveal";
 import { useI18n } from "../context/i18n";
 import { formatCurrency } from "../utils/formatters";
 import api from "../services/api";
-import {
-  TrendingUp,
-  TrendingDown,
-  FileText,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  DollarSign,
-  Users,
-  Package,
-  Layers,
-  BarChart3,
-  Loader2,
-} from "../components/ui/Icons";
+import { SPMLine, SPMDoughnut, SPM_COLORS } from "../components/ui/SPMChartJS";
 
-// Componente de mini gráfico de barras
+// CSS Variable Colors (computed at render time)
+const MUI_COLORS = {
+  primary: 'var(--primary)',
+  success: 'var(--success)',
+  warning: 'var(--warning)',
+  danger: 'var(--danger)',
+};
+
+// Componente de mini grafico de barras (mantenemos SVG por simplicidad)
 function MiniBarChart({ data, maxValue, color = "blue" }) {
-  const colorClasses = {
-    blue: "from-blue-500 to-blue-400 hover:from-blue-600 hover:to-blue-500",
-    emerald: "from-emerald-500 to-emerald-400 hover:from-emerald-600 hover:to-emerald-500",
-    red: "from-red-500 to-red-400 hover:from-red-600 hover:to-red-500",
-    amber: "from-amber-500 to-amber-400 hover:from-amber-600 hover:to-amber-500",
+  const colorMap = {
+    blue: { from: 'var(--primary)', to: 'var(--primary-light)' },
+    emerald: { from: 'var(--success)', to: 'var(--success-light)' },
+    red: { from: 'var(--danger)', to: 'var(--danger-light)' },
+    amber: { from: 'var(--warning)', to: 'var(--warning-light)' },
   };
 
-  // Asegurar que siempre hay datos válidos
   const safeData = data && data.length > 0 ? data : [0];
   const safeMaxValue = maxValue > 0 ? maxValue : 1;
+  const colors = colorMap[color] || colorMap.blue;
 
   return (
-    <div className="flex items-end gap-1 h-10 overflow-hidden">
+    <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.5, height: 40, overflow: 'hidden' }}>
       {safeData.map((value, idx) => {
-        const height = Math.min((value / safeMaxValue) * 100, 100); // Limitar a 100%
+        const height = Math.min((value / safeMaxValue) * 100, 100);
         return (
-          <div
+          <Box
             key={idx}
-            className={`flex-1 min-w-[4px] bg-gradient-to-t ${colorClasses[color] || colorClasses.blue} rounded-t-sm transition-all duration-300`}
-            style={{ height: `${Math.max(height, 2)}%` }} // Mínimo 2% para visibilidad
+            sx={{
+              flex: 1,
+              minWidth: '4px',
+              background: `linear-gradient(to top, ${colors.from}, ${colors.to})`,
+              borderRadius: '2px 2px 0 0',
+              transition: 'all 0.3s',
+              height: `${Math.max(height, 2)}%`,
+              '&:hover': {
+                filter: 'brightness(1.1)',
+              },
+            }}
             title={String(value)}
           />
         );
       })}
-    </div>
+    </Box>
   );
 }
 
-// Componente de círculo de progreso
-function ProgressCircle({ percentage, color = "#3b82f6" }) {
+// Componente de circulo de progreso
+function ProgressCircle({ percentage, color = MUI_COLORS.primary }) {
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (percentage / 100) * circumference;
 
   return (
-    <div className="relative w-24 h-24">
-      <svg className="w-full h-full -rotate-90">
+    <Box sx={{ position: 'relative', width: 96, height: 96 }}>
+      <svg style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
         <circle
           cx="48"
           cy="48"
           r={radius}
-          stroke="#e2e8f0"
+          stroke="var(--border)"
           strokeWidth="8"
           fill="none"
         />
@@ -77,170 +100,21 @@ function ProgressCircle({ percentage, color = "#3b82f6" }) {
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          className="transition-all duration-500"
+          style={{ transition: 'all 0.5s' }}
         />
       </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-xl font-bold text-slate-800">{percentage}%</span>
-      </div>
-    </div>
-  );
-}
-
-// Componente Donut Chart para distribución de estados
-function DonutChart({ data, colors, labels }) {
-  const total = data.reduce((sum, val) => sum + val, 0) || 1;
-  const radius = 70;
-  const strokeWidth = 24;
-  const innerRadius = radius - strokeWidth / 2;
-  const circumference = 2 * Math.PI * innerRadius;
-
-  let currentOffset = 0;
-
-  return (
-    <div className="relative w-full flex items-center justify-center">
-      <div className="relative w-48 h-48">
-        <svg viewBox="0 0 160 160" className="w-full h-full -rotate-90">
-          {/* Fondo del círculo */}
-          <circle
-            cx="80"
-            cy="80"
-            r={innerRadius}
-            fill="none"
-            stroke="#f1f5f9"
-            strokeWidth={strokeWidth}
-          />
-
-          {/* Segmentos */}
-          {data.map((value, idx) => {
-            const percentage = value / total;
-            const dashLength = percentage * circumference;
-            const dashOffset = currentOffset;
-            currentOffset += dashLength;
-
-            if (value === 0) return null;
-
-            return (
-              <circle
-                key={idx}
-                cx="80"
-                cy="80"
-                r={innerRadius}
-                fill="none"
-                stroke={colors[idx]}
-                strokeWidth={strokeWidth}
-                strokeDasharray={`${dashLength} ${circumference - dashLength}`}
-                strokeDashoffset={-dashOffset}
-                strokeLinecap="round"
-                className="transition-all duration-500"
-              />
-            );
-          })}
-        </svg>
-
-        {/* Centro del donut */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-bold text-slate-800">{total}</span>
-          <span className="text-xs text-slate-500 uppercase tracking-wider">Total</span>
-        </div>
-      </div>
-
-      {/* Leyenda */}
-      <div className="ml-6 space-y-3">
-        {labels.map((label, idx) => (
-          <div key={idx} className="flex items-center gap-3">
-            <div
-              className="w-3 h-3 rounded-full flex-shrink-0"
-              style={{ backgroundColor: colors[idx] }}
-            />
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-600">{label}</span>
-              <span className="text-sm font-semibold text-slate-800">{data[idx]}</span>
-              <span className="text-xs text-slate-400">
-                ({total > 0 ? Math.round((data[idx] / total) * 100) : 0}%)
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Componente de línea de tendencia mejorado con relleno degradado
-function TrendLine({ data }) {
-  // Asegurar datos válidos
-  const safeData = data && data.length > 0 ? data : [0, 0, 0, 0, 0, 0, 0];
-
-  const max = Math.max(...safeData);
-  const min = Math.min(...safeData);
-  // Usar padding para que la línea tenga más movimiento visual
-  const padding = (max - min) * 0.2 || 1;
-  const adjustedMin = Math.max(0, min - padding);
-  const adjustedMax = max + padding;
-  const range = adjustedMax - adjustedMin || 1;
-
-  const points = safeData
-    .map((value, idx) => {
-      const x = (idx / (safeData.length - 1)) * 100;
-      const y = 100 - ((value - adjustedMin) / range) * 100;
-      return `${x},${y}`;
-    })
-    .join(" ");
-
-  // Crear path para el área con curvas suaves
-  const areaPath = `M 0,100 L ${points.split(" ").map((p, i) => {
-    const [x, y] = p.split(",");
-    return i === 0 ? `0,${y} L ${x},${y}` : `${x},${y}`;
-  }).join(" L ")} L 100,100 Z`;
-
-  return (
-    <div className="h-24 w-full">
-      <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
-        {/* Definir gradiente */}
-        <defs>
-          <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-
-        {/* Área con relleno degradado */}
-        <polygon
-          points={`0,100 ${points} 100,100`}
-          fill="url(#areaGradient)"
-        />
-
-        {/* Línea principal */}
-        <polyline
-          points={points}
-          fill="none"
-          stroke="#3b82f6"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
-        />
-
-        {/* Puntos en cada dato */}
-        {safeData.map((value, idx) => {
-          const x = (idx / (safeData.length - 1)) * 100;
-          const y = 100 - ((value - adjustedMin) / range) * 100;
-          return (
-            <circle
-              key={idx}
-              cx={x}
-              cy={y}
-              r="3"
-              fill="white"
-              stroke="#3b82f6"
-              strokeWidth="2"
-              vectorEffect="non-scaling-stroke"
-            />
-          );
-        })}
-      </svg>
-    </div>
+      <Box sx={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <Typography variant="h5" fontWeight="bold" color="text.primary">
+          {percentage}%
+        </Typography>
+      </Box>
+    </Box>
   );
 }
 
@@ -278,23 +152,41 @@ export default function KPI() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-      </div>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
+        <CircularProgress color="primary" />
+      </Box>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-red-600">{error}</p>
-      </div>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
+        <Typography color="error">{error}</Typography>
+      </Box>
     );
   }
 
+  // Preparar datos para el grafico de tendencia (SPMLine)
+  const trendLabels = ["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"];
+  const trendDatasets = [{
+    label: 'Solicitudes',
+    data: kpiData.solicitudes.trend,
+    fill: true,
+    borderColor: MUI_COLORS.primary,
+    backgroundColor: 'color-mix(in srgb, var(--primary) 10%, transparent)',
+  }];
+
+  // Preparar datos para el Donut de estados (SPMDoughnut)
+  const donutData = [
+    { label: 'Aprobadas', value: kpiData.solicitudes.aprobadas, color: MUI_COLORS.success },
+    { label: 'Rechazadas', value: kpiData.solicitudes.rechazadas, color: MUI_COLORS.danger },
+    { label: 'Pendientes', value: kpiData.solicitudes.pendientes, color: MUI_COLORS.warning },
+  ];
+
+  const totalSolicitudes = kpiData.solicitudes.aprobadas + kpiData.solicitudes.rechazadas + kpiData.solicitudes.pendientes;
 
   return (
-    <div className="space-y-6">
+    <Stack spacing={3}>
       <ScrollReveal>
         <PageHeader
           title="KPI's"
@@ -305,356 +197,586 @@ export default function KPI() {
         />
       </ScrollReveal>
 
-      {/* Métricas principales - altura uniforme con iconos mejorados */}
+      {/* Metricas principales - altura uniforme con iconos mejorados */}
       <ScrollReveal delay={100}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Grid container spacing={2}>
           {/* Total Solicitudes - Azul (Neutro/Info) */}
-          <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
-            <CardContent className="h-full flex flex-col justify-between py-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
-                    Total Solicitudes
-                  </p>
-                  <p className="text-3xl font-bold text-slate-800">{kpiData.solicitudes.total}</p>
-                </div>
-                <div className="h-12 w-12 rounded-2xl bg-blue-500/10 grid place-items-center flex-shrink-0">
-                  <FileText className="w-6 h-6 text-blue-500" />
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                {kpiData.solicitudes.trendPercentage >= 0 ? (
-                  <div className="flex items-center gap-1 text-emerald-600">
-                    <TrendingUp className="w-4 h-4 text-emerald-500" />
-                    <span className="font-semibold">+{kpiData.solicitudes.trendPercentage}%</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1 text-red-600">
-                    <TrendingDown className="w-4 h-4 text-red-500" />
-                    <span className="font-semibold">{kpiData.solicitudes.trendPercentage}%</span>
-                  </div>
-                )}
-                <span className="text-slate-500">vs mes anterior</span>
-              </div>
-            </CardContent>
-          </Card>
+          <Grid size={{ xs: 12, md: 6, lg: 3 }}>
+            <Paper
+              elevation={0}
+              sx={{
+                height: 150,
+                p: 2.5,
+                bgcolor: 'rgba(255, 255, 255, 0.7)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: 2,
+              }}
+            >
+              <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                  <Box>
+                    <Typography variant="caption" fontWeight={500} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5, display: 'block' }}>
+                      Total Solicitudes
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold" color="text.primary">
+                      {kpiData.solicitudes.total}
+                    </Typography>
+                  </Box>
+                  <Box sx={{
+                    height: 48,
+                    width: 48,
+                    borderRadius: 4,
+                    bgcolor: 'var(--primary-muted)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <FileTextIcon sx={{ fontSize: 24, color: 'primary.main' }} />
+                  </Box>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {kpiData.solicitudes.trendPercentage >= 0 ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'success.main' }}>
+                      <TrendingUpIcon sx={{ fontSize: 16 }} />
+                      <Typography variant="body2" fontWeight={600}>+{kpiData.solicitudes.trendPercentage}%</Typography>
+                    </Box>
+                  ) : (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'error.main' }}>
+                      <TrendingDownIcon sx={{ fontSize: 16 }} />
+                      <Typography variant="body2" fontWeight={600}>{kpiData.solicitudes.trendPercentage}%</Typography>
+                    </Box>
+                  )}
+                  <Typography variant="body2" color="text.secondary">vs mes anterior</Typography>
+                </Box>
+              </Box>
+            </Paper>
+          </Grid>
 
-          {/* Tasa de Aprobación - Color semántico según valor */}
+          {/* Tasa de Aprobacion - Color semantico segun valor */}
           {(() => {
             const tasaAprobacion = kpiData.solicitudes.total > 0
               ? Math.round((kpiData.solicitudes.aprobadas / kpiData.solicitudes.total) * 100)
               : 0;
-            // Color semántico: Verde >= 70%, Amarillo 40-69%, Rojo < 40%
             const isGood = tasaAprobacion >= 70;
             const isWarning = tasaAprobacion >= 40 && tasaAprobacion < 70;
-            const isBad = tasaAprobacion < 40;
 
-            const bgColor = isGood ? "bg-emerald-500/10 dark:bg-emerald-500/20" : isWarning ? "bg-amber-500/10 dark:bg-amber-500/20" : "bg-red-500/10 dark:bg-red-500/20";
-            const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
-            const IconComponent = isGood ? CheckCircle2 : isWarning ? Clock : XCircle;
+            const bgColor = isGood ? 'var(--success-bg)' : isWarning ? 'var(--warning-bg)' : 'var(--danger-bg)';
+            const iconColor = isGood ? 'success.main' : isWarning ? 'warning.main' : 'error.main';
+            const textColor = isGood ? 'success.main' : isWarning ? 'warning.main' : 'error.main';
+            const IconComponent = isGood ? CheckCircle2Icon : isWarning ? ClockIcon : XCircleIcon;
 
             return (
-              <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                <CardContent className="h-full flex flex-col justify-between py-5">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                        Tasa de Aprobación
-                      </p>
-                      <p className={`text-3xl font-bold ${isGood ? 'text-emerald-600 dark:text-emerald-400' : isWarning ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {tasaAprobacion}%
-                      </p>
-                    </div>
-                    <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center flex-shrink-0`}>
-                      <IconComponent className={`w-6 h-6 ${iconColor}`} />
-                    </div>
-                  </div>
-                  <div className="text-sm text-slate-500 dark:text-slate-400">
-                    {kpiData.solicitudes.aprobadas} aprobadas de {kpiData.solicitudes.total}
-                  </div>
-                </CardContent>
-              </Card>
+              <Grid size={{ xs: 12, md: 6, lg: 3 }}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    height: 150,
+                    p: 2.5,
+                    bgcolor: 'rgba(255, 255, 255, 0.7)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: 2,
+                  }}
+                >
+                  <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                      <Box>
+                        <Typography variant="caption" fontWeight={500} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5, display: 'block' }}>
+                          Tasa de Aprobacion
+                        </Typography>
+                        <Typography variant="h4" fontWeight="bold" sx={{ color: textColor }}>
+                          {tasaAprobacion}%
+                        </Typography>
+                      </Box>
+                      <Box sx={{
+                        height: 48,
+                        width: 48,
+                        borderRadius: 4,
+                        bgcolor: bgColor,
+                        display: 'grid',
+                        placeItems: 'center',
+                        flexShrink: 0,
+                      }}>
+                        <IconComponent sx={{ fontSize: 24, color: iconColor }} />
+                      </Box>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      {kpiData.solicitudes.aprobadas} aprobadas de {kpiData.solicitudes.total}
+                    </Typography>
+                  </Box>
+                </Paper>
+              </Grid>
             );
           })()}
 
-          {/* Tiempo Promedio - Color semántico según meta */}
+          {/* Tiempo Promedio - Color semantico segun meta */}
           {(() => {
             const promedio = kpiData.tiempoAprobacion.promedio;
             const meta = kpiData.tiempoAprobacion.meta;
-            // Color semántico: Verde si está bajo la meta, Amarillo si está cerca, Rojo si excede
             const isGood = promedio <= meta;
             const isWarning = promedio > meta && promedio <= meta * 1.5;
-            const isBad = promedio > meta * 1.5;
 
-            const bgColor = isGood ? "bg-emerald-500/10 dark:bg-emerald-500/20" : isWarning ? "bg-amber-500/10 dark:bg-amber-500/20" : "bg-red-500/10 dark:bg-red-500/20";
-            const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
-            const valueColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
+            const bgColor = isGood ? 'var(--success-bg)' : isWarning ? 'var(--warning-bg)' : 'var(--danger-bg)';
+            const iconColor = isGood ? 'success.main' : isWarning ? 'warning.main' : 'error.main';
+            const valueColor = isGood ? 'success.main' : isWarning ? 'warning.main' : 'error.main';
 
             return (
-              <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                <CardContent className="h-full flex flex-col justify-between py-5">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                        Tiempo Promedio
-                      </p>
-                      <p className={`text-3xl font-bold ${valueColor}`}>{promedio} días</p>
-                    </div>
-                    <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center flex-shrink-0`}>
-                      <Clock className={`w-6 h-6 ${iconColor}`} />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    {isGood ? (
-                      <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                        <TrendingDown className="w-4 h-4" />
-                        <span className="font-semibold">Bajo meta</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                        <TrendingUp className="w-4 h-4" />
-                        <span className="font-semibold">Sobre meta</span>
-                      </div>
-                    )}
-                    <span className="text-slate-500 dark:text-slate-400">Meta: {meta} días</span>
-                  </div>
-                </CardContent>
-              </Card>
+              <Grid size={{ xs: 12, md: 6, lg: 3 }}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    height: 150,
+                    p: 2.5,
+                    bgcolor: 'rgba(255, 255, 255, 0.7)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: 2,
+                  }}
+                >
+                  <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                      <Box>
+                        <Typography variant="caption" fontWeight={500} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5, display: 'block' }}>
+                          Tiempo Promedio
+                        </Typography>
+                        <Typography variant="h4" fontWeight="bold" sx={{ color: valueColor }}>
+                          {promedio} dias
+                        </Typography>
+                      </Box>
+                      <Box sx={{
+                        height: 48,
+                        width: 48,
+                        borderRadius: 4,
+                        bgcolor: bgColor,
+                        display: 'grid',
+                        placeItems: 'center',
+                        flexShrink: 0,
+                      }}>
+                        <ClockIcon sx={{ fontSize: 24, color: iconColor }} />
+                      </Box>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {isGood ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'success.main' }}>
+                          <TrendingDownIcon sx={{ fontSize: 16 }} />
+                          <Typography variant="body2" fontWeight={600}>Bajo meta</Typography>
+                        </Box>
+                      ) : (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'warning.main' }}>
+                          <TrendingUpIcon sx={{ fontSize: 16 }} />
+                          <Typography variant="body2" fontWeight={600}>Sobre meta</Typography>
+                        </Box>
+                      )}
+                      <Typography variant="body2" color="text.secondary">Meta: {meta} dias</Typography>
+                    </Box>
+                  </Box>
+                </Paper>
+              </Grid>
             );
           })()}
 
-          {/* Presupuesto Utilizado - Color semántico según uso */}
+          {/* Presupuesto Utilizado - Color semantico segun uso */}
           {(() => {
             const percentage = kpiData.presupuesto.percentage;
-            // Color semántico: Verde < 70%, Amarillo 70-90%, Rojo > 90%
             const isGood = percentage < 70;
             const isWarning = percentage >= 70 && percentage <= 90;
-            const isBad = percentage > 90;
 
-            const bgColor = isGood ? "bg-emerald-500/10 dark:bg-emerald-500/20" : isWarning ? "bg-amber-500/10 dark:bg-amber-500/20" : "bg-red-500/10 dark:bg-red-500/20";
-            const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
-            const textColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
+            const bgColor = isGood ? 'var(--success-bg)' : isWarning ? 'var(--warning-bg)' : 'var(--danger-bg)';
+            const iconColor = isGood ? 'success.main' : isWarning ? 'warning.main' : 'error.main';
+            const textColor = isGood ? 'success.main' : isWarning ? 'warning.main' : 'error.main';
 
             return (
-              <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                <CardContent className="h-full flex flex-col justify-between py-5">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                        Presupuesto
-                      </p>
-                      <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">
-                        {formatCurrency(kpiData.presupuesto.utilizado)}
-                      </p>
-                    </div>
-                    <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center flex-shrink-0`}>
-                      <DollarSign className={`w-6 h-6 ${iconColor}`} />
-                    </div>
-                  </div>
-                  <div className="text-sm">
-                    <span className={`font-semibold ${textColor}`}>{percentage}%</span>
-                    <span className="text-slate-500 dark:text-slate-400"> de {formatCurrency(kpiData.presupuesto.total)}</span>
-                  </div>
-                </CardContent>
-              </Card>
+              <Grid size={{ xs: 12, md: 6, lg: 3 }}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    height: 150,
+                    p: 2.5,
+                    bgcolor: 'rgba(255, 255, 255, 0.7)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: 2,
+                  }}
+                >
+                  <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                      <Box>
+                        <Typography variant="caption" fontWeight={500} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5, display: 'block' }}>
+                          Presupuesto
+                        </Typography>
+                        <Typography variant="h5" fontWeight="bold" color="text.primary">
+                          {formatCurrency(kpiData.presupuesto.utilizado)}
+                        </Typography>
+                      </Box>
+                      <Box sx={{
+                        height: 48,
+                        width: 48,
+                        borderRadius: 4,
+                        bgcolor: bgColor,
+                        display: 'grid',
+                        placeItems: 'center',
+                        flexShrink: 0,
+                      }}>
+                        <DollarSignIcon sx={{ fontSize: 24, color: iconColor }} />
+                      </Box>
+                    </Box>
+                    <Typography variant="body2">
+                      <Typography component="span" variant="body2" fontWeight={600} sx={{ color: textColor }}>
+                        {percentage}%
+                      </Typography>
+                      <Typography component="span" variant="body2" color="text.secondary">
+                        {' '}de {formatCurrency(kpiData.presupuesto.total)}
+                      </Typography>
+                    </Typography>
+                  </Box>
+                </Paper>
+              </Grid>
             );
           })()}
-        </div>
+        </Grid>
       </ScrollReveal>
 
-      {/* Fila 1: Tendencia (60%) + Distribución de Estados Donut (40%) */}
+      {/* Fila 1: Tendencia (60%) + Distribucion de Estados Donut (40%) */}
       <ScrollReveal delay={200}>
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Tendencia de Solicitudes - 60% */}
-          <Card className="lg:col-span-3 h-[280px] bg-white/70 backdrop-blur-md border-white/30">
-            <CardHeader className="px-6 pt-5 pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Tendencia de Solicitudes</CardTitle>
-                <BarChart3 className="w-5 h-5 text-pink-500" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-6 pb-5 flex flex-col justify-between h-[calc(100%-60px)]">
-              <div className="flex-1 flex flex-col justify-center">
-                <TrendLine data={kpiData.solicitudes.trend} />
-                <div className="grid grid-cols-7 gap-1 text-xs text-slate-500 text-center mt-2">
-                  {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((day) => (
-                    <div key={day}>{day}</div>
-                  ))}
-                </div>
-              </div>
-              <div className="pt-3 border-t border-white/20 flex items-center justify-between text-sm">
-                <span className="text-slate-500">Promedio semanal</span>
-                <span className="font-semibold text-slate-800">
-                  {Math.round(kpiData.solicitudes.trend.reduce((a, b) => a + b, 0) / Math.max(kpiData.solicitudes.trend.length, 1))} solicitudes
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+        <Grid container spacing={3}>
+          {/* Tendencia de Solicitudes - 60% - Usando SPMLine */}
+          <Grid size={{ xs: 12, lg: 7.2 }}>
+            <Paper
+              elevation={0}
+              sx={{
+                height: 280,
+                bgcolor: 'rgba(255, 255, 255, 0.7)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: 2,
+              }}
+            >
+              <Box sx={{ px: 3, pt: 2.5, pb: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="subtitle1" fontWeight={600}>Tendencia de Solicitudes</Typography>
+                <BarChart3Icon sx={{ fontSize: 20, color: 'var(--danger)' }} />
+              </Box>
+              <Box sx={{ px: 3, pb: 2.5, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: 'calc(100% - 60px)' }}>
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <SPMLine
+                    labels={trendLabels}
+                    datasets={trendDatasets}
+                    height={120}
+                    options={{
+                      plugins: {
+                        legend: { display: false },
+                      },
+                      scales: {
+                        x: {
+                          grid: { display: false },
+                        },
+                        y: {
+                          beginAtZero: true,
+                          grid: { color: 'rgba(0,0,0,0.05)' },
+                        },
+                      },
+                    }}
+                  />
+                </Box>
+                <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.2)', mt: 1.5 }} />
+                <Box sx={{ pt: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">Promedio semanal</Typography>
+                  <Typography variant="body2" fontWeight={600} color="text.primary">
+                    {Math.round(kpiData.solicitudes.trend.reduce((a, b) => a + b, 0) / Math.max(kpiData.solicitudes.trend.length, 1))} solicitudes
+                  </Typography>
+                </Box>
+              </Box>
+            </Paper>
+          </Grid>
 
-          {/* Distribución de Estados - Donut Chart 40% */}
-          <Card className="lg:col-span-2 h-[280px] bg-white/70 backdrop-blur-md border-white/30">
-            <CardHeader className="px-6 pt-5 pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Distribución de Estados</CardTitle>
-                <BarChart3 className="w-5 h-5 text-pink-500" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-6 pb-5 flex items-center justify-center h-[calc(100%-60px)]">
-              <DonutChart
-                data={[
-                  kpiData.solicitudes.aprobadas,
-                  kpiData.solicitudes.rechazadas,
-                  kpiData.solicitudes.pendientes,
-                ]}
-                colors={["#10b981", "#ef4444", "#f59e0b"]}
-                labels={["Aprobadas", "Rechazadas", "Pendientes"]}
-              />
-            </CardContent>
-          </Card>
-        </div>
+          {/* Distribucion de Estados - Donut Chart 40% - Usando SPMDoughnut */}
+          <Grid size={{ xs: 12, lg: 4.8 }}>
+            <Paper
+              elevation={0}
+              sx={{
+                height: 280,
+                bgcolor: 'rgba(255, 255, 255, 0.7)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: 2,
+              }}
+            >
+              <Box sx={{ px: 3, pt: 2.5, pb: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="subtitle1" fontWeight={600}>Distribucion de Estados</Typography>
+                <BarChart3Icon sx={{ fontSize: 20, color: 'var(--danger)' }} />
+              </Box>
+              <Box sx={{ px: 3, pb: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 'calc(100% - 60px)' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <Box sx={{ width: 150, height: 150 }}>
+                    <SPMDoughnut
+                      data={donutData}
+                      height={150}
+                      centerText={totalSolicitudes}
+                      options={{
+                        plugins: {
+                          legend: { display: false },
+                        },
+                      }}
+                    />
+                  </Box>
+                  {/* Leyenda personalizada */}
+                  <Stack spacing={1.5}>
+                    {donutData.map((item, idx) => (
+                      <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Box
+                          sx={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: '50%',
+                            flexShrink: 0,
+                            backgroundColor: item.color,
+                          }}
+                        />
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body2" color="text.secondary">{item.label}</Typography>
+                          <Typography variant="body2" fontWeight="600" color="text.primary">{item.value}</Typography>
+                          <Typography variant="caption" color="text.disabled">
+                            ({totalSolicitudes > 0 ? Math.round((item.value / totalSolicitudes) * 100) : 0}%)
+                          </Typography>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Stack>
+                </Box>
+              </Box>
+            </Paper>
+          </Grid>
+        </Grid>
       </ScrollReveal>
 
       {/* Fila 2: Materiales | Presupuesto por Centro (50% cada uno) */}
       <ScrollReveal delay={250}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Materiales Más Solicitados */}
-          <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
-            <CardHeader className="px-5 pt-5 pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Materiales Más Solicitados</CardTitle>
-                <Package className="w-5 h-5 text-indigo-500" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
-              <div className="space-y-3">
-                {(kpiData.materialesMasSolicitados || []).length > 0 ? (
-                  kpiData.materialesMasSolicitados.map((material, idx) => {
-                    const maxCantidad = Math.max(...kpiData.materialesMasSolicitados.map(m => m.cantidad), 1);
-                    const percentage = (material.cantidad / maxCantidad) * 100;
-                    return (
-                      <div key={idx} className="group">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500/10 grid place-items-center text-xs font-bold text-blue-600">
-                              {idx + 1}
-                            </div>
-                            <span
-                              className="text-sm text-slate-700 font-medium truncate"
-                              title={material.nombre}
-                            >
-                              {material.nombre}
-                            </span>
-                          </div>
-                          <span className="text-xs font-semibold text-slate-800 tabular-nums flex-shrink-0 ml-2">
-                            {(material.cantidad || 0).toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="h-2.5 bg-slate-100/70 backdrop-blur-sm rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-500 group-hover:from-blue-600 group-hover:to-blue-500"
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p className="text-sm text-slate-500 text-center py-4">
-                    No hay datos disponibles
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        <Grid container spacing={3}>
+          {/* Materiales Mas Solicitados */}
+          <Grid size={{ xs: 12, lg: 6 }}>
+            <Paper
+              elevation={0}
+              sx={{
+                height: 320,
+                bgcolor: 'rgba(255, 255, 255, 0.7)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: 2,
+              }}
+            >
+              <Box sx={{ px: 2.5, pt: 2.5, pb: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="subtitle1" fontWeight={600}>Materiales Mas Solicitados</Typography>
+                <PackageIcon sx={{ fontSize: 20, color: 'var(--info)' }} />
+              </Box>
+              <Box sx={{ px: 2.5, pb: 2.5, overflow: 'auto', height: 'calc(100% - 60px)' }}>
+                <Stack spacing={1.5}>
+                  {(kpiData.materialesMasSolicitados || []).length > 0 ? (
+                    kpiData.materialesMasSolicitados.map((material, idx) => {
+                      const maxCantidad = Math.max(...kpiData.materialesMasSolicitados.map(m => m.cantidad), 1);
+                      const percentage = (material.cantidad / maxCantidad) * 100;
+                      return (
+                        <Box key={idx} sx={{ '&:hover .progress-bar': { filter: 'brightness(1.1)' } }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, flex: 1 }}>
+                              <Box sx={{
+                                flexShrink: 0,
+                                width: 20,
+                                height: 20,
+                                borderRadius: '50%',
+                                bgcolor: 'var(--primary-muted)',
+                                display: 'grid',
+                                placeItems: 'center',
+                              }}>
+                                <Typography variant="caption" fontWeight="bold" color="primary">
+                                  {idx + 1}
+                                </Typography>
+                              </Box>
+                              <Typography
+                                variant="body2"
+                                fontWeight={500}
+                                color="text.primary"
+                                title={material.nombre}
+                                sx={{
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {material.nombre}
+                              </Typography>
+                            </Box>
+                            <Typography variant="caption" fontWeight={600} color="text.primary" sx={{ fontVariantNumeric: 'tabular-nums', flexShrink: 0, ml: 1 }}>
+                              {(material.cantidad || 0).toLocaleString()}
+                            </Typography>
+                          </Box>
+                          <Box sx={{
+                            height: 10,
+                            bgcolor: 'color-mix(in srgb, var(--bg-soft) 70%, transparent)',
+                            backdropFilter: 'blur(4px)',
+                            borderRadius: 5,
+                            overflow: 'hidden',
+                          }}>
+                            <Box
+                              className="progress-bar"
+                              sx={{
+                                height: '100%',
+                                width: `${percentage}%`,
+                                background: 'linear-gradient(to right, var(--primary), var(--primary-light))',
+                                borderRadius: 5,
+                                transition: 'all 0.5s',
+                              }}
+                            />
+                          </Box>
+                        </Box>
+                      );
+                    })
+                  ) : (
+                    <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 2 }}>
+                      No hay datos disponibles
+                    </Typography>
+                  )}
+                </Stack>
+              </Box>
+            </Paper>
+          </Grid>
 
           {/* Presupuesto por Centro */}
-          <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
-            <CardHeader className="px-5 pt-5 pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Presupuesto por Centro</CardTitle>
-                <DollarSign className="w-5 h-5 text-amber-700" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
-              <div className="space-y-3">
-                {(kpiData.presupuesto.porCentro || []).length > 0 ? (
-                  kpiData.presupuesto.porCentro.map((centro, idx) => {
-                    const maxValor = Math.max(...kpiData.presupuesto.porCentro.map(c => c.valor), 1);
-                    const percentage = (centro.valor / maxValor) * 100;
-                    return (
-                      <div key={idx} className="group">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span
-                            className="text-sm text-slate-700 font-medium truncate flex-1"
-                            title={centro.nombre}
-                          >
-                            {centro.nombre}
-                          </span>
-                          <span className="text-xs font-semibold text-slate-800 tabular-nums flex-shrink-0 ml-2">
-                            {formatCurrency(centro.valor)}
-                          </span>
-                        </div>
-                        <div className="h-2.5 bg-slate-100/70 backdrop-blur-sm rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500 group-hover:from-emerald-600 group-hover:to-emerald-500"
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p className="text-sm text-slate-500 text-center py-4">
-                    No hay datos disponibles
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          <Grid size={{ xs: 12, lg: 6 }}>
+            <Paper
+              elevation={0}
+              sx={{
+                height: 320,
+                bgcolor: 'rgba(255, 255, 255, 0.7)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: 2,
+              }}
+            >
+              <Box sx={{ px: 2.5, pt: 2.5, pb: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="subtitle1" fontWeight={600}>Presupuesto por Centro</Typography>
+                <DollarSignIcon sx={{ fontSize: 20, color: 'var(--warning)' }} />
+              </Box>
+              <Box sx={{ px: 2.5, pb: 2.5, overflow: 'auto', height: 'calc(100% - 60px)' }}>
+                <Stack spacing={1.5}>
+                  {(kpiData.presupuesto.porCentro || []).length > 0 ? (
+                    kpiData.presupuesto.porCentro.map((centro, idx) => {
+                      const maxValor = Math.max(...kpiData.presupuesto.porCentro.map(c => c.valor), 1);
+                      const percentage = (centro.valor / maxValor) * 100;
+                      return (
+                        <Box key={idx} sx={{ '&:hover .progress-bar': { filter: 'brightness(1.1)' } }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
+                            <Typography
+                              variant="body2"
+                              fontWeight={500}
+                              color="text.primary"
+                              title={centro.nombre}
+                              sx={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                flex: 1,
+                              }}
+                            >
+                              {centro.nombre}
+                            </Typography>
+                            <Typography variant="caption" fontWeight={600} color="text.primary" sx={{ fontVariantNumeric: 'tabular-nums', flexShrink: 0, ml: 1 }}>
+                              {formatCurrency(centro.valor)}
+                            </Typography>
+                          </Box>
+                          <Box sx={{
+                            height: 10,
+                            bgcolor: 'color-mix(in srgb, var(--bg-soft) 70%, transparent)',
+                            backdropFilter: 'blur(4px)',
+                            borderRadius: 5,
+                            overflow: 'hidden',
+                          }}>
+                            <Box
+                              className="progress-bar"
+                              sx={{
+                                height: '100%',
+                                width: `${percentage}%`,
+                                background: 'linear-gradient(to right, var(--success), var(--success-light))',
+                                borderRadius: 5,
+                                transition: 'all 0.5s',
+                              }}
+                            />
+                          </Box>
+                        </Box>
+                      );
+                    })
+                  ) : (
+                    <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 2 }}>
+                      No hay datos disponibles
+                    </Typography>
+                  )}
+                </Stack>
+              </Box>
+            </Paper>
+          </Grid>
+        </Grid>
       </ScrollReveal>
 
       {/* Card de Progreso de Presupuesto */}
       <ScrollReveal delay={300}>
-        <Card className="bg-white/70 backdrop-blur-md border-white/30">
-        <CardHeader className="px-6 pt-6 pb-4">
-          <CardTitle>Resumen de Presupuesto</CardTitle>
-        </CardHeader>
-        <CardContent className="px-6 pb-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="flex-shrink-0">
-              <ProgressCircle percentage={kpiData.presupuesto.percentage} />
-            </div>
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
-              <div className="text-center md:text-left">
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
-                  Presupuesto Total
-                </p>
-                <p className="text-2xl font-bold text-slate-800">
-                  {formatCurrency(kpiData.presupuesto.total)}
-                </p>
-              </div>
-              <div className="text-center md:text-left">
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
-                  Utilizado
-                </p>
-                <p className="text-2xl font-bold text-amber-500">
-                  {formatCurrency(kpiData.presupuesto.utilizado)}
-                </p>
-              </div>
-              <div className="text-center md:text-left">
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
-                  Disponible
-                </p>
-                <p className="text-2xl font-bold text-emerald-500">
-                  {formatCurrency(kpiData.presupuesto.disponible)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-        </Card>
+        <Paper
+          elevation={0}
+          sx={{
+            bgcolor: 'rgba(255, 255, 255, 0.7)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: 2,
+          }}
+        >
+          <Box sx={{ px: 3, pt: 3, pb: 2 }}>
+            <Typography variant="h6" fontWeight={600}>Resumen de Presupuesto</Typography>
+          </Box>
+          <Box sx={{ px: 3, pb: 3 }}>
+            <Box sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', md: 'row' },
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 4,
+            }}>
+              <Box sx={{ flexShrink: 0 }}>
+                <ProgressCircle percentage={kpiData.presupuesto.percentage} />
+              </Box>
+              <Grid container spacing={3} sx={{ flex: 1, width: '100%' }}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>
+                    <Typography variant="caption" fontWeight={500} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1, display: 'block' }}>
+                      Presupuesto Total
+                    </Typography>
+                    <Typography variant="h5" fontWeight="bold" color="text.primary">
+                      {formatCurrency(kpiData.presupuesto.total)}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>
+                    <Typography variant="caption" fontWeight={500} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1, display: 'block' }}>
+                      Utilizado
+                    </Typography>
+                    <Typography variant="h5" fontWeight="bold" color="warning.main">
+                      {formatCurrency(kpiData.presupuesto.utilizado)}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>
+                    <Typography variant="caption" fontWeight={500} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1, display: 'block' }}>
+                      Disponible
+                    </Typography>
+                    <Typography variant="h5" fontWeight="bold" color="success.main">
+                      {formatCurrency(kpiData.presupuesto.disponible)}
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+          </Box>
+        </Paper>
       </ScrollReveal>
-    </div>
+    </Stack>
   );
 }

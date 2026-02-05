@@ -1,12 +1,23 @@
-# SPM v2.0 - Sistema de Planificacion de Materiales
+# SPM v3.0 - Sistema de Planificacion de Materiales
 
-[![CI Pipeline](https://github.com/MANUE/SPMSystem2.0/actions/workflows/ci.yml/badge.svg)](https://github.com/MANUE/SPMSystem2.0/actions/workflows/ci.yml)
+[![CI Pipeline](https://github.com/MANUE/SPMV3.0/actions/workflows/ci.yml/badge.svg)](https://github.com/MANUE/SPMV3.0/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![React 18](https://img.shields.io/badge/react-18-61dafb.svg)](https://reactjs.org/)
 
 Sistema web profesional para gestionar solicitudes de materiales, construido con **Flask** (backend) + **React + Vite** (frontend).
 
-**Version:** 2.1 | **Estado:** Produccion | **Ultima actualizacion:** 19 Enero 2026
+**Version:** 3.0 | **Estado:** Produccion | **Ultima actualizacion:** 5 Febrero 2026
+
+---
+
+## Estado del Sistema
+
+| Indicador | Valor | Estado |
+|-----------|-------|--------|
+| **Testing** | 16/16 fases | ✅ Completado |
+| **Cobertura** | 87% | ✅ Excelente |
+| **Bugs Criticos** | 0 | ✅ Ninguno |
+| **Bugs Menores** | 5 | ⚠️ No bloqueantes |
 
 ---
 
@@ -15,9 +26,9 @@ Sistema web profesional para gestionar solicitudes de materiales, construido con
 | Area | Valor |
 |------|-------|
 | **Backend** | 168 archivos Python, ~65,000 lineas |
-| **Frontend** | 75 paginas, 77 componentes, 11 hooks |
+| **Frontend** | 75 paginas, 80 componentes, 12 hooks |
 | **Endpoints API** | 200+ endpoints en 29 modulos |
-| **Tests** | 1,220+ tests (55 archivos) |
+| **Tests** | 1,220+ tests automatizados + 16 fases manuales |
 | **Base de Datos** | SQLite (dev) + PostgreSQL (prod) |
 
 ---
@@ -59,8 +70,8 @@ SPM es un sistema integral de gestion de solicitudes de materiales disenado para
 
 ```bash
 # Clonar repositorio
-git clone https://github.com/manuelremon/SPMSystem2.0.git
-cd SPMSystem2.0
+git clone https://github.com/manuelremon/SPMV3.0.git
+cd SPMV3.0
 
 # Crear y activar entorno virtual
 python -m venv .venv
@@ -91,7 +102,7 @@ cd frontend && npm run dev
 ## Estructura del Proyecto
 
 ```
-SPMv2.0/
+SPMv3.0/
 ├── backend/                    # API Flask (165 archivos, ~65K lineas)
 │   ├── routes/                 # Endpoints REST (28 modulos)
 │   ├── services/               # Logica de negocio (11 servicios)
@@ -193,6 +204,8 @@ scripts/INICIAR_SPM.bat           # Inicia backend + frontend
 
 ## Tests
 
+### Tests Automatizados
+
 ```bash
 # Tests unitarios (36 archivos)
 python -m pytest tests/unit/ -v
@@ -206,6 +219,31 @@ python -m pytest tests/e2e/ -v
 # Todos los tests con cobertura
 python -m pytest tests/ --cov=backend --cov-report=html
 ```
+
+### Testing Manual Completado (Febrero 2026)
+
+| Fase | Modulo | Cobertura |
+|------|--------|-----------|
+| 1 | Autenticacion | 100% |
+| 2 | Dashboards | 100% |
+| 3 | Solicitudes | 100% |
+| 4 | Aprobaciones | 100% |
+| 5 | Planificacion | 100% |
+| 6 | MRP | 100% |
+| 7 | Forecast/AI | 100% |
+| 8 | Presupuestos | 89% |
+| 9 | Procurement | 20%* |
+| 10 | Materiales | 60%* |
+| 11 | Comunicacion | 89% |
+| 12 | Usuario | 78% |
+| 13 | Admin | 94% |
+| 14 | Seguridad | 100% |
+| 15 | Performance | 100% |
+| 16 | E2E | 67% |
+
+*\* Requieren datos externos (SAP/catalogo)*
+
+Ver documentacion detallada en `TEST_FASE*.md` y `TEST_TRACKING.md`.
 
 ---
 
@@ -230,4 +268,4 @@ python -m pytest tests/ --cov=backend --cov-report=html
 
 ---
 
-*Ultima actualizacion: 19 de Enero, 2026*
+*Ultima actualizacion: 5 de Febrero, 2026*

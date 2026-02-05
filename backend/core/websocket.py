@@ -128,10 +128,7 @@ def _persist_subscription(user_id: Optional[int], room: str) -> None:
     """Persiste una suscripción a sala en la BD para recuperación tras reinicio."""
     if not user_id:
         return
-    try:
-        from backend.core.db import get_db_transaction
-    except ImportError:
-        from core.db import get_db_transaction
+    from backend.core.db import get_db_transaction
 
     try:
         with get_db_transaction() as conn:
@@ -159,10 +156,7 @@ def _remove_subscription(user_id: Optional[int], room: str) -> None:
     """Remueve una suscripción persistida de la BD."""
     if not user_id:
         return
-    try:
-        from backend.core.db import get_db_transaction
-    except ImportError:
-        from core.db import get_db_transaction
+    from backend.core.db import get_db_transaction
 
     try:
         with get_db_transaction() as conn:

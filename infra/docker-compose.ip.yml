@@ -1,4 +1,4 @@
-# SPM v2.0 - Docker Compose para Acceso por IP (Sin SSL)
+# SPM v3.0 - Docker Compose para Acceso por IP (Sin SSL)
 # IP: <SERVER_IP>
 # PostgreSQL + Flask + Nginx (HTTP only)
 version: '3.8'

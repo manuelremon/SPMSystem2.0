@@ -553,10 +553,7 @@ def _register_default_tasks(queue: JobQueue) -> None:
         from email.mime.text import MIMEText
         from email.mime.multipart import MIMEMultipart
 
-        try:
-            from backend.core.config import settings
-        except ImportError:
-            from core.config import settings
+        from backend.core.config import settings
 
         logger.info(f"Email task: to={to}, subject={subject}")
 

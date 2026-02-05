@@ -45,16 +45,17 @@ export const DISK_THRESHOLDS = {
   // Rojo: > 85%
 }
 
-// Colores del sistema
+// Colores del sistema - Corporate Blue Palette
 export const COLORS = {
-  success: '#10B981', // Emerald-500
-  warning: '#F59E0B', // Amber-500
-  danger: '#EF4444',  // Red-500
-  info: '#3B82F6',    // Blue-500
-  muted: '#64748B',   // Slate-500
+  success: '#2e7d32', // MUI Green 800
+  warning: '#ed6c02', // MUI Orange 800
+  danger: '#d32f2f',  // MUI Red 700
+  info: '#0288d1',    // MUI Light Blue 700
+  primary: '#567ebb', // Color3 - Azul medio
+  muted: '#606d80',   // Color4 - Gris azulado
 }
 
-// Colores Tailwind para clases
+// Colores Tailwind para clases (Corporate Blue)
 export const TAILWIND_COLORS = {
   success: {
     text: 'text-emerald-600 dark:text-emerald-400',

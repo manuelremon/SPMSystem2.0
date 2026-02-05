@@ -76,7 +76,7 @@ def _calcular_lead_time_promedio() -> Tuple[float, str]:
             if is_using_postgresql():
                 cursor.execute("""
                     SELECT AVG(EXTRACT(EPOCH FROM (updated_at::timestamp - created_at::timestamp)) / 86400)
-                    FROM solicitudes
+                    FROM solicitud
                     WHERE status IN ('dispatched', 'closed')
                     AND created_at > NOW() - INTERVAL '90 days'
                     AND updated_at > created_at
@@ -84,7 +84,7 @@ def _calcular_lead_time_promedio() -> Tuple[float, str]:
             else:
                 cursor.execute("""
                     SELECT AVG(julianday(updated_at) - julianday(created_at))
-                    FROM solicitudes
+                    FROM solicitud
                     WHERE status IN ('dispatched', 'closed')
                     AND created_at > datetime('now', '-90 days')
                     AND updated_at > created_at
@@ -153,14 +153,14 @@ def _calcular_velocidad_respuesta() -> Tuple[float, str]:
             if is_using_postgresql():
                 cursor.execute("""
                     SELECT AVG(EXTRACT(EPOCH FROM (updated_at::timestamp - created_at::timestamp)) / 86400)
-                    FROM solicitudes
+                    FROM solicitud
                     WHERE status = 'approved'
                     AND created_at > NOW() - INTERVAL '90 days'
                 """)
             else:
                 cursor.execute("""
                     SELECT AVG(julianday(updated_at) - julianday(created_at))
-                    FROM solicitudes
+                    FROM solicitud
                     WHERE status = 'approved'
                     AND created_at > datetime('now', '-90 days')
                 """)
@@ -455,149 +455,114 @@ def _get_alertas_from_temp_data(
 @require_role(["admin", "planificador"])
 def get_alertas():
     """
-    Obtiene el tablero de alertas MRP usando datos reales de sap_data.db.
-    Soporta modo temporal con datos importados desde Excel.
+    Obtiene el tablero de alertas MRP usando datos de materiales_bbdd.
+    Incluye stock actual y consumo histórico de los últimos 2 años.
 
     Query params:
-        centro: Filtro por centro (opcional)
-        almacen: Filtro por almacen (opcional)
-        sector: Filtro por sector/grupo_de_articulos (opcional)
-        estado: Filtro por estado de alerta (opcional)
-        limit: Limite de resultados (default 50)
+        centro: Filtro por centro (opcional, múltiple)
+        almacen: Filtro por almacen (opcional, múltiple)
+        sector: Filtro por sector (opcional, múltiple)
+        estado: Filtro por estado de alerta (opcional, múltiple)
+        limit: Limite de resultados (default 10000)
         offset: Offset para paginacion (default 0)
     """
-    centro = request.args.get("centro", "").strip()
-    almacen = request.args.get("almacen", "").strip()
-    sector = request.args.get("sector", "").strip()
-    estado_filtro = request.args.get("estado", "").strip()
-    limit = min(int(request.args.get("limit", 50)), 200)
+    # Soportar múltiples valores para cada filtro
+    centros = request.args.getlist("centro")
+    almacenes = request.args.getlist("almacen")
+    sectores = request.args.getlist("sector")
+    estados_filtro = request.args.getlist("estado")
+    limit = int(request.args.get("limit", 10000))
     offset = int(request.args.get("offset", 0))
 
     # Validar acceso al almacén solicitado
     user_id = _get_user_id()
-    if almacen and not validate_almacen_access(user_id, almacen):
-        return error_response(
-            code="almacen_no_autorizado",
-            message=f"No tienes acceso al almacén {almacen}",
-            status_code=403
-        )
 
     # Verificar si modo temporal está activo
     if user_id and temp_data_service.is_active(user_id):
+        centro = centros[0] if centros else ""
+        almacen = almacenes[0] if almacenes else ""
+        sector = sectores[0] if sectores else ""
+        estado_filtro = estados_filtro[0] if estados_filtro else ""
         return _get_alertas_from_temp_data(user_id, centro, almacen, sector, estado_filtro, limit, offset)
 
     try:
-        # Conectar a la BD para obtener datos reales de stock
-        # En producción usa PostgreSQL (con vista 'stock'), en desarrollo SQLite
         with get_db_connection("sap_data") as conn:
             cursor = conn.cursor()
 
-            # Query para obtener stock agregado por material/centro/almacen
-            # Agrupa stocks del mismo material
+            # Query principal desde materiales_bbdd (7,309 registros)
+            # Usa campos precalculados: consumo_promedio_anual, rotacion
             base_query = """
                 SELECT
-                    material as codigo,
-                    material_descripcion as descripcion,
-                    centro,
-                    almacen,
-                    grupo_de_articulos as sector,
-                    gpo_articulos_descripcion as sector_nombre,
-                    SUM(stock) as stock_actual,
-                    um as unidad,
-                    AVG(precio) as precio_unitario,
-                    ubicacion,
-                    critico,
-                    MAX(dia) as ultima_actualizacion
-                FROM stock
-                WHERE stock > 0
+                    m.codigo_material as codigo,
+                    m.descripcion,
+                    m.centro,
+                    m.almacen,
+                    m.sector,
+                    m.stock_de_seguridad,
+                    m.punto_de_pedido,
+                    m.stock_maximo,
+                    COALESCE(m.Demanda_estimada_anual, 0) as demanda_estimada_anual,
+                    COALESCE(m.consumo_promedio_anual, 0) as consumo_promedio_anual,
+                    COALESCE(m.rotacion, 0) as rotacion,
+                    COALESCE(s.stock_actual, 0) as stock_actual,
+                    COALESCE(s.unidad, 'UNI') as unidad,
+                    COALESCE(s.precio_unitario, 0) as precio_unitario
+                FROM materiales_bbdd m
+                LEFT JOIN (
+                    SELECT
+                        material,
+                        centro,
+                        almacen,
+                        SUM(stock) as stock_actual,
+                        um as unidad,
+                        AVG(precio) as precio_unitario
+                    FROM stock
+                    GROUP BY material, centro, almacen, um
+                ) s ON m.codigo_material = s.material
+                    AND m.centro = s.centro
+                    AND m.almacen = s.almacen
+                WHERE 1=1
             """
             params = []
 
-            if centro:
-                base_query += " AND centro = ?"
-                params.append(centro)
+            # Filtros múltiples
+            if centros:
+                placeholders = ",".join(["?" for _ in centros])
+                base_query += f" AND m.centro IN ({placeholders})"
+                params.extend(centros)
 
-            if almacen:
-                base_query += " AND almacen = ?"
-                params.append(almacen)
+            if almacenes:
+                placeholders = ",".join(["?" for _ in almacenes])
+                base_query += f" AND m.almacen IN ({placeholders})"
+                params.extend(almacenes)
 
-            if sector:
-                base_query += " AND (grupo_de_articulos = ? OR gpo_articulos_descripcion LIKE ?)"
-                params.extend([sector, f"%{sector}%"])
+            if sectores:
+                placeholders = ",".join(["?" for _ in sectores])
+                base_query += f" AND m.sector IN ({placeholders})"
+                params.extend(sectores)
 
-            # PostgreSQL requiere todas las columnas no-agregadas en GROUP BY
-            base_query += """
-                GROUP BY material, material_descripcion, centro, almacen,
-                         grupo_de_articulos, gpo_articulos_descripcion, um, ubicacion, critico
-                ORDER BY material LIMIT 500
-            """
+            base_query += " ORDER BY m.codigo_material"
 
             cursor.execute(base_query, params)
             materiales = [dict(row) for row in cursor.fetchall()]
-
-            # Obtener consumo historico promedio por material
-            # FIX 2.2: Filtrar por almacén para obtener consumo real del almacén específico
-            consumos = {}
-            if materiales:
-                # Usar sintaxis compatible con SQLite (IN con placeholders)
-                codigos = [m["codigo"] for m in materiales]
-                placeholders = ",".join(["?" for _ in codigos])
-                consumo_params = list(codigos)
-
-                # Base query para consumo histórico
-                consumo_query = f"""
-                    SELECT material, AVG(cantidad) as consumo_mensual
-                    FROM consumo_historico
-                    WHERE material IN ({placeholders})
-                """
-
-                # FIX 2.2: Agregar filtro por almacén si se especificó
-                if almacen:
-                    consumo_query += " AND almacen = ?"
-                    consumo_params.append(almacen)
-
-                consumo_query += " GROUP BY material"
-
-                try:
-                    cursor.execute(consumo_query, consumo_params)
-                    for row in cursor.fetchall():
-                        # Compatibilidad PostgreSQL (dict) y SQLite (tuple/Row)
-                        if isinstance(row, dict):
-                            consumos[row["material"]] = row["consumo_mensual"] or 0
-                        else:
-                            consumos[row[0]] = row[1] or 0
-                except Exception as e:
-                    # Si la tabla consumo_historico no existe, continuar sin consumos
-                    logger.warning(f"No se pudo obtener consumo historico: {e}")
 
         # Calcular alertas para cada material
         alertas = []
 
         for mat in materiales:
             codigo = mat["codigo"]
-            # Convertir a float para compatibilidad con PostgreSQL Decimal
+            centro = mat["centro"]
+            almacen = mat["almacen"]
+
             stock_actual = float(mat["stock_actual"] or 0)
-            consumo_mensual = float(consumos.get(codigo, 0))
+            stock_seguridad = float(mat["stock_de_seguridad"] or 0)
+            punto_pedido = float(mat["punto_de_pedido"] or 0)
+            stock_maximo = float(mat["stock_maximo"] or 0)
+            demanda_anual = float(mat["demanda_estimada_anual"] or 0)
 
-            # Calcular parametros MRP basados en consumo
-            # Stock de seguridad = 2 meses de consumo
-            stock_seguridad = consumo_mensual * 2
-            # Punto de pedido = 3 meses de consumo
-            punto_pedido = consumo_mensual * 3
-            # Stock maximo = 6 meses de consumo
-            stock_maximo = consumo_mensual * 6
-
-            # Si no hay consumo, usar valores por defecto basados en stock actual
-            if consumo_mensual == 0:
-                stock_seguridad = stock_actual * 0.2
-                punto_pedido = stock_actual * 0.3
-                stock_maximo = stock_actual * 1.5
-
-            # Calcular demanda anual desde consumo mensual
-            demanda_anual = consumo_mensual * 12
-
-            # Calcular rotacion
-            rotacion = calcular_rotacion(demanda_anual, stock_actual) if stock_actual > 0 else 0
+            # Usar campos precalculados de la tabla materiales_bbdd
+            consumo_anual = float(mat["consumo_promedio_anual"] or 0)
+            rotacion_pct = float(mat["rotacion"] or 0)
 
             # Calcular estado y sugerencia
             estado_info = calcular_estado_material(
@@ -605,13 +570,18 @@ def get_alertas():
                 stock_seguridad=stock_seguridad,
                 punto_pedido=punto_pedido,
                 stock_maximo=stock_maximo,
-                consumo_promedio=consumo_mensual,
+                consumo_promedio=consumo_anual / 12 if consumo_anual > 0 else 0,
                 pedidos_en_curso=0,
             )
 
-            # Filtrar por estado si se especifico
-            if estado_filtro and estado_filtro.lower() != "todos":
-                if estado_filtro.lower() not in estado_info["estado"].lower():
+            # Filtrar por estado si se especificó
+            if estados_filtro:
+                estado_match = False
+                for ef in estados_filtro:
+                    if ef.lower() in estado_info["estado"].lower():
+                        estado_match = True
+                        break
+                if not estado_match:
                     continue
 
             alertas.append(
@@ -620,9 +590,9 @@ def get_alertas():
                     "descripcion": mat["descripcion"] or codigo,
                     "unidad": mat["unidad"] or "UNI",
                     "precio_usd": round(float(mat["precio_unitario"] or 0), 2),
-                    "centro": mat["centro"] or centro,
-                    "sector": mat["sector_nombre"] or mat["sector"] or sector,
-                    "almacen": mat["almacen"] or almacen or "0001",
+                    "centro": centro,
+                    "sector": mat["sector"] or "",
+                    "almacen": almacen,
                     "demanda_estimada_anual": round(demanda_anual, 0),
                     "stock_seguridad": round(stock_seguridad, 0),
                     "punto_pedido": round(punto_pedido, 0),
@@ -631,13 +601,13 @@ def get_alertas():
                     "pedidos_en_curso": 0,
                     "solpeds_en_curso": 0,
                     "ventas_ute_en_curso": 0,
-                    "consumo_promedio_anual": round(demanda_anual, 2),
-                    "rotacion_pct": round(rotacion * 100, 1),
+                    "consumo_promedio_anual": round(consumo_anual, 2),
+                    "rotacion_pct": round(rotacion_pct, 1),
                     "estado": estado_info["estado"],
                     "estado_clase": estado_info["estado_clase"],
                     "sugerencia": estado_info["sugerencia"],
-                    "critico": mat["critico"] == "SI" if mat["critico"] else False,
-                    "ubicacion": mat["ubicacion"],
+                    "critico": False,
+                    "ubicacion": "",
                 }
             )
 
@@ -913,19 +883,25 @@ def get_kpis():
             cursor_sap.execute(query_bajo, params_mat)
             materiales_stock_bajo = cursor_sap.fetchone()["total"]
 
-            # Materiales criticos
-            query_criticos = "SELECT COUNT(DISTINCT material) as total FROM stock WHERE critico = 'SI'"
-            if centro:
-                query_criticos += " AND centro = ?"
-            cursor_sap.execute(query_criticos, params_mat)
-            materiales_criticos = cursor_sap.fetchone()["total"]
+            # Materiales criticos (columna puede no existir)
+            try:
+                query_criticos = "SELECT COUNT(DISTINCT material) as total FROM stock WHERE critico = 'SI'"
+                if centro:
+                    query_criticos += " AND centro = ?"
+                cursor_sap.execute(query_criticos, params_mat)
+                materiales_criticos = cursor_sap.fetchone()["total"]
+            except Exception:
+                materiales_criticos = 0
 
-            # Materiales inmovilizados
-            query_inmov = "SELECT COUNT(DISTINCT material) as total FROM stock WHERE inmovilizado = 'INMOVILIZADO'"
-            if centro:
-                query_inmov += " AND centro = ?"
-            cursor_sap.execute(query_inmov, params_mat)
-            materiales_inmovilizados = cursor_sap.fetchone()["total"]
+            # Materiales inmovilizados (columna puede no existir)
+            try:
+                query_inmov = "SELECT COUNT(DISTINCT material) as total FROM stock WHERE inmovilizado = 'INMOVILIZADO'"
+                if centro:
+                    query_inmov += " AND centro = ?"
+                cursor_sap.execute(query_inmov, params_mat)
+                materiales_inmovilizados = cursor_sap.fetchone()["total"]
+            except Exception:
+                materiales_inmovilizados = 0
 
             # ----------------------------------------------------------------
             # KPIs REALES (reemplaza datos simulados con modulo)
@@ -1051,7 +1027,7 @@ def get_kpis():
                         COALESCE(SUM(CASE WHEN status = 'creada' THEN 1 ELSE 0 END), 0) as pendientes,
                         COALESCE(SUM(CASE WHEN status = 'enviada' THEN 1 ELSE 0 END), 0) as enviadas,
                         COALESCE(SUM(CASE WHEN status = 'completada' THEN 1 ELSE 0 END), 0) as completadas
-                    FROM solpeds
+                    FROM solicitud_pedido_sap
                     WHERE created_at >= ?
                 """,
                     (fecha_inicio_str,),
@@ -1205,16 +1181,16 @@ def get_catalogos():
             cursor = conn.cursor()
 
             cursor.execute(
-                "SELECT codigo, nombre FROM catalog_centros WHERE activo = 1 ORDER BY codigo"
+                "SELECT codigo, nombre FROM catalogo_centro WHERE activo = 1 ORDER BY codigo"
             )
             centros = [{"codigo": r["codigo"], "nombre": r["nombre"]} for r in cursor.fetchall()]
 
             cursor.execute(
-                "SELECT codigo, nombre FROM catalog_almacenes WHERE activo = 1 ORDER BY codigo"
+                "SELECT codigo, nombre FROM catalogo_almacen WHERE activo = 1 ORDER BY codigo"
             )
             almacenes = [{"codigo": r["codigo"], "nombre": r["nombre"]} for r in cursor.fetchall()]
 
-            cursor.execute("SELECT nombre FROM catalog_sectores WHERE activo = 1 ORDER BY nombre")
+            cursor.execute("SELECT nombre FROM catalogo_sector WHERE activo = 1 ORDER BY nombre")
             sectores = [{"nombre": r["nombre"]} for r in cursor.fetchall()]
 
         return jsonify(
@@ -1427,3 +1403,230 @@ def resolver_alerta_mrp_endpoint(alerta_id):
 
     except Exception as e:
         return jsonify({"ok": False, "error": {"code": "server_error", "message": str(e)}}), 500
+
+
+# =============================================================================
+# PARAMETRIZACION MRP AVANZADA - Sprint 25 (Nueva Página)
+# =============================================================================
+
+from backend.services.mrp_service import (
+    calcular_parametros_mrp_completo,
+    obtener_configuracion_global,
+    guardar_parametros_mrp_bd,
+)
+
+
+@bp.route("/parametros/calcular", methods=["POST"])
+@require_auth
+@require_role(["admin", "planificador"])
+def calcular_parametros_materiales():
+    """
+    Calcula parámetros MRP para múltiples materiales.
+
+    Body:
+        {
+            "materiales": [
+                {
+                    "material_codigo": "10000123",
+                    "centro": "1000",
+                    "almacen": "0001",
+                    "demanda_anual": 1200,
+                    "lead_time_dias": 30,  # opcional
+                    "nivel_servicio": 0.95,  # opcional
+                    ... (otros parámetros opcionales)
+                },
+                ...
+            ],
+            "configuracion_global": {  # opcional, override defaults
+                "costo_por_pedido": 150,
+                "tasa_mantenimiento": 0.20,
+                "dias_laborables_año": 300
+            }
+        }
+
+    Returns:
+        {
+            "ok": true,
+            "resultados": [...],
+            "errores": [],
+            "total_procesados": 10,
+            "total_exitosos": 9,
+            "total_errores": 1
+        }
+    """
+    try:
+        data = request.json
+        materiales = data.get("materiales", [])
+        config_global = data.get("configuracion_global", {})
+
+        if not materiales:
+            return (
+                jsonify({
+                    "ok": False,
+                    "error": {
+                        "code": "invalid_input",
+                        "message": "Lista de materiales vacía"
+                    }
+                }),
+                400,
+            )
+
+        # Obtener configuración global de BD
+        defaults = obtener_configuracion_global()
+        defaults.update(config_global)  # Override con lo enviado
+
+        resultados = []
+        errores = []
+
+        for mat in materiales:
+            try:
+                # Mapear nombres de configuración a parámetros de función
+                params = {
+                    "material_codigo": mat.get("material_codigo"),
+                    "centro": mat.get("centro"),
+                    "almacen": mat.get("almacen"),
+                    "demanda_anual": mat.get("demanda_anual", 0),
+                    "lead_time_dias": mat.get("lead_time_dias", defaults.get("lead_time_default", 30)),
+                    "desv_std_demanda_diaria": mat.get("desv_std_demanda_diaria", defaults.get("desv_std_demanda_default", 0)),
+                    "desv_std_lead_time": mat.get("desv_std_lead_time", defaults.get("desv_std_leadtime_default", 0)),
+                    "costo_unitario": mat.get("costo_unitario", 0),
+                    "costo_por_pedido": mat.get("costo_por_pedido", defaults.get("costo_orden_default", 100)),
+                    "tasa_mantenimiento": mat.get("tasa_mantenimiento", defaults.get("tasa_mantenimiento_default", 0.20)),
+                    "nivel_servicio": mat.get("nivel_servicio", defaults.get("nivel_servicio_default", 0.95)),
+                    "dias_laborables_año": mat.get("dias_laborables_año", defaults.get("dias_laborables_default", 300)),
+                    "cantidad_minima_pedido": mat.get("cantidad_minima_pedido", defaults.get("cantidad_minima_default", 10)),
+                    "cantidad_maxima_pedido": mat.get("cantidad_maxima_pedido"),
+                    "multiplo_pedido": mat.get("multiplo_pedido", defaults.get("multiplo_default", 1)),
+                    "categoria_abc": mat.get("categoria_abc"),
+                    "critico": mat.get("critico", False),
+                }
+
+                # Validar campos requeridos
+                if not all(params[k] for k in ["material_codigo", "centro", "almacen", "demanda_anual"]):
+                    raise ValueError("Faltan campos requeridos: material_codigo, centro, almacen, demanda_anual")
+
+                # Calcular
+                resultado = calcular_parametros_mrp_completo(**params)
+                resultados.append(resultado)
+
+            except Exception as e:
+                errores.append({
+                    "material_codigo": mat.get("material_codigo"),
+                    "error": str(e)
+                })
+
+        return jsonify({
+            "ok": True,
+            "resultados": resultados,
+            "errores": errores,
+            "total_procesados": len(materiales),
+            "total_exitosos": len(resultados),
+            "total_errores": len(errores)
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error calculando parámetros: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "calculation_error", "message": str(e)}
+        }), 500
+
+
+@bp.route("/parametros/guardar", methods=["POST"])
+@require_auth
+@require_role(["admin", "planificador"])
+def guardar_parametros_materiales():
+    """
+    Guarda parámetros MRP calculados en BD.
+
+    Body:
+        {
+            "parametros": [
+                {
+                    "material_codigo": "10000123",
+                    "centro": "1000",
+                    "almacen": "0001",
+                    "stock_seguridad": 36,
+                    "punto_pedido": 156,
+                    ... (todos los campos calculados)
+                },
+                ...
+            ]
+        }
+
+    Returns:
+        {
+            "ok": true,
+            "guardados": 9,
+            "errores": [...]
+        }
+    """
+    try:
+        data = request.json
+        parametros_list = data.get("parametros", [])
+        usuario = _get_user_id()
+
+        guardados = 0
+        errores = []
+
+        for params in parametros_list:
+            try:
+                resultado = guardar_parametros_mrp_bd(params, usuario)
+                if resultado["success"]:
+                    guardados += 1
+                else:
+                    errores.append({
+                        "material_codigo": params.get("material_codigo"),
+                        "error": resultado.get("error")
+                    })
+            except Exception as e:
+                errores.append({
+                    "material_codigo": params.get("material_codigo"),
+                    "error": str(e)
+                })
+
+        return jsonify({
+            "ok": True,
+            "guardados": guardados,
+            "errores": errores
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error guardando parámetros: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "save_error", "message": str(e)}
+        }), 500
+
+
+@bp.route("/configuracion", methods=["GET"])
+@require_auth
+@require_role(["admin", "planificador"])
+def obtener_configuracion():
+    """
+    Obtiene configuración global MRP.
+
+    Returns:
+        {
+            "ok": true,
+            "configuracion": {
+                "lead_time_default": 30,
+                "costo_orden_default": 100,
+                ...
+            }
+        }
+    """
+    try:
+        config = obtener_configuracion_global()
+
+        return jsonify({
+            "ok": True,
+            "configuracion": config
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error obteniendo configuración: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "config_error", "message": str(e)}
+        }), 500

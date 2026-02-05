@@ -86,6 +86,7 @@ def _save_uploaded_file(file, solicitud_id: int) -> dict:
         "id": uuid.uuid4().hex[:8],
         "nombre": original_filename,
         "nombre_almacenado": unique_filename,
+        "path": str(file_path),  # Clave 'path' con ruta absoluta
         "ruta": str(file_path.relative_to(Path(__file__).parent.parent.parent)),
         "mime_type": file.content_type or "application/octet-stream",
         "tamanio": file_size,
@@ -101,16 +102,9 @@ def list_solicitudes():
     """Listar solicitudes (permite filtrar por usuario y estado)"""
     # Validación de paginación con límites seguros
     page = max(1, request.args.get("page", 1, type=int))
-    page_size = min(max(1, request.args.get("page_size", 10, type=int)), 100)  # Máximo 100
+    page_size = min(max(1, request.args.get("page_size", 10, type=int)), 500)  # Máximo 500
     user_id = request.args.get("user_id")
     estado = request.args.get("estado")
-
-    # DEBUG LOG
-    import logging
-
-    logging.getLogger(__name__).info(
-        f"[DEBUG] list_solicitudes: estado={estado}, aprobador_id={request.args.get('aprobador_id')}, all_args={dict(request.args)}"
-    )
 
     where = []
     where_count = []
@@ -138,7 +132,7 @@ def list_solicitudes():
 
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute(f"SELECT COUNT(*) AS count FROM solicitudes {where_sql_count}", params)
+        cur.execute(f"SELECT COUNT(*) AS count FROM solicitud {where_sql_count}", params)
         row = cur.fetchone()
         total = row["count"] if isinstance(row, dict) else row[0]
 
@@ -151,10 +145,10 @@ def list_solicitudes():
                 u.nombre AS solicitante_nombre, u.apellido AS solicitante_apellido,
                 a.nombre AS aprobador_nombre, a.apellido AS aprobador_apellido,
                 p.nombre AS planner_nombre, p.apellido AS planner_apellido
-            FROM solicitudes s
-            LEFT JOIN usuarios u ON s.id_usuario = u.id_spm
-            LEFT JOIN usuarios a ON s.aprobador_id = a.id_spm
-            LEFT JOIN usuarios p ON s.planner_id = p.id_spm
+            FROM solicitud s
+            LEFT JOIN usuario u ON s.id_usuario = u.id_spm
+            LEFT JOIN usuario a ON s.aprobador_id = a.id_spm
+            LEFT JOIN usuario p ON s.planner_id = p.id_spm
             {where_sql}
             ORDER BY s.created_at DESC
             LIMIT ? OFFSET ?
@@ -198,14 +192,14 @@ def get_solicitud(solicitud_id):
         # Fallback: buscar rol en BD
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT rol FROM usuarios WHERE id_spm=?", (str(user_id),))
+            cur.execute("SELECT rol FROM usuario WHERE id_spm=?", (str(user_id),))
             row = cur.fetchone()
             if row:
                 user_rol = row["rol"] if isinstance(row, dict) else row[0]
 
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM solicitudes WHERE id=?", (solicitud_id,))
+        cur.execute("SELECT * FROM solicitud WHERE id=?", (solicitud_id,))
         row = cur.fetchone()
         if not row:
             return (
@@ -254,6 +248,12 @@ def get_solicitud(solicitud_id):
     except json.JSONDecodeError:
         extra = {}
     d["items"] = extra.get("items", [])
+
+    # FIX: Si monto_total es None o 0, recalcularlo desde los items
+    # (bug: monto_total no se guardó correctamente en la BD)
+    if not d.get("monto_total") and d["items"]:
+        d["monto_total"] = _calcular_total(d["items"])
+
     return jsonify({"ok": True, "solicitud": d}), 200
 
 
@@ -317,7 +317,7 @@ def create_solicitud():
 
             if centro:
                 cur.execute(
-                    "SELECT 1 FROM catalog_centros WHERE (codigo = ? OR nombre = ?) AND activo = 1",
+                    "SELECT 1 FROM catalogo_centro WHERE (codigo = ? OR nombre = ?) AND activo = 1",
                     (centro, centro),
                 )
                 if not cur.fetchone():
@@ -336,7 +336,7 @@ def create_solicitud():
 
             if sector:
                 cur.execute(
-                    "SELECT 1 FROM catalog_sectores WHERE nombre = ? AND activo = 1",
+                    "SELECT 1 FROM catalogo_sector WHERE nombre = ? AND activo = 1",
                     (sector,),
                 )
                 if not cur.fetchone():
@@ -380,7 +380,7 @@ def create_solicitud():
             cur = conn.cursor()
             cur.execute(
                 """
-                INSERT INTO solicitudes (id_usuario, centro, sector, justificacion, centro_costos, almacen_virtual, criticidad, fecha_necesidad, data_json, status, total_monto, created_at, updated_at)
+                INSERT INTO solicitud (id_usuario, centro, sector, justificacion, centro_costos, almacen_virtual, criticidad, fecha_necesidad, data_json, status, total_monto, created_at, updated_at)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
                 RETURNING id
                 """,
@@ -418,7 +418,7 @@ def create_solicitud():
 
                 # Actualizar data_json con paths correctos
                 cur.execute(
-                    "UPDATE solicitudes SET data_json = ? WHERE id = ?",
+                    "UPDATE solicitud SET data_json = ? WHERE id = ?",
                     (json.dumps({"items": items_validos, "archivos": archivos_metadata}), new_id),
                 )
 
@@ -492,7 +492,7 @@ def eliminar_solicitud(solicitud_id):
     # FIX 3.2: Obtener rol del usuario para validar permisos
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (user_id,))
+        cur.execute("SELECT rol FROM usuario WHERE id_spm = ?", (user_id,))
         user_row = cur.fetchone()
         user_rol = (user_row["rol"] if user_row else "") or ""
         es_admin = "admin" in user_rol.lower()
@@ -531,7 +531,7 @@ def eliminar_solicitud(solicitud_id):
 
     with get_db_transaction() as conn:
         cur = conn.cursor()
-        cur.execute("DELETE FROM solicitudes WHERE id=?", (solicitud_id,))
+        cur.execute("DELETE FROM solicitud WHERE id=?", (solicitud_id,))
 
     # Notificar al usuario que su solicitud fue eliminada
     try:
@@ -783,7 +783,7 @@ def aprobar_solicitud(solicitud_id):
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT estado_registro FROM usuarios WHERE id_spm = ?",
+                "SELECT estado_registro FROM usuario WHERE id_spm = ?",
                 (str(solicitante_id),),
             )
             row = cur.fetchone()
@@ -810,7 +810,7 @@ def aprobar_solicitud(solicitud_id):
     # Obtener rol del usuario que intenta aprobar
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (aprobador_id,))
+        cur.execute("SELECT rol FROM usuario WHERE id_spm = ?", (aprobador_id,))
         row = cur.fetchone()
         user_rol = _row_to_dict(row, cur).get("rol", "") if row else ""
 
@@ -905,15 +905,12 @@ def aprobar_solicitud(solicitud_id):
         )
 
     # 5. Validar y consumir presupuesto
-    try:
-        from backend.services.budget_service import aprobar_solicitud_con_presupuesto
-    except ImportError:
-        from services.budget_service import aprobar_solicitud_con_presupuesto
+    from backend.services.budget_service import aprobar_solicitud_con_presupuesto
 
     # Obtener rol del aprobador
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (aprobador_id,))
+        cur.execute("SELECT rol FROM usuario WHERE id_spm = ?", (aprobador_id,))
         user_row = cur.fetchone()
 
     aprobador_rol = _row_to_dict(user_row, cur).get("rol", "") if user_row else ""
@@ -974,13 +971,17 @@ def aprobar_solicitud(solicitud_id):
             },
         )
 
-        # Registrar en auditoria
-        auditar_aprobacion(
-            solicitud_id=solicitud_id,
-            actor_id=aprobador_id,
-            actor_rol=aprobador_rol,
-            ip_address=request.remote_addr,
-        )
+        # Registrar en auditoria (tolerante a fallos - tabla audit_trail puede no existir)
+        try:
+            auditar_aprobacion(
+                solicitud_id=solicitud_id,
+                actor_id=aprobador_id,
+                actor_rol=aprobador_rol,
+                ip_address=request.remote_addr,
+            )
+        except Exception as e:
+            # Auditoría es informativa, no debe bloquear el flujo principal
+            logger.warning(f"[AUDIT] Error registrando aprobación en audit_trail: {e}")
 
         # NOTA: Notificación al solicitante ya se crea automáticamente en FSM
         # (cambiar_estado -> _disparar_notificaciones) - NO duplicar aquí
@@ -1006,7 +1007,9 @@ def aprobar_solicitud(solicitud_id):
         )
     except Exception as e:
         # FIX: Cualquier otro error también debe revertir el presupuesto
+        import traceback
         logger.error(f"Error inesperado en aprobación de solicitud {solicitud_id}: {e}")
+        logger.error(f"Stack trace: {traceback.format_exc()}")
         _revertir_presupuesto_aprobacion_fallida(
             solicitud_id=solicitud_id,
             solicitud=solicitud,
@@ -1061,7 +1064,7 @@ def rechazar_solicitud(solicitud_id):
     # Obtener rol del actor ANTES de procesar (necesario para validar autorización)
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (actor_id,))
+        cur.execute("SELECT rol FROM usuario WHERE id_spm = ?", (actor_id,))
         user_row = cur.fetchone()
     actor_rol = _row_to_dict(user_row, cur).get("rol", "") if user_row else ""
 
@@ -1165,13 +1168,18 @@ def rechazar_solicitud(solicitud_id):
         )
 
         # Registrar en auditoria
-        auditar_rechazo(
-            solicitud_id=solicitud_id,
-            actor_id=actor_id,
-            motivo=motivo,
-            actor_rol=actor_rol,
-            ip_address=request.remote_addr,
-        )
+        # Registrar en auditoria (tolerante a fallos - tabla audit_trail puede no existir)
+        try:
+            auditar_rechazo(
+                solicitud_id=solicitud_id,
+                actor_id=actor_id,
+                motivo=motivo,
+                actor_rol=actor_rol,
+                ip_address=request.remote_addr,
+            )
+        except Exception as e:
+            # Auditoría es informativa, no debe bloquear el flujo principal
+            logger.warning(f"[AUDIT] Error registrando rechazo en audit_trail: {e}")
 
     except TransicionInvalidaError as e:
         return (
@@ -1209,7 +1217,7 @@ def cancelar_solicitud(solicitud_id):
     # 2. Obtener rol del actor
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (actor_id,))
+        cur.execute("SELECT rol FROM usuario WHERE id_spm = ?", (actor_id,))
         user_row = cur.fetchone()
     actor_rol = _row_to_dict(user_row, cur).get("rol", "") if user_row else ""
 
@@ -1325,6 +1333,101 @@ def cancelar_solicitud(solicitud_id):
     return get_solicitud(solicitud_id)
 
 
+@bp.route("/<int:solicitud_id>/reenviar", methods=["PUT", "POST"])
+@require_auth
+def reenviar_solicitud(solicitud_id):
+    """
+    Reenviar solicitud rechazada para nueva aprobación.
+    Transición: rejected → submitted
+    Máximo 2 reenvíos permitidos (validación de reenvíos).
+    """
+    actor_id = str(g.user.get("user_id", ""))
+
+    # 1. Obtener solicitud
+    solicitud = _get_raw(solicitud_id)
+    if not solicitud:
+        return (
+            jsonify(
+                {"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}
+            ),
+            404,
+        )
+
+    # 2. SEGURIDAD: Solo el owner puede reenviar
+    owner_id = str(solicitud.get("id_usuario") or solicitud.get("solicitante_id") or "")
+    if str(actor_id) != owner_id:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "forbidden",
+                        "message": "Solo el solicitante puede reenviar esta solicitud",
+                    },
+                }
+            ),
+            403,
+        )
+
+    # 3. Validar que esté en estado rejected
+    estado_actual = normalizar_estado(solicitud.get("status") or "")
+    if estado_actual != "rejected":
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "invalid_state",
+                        "message": f"Solicitud debe estar rechazada, estado actual: {estado_actual}",
+                    },
+                }
+            ),
+            400,
+        )
+
+    # 4. Validar máximo de reenvíos (máximo 2)
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        # Contar transiciones de rejected → submitted
+        cur.execute(
+            """SELECT COUNT(*) as reenvios FROM solicitud_historial_estado
+               WHERE solicitud_id = ? AND estado_anterior = 'rejected' AND estado_nuevo = 'submitted'""",
+            (solicitud_id,),
+        )
+        row = cur.fetchone()
+        reenvios = row["reenvios"] if isinstance(row, dict) else row[0]
+
+    if reenvios >= 2:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "max_reenvios_exceeded",
+                        "message": f"Número máximo de reenvíos (2) excedido. Reenvíos actuales: {reenvios}",
+                    },
+                }
+            ),
+            400,
+        )
+
+    # 5. Transicionar a submitted
+    data = request.get_json(silent=True) or {}
+    razon_reenvio = (data.get("razon_reenvio") or "").strip()
+
+    # 6. Hacer transición
+    cambio_estado(
+        solicitud_id=solicitud_id,
+        estado_nuevo=EstadoSolicitud.SUBMITTED,
+        actor_id=actor_id,
+        razon=razon_reenvio or f"Reenvío #{reenvios + 1}",
+    )
+
+    logger.info(f"[REENVIAR] Solicitud {solicitud_id} reenviada (reenvío #{reenvios + 1})")
+
+    return get_solicitud(solicitud_id)
+
+
 @bp.route("/<int:solicitud_id>/comentar", methods=["POST"])
 @require_auth
 def comentar_solicitud(solicitud_id):
@@ -1387,10 +1490,7 @@ def get_historial_estados(solicitud_id):
     Endpoint v2 que usa el FSM centralizado.
     """
     # Importar función del FSM
-    try:
-        from backend.core.fsm import estado_para_display, obtener_historial_estados
-    except ImportError:
-        from core.fsm import estado_para_display, obtener_historial_estados
+    from backend.core.fsm import estado_para_display, obtener_historial_estados
 
     # Verificar que la solicitud existe
     solicitud = _get_raw(solicitud_id)
@@ -1437,16 +1537,10 @@ def get_transiciones_posibles(solicitud_id):
     user_id = g.user.get("user_id")
 
     # Importar función del FSM
-    try:
-        from backend.core.fsm import get_transiciones_posibles as fsm_transiciones
-    except ImportError:
-        from core.fsm import get_transiciones_posibles as fsm_transiciones
+    from backend.core.fsm import get_transiciones_posibles as fsm_transiciones, normalizar_estado
 
     # Importar servicio de aprobación para validar permisos
-    try:
-        from backend.services.approval_service import puede_aprobar
-    except ImportError:
-        from services.approval_service import puede_aprobar
+    from backend.services.approval_service import puede_aprobar
 
     # Verificar que la solicitud existe
     solicitud = _get_raw(solicitud_id)
@@ -1459,15 +1553,15 @@ def get_transiciones_posibles(solicitud_id):
         )
 
     estado_actual = normalizar_estado(solicitud.get("status") or "")
-    transiciones_raw = fsm_transiciones(estado_actual)
+    transiciones_display = fsm_transiciones(estado_actual)  # Retorna strings display names
 
     # Obtener información del usuario para validar permisos
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT rol, centro FROM usuarios WHERE id_spm = ?", (user_id,))
+        cur.execute("SELECT rol, centros FROM usuario WHERE id_spm = ?", (user_id,))
         user_row = cur.fetchone()
-        user_rol = user_row["rol"] if user_row else ""
-        user_centro = user_row["centro"] if user_row else None
+        user_rol = user_row["rol"] if isinstance(user_row, dict) else user_row[0] if user_row else ""
+        user_centro = user_row["centros"] if isinstance(user_row, dict) else user_row[1] if user_row else None
 
     # FIX 2.1: Enriquecer transiciones con validación de permisos
     transiciones_con_permisos = []
@@ -1476,18 +1570,23 @@ def get_transiciones_posibles(solicitud_id):
     es_admin = "admin" in (user_rol or "").lower()
 
     # Calcular total de la solicitud para validar aprobación
-    items_json = solicitud.get("items") or "[]"
+    items_json = solicitud.get("data_json") or "{}"
     try:
-        items = json.loads(items_json) if isinstance(items_json, str) else items_json
+        extra = json.loads(items_json) if isinstance(items_json, str) else items_json
+        items = extra.get("items", [])
     except (json.JSONDecodeError, TypeError):
         items = []
     total_solicitud = _calcular_total(items)
 
-    for transicion in transiciones_raw:
-        estado_destino = transicion.get("estado") if isinstance(transicion, dict) else transicion
+    for estado_display in transiciones_display:
+        # estado_display es un string como "Aprobada", "Enviada", etc.
+        # Convertir de nuevo a estado interno para comparaciones
+        from backend.core.fsm import normalizar_estado
+        estado_destino = normalizar_estado(estado_display)
+
         validacion = {
             "estado": estado_destino,
-            "estado_display": estado_para_display(estado_destino),
+            "estado_display": estado_display,
             "permitido": True,
             "razon": None,
         }
@@ -1531,7 +1630,7 @@ def get_transiciones_posibles(solicitud_id):
                         cur_ret = conn_ret.cursor()
                         cur_ret.execute(
                             """
-                            SELECT COUNT(*) as retrocesos FROM solicitudes_historial_estados
+                            SELECT COUNT(*) as retrocesos FROM solicitud_historial_estado
                             WHERE solicitud_id = ?
                               AND estado_anterior = 'in_treatment'
                               AND estado_nuevo = 'in_planning'
@@ -1574,13 +1673,13 @@ def _update_solicitud(solicitud_id: int, fields: dict):
     params = list(fields.values()) + [solicitud_id]
     with get_db_transaction() as conn:
         cur = conn.cursor()
-        cur.execute(f"UPDATE solicitudes SET {set_clause} WHERE id=?", params)
+        cur.execute(f"UPDATE solicitud SET {set_clause} WHERE id=?", params)
 
 
 def _get_raw(solicitud_id: int):
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM solicitudes WHERE id=?", (solicitud_id,))
+        cur.execute("SELECT * FROM solicitud WHERE id=?", (solicitud_id,))
         row = cur.fetchone()
         if row is None:
             return None
@@ -1628,10 +1727,7 @@ def _validar_consumo_previo_balanceado(solicitud_id: int) -> tuple:
     Returns:
         Tuple (balanceado: bool, consumos: int, reversiones: int)
     """
-    try:
-        from backend.core.budget_schemas import TipoMovimiento
-    except ImportError:
-        from core.budget_schemas import TipoMovimiento
+    from backend.core.budget_schemas import TipoMovimiento
 
     try:
         with get_db_connection() as conn:
@@ -1677,10 +1773,7 @@ def _obtener_monto_consumo_solicitud(solicitud_id: int) -> int:
     Returns:
         Monto en centavos (positivo) o 0 si no hay consumo registrado.
     """
-    try:
-        from backend.core.budget_schemas import TipoMovimiento
-    except ImportError:
-        from core.budget_schemas import TipoMovimiento
+    from backend.core.budget_schemas import TipoMovimiento
 
     try:
         with get_db_connection() as conn:
@@ -1720,10 +1813,7 @@ def _revertir_presupuesto_aprobacion_fallida(
     if monto_cents <= 0:
         return  # Nada que revertir
 
-    try:
-        from backend.core.budget_transaction import AtomicBudgetTransaction, TransactionContext
-    except ImportError:
-        from core.budget_transaction import AtomicBudgetTransaction, TransactionContext
+    from backend.core.budget_transaction import AtomicBudgetTransaction, TransactionContext
 
     centro = solicitud.get("centro", "")
     sector = solicitud.get("sector", "")
@@ -1743,7 +1833,7 @@ def _revertir_presupuesto_aprobacion_fallida(
                 monto_cents=monto_cents,
                 solicitud_id=solicitud_id,
                 ctx=ctx,
-                razon=razon,
+                motivo=razon,
             )
             if result.success:
                 logger.info(
@@ -1782,7 +1872,7 @@ def _planificador_para(centro: str, sector: str) -> str:
             # Verificar que el ID existe en la tabla usuarios
             with get_db_connection() as conn:
                 cur = conn.cursor()
-                cur.execute("SELECT id_spm FROM usuarios WHERE id_spm = ?", (planificador_id,))
+                cur.execute("SELECT id_spm FROM usuario WHERE id_spm = ?", (planificador_id,))
                 if cur.fetchone():
                     return planificador_id
 
@@ -1791,7 +1881,7 @@ def _planificador_para(centro: str, sector: str) -> str:
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT id_spm FROM usuarios
+            SELECT id_spm FROM usuario
             WHERE LOWER(rol) LIKE '%planificador%'
             LIMIT 1
         """

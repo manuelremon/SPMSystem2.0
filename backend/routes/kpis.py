@@ -3,10 +3,12 @@ Rutas para KPIs y métricas del sistema
 """
 
 import json
+import logging
 from collections import Counter, defaultdict
 
 from flask import Blueprint, jsonify
 
+from backend.core.cache import cached, kpi_cache, invalidate_kpi_cache
 from backend.core.db import (
     get_db_connection,
     sql_date_diff_days,
@@ -14,6 +16,9 @@ from backend.core.db import (
     sql_format_date,
 )
 from backend.core.helpers import row_to_dict as _row_to_dict
+from backend.core.roles import require_auth
+
+logger = logging.getLogger(__name__)
 
 
 def _rows_to_dicts(rows, cursor):
@@ -24,7 +29,245 @@ def _rows_to_dicts(rows, cursor):
 bp = Blueprint("kpis", __name__, url_prefix="/api/kpis")
 
 
+@bp.route("/stock-inmovilizado", methods=["GET"])
+def get_stock_inmovilizado():
+    """
+    Obtiene materiales inmovilizados con información de centro.
+
+    Stock inmovilizado se identifica por lotes especiales:
+    - G-INSPE: En inspección
+    - G-REZAG: Rezago/obsoleto
+    - G-REPAR: En reparación
+    - G-AREPA: A reparar
+    - G-SOBRA: Sobrantes
+
+    Query params:
+        - centros: lista de centros (códigos, ej: AA101,AA102)
+        - centro: un solo centro (alternativa a centros)
+        - almacen: filtrar por almacén específico
+        - periodo_anos: años sin consumo (1, 2, 3) - actualmente no implementado
+        - limit: límite de resultados (default 50)
+
+    Returns:
+        - items: lista de materiales inmovilizados con codigo, descripcion, centro y almacen
+        - total: cantidad total de materiales inmovilizados
+        - valorTotal: valor total del stock inmovilizado
+        - globalTotal: total global (sin filtros)
+        - globalValorTotal: valor total global (sin filtros)
+    """
+    from flask import request
+
+    # Lotes que indican stock inmovilizado/no disponible
+    LOTES_INMOVILIZADOS = ('G-INSPE', 'G-REZAG', 'G-REPAR', 'G-AREPA', 'G-SOBRA')
+
+    try:
+        # Obtener filtros de query params
+        centros_param = request.args.get("centros", "")
+        centros = [c.strip() for c in centros_param.split(",") if c.strip()]
+
+        # Soporte para un solo centro (alternativa)
+        centro_unico = request.args.get("centro", "").strip()
+        if centro_unico and not centros:
+            centros = [centro_unico]
+
+        # Filtro de almacén
+        almacen_param = request.args.get("almacen", "").strip()
+
+        # Límite de resultados
+        limit = int(request.args.get("limit", 50))
+        limit = min(max(limit, 1), 100)  # Entre 1 y 100
+
+        with get_db_connection("sap_data") as conn:
+            cursor = conn.cursor()
+
+            # Primero obtener totales globales (sin filtros de centro)
+            cursor.execute(
+                """
+                SELECT
+                    COUNT(DISTINCT material) as total,
+                    SUM(stock_valorizado) as valor_total
+                FROM stock
+                WHERE lote IN (?, ?, ?, ?, ?)
+            """,
+                LOTES_INMOVILIZADOS,
+            )
+            global_row = cursor.fetchone()
+            if isinstance(global_row, dict):
+                global_total = global_row.get("total") or 0
+                global_valor = float(global_row.get("valor_total") or 0)
+            else:
+                global_total = global_row[0] if global_row else 0
+                global_valor = float(global_row[1]) if global_row and global_row[1] else 0
+
+            # Construir query con filtros
+            where_clauses = ["lote IN (?, ?, ?, ?, ?)"]
+            params = list(LOTES_INMOVILIZADOS)
+
+            if centros:
+                # Filtrar por centro (campo 'centro' en la tabla stock)
+                placeholders = ",".join(["?" for _ in centros])
+                where_clauses.append(f"centro IN ({placeholders})")
+                params.extend(centros)
+
+            if almacen_param:
+                # Filtrar por almacén
+                where_clauses.append("almacen = ?")
+                params.append(almacen_param)
+
+            where_sql = " AND ".join(where_clauses)
+
+            # Query filtrada para items
+            # IMPORTANTE: Agrupar SOLO por material para obtener valor TOTAL consolidado
+            # (suma de todos los centros, almacenes y lotes)
+            query = f"""
+                SELECT
+                    material as codigo,
+                    material_descripcion as descripcion,
+                    SUM(stock) as stock_total,
+                    SUM(stock_valorizado) as valor_total
+                FROM stock
+                WHERE {where_sql}
+                GROUP BY material, material_descripcion
+                ORDER BY valor_total DESC
+                LIMIT {limit}
+            """
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+
+            items = []
+            for row in rows:
+                row_dict = dict(row) if hasattr(row, "keys") else {
+                    "codigo": row[0],
+                    "descripcion": row[1],
+                    "stock_total": row[2],
+                    "valor_total": row[3],
+                }
+                # Descripcion corta (max 40 chars)
+                desc = row_dict.get("descripcion") or row_dict.get("codigo") or ""
+                desc_corta = desc[:40] + "..." if len(desc) > 40 else desc
+                items.append({
+                    "codigo": row_dict.get("codigo", ""),
+                    "descripcion": desc_corta,
+                    "stock": float(row_dict.get("stock_total") or 0),
+                    "valor": float(row_dict.get("valor_total") or 0),
+                })
+
+            # Total filtrado
+            count_query = f"""
+                SELECT
+                    COUNT(DISTINCT material) as total,
+                    SUM(stock_valorizado) as valor_total
+                FROM stock
+                WHERE {where_sql}
+            """
+            cursor.execute(count_query, params)
+            totals_row = cursor.fetchone()
+            if isinstance(totals_row, dict):
+                total_count = totals_row.get("total") or 0
+                valor_total = float(totals_row.get("valor_total") or 0)
+            else:
+                total_count = totals_row[0] if totals_row else 0
+                valor_total = float(totals_row[1]) if totals_row and totals_row[1] else 0
+
+            return jsonify({
+                "ok": True,
+                "items": items,
+                "total": total_count,
+                "valorTotal": valor_total,
+                "globalTotal": global_total,
+                "globalValorTotal": global_valor,
+            })
+
+    except Exception as e:
+        logger.error(f"Error obteniendo stock inmovilizado: {e}")
+        return jsonify({
+            "ok": True,
+            "items": [],
+            "total": 0,
+            "valorTotal": 0,
+            "globalTotal": 0,
+            "globalValorTotal": 0,
+            "_error": str(e),
+        })
+
+
+@bp.route("/compras-evitadas-detalle", methods=["GET"])
+def get_compras_evitadas_detalle():
+    """
+    Obtiene detalle de compras evitadas por solicitud para filtrado en frontend.
+
+    Returns:
+        - items: lista de decisiones con solicitud_id, centro, sector, fecha, valor
+    """
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                """
+                SELECT
+                    d.solicitud_id,
+                    s.centro,
+                    s.sector,
+                    s.created_at,
+                    f.tipo_fuente,
+                    f.cantidad_asignada,
+                    f.precio_unitario,
+                    (f.cantidad_asignada * COALESCE(f.precio_unitario, 0)) as valor
+                FROM decision_abastecimiento_fuentes f
+                JOIN decision_abastecimiento d ON f.decision_id = d.id
+                JOIN solicitud s ON d.solicitud_id = s.id
+                WHERE f.tipo_fuente IN ('stock', 'transferencia')
+                ORDER BY s.created_at DESC
+            """
+            )
+            rows = cursor.fetchall()
+
+            items = []
+            for row in rows:
+                if isinstance(row, dict):
+                    items.append({
+                        "solicitud_id": row.get("solicitud_id"),
+                        "centro": row.get("centro"),
+                        "sector": row.get("sector"),
+                        "fecha": row.get("created_at"),
+                        "tipo_fuente": row.get("tipo_fuente"),
+                        "cantidad": float(row.get("cantidad_asignada") or 0),
+                        "precio": float(row.get("precio_unitario") or 0),
+                        "valor": float(row.get("valor") or 0),
+                    })
+                else:
+                    items.append({
+                        "solicitud_id": row[0],
+                        "centro": row[1],
+                        "sector": row[2],
+                        "fecha": row[3],
+                        "tipo_fuente": row[4],
+                        "cantidad": float(row[5] or 0),
+                        "precio": float(row[6] or 0),
+                        "valor": float(row[7] or 0),
+                    })
+
+            return jsonify({
+                "ok": True,
+                "items": items,
+                "total": len(items),
+                "valorTotal": sum(i["valor"] for i in items),
+            })
+
+    except Exception as e:
+        logger.error(f"Error obteniendo compras evitadas detalle: {e}")
+        return jsonify({
+            "ok": True,
+            "items": [],
+            "total": 0,
+            "valorTotal": 0,
+            "_error": str(e),
+        })
+
+
 @bp.route("", methods=["GET"])
+@cached(kpi_cache, "kpis")
 def get_kpis():
     """
     Obtiene KPIs del sistema basados en datos reales.
@@ -49,7 +292,7 @@ def get_kpis():
                 SELECT
                     status,
                     COUNT(*) as cantidad
-                FROM solicitudes
+                FROM solicitud
                 GROUP BY status
             """
             )
@@ -73,7 +316,7 @@ def get_kpis():
                 SELECT
                     DATE(created_at) as fecha,
                     COUNT(*) as cantidad
-                FROM solicitudes
+                FROM solicitud
                 WHERE created_at >= {sql_date_relative(days=-7)}
                 GROUP BY DATE(created_at)
                 ORDER BY fecha
@@ -90,7 +333,7 @@ def get_kpis():
             # Calcular tendencia porcentual (vs semana anterior)
             cursor.execute(
                 f"""
-                SELECT COUNT(*) FROM solicitudes
+                SELECT COUNT(*) FROM solicitud
                 WHERE created_at >= {sql_date_relative(days=-14)}
                 AND created_at < {sql_date_relative(days=-7)}
             """
@@ -99,7 +342,7 @@ def get_kpis():
             prev_week = (list(row.values())[0] if isinstance(row, dict) else row[0]) or 1
             cursor.execute(
                 f"""
-                SELECT COUNT(*) FROM solicitudes
+                SELECT COUNT(*) FROM solicitud
                 WHERE created_at >= {sql_date_relative(days=-7)}
             """
             )
@@ -120,7 +363,7 @@ def get_kpis():
                     sector,
                     monto_usd,
                     saldo_usd
-                FROM presupuestos
+                FROM presupuesto
                 WHERE monto_usd > 0
                 ORDER BY monto_usd DESC
             """
@@ -148,13 +391,89 @@ def get_kpis():
             )
 
             # =============================================
+            # 2.0 COMPRAS EVITADAS (abastecimiento interno)
+            # =============================================
+            # Suma de items abastecidos desde stock o transferencia interna
+            try:
+                cursor.execute(
+                    """
+                    SELECT
+                        COALESCE(SUM(f.cantidad_asignada * COALESCE(f.precio_unitario, 0)), 0) as valor_evitado,
+                        COUNT(DISTINCT f.id) as items_internos
+                    FROM decision_abastecimiento_fuentes f
+                    JOIN decision_abastecimiento d ON f.decision_id = d.id
+                    WHERE f.tipo_fuente IN ('stock', 'transferencia')
+                """
+                )
+                row = cursor.fetchone()
+                if isinstance(row, dict):
+                    compras_evitadas_usd = float(row.get("valor_evitado") or 0)
+                    items_internos = row.get("items_internos") or 0
+                else:
+                    compras_evitadas_usd = float(row[0]) if row else 0
+                    items_internos = row[1] if row else 0
+            except Exception:
+                compras_evitadas_usd = 0
+                items_internos = 0
+
+            # =============================================
+            # 2.1 PRESUPUESTO POR CENTRO (Top 3 con %)
+            # =============================================
+            centros_agrupados = defaultdict(lambda: {"monto": 0, "utilizado": 0})
+            for row in presupuestos:
+                centro = row["centro"]
+                monto = row["monto_usd"] or 0
+                utilizado = monto - (row["saldo_usd"] or 0)
+                centros_agrupados[centro]["monto"] += monto
+                centros_agrupados[centro]["utilizado"] += utilizado
+
+            top_centros = []
+            for centro, datos in sorted(
+                centros_agrupados.items(),
+                key=lambda x: x[1]["utilizado"],
+                reverse=True
+            )[:3]:
+                pct = round((datos["utilizado"] / datos["monto"]) * 100) if datos["monto"] > 0 else 0
+                top_centros.append({
+                    "nombre": centro,
+                    "monto": datos["monto"],
+                    "utilizado": datos["utilizado"],
+                    "porcentaje": pct,
+                })
+
+            # =============================================
+            # 2.2 PRESUPUESTO POR SECTOR (Top 3 con %)
+            # =============================================
+            sectores_agrupados = defaultdict(lambda: {"monto": 0, "utilizado": 0})
+            for row in presupuestos:
+                sector = row["sector"]
+                monto = row["monto_usd"] or 0
+                utilizado = monto - (row["saldo_usd"] or 0)
+                sectores_agrupados[sector]["monto"] += monto
+                sectores_agrupados[sector]["utilizado"] += utilizado
+
+            top_sectores = []
+            for sector, datos in sorted(
+                sectores_agrupados.items(),
+                key=lambda x: x[1]["utilizado"],
+                reverse=True
+            )[:3]:
+                pct = round((datos["utilizado"] / datos["monto"]) * 100) if datos["monto"] > 0 else 0
+                top_sectores.append({
+                    "nombre": sector,
+                    "monto": datos["monto"],
+                    "utilizado": datos["utilizado"],
+                    "porcentaje": pct,
+                })
+
+            # =============================================
             # 3. MATERIALES MÁS SOLICITADOS
             # =============================================
 
             # Obtener todos los items de solicitudes y contar por código
             cursor.execute(
                 """
-                SELECT data_json FROM solicitudes
+                SELECT data_json FROM solicitud
                 WHERE status NOT IN ('draft')
             """
             )
@@ -216,7 +535,7 @@ def get_kpis():
                 f"""
                 SELECT
                     AVG({sql_date_diff_days('updated_at', 'created_at')}) as promedio_dias
-                FROM solicitudes
+                FROM solicitud
                 WHERE status IN ('approved', 'processing', 'dispatched', 'closed')
             """
             )
@@ -224,6 +543,26 @@ def get_kpis():
             promedio_dias = (
                 round(row["promedio_dias"], 1) if row and row.get("promedio_dias") else 2.5
             )
+
+            # Calcular trend real de tiempo de aprobación (últimos 7 días)
+            tiempo_trend = []
+            for dias_atras in range(6, -1, -1):  # 6, 5, 4, 3, 2, 1, 0 (de más antiguo a hoy)
+                cursor.execute(
+                    f"""
+                    SELECT
+                        AVG({sql_date_diff_days('updated_at', 'created_at')}) as promedio
+                    FROM solicitud
+                    WHERE status IN ('approved', 'processing', 'dispatched', 'closed')
+                    AND DATE(updated_at) = DATE({sql_date_relative(days=-dias_atras)})
+                """
+                )
+                row_trend = cursor.fetchone()
+                if row_trend:
+                    val = (row_trend.get("promedio") if isinstance(row_trend, dict)
+                           else row_trend[0])
+                    tiempo_trend.append(round(val, 1) if val else promedio_dias)
+                else:
+                    tiempo_trend.append(promedio_dias)
 
             # =============================================
             # 5. SOLICITUDES POR ESTADO (ÚLTIMOS 6 MESES)
@@ -251,7 +590,7 @@ def get_kpis():
                     {sql_format_date('created_at', '%Y-%m')} as mes,
                     status,
                     COUNT(*) as cantidad
-                FROM solicitudes
+                FROM solicitud
                 WHERE created_at >= {sql_date_relative(months=-6)}
                 GROUP BY {sql_format_date('created_at', '%Y-%m')}, status
                 ORDER BY mes
@@ -320,11 +659,17 @@ def get_kpis():
                             "disponible": total_disponible,
                             "percentage": percentage_used,
                             "porCentro": presupuesto_por_centro,
+                            "topCentros": top_centros,
+                            "topSectores": top_sectores,
+                        },
+                        "comprasEvitadas": {
+                            "valor": compras_evitadas_usd,
+                            "items": items_internos,
                         },
                         "tiempoAprobacion": {
                             "promedio": promedio_dias,
                             "meta": 3.0,
-                            "trend": [3.2, 2.9, 2.7, 2.5, 2.4, promedio_dias, promedio_dias],
+                            "trend": tiempo_trend,
                         },
                         "materialesMasSolicitados": top_materiales,
                         "gruposArticulosMasSolicitados": top_grupos,

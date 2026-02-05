@@ -1,32 +1,57 @@
+/**
+ * BudgetRequests - Gestion de Presupuestos
+ * Vista de historial de movimientos y solicitudes de incorporacion (BUR)
+ *
+ * SAP/Enterprise UI - Sprint 23+
+ * Migrado a Material-UI
+ */
+
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { budget } from "../services/spm";
 import { useAuthStore } from "../store/authStore";
-import { Button } from "../components/ui/Button";
-import { SearchInput } from "../components/ui/SearchInput";
-import { Card, CardContent } from "../components/ui/Card";
-import { ModernDataTable as DataTable } from "../components/features/DataTable";
-import { withSpmAlignments } from "../utils/tableAlignments";
-import StatusBadge from "../components/ui/StatusBadge";
-import { PageHeader } from "../components/ui/PageHeader";
-import { Alert } from "../components/ui/Alert";
-import { TableSkeleton } from "../components/ui/Skeleton";
 import { useI18n } from "../context/i18n";
 import { formatCurrency, formatDate } from "../utils/formatters";
-import { useDebounced } from "../hooks/useDebounced";
-import { Modal } from "../components/ui/Modal";
-import { XCircle, CheckCircle, RefreshCw, Plus, Eye, TrendingUp, TrendingDown, FileText, Download } from "../components/ui/Icons";
-import { ExportButton } from "../components/export";
+
+// MUI Components
+import {
+  Box,
+  Paper,
+  Typography,
+  Button,
+  IconButton,
+  Tabs,
+  Tab,
+  Chip,
+  TextField,
+  Alert,
+  Drawer,
+  Stack,
+  CircularProgress,
+} from "@mui/material";
+
+// MUI Icons
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import AddIcon from "@mui/icons-material/Add";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+
+// Shared components
+import { SPMAgGrid } from "../components/ui/SPMAgGrid";
+import { nivelLabels } from "../utils/statusStyles";
 
 const DEBOUNCE_MS = 300;
 
-// Utilidad para exportar a CSV
+/* ─────────────────────────────────────────────────────────────
+   Export CSV Helper
+───────────────────────────────────────────────────────────── */
 const exportToCSV = (data, columns, filename) => {
   const headers = columns.map(c => c.header).join(',');
   const rows = data.map(row =>
     columns.map(c => {
       let val = c.exportValue ? c.exportValue(row) : (row[c.key] || '');
-      // Escapar comillas y envolver en comillas si contiene comas
       if (typeof val === 'string' && (val.includes(',') || val.includes('"'))) {
         val = `"${val.replace(/"/g, '""')}"`;
       }
@@ -43,6 +68,9 @@ const exportToCSV = (data, columns, filename) => {
   URL.revokeObjectURL(link.href);
 };
 
+/* ─────────────────────────────────────────────────────────────
+   Constants
+───────────────────────────────────────────────────────────── */
 const estadoToBadge = {
   pendiente: "Pendiente",
   aprobado_l1: "Aprobado L1",
@@ -51,47 +79,73 @@ const estadoToBadge = {
   rechazado: "Rechazada",
 };
 
-const nivelLabels = {
-  L1: "Nivel 1",
-  L2: "Nivel 2",
-  ADMIN: "Admin",
+const getEstadoColor = (estado) => {
+  switch (estado) {
+    case "pendiente":
+    case "aprobado_l1":
+    case "aprobado_l2":
+      return "warning";
+    case "aprobado":
+      return "success";
+    case "rechazado":
+      return "error";
+    default:
+      return "default";
+  }
 };
 
+const getTipoColor = (tipo) => {
+  if (tipo.includes("incorporacion") || tipo.includes("ajuste_positivo")) {
+    return "success";
+  }
+  if (tipo.includes("consumo") || tipo.includes("ajuste_negativo")) {
+    return "error";
+  }
+  return "default";
+};
+
+/* ─────────────────────────────────────────────────────────────
+   Main Component
+───────────────────────────────────────────────────────────── */
 export default function BudgetRequests() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { t } = useI18n();
-  const [items, setItems] = useState([]);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [q, setQ] = useState("");
-  const debouncedQ = useDebounced(q, DEBOUNCE_MS);
-  const [msg, setMsg] = useState("");
-  const [refreshing, setRefreshing] = useState(false);
-  const [mainTab, setMainTab] = useState("historial"); // "solicitudes" | "historial"
-  const [tab, setTab] = useState("todas");
 
-  // Ledger state with pagination (SPRINT 3.1)
+  // Data states
+  const [items, setItems] = useState([]);
   const [ledgerEntries, setLedgerEntries] = useState([]);
+
+  // UI states
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
   const [ledgerLoading, setLedgerLoading] = useState(false);
-  const [ledgerPage, setLedgerPage] = useState(1);
-  const [ledgerTotal, setLedgerTotal] = useState(0);
-  const LEDGER_PAGE_SIZE = 50;
+  const [refreshing, setRefreshing] = useState(false);
+
+
+  // Tabs
+  const [mainTab, setMainTab] = useState(0);
 
   // Modals
-  const [approveModal, setApproveModal] = useState({ open: false, id: null, comentario: "" });
-  const [rejectModal, setRejectModal] = useState({ open: false, id: null, motivo: "" });
+  const [approveDrawer, setApproveDrawer] = useState({ open: false, id: null, comentario: "" });
+  const [rejectDrawer, setRejectDrawer] = useState({ open: false, id: null, motivo: "" });
+  const [actionLoading, setActionLoading] = useState(false);
 
+  // Auto-clear success message
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(""), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  // Load BUR requests
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const params = {};
-      if (tab === "pendientes") params.estado = "pendiente";
-      else if (tab === "aprobadas") params.estado = "aprobado";
-      else if (tab === "rechazadas") params.estado = "rechazado";
-
-      const res = await budget.listar(params);
+      const res = await budget.listar({});
       const data = res.data.requests || [];
       setItems(data);
     } catch (err) {
@@ -99,34 +153,35 @@ export default function BudgetRequests() {
     } finally {
       setLoading(false);
     }
-  }, [tab]);
+  }, []);
 
-  const loadLedger = useCallback(async (page = ledgerPage) => {
+  // Load Ledger entries
+  const loadLedger = useCallback(async () => {
     setLedgerLoading(true);
     setError("");
     try {
-      const offset = (page - 1) * LEDGER_PAGE_SIZE;
-      const res = await budget.getLedger({ limit: LEDGER_PAGE_SIZE, offset });
+      const res = await budget.getLedger({ limit: 500 });
       setLedgerEntries(res.data.entries || []);
-      setLedgerTotal(res.data.total || res.data.entries?.length || 0);
     } catch (err) {
       setError(err.response?.data?.error?.message || err.message);
     } finally {
       setLedgerLoading(false);
     }
-  }, [ledgerPage]);
+  }, []);
 
+  // Load on tab change
   useEffect(() => {
-    if (mainTab === "solicitudes") {
+    if (mainTab === 1) {
       load();
     } else {
       loadLedger();
     }
   }, [load, loadLedger, mainTab]);
 
+  // Refresh handler
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    if (mainTab === "solicitudes") {
+    if (mainTab === 1) {
       await load();
     } else {
       await loadLedger();
@@ -134,272 +189,51 @@ export default function BudgetRequests() {
     setRefreshing(false);
   }, [load, loadLedger, mainTab]);
 
-  const filtered = useMemo(() => {
-    const term = debouncedQ.trim().toLowerCase();
-    if (!term) return items;
-    return items.filter((s) => {
-      return (
-        String(s.id).includes(term) ||
-        (s.justificacion || "").toLowerCase().includes(term) ||
-        (s.centro || "").toLowerCase().includes(term) ||
-        (s.sector || "").toLowerCase().includes(term)
-      );
-    });
-  }, [items, debouncedQ]);
+  // Filtered BUR items (for sub-tabs)
+  const filteredBur = useMemo(() => {
+    return items;
+  }, [items]);
 
-  const openApproveModal = useCallback((id) => {
-    setApproveModal({ open: true, id, comentario: "" });
-  }, []);
-
+  // Approve action
   const confirmAprobar = useCallback(async () => {
-    if (!approveModal.id) return;
-    setMsg("");
+    if (!approveDrawer.id) return;
+    setActionLoading(true);
     setError("");
     try {
-      await budget.aprobar(approveModal.id, approveModal.comentario);
-      setMsg(t("bur_aprobada_msg", "Solicitud de presupuesto aprobada"));
-      setTimeout(() => setMsg(""), 3000);
-      // SPRINT 3.2: Sync ambas tabs después de aprobar
-      await Promise.all([load(), loadLedger(1)]);
-      setLedgerPage(1); // Reset a primera página
+      await budget.aprobar(approveDrawer.id, approveDrawer.comentario);
+      setSuccess(t("bur_aprobada_msg", "Solicitud de presupuesto aprobada correctamente"));
+      await Promise.all([load(), loadLedger()]);
     } catch (err) {
       setError(err.response?.data?.error?.message || err.message);
     } finally {
-      setApproveModal({ open: false, id: null, comentario: "" });
+      setActionLoading(false);
+      setApproveDrawer({ open: false, id: null, comentario: "" });
     }
-  }, [approveModal.id, approveModal.comentario, load, loadLedger, t]);
+  }, [approveDrawer.id, approveDrawer.comentario, load, loadLedger, t]);
 
-  const openRejectModal = useCallback((id) => {
-    setRejectModal({ open: true, id, motivo: "" });
-  }, []);
-
+  // Reject action
   const confirmRechazar = useCallback(async () => {
-    if (!rejectModal.id) return;
-    setMsg("");
-    setError("");
-    const motivo = rejectModal.motivo.trim();
+    if (!rejectDrawer.id) return;
+    const motivo = rejectDrawer.motivo.trim();
     if (motivo.length < 5) {
-      setError(t("bur_motivo_required", "Debe proporcionar un motivo"));
+      setError(t("bur_motivo_required", "Debe proporcionar un motivo (minimo 5 caracteres)"));
       return;
     }
+    setActionLoading(true);
+    setError("");
     try {
-      await budget.rechazar(rejectModal.id, motivo);
-      setMsg(t("bur_rechazada_msg", "Solicitud de presupuesto rechazada"));
-      setTimeout(() => setMsg(""), 3000);
-      // SPRINT 3.2: Sync ambas tabs después de rechazar
-      await Promise.all([load(), loadLedger(1)]);
-      setLedgerPage(1);
+      await budget.rechazar(rejectDrawer.id, motivo);
+      setSuccess(t("bur_rechazada_msg", "Solicitud de presupuesto rechazada"));
+      await Promise.all([load(), loadLedger()]);
     } catch (err) {
       setError(err.response?.data?.error?.message || err.message);
     } finally {
-      setRejectModal({ open: false, id: null, motivo: "" });
+      setActionLoading(false);
+      setRejectDrawer({ open: false, id: null, motivo: "" });
     }
-  }, [rejectModal.id, rejectModal.motivo, load, loadLedger, t]);
+  }, [rejectDrawer.id, rejectDrawer.motivo, load, loadLedger, t]);
 
-  const columns = useMemo(() => withSpmAlignments([
-    {
-      key: "id",
-      header: t("bur_col_id", "ID"),
-      sortAccessor: (row) => Number(row.id) || 0,
-      render: (row) => <span className="font-semibold text-slate-800 dark:text-slate-200">#{row.id}</span>,
-    },
-    {
-      key: "centro",
-      header: t("bur_col_centro", "Centro"),
-      sortAccessor: (row) => row.centro || "",
-      render: (row) => row.centro || "-",
-    },
-    {
-      key: "sector",
-      header: t("bur_col_sector", "Sector"),
-      sortAccessor: (row) => row.sector || "",
-      render: (row) => row.sector || "-",
-    },
-    {
-      key: "monto_solicitado_usd",
-      header: t("bur_col_monto", "Monto"),
-      sortAccessor: (row) => Number(row.monto_solicitado_usd || 0),
-      render: (row) => (
-        <span className="font-mono text-sm text-slate-800 dark:text-slate-200">
-          {formatCurrency(row.monto_solicitado_usd)}
-        </span>
-      ),
-    },
-    {
-      key: "nivel_aprobacion_requerido",
-      header: t("bur_col_nivel", "Nivel"),
-      sortAccessor: (row) => row.nivel_aprobacion_requerido || "",
-      render: (row) => (
-        <span className="text-xs px-2 py-1 rounded bg-slate-100/70 dark:bg-slate-700/70 text-slate-500 dark:text-slate-400">
-          {nivelLabels[row.nivel_aprobacion_requerido] || row.nivel_aprobacion_requerido}
-        </span>
-      ),
-    },
-    {
-      key: "estado",
-      header: t("bur_col_estado", "Estado"),
-      sortAccessor: (row) => (row.estado || "").toLowerCase(),
-      render: (row) => <StatusBadge estado={estadoToBadge[row.estado] || row.estado} />,
-    },
-    {
-      key: "acciones",
-      header: t("bur_col_acciones", "Acciones"),
-      render: (row) => (
-        <div className="flex gap-2 flex-wrap">
-          <Button
-            variant="ghost"
-            className="px-3 py-1.5 text-xs"
-            onClick={() => navigate(`/presupuestos/${row.id}`)}
-          >
-            <Eye className="w-4 h-4 mr-1 text-blue-500" />
-            {t("bur_ver", "Ver")}
-          </Button>
-          {["pendiente", "aprobado_l1", "aprobado_l2"].includes(row.estado) && (
-            <>
-              <Button
-                className="px-3 py-1.5 text-xs"
-                onClick={() => openApproveModal(row.id)}
-              >
-                <CheckCircle className="w-4 h-4 mr-1 text-emerald-500" />
-                {t("bur_aprobar", "Aprobar")}
-              </Button>
-              <Button
-                variant="danger"
-                className="px-3 py-1.5 text-xs"
-                onClick={() => openRejectModal(row.id)}
-              >
-                <XCircle className="w-4 h-4 mr-1 text-red-500" />
-                {t("bur_rechazar", "Rechazar")}
-              </Button>
-            </>
-          )}
-        </div>
-      ),
-    },
-  ]), [t, navigate, openApproveModal, openRejectModal]);
-
-  const tabs = [
-    { key: "todas", label: t("bur_tab_todas", "Todas") },
-    { key: "pendientes", label: t("bur_tab_pendientes", "Pendientes") },
-    { key: "aprobadas", label: t("bur_tab_aprobadas", "Aprobadas") },
-    { key: "rechazadas", label: t("bur_tab_rechazadas", "Rechazadas") },
-  ];
-
-  // Ledger columns
-  const ledgerColumns = useMemo(() => withSpmAlignments([
-    {
-      key: "created_at",
-      header: t("ledger_col_fecha", "Fecha"),
-      sortAccessor: (row) => row.created_at || "",
-      render: (row) => (
-        <span className="text-sm text-slate-600 dark:text-slate-400 tabular-nums">
-          {formatDate(row.created_at)}
-        </span>
-      ),
-    },
-    {
-      key: "tipo_movimiento",
-      header: t("ledger_col_tipo", "Tipo"),
-      sortAccessor: (row) => row.tipo_movimiento || "",
-      render: (row) => {
-        const tipo = row.tipo_movimiento || "";
-        const isConsumo = tipo.includes("consumo");
-        const isIncorporacion = tipo.includes("incorporacion") || tipo.includes("ajuste_positivo");
-        return (
-          <div className="flex items-center gap-2">
-            {isConsumo ? (
-              <TrendingDown className="w-4 h-4 text-red-500" />
-            ) : isIncorporacion ? (
-              <TrendingUp className="w-4 h-4 text-green-500" />
-            ) : (
-              <FileText className="w-4 h-4 text-slate-400" />
-            )}
-            <span className={`text-xs px-2 py-1 rounded ${
-              isConsumo ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400" :
-              isIncorporacion ? "bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400" :
-              "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
-            }`}>
-              {tipo.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
-            </span>
-          </div>
-        );
-      },
-    },
-    {
-      key: "centro",
-      header: t("ledger_col_centro", "Centro"),
-      sortAccessor: (row) => row.centro || "",
-      render: (row) => row.centro || "-",
-    },
-    {
-      key: "sector",
-      header: t("ledger_col_sector", "Sector"),
-      sortAccessor: (row) => row.sector || "",
-      render: (row) => row.sector || "-",
-    },
-    {
-      key: "monto",
-      header: t("ledger_col_monto", "Monto"),
-      sortAccessor: (row) => Math.abs(row.monto_cents || 0),
-      render: (row) => {
-        const montoCents = row.monto_cents || 0;
-        const monto = montoCents / 100;
-        const isNegative = montoCents < 0;
-        return (
-          <span className={`font-mono text-sm ${isNegative ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}>
-            {isNegative ? "-" : "+"}{formatCurrency(Math.abs(monto))}
-          </span>
-        );
-      },
-    },
-    {
-      key: "saldo",
-      header: t("ledger_col_saldo", "Saldo"),
-      sortAccessor: (row) => row.saldo_posterior_cents || 0,
-      render: (row) => {
-        const saldo = (row.saldo_posterior_cents || 0) / 100;
-        return (
-          <span className="font-mono text-sm text-slate-800 dark:text-slate-200">
-            {formatCurrency(saldo)}
-          </span>
-        );
-      },
-    },
-    {
-      key: "referencia",
-      header: t("ledger_col_referencia", "Referencia"),
-      sortAccessor: (row) => row.referencia_id || "",
-      render: (row) => {
-        if (!row.referencia_id) return "-";
-        const tipo = row.referencia_tipo || "";
-        if (tipo === "solicitud") {
-          return (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="px-2 py-1 text-xs"
-              onClick={() => navigate(`/solicitud/${row.referencia_id}`)}
-            >
-              <FileText className="w-3 h-3 mr-1 text-blue-500" />
-              #{row.referencia_id}
-            </Button>
-          );
-        }
-        return <span className="text-xs text-slate-500 dark:text-slate-400">{tipo} #{row.referencia_id}</span>;
-      },
-    },
-    {
-      key: "motivo",
-      header: t("ledger_col_motivo", "Motivo"),
-      render: (row) => (
-        <span className="text-sm text-slate-600 dark:text-slate-400 line-clamp-1" title={row.motivo}>
-          {row.motivo || "-"}
-        </span>
-      ),
-    },
-  ]), [t, navigate]);
-
-  // SPRINT 3.5: Columnas para exportación
+  // Export columns
   const burExportColumns = useMemo(() => [
     { key: "id", header: "ID", exportValue: (row) => row.id },
     { key: "centro", header: "Centro", exportValue: (row) => row.centro || "" },
@@ -407,8 +241,6 @@ export default function BudgetRequests() {
     { key: "monto_solicitado_usd", header: "Monto (USD)", exportValue: (row) => row.monto_solicitado_usd || 0 },
     { key: "nivel_aprobacion_requerido", header: "Nivel", exportValue: (row) => nivelLabels[row.nivel_aprobacion_requerido] || row.nivel_aprobacion_requerido },
     { key: "estado", header: "Estado", exportValue: (row) => estadoToBadge[row.estado] || row.estado },
-    { key: "justificacion", header: "Justificacion", exportValue: (row) => row.justificacion || "" },
-    { key: "created_at", header: "Fecha Creacion", exportValue: (row) => row.created_at || "" },
   ], []);
 
   const ledgerExportColumns = useMemo(() => [
@@ -419,324 +251,622 @@ export default function BudgetRequests() {
     { key: "sector", header: "Sector", exportValue: (row) => row.sector || "" },
     { key: "monto_usd", header: "Monto (USD)", exportValue: (row) => (row.monto_cents || 0) / 100 },
     { key: "saldo_usd", header: "Saldo (USD)", exportValue: (row) => (row.saldo_posterior_cents || 0) / 100 },
-    { key: "referencia", header: "Referencia", exportValue: (row) => row.referencia_id ? `${row.referencia_tipo} #${row.referencia_id}` : "" },
-    { key: "motivo", header: "Motivo", exportValue: (row) => row.motivo || "" },
   ], []);
 
-  // SPRINT 3.5: Handlers de exportación
-  const handleExportBUR = useCallback((formato) => {
-    if (formato === 'csv') {
-      exportToCSV(filtered, burExportColumns, "incorporaciones_presupuesto");
-    }
-    // Para xlsx/pdf se podría integrar con backend en el futuro
-  }, [filtered, burExportColumns]);
-
-  const handleExportLedger = useCallback((formato) => {
-    if (formato === 'csv') {
+  const handleExport = useCallback(() => {
+    if (mainTab === 0) {
       exportToCSV(ledgerEntries, ledgerExportColumns, "historial_presupuesto");
+    } else {
+      exportToCSV(filteredBur, burExportColumns, "incorporaciones_presupuesto");
     }
-  }, [ledgerEntries, ledgerExportColumns]);
+  }, [mainTab, ledgerEntries, filteredBur, ledgerExportColumns, burExportColumns]);
 
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title={t("bur_title", "PRESUPUESTOS").toUpperCase()}
-        actions={
-          <div className="flex gap-2">
-            <ExportButton
-              onExport={mainTab === "historial" ? handleExportLedger : handleExportBUR}
-              label={t("common_exportar", "Exportar")}
-              formats={["csv"]}
-              disabled={mainTab === "historial" ? ledgerLoading : loading}
-            />
+  // AG Grid Column Definitions - Ledger (Historial)
+  const ledgerColumnDefs = useMemo(() => [
+    {
+      field: "created_at",
+      headerName: "Fecha",
+      flex: 0.7,
+      minWidth: 100,
+      cellRenderer: (params) => (
+        <Typography variant="body2" color="text.secondary">
+          {formatDate(params.value)}
+        </Typography>
+      ),
+    },
+    {
+      field: "tipo_movimiento",
+      headerName: "Tipo",
+      flex: 0.8,
+      minWidth: 120,
+      cellRenderer: (params) => {
+        const tipo = params.value || "";
+        return (
+          <Chip
+            label={tipo.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+            size="small"
+            color={getTipoColor(tipo)}
+            variant="outlined"
+            sx={{ fontWeight: 600, fontSize: 11 }}
+          />
+        );
+      },
+    },
+    {
+      field: "centro",
+      headerName: "Centro",
+      flex: 0.5,
+      minWidth: 80,
+      valueGetter: (params) => params.data.centro || "-",
+    },
+    {
+      field: "sector",
+      headerName: "Sector",
+      flex: 0.5,
+      minWidth: 80,
+      valueGetter: (params) => params.data.sector || "-",
+    },
+    {
+      field: "monto_cents",
+      headerName: "Monto",
+      flex: 0.7,
+      minWidth: 110,
+      cellRenderer: (params) => {
+        const montoCents = params.value || 0;
+        const monto = montoCents / 100;
+        const isNegative = montoCents < 0;
+        return (
+          <Typography
+            variant="body2"
+            sx={{
+              fontFamily: 'monospace',
+              fontWeight: 700,
+              color: isNegative ? 'error.main' : 'success.main',
+              textAlign: 'right',
+            }}
+          >
+            {isNegative ? "" : "+"}{formatCurrency(monto)}
+          </Typography>
+        );
+      },
+    },
+    {
+      field: "saldo_posterior_cents",
+      headerName: "Saldo",
+      flex: 0.7,
+      minWidth: 110,
+      cellRenderer: (params) => (
+        <Typography
+          variant="body2"
+          sx={{ fontFamily: 'monospace', fontWeight: 600, textAlign: 'right' }}
+        >
+          {formatCurrency((params.value || 0) / 100)}
+        </Typography>
+      ),
+    },
+    {
+      field: "referencia_id",
+      headerName: "Referencia",
+      flex: 0.6,
+      minWidth: 100,
+      cellRenderer: (params) => {
+        if (!params.value) return <Typography color="text.disabled">-</Typography>;
+        return (
+          <Chip
+            label={`${params.data.referencia_tipo} #${params.value}`}
+            size="small"
+            variant="outlined"
+            sx={{ fontSize: 11 }}
+          />
+        );
+      },
+    },
+    {
+      field: "motivo",
+      headerName: "Motivo",
+      flex: 1,
+      minWidth: 150,
+      valueGetter: (params) => params.data.motivo || "-",
+    },
+  ], []);
+
+  // AG Grid Column Definitions - BUR (Incorporaciones)
+  const burColumnDefs = useMemo(() => [
+    {
+      field: "id",
+      headerName: "ID",
+      flex: 0.4,
+      minWidth: 60,
+      cellRenderer: (params) => (
+        <Box
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            bgcolor: 'grey.100',
+            fontWeight: 700,
+            fontSize: 12,
+          }}
+        >
+          {params.value}
+        </Box>
+      ),
+    },
+    {
+      field: "centro",
+      headerName: "Centro",
+      flex: 0.5,
+      minWidth: 80,
+      valueGetter: (params) => params.data.centro || "-",
+    },
+    {
+      field: "sector",
+      headerName: "Sector",
+      flex: 0.5,
+      minWidth: 80,
+      valueGetter: (params) => params.data.sector || "-",
+    },
+    {
+      field: "monto_solicitado_usd",
+      headerName: "Monto",
+      flex: 0.7,
+      minWidth: 110,
+      cellRenderer: (params) => (
+        <Typography
+          variant="body2"
+          sx={{
+            fontFamily: 'monospace',
+            fontWeight: 700,
+            color: 'success.main',
+            textAlign: 'right',
+          }}
+        >
+          +{formatCurrency(params.value || 0)}
+        </Typography>
+      ),
+    },
+    {
+      field: "nivel_aprobacion_requerido",
+      headerName: "Nivel",
+      flex: 0.5,
+      minWidth: 80,
+      cellRenderer: (params) => (
+        <Chip
+          label={nivelLabels[params.value] || params.value}
+          size="small"
+          variant="outlined"
+          sx={{ fontWeight: 600, fontSize: 11 }}
+        />
+      ),
+    },
+    {
+      field: "estado",
+      headerName: "Estado",
+      flex: 0.6,
+      minWidth: 100,
+      cellRenderer: (params) => (
+        <Chip
+          label={estadoToBadge[params.value] || params.value}
+          size="small"
+          color={getEstadoColor(params.value)}
+          sx={{ fontWeight: 600, fontSize: 11 }}
+        />
+      ),
+    },
+    {
+      field: "created_at",
+      headerName: "Fecha",
+      flex: 0.6,
+      minWidth: 100,
+      cellRenderer: (params) => (
+        <Typography variant="body2" color="text.secondary">
+          {formatDate(params.value)}
+        </Typography>
+      ),
+    },
+    {
+      field: "acciones",
+      headerName: "Acciones",
+      flex: 0.9,
+      minWidth: 180,
+      sortable: false,
+      filter: false,
+      cellRenderer: (params) => {
+        const canAct = ["pendiente", "aprobado_l1", "aprobado_l2"].includes(params.data.estado);
+        return (
+          <Stack direction="row" spacing={0.5}>
             <Button
-              variant="ghost"
-              onClick={handleRefresh}
-              disabled={refreshing || loading || ledgerLoading}
+              size="small"
+              variant="outlined"
+              startIcon={<VisibilityIcon sx={{ fontSize: 14 }} />}
+              onClick={() => navigate(`/presupuestos/${params.data.id}`)}
+              sx={{ fontSize: 11, py: 0.5, textTransform: 'none' }}
             >
-              <RefreshCw className={`w-4 h-4 text-slate-600 dark:text-slate-400 ${refreshing ? "animate-spin" : ""}`} />
-              {t("common_refresh", "Actualizar")}
+              Ver
             </Button>
-            <Button onClick={() => navigate("/presupuestos/nueva")}>
-              <Plus className="w-4 h-4 text-blue-600" />
-              {t("bur_crear", "Incorporar Saldo")}
-            </Button>
-          </div>
-        }
-      />
-
-      {error && <Alert variant="danger" onDismiss={() => setError("")}>{error}</Alert>}
-      {msg && <Alert variant="success" onDismiss={() => setMsg("")}>{msg}</Alert>}
-
-      {/* Main Tabs: Historial / Solicitudes */}
-      <div className="flex items-center gap-1 p-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-white/30 dark:border-slate-700/30 w-fit">
-        <button
-          onClick={() => setMainTab("historial")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-            mainTab === "historial"
-              ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400"
-              : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
-          }`}
-        >
-          <TrendingUp className="w-4 h-4" />
-          {t("bur_main_historial", "Historial")}
-        </button>
-        <button
-          onClick={() => setMainTab("solicitudes")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-            mainTab === "solicitudes"
-              ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400"
-              : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
-          }`}
-        >
-          <FileText className="w-4 h-4" />
-          {t("bur_main_solicitudes", "Incorporaciones")}
-        </button>
-      </div>
-
-      {/* Content based on main tab */}
-      {mainTab === "historial" ? (
-        <Card>
-          <CardContent className="space-y-4 pt-6">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {t("ledger_descripcion", "Movimientos de presupuesto por aprobaciones y ajustes")}
-              </p>
-              {ledgerLoading && (
-                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  {t("bur_loading", "Cargando...")}
-                </div>
-              )}
-            </div>
-
-            {ledgerLoading ? (
-              <TableSkeleton rows={5} columns={8} />
-            ) : (
+            {canAct && (
               <>
-                <DataTable
-                  columns={ledgerColumns}
-                  rows={ledgerEntries}
-                  emptyMessage={t("ledger_empty", "No hay movimientos de presupuesto")}
-                />
-                {/* SPRINT 3.1: Paginación */}
-                {ledgerTotal > LEDGER_PAGE_SIZE && (
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
-                    <span className="text-sm text-slate-500 dark:text-slate-400">
-                      {t("ledger_mostrando", "Mostrando")} {((ledgerPage - 1) * LEDGER_PAGE_SIZE) + 1}-
-                      {Math.min(ledgerPage * LEDGER_PAGE_SIZE, ledgerTotal)} {t("ledger_de", "de")} {ledgerTotal}
-                    </span>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={ledgerPage === 1 || ledgerLoading}
-                        onClick={() => {
-                          const newPage = ledgerPage - 1;
-                          setLedgerPage(newPage);
-                          loadLedger(newPage);
-                        }}
-                      >
-                        {t("common_anterior", "Anterior")}
-                      </Button>
-                      <span className="flex items-center px-3 text-sm text-slate-600 dark:text-slate-400">
-                        {ledgerPage} / {Math.ceil(ledgerTotal / LEDGER_PAGE_SIZE)}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={ledgerPage >= Math.ceil(ledgerTotal / LEDGER_PAGE_SIZE) || ledgerLoading}
-                        onClick={() => {
-                          const newPage = ledgerPage + 1;
-                          setLedgerPage(newPage);
-                          loadLedger(newPage);
-                        }}
-                      >
-                        {t("common_siguiente", "Siguiente")}
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <IconButton
+                  size="small"
+                  onClick={() => setApproveDrawer({ open: true, id: params.data.id, comentario: "" })}
+                  sx={{ color: 'success.main', '&:hover': { bgcolor: 'success.lighter' } }}
+                  title="Aprobar"
+                >
+                  <CheckIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={() => setRejectDrawer({ open: true, id: params.data.id, motivo: "" })}
+                  sx={{ color: 'error.main', '&:hover': { bgcolor: 'error.lighter' } }}
+                  title="Rechazar"
+                >
+                  <CloseIcon fontSize="small" />
+                </IconButton>
               </>
             )}
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="space-y-4 pt-6">
-            {/* Sub-tabs for BUR */}
-            <div className="flex items-center gap-1 p-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-white/30 dark:border-slate-700/30 w-fit">
-              {tabs.map((tabItem) => (
-                <button
-                  key={tabItem.key}
-                  onClick={() => setTab(tabItem.key)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    tab === tabItem.key
-                      ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400"
-                      : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-700/50"
-                  }`}
+          </Stack>
+        );
+      },
+    },
+  ], [navigate]);
+
+  // Get selected BUR for approve drawer
+  const selectedBur = useMemo(() => {
+    return items.find(b => b.id === approveDrawer.id);
+  }, [items, approveDrawer.id]);
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <IconButton
+              onClick={() => navigate(-1)}
+              size="small"
+              sx={{
+                color: 'text.secondary',
+                border: 1,
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+                '&:hover': { bgcolor: 'grey.100', borderColor: 'grey.400' },
+              }}
+            >
+              <ArrowBackIcon fontSize="small" />
+            </IconButton>
+            <Box>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 700,
+                  color: 'text.primary',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                {t("bur_title", "Gestión de Presupuestos")}
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+
+        {/* Alerts */}
+        {error && (
+          <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2, borderRadius: 2 }}>
+            {error}
+          </Alert>
+        )}
+        {success && (
+          <Alert severity="success" onClose={() => setSuccess("")} sx={{ mb: 2, borderRadius: 2 }}>
+            {success}
+          </Alert>
+        )}
+
+        {/* Main Card with Tabs */}
+        <Paper elevation={0} sx={{ border: 1, borderColor: 'grey.200', overflow: 'hidden', borderRadius: 2 }}>
+          {/* Main Tabs */}
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'grey.50', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Tabs
+              value={mainTab}
+              onChange={(_, v) => setMainTab(v)}
+              variant="scrollable"
+              scrollButtons="auto"
+              sx={{
+                minHeight: 48,
+                '& .MuiTab-root': {
+                  minHeight: 48,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                },
+              }}
+            >
+              <Tab
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {t("bur_main_historial", "Historial")}
+                    <Chip
+                      label={ledgerEntries.length}
+                      size="small"
+                      sx={{
+                        height: 20,
+                        fontSize: '0.625rem',
+                        fontWeight: 700,
+                        bgcolor: mainTab === 0 ? 'primary.light' : 'grey.200',
+                        color: mainTab === 0 ? 'primary.dark' : 'text.secondary',
+                      }}
+                    />
+                  </Box>
+                }
+              />
+              <Tab
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {t("bur_main_solicitudes", "Incorporaciones")}
+                    <Chip
+                      label={items.length}
+                      size="small"
+                      sx={{
+                        height: 20,
+                        fontSize: '0.625rem',
+                        fontWeight: 700,
+                        bgcolor: mainTab === 1 ? 'primary.light' : 'grey.200',
+                        color: mainTab === 1 ? 'primary.dark' : 'text.secondary',
+                      }}
+                    />
+                  </Box>
+                }
+              />
+            </Tabs>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={() => navigate("/presupuestos/nueva")}
+            >
+              {t("bur_crear", "Incorporar Saldo")}
+            </Button>
+          </Box>
+
+          {/* Historial Tab Content */}
+          {mainTab === 0 && (
+            <SPMAgGrid
+              rowData={ledgerEntries}
+              columnDefs={ledgerColumnDefs}
+              loading={ledgerLoading}
+              height={600}
+              paginationPageSize={25}
+              paginationPageSizeSelector={[10, 25, 50, 100]}
+              enableQuickFilter={true}
+              exportFileName="historial_presupuesto"
+              emptyMessage={t("ledger_empty", "No hay movimientos de presupuesto")}
+              gridOptions={{
+                getRowId: (params) => String(params.data.id),
+              }}
+            />
+          )}
+
+          {/* Incorporaciones Tab Content */}
+          {mainTab === 1 && (
+            <SPMAgGrid
+              rowData={filteredBur}
+              columnDefs={burColumnDefs}
+              loading={loading}
+              height={600}
+              paginationPageSize={25}
+              paginationPageSizeSelector={[10, 25, 50, 100]}
+              enableQuickFilter={true}
+              exportFileName="incorporaciones_presupuesto"
+              emptyMessage={t("bur_empty", "No hay solicitudes de presupuesto")}
+              gridOptions={{
+                getRowId: (params) => String(params.data.id),
+              }}
+            />
+          )}
+        </Paper>
+
+        {/* Approve Drawer */}
+        <Drawer
+          anchor="right"
+          open={approveDrawer.open}
+          onClose={() => setApproveDrawer({ open: false, id: null, comentario: "" })}
+          PaperProps={{
+            sx: { width: 420, maxWidth: '100%' },
+          }}
+        >
+          <Box sx={{ p: 3, borderBottom: 1, borderColor: 'divider' }}>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              Aprobar Incorporacion
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Solicitud #{approveDrawer.id}
+            </Typography>
+          </Box>
+
+          {selectedBur && (
+            <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {/* Impact Preview */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2.5,
+                  bgcolor: 'grey.50',
+                  borderRadius: 2,
+                  border: 1,
+                  borderColor: 'divider',
+                }}
+              >
+                <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>
+                  Resumen de la operacion
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mt: 2 }}>
+                  <Paper elevation={0} sx={{ p: 1.5, border: 1, borderColor: 'divider' }}>
+                    <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.disabled', fontSize: 10 }}>Centro</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedBur.centro}</Typography>
+                  </Paper>
+                  <Paper elevation={0} sx={{ p: 1.5, border: 1, borderColor: 'divider' }}>
+                    <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.disabled', fontSize: 10 }}>Sector</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedBur.sector}</Typography>
+                  </Paper>
+                  <Paper elevation={0} sx={{ p: 1.5, border: 1, borderColor: 'divider' }}>
+                    <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.disabled', fontSize: 10 }}>Monto a incorporar</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: 'success.main' }}>+{formatCurrency(selectedBur.monto_solicitado_usd || 0)}</Typography>
+                  </Paper>
+                  <Paper elevation={0} sx={{ p: 1.5, border: 1, borderColor: 'divider' }}>
+                    <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.disabled', fontSize: 10 }}>Saldo actual</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatCurrency(selectedBur.saldo_actual_usd || 0)}</Typography>
+                  </Paper>
+                </Box>
+                <Box
+                  sx={{
+                    mt: 2,
+                    pt: 2,
+                    mx: -2.5,
+                    mb: -2.5,
+                    px: 2.5,
+                    py: 2,
+                    borderTop: 1,
+                    borderColor: 'divider',
+                    bgcolor: 'success.50',
+                    borderRadius: '0 0 8px 8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
                 >
-                  {tabItem.label}
-                </button>
-              ))}
-            </div>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>Nuevo saldo estimado:</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.main' }}>
+                    {formatCurrency((selectedBur.saldo_actual_usd || 0) + (selectedBur.monto_solicitado_usd || 0))}
+                  </Typography>
+                </Box>
+              </Paper>
 
-            {/* Search */}
-            <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-              <SearchInput
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder={t("bur_search_placeholder", "Buscar por centro, sector o justificacion")}
-                className="md:max-w-md"
-              />
-              {loading && (
-                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  {t("bur_loading", "Cargando...")}
-                </div>
-              )}
-            </div>
+              {/* Comment Field */}
+              <Box>
+                <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary', mb: 1, display: 'block' }}>
+                  Comentario (opcional)
+                </Typography>
+                <TextField
+                  fullWidth
+                  size="small"
+                  multiline
+                  rows={3}
+                  value={approveDrawer.comentario}
+                  onChange={(e) => setApproveDrawer(prev => ({ ...prev, comentario: e.target.value }))}
+                  placeholder="Anadir un comentario opcional..."
+                />
+              </Box>
 
-            {/* Table */}
-            {loading ? (
-              <TableSkeleton rows={5} columns={7} />
-            ) : (
-              <DataTable
-                columns={columns}
-                rows={filtered}
-                emptyMessage={t("bur_empty", "No hay solicitudes de presupuesto")}
-              />
-            )}
-          </CardContent>
-        </Card>
-      )}
+              {/* Actions */}
+              <Stack direction="row" spacing={2} sx={{ pt: 2 }}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  onClick={() => setApproveDrawer({ open: false, id: null, comentario: "" })}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  color="success"
+                  onClick={confirmAprobar}
+                  disabled={actionLoading}
+                  startIcon={actionLoading ? <CircularProgress size={16} color="inherit" /> : null}
+                >
+                  {actionLoading ? "Procesando..." : "Confirmar Aprobacion"}
+                </Button>
+              </Stack>
+            </Box>
+          )}
+        </Drawer>
 
-      {/* Modal de aprobacion - SPRINT 3.4: Con impacto visible */}
-      <Modal
-        isOpen={approveModal.open}
-        onClose={() => setApproveModal({ open: false, id: null, comentario: "" })}
-        title={`${t("bur_aprobar", "Aprobar")} #${approveModal.id}`}
-        size="md"
-        footer={
-          <>
-            <Button
-              variant="ghost"
-              onClick={() => setApproveModal({ open: false, id: null, comentario: "" })}
+        {/* Reject Drawer */}
+        <Drawer
+          anchor="right"
+          open={rejectDrawer.open}
+          onClose={() => setRejectDrawer({ open: false, id: null, motivo: "" })}
+          PaperProps={{
+            sx: { width: 420, maxWidth: '100%' },
+          }}
+        >
+          <Box sx={{ p: 3, borderBottom: 1, borderColor: 'divider' }}>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              Rechazar Incorporacion
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Solicitud #{rejectDrawer.id}
+            </Typography>
+          </Box>
+
+          <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Warning */}
+            <Alert
+              severity="error"
+              icon={<WarningAmberIcon />}
+              sx={{ '& .MuiAlert-message': { flex: 1 } }}
             >
-              {t("common_cancelar", "Cancelar")}
-            </Button>
-            <Button onClick={confirmAprobar}>
-              <CheckCircle className="w-4 h-4 text-emerald-500" />
-              {t("bur_aprobar", "Aprobar")}
-            </Button>
-          </>
-        }
-      >
-        {/* SPRINT 3.4: Mostrar impacto de la aprobación */}
-        {(() => {
-          const selectedBur = items.find(b => b.id === approveModal.id);
-          if (!selectedBur) return null;
-          const saldoActual = selectedBur.saldo_actual_usd || 0;
-          const montoSolicitado = selectedBur.monto_solicitado_usd || 0;
-          const nuevoSaldo = saldoActual + montoSolicitado;
-          return (
-            <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="text-slate-500 dark:text-slate-400">{t("bur_col_centro", "Centro")}:</span>
-                  <span className="ml-2 font-medium text-slate-800 dark:text-slate-200">{selectedBur.centro}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 dark:text-slate-400">{t("bur_col_sector", "Sector")}:</span>
-                  <span className="ml-2 font-medium text-slate-800 dark:text-slate-200">{selectedBur.sector}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 dark:text-slate-400">{t("bur_col_monto", "Monto")}:</span>
-                  <span className="ml-2 font-mono font-medium text-emerald-600 dark:text-emerald-400">
-                    +{formatCurrency(montoSolicitado)}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-500 dark:text-slate-400">{t("bur_saldo_actual", "Saldo actual")}:</span>
-                  <span className="ml-2 font-mono font-medium text-slate-800 dark:text-slate-200">
-                    {formatCurrency(saldoActual)}
-                  </span>
-                </div>
-              </div>
-              <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                    {t("bur_nuevo_saldo", "Nuevo saldo")}:
-                  </span>
-                  <span className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                    {formatCurrency(nuevoSaldo)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-        <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            {t("bur_comentario_aprobacion", "Comentario (opcional)")}
-          </label>
-          <textarea
-            value={approveModal.comentario}
-            onChange={(e) => setApproveModal((prev) => ({ ...prev, comentario: e.target.value }))}
-            rows={3}
-            className="w-full px-3 py-2.5 rounded-xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/50 dark:border-slate-700/50 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all resize-none"
-            placeholder={t("bur_comentario_aprobacion", "Comentario (opcional)")}
-          />
-        </div>
-      </Modal>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Accion irreversible</Typography>
+              <Typography variant="body2">Una vez rechazada, la solicitud no podra ser aprobada posteriormente.</Typography>
+            </Alert>
 
-      {/* Modal de rechazo */}
-      <Modal
-        isOpen={rejectModal.open}
-        onClose={() => setRejectModal({ open: false, id: null, motivo: "" })}
-        title={`${t("bur_rechazar", "Rechazar")} #${rejectModal.id}`}
-        size="md"
-        footer={
-          <>
-            <Button
-              variant="ghost"
-              onClick={() => setRejectModal({ open: false, id: null, motivo: "" })}
-            >
-              {t("common_cancelar", "Cancelar")}
-            </Button>
-            <Button variant="danger" onClick={confirmRechazar}>
-              <XCircle className="w-4 h-4 text-red-500" />
-              {t("bur_rechazar", "Rechazar")}
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            {t("bur_motivo_rechazo", "Motivo de rechazo")} *
-          </label>
-          <textarea
-            value={rejectModal.motivo}
-            onChange={(e) => setRejectModal((prev) => ({ ...prev, motivo: e.target.value }))}
-            rows={3}
-            className={`w-full px-3 py-2.5 rounded-xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400/50 outline-none transition-all resize-none ${
-              rejectModal.motivo.length > 0 && rejectModal.motivo.length < 5
-                ? "border-red-400 dark:border-red-500"
-                : "border-white/50 dark:border-slate-700/50"
-            }`}
-            placeholder={t("bur_motivo_placeholder", "Indica el motivo del rechazo...")}
-          />
-          {/* SPRINT 3.3: Validación en tiempo real */}
-          <div className="flex justify-between text-xs">
-            <span className={rejectModal.motivo.length > 0 && rejectModal.motivo.length < 5 ? "text-red-500" : "text-slate-400"}>
-              {rejectModal.motivo.length > 0 && rejectModal.motivo.length < 5
-                ? t("bur_motivo_min", "Mínimo 5 caracteres")
-                : ""}
-            </span>
-            <span className="text-slate-400 dark:text-slate-500">
-              {rejectModal.motivo.length}/5 min
-            </span>
-          </div>
-        </div>
-      </Modal>
-    </div>
+            {/* Reason Field */}
+            <Box>
+              <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary', mb: 1, display: 'block' }}>
+                Motivo de rechazo <Typography component="span" color="error.main">*</Typography>
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                multiline
+                rows={4}
+                value={rejectDrawer.motivo}
+                onChange={(e) => setRejectDrawer(prev => ({ ...prev, motivo: e.target.value }))}
+                placeholder="Explica el motivo del rechazo..."
+                error={rejectDrawer.motivo.length > 0 && rejectDrawer.motivo.length < 5}
+                helperText={
+                  rejectDrawer.motivo.length > 0 && rejectDrawer.motivo.length < 5
+                    ? "Minimo 5 caracteres requeridos"
+                    : "El solicitante sera notificado con este motivo"
+                }
+              />
+              <Typography
+                variant="caption"
+                sx={{
+                  display: 'block',
+                  textAlign: 'right',
+                  mt: 0.5,
+                  color: rejectDrawer.motivo.length < 5 ? 'error.main' : 'text.secondary',
+                }}
+              >
+                {rejectDrawer.motivo.length}/5 min.
+              </Typography>
+            </Box>
+
+            {/* Actions */}
+            <Stack direction="row" spacing={2} sx={{ pt: 2 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={() => setRejectDrawer({ open: false, id: null, motivo: "" })}
+              >
+                Cancelar
+              </Button>
+              <Button
+                fullWidth
+                variant="contained"
+                color="error"
+                onClick={confirmRechazar}
+                disabled={actionLoading || rejectDrawer.motivo.trim().length < 5}
+                startIcon={actionLoading ? <CircularProgress size={16} color="inherit" /> : null}
+              >
+                {actionLoading ? "Procesando..." : "Confirmar Rechazo"}
+              </Button>
+            </Stack>
+          </Box>
+      </Drawer>
+    </Box>
   );
 }

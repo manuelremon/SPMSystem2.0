@@ -1,12 +1,25 @@
 import React, { useEffect, useRef, useCallback } from "react";
 import PropTypes from "prop-types";
-import clsx from "clsx";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import IconButton from "@mui/material/IconButton";
+import Slide from "@mui/material/Slide";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import SwipeableDrawer from "@mui/material/SwipeableDrawer";
 import { X } from "./Icons";
-import { Button } from "./Button";
+
+// Transición para el Dialog
+const Transition = React.forwardRef(function Transition(props, ref) {
+  return <Slide direction="up" ref={ref} {...props} />;
+});
 
 /**
- * Modal Component - Glass Morphism Style
- * Translucent modal with blur overlay
+ * Modal Component - MUI Dialog + Responsive
+ * En móvil: Bottom Sheet (SwipeableDrawer)
+ * En desktop: MUI Dialog centrado
  *
  * @param {boolean} isOpen - Controls modal visibility
  * @param {function} onClose - Callback when modal should close
@@ -17,6 +30,7 @@ import { Button } from "./Button";
  * @param {boolean} showCloseButton - Show X button in header (default: true)
  * @param {ReactNode} footer - Optional footer content
  * @param {string} className - Additional classes for modal content
+ * @param {boolean} forceDesktop - Force desktop modal even on mobile
  */
 export function Modal({
   isOpen,
@@ -28,235 +42,171 @@ export function Modal({
   showCloseButton = true,
   footer,
   className,
+  forceDesktop = false,
 }) {
-  const modalRef = useRef(null);
-  const previousActiveElement = useRef(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Focus trap - get all focusable elements
-  const getFocusableElements = useCallback(() => {
-    if (!modalRef.current) return [];
-    return modalRef.current.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-  }, []);
-
-  // Handle keyboard navigation for focus trap
-  const handleKeyDown = useCallback((e) => {
-    if (e.key === "Escape") {
-      onClose();
-      return;
-    }
-
-    if (e.key !== "Tab") return;
-
-    const focusableElements = getFocusableElements();
-    if (focusableElements.length === 0) return;
-
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
-
-    if (e.shiftKey) {
-      // Shift + Tab: go to previous element
-      if (document.activeElement === firstElement) {
-        e.preventDefault();
-        lastElement.focus();
-      }
-    } else {
-      // Tab: go to next element
-      if (document.activeElement === lastElement) {
-        e.preventDefault();
-        firstElement.focus();
-      }
-    }
-  }, [onClose, getFocusableElements]);
-
-  // Focus management on open/close
-  useEffect(() => {
-    if (isOpen) {
-      // Store currently focused element
-      previousActiveElement.current = document.activeElement;
-
-      // Focus the first focusable element in modal after a short delay
-      const timer = setTimeout(() => {
-        const focusableElements = getFocusableElements();
-        if (focusableElements.length > 0) {
-          focusableElements[0].focus();
-        }
-      }, 50);
-
-      return () => clearTimeout(timer);
-    } else {
-      // Restore focus to previous element when closing
-      if (previousActiveElement.current) {
-        previousActiveElement.current.focus();
-      }
-    }
-  }, [isOpen, getFocusableElements]);
-
-  // Handle keyboard events
-  useEffect(() => {
-    if (!isOpen) return;
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, handleKeyDown]);
-
-  // Prevent body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  const sizeClasses = {
-    sm: "max-w-md",
-    md: "max-w-lg",
-    lg: "max-w-2xl",
-    xl: "max-w-4xl",
-    full: "max-w-7xl",
+  // Mapeo de tamaños a maxWidth de MUI Dialog
+  const sizeMap = {
+    sm: "sm",      // 444px
+    md: "sm",      // 444px (md de MUI es 600px, muy grande)
+    lg: "md",      // 600px
+    xl: "lg",      // 900px
+    full: "xl",    // 1200px
   };
 
-  const handleOverlayClick = (e) => {
-    if (closeOnOverlayClick && e.target === e.currentTarget) {
-      onClose();
-    }
+  // Estilos personalizados para el Dialog
+  const dialogSx = {
+    '& .MuiDialog-paper': {
+      borderRadius: '12px',
+      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+      border: '1px solid var(--border)',
+      backgroundColor: 'var(--card)',
+      backgroundImage: 'none',
+      maxHeight: '90vh',
+    },
+    '& .MuiBackdrop-root': {
+      backgroundColor: 'rgba(15, 23, 42, 0.5)',
+      backdropFilter: 'blur(4px)',
+    },
   };
 
-  return (
-    <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fade-in"
-      style={{
-        backgroundColor: 'var(--overlay)',
-        backdropFilter: 'blur(var(--blur-sm))',
-        WebkitBackdropFilter: 'blur(var(--blur-sm))',
-      }}
-      onClick={handleOverlayClick}
-      role="presentation"
-    >
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-        style={{
-          background: 'var(--card-glass-strong)',
-          backdropFilter: 'blur(var(--blur-lg))',
-          WebkitBackdropFilter: 'blur(var(--blur-lg))',
-          boxShadow: 'var(--shadow-elevated), 0 0 0 1px var(--border-glass-strong)',
+  // Estilos para el título
+  const titleSx = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '16px 24px',
+    borderBottom: '1px solid var(--border)',
+    backgroundColor: 'var(--bg-soft)',
+    '& .MuiTypography-root': {
+      fontSize: '1.125rem',
+      fontWeight: 600,
+      color: 'var(--fg)',
+    },
+  };
+
+  // Estilos para el contenido
+  const contentSx = {
+    padding: '24px',
+    color: 'var(--fg)',
+    '&:first-of-type': {
+      paddingTop: '24px',
+    },
+  };
+
+  // Estilos para las acciones/footer
+  const actionsSx = {
+    padding: '16px 24px',
+    borderTop: '1px solid var(--border)',
+    backgroundColor: 'var(--bg-soft)',
+    gap: '12px',
+  };
+
+  // Mobile: Bottom Sheet usando SwipeableDrawer
+  if (isMobile && !forceDesktop) {
+    return (
+      <SwipeableDrawer
+        anchor="bottom"
+        open={isOpen}
+        onClose={onClose}
+        onOpen={() => {}}
+        disableSwipeToOpen
+        swipeAreaWidth={0}
+        ModalProps={{
+          keepMounted: false,
         }}
-        className={clsx(
-          // Glass modal container
-          "relative w-full",
-          "border border-[var(--border-glass)]",
-          "rounded-xl",
-          "shadow-glass",
-          "animate-scale-in",
-          sizeClasses[size],
-          className
-        )}
+        PaperProps={{
+          sx: {
+            borderTopLeftRadius: '16px',
+            borderTopRightRadius: '16px',
+            maxHeight: '90vh',
+            backgroundColor: 'var(--card)',
+            boxShadow: '0 -10px 40px -10px rgba(0, 0, 0, 0.2)',
+          },
+        }}
       >
-        {/* Header - Glass style */}
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[var(--border-glass-subtle)]">
-          <h2 id="modal-title" className="text-xl font-semibold text-[var(--text-primary)]">{title}</h2>
-          {showCloseButton && (
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg transition-all duration-300 ease-spring text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-glass)]"
-              aria-label="Close modal"
-            >
-              <X className="w-5 h-5" />
-            </button>
+        <div role="dialog" aria-modal="true" aria-labelledby="modal-title">
+          {/* Swipe indicator */}
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 bg-slate-300 rounded-full" />
+          </div>
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 pb-3 border-b border-[var(--border)]">
+            <h2 id="modal-title" className="text-lg font-semibold text-[var(--fg)]">
+              {title}
+            </h2>
+            {showCloseButton && (
+              <IconButton
+                onClick={onClose}
+                size="small"
+                sx={{ color: 'var(--fg-muted)' }}
+                aria-label="Cerrar"
+              >
+                <X className="w-5 h-5" />
+              </IconButton>
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="px-4 py-4 overflow-y-auto max-h-[60vh]">
+            {children}
+          </div>
+
+          {/* Footer */}
+          {footer && (
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 px-4 pb-4 pt-3 border-t border-[var(--border)] bg-[var(--bg-soft)]">
+              {footer}
+            </div>
           )}
         </div>
+      </SwipeableDrawer>
+    );
+  }
 
-        {/* Content */}
-        <div className="px-6 py-4 max-h-[calc(100vh-200px)] overflow-y-auto">
-          {children}
-        </div>
-
-        {/* Footer - Glass style */}
-        {footer && (
-          <div className="flex items-center justify-end gap-3 px-6 pb-6 pt-4 border-t border-[var(--border-glass-subtle)]">
-            {footer}
-          </div>
+  // Desktop: MUI Dialog
+  return (
+    <Dialog
+      open={isOpen}
+      onClose={closeOnOverlayClick ? onClose : undefined}
+      TransitionComponent={Transition}
+      maxWidth={sizeMap[size]}
+      fullWidth
+      sx={dialogSx}
+      aria-labelledby="modal-title"
+    >
+      <DialogTitle sx={titleSx} id="modal-title">
+        <span>{title}</span>
+        {showCloseButton && (
+          <IconButton
+            onClick={onClose}
+            size="small"
+            sx={{
+              color: 'var(--fg-muted)',
+              '&:hover': {
+                backgroundColor: 'var(--bg-elevated)',
+                color: 'var(--fg)',
+              },
+            }}
+            aria-label="Cerrar"
+          >
+            <X className="w-5 h-5" />
+          </IconButton>
         )}
-      </div>
-    </div>
-  );
-}
+      </DialogTitle>
 
-/**
- * ConfirmModal - Pre-configured modal for confirmations
- */
-export function ConfirmModal({
-  isOpen,
-  onClose,
-  onConfirm,
-  title = "Confirmar",
-  message,
-  confirmText = "Confirmar",
-  cancelText = "Cancelar",
-  variant = "primary",
-}) {
-  const handleConfirm = () => {
-    onConfirm();
-    onClose();
-  };
+      <DialogContent sx={contentSx} className={className}>
+        {children}
+      </DialogContent>
 
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={title}
-      size="sm"
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>
-            {cancelText}
-          </Button>
-          <Button variant={variant} onClick={handleConfirm}>
-            {confirmText}
-          </Button>
-        </>
-      }
-    >
-      <p className="text-sm text-[var(--text-secondary)]">{message}</p>
-    </Modal>
-  );
-}
-
-/**
- * AlertModal - Pre-configured modal for alerts
- */
-export function AlertModal({
-  isOpen,
-  onClose,
-  title = "Aviso",
-  message,
-  buttonText = "Entendido",
-  variant = "primary",
-}) {
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={title}
-      size="sm"
-      footer={
-        <Button variant={variant} onClick={onClose}>
-          {buttonText}
-        </Button>
-      }
-    >
-      <p className="text-sm text-[var(--text-secondary)]">{message}</p>
-    </Modal>
+      {footer && (
+        <DialogActions sx={actionsSx}>
+          {footer}
+        </DialogActions>
+      )}
+    </Dialog>
   );
 }
 
@@ -270,26 +220,7 @@ Modal.propTypes = {
   showCloseButton: PropTypes.bool,
   footer: PropTypes.node,
   className: PropTypes.string,
-};
-
-ConfirmModal.propTypes = {
-  isOpen: PropTypes.bool.isRequired,
-  onClose: PropTypes.func.isRequired,
-  onConfirm: PropTypes.func.isRequired,
-  title: PropTypes.string,
-  message: PropTypes.node,
-  confirmText: PropTypes.string,
-  cancelText: PropTypes.string,
-  variant: PropTypes.string,
-};
-
-AlertModal.propTypes = {
-  isOpen: PropTypes.bool.isRequired,
-  onClose: PropTypes.func.isRequired,
-  title: PropTypes.string,
-  message: PropTypes.node,
-  buttonText: PropTypes.string,
-  variant: PropTypes.string,
+  forceDesktop: PropTypes.bool,
 };
 
 export default Modal;

@@ -514,8 +514,8 @@ def solicitudes_por_material(codigo):
                     s.created_at,
                     s.data_json,
                     u.nombre as solicitante_nombre
-                FROM solicitudes s
-                LEFT JOIN usuarios u ON s.id_usuario = u.id_spm
+                FROM solicitud s
+                LEFT JOIN usuario u ON s.id_usuario = u.id_spm
                 WHERE s.status = ANY(%s)
                 ORDER BY s.created_at DESC
             """,

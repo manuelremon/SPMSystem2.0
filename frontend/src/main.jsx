@@ -1,8 +1,18 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { HelmetProvider } from 'react-helmet-async'
+import { ThemeProvider } from '@mui/material/styles'
+import CssBaseline from '@mui/material/CssBaseline'
 import * as Sentry from '@sentry/react'
 import App from './App.jsx'
+import theme from './theme'
+
+// Roboto font for Material UI
+import '@fontsource/roboto/300.css'
+import '@fontsource/roboto/400.css'
+import '@fontsource/roboto/500.css'
+import '@fontsource/roboto/700.css'
+
 import './index.css'
 import { I18nProvider } from './context/i18n'
 
@@ -30,10 +40,13 @@ document.documentElement.setAttribute('data-theme', 'light')
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <HelmetProvider>
-      <I18nProvider>
-        <App />
-      </I18nProvider>
-    </HelmetProvider>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <HelmetProvider>
+        <I18nProvider>
+          <App />
+        </I18nProvider>
+      </HelmetProvider>
+    </ThemeProvider>
   </React.StrictMode>,
 )

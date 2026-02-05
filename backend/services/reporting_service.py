@@ -20,14 +20,9 @@ logger = logging.getLogger(__name__)
 
 def get_db_connection():
     """Obtiene conexion a base de datos."""
-    try:
-        from backend.core.db import get_db_connection as db_conn
+    from backend.core.db import get_db_connection as db_conn
 
-        return db_conn()
-    except ImportError:
-        from core.db import get_db_connection as db_conn
-
-        return db_conn()
+    return db_conn()
 
 
 class ReportingService:
@@ -167,7 +162,7 @@ class ReportingService:
                 query = """
                     SELECT id, status as estado, criticidad, total_monto,
                            created_at, id_usuario, centro, sector, justificacion
-                    FROM solicitudes
+                    FROM solicitud
                     WHERE 1=1
                 """
                 params = []
@@ -403,6 +398,134 @@ class ReportingService:
         except Exception as e:
             logger.error(f"Error exportando alertas: {e}")
             return {"success": False, "error": str(e)}
+
+    # ========================================================================
+    # EXPORTAR USUARIOS
+    # ========================================================================
+
+    def export_usuarios(
+        self,
+        usuarios: List[Dict[str, Any]],
+        formato: str = "xlsx",
+        columnas: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Exporta lista de usuarios al formato especificado.
+
+        Args:
+            usuarios: Lista de usuarios
+            formato: Formato de salida (xlsx, csv, pdf)
+            columnas: Columnas a incluir (None = todas)
+
+        Returns:
+            Dict con contenido, filename y metadata
+        """
+        if formato not in self.SUPPORTED_FORMATS:
+            return {
+                "success": False,
+                "error": f"Formato no soportado: {formato}. Use: {self.SUPPORTED_FORMATS}",
+            }
+
+        try:
+            # Filtrar columnas si se especifican
+            if columnas and usuarios:
+                usuarios = [{k: v for k, v in u.items() if k in columnas} for u in usuarios]
+
+            # Generar contenido segun formato
+            if formato == "xlsx":
+                contenido = self._generate_excel(usuarios, "Usuarios")
+            elif formato == "csv":
+                contenido = self._generate_csv(usuarios)
+            else:  # pdf
+                contenido = self._generate_pdf_simple(usuarios, "Reporte de Usuarios")
+
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            filename = f"usuarios_{timestamp}.{formato}"
+
+            result = {
+                "success": True,
+                "formato": formato,
+                "contenido": contenido,
+                "filename": filename,
+                "total_registros": len(usuarios),
+                "generado_en": datetime.now(timezone.utc).isoformat(),
+            }
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Error exportando usuarios: {e}")
+            return {"success": False, "error": str(e)}
+
+    def export_usuarios_from_db(
+        self,
+        formato: str = "xlsx",
+        filtros: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Exporta usuarios desde BD aplicando filtros.
+
+        Args:
+            formato: xlsx, csv, pdf
+            filtros: Dict con estado, rol, etc.
+
+        Returns:
+            Dict con contenido, filename y metadata
+        """
+        from backend.core.roles import normalize_roles
+
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+
+                query = """
+                    SELECT id_spm, nombre, apellido, rol, mail, posicion, sector,
+                           jefe, gerente1, gerente2, telefono, estado_registro,
+                           id_ypf, mail_respaldo, almacenes
+                    FROM usuario
+                    WHERE 1=1
+                """
+                params = []
+
+                if filtros:
+                    if "estado" in filtros:
+                        query += " AND estado_registro = ?"
+                        params.append(filtros["estado"])
+                    if "rol" in filtros:
+                        # Buscar rol en el campo CSV rol
+                        query += " AND rol LIKE ?"
+                        params.append(f"%{filtros['rol']}%")
+
+                query += " ORDER BY nombre, apellido"
+
+                cursor.execute(query, params)
+                usuarios = []
+                for row in cursor.fetchall():
+                    try:
+                        row_dict = dict(row)
+                        # Normalizar roles para que sean mas legibles
+                        rol_csv = row_dict.get("rol", "")
+                        if rol_csv:
+                            row_dict["roles"] = normalize_roles(rol_csv)
+                        usuarios.append(row_dict)
+                    except Exception as row_error:
+                        logger.warning(f"Error procesando fila de usuario: {row_error}")
+                        continue
+
+            # Exportar usuarios recuperados
+            result = self.export_usuarios(
+                usuarios=usuarios, formato=formato
+            )
+
+            # Si el resultado tiene éxito, retornarlo, sino loguear y retornar error
+            if not result.get("success"):
+                logger.error(f"Error en export_usuarios: {result.get('error')}")
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Error exportando usuarios desde BD: {e}", exc_info=True)
+            return {"success": False, "error": f"Error al exportar usuarios: {str(e)}"}
 
     # ========================================================================
     # REPORTE DE KPIs

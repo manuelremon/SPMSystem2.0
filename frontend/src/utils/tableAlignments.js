@@ -13,22 +13,26 @@
 // Mapeo de columnas SPM a alineación
 export const SPM_COLUMN_ALIGNMENTS = {
   // ══════════════════════════════════════════════════════════════
-  // COLUMNAS CENTRADAS (IDs, códigos, estados, fechas)
+  // COLUMNAS CENTRADAS (IDs, códigos, fechas)
   // ══════════════════════════════════════════════════════════════
   id: 'center',
   centro: 'center',
   almacen: 'center',
   almacen_virtual: 'center',
-  sector: 'center',
-  solicitante: 'center',
-  planificador: 'center',
   planificado: 'center',
 
+  // ══════════════════════════════════════════════════════════════
+  // COLUMNAS ALINEADAS A LA IZQUIERDA (Nombres, estados, sectores)
+  // ══════════════════════════════════════════════════════════════
+  sector: 'left',
+  solicitante: 'left',
+  planificador: 'left',
+
   // Estados y criticidad
-  estado: 'center',
-  status: 'center',
-  criticidad: 'center',
-  prioridad: 'center',
+  estado: 'left',
+  status: 'left',
+  criticidad: 'left',
+  prioridad: 'left',
 
   // Fechas
   fecha: 'center',

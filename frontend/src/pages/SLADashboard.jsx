@@ -6,34 +6,42 @@
  * - Alertas activas con acciones
  * - Filtros por periodo y criticidad
  * - Auto-refresh
+ *
+ * Migrated to Chart.js (SPMChartJS)
  */
 
 import { useState, useEffect, useCallback } from 'react'
 import {
-  Clock,
-  AlertTriangle,
-  XCircle,
-  CheckCircle,
-  RefreshCw,
-  Filter,
-  ChevronDown
-} from '../components/ui/Icons'
+  Box,
+  Paper,
+  Typography,
+  Button,
+  Stack,
+  Grid,
+  Chip,
+  Select,
+  MenuItem,
+  FormControl,
+  Skeleton,
+  Alert,
+  IconButton,
+  CircularProgress
+} from '@mui/material'
+import AccessTimeIcon from '@mui/icons-material/AccessTime'
+import WarningAmberIcon from '@mui/icons-material/WarningAmber'
+import CancelIcon from '@mui/icons-material/Cancel'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import RefreshIcon from '@mui/icons-material/Refresh'
+import FilterListIcon from '@mui/icons-material/FilterList'
 import { useI18n } from '../context/i18n'
 import slaService from '../services/sla'
-import { MetricCard } from '../components/ui/MetricCard'
-import { ProgressCircle, MiniBarChart } from '../components/ui/Charts'
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
-import { Badge } from '../components/ui/Badge'
-import { PageHeader } from '../components/ui/PageHeader'
-import { Button } from '../components/ui/Button'
-import { Skeleton } from '../components/ui/Skeleton'
-import { Alert } from '../components/ui/Alert'
+import { SPMGauge, SPMBar } from '../components/ui/SPMChartJS'
 
-// Colores por tipo de alerta
+// Colores por tipo de alerta - MUI sx styles
 const ALERT_COLORS = {
-  warning: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', badge: 'warning' },
-  breach: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', badge: 'danger' },
-  escalated: { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', badge: 'info' }
+  warning: { bg: 'warning.lighter', border: 'warning.light', text: 'warning.dark', chipColor: 'warning' },
+  breach: { bg: 'error.lighter', border: 'error.light', text: 'error.dark', chipColor: 'error' },
+  escalated: { bg: 'secondary.lighter', border: 'secondary.light', text: 'secondary.dark', chipColor: 'secondary' }
 }
 
 // Periodos disponibles
@@ -42,6 +50,71 @@ const PERIODOS = [
   { value: 30, label: '30 dias' },
   { value: 90, label: '90 dias' }
 ]
+
+// Variantes de MetricCard para MUI
+const METRIC_VARIANTS = {
+  primary: { bg: 'primary.lighter', icon: 'primary.main', border: 'primary.main' },
+  success: { bg: 'success.lighter', icon: 'success.main', border: 'success.main' },
+  warning: { bg: 'warning.lighter', icon: 'warning.main', border: 'warning.main' },
+  danger: { bg: 'error.lighter', icon: 'error.main', border: 'error.main' }
+}
+
+// MUI MetricCard component
+const MUIMetricCard = ({ icon: Icon, label, value, variant = 'primary', highlight = false }) => {
+  const colors = highlight ? METRIC_VARIANTS.warning : METRIC_VARIANTS[variant] || METRIC_VARIANTS.primary
+
+  return (
+    <Paper
+      elevation={1}
+      sx={{
+        p: 2,
+        borderLeft: 4,
+        borderColor: colors.border,
+        bgcolor: highlight ? 'warning.lighter' : 'background.paper',
+        transition: 'box-shadow 0.2s',
+        '&:hover': { boxShadow: 3 }
+      }}
+    >
+      <Stack direction="row" alignItems="center" spacing={2}>
+        <Box
+          sx={{
+            p: 1,
+            borderRadius: 2,
+            bgcolor: colors.bg,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <Icon sx={{ fontSize: 20, color: colors.icon }} />
+        </Box>
+        <Box>
+          <Typography
+            variant="caption"
+            sx={{
+              color: 'text.secondary',
+              textTransform: 'uppercase',
+              fontWeight: 500,
+              letterSpacing: 0.5
+            }}
+          >
+            {label}
+          </Typography>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: 'bold',
+              color: highlight ? 'warning.dark' : 'text.primary',
+              fontFeatureSettings: '"tnum"'
+            }}
+          >
+            {value}
+          </Typography>
+        </Box>
+      </Stack>
+    </Paper>
+  )
+}
 
 export default function SLADashboard() {
   const { t } = useI18n()
@@ -52,7 +125,7 @@ export default function SLADashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [periodoDias, setPeriodoDias] = useState(30)
-  const [tipoFiltro, setTipoFiltro] = useState(null)
+  const [tipoFiltro, setTipoFiltro] = useState('')
   const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Cargar datos
@@ -63,7 +136,7 @@ export default function SLADashboard() {
     try {
       const [metricasData, alertasData] = await Promise.all([
         slaService.getMetricas({ periodoDias, porCriticidad: true }),
-        slaService.getAlertas({ tipo: tipoFiltro })
+        slaService.getAlertas({ tipo: tipoFiltro || null })
       ])
 
       setMetricas(metricasData)
@@ -99,263 +172,368 @@ export default function SLADashboard() {
     }
   }
 
-  // Color del porcentaje de cumplimiento
+  // Color del porcentaje de cumplimiento - MUI Palette
   const getCumplimientoColor = (porcentaje) => {
-    if (porcentaje >= 90) return '#10B981' // green
-    if (porcentaje >= 70) return '#F59E0B' // amber
-    return '#EF4444' // red
+    if (porcentaje >= 90) return '#2e7d32' // MUI Green 800
+    if (porcentaje >= 70) return '#ed6c02' // MUI Orange 800
+    return '#d32f2f' // MUI Red 700
   }
 
   // Datos para grafico de barras por criticidad
   const chartData = metricas?.por_criticidad?.map(c => c.on_time) || []
-  const chartLabels = metricas?.por_criticidad?.map(c => c.criticidad) || []
 
+  // Loading skeleton
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <PageHeader
-          title={t('sla_dashboard', 'Dashboard SLA')}
-          subtitle={t('sla_subtitle', 'Metricas de cumplimiento de niveles de servicio')}
-        />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {/* Header skeleton */}
+        <Box>
+          <Skeleton variant="text" width={200} height={40} />
+          <Skeleton variant="text" width={350} height={24} />
+        </Box>
+
+        {/* Metrics skeleton */}
+        <Grid container spacing={2}>
           {[1, 2, 3, 4].map(i => (
-            <Skeleton key={i} className="h-24 rounded-xl" />
+            <Grid item xs={6} md={3} key={i}>
+              <Skeleton variant="rounded" height={96} />
+            </Grid>
           ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Skeleton className="h-64 rounded-xl" />
-          <Skeleton className="h-64 rounded-xl" />
-        </div>
-      </div>
+        </Grid>
+
+        {/* Charts skeleton */}
+        <Grid container spacing={3}>
+          <Grid item xs={12} lg={6}>
+            <Skeleton variant="rounded" height={256} />
+          </Grid>
+          <Grid item xs={12} lg={6}>
+            <Skeleton variant="rounded" height={256} />
+          </Grid>
+        </Grid>
+      </Box>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <PageHeader
-          title={t('sla_dashboard', 'Dashboard SLA')}
-          subtitle={t('sla_subtitle', 'Metricas de cumplimiento de niveles de servicio')}
-        />
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'flex-start', sm: 'center' }}
+        spacing={2}
+      >
+        <Box>
+          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {t('sla_dashboard', 'Dashboard SLA')}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {t('sla_subtitle', 'Metricas de cumplimiento de niveles de servicio')}
+          </Typography>
+        </Box>
 
-        <div className="flex items-center gap-3">
+        <Stack direction="row" alignItems="center" spacing={1.5}>
           {/* Selector de periodo */}
-          <div className="relative">
-            <select
+          <FormControl size="small">
+            <Select
               value={periodoDias}
               onChange={(e) => setPeriodoDias(Number(e.target.value))}
-              className="appearance-none bg-white border border-slate-200 rounded-lg px-4 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              sx={{
+                minWidth: 100,
+                bgcolor: 'background.paper',
+                '& .MuiSelect-select': { py: 1, px: 1.5 }
+              }}
             >
               {PERIODOS.map(p => (
-                <option key={p.value} value={p.value}>{p.label}</option>
+                <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>
               ))}
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-          </div>
+            </Select>
+          </FormControl>
 
           {/* Boton refresh */}
-          <Button
-            variant="ghost"
-            size="sm"
+          <IconButton
             onClick={() => fetchData(true)}
             disabled={isRefreshing}
+            sx={{ color: 'primary.main' }}
           >
-            <RefreshCw className={`w-4 h-4 text-blue-600 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </Button>
-        </div>
-      </div>
+            {isRefreshing ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              <RefreshIcon />
+            )}
+          </IconButton>
+        </Stack>
+      </Stack>
 
       {/* Error */}
       {error && (
-        <Alert variant="destructive">{error}</Alert>
+        <Alert severity="error">{error}</Alert>
       )}
 
       {/* Metricas principales */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <MetricCard
-          icon={Clock}
-          label={t('sla_total', 'Total Solicitudes')}
-          value={metricas?.total_solicitudes || 0}
-          variant="primary"
-        />
-        <MetricCard
-          icon={CheckCircle}
-          label={t('sla_on_time', 'A Tiempo')}
-          value={metricas?.on_time || 0}
-          variant="success"
-        />
-        <MetricCard
-          icon={AlertTriangle}
-          label={t('sla_warning', 'En Riesgo')}
-          value={metricas?.warning || 0}
-          variant="warning"
-          highlight={metricas?.warning > 0}
-        />
-        <MetricCard
-          icon={XCircle}
-          label={t('sla_breach', 'Incumplidas')}
-          value={metricas?.breach || 0}
-          variant="danger"
-          highlight={metricas?.breach > 0}
-        />
-      </div>
+      <Grid container spacing={2}>
+        <Grid item xs={6} md={3}>
+          <MUIMetricCard
+            icon={AccessTimeIcon}
+            label={t('sla_total', 'Total Solicitudes')}
+            value={metricas?.total_solicitudes || 0}
+            variant="primary"
+          />
+        </Grid>
+        <Grid item xs={6} md={3}>
+          <MUIMetricCard
+            icon={CheckCircleIcon}
+            label={t('sla_on_time', 'A Tiempo')}
+            value={metricas?.on_time || 0}
+            variant="success"
+          />
+        </Grid>
+        <Grid item xs={6} md={3}>
+          <MUIMetricCard
+            icon={WarningAmberIcon}
+            label={t('sla_warning', 'En Riesgo')}
+            value={metricas?.warning || 0}
+            variant="warning"
+            highlight={metricas?.warning > 0}
+          />
+        </Grid>
+        <Grid item xs={6} md={3}>
+          <MUIMetricCard
+            icon={CancelIcon}
+            label={t('sla_breach', 'Incumplidas')}
+            value={metricas?.breach || 0}
+            variant="danger"
+            highlight={metricas?.breach > 0}
+          />
+        </Grid>
+      </Grid>
 
       {/* Fila de graficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <Grid container spacing={3}>
         {/* Cumplimiento general */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('sla_cumplimiento', 'Cumplimiento General')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center py-4">
-              <ProgressCircle
-                percentage={Math.round(metricas?.porcentaje_cumplimiento || 0)}
-                size={160}
-                strokeWidth={12}
-                color={getCumplimientoColor(metricas?.porcentaje_cumplimiento || 0)}
-                label={t('sla_cumplimiento', 'Cumplimiento')}
-              />
-            </div>
-            <div className="mt-4 text-center text-sm text-slate-500">
-              {t('sla_periodo', 'Periodo')}: {t('sla_ultimos', 'Ultimos')} {periodoDias} {t('sla_dias', 'dias')}
-            </div>
-          </CardContent>
-        </Card>
+        <Grid item xs={12} lg={6}>
+          <Paper elevation={1} sx={{ height: '100%' }}>
+            <Box sx={{ px: 3, py: 2, borderBottom: 1, borderColor: 'divider' }}>
+              <Typography variant="subtitle1" fontWeight={600}>
+                {t('sla_cumplimiento', 'Cumplimiento General')}
+              </Typography>
+            </Box>
+            <Box sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                <SPMGauge
+                  value={Math.round(metricas?.porcentaje_cumplimiento || 0)}
+                  max={100}
+                  height={180}
+                  thresholds={{ warning: 70, danger: 90 }}
+                  label={t('sla_cumplimiento', 'Cumplimiento')}
+                  unit="%"
+                />
+              </Box>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 2, textAlign: 'center' }}
+              >
+                {t('sla_periodo', 'Periodo')}: {t('sla_ultimos', 'Ultimos')} {periodoDias} {t('sla_dias', 'dias')}
+              </Typography>
+            </Box>
+          </Paper>
+        </Grid>
 
         {/* Por criticidad */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('sla_por_criticidad', 'Por Criticidad')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {metricas?.por_criticidad?.length > 0 ? (
-              <div className="space-y-4">
-                {metricas.por_criticidad.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Badge variant={
-                        item.criticidad === 'alta' ? 'danger' :
-                        item.criticidad === 'media' ? 'warning' : 'default'
-                      }>
-                        {item.criticidad}
-                      </Badge>
-                      <span className="text-sm text-slate-600">
-                        {item.total} {t('sla_solicitudes', 'solicitudes')}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-emerald-600">
-                        {item.on_time} {t('sla_on_time_short', 'OK')}
-                      </span>
-                      {item.breach > 0 && (
-                        <span className="text-sm font-medium text-red-600">
-                          {item.breach} {t('sla_breach_short', 'SLA')}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+        <Grid item xs={12} lg={6}>
+          <Paper elevation={1} sx={{ height: '100%' }}>
+            <Box sx={{ px: 3, py: 2, borderBottom: 1, borderColor: 'divider' }}>
+              <Typography variant="subtitle1" fontWeight={600}>
+                {t('sla_por_criticidad', 'Por Criticidad')}
+              </Typography>
+            </Box>
+            <Box sx={{ p: 3 }}>
+              {metricas?.por_criticidad?.length > 0 ? (
+                <Stack spacing={2}>
+                  {metricas.por_criticidad.map((item, idx) => (
+                    <Stack
+                      key={idx}
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Stack direction="row" alignItems="center" spacing={1.5}>
+                        <Chip
+                          label={item.criticidad}
+                          size="small"
+                          color={
+                            item.criticidad === 'alta' ? 'error' :
+                            item.criticidad === 'media' ? 'warning' : 'default'
+                          }
+                        />
+                        <Typography variant="body2" color="text.secondary">
+                          {item.total} {t('sla_solicitudes', 'solicitudes')}
+                        </Typography>
+                      </Stack>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <Typography variant="body2" fontWeight={500} color="success.main">
+                          {item.on_time} {t('sla_on_time_short', 'OK')}
+                        </Typography>
+                        {item.breach > 0 && (
+                          <Typography variant="body2" fontWeight={500} color="error.main">
+                            {item.breach} {t('sla_breach_short', 'SLA')}
+                          </Typography>
+                        )}
+                      </Stack>
+                    </Stack>
+                  ))}
 
-                {/* Mini chart */}
-                {chartData.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-slate-100">
-                    <p className="text-xs text-slate-500 mb-2">{t('sla_chart_label', 'A tiempo por criticidad')}</p>
-                    <MiniBarChart data={chartData} color="#10B981" height={48} />
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-center text-slate-500 py-8">
-                {t('sla_no_data', 'Sin datos de criticidad')}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                  {/* Mini chart */}
+                  {chartData.length > 0 && (
+                    <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                        {t('sla_chart_label', 'A tiempo por criticidad')}
+                      </Typography>
+                      <SPMBar
+                        labels={metricas?.por_criticidad?.map(c => c.criticidad) || []}
+                        datasets={[{
+                          label: t('sla_on_time_short', 'OK'),
+                          data: chartData,
+                          backgroundColor: '#2e7d32'
+                        }]}
+                        height={80}
+                        options={{
+                          plugins: { legend: { display: false } },
+                          scales: {
+                            x: { display: false },
+                            y: { display: false }
+                          }
+                        }}
+                      />
+                    </Box>
+                  )}
+                </Stack>
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+                  {t('sla_no_data', 'Sin datos de criticidad')}
+                </Box>
+              )}
+            </Box>
+          </Paper>
+        </Grid>
+      </Grid>
 
       {/* Alertas activas */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-500" />
+      <Paper elevation={1}>
+        <Box
+          sx={{
+            px: 3,
+            py: 2,
+            borderBottom: 1,
+            borderColor: 'divider',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}
+        >
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <WarningAmberIcon sx={{ color: 'warning.main', fontSize: 20 }} />
+            <Typography variant="subtitle1" fontWeight={600}>
               {t('sla_alertas_activas', 'Alertas Activas')}
-              {alertas.length > 0 && (
-                <Badge variant="danger">{alertas.length}</Badge>
-              )}
-            </CardTitle>
+            </Typography>
+            {alertas.length > 0 && (
+              <Chip label={alertas.length} size="small" color="error" />
+            )}
+          </Stack>
 
-            {/* Filtro de tipo */}
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-slate-500" />
-              <select
-                value={tipoFiltro || ''}
-                onChange={(e) => setTipoFiltro(e.target.value || null)}
-                className="text-sm border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          {/* Filtro de tipo */}
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <FilterListIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
+            <FormControl size="small">
+              <Select
+                value={tipoFiltro}
+                onChange={(e) => setTipoFiltro(e.target.value)}
+                displayEmpty
+                sx={{
+                  minWidth: 120,
+                  '& .MuiSelect-select': { py: 0.75, px: 1.5, fontSize: '0.875rem' }
+                }}
               >
-                <option value="">{t('sla_todos', 'Todos')}</option>
-                <option value="warning">Warning</option>
-                <option value="breach">Breach</option>
-                <option value="escalated">Escalated</option>
-              </select>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
+                <MenuItem value="">{t('sla_todos', 'Todos')}</MenuItem>
+                <MenuItem value="warning">Warning</MenuItem>
+                <MenuItem value="breach">Breach</MenuItem>
+                <MenuItem value="escalated">Escalated</MenuItem>
+              </Select>
+            </FormControl>
+          </Stack>
+        </Box>
+
+        <Box sx={{ p: 3 }}>
           {alertas.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
-              <CheckCircle className="w-12 h-12 mx-auto mb-3 text-emerald-500" />
-              <p>{t('sla_sin_alertas', 'No hay alertas activas')}</p>
-            </div>
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <CheckCircleIcon sx={{ fontSize: 48, color: 'success.main', mb: 1.5 }} />
+              <Typography color="text.secondary">
+                {t('sla_sin_alertas', 'No hay alertas activas')}
+              </Typography>
+            </Box>
           ) : (
-            <div className="space-y-3">
+            <Stack spacing={1.5}>
               {alertas.map((alerta) => {
                 const colors = ALERT_COLORS[alerta.tipo] || ALERT_COLORS.warning
                 return (
-                  <div
+                  <Paper
                     key={alerta.id}
-                    className={`p-4 rounded-lg border ${colors.bg} ${colors.border}`}
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      bgcolor: colors.bg,
+                      borderColor: colors.border
+                    }}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge variant={colors.badge}>
-                            {alerta.tipo?.toUpperCase()}
-                          </Badge>
-                          <span className="text-sm font-medium text-slate-700">
+                    <Stack
+                      direction={{ xs: 'column', sm: 'row' }}
+                      justifyContent="space-between"
+                      alignItems={{ xs: 'flex-start', sm: 'flex-start' }}
+                      spacing={1}
+                    >
+                      <Box sx={{ flex: 1 }}>
+                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+                          <Chip
+                            label={alerta.tipo?.toUpperCase()}
+                            size="small"
+                            color={colors.chipColor}
+                          />
+                          <Typography variant="body2" fontWeight={500} color="text.primary">
                             {t('sla_solicitud', 'Solicitud')} #{alerta.solicitud_id}
-                          </span>
-                        </div>
-                        <p className={`text-sm ${colors.text}`}>
+                          </Typography>
+                        </Stack>
+                        <Typography variant="body2" sx={{ color: colors.text }}>
                           {alerta.mensaje || t('sla_alerta_default', 'Alerta de SLA activa')}
-                        </p>
+                        </Typography>
                         {alerta.tiempo_transcurrido_horas && (
-                          <p className="text-xs text-slate-500 mt-1">
+                          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
                             {t('sla_tiempo_transcurrido', 'Tiempo transcurrido')}:{' '}
                             {Math.round(alerta.tiempo_transcurrido_horas)}h /{' '}
                             {alerta.tiempo_objetivo_horas}h {t('sla_objetivo', 'objetivo')}
-                          </p>
+                          </Typography>
                         )}
-                      </div>
+                      </Box>
                       <Button
-                        size="sm"
-                        variant="ghost"
+                        size="small"
+                        variant="text"
+                        startIcon={<CheckCircleIcon />}
                         onClick={() => handleResolverAlerta(alerta.id)}
-                        className="text-slate-600 hover:text-emerald-600"
+                        sx={{
+                          color: 'text.secondary',
+                          '&:hover': { color: 'success.main' }
+                        }}
                       >
-                        <CheckCircle className="w-4 h-4 mr-1" />
                         {t('sla_resolver', 'Resolver')}
                       </Button>
-                    </div>
-                  </div>
+                    </Stack>
+                  </Paper>
                 )
               })}
-            </div>
+            </Stack>
           )}
-        </CardContent>
-      </Card>
-    </div>
+        </Box>
+      </Paper>
+    </Box>
   )
 }

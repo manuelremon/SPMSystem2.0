@@ -1,7 +1,11 @@
 import React from "react";
 import * as Sentry from "@sentry/react";
-import { AlertTriangle, RefreshCw, Home } from "./ui/Icons";
-import { Button } from "./ui/Button";
+import { Box, Paper, Typography, Button, Stack } from "@mui/material";
+import {
+  Warning as AlertTriangleIcon,
+  Refresh as RefreshCwIcon,
+  Home as HomeIcon,
+} from "@mui/icons-material";
 
 /**
  * ErrorBoundary - Catches JavaScript errors in child components
@@ -59,65 +63,133 @@ class ErrorBoundary extends React.Component {
 
       // Default fallback UI
       return (
-        <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 text-center space-y-6">
+        <Box
+          sx={{
+            minHeight: "100vh",
+            bgcolor: "background.default",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            p: 2,
+          }}
+        >
+          <Paper
+            elevation={0}
+            sx={{
+              maxWidth: 400,
+              width: "100%",
+              border: 1,
+              borderColor: "divider",
+              borderRadius: 4,
+              p: 4,
+              textAlign: "center",
+            }}
+          >
             {/* Icon */}
-            <div className="mx-auto w-16 h-16 rounded-full bg-[var(--danger-muted)]/20 flex items-center justify-center">
-              <AlertTriangle className="w-8 h-8 text-[var(--danger)]" />
-            </div>
+            <Box
+              sx={{
+                mx: "auto",
+                width: 64,
+                height: 64,
+                borderRadius: "50%",
+                bgcolor: "error.lighter",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                mb: 3,
+              }}
+            >
+              <AlertTriangleIcon sx={{ width: 32, height: 32, color: "error.main" }} />
+            </Box>
 
             {/* Title */}
-            <div className="space-y-2">
-              <h1 className="text-xl font-bold text-[var(--fg)]">
+            <Stack spacing={1} sx={{ mb: 3 }}>
+              <Typography variant="h5" fontWeight="bold">
                 Algo salió mal
-              </h1>
-              <p className="text-sm text-[var(--fg-muted)]">
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
                 Ha ocurrido un error inesperado. Por favor intenta recargar la página.
-              </p>
-            </div>
+              </Typography>
+            </Stack>
 
             {/* Error details (development only) */}
             {process.env.NODE_ENV === "development" && this.state.error && (
-              <div className="text-left p-4 bg-[var(--bg-soft)] rounded-lg border border-[var(--border)] overflow-auto max-h-48">
-                <p className="text-xs font-mono text-[var(--danger)] break-all">
+              <Paper
+                elevation={0}
+                sx={{
+                  textAlign: "left",
+                  p: 2,
+                  bgcolor: "action.hover",
+                  borderRadius: 2,
+                  border: 1,
+                  borderColor: "divider",
+                  maxHeight: 192,
+                  overflow: "auto",
+                  mb: 3,
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  component="p"
+                  sx={{
+                    fontFamily: "monospace",
+                    color: "error.main",
+                    wordBreak: "break-all",
+                  }}
+                >
                   {this.state.error.toString()}
-                </p>
+                </Typography>
                 {this.state.errorInfo && (
-                  <pre className="text-xs font-mono text-[var(--fg-muted)] mt-2 whitespace-pre-wrap">
+                  <Typography
+                    component="pre"
+                    variant="caption"
+                    sx={{
+                      fontFamily: "monospace",
+                      color: "text.secondary",
+                      mt: 1,
+                      whiteSpace: "pre-wrap",
+                    }}
+                  >
                     {this.state.errorInfo.componentStack}
-                  </pre>
+                  </Typography>
                 )}
-              </div>
+              </Paper>
             )}
 
             {/* Actions */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1.5}
+              justifyContent="center"
+              sx={{ mb: 2 }}
+            >
               <Button
-                variant="secondary"
+                variant="outlined"
                 onClick={this.handleGoHome}
-                className="flex items-center justify-center gap-2"
+                startIcon={<HomeIcon />}
               >
-                <Home className="w-4 h-4" />
                 Ir al inicio
               </Button>
               <Button
+                variant="contained"
                 onClick={this.handleReload}
-                className="flex items-center justify-center gap-2"
+                startIcon={<RefreshCwIcon />}
               >
-                <RefreshCw className="w-4 h-4" />
                 Recargar página
               </Button>
-            </div>
+            </Stack>
 
             {/* Retry button */}
-            <button
+            <Button
+              variant="text"
+              size="small"
               onClick={this.handleRetry}
-              className="text-sm text-[var(--primary)] hover:underline"
+              sx={{ color: "primary.main" }}
             >
               Intentar de nuevo sin recargar
-            </button>
-          </div>
-        </div>
+            </Button>
+          </Paper>
+        </Box>
       );
     }
 

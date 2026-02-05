@@ -47,10 +47,7 @@ def send_email(self, to: str, subject: str, body: str, html: bool = False) -> Di
     Returns:
         Dict with send status
     """
-    try:
-        from backend.core.config import settings
-    except ImportError:
-        from core.config import settings
+    from backend.core.config import settings
 
     logger.info(f"Celery task: send_email to={to}, subject={subject}")
 
@@ -402,13 +399,13 @@ def cleanup_old_data() -> Dict[str, Any]:
             # Clean old notifications (> 30 days, read)
             if is_using_postgresql():
                 cur.execute("""
-                    DELETE FROM notificaciones
+                    DELETE FROM notificacion
                     WHERE leida = TRUE
                     AND fecha < NOW() - INTERVAL '30 days'
                 """)
             else:
                 cur.execute("""
-                    DELETE FROM notificaciones
+                    DELETE FROM notificacion
                     WHERE leida = 1
                     AND fecha < datetime('now', '-30 days')
                 """)

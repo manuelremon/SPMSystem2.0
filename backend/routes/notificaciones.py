@@ -144,10 +144,7 @@ def notification_stream():
         return jsonify({"ok": False, "error": "Unauthorized"}), 401
 
     # FIX 5.1: Importar Redis pub/sub
-    try:
-        from backend.core.redis_pubsub import redis_pubsub, is_redis_available
-    except ImportError:
-        from core.redis_pubsub import redis_pubsub, is_redis_available
+    from backend.core.redis_pubsub import redis_pubsub, is_redis_available
 
     use_redis = is_redis_available()
 
@@ -262,10 +259,7 @@ def centro_interaccion():
     """
     user_id = g.user.get("user_id")
 
-    try:
-        from backend.core.db import get_db_connection
-    except ImportError:
-        from core.db import get_db_connection
+    from backend.core.db import get_db_connection
 
     try:
         with get_db_connection() as conn:
@@ -274,7 +268,7 @@ def centro_interaccion():
             # 1. Notificaciones no leídas
             cur.execute(
                 """
-                SELECT COUNT(*) as count FROM notificaciones
+                SELECT COUNT(*) as count FROM notificacion
                 WHERE destinatario_id = ? AND leido = 0
                 """,
                 (user_id,),
@@ -282,6 +276,7 @@ def centro_interaccion():
             notif_count = cur.fetchone()["count"]
 
             # 2. Consultas de stock pendientes (si es responsable/referente)
+            # Nota: SQLite no soporta ANY(string_to_array), usamos INSTR para buscar en lista CSV
             cur.execute(
                 """
                 SELECT COUNT(*) as count
@@ -295,10 +290,10 @@ def centro_interaccion():
                   AND (
                       ca.responsable_id = ?
                       OR EXISTS (
-                          SELECT 1 FROM usuarios u
+                          SELECT 1 FROM usuario u
                           WHERE u.id_spm = ?
-                          AND f.centro_origen = ANY(string_to_array(u.centros, ','))
-                          AND (u.rol LIKE '%%coordinador%%' OR u.rol LIKE '%%jefe%%')
+                          AND (',' || u.centros || ',' LIKE '%,' || f.centro_origen || ',%')
+                          AND (u.rol LIKE '%coordinador%' OR u.rol LIKE '%jefe%')
                       )
                   )
                 """,
@@ -309,7 +304,7 @@ def centro_interaccion():
             # 3. Mensajes no leídos
             cur.execute(
                 """
-                SELECT COUNT(*) as count FROM mensajes
+                SELECT COUNT(*) as count FROM mensaje
                 WHERE destinatario_id = ? AND leido = 0
                 """,
                 (user_id,),
@@ -321,11 +316,11 @@ def centro_interaccion():
                 """
                 SELECT 'notificacion' as tipo, mensaje as descripcion,
                        tipo as subtipo, created_at, solicitud_id
-                FROM notificaciones WHERE destinatario_id = ?
+                FROM notificacion WHERE destinatario_id = ?
                 UNION ALL
                 SELECT 'mensaje' as tipo, SUBSTR(mensaje, 1, 100) as descripcion,
                        'mensaje' as subtipo, created_at, solicitud_id
-                FROM mensajes WHERE destinatario_id = ?
+                FROM mensaje WHERE destinatario_id = ?
                 ORDER BY created_at DESC LIMIT 20
                 """,
                 (user_id, user_id),

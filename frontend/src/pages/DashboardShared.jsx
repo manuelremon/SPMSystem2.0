@@ -1,4 +1,5 @@
 import React from "react";
+import { Typography, Box } from "@mui/material";
 import StatusBadge from "../components/ui/StatusBadge";
 import { formatCurrency, formatAlmacen, formatDate } from "../utils/formatters";
 import { withSpmAlignments } from "../utils/tableAlignments";
@@ -17,7 +18,17 @@ export function getTableColumns(t) {
       header: "ID",
       sortAccessor: (row) => Number(row.id) || 0,
       render: (row) => (
-        <span className="font-mono text-xs tabular-nums text-slate-700">{row.id}</span>
+        <Typography
+          component="span"
+          sx={{
+            fontFamily: "monospace",
+            fontSize: "0.75rem",
+            fontVariantNumeric: "tabular-nums",
+            color: "slate.700",
+          }}
+        >
+          {row.id}
+        </Typography>
       ),
     },
     {
@@ -27,9 +38,16 @@ export function getTableColumns(t) {
         const nombre = [row.solicitante_nombre, row.solicitante_apellido]
           .filter(Boolean).join(" ").trim();
         return (
-          <span className="text-xs text-slate-600 font-medium">
+          <Typography
+            component="span"
+            sx={{
+              fontSize: "0.75rem",
+              color: "text.secondary",
+              fontWeight: 500,
+            }}
+          >
             {nombre || "-"}
-          </span>
+          </Typography>
         );
       },
     },
@@ -38,9 +56,16 @@ export function getTableColumns(t) {
       header: t("dash_table_fecha", "Fecha"),
       sortAccessor: (row) => new Date(row.created_at).getTime() || 0,
       render: (row) => (
-        <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
           {formatDate(row.created_at)}
-        </span>
+        </Typography>
       ),
     },
     {
@@ -55,6 +80,7 @@ export function getTableColumns(t) {
         return (
           <StatusBadge
             estado={row.estado || row.status || "Desconocido"}
+            showIcon={false}
             tooltipInfo={{
               aprobador: aprobadorNombre,
               planificador: plannerNombre,
@@ -71,14 +97,17 @@ export function getTableColumns(t) {
       render: (row) => {
         const criticidad = row.criticidad || "Normal";
         const config = getCriticidadConfig(criticidad);
-        const Icon = config.icon;
         return (
-          <div className="inline-flex items-center gap-1">
-            {Icon && <Icon className="w-4 h-4" style={{ color: config.color }} />}
-            <span className="text-[11px] font-medium" style={{ color: config.color }}>
-              {config.label}
-            </span>
-          </div>
+          <Typography
+            component="span"
+            sx={{
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              color: config.color,
+            }}
+          >
+            {config.label}
+          </Typography>
         );
       },
     },
@@ -87,7 +116,18 @@ export function getTableColumns(t) {
       header: "Items",
       render: (row) => {
         const items = row.items || [];
-        return <span className="font-mono text-xs tabular-nums">{items.length}</span>;
+        return (
+          <Typography
+            component="span"
+            sx={{
+              fontFamily: "monospace",
+              fontSize: "0.75rem",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            {items.length}
+          </Typography>
+        );
       },
     },
     {
@@ -96,30 +136,65 @@ export function getTableColumns(t) {
       className: "text-right",
       minWidth: 120,
       render: (row) => (
-        <span className="font-mono text-xs tabular-nums font-medium text-right block whitespace-nowrap">
+        <Box
+          component="span"
+          sx={{
+            fontFamily: "monospace",
+            fontSize: "0.75rem",
+            fontVariantNumeric: "tabular-nums",
+            fontWeight: 500,
+            textAlign: "right",
+            display: "block",
+            whiteSpace: "nowrap",
+          }}
+        >
           {formatCurrency(row.total_monto || 0)}
-        </span>
+        </Box>
       ),
     },
     {
       key: "sector",
       header: "Sector",
       render: (row) => (
-        <span className="text-xs text-slate-500">{row.sector_nombre || row.sector || "-"}</span>
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+          }}
+        >
+          {row.sector_nombre || row.sector || "-"}
+        </Typography>
       ),
     },
     {
       key: "centro",
       header: "Centro",
       render: (row) => (
-        <span className="text-xs text-slate-500">{row.centro || "-"}</span>
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+          }}
+        >
+          {row.centro || "-"}
+        </Typography>
       ),
     },
     {
       key: "almacen",
       header: "Almacén",
       render: (row) => (
-        <span className="text-xs text-slate-500">{formatAlmacen(row.almacen_virtual)}</span>
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+          }}
+        >
+          {formatAlmacen(row.almacen_virtual)}
+        </Typography>
       ),
     },
     {
@@ -129,11 +204,252 @@ export function getTableColumns(t) {
         const plannerNombre = [row.planner_nombre, row.planner_apellido]
           .filter(Boolean).join(" ").trim();
         return (
-          <span className="text-xs text-slate-500">
+          <Typography
+            component="span"
+            sx={{
+              fontSize: "0.75rem",
+              color: "text.secondary",
+            }}
+          >
             {plannerNombre || "-"}
-          </span>
+          </Typography>
         );
       },
     },
   ]);
+}
+
+// Configuración de columnas AG Grid para solicitudes
+export function getTableColumnsAgGrid(t) {
+  return [
+    {
+      field: "id",
+      headerName: "ID",
+      width: 80,
+      flex: 0,
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontFamily: "monospace",
+            fontSize: "0.75rem",
+            fontVariantNumeric: "tabular-nums",
+            color: "slate.700",
+          }}
+        >
+          {params.data?.id}
+        </Typography>
+      ),
+    },
+    {
+      field: "solicitante",
+      headerName: t("dash_table_solicitante", "Solicitante"),
+      minWidth: 150,
+      valueGetter: (params) => {
+        const row = params.data;
+        return [row?.solicitante_nombre, row?.solicitante_apellido]
+          .filter(Boolean).join(" ").trim() || "-";
+      },
+      cellRenderer: (params) => {
+        const nombre = [params.data?.solicitante_nombre, params.data?.solicitante_apellido]
+          .filter(Boolean).join(" ").trim();
+        return (
+          <Typography
+            component="span"
+            sx={{
+              fontSize: "0.75rem",
+              color: "text.secondary",
+              fontWeight: 500,
+            }}
+          >
+            {nombre || "-"}
+          </Typography>
+        );
+      },
+    },
+    {
+      field: "created_at",
+      headerName: t("dash_table_fecha", "Fecha"),
+      minWidth: 100,
+      valueGetter: (params) => params.data?.created_at ? new Date(params.data.created_at).getTime() : 0,
+      valueFormatter: (params) => formatDate(params.data?.created_at),
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {formatDate(params.data?.created_at)}
+        </Typography>
+      ),
+    },
+    {
+      field: "estado",
+      headerName: t("dash_table_estado", "Estado"),
+      minWidth: 120,
+      cellRenderer: (params) => {
+        const row = params.data;
+        const aprobadorNombre = [row?.aprobador_nombre, row?.aprobador_apellido]
+          .filter(Boolean).join(" ").trim() || null;
+        const plannerNombre = [row?.planner_nombre, row?.planner_apellido]
+          .filter(Boolean).join(" ").trim() || null;
+
+        return (
+          <StatusBadge
+            estado={row?.estado || row?.status || "Desconocido"}
+            showIcon={false}
+            tooltipInfo={{
+              aprobador: aprobadorNombre,
+              planificador: plannerNombre,
+              fechaAprobacion: row?.updated_at,
+              fechaEnvio: row?.created_at,
+            }}
+          />
+        );
+      },
+    },
+    {
+      field: "criticidad",
+      headerName: "Criticidad",
+      minWidth: 100,
+      cellRenderer: (params) => {
+        const criticidad = params.data?.criticidad || "Normal";
+        const config = getCriticidadConfig(criticidad);
+        return (
+          <Typography
+            component="span"
+            sx={{
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              color: config.color,
+            }}
+          >
+            {config.label}
+          </Typography>
+        );
+      },
+    },
+    {
+      field: "items",
+      headerName: "Items",
+      width: 80,
+      flex: 0,
+      valueGetter: (params) => (params.data?.items || []).length,
+      cellRenderer: (params) => {
+        const items = params.data?.items || [];
+        return (
+          <Typography
+            component="span"
+            sx={{
+              fontFamily: "monospace",
+              fontSize: "0.75rem",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            {items.length}
+          </Typography>
+        );
+      },
+    },
+    {
+      field: "total_monto",
+      headerName: "Monto",
+      minWidth: 120,
+      type: "numericColumn",
+      cellStyle: { textAlign: 'right', paddingRight: '16px' },
+      valueFormatter: (params) => formatCurrency(params.data?.total_monto || 0),
+      cellRenderer: (params) => (
+        <Box
+          component="span"
+          sx={{
+            fontFamily: "monospace",
+            fontSize: "0.75rem",
+            fontVariantNumeric: "tabular-nums",
+            fontWeight: 500,
+            display: "block",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {formatCurrency(params.data?.total_monto || 0)}
+        </Box>
+      ),
+    },
+    {
+      field: "sector_nombre",
+      headerName: "Sector",
+      minWidth: 120,
+      valueGetter: (params) => params.data?.sector_nombre || params.data?.sector || "-",
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+          }}
+        >
+          {params.data?.sector_nombre || params.data?.sector || "-"}
+        </Typography>
+      ),
+    },
+    {
+      field: "centro",
+      headerName: "Centro",
+      minWidth: 100,
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+          }}
+        >
+          {params.data?.centro || "-"}
+        </Typography>
+      ),
+    },
+    {
+      field: "almacen_virtual",
+      headerName: "Almacén",
+      minWidth: 100,
+      valueGetter: (params) => formatAlmacen(params.data?.almacen_virtual),
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+          }}
+        >
+          {formatAlmacen(params.data?.almacen_virtual)}
+        </Typography>
+      ),
+    },
+    {
+      field: "planificador",
+      headerName: "Planificador",
+      minWidth: 140,
+      valueGetter: (params) => {
+        return [params.data?.planner_nombre, params.data?.planner_apellido]
+          .filter(Boolean).join(" ").trim() || "-";
+      },
+      cellRenderer: (params) => {
+        const plannerNombre = [params.data?.planner_nombre, params.data?.planner_apellido]
+          .filter(Boolean).join(" ").trim();
+        return (
+          <Typography
+            component="span"
+            sx={{
+              fontSize: "0.75rem",
+              color: "text.secondary",
+            }}
+          >
+            {plannerNombre || "-"}
+          </Typography>
+        );
+      },
+    },
+  ];
 }

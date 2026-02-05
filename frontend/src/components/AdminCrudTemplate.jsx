@@ -1,17 +1,40 @@
+/**
+ * AdminCrudTemplate - Template CRUD generico para paginas de administracion
+ * Migrado a Material UI
+ */
 import { useEffect, useMemo, useState, useCallback } from "react";
+import {
+  Box,
+  Paper,
+  Typography,
+  Button,
+  Stack,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert,
+  IconButton,
+  Checkbox,
+  FormControlLabel,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  Divider,
+  CircularProgress,
+} from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import CloseIcon from "@mui/icons-material/Close";
+import SaveIcon from "@mui/icons-material/Save";
+import SettingsIcon from "@mui/icons-material/Settings";
+import SearchIcon from "@mui/icons-material/Search";
 import { admin } from "../services/spm";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/Card";
-import { Button } from "./ui/Button";
-import { Input } from "./ui/Input";
-import { Select } from "./ui/Select";
-import { SearchInput } from "./ui/SearchInput";
-import { ModernDataTable as DataTable } from "./features/DataTable";
-import { withSpmAlignments } from "../utils/tableAlignments";
-import { Alert } from "./ui/Alert";
-import { PageHeader } from "./ui/PageHeader";
+import { SPMAgGrid } from "./ui/SPMAgGrid";
 import { ConfirmModal } from "./ui/ConfirmModal";
-import { TableSkeleton } from "./ui/Skeleton";
-import { Plus, Edit3, Trash2, X, Save, Settings } from "./ui/Icons";
 import { useI18n } from "../context/i18n";
 import { useDebounced } from "../hooks/useDebounced";
 
@@ -28,6 +51,7 @@ export default function AdminCrudTemplate({
   customUpdate,
   hideCardTitle = true,
   hideDescription = false,
+  exportFileName,
 }) {
   const { t } = useI18n();
   const initialForm = useMemo(() => {
@@ -181,363 +205,452 @@ export default function AdminCrudTemplate({
     });
   }, [items, debouncedQ, columns]);
 
-  // Paginación
+  // Paginacion
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginatedItems = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE;
     return filtered.slice(start, start + PAGE_SIZE);
   }, [filtered, currentPage]);
 
-  // Reset página cuando cambian filtros
+  // Reset pagina cuando cambian filtros
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedQ]);
 
-  // Columnas de la tabla con acciones (alineación automática SPM)
-  const tableColumns = useMemo(() => withSpmAlignments([
+  // Columnas de la tabla con acciones (formato AG Grid)
+  const columnDefs = useMemo(() => [
     ...columns.map((col) => ({
-      key: col.key,
-      header: col.label,
-      render: col.render,
-      sortAccessor: (row) => row[col.key],
+      field: col.key,
+      headerName: col.label,
+      cellRenderer: col.render ? (params) => col.render(params.data) : undefined,
     })),
     {
-      key: "acciones",
-      header: t("common_acciones", "Acciones"),
-      render: (row) => (
-        <div className="flex gap-1.5 justify-center" role="group" aria-label={`${t("common_acciones", "Acciones")} ${row[idKey]}`}>
+      field: "acciones",
+      headerName: t("common_acciones", "Acciones"),
+      sortable: false,
+      filter: false,
+      cellRenderer: (params) => (
+        <Stack direction="row" spacing={0.5} justifyContent="center" role="group" aria-label={`${t("common_acciones", "Acciones")} ${params.data[idKey]}`}>
           <Button
-            variant="icon"
-            className="px-2.5 py-1.5 text-xs"
-            onClick={() => handleEdit(row)}
-            aria-label={`${t("crud_edit", "Editar")} ${title} ${row[idKey]}`}
+            size="small"
+            variant="text"
+            onClick={() => handleEdit(params.data)}
+            aria-label={`${t("crud_edit", "Editar")} ${title} ${params.data[idKey]}`}
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              color: "info.main",
+              fontSize: "0.75rem",
+              minWidth: "auto",
+              px: 1,
+              "&:hover": { bgcolor: "info.lighter" },
+            }}
           >
-            <Edit3 className="w-4 h-4" aria-hidden="true" />
+            {t("crud_edit", "Editar")}
           </Button>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
           <Button
-            variant="icon-danger"
-            className="px-2.5 py-1.5 text-xs"
-            onClick={() => handleDelete(row)}
-            aria-label={`${t("common_eliminar", "Eliminar")} ${title} ${row[idKey]}`}
+            size="small"
+            variant="text"
+            onClick={() => handleDelete(params.data)}
+            aria-label={`${t("common_eliminar", "Eliminar")} ${title} ${params.data[idKey]}`}
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              color: "error.main",
+              fontSize: "0.75rem",
+              minWidth: "auto",
+              px: 1,
+              "&:hover": { bgcolor: "error.lighter" },
+            }}
           >
-            <Trash2 className="w-4 h-4" aria-hidden="true" />
+            {t("common_eliminar", "Eliminar")}
           </Button>
-        </div>
+        </Stack>
       ),
     },
-  ]), [columns, t, idKey, title, handleEdit, handleDelete]);
+  ], [columns, t, idKey, title, handleEdit, handleDelete]);
 
   return (
-    <div className="space-y-6">
+    <Box sx={{ maxWidth: 1600, mx: "auto", px: 2, py: 1 }}>
       {/* Page Header */}
-      <PageHeader
-        title={title}
-        description={hideDescription ? undefined : `${t("crud_manage_catalog", "Gestiona el catálogo de")} ${title.toLowerCase()} ${t("common_del_sistema", "del sistema")}`}
-        icon={Settings}
-      >
-        <Button onClick={handleNew} aria-label={`${t("crud_new", "Nuevo")} ${title}`}>
-          <Plus className="w-4 h-4" aria-hidden="true" />
-          {t("crud_new", "Nuevo")} {title}
-        </Button>
-      </PageHeader>
+      <Box sx={{ mb: 3 }}>
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          alignItems={{ md: "center" }}
+          justifyContent="space-between"
+          spacing={2}
+        >
+          <Box>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+              <SettingsIcon sx={{ color: "grey.500" }} />
+              <Typography variant="h5" component="h1" fontWeight={700} sx={{ textTransform: "uppercase" }}>
+                {title}
+              </Typography>
+            </Stack>
+            {!hideDescription && (
+              <Typography variant="body2" color="text.secondary">
+                {`${t("crud_manage_catalog", "Gestiona el catalogo de")} ${title.toLowerCase()} ${t("common_del_sistema", "del sistema")}`}
+              </Typography>
+            )}
+          </Box>
+          <Button
+            variant="contained"
+            onClick={handleNew}
+            startIcon={<AddIcon />}
+            aria-label={`${t("crud_new", "Nuevo")} ${title}`}
+          >
+            {t("crud_new", "Nuevo")} {title}
+          </Button>
+        </Stack>
+      </Box>
 
       {/* Mensajes */}
-      {error && <Alert variant="danger" onDismiss={() => setError("")}>{error}</Alert>}
-      {success && <Alert variant="success" onDismiss={() => setSuccess("")}>{success}</Alert>}
+      <Stack spacing={2} sx={{ mb: 2 }}>
+        {error && (
+          <Alert severity="error" onClose={() => setError("")}>
+            {error}
+          </Alert>
+        )}
+        {success && (
+          <Alert severity="success" onClose={() => setSuccess("")}>
+            {success}
+          </Alert>
+        )}
+      </Stack>
 
       {/* Card principal */}
-      <Card>
+      <Paper sx={{ overflow: "hidden" }}>
         {!hideCardTitle && (
-          <CardHeader className="px-6 pt-6 pb-3">
-            <CardTitle>{title}</CardTitle>
-          </CardHeader>
+          <Box sx={{ px: 3, pt: 3, pb: 1.5, borderBottom: 1, borderColor: "divider" }}>
+            <Typography variant="h6" component="h2">
+              {title}
+            </Typography>
+          </Box>
         )}
 
-        <CardContent className={`px-6 pb-6 space-y-4 ${hideCardTitle ? 'pt-6' : 'pt-1'}`}>
-          {/* Búsqueda */}
-          <div className="flex gap-3">
-            <SearchInput
+        <Box sx={{ p: 3 }}>
+          <Stack spacing={3}>
+            {/* Busqueda */}
+            <TextField
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder={`${t("crud_search", "Buscar")} ${title.toLowerCase()}...`}
-              className="flex-1"
+              size="small"
+              fullWidth
+              InputProps={{
+                startAdornment: <SearchIcon sx={{ color: "grey.400", mr: 1 }} />,
+              }}
             />
-          </div>
 
-          {/* Tabla o loading skeleton */}
-          {loading && items.length === 0 ? (
-            <TableSkeleton rows={5} columns={columns.length + 1} />
-          ) : (
-            <>
-              <DataTable
-                columns={tableColumns}
-                rows={paginatedItems}
-                emptyMessage={
-                  filtered.length === 0 && items.length > 0
-                    ? t("crud_no_results_search", "No hay resultados para la búsqueda")
-                    : `${t("crud_no_hay", "No hay")} ${title.toLowerCase()} ${t("crud_no_items_created", "creados")}`
-                }
-              />
+            {/* Tabla o loading skeleton */}
+            {loading && items.length === 0 ? (
+              <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <>
+                <SPMAgGrid
+                  columnDefs={columnDefs}
+                  rowData={paginatedItems}
+                  emptyMessage={
+                    filtered.length === 0 && items.length > 0
+                      ? t("crud_no_results_search", "No hay resultados para la busqueda")
+                      : `${t("crud_no_hay", "No hay")} ${title.toLowerCase()} ${t("crud_no_items_created", "creados")}`
+                  }
+                  pagination={false}
+                  enableQuickFilter={true}
+                  exportFileName={exportFileName || resource}
+                  height={400}
+                />
 
-              {/* Paginación */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-4 border-t border-white/30 dark:border-white/10">
-                  <div className="text-sm text-slate-500 dark:text-slate-400">
-                    {t("common_pagina", "Página")} {currentPage} {t("common_de", "de")} {totalPages}
-                    <span className="ml-2">
-                      ({t("common_mostrando", "Mostrando")} {paginatedItems.length} {t("common_de", "de")} {filtered.length})
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="secondary"
-                      className="px-3 py-1.5 text-sm"
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      {t("common_anterior", "Anterior")}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      className="px-3 py-1.5 text-sm"
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      {t("common_siguiente", "Siguiente")}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+                {/* Paginacion */}
+                {totalPages > 1 && (
+                  <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    alignItems={{ sm: "center" }}
+                    justifyContent="space-between"
+                    spacing={2}
+                    sx={{ pt: 2, borderTop: 1, borderColor: "divider" }}
+                  >
+                    <Typography variant="body2" color="text.secondary">
+                      {t("common_pagina", "Pagina")} {currentPage} {t("common_de", "de")} {totalPages}
+                      <Box component="span" sx={{ ml: 1 }}>
+                        ({t("common_mostrando", "Mostrando")} {paginatedItems.length} {t("common_de", "de")} {filtered.length})
+                      </Box>
+                    </Typography>
+                    <Stack direction="row" spacing={1}>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        {t("common_anterior", "Anterior")}
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                      >
+                        {t("common_siguiente", "Siguiente")}
+                      </Button>
+                    </Stack>
+                  </Stack>
+                )}
+              </>
+            )}
+          </Stack>
+        </Box>
+      </Paper>
 
       {/* Modal de formulario */}
-      {showForm && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          role="presentation"
-          style={{
-            backgroundColor: 'var(--overlay, rgba(15, 23, 42, 0.4))',
-            backdropFilter: 'blur(4px)',
-            WebkitBackdropFilter: 'blur(4px)',
-          }}
-        >
-          <div
-            className="relative w-full max-w-2xl rounded-2xl border border-white/50 dark:border-white/10 max-h-[90vh] overflow-auto bg-white/95 dark:bg-slate-900/95"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="crud-modal-title"
-            style={{
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            }}
+      <Dialog
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Box>
+            <Typography variant="h6" component="span">
+              {editingId ? `${t("crud_edit", "Editar")} ${title}` : `${t("crud_new", "Nuevo")} ${title}`}
+            </Typography>
+            {!editingId && (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                {t("crud_complete_required", "Completa los campos obligatorios")}
+              </Typography>
+            )}
+          </Box>
+          <IconButton
+            onClick={() => setShowForm(false)}
+            disabled={loading}
+            aria-label={t("common_cerrar", "Cerrar")}
           >
-            {/* Header */}
-            <div className="sticky top-0 z-10 flex items-start justify-between p-6 border-b border-white/30 dark:border-white/10 bg-white/70 dark:bg-slate-800/70 backdrop-blur-md">
-              <div className="flex-1">
-                <h2 id="crud-modal-title" className="text-xl font-semibold text-slate-800 dark:text-slate-100">
-                  {editingId ? `${t("crud_edit", "Editar")} ${title}` : `${t("crud_new", "Nuevo")} ${title}`}
-                </h2>
-                {!editingId && (
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    {t("crud_complete_required", "Completa los campos obligatorios")}
-                  </p>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="flex-shrink-0 ml-4 p-2 rounded-xl text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50 transition-all"
-                disabled={loading}
-                aria-label={t("common_cerrar", "Cerrar")}
-              >
-                <X className="w-5 h-5" aria-hidden="true" />
-              </button>
-            </div>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
 
-            {/* Content */}
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {error && (
-                <Alert variant="danger" onDismiss={() => setError("")}>
-                  {error}
-                </Alert>
-              )}
+        <DialogContent dividers>
+          <Box component="form" id="crud-form" onSubmit={handleSubmit}>
+            {error && (
+              <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
 
-              {/* Formulario con soporte para secciones/dividers */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {fields.map((f) =>
-                  f.type === "section" ? (
-                    <div key={f.name} className="md:col-span-2 pt-4 first:pt-0">
-                      <div className="flex items-center gap-3 pb-3 border-b border-white/30 dark:border-white/10">
-                        {f.icon && <f.icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
-                        <div>
-                          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100 uppercase tracking-wide">
-                            {f.label}
-                          </h3>
-                          {f.description && (
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{f.description}</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
+            {/* Formulario con soporte para secciones/dividers */}
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                gap: 2,
+              }}
+            >
+              {fields.map((f) =>
+                f.type === "section" ? (
+                  <Box key={f.name} sx={{ gridColumn: { md: "span 2" }, pt: 2 }}>
+                    <Divider sx={{ mb: 2 }} />
+                    <Stack direction="row" alignItems="center" spacing={1.5}>
+                      {f.icon && <f.icon sx={{ color: "primary.main" }} />}
+                      <Box>
+                        <Typography variant="subtitle2" fontWeight={600} sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}>
+                          {f.label}
+                        </Typography>
+                        {f.description && (
+                          <Typography variant="caption" color="text.secondary">
+                            {f.description}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Stack>
+                  </Box>
+                ) : (
+                  <Box
                     key={f.name}
-                    className={f.type === "textarea" || f.fullWidth ? "md:col-span-2" : ""}
+                    sx={{
+                      gridColumn: f.type === "textarea" || f.fullWidth ? { md: "span 2" } : undefined,
+                    }}
                   >
-                    <label className="block">
-                      <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                        {f.label}
-                        {f.required && <span className="text-red-500 ml-1">*</span>}
-                      </span>
-                      {f.type === "textarea" ? (
-                        <textarea
-                          className="mt-2 w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/50 dark:border-white/10 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-blue-400/50 focus:ring-2 focus:ring-blue-400/20 focus:outline-none transition-all duration-200 resize-none"
-                          value={form[f.name] ?? ""}
-                          onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
-                          required={f.required}
-                          placeholder={f.placeholder}
-                          rows={3}
-                          disabled={loading}
-                        />
-                      ) : f.type === "checkbox" ? (
-                        <div className="mt-2 flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            className="w-4 h-4 rounded border-white/50 dark:border-white/20 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 dark:bg-slate-700"
+                    {f.type === "textarea" ? (
+                      <TextField
+                        label={
+                          <Box component="span">
+                            {f.label}
+                            {f.required && <Typography component="span" color="error.main" sx={{ ml: 0.5 }}>*</Typography>}
+                          </Box>
+                        }
+                        value={form[f.name] ?? ""}
+                        onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+                        required={f.required}
+                        placeholder={f.placeholder}
+                        multiline
+                        rows={3}
+                        disabled={loading}
+                        fullWidth
+                        size="small"
+                      />
+                    ) : f.type === "checkbox" ? (
+                      <FormControlLabel
+                        control={
+                          <Checkbox
                             checked={Boolean(form[f.name])}
                             onChange={(e) => setForm({ ...form, [f.name]: e.target.checked ? 1 : 0 })}
                             disabled={loading}
                           />
-                          <span className="text-sm text-slate-500 dark:text-slate-400">{f.placeholder || f.label}</span>
-                        </div>
-                      ) : f.type === "checkbox-group" && f.options ? (
-                        <div className="mt-2 space-y-2 p-3 border border-white/50 dark:border-white/10 rounded-xl bg-white/30 dark:bg-slate-800/30 backdrop-blur-sm">
-                          {f.options.map((opt) => {
-                            const currentValues = Array.isArray(form[f.name])
-                              ? form[f.name]
-                              : (typeof form[f.name] === 'string' && form[f.name])
-                                ? JSON.parse(form[f.name])
-                                : [];
-                            const isChecked = currentValues.includes(opt.value);
+                        }
+                        label={
+                          <Box component="span">
+                            {f.label}
+                            {f.required && <Typography component="span" color="error.main" sx={{ ml: 0.5 }}>*</Typography>}
+                          </Box>
+                        }
+                      />
+                    ) : f.type === "checkbox-group" && f.options ? (
+                      <Box>
+                        <Typography variant="body2" fontWeight={500} sx={{ mb: 1 }}>
+                          {f.label}
+                          {f.required && <Typography component="span" color="error.main" sx={{ ml: 0.5 }}>*</Typography>}
+                        </Typography>
+                        <Paper variant="outlined" sx={{ p: 2 }}>
+                          <Stack spacing={1}>
+                            {f.options.map((opt) => {
+                              const currentValues = Array.isArray(form[f.name])
+                                ? form[f.name]
+                                : (typeof form[f.name] === 'string' && form[f.name])
+                                  ? JSON.parse(form[f.name])
+                                  : [];
+                              const isChecked = currentValues.includes(opt.value);
 
-                            return (
-                              <div key={opt.value} className="flex items-center gap-2">
-                                <input
-                                  type="checkbox"
-                                  className="w-4 h-4 rounded border-white/50 dark:border-white/20 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 dark:bg-slate-700"
-                                  checked={isChecked}
-                                  onChange={(e) => {
-                                    let newValues = [...currentValues];
-                                    if (e.target.checked) {
-                                      if (!newValues.includes(opt.value)) {
-                                        newValues.push(opt.value);
-                                      }
-                                    } else {
-                                      newValues = newValues.filter(v => v !== opt.value);
-                                    }
-                                    setForm({ ...form, [f.name]: newValues });
-                                  }}
-                                  disabled={loading}
+                              return (
+                                <FormControlLabel
+                                  key={opt.value}
+                                  control={
+                                    <Checkbox
+                                      checked={isChecked}
+                                      onChange={(e) => {
+                                        let newValues = [...currentValues];
+                                        if (e.target.checked) {
+                                          if (!newValues.includes(opt.value)) {
+                                            newValues.push(opt.value);
+                                          }
+                                        } else {
+                                          newValues = newValues.filter(v => v !== opt.value);
+                                        }
+                                        setForm({ ...form, [f.name]: newValues });
+                                      }}
+                                      disabled={loading}
+                                      size="small"
+                                    />
+                                  }
+                                  label={
+                                    <Box>
+                                      <Typography variant="body2">{opt.label}</Typography>
+                                      {opt.description && (
+                                        <Typography variant="caption" color="text.secondary">
+                                          {opt.description}
+                                        </Typography>
+                                      )}
+                                    </Box>
+                                  }
                                 />
-                                <label className="text-sm text-slate-700 dark:text-slate-200 cursor-pointer select-none">
-                                  {opt.label}
-                                  {opt.description && (
-                                    <span className="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                      {opt.description}
-                                    </span>
-                                  )}
-                                </label>
-                              </div>
-                            );
-                          })}
+                              );
+                            })}
+                          </Stack>
                           {f.placeholder && (
-                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 pt-2 border-t border-white/30 dark:border-white/10">
+                            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.5, pt: 1.5, borderTop: 1, borderColor: "divider" }}>
                               {f.placeholder}
-                            </p>
+                            </Typography>
                           )}
-                        </div>
-                      ) : f.type === "select" && f.options ? (
+                        </Paper>
+                      </Box>
+                    ) : f.type === "select" && f.options ? (
+                      <FormControl fullWidth size="small">
+                        <InputLabel>
+                          {f.label}
+                          {f.required && <Typography component="span" color="error.main" sx={{ ml: 0.5 }}>*</Typography>}
+                        </InputLabel>
                         <Select
-                          className="mt-2"
                           value={form[f.name] ?? ""}
                           onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+                          label={f.label}
                           required={f.required}
                           disabled={loading}
                         >
-                          <option value="">{f.placeholder || `${t("crud_select", "Selecciona")} ${f.label.toLowerCase()}`}</option>
+                          <MenuItem value="">
+                            <em>{f.placeholder || `${t("crud_select", "Selecciona")} ${f.label.toLowerCase()}`}</em>
+                          </MenuItem>
                           {f.options.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
+                            <MenuItem key={opt.value} value={opt.value}>
                               {opt.label}
-                            </option>
+                            </MenuItem>
                           ))}
                         </Select>
-                      ) : (
-                        <Input
-                          type={f.type || "text"}
-                          className="mt-2"
-                          value={form[f.name] ?? ""}
-                          onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
-                          required={f.required}
-                          placeholder={f.placeholder}
-                          disabled={loading}
-                        />
-                      )}
-                    </label>
-                  </div>
+                      </FormControl>
+                    ) : (
+                      <TextField
+                        type={f.type || "text"}
+                        label={
+                          <Box component="span">
+                            {f.label}
+                            {f.required && <Typography component="span" color="error.main" sx={{ ml: 0.5 }}>*</Typography>}
+                          </Box>
+                        }
+                        value={form[f.name] ?? ""}
+                        onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+                        required={f.required}
+                        placeholder={f.placeholder}
+                        disabled={loading}
+                        fullWidth
+                        size="small"
+                      />
+                    )}
+                  </Box>
                 )
               )}
-              </div>
+            </Box>
+          </Box>
+        </DialogContent>
 
-              {/* Footer */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-white/30 dark:border-white/10">
-                <Button
-                  variant="ghost"
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  disabled={loading}
-                  aria-label={t("common_cancelar", "Cancelar")}
-                >
-                  {t("common_cancelar", "Cancelar")}
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  aria-label={editingId ? t("crud_update", "Actualizar") : t("crud_create", "Crear")}
-                >
-                  {loading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" aria-hidden="true" />
-                      <span className="ml-2">{t("crud_saving", "Guardando...")}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" aria-hidden="true" />
-                      <span className="ml-2">{editingId ? t("crud_update", "Actualizar") : t("crud_create", "Crear")}</span>
-                    </>
-                  )}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button
+            variant="outlined"
+            color="inherit"
+            onClick={() => setShowForm(false)}
+            disabled={loading}
+          >
+            {t("common_cancelar", "Cancelar")}
+          </Button>
+          <Button
+            type="submit"
+            form="crud-form"
+            variant="contained"
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
+          >
+            {loading
+              ? t("crud_saving", "Guardando...")
+              : editingId
+                ? t("crud_update", "Actualizar")
+                : t("crud_create", "Crear")
+            }
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-      {/* Modal de confirmación para eliminar */}
+      {/* Modal de confirmacion para eliminar */}
       <ConfirmModal
         isOpen={deleteModal.open}
         onClose={() => setDeleteModal({ open: false, row: null })}
         onConfirm={confirmDelete}
         title={t("common_eliminar", "Eliminar")}
-        description={t("crud_confirm_delete_record", "¿Estás seguro de eliminar este registro?")}
+        message={t("crud_confirm_delete_record", "Estas seguro de eliminar este registro?")}
         confirmText={t("common_eliminar", "Eliminar")}
         cancelText={t("common_cancelar", "Cancelar")}
         variant="danger"
         loading={loading}
       />
-    </div>
+    </Box>
   );
 }

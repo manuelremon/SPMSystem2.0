@@ -5,23 +5,118 @@
  * Reutiliza la logica de MRPTableroAlertas pero fuerza el uso de datos temporales.
  */
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import Layout from '../../components/Layout'
 import { TempDataBanner } from '../../components/ui/TempDataBanner'
 import { useI18n } from '../../context/i18n'
 import { useNavigate } from 'react-router-dom'
-import { Button } from '../../components/ui/Button'
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card'
 import api from '../../services/api'
-import clsx from 'clsx'
+import { SPMAgGrid } from '../../components/ui/SPMAgGrid'
 import {
-  AlertTriangle,
-  Package,
-  TrendingDown,
-  RefreshCw,
-  Loader2,
-  ChevronLeft,
-} from '../../components/ui/Icons'
+  Box,
+  Paper,
+  Typography,
+  Button,
+  Stack,
+  Alert,
+  CircularProgress,
+  Chip,
+  Grid
+} from '@mui/material'
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
+import RefreshIcon from '@mui/icons-material/Refresh'
+import WarningAmberIcon from '@mui/icons-material/WarningAmber'
+import InventoryIcon from '@mui/icons-material/Inventory'
+import TrendingDownIcon from '@mui/icons-material/TrendingDown'
+
+/**
+ * Componente tabla de alertas MRP migrado a SPMAgGrid
+ */
+function AlertasTable({ data, getEstadoColor }) {
+  const { t } = useI18n()
+
+  const rows = useMemo(() => {
+    return data.map((alerta, idx) => ({
+      ...alerta,
+      id: idx,
+    }))
+  }, [data])
+
+  const columnDefs = useMemo(() => [
+    {
+      field: 'material',
+      headerName: t('common_material', 'Material'),
+      flex: 0.5,
+      minWidth: 100,
+      cellStyle: {
+        fontFamily: 'monospace',
+      },
+    },
+    {
+      field: 'descripcion',
+      headerName: t('common_description', 'Descripción'),
+      flex: 1,
+      minWidth: 150,
+    },
+    {
+      field: 'stock_actual',
+      headerName: t('mrp_stock', 'Stock'),
+      flex: 0.4,
+      minWidth: 100,
+      type: 'numericColumn',
+      valueFormatter: (params) => params.value?.toLocaleString() || '0',
+    },
+    {
+      field: 'stock_minimo',
+      headerName: t('mrp_min', 'Mínimo'),
+      flex: 0.4,
+      minWidth: 100,
+      type: 'numericColumn',
+      valueFormatter: (params) => params.value?.toLocaleString() || '-',
+    },
+    {
+      field: 'punto_pedido',
+      headerName: t('mrp_reorder_point', 'Pto Pedido'),
+      flex: 0.4,
+      minWidth: 100,
+      type: 'numericColumn',
+      valueFormatter: (params) => params.value?.toLocaleString() || '-',
+    },
+    {
+      field: 'estado',
+      headerName: t('common_status', 'Estado'),
+      flex: 0.5,
+      minWidth: 120,
+      cellRenderer: (params) => (
+        <Chip
+          label={params.value?.replace(/_/g, ' ') || 'N/A'}
+          color={getEstadoColor(params.value)}
+          size="small"
+          variant="outlined"
+        />
+      ),
+    },
+    {
+      field: 'centro',
+      headerName: t('common_center', 'Centro'),
+      flex: 0.4,
+      minWidth: 100,
+    },
+  ], [t, getEstadoColor])
+
+  return (
+    <SPMAgGrid
+      rowData={rows}
+      columnDefs={columnDefs}
+      height={500}
+      pagination={true}
+      paginationPageSize={25}
+      enableQuickFilter={true}
+      exportFileName="alertas_mrp"
+      emptyMessage={t('common_no_data', 'Sin datos')}
+    />
+  )
+}
 
 export default function AnalisisPuntualMRP() {
   const { t } = useI18n()
@@ -74,219 +169,166 @@ export default function AnalisisPuntualMRP() {
 
   const getEstadoColor = (estado) => {
     const estados = {
-      'SIN_STOCK': 'danger',
+      'SIN_STOCK': 'error',
       'STOCK_CRITICO': 'warning',
       'BAJO_PUNTO_PEDIDO': 'warning',
       'BAJO_MINIMO': 'warning',
       'STOCK_EXCEDIDO': 'info',
       'OK': 'success',
     }
-    return estados[estado] || 'info'
-  }
-
-  const colorClasses = {
-    danger: 'bg-red-50 text-red-700 border-red-200',
-    warning: 'bg-amber-50 text-amber-700 border-amber-200',
-    success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    info: 'bg-blue-50 text-blue-700 border-blue-200',
+    return estados[estado] || 'default'
   }
 
   return (
     <Layout>
-      <div className="space-y-4">
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {/* Banner siempre visible */}
         <TempDataBanner onStatusChange={setTempActive} />
 
         {/* Breadcrumb */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm">
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Stack direction="row" alignItems="center" spacing={1}>
             <Button
-              variant="ghost"
-              size="sm"
+              variant="text"
+              size="small"
+              startIcon={<ChevronLeftIcon />}
               onClick={() => navigate('/admin/analisis-puntual')}
+              sx={{ textTransform: 'none' }}
             >
-              <ChevronLeft className="w-4 h-4 mr-1" />
               {t('admin_ap_volver', 'Analisis Puntual')}
             </Button>
-            <span className="text-[var(--text-muted)]">/</span>
-            <span className="text-[var(--text-primary)] font-medium">
+            <Typography variant="body2" color="text.secondary">/</Typography>
+            <Typography variant="body2" color="text.primary" fontWeight={500}>
               {t('admin_ap_mrp', 'MRP Temporal')}
-            </span>
-          </div>
+            </Typography>
+          </Stack>
           <Button
-            variant="secondary"
-            size="sm"
+            variant="outlined"
+            size="small"
+            startIcon={loading ? <CircularProgress size={16} /> : <RefreshIcon />}
             onClick={fetchAlertas}
             disabled={loading}
+            sx={{ textTransform: 'none' }}
           >
-            <RefreshCw className={clsx("w-4 h-4 mr-2", loading && "animate-spin")} />
             Actualizar
           </Button>
-        </div>
+        </Stack>
 
         {/* Header */}
-        <div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">
+        <Box>
+          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             MRP - Alertas con Datos Temporales
-          </h1>
-          <p className="text-sm text-[var(--text-secondary)]">
-            Analisis de stock y alertas utilizando los datos del Excel importado
-          </p>
-        </div>
+          </Typography>
+        </Box>
 
         {/* Error */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-            {error}
-          </div>
+          <Alert severity="error">{error}</Alert>
         )}
 
         {/* Loading */}
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-[var(--accent)]" />
-          </div>
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+            <CircularProgress />
+          </Box>
         ) : (
           <>
             {/* Resumen Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-slate-100">
-                      <Package className="w-5 h-5 text-slate-600" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-[var(--text-primary)]">
+            <Grid container spacing={2}>
+              <Grid item xs={6} md={3}>
+                <Paper elevation={1} sx={{ p: 2 }}>
+                  <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'grey.100' }}>
+                      <InventoryIcon sx={{ fontSize: 20, color: 'grey.600' }} />
+                    </Box>
+                    <Box>
+                      <Typography variant="h5" fontWeight="bold" color="text.primary">
                         {resumen.total_materiales || 0}
-                      </p>
-                      <p className="text-sm text-[var(--text-muted)]">Total Materiales</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Materiales
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Paper>
+              </Grid>
 
-              <Card>
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-red-100">
-                      <AlertTriangle className="w-5 h-5 text-red-600" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-red-600">
+              <Grid item xs={6} md={3}>
+                <Paper elevation={1} sx={{ p: 2 }}>
+                  <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'error.light' }}>
+                      <WarningAmberIcon sx={{ fontSize: 20, color: 'error.main' }} />
+                    </Box>
+                    <Box>
+                      <Typography variant="h5" fontWeight="bold" color="error.main">
                         {resumen.sin_stock || 0}
-                      </p>
-                      <p className="text-sm text-[var(--text-muted)]">Sin Stock</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Sin Stock
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Paper>
+              </Grid>
 
-              <Card>
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-amber-100">
-                      <TrendingDown className="w-5 h-5 text-amber-600" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-amber-600">
+              <Grid item xs={6} md={3}>
+                <Paper elevation={1} sx={{ p: 2 }}>
+                  <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'warning.light' }}>
+                      <TrendingDownIcon sx={{ fontSize: 20, color: 'warning.main' }} />
+                    </Box>
+                    <Box>
+                      <Typography variant="h5" fontWeight="bold" color="warning.main">
                         {resumen.stock_critico || 0}
-                      </p>
-                      <p className="text-sm text-[var(--text-muted)]">Stock Critico</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Stock Critico
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Paper>
+              </Grid>
 
-              <Card>
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-amber-50">
-                      <AlertTriangle className="w-5 h-5 text-amber-500" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-amber-500">
+              <Grid item xs={6} md={3}>
+                <Paper elevation={1} sx={{ p: 2 }}>
+                  <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'warning.lighter' }}>
+                      <WarningAmberIcon sx={{ fontSize: 20, color: 'warning.dark' }} />
+                    </Box>
+                    <Box>
+                      <Typography variant="h5" fontWeight="bold" sx={{ color: 'warning.dark' }}>
                         {resumen.bajo_punto_pedido || 0}
-                      </p>
-                      <p className="text-sm text-[var(--text-muted)]">Bajo Punto Pedido</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Bajo Punto Pedido
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Paper>
+              </Grid>
+            </Grid>
 
             {/* Tabla de Alertas */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Alertas de Stock ({alertas.length})</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {alertas.length === 0 ? (
-                  <div className="text-center py-8 text-[var(--text-muted)]">
-                    No hay alertas de stock con los datos importados
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-[var(--border)]">
-                          <th className="text-left py-3 px-4 font-medium text-[var(--text-muted)]">Material</th>
-                          <th className="text-left py-3 px-4 font-medium text-[var(--text-muted)]">Descripcion</th>
-                          <th className="text-right py-3 px-4 font-medium text-[var(--text-muted)]">Stock</th>
-                          <th className="text-right py-3 px-4 font-medium text-[var(--text-muted)]">Minimo</th>
-                          <th className="text-right py-3 px-4 font-medium text-[var(--text-muted)]">Pto Pedido</th>
-                          <th className="text-center py-3 px-4 font-medium text-[var(--text-muted)]">Estado</th>
-                          <th className="text-left py-3 px-4 font-medium text-[var(--text-muted)]">Centro</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {alertas.slice(0, 50).map((alerta, idx) => (
-                          <tr
-                            key={`${alerta.material}-${idx}`}
-                            className="border-b border-[var(--border)] hover:bg-[var(--bg-secondary)]"
-                          >
-                            <td className="py-3 px-4 font-mono text-[var(--text-primary)]">
-                              {alerta.material}
-                            </td>
-                            <td className="py-3 px-4 text-[var(--text-secondary)] max-w-[200px] truncate">
-                              {alerta.descripcion}
-                            </td>
-                            <td className="py-3 px-4 text-right font-medium text-[var(--text-primary)]">
-                              {alerta.stock_actual?.toLocaleString() || 0}
-                            </td>
-                            <td className="py-3 px-4 text-right text-[var(--text-muted)]">
-                              {alerta.stock_minimo?.toLocaleString() || '-'}
-                            </td>
-                            <td className="py-3 px-4 text-right text-[var(--text-muted)]">
-                              {alerta.punto_pedido?.toLocaleString() || '-'}
-                            </td>
-                            <td className="py-3 px-4 text-center">
-                              <span className={clsx(
-                                "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border",
-                                colorClasses[getEstadoColor(alerta.estado)]
-                              )}>
-                                {alerta.estado?.replace(/_/g, ' ') || 'N/A'}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-[var(--text-muted)]">
-                              {alerta.centro}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {alertas.length > 50 && (
-                      <div className="text-center py-4 text-sm text-[var(--text-muted)]">
-                        Mostrando 50 de {alertas.length} alertas
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <Paper elevation={1} sx={{ borderRadius: 2, overflow: 'hidden' }}>
+              <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+                <Typography variant="h6" fontWeight={600}>
+                  {t('mrp_alerts', 'Alertas de Stock')} ({alertas.length})
+                </Typography>
+              </Box>
+              {alertas.length > 0 && (
+                <AlertasTable data={alertas} getEstadoColor={getEstadoColor} />
+              )}
+              {alertas.length === 0 && (
+                <Box sx={{ p: 4, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {t('common_no_data', 'No hay alertas de stock con los datos importados')}
+                  </Typography>
+                </Box>
+              )}
+            </Paper>
           </>
         )}
-      </div>
+      </Box>
     </Layout>
   )
 }

@@ -73,7 +73,9 @@
       "Bash(cd:*)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\MANUE\\\\Documents\\\\GitHub\\\\SPMSystem2.0\\\\backend\" -Recurse -Filter \"*.pyc\")",
       "Bash(pkill:*)",
-      "Bash(ping:*)"
+      "Bash(ping:*)",
+      "Bash(xcopy \"C:\\\\Users\\\\MANUE\\\\Documents\\\\GitHub\\\\SPMSystem2.0\" \"C:\\\\Users\\\\MANUE\\\\Documents\\\\GitHub\\\\SPMV3.0\"\" /E /I /H /Y /EXCLUDE:C:\\\\Users\\\\MANUE\\\\Documents\\\\GitHub\\\\SPMSystem2.0\\\\.git\\\\info\\\\exclude 2>nul || robocopy \"C:UsersMANUEDocumentsGitHubSPMSystem2.0\" \"C:UsersMANUEDocumentsGitHubSPMV3.0 \" /E /XD node_modules .git __pycache__ /NFL /NDL /NJH /NJS)",
+      "Bash(robocopy:*)"
     ],
     "deny": [],
     "ask": []

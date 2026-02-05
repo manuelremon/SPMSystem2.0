@@ -152,6 +152,10 @@ user_cache = TTLCache(default_ttl=300, max_size=200)
 # P3-1: Increased from 30s to 60s
 query_cache = TTLCache(default_ttl=60, max_size=100)
 
+# KPI cache: Medium TTL (300 seconds / 5 minutes) - for expensive KPI calculations
+# Heavy queries with aggregations, frequently accessed
+kpi_cache = TTLCache(default_ttl=300, max_size=50)
+
 
 # =============================================================================
 # Decorators for easy caching
@@ -245,10 +249,17 @@ def invalidate_user_cache(user_id: Optional[str] = None):
     logger.info(f"User cache invalidated: {user_id or 'ALL'}")
 
 
+def invalidate_kpi_cache():
+    """Invalidate all KPI caches (call after data changes)."""
+    kpi_cache.clear()
+    logger.info("KPI cache invalidated")
+
+
 def get_cache_stats() -> Dict[str, Any]:
     """Get statistics for all caches."""
     return {
         "catalog_cache": catalog_cache.stats(),
         "user_cache": user_cache.stats(),
         "query_cache": query_cache.stats(),
+        "kpi_cache": kpi_cache.stats(),
     }

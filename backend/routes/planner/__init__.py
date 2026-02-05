@@ -7,8 +7,9 @@ Modularizado en sub-modulos por responsabilidad (Sprint 23):
 - decisiones.py: Pasos 2-3 - Opciones y decisiones
 - acciones.py: Paso 4 - Acciones post-tratamiento
 - precios.py: Precios negociados
+- ciclo_vida.py: Transiciones de estado (aceptar, finalizar)
 
-Nota: ciclo_vida.py e items.py fueron planificados pero no implementados.
+Nota: items.py fue planificado pero no implementado.
 """
 
 from flask import Blueprint
@@ -25,6 +26,7 @@ from backend.routes.planner.analisis import analisis_bp
 from backend.routes.planner.decisiones import decisiones_bp
 from backend.routes.planner.acciones import acciones_bp
 from backend.routes.planner.precios import precios_bp
+from backend.routes.planner.ciclo_vida import ciclo_vida_bp
 
 # Registrar todos los sub-blueprints en el blueprint principal
 bp.register_blueprint(dashboard_bp)
@@ -32,6 +34,7 @@ bp.register_blueprint(analisis_bp)
 bp.register_blueprint(decisiones_bp)
 bp.register_blueprint(acciones_bp)
 bp.register_blueprint(precios_bp)
+bp.register_blueprint(ciclo_vida_bp)
 
 # Exportar blueprints para registro en app.py
 __all__ = ["bp", "planner_bp"]

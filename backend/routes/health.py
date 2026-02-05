@@ -44,9 +44,37 @@ def _check_database(db_name: str = "spm") -> dict:
         Estado de la BD
     """
     try:
-        # BD principal (spm) usa PostgreSQL
+        # BD principal (spm) - detectar si es PostgreSQL o SQLite
         if db_name == "spm":
-            return _check_postgresql()
+            db_url = settings.DATABASE_URL or ""
+            logger.debug(f"[health] Checking spm DB with URL: {db_url[:50]}...")
+            # En desarrollo usamos SQLite (sqlite:///)
+            # En producción usamos PostgreSQL (postgresql://)
+            if db_url.startswith("postgresql://") or db_url.startswith("postgres://"):
+                logger.debug("[health] Detected PostgreSQL, calling _check_postgresql()")
+                return _check_postgresql()
+            else:
+                logger.debug("[health] Detected SQLite, using local file check")
+                # Desarrollo: usar SQLite
+                db_path = get_db_path(db_name)
+                if not db_path.exists():
+                    return {"status": "unavailable", "error": f"Database file not found: {db_path}"}
+
+                start = time.time()
+                conn = sqlite3.connect(str(db_path), timeout=5.0)
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                cursor.fetchone()
+                conn.close()
+                latency_ms = (time.time() - start) * 1000
+
+                return {
+                    "status": "healthy",
+                    "latency_ms": round(latency_ms, 2),
+                    "path": str(db_path),
+                    "size_mb": round(db_path.stat().st_size / 1024 / 1024, 2),
+                    "type": "sqlite",
+                }
 
         # BDs secundarias todavia usan SQLite (migracion pendiente)
         db_path = get_db_path(db_name)
@@ -68,10 +96,12 @@ def _check_database(db_name: str = "spm") -> dict:
             "size_mb": round(db_path.stat().st_size / 1024 / 1024, 2),
         }
 
-    except sqlite3.Error as e:
+    except sqlite3.OperationalError as e:
         return {"status": "unhealthy", "error": str(e)}
     except Exception as e:
-        return {"status": "error", "error": str(e)}
+        # Log the full exception for debugging
+        logger.debug(f"Unexpected error in _check_database({db_name}): {type(e).__name__}: {e}")
+        return {"status": "error", "error": f"{type(e).__name__}: {str(e)[:100]}"}
 
 
 def _check_postgresql() -> dict:
@@ -114,10 +144,7 @@ def _check_cache() -> dict:
     try:
         from backend.core.cache import get_cache_stats
     except ImportError:
-        try:
-            from core.cache import get_cache_stats
-        except ImportError:
-            return {"status": "unavailable", "error": "Cache module not found"}
+        return {"status": "unavailable", "error": "Cache module not found"}
 
     try:
         stats = get_cache_stats()
@@ -136,10 +163,7 @@ def _check_redis() -> dict:
     try:
         from backend.core.redis_pubsub import redis_pubsub
     except ImportError:
-        try:
-            from core.redis_pubsub import redis_pubsub
-        except ImportError:
-            return {"status": "unavailable", "error": "Redis module not found"}
+        return {"status": "unavailable", "error": "Redis module not found"}
 
     try:
         stats = redis_pubsub.get_stats()
@@ -170,10 +194,7 @@ def _check_metrics() -> dict:
     try:
         from backend.core.metrics import get_metrics_collector
     except ImportError:
-        try:
-            from core.metrics import get_metrics_collector
-        except ImportError:
-            return {"status": "unavailable"}
+        return {"status": "unavailable"}
 
     try:
         collector = get_metrics_collector()
@@ -745,10 +766,7 @@ def _check_jobs_queue() -> dict:
     try:
         from backend.core.background_jobs import get_job_queue
     except ImportError:
-        try:
-            from core.background_jobs import get_job_queue
-        except ImportError:
-            return {"status": "unavailable", "error": "Jobs module not found"}
+        return {"status": "unavailable", "error": "Jobs module not found"}
 
     try:
         queue = get_job_queue()

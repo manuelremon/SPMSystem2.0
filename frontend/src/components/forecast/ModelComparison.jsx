@@ -1,44 +1,75 @@
 /**
- * ModelComparison - Comparación de modelos de forecast
+ * ModelComparison - Comparacion de modelos de forecast con Chart.js
  *
- * Muestra ranking y métricas comparativas de múltiples modelos
+ * Muestra ranking y metricas comparativas de multiples modelos
  */
 
-import React from 'react';
-import LazyPlot from './LazyPlot';
+import React, { useMemo } from 'react';
+import { SPMBar } from '../ui/SPMChartJS';
+import {
+  Box,
+  Paper,
+  Typography,
+  Stack,
+  Chip,
+  Skeleton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Button,
+  Alert,
+} from '@mui/material';
 import { useI18n } from '../../context/i18n';
-import { Button } from '../ui/Button';
 
 const MODELOS_NOMBRES = {
   random_forest: 'Random Forest',
   gradient_boosting: 'Gradient Boosting',
-  linear: 'Regresión Lineal',
+  linear: 'Regresion Lineal',
   xgboost: 'XGBoost',
   prophet: 'Prophet',
   arima: 'ARIMA'
+};
+
+// Colores MUI oficial
+const COLORS = {
+  mejor: '#2e7d32',     // MUI Green 800
+  normal: '#1976d2',    // MUI Blue 700
 };
 
 const ModelComparison = ({
   data,
   loading = false,
   onSelectModel,
-  className = ''
 }) => {
   const { t } = useI18n();
 
+  // Preparar datos del grafico
+  const chartData = useMemo(() => {
+    if (!data?.ranking) return { labels: [], values: [], colors: [] };
+
+    const labels = data.ranking.map(r => MODELOS_NOMBRES[r.modelo] || r.modelo);
+    const values = data.ranking.map(r => r.mae || 0);
+    const colors = data.ranking.map(r =>
+      r.modelo === data.mejor_modelo ? COLORS.mejor : COLORS.normal
+    );
+
+    return { labels, values, colors };
+  }, [data]);
+
   if (loading) {
     return (
-      <div className={`p-6 bg-white rounded-lg border ${className}`}>
-        <div className="animate-pulse">
-          <div className="h-6 bg-slate-200 rounded w-48 mb-4"></div>
-          <div className="h-64 bg-slate-100 rounded mb-4"></div>
-          <div className="space-y-2">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-12 bg-slate-100 rounded"></div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <Paper sx={{ p: 3, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+        <Skeleton variant="text" width={192} height={28} sx={{ mb: 2 }} />
+        <Skeleton variant="rounded" height={256} sx={{ mb: 2 }} />
+        <Stack spacing={1}>
+          {[1, 2, 3].map(i => (
+            <Skeleton key={i} variant="rounded" height={48} />
+          ))}
+        </Stack>
+      </Paper>
     );
   }
 
@@ -48,138 +79,149 @@ const ModelComparison = ({
 
   const { ranking, mejor_modelo, recomendacion } = data;
 
-  // Datos para el gráfico de barras
-  const chartData = [
-    {
-      x: ranking?.map(r => MODELOS_NOMBRES[r.modelo] || r.modelo) || [],
-      y: ranking?.map(r => r.mae) || [],
-      type: 'bar',
-      name: 'MAE',
-      marker: {
-        color: ranking?.map(r => r.modelo === mejor_modelo ? '#10b981' : '#3b82f6') || []
-      },
-      text: ranking?.map(r => r.mae?.toFixed(2)) || [],
-      textposition: 'outside'
-    }
-  ];
-
-  const chartLayout = {
-    title: t('forecast_comparacion_mae', 'Comparación de MAE por Modelo'),
-    xaxis: { title: '' },
-    yaxis: { title: 'MAE (Error Absoluto Medio)' },
-    margin: { t: 60, r: 20, b: 80, l: 60 },
-    height: 300,
-    showlegend: false
-  };
-
-  // Gráfico radar para múltiples métricas
-  const radarData = [{
-    type: 'scatterpolar',
-    r: ranking?.slice(0, 5).map(r => [
-      r.mae ? 100 - Math.min(r.mae, 100) : 0,
-      r.rmse ? 100 - Math.min(r.rmse, 100) : 0,
-      (r.r2 || 0) * 100,
-      100 - (r.mae_std || 0) * 10
-    ]).flat() || [],
-    theta: ranking?.slice(0, 5).flatMap(r => [
-      `${MODELOS_NOMBRES[r.modelo] || r.modelo} - MAE`,
-      `${MODELOS_NOMBRES[r.modelo] || r.modelo} - RMSE`,
-      `${MODELOS_NOMBRES[r.modelo] || r.modelo} - R²`,
-      `${MODELOS_NOMBRES[r.modelo] || r.modelo} - Estabilidad`
-    ]) || [],
-    fill: 'toself',
-    name: 'Modelos'
-  }];
-
   return (
-    <div className={`p-6 bg-white rounded-lg border ${className}`}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-slate-900">
-          {t('forecast_comparacion_modelos', 'Comparación de Modelos')}
-        </h3>
+    <Paper sx={{ p: 3, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Typography variant="h6" fontWeight={600} color="text.primary">
+          {t('forecast_comparacion_modelos', 'Comparacion de Modelos')}
+        </Typography>
         {mejor_modelo && (
-          <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-            Mejor: {MODELOS_NOMBRES[mejor_modelo] || mejor_modelo}
-          </span>
+          <Chip
+            label={`Mejor: ${MODELOS_NOMBRES[mejor_modelo] || mejor_modelo}`}
+            size="small"
+            color="success"
+            sx={{ fontWeight: 500 }}
+          />
         )}
-      </div>
+      </Stack>
 
-      {/* Recomendación */}
+      {/* Recomendacion */}
       {recomendacion && (
-        <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-          <p className="text-sm text-blue-700">{recomendacion}</p>
-        </div>
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {recomendacion}
+        </Alert>
       )}
 
-      {/* Gráfico de barras */}
+      {/* Grafico de barras */}
       {ranking && ranking.length > 0 && (
-        <LazyPlot
-          data={chartData}
-          layout={chartLayout}
-          config={{ responsive: true, displaylogo: false }}
-          style={{ width: '100%' }}
-        />
+        <Box sx={{ mb: 2 }}>
+          <SPMBar
+            labels={chartData.labels}
+            datasets={[{
+              label: 'MAE',
+              data: chartData.values,
+              backgroundColor: chartData.colors,
+            }]}
+            height={280}
+            options={{
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (context) => {
+                      const value = context.parsed.y;
+                      return value != null ? value.toFixed(2) : '-';
+                    },
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  grid: { display: false },
+                },
+                y: {
+                  grid: { color: 'rgba(0, 0, 0, 0.06)' },
+                  beginAtZero: true,
+                },
+              },
+            }}
+          />
+        </Box>
       )}
 
       {/* Tabla de ranking */}
       {ranking && ranking.length > 0 && (
-        <div className="mt-4 overflow-x-auto rounded-xl border border-white/30">
-          <table className="w-full text-sm">
-            <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
-              <tr>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">#</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">Modelo</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">MAE</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">RMSE</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">R²</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">Acción</th>
-              </tr>
-            </thead>
-            <tbody>
+        <TableContainer
+          component={Paper}
+          variant="outlined"
+          sx={{ borderRadius: 3, overflow: 'hidden' }}
+        >
+          <Table size="small">
+            <TableHead>
+              <TableRow sx={{ bgcolor: 'grey.50' }}>
+                <TableCell align="center" sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
+                  #
+                </TableCell>
+                <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
+                  Modelo
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
+                  MAE
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
+                  RMSE
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
+                  R2
+                </TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
+                  Accion
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
               {ranking.map((r, i) => (
-                <tr
+                <TableRow
                   key={r.modelo}
-                  className={`border-b border-slate-100 ${
-                    r.modelo === mejor_modelo ? 'bg-green-50' : ''
-                  }`}
+                  sx={{
+                    bgcolor: r.modelo === mejor_modelo ? 'success.50' : 'inherit',
+                    '&:last-child td, &:last-child th': { border: 0 }
+                  }}
                 >
-                  <td className="px-3 py-2">
-                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : r.posicion}
-                  </td>
-                  <td className="px-3 py-2 font-medium">
+                  <TableCell align="center">
+                    {i === 0 ? '1' : i === 1 ? '2' : i === 2 ? '3' : r.posicion}
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 500 }}>
                     {MODELOS_NOMBRES[r.modelo] || r.modelo}
                     {r.modelo === mejor_modelo && (
-                      <span className="ml-2 text-xs text-green-600">(Recomendado)</span>
+                      <Typography component="span" variant="caption" sx={{ ml: 1, color: 'success.main' }}>
+                        (Recomendado)
+                      </Typography>
                     )}
-                  </td>
-                  <td className="px-3 py-2 text-right">
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
                     {r.mae?.toFixed(2)}
                     {r.mae_std && (
-                      <span className="text-slate-400 text-xs ml-1">
-                        ±{r.mae_std.toFixed(2)}
-                      </span>
+                      <Typography component="span" variant="caption" sx={{ color: 'text.disabled', ml: 0.5 }}>
+                        +/-{r.mae_std.toFixed(2)}
+                      </Typography>
                     )}
-                  </td>
-                  <td className="px-3 py-2 text-right">{r.rmse?.toFixed(2)}</td>
-                  <td className="px-3 py-2 text-right">{r.r2?.toFixed(4)}</td>
-                  <td className="px-3 py-2 text-center">
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
+                    {r.rmse?.toFixed(2)}
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
+                    {r.r2?.toFixed(4)}
+                  </TableCell>
+                  <TableCell align="center">
                     {onSelectModel && (
                       <Button
                         onClick={() => onSelectModel(r.modelo)}
-                        variant="outline"
-                        size="xs"
+                        variant="outlined"
+                        size="small"
+                        sx={{ textTransform: 'none', fontSize: '0.75rem' }}
                       >
                         Usar
                       </Button>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
-    </div>
+    </Paper>
   );
 };
 

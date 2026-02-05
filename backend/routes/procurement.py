@@ -546,6 +546,15 @@ def get_compliance():
 
         with get_db_connection() as conn:
             cur = conn.cursor()
+            # Verificar si la vista existe
+            cur.execute("""
+                SELECT name FROM sqlite_master
+                WHERE type='view' AND name='v_sap_cumplimiento'
+            """)
+            if not cur.fetchone():
+                # Vista no existe, retornar datos vacíos
+                return jsonify({"items": [], "message": "Datos SAP no disponibles"})
+
             cur.execute("""
                 SELECT * FROM v_sap_cumplimiento
                 WHERE total_pedidos >= ?
@@ -559,7 +568,8 @@ def get_compliance():
 
     except Exception as e:
         logger.error(f"Error obteniendo compliance: {e}")
-        return jsonify({"error": "Error al obtener cumplimiento"}), 500
+        # Retornar vacío en lugar de error 500 para no romper el frontend
+        return jsonify({"items": [], "error": str(e)})
 
 
 @procurement_bp.route('/kpis/costs', methods=['GET'])

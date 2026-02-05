@@ -1,248 +1,295 @@
 /**
- * Icon Map - Mapeo de nombres lucide-react a SVGs locales
+ * Icon Map - Material UI Icons
  *
- * Este archivo exporta iconos con nombres compatibles con lucide-react,
- * permitiendo una migracion transparente.
+ * Este archivo exporta iconos de @mui/icons-material con nombres
+ * compatibles con el sistema anterior (lucide-react style).
  *
  * Uso: import { Check, X, AlertCircle } from "@/components/ui/Icons";
- *
- * Estilo MIXTO aplicado:
- * - Estados activos/exitosos: Filled
- * - Estados error/criticos: Filled
- * - Acciones/botones: Outline
- * - Navegacion: Outline
  */
 
 // ============================================================================
 // ACCIONES PRINCIPALES
 // ============================================================================
-export { default as Check } from './svg/checkmark.svg?react';
-export { default as X } from './svg/xmark.svg?react';
-export { default as Plus } from './svg/plus.svg?react';
-export { default as Minus } from './svg/minus.svg?react';
-export { default as Search } from './svg/search.svg?react';
-export { default as Edit2 } from './svg/pencil.svg?react';
-export { default as Edit3 } from './svg/pencil.svg?react';
-export { default as Trash2 } from './svg/trash.svg?react';
-export { default as Save } from './svg/square_arrow_down.svg?react';
-export { default as Download } from './svg/arrow_down_doc.svg?react';
-export { default as Upload } from './svg/arrow_up_doc.svg?react';
-export { default as Send } from './svg/paperplane.svg?react';
-export { default as RefreshCw } from './svg/arrow_clockwise.svg?react';
-export { default as RefreshCcw } from './svg/arrow_counterclockwise.svg?react';
-export { default as ExternalLink } from './svg/arrow_up_right_square.svg?react';
-export { default as Link } from './svg/link.svg?react';
-export { default as Copy } from './svg/doc_on_doc.svg?react';
-export { default as Paperclip } from './svg/paperclip.svg?react';
+export { default as Check } from '@mui/icons-material/Check';
+export { default as X } from '@mui/icons-material/Close';
+export { default as Plus } from '@mui/icons-material/Add';
+export { default as Minus } from '@mui/icons-material/Remove';
+export { default as Search } from '@mui/icons-material/Search';
+export { default as Edit2 } from '@mui/icons-material/Edit';
+export { default as Edit3 } from '@mui/icons-material/EditOutlined';
+export { default as Trash2 } from '@mui/icons-material/Delete';
+export { default as Save } from '@mui/icons-material/Save';
+export { default as Download } from '@mui/icons-material/Download';
+export { default as Upload } from '@mui/icons-material/Upload';
+export { default as Send } from '@mui/icons-material/Send';
+export { default as RefreshCw } from '@mui/icons-material/Refresh';
+export { default as RefreshCcw } from '@mui/icons-material/Sync';
+export { default as ExternalLink } from '@mui/icons-material/OpenInNew';
+export { default as Link } from '@mui/icons-material/Link';
+export { default as Copy } from '@mui/icons-material/ContentCopy';
+export { default as Paperclip } from '@mui/icons-material/AttachFile';
 
 // ============================================================================
-// ESTADOS Y ALERTAS (FILLED para estados activos segun decision)
+// ESTADOS Y ALERTAS
 // ============================================================================
-export { default as CheckCircle } from './svg/checkmark_circle.svg?react';
-export { default as CheckCircle2 } from './svg/checkmark_circle_fill.svg?react';  // Filled para activo
-export { default as CheckCheck } from './svg/checkmark_2.svg?react';
-export { default as XCircle } from './svg/xmark_circle_fill.svg?react';  // Filled para error
-export { default as AlertCircle } from './svg/exclamationmark_circle.svg?react';
-export { default as AlertTriangle } from './svg/exclamationmark_triangle_fill.svg?react';  // Filled para warning
-export { default as AlertOctagon } from './svg/exclamationmark_octagon_fill.svg?react';  // Filled para critico
-export { default as Info } from './svg/info_circle.svg?react';  // Outline para info
-export { default as Circle } from './svg/circle.svg?react';
-export { default as HelpCircle } from './svg/question_circle.svg?react';
+export { default as CheckCircle } from '@mui/icons-material/CheckCircleOutlined';
+export { default as CheckCircle2 } from '@mui/icons-material/CheckCircle';
+export { default as CheckCheck } from '@mui/icons-material/DoneAll';
+export { default as XCircle } from '@mui/icons-material/Cancel';
+export { default as AlertCircle } from '@mui/icons-material/ErrorOutline';
+export { default as AlertTriangle } from '@mui/icons-material/Warning';
+export { default as AlertOctagon } from '@mui/icons-material/ReportProblem';
+export { default as Info } from '@mui/icons-material/InfoOutlined';
+export { default as Circle } from '@mui/icons-material/CircleOutlined';
+export { default as HelpCircle } from '@mui/icons-material/HelpOutline';
 
 // ============================================================================
 // NAVEGACION
 // ============================================================================
-export { default as Home } from './svg/house.svg?react';
-export { default as ChevronLeft } from './svg/chevron_left.svg?react';
-export { default as ChevronRight } from './svg/chevron_right.svg?react';
-export { default as ChevronUp } from './svg/chevron_up.svg?react';
-export { default as ChevronDown } from './svg/chevron_down.svg?react';
-export { default as ChevronsUpDown } from './svg/chevron_up_chevron_down.svg?react';
-export { default as ArrowLeft } from './svg/arrow_left.svg?react';
-export { default as ArrowRight } from './svg/arrow_right.svg?react';
-export { default as ArrowUp } from './svg/arrow_up.svg?react';
-export { default as ArrowDown } from './svg/arrow_down.svg?react';
-export { default as ArrowUpCircle } from './svg/arrow_up_circle.svg?react';
-export { default as ArrowDownCircle } from './svg/arrow_down_circle.svg?react';
-export { default as ArrowLeftRight } from './svg/arrow_left_right.svg?react';
-export { default as ArrowRightRight } from './svg/arrow_right.svg?react';  // Alternativa
-export { default as Menu } from './svg/sidebar_left.svg?react';  // Hamburger menu
+export { default as Home } from '@mui/icons-material/Home';
+export { default as ChevronLeft } from '@mui/icons-material/ChevronLeft';
+export { default as ChevronRight } from '@mui/icons-material/ChevronRight';
+export { default as ChevronUp } from '@mui/icons-material/ExpandLess';
+export { default as ChevronDown } from '@mui/icons-material/ExpandMore';
+export { default as ChevronsUpDown } from '@mui/icons-material/UnfoldMore';
+export { default as ArrowLeft } from '@mui/icons-material/ArrowBack';
+export { default as ArrowRight } from '@mui/icons-material/ArrowForward';
+export { default as ArrowUp } from '@mui/icons-material/ArrowUpward';
+export { default as ArrowDown } from '@mui/icons-material/ArrowDownward';
+export { default as ArrowUpCircle } from '@mui/icons-material/ArrowCircleUp';
+export { default as ArrowDownCircle } from '@mui/icons-material/ArrowCircleDown';
+export { default as ArrowLeftRight } from '@mui/icons-material/SwapHoriz';
+export { default as ArrowRightRight } from '@mui/icons-material/East';
+export { default as Menu } from '@mui/icons-material/Menu';
+export { default as MoreVertical } from '@mui/icons-material/MoreVert';
+export { default as MoreHorizontal } from '@mui/icons-material/MoreHoriz';
 
 // ============================================================================
 // TIEMPO
 // ============================================================================
-export { default as Clock } from './svg/clock.svg?react';
-export { default as Calendar } from './svg/calendar.svg?react';
-export { default as Timer } from './svg/timer.svg?react';
-export { default as History } from './svg/clock.svg?react';
+export { default as Clock } from '@mui/icons-material/AccessTime';
+export { default as Calendar } from '@mui/icons-material/CalendarToday';
+export { default as Timer } from '@mui/icons-material/Timer';
+export { default as History } from '@mui/icons-material/History';
+export { default as Schedule } from '@mui/icons-material/Schedule';
 
 // ============================================================================
 // CARGA Y MEDIA
 // ============================================================================
-export { default as Loader2 } from './svg/arrow_2_circlepath.svg?react';
-export { default as Play } from './svg/play.svg?react';
-export { default as Pause } from './svg/pause.svg?react';
-export { default as Archive } from './svg/archivebox.svg?react';
+export { default as Loader2 } from '@mui/icons-material/Autorenew';
+export { default as Play } from '@mui/icons-material/PlayArrow';
+export { default as Pause } from '@mui/icons-material/Pause';
+export { default as Stop } from '@mui/icons-material/Stop';
+export { default as Archive } from '@mui/icons-material/Archive';
 
 // ============================================================================
 // DOCUMENTOS
 // ============================================================================
-export { default as FileText } from './svg/doc_text.svg?react';
-export { default as File } from './svg/doc.svg?react';
-export { default as FileX } from './svg/doc.svg?react';  // Alternativa (sin X disponible)
-export { default as FileType } from './svg/doc_plaintext.svg?react';
-export { default as FileSpreadsheet } from './svg/doc_chart.svg?react';
-export { default as FileCode } from './svg/doc_text.svg?react';
-export { default as FilePlus2 } from './svg/doc_append.svg?react';
-export { default as ClipboardList } from './svg/doc_on_clipboard.svg?react';
-export { default as BookOpen } from './svg/book.svg?react';
-export { default as Book } from './svg/book.svg?react';
-export { default as Folder } from './svg/folder.svg?react';
+export { default as FileText } from '@mui/icons-material/Description';
+export { default as File } from '@mui/icons-material/InsertDriveFile';
+export { default as FileX } from '@mui/icons-material/InsertDriveFile';
+export { default as FileType } from '@mui/icons-material/Article';
+export { default as FileSpreadsheet } from '@mui/icons-material/TableChart';
+export { default as FileCode } from '@mui/icons-material/Code';
+export { default as FilePlus2 } from '@mui/icons-material/NoteAdd';
+export { default as ClipboardList } from '@mui/icons-material/Assignment';
+export { default as BookOpen } from '@mui/icons-material/MenuBook';
+export { default as Book } from '@mui/icons-material/Book';
+export { default as Folder } from '@mui/icons-material/Folder';
+export { default as FolderOpen } from '@mui/icons-material/FolderOpen';
 
 // ============================================================================
 // COMUNICACION
 // ============================================================================
-export { default as MessageSquare } from './svg/bubble_left.svg?react';
-export { default as MessageCircle } from './svg/bubble_left.svg?react';
-export { default as Mail } from './svg/envelope.svg?react';
-export { default as Phone } from './svg/phone.svg?react';
-export { default as Reply } from './svg/arrow_turn_up_left.svg?react';
-export { default as Contact } from './svg/person_crop_rectangle.svg?react';
+export { default as MessageSquare } from '@mui/icons-material/ChatBubbleOutline';
+export { default as MessageCircle } from '@mui/icons-material/Chat';
+export { default as Mail } from '@mui/icons-material/Email';
+export { default as Phone } from '@mui/icons-material/Phone';
+export { default as Reply } from '@mui/icons-material/Reply';
+export { default as Contact } from '@mui/icons-material/ContactPage';
 
 // ============================================================================
 // NOTIFICACIONES
 // ============================================================================
-export { default as Bell } from './svg/bell.svg?react';
-export { default as BellOff } from './svg/bell_slash.svg?react';
-export { default as BellRing } from './svg/bell_fill.svg?react';  // Filled para activo
+export { default as Bell } from '@mui/icons-material/NotificationsOutlined';
+export { default as BellOff } from '@mui/icons-material/NotificationsOff';
+export { default as BellRing } from '@mui/icons-material/Notifications';
 
 // ============================================================================
 // USUARIOS
 // ============================================================================
-export { default as User } from './svg/person.svg?react';
-export { default as Users } from './svg/person_2.svg?react';
-export { default as UserCheck } from './svg/person_crop_circle_badge_checkmark.svg?react';
-export { default as UserPlus } from './svg/person_badge_plus.svg?react';
-export { default as UserMinus } from './svg/person_badge_minus.svg?react';
+export { default as User } from '@mui/icons-material/Person';
+export { default as Users } from '@mui/icons-material/People';
+export { default as UserCheck } from '@mui/icons-material/HowToReg';
+export { default as UserPlus } from '@mui/icons-material/PersonAdd';
+export { default as UserMinus } from '@mui/icons-material/PersonRemove';
+export { default as AccountCircle } from '@mui/icons-material/AccountCircle';
 
 // ============================================================================
 // SEGURIDAD
 // ============================================================================
-export { default as Shield } from './svg/shield.svg?react';
-export { default as Lock } from './svg/lock.svg?react';
-export { default as Unlock } from './svg/lock_open.svg?react';
-export { default as Eye } from './svg/eye.svg?react';
-export { default as EyeOff } from './svg/eye_slash.svg?react';
+export { default as Shield } from '@mui/icons-material/Shield';
+export { default as Lock } from '@mui/icons-material/Lock';
+export { default as Unlock } from '@mui/icons-material/LockOpen';
+export { default as Eye } from '@mui/icons-material/Visibility';
+export { default as EyeOff } from '@mui/icons-material/VisibilityOff';
+export { default as Key } from '@mui/icons-material/VpnKey';
 
 // ============================================================================
 // COMERCIO Y LOGISTICA
 // ============================================================================
-export { default as Package } from './svg/shippingbox.svg?react';
-export { default as Boxes } from './svg/cube_box.svg?react';
-export { default as ShoppingCart } from './svg/cart.svg?react';
-export { default as Truck } from './svg/shippingbox.svg?react';  // Alternativa
-export { default as Warehouse } from './svg/building.svg?react';  // Alternativa
-export { default as DollarSign } from './svg/money_dollar_circle.svg?react';
-export { default as Wallet } from './svg/wallet.svg?react';
-export { default as Briefcase } from './svg/briefcase.svg?react';
+export { default as Package } from '@mui/icons-material/Inventory2';
+export { default as Boxes } from '@mui/icons-material/Inventory';
+export { default as ShoppingCart } from '@mui/icons-material/ShoppingCart';
+export { default as Truck } from '@mui/icons-material/LocalShipping';
+export { default as Warehouse } from '@mui/icons-material/Warehouse';
+export { default as DollarSign } from '@mui/icons-material/AttachMoney';
+export { default as Wallet } from '@mui/icons-material/AccountBalanceWallet';
+export { default as Briefcase } from '@mui/icons-material/BusinessCenter';
+export { default as Receipt } from '@mui/icons-material/Receipt';
 
 // ============================================================================
 // UBICACION Y EDIFICIOS
 // ============================================================================
-export { default as Building } from './svg/building.svg?react';
-export { default as Building2 } from './svg/building_2.svg?react';
-export { default as MapPin } from './svg/map_pin.svg?react';
-export { default as Target } from './svg/scope.svg?react';
+export { default as Building } from '@mui/icons-material/Business';
+export { default as Building2 } from '@mui/icons-material/Apartment';
+export { default as MapPin } from '@mui/icons-material/LocationOn';
+export { default as Target } from '@mui/icons-material/GpsFixed';
+export { default as Map } from '@mui/icons-material/Map';
 
 // ============================================================================
 // GRAFICOS Y METRICAS
 // ============================================================================
-export { default as TrendingUp } from './svg/arrow_up_right.svg?react';
-export { default as TrendingDown } from './svg/arrow_down_right.svg?react';
-export { default as BarChart2 } from './svg/chart_bar_fill.svg?react';
-export { default as BarChart3 } from './svg/chart_bar.svg?react';
-export { default as LineChart } from './svg/chart_bar.svg?react';  // Alternativa para LineChart
-export { default as PieChart } from './svg/chart_pie.svg?react';
-export { default as Activity } from './svg/chart_bar.svg?react';  // Alternativa
-export { default as Gauge } from './svg/gauge.svg?react';
+export { default as TrendingUp } from '@mui/icons-material/TrendingUp';
+export { default as TrendingDown } from '@mui/icons-material/TrendingDown';
+export { default as BarChart2 } from '@mui/icons-material/BarChart';
+export { default as BarChart3 } from '@mui/icons-material/Equalizer';
+export { default as LineChart } from '@mui/icons-material/ShowChart';
+export { default as PieChart } from '@mui/icons-material/PieChart';
+export { default as Activity } from '@mui/icons-material/Timeline';
+export { default as Gauge } from '@mui/icons-material/Speed';
+export { default as Analytics } from '@mui/icons-material/Analytics';
 
 // ============================================================================
 // SISTEMA Y TECNOLOGIA
 // ============================================================================
-export { default as Settings } from './svg/gear.svg?react';
-export { default as Workflow } from './svg/flowchart.svg?react';
-export { default as Layers } from './svg/layers.svg?react';
-export { default as Database } from './svg/rectangle_stack.svg?react';  // Alternativa
-export { default as Server } from './svg/desktopcomputer.svg?react';  // Alternativa
-export { default as HardDrive } from './svg/desktopcomputer.svg?react';  // Alternativa
-export { default as Cpu } from './svg/desktopcomputer.svg?react';  // Alternativa
-export { default as Wifi } from './svg/wifi.svg?react';
-export { default as WifiOff } from './svg/wifi_slash.svg?react';
-export { default as Power } from './svg/power.svg?react';
-export { default as LogOut } from './svg/power.svg?react';
-export { default as Keyboard } from './svg/command.svg?react';
-export { default as Command } from './svg/command.svg?react';
+export { default as Settings } from '@mui/icons-material/Settings';
+export { default as Workflow } from '@mui/icons-material/AccountTree';
+export { default as Layers } from '@mui/icons-material/Layers';
+export { default as Database } from '@mui/icons-material/Storage';
+export { default as Server } from '@mui/icons-material/Dns';
+export { default as HardDrive } from '@mui/icons-material/Storage';
+export { default as Cpu } from '@mui/icons-material/Memory';
+export { default as Wifi } from '@mui/icons-material/Wifi';
+export { default as WifiOff } from '@mui/icons-material/WifiOff';
+export { default as Power } from '@mui/icons-material/PowerSettingsNew';
+export { default as LogOut } from '@mui/icons-material/Logout';
+export { default as LogIn } from '@mui/icons-material/Login';
+export { default as Keyboard } from '@mui/icons-material/Keyboard';
+export { default as Command } from '@mui/icons-material/Terminal';
+export { default as Terminal } from '@mui/icons-material/Terminal';
 
 // ============================================================================
 // ORGANIZACION
 // ============================================================================
-export { default as GitCompare } from './svg/arrow_right_arrow_left.svg?react';
-export { default as Filter } from './svg/slider_horizontal_3.svg?react';
-export { default as Inbox } from './svg/tray.svg?react';
-export { default as List } from './svg/list_bullet.svg?react';
-export { default as LayoutGrid } from './svg/square_grid_2x2.svg?react';
-export { default as Hash } from './svg/number.svg?react';
+export { default as GitCompare } from '@mui/icons-material/CompareArrows';
+export { default as Filter } from '@mui/icons-material/FilterList';
+export { default as Inbox } from '@mui/icons-material/Inbox';
+export { default as List } from '@mui/icons-material/List';
+export { default as LayoutGrid } from '@mui/icons-material/GridView';
+export { default as Hash } from '@mui/icons-material/Tag';
+export { default as Sort } from '@mui/icons-material/Sort';
+export { default as Category } from '@mui/icons-material/Category';
 
 // ============================================================================
 // MATEMATICAS
 // ============================================================================
-export { default as PlusCircle } from './svg/plus_circle.svg?react';
-export { default as MinusCircle } from './svg/minus_circle.svg?react';
+export { default as PlusCircle } from '@mui/icons-material/AddCircleOutline';
+export { default as MinusCircle } from '@mui/icons-material/RemoveCircleOutline';
+export { default as Percent } from '@mui/icons-material/Percent';
 
 // ============================================================================
 // ESPECIALES E IA
 // ============================================================================
-export { default as Sparkles } from './svg/sparkles.svg?react';
-export { default as Lightbulb } from './svg/lightbulb.svg?react';
-export { default as Brain } from './svg/sparkles.svg?react';  // Alternativa para IA
-export { default as Zap } from './svg/bolt.svg?react';
+export { default as Sparkles } from '@mui/icons-material/AutoAwesome';
+export { default as Lightbulb } from '@mui/icons-material/Lightbulb';
+export { default as Brain } from '@mui/icons-material/Psychology';
+export { default as Zap } from '@mui/icons-material/FlashOn';
+export { default as Magic } from '@mui/icons-material/AutoFixHigh';
+export { default as Robot } from '@mui/icons-material/SmartToy';
 
 // ============================================================================
 // TEMA
 // ============================================================================
-export { default as Sun } from './svg/sun_max.svg?react';
-export { default as Moon } from './svg/moon.svg?react';
-export { default as Monitor } from './svg/desktopcomputer.svg?react';
+export { default as Sun } from '@mui/icons-material/LightMode';
+export { default as Moon } from '@mui/icons-material/DarkMode';
+export { default as Monitor } from '@mui/icons-material/DesktopWindows';
 
 // ============================================================================
 // FAVORITOS Y GAMIFICACION
 // ============================================================================
-export { default as Star } from './svg/star.svg?react';
-export { default as StarFill } from './svg/star_fill.svg?react';
-export { default as Heart } from './svg/heart.svg?react';
-export { default as ThumbsUp } from './svg/hand_thumbsup.svg?react';
-export { default as ThumbsDown } from './svg/hand_thumbsdown.svg?react';
-export { default as Trophy } from './svg/star_fill.svg?react';  // Alternativa
-export { default as Medal } from './svg/rosette.svg?react';  // Alternativa
-export { default as Crown } from './svg/star.svg?react';  // Alternativa
-export { default as Bookmark } from './svg/bookmark.svg?react';
+export { default as Star } from '@mui/icons-material/StarOutline';
+export { default as StarFill } from '@mui/icons-material/Star';
+export { default as Heart } from '@mui/icons-material/FavoriteBorder';
+export { default as HeartFill } from '@mui/icons-material/Favorite';
+export { default as ThumbsUp } from '@mui/icons-material/ThumbUp';
+export { default as ThumbsDown } from '@mui/icons-material/ThumbDown';
+export { default as Trophy } from '@mui/icons-material/EmojiEvents';
+export { default as Medal } from '@mui/icons-material/MilitaryTech';
+export { default as Crown } from '@mui/icons-material/EmojiEvents';
+export { default as Bookmark } from '@mui/icons-material/BookmarkBorder';
+export { default as BookmarkFill } from '@mui/icons-material/Bookmark';
 
 // ============================================================================
 // MULTIMEDIA
 // ============================================================================
-export { default as Image } from './svg/photo.svg?react';
-export { default as Film } from './svg/film.svg?react';
-export { default as Music } from './svg/music_note.svg?react';
+export { default as Image } from '@mui/icons-material/Image';
+export { default as Film } from '@mui/icons-material/Movie';
+export { default as Music } from '@mui/icons-material/MusicNote';
+export { default as Camera } from '@mui/icons-material/CameraAlt';
 
 // ============================================================================
 // AUDIO Y VOZ
 // ============================================================================
-export { default as Mic } from './svg/mic.svg?react';
-export { default as MicOff } from './svg/mic_slash.svg?react';
-export { default as Volume2 } from './svg/speaker_2.svg?react';
-export { default as VolumeX } from './svg/speaker_slash.svg?react';
-export { default as Volume1 } from './svg/speaker_1.svg?react';
-export { default as Volume } from './svg/speaker.svg?react';
+export { default as Mic } from '@mui/icons-material/Mic';
+export { default as MicOff } from '@mui/icons-material/MicOff';
+export { default as Volume2 } from '@mui/icons-material/VolumeUp';
+export { default as VolumeX } from '@mui/icons-material/VolumeOff';
+export { default as Volume1 } from '@mui/icons-material/VolumeDown';
+export { default as Volume } from '@mui/icons-material/VolumeMute';
+
+// ============================================================================
+// TRANSPORTE Y FLOTA
+// ============================================================================
+export { default as Fuel } from '@mui/icons-material/LocalGasStation';
+export { default as Route } from '@mui/icons-material/Route';
+export { default as DirectionsCar } from '@mui/icons-material/DirectionsCar';
+export { default as Engineering } from '@mui/icons-material/Engineering';
+export { default as BuildCircle } from '@mui/icons-material/BuildCircle';
+export { default as LocalShipping } from '@mui/icons-material/LocalShipping';
+export { default as Inventory } from '@mui/icons-material/Inventory';
+export { default as Assignment } from '@mui/icons-material/Assignment';
+export { default as LinearScaleIcon } from '@mui/icons-material/LinearScale';
+
+// ============================================================================
+// DASHBOARD Y ADMIN
+// ============================================================================
+export { default as Dashboard } from '@mui/icons-material/Dashboard';
+export { default as AdminPanelSettings } from '@mui/icons-material/AdminPanelSettings';
+export { default as ManageAccounts } from '@mui/icons-material/ManageAccounts';
+export { default as Tune } from '@mui/icons-material/Tune';
+
+// ============================================================================
+// ACCIONES EXTRA
+// ============================================================================
+export { default as Print } from '@mui/icons-material/Print';
+export { default as Share } from '@mui/icons-material/Share';
+export { default as Fullscreen } from '@mui/icons-material/Fullscreen';
+export { default as FullscreenExit } from '@mui/icons-material/FullscreenExit';
+export { default as ZoomIn } from '@mui/icons-material/ZoomIn';
+export { default as ZoomOut } from '@mui/icons-material/ZoomOut';
+export { default as Undo } from '@mui/icons-material/Undo';
+export { default as Redo } from '@mui/icons-material/Redo';
 
 // ============================================================================
 // MAPEO DE COLORES POR DEFECTO PARA CADA ICONO
@@ -365,6 +412,8 @@ export const ICON_DEFAULT_COLORS = {
   Lightbulb: 'favorites',
   Brain: 'ai',
   Zap: 'ai',
+  Magic: 'ai',
+  Robot: 'ai',
 
   // CARGA (muted)
   Loader2: 'muted',
@@ -435,4 +484,8 @@ export const ICON_DEFAULT_COLORS = {
   Volume1: 'ai',
   Volume2: 'ai',
   VolumeX: 'muted',
+
+  // DASHBOARD
+  Dashboard: 'primary',
+  AdminPanelSettings: 'secondary',
 };

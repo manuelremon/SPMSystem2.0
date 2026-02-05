@@ -119,7 +119,7 @@ def tratar_items(solicitud_id):
     try:
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT status FROM solicitudes WHERE id=?", (solicitud_id,))
+            cur.execute("SELECT status FROM solicitud WHERE id=?", (solicitud_id,))
             row = cur.fetchone()
             if row:
                 estado_actual = normalizar_estado(row["status"])

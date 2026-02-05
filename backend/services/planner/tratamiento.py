@@ -133,7 +133,7 @@ def guardar_decision_multifuente(
     total_costo_fuentes_externas = sum(
         float(f.get("cantidad_asignada", 0)) * float(f.get("precio_unitario", 0))
         for f in fuentes
-        if f.get("tipo") not in ("stock", "transferencia")
+        if f.get("tipo_fuente", f.get("tipo")) not in ("stock", "transferencia", "equivalencia")
     )
 
     if total_costo_fuentes_externas > 0:
@@ -144,7 +144,7 @@ def guardar_decision_multifuente(
 
             presupuesto_info = PresupuestoRepository.get_disponible(centro, sector)
             if presupuesto_info:
-                saldo_disponible = float(presupuesto_info.get("saldo_disponible", 0))
+                saldo_disponible = float(presupuesto_info.get("saldo", presupuesto_info.get("saldo_disponible", 0)))
                 if total_costo_fuentes_externas > saldo_disponible:
                     raise ValueError(
                         f"Presupuesto insuficiente. Requerido: ${total_costo_fuentes_externas:.2f}, "

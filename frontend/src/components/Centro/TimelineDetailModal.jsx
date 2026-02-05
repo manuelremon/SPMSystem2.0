@@ -12,8 +12,18 @@ import {
   FileText,
   ExternalLink,
 } from "../ui/Icons";
-import { Button } from "../ui/Button";
-import { Badge } from "../ui/Badge";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Box,
+  Typography,
+  Button,
+  IconButton,
+  Chip,
+  Paper,
+} from "@mui/material";
 import { useI18n } from "../../context/i18n";
 
 const timelineIcons = {
@@ -39,14 +49,14 @@ const tipoLabels = {
 };
 
 const tipoColors = {
-  notificacion: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
-  mensaje: "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300",
-  stock_consulta: "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300",
-  solicitud_approved: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300",
-  solicitud_rejected: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300",
-  solicitud_planned: "bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300",
-  warning: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300",
-  info: "bg-[var(--bg-soft)] text-[var(--fg-muted)]",
+  notificacion: { bg: "rgba(59, 130, 246, 0.12)", color: "var(--primary)" },
+  mensaje: { bg: "rgba(168, 85, 247, 0.12)", color: "#a855f7" },
+  stock_consulta: { bg: "rgba(249, 115, 22, 0.12)", color: "#f97316" },
+  solicitud_approved: { bg: "rgba(34, 197, 94, 0.12)", color: "var(--success)" },
+  solicitud_rejected: { bg: "rgba(239, 68, 68, 0.12)", color: "var(--danger)" },
+  solicitud_planned: { bg: "rgba(6, 182, 212, 0.12)", color: "#06b6d4" },
+  warning: { bg: "rgba(245, 158, 11, 0.12)", color: "var(--warning)" },
+  info: { bg: "var(--bg-soft)", color: "var(--fg-muted)" },
 };
 
 function formatDateTime(dateStr) {
@@ -70,7 +80,7 @@ export default function TimelineDetailModal({ item, onClose }) {
   const subtipo = item.subtipo || item.tipo;
   const IconComponent = timelineIcons[subtipo] || timelineIcons[item.tipo] || FileText;
   const label = tipoLabels[subtipo] || tipoLabels[item.tipo] || "Actividad";
-  const colorClass = tipoColors[subtipo] || tipoColors[item.tipo] || tipoColors.info;
+  const colors = tipoColors[subtipo] || tipoColors[item.tipo] || tipoColors.info;
 
   const handleVerSolicitud = () => {
     onClose();
@@ -87,76 +97,94 @@ export default function TimelineDetailModal({ item, onClose }) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{
-        backgroundColor: "rgba(15, 23, 42, 0.4)",
-        backdropFilter: "blur(4px)",
-        WebkitBackdropFilter: "blur(4px)",
-      }}
-      onClick={onClose}
-    >
-      <div
-        className="relative w-full max-w-lg rounded-2xl border border-[var(--border)] overflow-hidden bg-[var(--card)] shadow-elevated"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-[var(--border)]">
-          <div className="flex items-center gap-4">
-            <div className={`p-3 rounded-xl ${colorClass}`}>
-              <IconComponent className="w-6 h-6" />
-            </div>
-            <div>
-              <Badge className={colorClass}>{label}</Badge>
-              <p className="text-xs text-[var(--fg-muted)] mt-1">
-                {formatDateTime(item.created_at)}
-              </p>
-            </div>
-          </div>
-
-          <Button
-            onClick={onClose}
-            variant="icon"
-            size="icon-md"
+    <Dialog open={true} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Box
+            sx={{
+              p: 1.5,
+              borderRadius: 2,
+              bgcolor: colors.bg,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
-            <X className="w-5 h-5" />
+            <IconComponent style={{ width: 24, height: 24, color: colors.color }} />
+          </Box>
+          <Box sx={{ flex: 1 }}>
+            <Chip
+              label={label}
+              size="small"
+              sx={{
+                bgcolor: colors.bg,
+                color: colors.color,
+                fontWeight: 600,
+                fontSize: "0.7rem",
+              }}
+            />
+            <Typography variant="caption" sx={{ color: "var(--fg-muted)", display: "block", mt: 0.5 }}>
+              {formatDateTime(item.created_at)}
+            </Typography>
+          </Box>
+          <IconButton onClick={onClose} size="small">
+            <X style={{ width: 20, height: 20, color: "var(--fg-muted)" }} />
+          </IconButton>
+        </Box>
+      </DialogTitle>
+
+      <DialogContent dividers>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "var(--fg-strong)", mb: 2 }}>
+          {t("centro_timeline_detalle", "Detalle de Actividad")}
+        </Typography>
+        <Typography variant="body1" sx={{ color: "var(--fg-strong)", lineHeight: 1.6 }}>
+          {item.descripcion}
+        </Typography>
+
+        {item.solicitud_id && (
+          <Paper
+            elevation={0}
+            sx={{
+              mt: 2,
+              p: 2,
+              bgcolor: "rgba(59, 130, 246, 0.08)",
+              border: "1px solid rgba(59, 130, 246, 0.2)",
+              borderRadius: 2,
+            }}
+          >
+            <Typography variant="body2" sx={{ color: "var(--primary)", fontWeight: 500 }}>
+              {t("centro_solicitud_relacionada", "Solicitud relacionada")}:{" "}
+              <strong>#{item.solicitud_id}</strong>
+            </Typography>
+          </Paper>
+        )}
+      </DialogContent>
+
+      <DialogActions sx={{ p: 2, gap: 1 }}>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={handleIrAModulo}
+          startIcon={<ExternalLink style={{ width: 16, height: 16 }} />}
+          sx={{ color: "var(--fg-muted)", borderColor: "var(--border)", textTransform: "none" }}
+        >
+          {item.tipo === "mensaje"
+            ? t("centro_ir_mensajes", "Ir a Mensajes")
+            : t("centro_ir_notificaciones", "Ir a Notificaciones")}
+        </Button>
+
+        {item.solicitud_id && (
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleVerSolicitud}
+            startIcon={<FileText style={{ width: 16, height: 16 }} />}
+            sx={{ bgcolor: "#567ebb", "&:hover": { bgcolor: "#4a6da8" }, textTransform: "none" }}
+          >
+            {t("centro_ver_solicitud", "Ver Solicitud")}
           </Button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6">
-          <h3 className="text-lg font-semibold text-[var(--fg)] mb-3">
-            {t("centro_timeline_detalle", "Detalle de Actividad")}
-          </h3>
-          <p className="text-[var(--fg)] leading-relaxed">{item.descripcion}</p>
-
-          {item.solicitud_id && (
-            <div className="mt-4 p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
-              <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
-                {t("centro_solicitud_relacionada", "Solicitud relacionada")}:{" "}
-                <span className="font-bold">#{item.solicitud_id}</span>
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between gap-3 p-6 border-t border-[var(--border)] bg-[var(--bg-soft)]/50">
-          <Button variant="outline" size="sm" onClick={handleIrAModulo}>
-            <ExternalLink className="w-4 h-4 mr-2" />
-            {item.tipo === "mensaje"
-              ? t("centro_ir_mensajes", "Ir a Mensajes")
-              : t("centro_ir_notificaciones", "Ir a Notificaciones")}
-          </Button>
-
-          {item.solicitud_id && (
-            <Button size="sm" onClick={handleVerSolicitud}>
-              <FileText className="w-4 h-4 mr-2" />
-              {t("centro_ver_solicitud", "Ver Solicitud")}
-            </Button>
-          )}
-        </div>
-      </div>
-    </div>
+        )}
+      </DialogActions>
+    </Dialog>
   );
 }

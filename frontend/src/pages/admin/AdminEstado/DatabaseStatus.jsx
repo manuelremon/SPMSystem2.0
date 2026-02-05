@@ -1,12 +1,23 @@
 /**
  * DatabaseStatus - Panel de estadisticas de bases de datos
+ * Enterprise Design - MUI Components
  *
  * Muestra conteo de registros y tamano de cada BD
  */
 
-import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/Card'
-import { Badge } from '../../../components/ui/Badge'
-import { Database } from '../../../components/ui/Icons'
+import {
+  Box,
+  Paper,
+  Typography,
+  Stack,
+  Chip,
+  Grid,
+} from "@mui/material";
+
+// MUI Icons
+import StorageIcon from "@mui/icons-material/Storage";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+
 import { useI18n } from '../../../context/i18n'
 
 /**
@@ -17,58 +28,126 @@ function DatabaseCard({ name, info }) {
 
   if (info?.error) {
     return (
-      <div className="p-4 border rounded-lg bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="font-semibold text-slate-800 dark:text-slate-100 uppercase text-sm">
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 2,
+          borderRadius: 2,
+          bgcolor: 'background.paper',
+          border: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+          <Typography
+            variant="subtitle2"
+            sx={{
+              fontWeight: 600,
+              color: 'text.primary',
+              textTransform: 'uppercase',
+              fontSize: '0.75rem',
+            }}
+          >
             {name.replace(/_/g, ' ')}
-          </h4>
-          <Badge variant="danger">Error</Badge>
-        </div>
-        <p className="text-sm text-red-500 dark:text-red-400">{info.error}</p>
-      </div>
+          </Typography>
+          <Chip label="Error" color="error" size="small" />
+        </Stack>
+        <Typography variant="body2" color="error.main">
+          {info.error}
+        </Typography>
+      </Paper>
     )
   }
 
   if (!info?.counts) {
     return (
-      <div className="p-4 border rounded-lg bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="font-semibold text-slate-800 dark:text-slate-100 uppercase text-sm">
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 2,
+          borderRadius: 2,
+          bgcolor: 'background.paper',
+          border: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+          <Typography
+            variant="subtitle2"
+            sx={{
+              fontWeight: 600,
+              color: 'text.primary',
+              textTransform: 'uppercase',
+              fontSize: '0.75rem',
+            }}
+          >
             {name.replace(/_/g, ' ')}
-          </h4>
-        </div>
-        <p className="text-sm text-slate-500 dark:text-slate-400">{t('no_data', 'Sin datos')}</p>
-      </div>
+          </Typography>
+        </Stack>
+        <Typography variant="body2" color="text.secondary">
+          {t('no_data', 'Sin datos')}
+        </Typography>
+      </Paper>
     )
   }
 
   return (
-    <div className="p-4 border rounded-lg bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
-      <div className="flex items-center justify-between mb-3">
-        <h4 className="font-semibold text-slate-800 dark:text-slate-100 uppercase text-sm">
+    <Paper
+      variant="outlined"
+      sx={{
+        p: 2,
+        borderRadius: 2,
+        bgcolor: 'background.paper',
+        border: '1px solid',
+        borderColor: 'divider',
+      }}
+    >
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+        <Typography
+          variant="subtitle2"
+          sx={{
+            fontWeight: 600,
+            color: 'text.primary',
+            textTransform: 'uppercase',
+            fontSize: '0.75rem',
+          }}
+        >
           {name.replace(/_/g, ' ')}
-        </h4>
+        </Typography>
         {info.size_mb !== undefined && (
-          <Badge variant="default">{info.size_mb} MB</Badge>
+          <Chip label={`${info.size_mb} MB`} size="small" />
         )}
-      </div>
-      <div className="space-y-1">
+      </Stack>
+      <Stack spacing={0.5}>
         {Object.entries(info.counts).map(([table, count]) => (
-          <div key={table} className="flex justify-between text-sm">
-            <span className="text-slate-600 dark:text-slate-400">{table}</span>
-            <span className="font-medium text-slate-800 dark:text-slate-100">
+          <Stack key={table} direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="body2" color="text.secondary">
+              {table}
+            </Typography>
+            <Typography variant="body2" fontWeight={500} color="text.primary">
               {count.toLocaleString()}
-            </span>
-          </div>
+            </Typography>
+          </Stack>
         ))}
-        <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between text-sm font-medium">
-          <span className="text-slate-600 dark:text-slate-400">{t('subtotal', 'Subtotal')}</span>
-          <span className="text-emerald-600 dark:text-emerald-400">
-            {info.total_records?.toLocaleString() || '0'}
-          </span>
-        </div>
-      </div>
-    </div>
+        <Box
+          sx={{
+            pt: 1.5,
+            mt: 1.5,
+            borderTop: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="body2" fontWeight={500} color="text.secondary">
+              {t('subtotal', 'Subtotal')}
+            </Typography>
+            <Typography variant="body2" fontWeight={600} color="success.main">
+              {info.total_records?.toLocaleString() || '0'}
+            </Typography>
+          </Stack>
+        </Box>
+      </Stack>
+    </Paper>
   )
 }
 
@@ -81,42 +160,82 @@ export function DatabaseStatus({ dbStats }) {
   if (!dbStats) return null
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Database className="w-5 h-5 text-emerald-500" />
-          {t('db_statistics', 'Estadisticas de Base de Datos')}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <Paper sx={{ overflow: 'hidden' }}>
+      <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <StorageIcon sx={{ width: 20, height: 20, color: 'success.main' }} />
+          <Typography variant="h6" fontWeight={600}>
+            {t('db_statistics', 'Estadisticas de Base de Datos')}
+          </Typography>
+        </Stack>
+      </Box>
+      <Box sx={{ p: 2 }}>
         {/* Totales */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="p-4 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg text-center">
-            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-              {t('total_records', 'Total Registros')}
-            </p>
-            <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-400">
-              {dbStats.totals?.records?.toLocaleString() || '0'}
-            </p>
-          </div>
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg text-center">
-            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-              {t('total_size', 'Espacio Total')}
-            </p>
-            <p className="text-3xl font-bold text-blue-700 dark:text-blue-400">
-              {dbStats.totals?.size_mb?.toFixed(1) || '0'} MB
-            </p>
-          </div>
-        </div>
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid item xs={6}>
+            <Paper
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                bgcolor: 'success.lighter',
+                textAlign: 'center',
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'text.secondary',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  mb: 0.5,
+                  display: 'block',
+                }}
+              >
+                {t('total_records', 'Total Registros')}
+              </Typography>
+              <Typography variant="h4" fontWeight="bold" color="success.dark">
+                {dbStats.totals?.records?.toLocaleString() || '0'}
+              </Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={6}>
+            <Paper
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                bgcolor: 'info.lighter',
+                textAlign: 'center',
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'text.secondary',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  mb: 0.5,
+                  display: 'block',
+                }}
+              >
+                {t('total_size', 'Espacio Total')}
+              </Typography>
+              <Typography variant="h4" fontWeight="bold" color="info.dark">
+                {dbStats.totals?.size_mb?.toFixed(1) || '0'} MB
+              </Typography>
+            </Paper>
+          </Grid>
+        </Grid>
 
         {/* Por base de datos */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Grid container spacing={2}>
           {dbStats.databases && Object.entries(dbStats.databases).map(([dbName, dbInfo]) => (
-            <DatabaseCard key={dbName} name={dbName} info={dbInfo} />
+            <Grid item xs={12} md={6} key={dbName}>
+              <DatabaseCard name={dbName} info={dbInfo} />
+            </Grid>
           ))}
-        </div>
-      </CardContent>
-    </Card>
+        </Grid>
+      </Box>
+    </Paper>
   )
 }
 

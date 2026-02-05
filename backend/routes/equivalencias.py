@@ -18,11 +18,17 @@ def listar_equivalencias():
     Lista equivalencias de materiales SAP con búsqueda opcional.
 
     Query params:
-        q: Búsqueda por código o descripción
+        q: Búsqueda general por código o descripción (legacy)
+        codigo: Búsqueda por código de material (parcial)
+        descripcion: Búsqueda por descripción (parcial)
+        tipo: Filtro por tipo de equivalencia (E0_DUPLICADO, E1_ESTRICTA, E2_SUPLIBLE)
         limit: Número de resultados (default 50, max 200)
         offset: Offset para paginación (default 0)
     """
     q = request.args.get("q", "").strip()
+    q_codigo = request.args.get("codigo", "").strip()
+    q_descripcion = request.args.get("descripcion", "").strip()
+    q_tipo = request.args.get("tipo", "").strip()
     limit = min(int(request.args.get("limit", 50)), 200)
     offset = int(request.args.get("offset", 0))
 
@@ -31,10 +37,67 @@ def listar_equivalencias():
         with get_db_connection("equivalentes") as conn:
             cursor = conn.cursor()
 
-            # Query base
-            base_query = """
+            # Construir clausula WHERE dinamicamente
+            where_clauses = ["1=1"]
+            params = []
+
+            # Legacy search (q parameter)
+            if q:
+                where_clauses.append("""
+                    (
+                        CAST(material_base AS TEXT) LIKE ? OR
+                        CAST(material_equivalente AS TEXT) LIKE ? OR
+                        texto_breve_base LIKE ? OR
+                        texto_breve_equivalente LIKE ?
+                    )
+                """)
+                search_term = f"%{q}%"
+                params.extend([search_term, search_term, search_term, search_term])
+
+            # Filtro por código
+            if q_codigo:
+                where_clauses.append("""
+                    (
+                        CAST(material_base AS TEXT) LIKE ? OR
+                        CAST(material_equivalente AS TEXT) LIKE ?
+                    )
+                """)
+                codigo_term = f"%{q_codigo}%"
+                params.extend([codigo_term, codigo_term])
+
+            # Filtro por descripción
+            if q_descripcion:
+                where_clauses.append("""
+                    (
+                        UPPER(texto_breve_base) LIKE UPPER(?) OR
+                        UPPER(texto_breve_equivalente) LIKE UPPER(?)
+                    )
+                """)
+                desc_term = f"%{q_descripcion}%"
+                params.extend([desc_term, desc_term])
+
+            # Filtro por tipo de equivalencia
+            if q_tipo:
+                where_clauses.append("tipo_equiv = ?")
+                params.append(q_tipo)
+
+            # Construir WHERE
+            where_clause = " AND ".join(where_clauses)
+
+            # Contar total (sin subquery para compatibilidad SQLite)
+            count_query = f"""
+                SELECT COUNT(*) as total
+                FROM materiales_equivalencias
+                WHERE {where_clause}
+            """
+            cursor.execute(count_query, params)
+            count_row = cursor.fetchone()
+            total = count_row["total"] if isinstance(count_row, dict) else count_row[0]
+
+            # Query para obtener resultados con paginación
+            select_query = f"""
                 SELECT
-                    rowid as id,
+                    id,
                     material_base,
                     texto_breve_base,
                     material_equivalente,
@@ -42,34 +105,13 @@ def listar_equivalencias():
                     tipo_equiv,
                     criterio,
                     motivo_equivalencia
-                FROM equivalencias
-                WHERE 1=1
+                FROM materiales_equivalencias
+                WHERE {where_clause}
+                ORDER BY material_base
+                LIMIT ? OFFSET ?
             """
-
-            params = []
-
-            if q:
-                base_query += """
-                    AND (
-                        CAST(material_base AS TEXT) LIKE ? OR
-                        CAST(material_equivalente AS TEXT) LIKE ? OR
-                        texto_breve_base LIKE ? OR
-                        texto_breve_equivalente LIKE ?
-                    )
-                """
-                search_term = f"%{q}%"
-                params.extend([search_term, search_term, search_term, search_term])
-
-            # Contar total
-            count_query = f"SELECT COUNT(*) FROM ({base_query})"
-            cursor.execute(count_query, params)
-            total = cursor.fetchone()[0]
-
-            # Obtener resultados con paginación
-            base_query += " ORDER BY material_base LIMIT ? OFFSET ?"
-            params.extend([limit, offset])
-
-            cursor.execute(base_query, params)
+            select_params = params + [limit, offset]
+            cursor.execute(select_query, select_params)
             rows = cursor.fetchall()
 
         equivalencias = []
@@ -104,6 +146,47 @@ def listar_equivalencias():
         return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
 
 
+@bp.route("/tipos", methods=["GET"])
+@require_auth
+def get_tipos_equivalencia():
+    """
+    Obtiene la lista de tipos de equivalencia únicos para el dropdown de filtro.
+
+    Returns:
+        Lista de tipos de equivalencia únicos con sus etiquetas
+    """
+    try:
+        with get_db_connection("equivalentes") as conn:
+            cursor = conn.cursor()
+            query = """
+                SELECT DISTINCT tipo_equiv
+                FROM materiales_equivalencias
+                WHERE tipo_equiv IS NOT NULL
+                ORDER BY tipo_equiv
+            """
+            cursor.execute(query)
+            rows = cursor.fetchall()
+
+        tipos = []
+        label_map = {
+            "E0_DUPLICADO": "Duplicado",
+            "E1_ESTRICTA": "Estricta",
+            "E2_SUPLIBLE": "Suplible",
+        }
+        for row in rows:
+            tipo = row["tipo_equiv"] if isinstance(row, dict) else row[0]
+            if tipo:
+                tipos.append({
+                    "value": tipo,
+                    "label": label_map.get(tipo, tipo)
+                })
+
+        return jsonify({"ok": True, "data": tipos})
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+
+
 @bp.route("/<codigo>", methods=["GET"])
 @require_auth
 def equivalencias_por_material(codigo):
@@ -114,7 +197,7 @@ def equivalencias_por_material(codigo):
     Busca en equivalentes.db tabla equivalencias.
     """
     try:
-        # Buscar en equivalentes.db (tabla real con datos SAP)
+        # Buscar en master_materiales.db (tabla con datos SAP)
         with get_db_connection("equivalentes") as conn:
             cursor = conn.cursor()
             # Buscar donde el material es base O es equivalente (bidireccional)
@@ -128,7 +211,7 @@ def equivalencias_por_material(codigo):
                     tipo_equiv,
                     criterio,
                     motivo_equivalencia
-                FROM equivalencias
+                FROM materiales_equivalencias
                 WHERE material_base = ? OR material_equivalente = ?
             """,
                 (codigo, codigo),
@@ -233,22 +316,22 @@ def crear_equivalencia():
             400,
         )
 
-    # Fase 1: Verificar que los materiales existen en cat_materiales (PostgreSQL) o catalogo_materiales.db (SQLite)
+    # Fase 1: Verificar que los materiales existen en master_materiales.db
     # Whitelist de tablas permitidas para catálogo de materiales
-    ALLOWED_CATALOG_TABLES = {"cat_materiales", "materiales"}
+    ALLOWED_CATALOG_TABLES = {"cat_materiales", "catalogo_materiales"}
     try:
         with get_db_connection("catalogo_materiales") as conn:
             cursor = conn.cursor()
-            # En PostgreSQL usa cat_materiales, en SQLite usa materiales
-            from core.db import is_using_postgresql
-            tabla = "cat_materiales" if is_using_postgresql() else "materiales"
+            # En PostgreSQL usa cat_materiales, en SQLite usa catalogo_materiales
+            from backend.core.db import is_using_postgresql
+            tabla = "cat_materiales" if is_using_postgresql() else "catalogo_materiales"
             # Validación explícita contra whitelist (defensa en profundidad)
             if tabla not in ALLOWED_CATALOG_TABLES:
                 raise ValueError(f"Tabla no permitida: {tabla}")
-            cursor.execute(f"SELECT codigo FROM {tabla} WHERE codigo = ?", (codigo_original,))
+            cursor.execute(f"SELECT id_material FROM {tabla} WHERE id_material = ?", (codigo_original,))
             original_exists = cursor.fetchone() is not None
 
-            cursor.execute(f"SELECT codigo FROM {tabla} WHERE codigo = ?", (codigo_equivalente,))
+            cursor.execute(f"SELECT id_material FROM {tabla} WHERE id_material = ?", (codigo_equivalente,))
             equivalente_exists = cursor.fetchone() is not None
 
     except Exception as e:

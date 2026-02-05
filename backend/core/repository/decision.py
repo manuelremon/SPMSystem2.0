@@ -62,27 +62,75 @@ class DecisionAbastecimientoRepository:
 
     @staticmethod
     def get_decisiones_solicitud(solicitud_id: int) -> List[Dict[str, Any]]:
-        """Obtiene todas las decisiones de una solicitud"""
+        """Obtiene todas las decisiones de una solicitud con sus fuentes (optimizado con JOIN)"""
         conn = _connect()
         try:
             cur = conn.cursor()
+            # Query optimizada: obtiene decisiones y fuentes en una sola consulta
             cur.execute(
                 """
-                SELECT id, solicitud_id, item_index, cantidad_solicitada,
-                       cantidad_total_asignada, estado, comentario, planner_id,
-                       created_at, updated_at
-                FROM decision_abastecimiento
-                WHERE solicitud_id = ?
-                ORDER BY item_index
+                SELECT
+                    d.id, d.solicitud_id, d.item_index, d.cantidad_solicitada,
+                    d.cantidad_total_asignada, d.estado, d.comentario, d.planner_id,
+                    d.created_at, d.updated_at,
+                    f.id as fuente_id, f.tipo_fuente, f.centro_origen, f.almacen_origen,
+                    f.cuit_proveedor, f.proveedor_nombre, f.codigo_material_equiv,
+                    f.tipo_equivalencia, f.cantidad_asignada, f.precio_unitario,
+                    f.precio_es_negociado, f.plazo_dias, f.score_opcion,
+                    f.orden_prioridad, f.notas
+                FROM decision_abastecimiento d
+                LEFT JOIN decision_abastecimiento_fuentes f ON d.id = f.decision_id
+                WHERE d.solicitud_id = ?
+                ORDER BY d.item_index, f.orden_prioridad
             """,
                 (solicitud_id,),
             )
-            decisiones = []
+
+            # Agrupar resultados por decision_id
+            decisiones_map: Dict[int, Dict[str, Any]] = {}
             for row in cur.fetchall():
-                decision = dict(row)
-                decision["fuentes"] = DecisionAbastecimientoRepository.get_fuentes(decision["id"])
-                decisiones.append(decision)
-            return decisiones
+                row_dict = dict(row)
+                decision_id = row_dict["id"]
+
+                if decision_id not in decisiones_map:
+                    # Primera vez que vemos esta decisión
+                    decisiones_map[decision_id] = {
+                        "id": decision_id,
+                        "solicitud_id": row_dict["solicitud_id"],
+                        "item_index": row_dict["item_index"],
+                        "cantidad_solicitada": row_dict["cantidad_solicitada"],
+                        "cantidad_total_asignada": row_dict["cantidad_total_asignada"],
+                        "estado": row_dict["estado"],
+                        "comentario": row_dict["comentario"],
+                        "planner_id": row_dict["planner_id"],
+                        "created_at": row_dict["created_at"],
+                        "updated_at": row_dict["updated_at"],
+                        "fuentes": []
+                    }
+
+                # Agregar fuente si existe (LEFT JOIN puede dar NULL)
+                if row_dict.get("fuente_id"):
+                    decisiones_map[decision_id]["fuentes"].append({
+                        "id": row_dict["fuente_id"],
+                        "decision_id": decision_id,
+                        "tipo_fuente": row_dict["tipo_fuente"],
+                        "centro_origen": row_dict["centro_origen"],
+                        "almacen_origen": row_dict["almacen_origen"],
+                        "cuit_proveedor": row_dict["cuit_proveedor"],
+                        "proveedor_nombre": row_dict["proveedor_nombre"],
+                        "codigo_material_equiv": row_dict["codigo_material_equiv"],
+                        "tipo_equivalencia": row_dict["tipo_equivalencia"],
+                        "cantidad_asignada": row_dict["cantidad_asignada"],
+                        "precio_unitario": row_dict["precio_unitario"],
+                        "precio_es_negociado": row_dict["precio_es_negociado"],
+                        "plazo_dias": row_dict["plazo_dias"],
+                        "score_opcion": row_dict["score_opcion"],
+                        "orden_prioridad": row_dict["orden_prioridad"],
+                        "notas": row_dict["notas"]
+                    })
+
+            # Ordenar por item_index y retornar lista
+            return sorted(decisiones_map.values(), key=lambda x: x["item_index"])
         finally:
             conn.close()
 

@@ -1,49 +1,84 @@
+/**
+ * Textarea Component - Enterprise Design System
+ * Clean textarea with CSS variable theming
+ */
+
 import React from "react";
 import PropTypes from "prop-types";
 import clsx from "clsx";
 
-/**
- * Textarea Component - Glass Morphism Style
- * Translucent textarea matching Input glass style
- */
 export const Textarea = React.forwardRef(({
   className,
+  label,
   error = false,
+  errorMessage,
+  helperText,
+  required = false,
+  disabled = false,
+  id,
+  name,
   ...props
 }, ref) => {
+  const inputId = id || name || `textarea-${Math.random().toString(36).substr(2, 9)}`;
+
   return (
-    <textarea
-      ref={ref}
-      className={clsx(
-        // Glass base
-        "w-full",
-        "bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm",
-        "rounded-xl",
-        "px-4 py-3",
-        // Typography
-        "text-sm text-slate-800 dark:text-slate-200",
-        "placeholder:text-slate-400 dark:placeholder:text-slate-500",
-        // Transitions
-        "transition-all duration-200",
-        // Focus states - glass glow
-        "focus:outline-none",
-        "focus:bg-white/70 dark:focus:bg-slate-700/70",
-        // Border - Always blue (or red for error)
-        error
-          ? "border border-red-400 dark:border-red-500 ring-1 ring-red-100 dark:ring-red-900/30 focus:border-red-400 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-800/30"
-          : "border border-blue-300 dark:border-blue-600 ring-1 ring-blue-100 dark:ring-blue-900/30 focus:border-blue-400 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800/30",
-        // Hover
-        "hover:bg-white/60 dark:hover:bg-slate-700/60",
-        !error && "hover:border-blue-400 dark:hover:border-blue-500",
-        // Resize control
-        "resize-y min-h-[100px]",
-        // Disabled state
-        "disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-white/30 dark:disabled:bg-slate-800/30",
-        className
+    <div className={clsx("w-full", className)}>
+      {label && (
+        <label
+          htmlFor={inputId}
+          className="block text-xs font-medium uppercase tracking-wide mb-1.5"
+          style={{ color: "var(--fg-muted)" }}
+        >
+          {label}
+          {required && <span style={{ color: "var(--danger)" }} className="ml-0.5">*</span>}
+        </label>
       )}
-      aria-invalid={error ? "true" : undefined}
-      {...props}
-    />
+      <textarea
+        ref={ref}
+        id={inputId}
+        name={name}
+        disabled={disabled}
+        style={{
+          color: "var(--fg)",
+          backgroundColor: disabled ? "var(--bg-soft)" : "var(--input-bg)",
+          borderColor: error ? "var(--danger-border)" : "var(--input-border)",
+        }}
+        className={clsx(
+          "w-full",
+          "rounded-md",
+          "px-3 py-2.5",
+          "text-sm",
+          "border",
+          "placeholder:text-[var(--fg-subtle)]",
+          "transition-colors duration-150",
+          "focus:outline-none focus:ring-2",
+          error
+            ? "focus:border-[var(--danger)] focus:ring-[var(--danger-bg)]"
+            : "focus:border-[var(--primary)] focus:ring-[var(--input-focus)]",
+          "resize-y min-h-[100px]",
+          "disabled:opacity-60 disabled:cursor-not-allowed"
+        )}
+        aria-invalid={error ? "true" : undefined}
+        {...props}
+      />
+      {error && errorMessage && (
+        <p
+          className="mt-1.5 text-xs"
+          style={{ color: "var(--danger-text)" }}
+          role="alert"
+        >
+          {errorMessage}
+        </p>
+      )}
+      {!error && helperText && (
+        <p
+          className="mt-1.5 text-xs"
+          style={{ color: "var(--fg-subtle)" }}
+        >
+          {helperText}
+        </p>
+      )}
+    </div>
   );
 });
 
@@ -51,16 +86,18 @@ Textarea.displayName = "Textarea";
 
 Textarea.propTypes = {
   className: PropTypes.string,
+  label: PropTypes.string,
   error: PropTypes.bool,
+  errorMessage: PropTypes.string,
+  helperText: PropTypes.string,
+  required: PropTypes.bool,
+  disabled: PropTypes.bool,
   value: PropTypes.string,
   onChange: PropTypes.func,
   placeholder: PropTypes.string,
-  disabled: PropTypes.bool,
   rows: PropTypes.number,
   id: PropTypes.string,
   name: PropTypes.string,
 };
 
-Textarea.defaultProps = {
-  error: false,
-};
+export default Textarea;

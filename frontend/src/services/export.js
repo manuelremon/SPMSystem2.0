@@ -147,6 +147,68 @@ export const exportKPIs = async ({
 }
 
 /**
+ * Exportar usuarios
+ * @param {Object} params
+ * @param {string} params.formato - xlsx, csv, pdf
+ * @param {string} params.estado - Filtrar por estado
+ * @param {string} params.rol - Filtrar por rol
+ * @returns {Promise<void>}
+ */
+export const exportUsuarios = async ({
+  formato = 'xlsx',
+  estado,
+  rol
+} = {}) => {
+  const params = { formato }
+  if (estado) params.estado = estado
+  if (rol) params.rol = rol
+
+  await downloadFile('/export/usuarios', params, `usuarios_${new Date().toISOString().split('T')[0]}`)
+}
+
+/**
+ * Exportar datos genéricos a XLSX (sin necesidad de API)
+ * @param {Array} data - Array de objetos a exportar
+ * @param {string} filename - Nombre del archivo sin extensión
+ * @param {string} sheetName - Nombre de la hoja de Excel
+ * @returns {Promise<void>}
+ */
+export const exportToXLSX = async (data, filename = 'export', sheetName = 'Datos') => {
+  try {
+    const XLSX = await import('xlsx')
+
+    if (!data || data.length === 0) {
+      throw new Error('No hay datos para exportar')
+    }
+
+    // Crear workbook
+    const ws = XLSX.utils.json_to_sheet(data)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31))
+
+    // Auto-adjust column widths
+    const colWidths = []
+    const headers = Object.keys(data[0])
+    for (let col of headers) {
+      let maxLen = col.length
+      for (let row of data) {
+        const val = String(row[col] || '')
+        if (val.length > maxLen) maxLen = val.length
+      }
+      colWidths.push({ wch: Math.min(maxLen + 2, 50) })
+    }
+    ws['!cols'] = colWidths
+
+    // Descargar
+    const fecha = new Date().toISOString().split('T')[0]
+    const fullFilename = `${filename}_${fecha}.xlsx`
+    XLSX.writeFile(wb, fullFilename)
+  } catch (error) {
+    throw new Error(`Error al exportar: ${error.message}`)
+  }
+}
+
+/**
  * Obtener formatos disponibles
  * @returns {Promise<Object>} Lista de formatos y default
  */
@@ -165,6 +227,8 @@ export default {
   exportInventario,
   exportAlertasMRP,
   exportKPIs,
+  exportUsuarios,
+  exportToXLSX,
   getFormatos,
   FORMATOS
 }

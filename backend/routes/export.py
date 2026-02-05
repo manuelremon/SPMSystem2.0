@@ -7,6 +7,7 @@ Endpoints:
 - GET  /api/export/inventario        - Exportar inventario
 - GET  /api/export/alertas-mrp       - Exportar alertas MRP
 - GET  /api/export/kpis              - Exportar KPIs
+- GET  /api/export/usuarios          - Exportar usuarios (admin solo)
 - POST /api/export/custom            - Reporte personalizado
 - GET  /api/export/formatos          - Lista formatos disponibles
 """
@@ -155,10 +156,7 @@ def export_alertas_mrp():
     Returns:
         Archivo descargable
     """
-    try:
-        from backend.core.db import get_db_connection
-    except ImportError:
-        from core.db import get_db_connection
+    from backend.core.db import get_db_connection
 
     formato = request.args.get("formato", "xlsx")
     centro = request.args.get("centro")
@@ -217,10 +215,7 @@ def export_kpis():
     Returns:
         Archivo descargable
     """
-    try:
-        from backend.core.db import get_db_connection
-    except ImportError:
-        from core.db import get_db_connection
+    from backend.core.db import get_db_connection
 
     formato = request.args.get("formato", "xlsx")
     periodo_inicio = request.args.get("periodo_inicio")
@@ -243,7 +238,7 @@ def export_kpis():
             # Total solicitudes
             cursor.execute(
                 f"""
-                SELECT COUNT(*) as total FROM solicitudes WHERE 1=1 {fecha_filtro}
+                SELECT COUNT(*) as total FROM solicitud WHERE 1=1 {fecha_filtro}
             """,
                 params,
             )
@@ -253,7 +248,7 @@ def export_kpis():
             cursor.execute(
                 f"""
                 SELECT estado, COUNT(*) as cantidad
-                FROM solicitudes WHERE 1=1 {fecha_filtro}
+                FROM solicitud WHERE 1=1 {fecha_filtro}
                 GROUP BY estado
             """,
                 params,
@@ -264,7 +259,7 @@ def export_kpis():
             cursor.execute(
                 f"""
                 SELECT SUM(total_monto) as monto
-                FROM solicitudes WHERE estado = 'approved' {fecha_filtro}
+                FROM solicitud WHERE estado = 'approved' {fecha_filtro}
             """,
                 params,
             )
@@ -292,6 +287,68 @@ def export_kpis():
     except Exception as e:
         logger.error(f"Error exportando KPIs: {e}")
         return jsonify({"ok": False, "error": {"code": "export_error", "message": str(e)}}), 500
+
+
+@bp.route("/usuarios", methods=["GET"])
+@require_auth
+@require_role(["admin"])
+@rate_limit(requests=10, window_seconds=60)
+def export_usuarios():
+    """
+    Exporta usuarios.
+
+    Query params:
+        - formato: xlsx, csv, pdf (default: xlsx)
+        - estado: Filtrar por estado (Activo, Inactivo, Suspendido)
+        - rol: Filtrar por rol (búsqueda parcial)
+
+    Returns:
+        Archivo descargable
+
+    Nota: Solo accesible para usuarios con rol admin
+    """
+    formato = request.args.get("formato", "xlsx").lower()
+    filtros = {}
+
+    if request.args.get("estado"):
+        filtros["estado"] = request.args.get("estado")
+    if request.args.get("rol"):
+        filtros["rol"] = request.args.get("rol")
+
+    try:
+        # Validar formato
+        if formato not in ["xlsx", "csv", "pdf"]:
+            return jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "invalid_format",
+                        "message": f"Formato no válido: {formato}. Use: xlsx, csv, pdf",
+                    },
+                }
+            ), 400
+
+        service = get_reporting_service()
+        result = service.export_usuarios_from_db(
+            formato=formato, filtros=filtros if filtros else None
+        )
+
+        if not result.get("success"):
+            logger.error(f"Error en export_usuarios_from_db: {result.get('error')}")
+
+        return _make_download_response(result)
+
+    except Exception as e:
+        logger.error(f"Error exportando usuarios: {e}", exc_info=True)
+        return jsonify(
+            {
+                "ok": False,
+                "error": {
+                    "code": "export_error",
+                    "message": f"Error al exportar usuarios: {str(e)}",
+                },
+            }
+        ), 500
 
 
 @bp.route("/custom", methods=["POST"])
@@ -323,10 +380,7 @@ def export_custom():
 
     # Si hay query y es admin, ejecutar
     if "query" in data and g.user.get("rol") == "admin":
-        try:
-            from backend.core.db import get_db_connection
-        except ImportError:
-            from core.db import get_db_connection
+        from backend.core.db import get_db_connection
 
         query = data["query"]
         # Solo SELECT permitido

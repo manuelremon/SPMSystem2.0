@@ -100,32 +100,7 @@ vi.mock('../../components/ui/Modal', () => ({
     ) : null,
 }))
 
-vi.mock('../../components/features/DataTable', () => ({
-  ModernDataTable: ({ columns, rows, emptyMessage }) => (
-    <table data-testid="data-table">
-      <thead>
-        <tr>
-          {columns.map((col, i) => (
-            <th key={i}>{col.header}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.length === 0 ? (
-          <tr><td colSpan={columns.length}>{emptyMessage}</td></tr>
-        ) : (
-          rows.map((row, i) => (
-            <tr key={i}>
-              {columns.map((col, j) => (
-                <td key={j}>{col.render ? col.render(row) : row[col.key]}</td>
-              ))}
-            </tr>
-          ))
-        )}
-      </tbody>
-    </table>
-  ),
-}))
+// DataTable component no longer needed (migrated to SPMAgGrid)
 
 vi.mock('../../utils/tableAlignments', () => ({
   withSpmAlignments: (cols) => cols,

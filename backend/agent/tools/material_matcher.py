@@ -32,10 +32,7 @@ except ImportError:
 
 
 # Importar get_db_connection del core
-try:
-    from backend.core.db import get_db_connection
-except ImportError:
-    from core.db import get_db_connection
+from backend.core.db import get_db_connection
 
 
 # BD de catálogo de materiales

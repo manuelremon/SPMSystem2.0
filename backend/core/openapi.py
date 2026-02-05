@@ -12,10 +12,10 @@ Provee:
 from typing import Any, Dict, List
 
 # Version de la API
-API_VERSION = "2.0.0"
+API_VERSION = "3.0.0"
 API_TITLE = "SPM API"
 API_DESCRIPTION = """
-## Sistema de Planificacion de Materiales (SPM) v2.0
+## Sistema de Planificacion de Materiales (SPM) v3.0
 
 API REST para gestion de solicitudes de materiales, planificacion MRP,
 y recomendaciones inteligentes basadas en ML.

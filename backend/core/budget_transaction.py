@@ -10,16 +10,12 @@ import sqlite3
 from pathlib import Path
 from typing import Optional, Any
 
-try:
-    from backend.core.budget_schemas import (
-        BudgetOperationResult,
-        TipoMovimiento,
-        TransactionContext,
-    )
-    from backend.core.config import settings
-except ImportError:
-    from core.budget_schemas import BudgetOperationResult, TipoMovimiento, TransactionContext
-    from core.config import settings
+from backend.core.budget_schemas import (
+    BudgetOperationResult,
+    TipoMovimiento,
+    TransactionContext,
+)
+from backend.core.config import settings
 
 
 def _is_postgresql() -> bool:
@@ -169,7 +165,7 @@ class AtomicBudgetTransaction:
 
         # Obtener saldo actual (ya tenemos lock por transaccion SERIALIZABLE/BEGIN IMMEDIATE)
         self._execute(
-            "SELECT saldo_cents, version FROM presupuestos WHERE centro = ? AND sector = ?",
+            "SELECT saldo_cents, version FROM presupuesto WHERE centro = ? AND sector = ?",
             (centro, sector),
         )
         row = self._cursor.fetchone()
@@ -198,7 +194,7 @@ class AtomicBudgetTransaction:
         # Actualizar presupuesto con optimistic locking
         self._execute(
             """
-            UPDATE presupuestos
+            UPDATE presupuesto
             SET saldo_cents = ?,
                 saldo_usd = ?,
                 version = version + 1,
@@ -325,7 +321,7 @@ class AtomicBudgetTransaction:
 
         # Obtener saldo actual con version para optimistic locking
         self._execute(
-            "SELECT saldo_cents, version FROM presupuestos WHERE centro = ? AND sector = ?",
+            "SELECT saldo_cents, version FROM presupuesto WHERE centro = ? AND sector = ?",
             (centro, sector),
         )
         row = self._cursor.fetchone()
@@ -343,7 +339,7 @@ class AtomicBudgetTransaction:
         # Actualizar presupuesto con optimistic locking
         self._execute(
             """
-            UPDATE presupuestos
+            UPDATE presupuesto
             SET saldo_cents = ?,
                 saldo_usd = ?,
                 version = version + 1,
@@ -444,7 +440,7 @@ class AtomicBudgetTransaction:
 
         # Obtener saldo actual con version para optimistic locking
         self._execute(
-            "SELECT monto_cents, saldo_cents, version FROM presupuestos WHERE centro = ? AND sector = ?",
+            "SELECT monto_cents, saldo_cents, version FROM presupuesto WHERE centro = ? AND sector = ?",
             (centro, sector),
         )
         row = self._cursor.fetchone()
@@ -464,7 +460,7 @@ class AtomicBudgetTransaction:
         # Actualizar presupuesto con optimistic locking (monto total y saldo)
         self._execute(
             """
-            UPDATE presupuestos
+            UPDATE presupuesto
             SET monto_cents = ?,
                 monto_usd = ?,
                 saldo_cents = ?,

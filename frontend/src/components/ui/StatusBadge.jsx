@@ -1,7 +1,8 @@
-import React, { useState, memo } from "react";
+import React, { memo } from "react";
 import { useI18n } from "../../context/i18n";
 import { getEstadoConfig } from "../../utils/styleConfig";
 import { formatDate } from "../../utils/formatters";
+import Tooltip from "@mui/material/Tooltip";
 
 /**
  * StatusBadge con icono y texto coloreado (estilo consistente con criticidad)
@@ -23,8 +24,7 @@ const StatusBadge = memo(function StatusBadge({
 }) {
   const { t } = useI18n();
   const config = getEstadoConfig(estado);
-  const Icon = config.icon;
-  const [showTooltip, setShowTooltip] = useState(false);
+  const Icon = config.IconComponent;
 
   // Construir lineas del tooltip
   const tooltipLines = [];
@@ -33,15 +33,23 @@ const StatusBadge = memo(function StatusBadge({
   // Tooltip por defecto para estados (sin necesidad de tooltipInfo)
   if (!tooltipInfo) {
     if (["pendiente", "pendiente_de_aprobacion", "enviada", "submitted"].includes(estadoLower)) {
-      tooltipLines.push("Esperando aprobación de un coordinador");
+      tooltipLines.push("Esperando aprobación del coordinador");
     } else if (["borrador", "draft"].includes(estadoLower)) {
       tooltipLines.push("Borrador - No enviada aún");
     } else if (["aprobada", "approved"].includes(estadoLower)) {
       tooltipLines.push("Aprobada - Pendiente de planificación");
     } else if (["en_planificacion", "planificacion", "in_planning"].includes(estadoLower)) {
-      tooltipLines.push("En proceso de planificación");
+      tooltipLines.push("En proceso de planificación de abastecimiento");
+    } else if (["en_tratamiento", "in_treatment"].includes(estadoLower)) {
+      tooltipLines.push("En fase de tratamiento y adquisición");
+    } else if (["tratado", "treated"].includes(estadoLower)) {
+      tooltipLines.push("Tratamiento completado - Listo para entrega");
     } else if (["rechazada", "rejected"].includes(estadoLower)) {
-      tooltipLines.push("Solicitud rechazada");
+      tooltipLines.push("Solicitud rechazada - Puede reenviar");
+    } else if (["cerrada", "closed"].includes(estadoLower)) {
+      tooltipLines.push("Solicitud finalizada exitosamente");
+    } else if (["cancelada", "cancelled"].includes(estadoLower)) {
+      tooltipLines.push("Solicitud cancelada");
     } else if (["despachada", "dispatched", "completada", "completed"].includes(estadoLower)) {
       tooltipLines.push("Solicitud completada");
     }
@@ -71,7 +79,12 @@ const StatusBadge = memo(function StatusBadge({
       if (tooltipInfo.fechaEnvio) {
         tooltipLines.push(`Enviada el ${formatDateShort(tooltipInfo.fechaEnvio)}`);
       }
-      tooltipLines.push("Esperando aprobación...");
+      // Mostrar nombre del aprobador asignado si está disponible
+      if (tooltipInfo.aprobador) {
+        tooltipLines.push(`Esperando aprobación de ${tooltipInfo.aprobador}`);
+      } else {
+        tooltipLines.push("Esperando aprobación...");
+      }
     }
 
     // Estado rechazada
@@ -100,60 +113,73 @@ const StatusBadge = memo(function StatusBadge({
     return t(i18nKey, config.label || estado || "Pendiente");
   };
 
-  return (
-    <div
-      className="relative inline-block"
-      onMouseEnter={() => hasTooltip && setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
-    >
-      <div
-        className={`
-          inline-flex items-center gap-1.5
-          transition-all duration-[var(--transition-fast)]
-          ${hasTooltip ? 'cursor-help' : ''}
-          ${className}
-        `}
-      >
-        {showIcon && Icon && (
-          <Icon
-            className="w-4 h-4 flex-shrink-0"
-            style={{ color: config.color }}
-          />
-        )}
-        <span
-          className={`text-xs font-semibold tracking-wide ${uppercase ? 'uppercase' : ''}`}
-          style={{ color: config.color }}
-        >
-          {getLabel()}
-        </span>
-      </div>
-
-      {/* Tooltip */}
-      {showTooltip && hasTooltip && (
-        <div
-          className="
-            absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2
-            min-w-[220px] max-w-[300px]
-            px-3 py-2.5 rounded-lg shadow-xl border
-            bg-[var(--card)] border-[var(--border)]
-            text-xs whitespace-normal
-            animate-in fade-in-0 zoom-in-95 duration-150
-          "
-          role="tooltip"
-        >
-          <div className="space-y-1.5">
-            {tooltipLines.map((line, idx) => (
-              <p key={idx} className="text-[var(--fg-muted)] leading-relaxed flex items-start gap-1.5">
-                <span className="text-[var(--primary)] mt-0.5">•</span>
-                <span>{line}</span>
-              </p>
-            ))}
-          </div>
-          {/* Arrow */}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-[var(--border)]" />
+  // Contenido del tooltip
+  const tooltipContent = hasTooltip ? (
+    <div style={{ padding: "4px 0" }}>
+      {tooltipLines.map((line, idx) => (
+        <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: idx < tooltipLines.length - 1 ? "4px" : 0 }}>
+          <span style={{ color: "#1976d2" }}>•</span>
+          <span>{line}</span>
         </div>
-      )}
+      ))}
     </div>
+  ) : "";
+
+  const badgeContent = (
+    <div
+      className={`
+        inline-flex items-center gap-1.5
+        transition-all duration-[var(--transition-fast)]
+        ${hasTooltip ? 'cursor-help' : ''}
+        ${className}
+      `}
+    >
+      {showIcon && Icon && (
+        <Icon
+          className="w-4 h-4 flex-shrink-0"
+          style={{ color: config.color }}
+        />
+      )}
+      <span
+        className="text-xs font-semibold"
+        style={{ color: config.color }}
+      >
+        {getLabel()}
+      </span>
+    </div>
+  );
+
+  if (!hasTooltip) {
+    return badgeContent;
+  }
+
+  return (
+    <Tooltip
+      title={tooltipContent}
+      arrow
+      placement="top"
+      slotProps={{
+        tooltip: {
+          sx: {
+            bgcolor: "#ffffff",
+            color: "#1f1f20",
+            border: "1px solid #dce0e6",
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            fontSize: "0.75rem",
+            maxWidth: 300,
+            "& .MuiTooltip-arrow": {
+              color: "#ffffff",
+              "&::before": {
+                border: "1px solid #dce0e6",
+              },
+            },
+          },
+        },
+      }}
+    >
+      {badgeContent}
+    </Tooltip>
   );
 });
 

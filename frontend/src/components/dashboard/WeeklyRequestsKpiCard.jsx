@@ -1,219 +1,349 @@
 /**
- * WeeklyRequestsKpiCard - Tarjeta KPI compacta con sparkline
+ * WeeklyRequestsKpiCard - Tarjeta KPI profesional con sparkline
  *
- * Muestra el total de solicitudes de la semana actual con:
- * - KPI grande (total semanal)
- * - Variacion vs semana pasada
- * - Sparkline minimalista
+ * Muestra el total de solicitudes con:
+ * - KPI grande con indicador de tendencia
+ * - Sparkline elegante con gradiente y puntos
+ * - Comparación con período anterior
+ * - Tooltip interactivo
  */
 
-import { Card, CardContent } from '../ui/Card'
-import { TrendingUp, TrendingDown, Minus, FileText } from '../ui/Icons'
-import clsx from 'clsx'
+import React, { useMemo } from 'react';
+import Paper from '@mui/material/Paper';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import { Line } from 'react-chartjs-2';
+import { TrendingUp, TrendingDown } from '../ui/Icons';
+import { FONT_SIZES, SPM_COLORS, TOOLTIP_CONFIG, ANIMATION_CONFIG } from '../ui/SPMChartJS';
 
 /**
- * Sparkline minimalista SVG
- * Sin ejes, sin grid, linea suave
+ * Colores para el chart profesional
  */
-function Sparkline({ data, className = '' }) {
+const CHART_COLORS = {
+  positive: {
+    line: '#10b981',
+    gradient: ['rgba(16, 185, 129, 0.3)', 'rgba(16, 185, 129, 0.02)'],
+    point: '#10b981',
+  },
+  negative: {
+    line: '#ef4444',
+    gradient: ['rgba(239, 68, 68, 0.3)', 'rgba(239, 68, 68, 0.02)'],
+    point: '#ef4444',
+  },
+  neutral: {
+    line: '#3b82f6',
+    gradient: ['rgba(59, 130, 246, 0.3)', 'rgba(59, 130, 246, 0.02)'],
+    point: '#3b82f6',
+  },
+};
+
+/**
+ * Sparkline profesional con gradiente y puntos
+ */
+function ProfessionalSparkline({ data, labels = [], height = 60, trend = 'neutral' }) {
   // Fallback si no hay datos
   if (!data || data.length === 0 || data.every(v => v === 0)) {
     return (
-      <div className={clsx('flex items-center justify-center text-slate-400 dark:text-slate-500', className)}>
-        <span className="text-xs">Sin datos</span>
-      </div>
-    )
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height,
+          color: 'text.disabled',
+        }}
+      >
+        <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs }}>
+          Sin datos disponibles
+        </Typography>
+      </Box>
+    );
   }
 
-  const width = 120
-  const height = 40
-  const padding = 4
-
   // Normalizar datos
-  const values = data.map(v => Number(v) || 0)
-  const max = Math.max(...values)
-  const min = Math.min(...values)
-  const range = max - min || 1
+  const values = data.map(v => Number(v) || 0);
+  const colors = CHART_COLORS[trend] || CHART_COLORS.neutral;
 
-  // Generar puntos para el path
-  const points = values.map((v, i) => {
-    const x = padding + (i / (values.length - 1)) * (width - 2 * padding)
-    const y = height - padding - ((v - min) / range) * (height - 2 * padding)
-    return { x, y, value: v }
-  })
+  // Configuración del chart
+  const chartData = useMemo(() => ({
+    labels: labels.length > 0 ? labels : values.map((_, i) => `Día ${i + 1}`),
+    datasets: [{
+      data: values,
+      borderColor: colors.line,
+      borderWidth: 2.5,
+      tension: 0.4,
+      fill: true,
+      backgroundColor: (context) => {
+        const ctx = context.chart.ctx;
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, colors.gradient[0]);
+        gradient.addColorStop(1, colors.gradient[1]);
+        return gradient;
+      },
+      pointRadius: 0,
+      pointHoverRadius: 6,
+      pointHoverBackgroundColor: '#ffffff',
+      pointHoverBorderColor: colors.point,
+      pointHoverBorderWidth: 2.5,
+    }],
+  }), [values, labels, colors, height]);
 
-  // Crear path suave con curvas
-  const pathD = points.reduce((acc, point, i) => {
-    if (i === 0) return `M ${point.x} ${point.y}`
-
-    // Control points para curva suave
-    const prev = points[i - 1]
-    const cpX = (prev.x + point.x) / 2
-    return `${acc} C ${cpX} ${prev.y}, ${cpX} ${point.y}, ${point.x} ${point.y}`
-  }, '')
-
-  // Crear area bajo la curva
-  const areaD = `${pathD} L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`
-
-  // Determinar color basado en tendencia
-  const isPositive = values[values.length - 1] >= values[0]
-  const strokeColor = isPositive ? '#10b981' : '#ef4444'
-  const fillColor = isPositive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'
+  const chartOptions = useMemo(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: {
+      duration: 800,
+      easing: 'easeOutQuart',
+    },
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        ...TOOLTIP_CONFIG,
+        callbacks: {
+          title: (items) => items[0]?.label || '',
+          label: (context) => `${context.parsed.y} solicitudes`,
+        },
+      },
+    },
+    scales: {
+      x: { display: false },
+      y: {
+        display: false,
+        beginAtZero: true,
+        // Agregar padding para que la línea no toque los bordes
+        grace: '10%',
+      },
+    },
+    elements: {
+      line: {
+        capBezierPoints: true,
+      },
+    },
+  }), []);
 
   return (
-    <svg
-      viewBox={`0 0 ${width} ${height}`}
-      className={clsx('overflow-visible', className)}
-      preserveAspectRatio="none"
-    >
-      {/* Area de relleno sutil */}
-      <path
-        d={areaD}
-        fill={fillColor}
-        className="transition-all duration-300"
-      />
-
-      {/* Linea principal */}
-      <path
-        d={pathD}
-        fill="none"
-        stroke={strokeColor}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="transition-all duration-300"
-      />
-
-      {/* Punto final (opcional, solo el ultimo) */}
-      <circle
-        cx={points[points.length - 1].x}
-        cy={points[points.length - 1].y}
-        r="3"
-        fill={strokeColor}
-        className="transition-all duration-300"
-      />
-    </svg>
-  )
+    <Box sx={{ width: '100%', height, position: 'relative' }}>
+      <Line data={chartData} options={chartOptions} />
+    </Box>
+  );
 }
 
 /**
- * Calcula estadisticas de la semana
+ * Calcula estadísticas y tendencia
  */
-function calculateWeekStats(currentWeek, previousWeekTotal = null) {
-  const current = (currentWeek || []).map(v => Number(v) || 0)
-  const totalActual = current.reduce((a, b) => a + b, 0)
+function calculateStats(currentData, previousTotal = null) {
+  const current = (currentData || []).map(v => Number(v) || 0);
+  const total = current.reduce((a, b) => a + b, 0);
+  const promedio = current.length > 0 ? Math.round(total / current.length) : 0;
+  const max = Math.max(...current, 0);
+  const min = Math.min(...current.filter(v => v > 0), 0) || 0;
 
-  // Si no hay datos de semana pasada, intentar estimar o mostrar N/A
-  let variacion = null
-  let variacionPct = null
+  let variacion = null;
+  let variacionPct = null;
+  let trend = 'neutral';
 
-  if (previousWeekTotal !== null && previousWeekTotal > 0) {
-    variacion = totalActual - previousWeekTotal
-    variacionPct = ((totalActual - previousWeekTotal) / previousWeekTotal) * 100
+  if (previousTotal !== null && previousTotal > 0) {
+    variacion = total - previousTotal;
+    variacionPct = ((total - previousTotal) / previousTotal) * 100;
+    trend = variacionPct > 0 ? 'positive' : variacionPct < 0 ? 'negative' : 'neutral';
+  } else if (current.length >= 2) {
+    // Calcular tendencia basada en primera vs última mitad
+    const mid = Math.floor(current.length / 2);
+    const firstHalf = current.slice(0, mid).reduce((a, b) => a + b, 0);
+    const secondHalf = current.slice(mid).reduce((a, b) => a + b, 0);
+    trend = secondHalf > firstHalf ? 'positive' : secondHalf < firstHalf ? 'negative' : 'neutral';
   }
 
   return {
-    total: totalActual,
+    total,
+    promedio,
+    max,
+    min,
     variacion,
     variacionPct,
-    promedio: current.length > 0 ? Math.round(totalActual / current.length) : 0,
-    hasData: totalActual > 0 || current.some(v => v > 0)
-  }
+    trend,
+    hasData: total > 0 || current.some(v => v > 0),
+  };
 }
 
 /**
- * Componente principal
+ * Indicador de tendencia con icono y porcentaje
+ */
+function TrendIndicator({ variacionPct, trend }) {
+  if (variacionPct === null) return null;
+
+  const isPositive = trend === 'positive';
+  const Icon = isPositive ? TrendingUp : TrendingDown;
+  const color = isPositive ? '#10b981' : '#ef4444';
+  const bgColor = isPositive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+
+  return (
+    <Stack
+      direction="row"
+      alignItems="center"
+      spacing={0.5}
+      sx={{
+        px: 1,
+        py: 0.25,
+        borderRadius: 1,
+        backgroundColor: bgColor,
+      }}
+    >
+      <Icon size={14} style={{ color }} />
+      <Typography
+        variant="caption"
+        sx={{
+          fontWeight: 600,
+          color,
+          fontSize: FONT_SIZES.xs,
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {Math.abs(variacionPct).toFixed(1)}%
+      </Typography>
+    </Stack>
+  );
+}
+
+/**
+ * Componente principal - WeeklyRequestsKpiCard
  */
 export function WeeklyRequestsKpiCard({
   data = [],
+  labels = [],
   previousWeekTotal = null,
-  trendPercentage = null,
-  className = ''
+  title = 'Solicitudes creadas',
+  subtitle = 'Esta semana',
+  compact = false,
+  sx = {},
 }) {
-  // Calcular estadisticas
-  const stats = calculateWeekStats(data, previousWeekTotal)
-
-  // Usar trendPercentage del backend si esta disponible, sino calcular
-  const displayVariacionPct = trendPercentage !== null ? trendPercentage : stats.variacionPct
-  const hasVariacion = displayVariacionPct !== null && !isNaN(displayVariacionPct)
-
-  // Determinar estado de variacion
-  const isPositive = hasVariacion && displayVariacionPct > 0
-  const isNegative = hasVariacion && displayVariacionPct < 0
-  const isNeutral = hasVariacion && displayVariacionPct === 0
+  // Calcular estadísticas
+  const stats = calculateStats(data, previousWeekTotal);
 
   return (
-    <Card className={clsx(
-      'bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30',
-      className
-    )}>
-      <CardContent className="p-5">
-        <div className="flex flex-col md:flex-row md:items-center gap-4">
-          {/* Seccion KPI (izquierda - 30%) */}
-          <div className="md:w-[30%] flex-shrink-0">
-            {/* Titulo */}
-            <div className="flex items-center gap-2 mb-3">
-              <div className="h-8 w-8 rounded-lg bg-blue-500/10 dark:bg-blue-500/20 grid place-items-center">
-                <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              </div>
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                Solicitudes esta semana
-              </span>
-            </div>
-
-            {/* KPI Grande */}
-            <div className="flex items-baseline gap-3">
-              <span className="text-4xl font-bold text-slate-800 dark:text-slate-100 tabular-nums">
+    <Paper
+      elevation={0}
+      sx={{
+        width: '100%',
+        height: '100%',
+        borderRadius: 2,
+        backgroundColor: '#ffffff',
+        border: '1px solid',
+        borderColor: 'divider',
+        overflow: 'hidden',
+        transition: 'box-shadow 0.2s ease-in-out',
+        '&:hover': {
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+        },
+        ...sx,
+      }}
+    >
+      <Box sx={{ p: compact ? 1.5 : 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {/* Header: Título a la izquierda, KPI a la derecha */}
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1 }}>
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 600,
+                color: 'text.secondary',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                fontSize: FONT_SIZES.md,
+                display: 'block',
+              }}
+            >
+              {title}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'text.disabled',
+                fontSize: FONT_SIZES.xs,
+              }}
+            >
+              {subtitle}
+            </Typography>
+          </Box>
+          {/* KPI Principal + Tendencia en esquina superior derecha */}
+          <Stack alignItems="flex-end" spacing={0.5}>
+            <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ px: 1.5, py: 0.5, bgcolor: 'grey.100', borderRadius: 1 }}>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 700,
+                  color: 'text.primary',
+                  fontVariantNumeric: 'tabular-nums',
+                  lineHeight: 1,
+                }}
+              >
                 {stats.total.toLocaleString()}
-              </span>
+              </Typography>
+            </Stack>
+            <TrendIndicator variacionPct={stats.variacionPct} trend={stats.trend} />
+          </Stack>
+        </Stack>
 
-              {/* Variacion */}
-              {hasVariacion ? (
-                <div className={clsx(
-                  'flex items-center gap-1 px-2 py-0.5 rounded-full text-sm font-medium',
-                  isPositive && 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',
-                  isNegative && 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
-                  isNeutral && 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
-                )}>
-                  {isPositive && <TrendingUp className="w-3.5 h-3.5" />}
-                  {isNegative && <TrendingDown className="w-3.5 h-3.5" />}
-                  {isNeutral && <Minus className="w-3.5 h-3.5" />}
-                  <span>
-                    {isPositive ? '+' : ''}{displayVariacionPct.toFixed(0)}%
-                  </span>
-                </div>
-              ) : (
-                <span className="text-sm text-slate-400 dark:text-slate-500">—</span>
-              )}
-            </div>
+        {/* Sparkline */}
+        <Box sx={{ flex: 1, minHeight: 50 }}>
+          <ProfessionalSparkline
+            data={data}
+            labels={labels}
+            height={compact ? 40 : 55}
+            trend={stats.trend}
+          />
+        </Box>
 
-            {/* Subtexto */}
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              {hasVariacion ? 'vs semana pasada' : 'sin datos previos'}
-              {stats.promedio > 0 && (
-                <span className="ml-2 text-slate-400 dark:text-slate-500">
-                  · {stats.promedio} prom/día
-                </span>
-              )}
-            </p>
-          </div>
-
-          {/* Seccion Sparkline (derecha - 70%) */}
-          <div className="w-full md:flex-1 flex flex-col">
-            <div className="h-16">
-              <Sparkline data={data} className="w-full h-full" />
-            </div>
-            {/* Labels de dias */}
-            <div className="flex gap-1 text-[10px] text-slate-400 dark:text-slate-500 mt-1 px-1">
-              {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d, i) => (
-                <span key={i} className="flex-1 text-center">{d}</span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
+        {/* Footer: Métricas secundarias */}
+        {!compact && stats.hasData && (
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            sx={{
+              mt: 1,
+              pt: 1,
+              borderTop: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            <Box>
+              <Typography
+                variant="caption"
+                sx={{ color: 'text.disabled', fontSize: FONT_SIZES.xs, display: 'block' }}
+              >
+                Promedio diario
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{ fontWeight: 600, color: 'text.secondary', fontSize: FONT_SIZES.sm }}
+              >
+                {stats.promedio}
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography
+                variant="caption"
+                sx={{ color: 'text.disabled', fontSize: FONT_SIZES.xs, display: 'block' }}
+              >
+                Máximo
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{ fontWeight: 600, color: 'text.secondary', fontSize: FONT_SIZES.sm }}
+              >
+                {stats.max}
+              </Typography>
+            </Box>
+          </Stack>
+        )}
+      </Box>
+    </Paper>
+  );
 }
 
-export default WeeklyRequestsKpiCard
+export default WeeklyRequestsKpiCard;

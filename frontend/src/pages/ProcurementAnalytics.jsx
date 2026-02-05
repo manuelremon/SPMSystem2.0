@@ -3,67 +3,138 @@
  * Dashboard consolidado mostrando el impacto del modulo en produccion
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import { useI18n } from '../context/i18n';
 import { procurementService } from '../services/procurement';
 import {
-  TrendingUp,
-  RefreshCw,
-  AlertTriangle,
-  Package,
-  Users,
-  Clock,
-  CheckCircle,
-  Target,
-  ArrowRight,
-  Building2,
-  Truck,
-  FileSpreadsheet
-} from '../components/ui/Icons';
+  Box,
+  Paper,
+  Typography,
+  Button,
+  Stack,
+  Grid,
+  CircularProgress,
+  Alert
+} from '@mui/material';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import InventoryIcon from '@mui/icons-material/Inventory';
+import PeopleIcon from '@mui/icons-material/People';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import GpsFixedIcon from '@mui/icons-material/GpsFixed';
+import BusinessIcon from '@mui/icons-material/Business';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import DescriptionIcon from '@mui/icons-material/Description';
+
+// Color mapping for MetricCard
+const colorMap = {
+  blue: { bg: 'primary.light', icon: 'primary.main', border: 'primary.main' },
+  green: { bg: 'success.light', icon: 'success.main', border: 'success.main' },
+  purple: { bg: 'secondary.light', icon: 'secondary.main', border: 'secondary.main' },
+  orange: { bg: 'warning.light', icon: 'warning.main', border: 'warning.main' }
+};
 
 // Componente Card con indicador de valor
-const MetricCard = ({ title, value, subtitle, icon: Icon, color = 'blue' }) => (
-  <div className="bg-white rounded-lg shadow p-5 border-l-4 border-l-blue-500">
-    <div className="flex items-start justify-between">
-      <div className="flex-1">
-        <p className="text-sm font-medium text-gray-500">{title}</p>
-        <p className={`mt-1 text-2xl font-bold text-gray-900`}>{value}</p>
-        {subtitle && <p className="mt-1 text-xs text-gray-500">{subtitle}</p>}
-      </div>
-      <div className={`p-2 bg-${color}-100 rounded-lg`}>
-        <Icon className={`h-5 w-5 text-${color}-600`} />
-      </div>
-    </div>
-  </div>
-);
+const MetricCard = ({ title, value, subtitle, icon: Icon, color = 'blue' }) => {
+  const colors = colorMap[color] || colorMap.blue;
+
+  return (
+    <Paper
+      elevation={1}
+      sx={{
+        p: 2.5,
+        borderLeft: 4,
+        borderColor: colors.border
+      }}
+    >
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="body2" color="text.secondary" fontWeight={500}>
+            {title}
+          </Typography>
+          <Typography variant="h5" fontWeight="bold" color="text.primary" sx={{ mt: 0.5 }}>
+            {value}
+          </Typography>
+          {subtitle && (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+              {subtitle}
+            </Typography>
+          )}
+        </Box>
+        <Box
+          sx={{
+            p: 1,
+            bgcolor: colors.bg,
+            borderRadius: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <Icon sx={{ fontSize: 20, color: colors.icon }} />
+        </Box>
+      </Stack>
+    </Paper>
+  );
+};
 
 // Pipeline visual con embudo
 const PipelineViz = ({ data }) => {
   if (!data || data.length === 0) return null;
 
-  const colors = ['bg-blue-500', 'bg-blue-400', 'bg-blue-300', 'bg-blue-200'];
+  const colors = ['primary.main', 'primary.light', 'info.main', 'info.light'];
 
   return (
-    <div className="space-y-3">
+    <Stack spacing={1.5}>
       {data.map((item, idx) => (
-        <div key={idx} className="flex items-center gap-3">
-          <div className="w-28 text-sm text-gray-600 text-right">{item.etapa}</div>
-          <div className="flex-1 relative">
-            <div className="h-8 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className={`h-full ${colors[idx] || 'bg-blue-500'} rounded-full flex items-center justify-end pr-3`}
-                style={{ width: `${Math.max(item.porcentaje, 5)}%` }}
+        <Stack key={idx} direction="row" alignItems="center" spacing={1.5}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ width: 112, textAlign: 'right' }}
+          >
+            {item.etapa}
+          </Typography>
+          <Box sx={{ flex: 1, position: 'relative' }}>
+            <Box
+              sx={{
+                height: 32,
+                bgcolor: 'grey.100',
+                borderRadius: 4,
+                overflow: 'hidden'
+              }}
+            >
+              <Box
+                sx={{
+                  height: '100%',
+                  bgcolor: colors[idx] || 'primary.main',
+                  borderRadius: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  pr: 1.5,
+                  width: `${Math.max(item.porcentaje, 5)}%`
+                }}
               >
-                <span className="text-white text-xs font-medium">{item.porcentaje}%</span>
-              </div>
-            </div>
-          </div>
-          <div className="w-20 text-sm font-semibold text-gray-900 text-right">
+                <Typography variant="caption" sx={{ color: 'white', fontWeight: 500 }}>
+                  {item.porcentaje}%
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+          <Typography
+            variant="body2"
+            fontWeight={600}
+            color="text.primary"
+            sx={{ width: 80, textAlign: 'right' }}
+          >
             {item.cantidad?.toLocaleString()}
-          </div>
-        </div>
+          </Typography>
+        </Stack>
       ))}
-    </div>
+    </Stack>
   );
 };
 
@@ -75,105 +146,145 @@ const OTIFGaugeCard = ({ data }) => {
   const completas = data?.pct_completas || 0;
 
   const getColor = (val) => {
-    if (val >= 85) return 'text-green-500';
-    if (val >= 70) return 'text-yellow-500';
-    return 'text-red-500';
+    if (val >= 85) return 'success.main';
+    if (val >= 70) return 'warning.main';
+    return 'error.main';
   };
 
-  const getBgColor = (val) => {
-    if (val >= 85) return 'stroke-green-500';
-    if (val >= 70) return 'stroke-yellow-500';
-    return 'stroke-red-500';
+  const getStrokeColor = (val) => {
+    if (val >= 85) return 'var(--success)';
+    if (val >= 70) return 'var(--warning)';
+    return 'var(--danger)';
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Cumplimiento OTIF</h3>
-        <div className="flex items-center gap-1 text-sm text-gray-500">
-          <Target className="h-4 w-4" />
-          Objetivo: {objetivo}%
-        </div>
-      </div>
+    <Paper elevation={1} sx={{ p: 3 }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Typography variant="h6" fontWeight={600} color="text.primary">
+          Cumplimiento OTIF
+        </Typography>
+        <Stack direction="row" alignItems="center" spacing={0.5}>
+          <GpsFixedIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+          <Typography variant="body2" color="text.secondary">
+            Objetivo: {objetivo}%
+          </Typography>
+        </Stack>
+      </Stack>
 
-      <div className="flex items-center justify-center">
-        <div className="relative w-36 h-36">
-          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Box sx={{ position: 'relative', width: 144, height: 144 }}>
+          <svg
+            style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}
+            viewBox="0 0 36 36"
+          >
             <path
               d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
               fill="none"
-              stroke="#e5e7eb"
+              stroke="var(--border)"
               strokeWidth="3"
             />
             <path
               d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
               fill="none"
-              className={getBgColor(actual)}
+              stroke={getStrokeColor(actual)}
               strokeWidth="3"
               strokeDasharray={`${actual}, 100`}
               strokeLinecap="round"
             />
           </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={`text-3xl font-bold ${getColor(actual)}`}>{actual}%</span>
-            <span className="text-xs text-gray-500">OTIF</span>
-          </div>
-        </div>
-      </div>
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <Typography variant="h4" fontWeight="bold" sx={{ color: getColor(actual) }}>
+              {actual}%
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              OTIF
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
 
-      <div className="mt-6 grid grid-cols-2 gap-4">
-        <div className="text-center p-3 bg-gray-50 rounded-lg">
-          <p className={`text-xl font-bold ${aTiempo >= 70 ? 'text-green-600' : 'text-yellow-600'}`}>
-            {aTiempo}%
-          </p>
-          <p className="text-xs text-gray-500">A Tiempo</p>
-        </div>
-        <div className="text-center p-3 bg-gray-50 rounded-lg">
-          <p className={`text-xl font-bold ${completas >= 90 ? 'text-green-600' : 'text-yellow-600'}`}>
-            {completas}%
-          </p>
-          <p className="text-xs text-gray-500">Completas</p>
-        </div>
-      </div>
-    </div>
+      <Grid container spacing={2} sx={{ mt: 3 }}>
+        <Grid item xs={6}>
+          <Box sx={{ textAlign: 'center', p: 1.5, bgcolor: 'grey.50', borderRadius: 2 }}>
+            <Typography
+              variant="h6"
+              fontWeight="bold"
+              sx={{ color: aTiempo >= 70 ? 'success.main' : 'warning.main' }}
+            >
+              {aTiempo}%
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              A Tiempo
+            </Typography>
+          </Box>
+        </Grid>
+        <Grid item xs={6}>
+          <Box sx={{ textAlign: 'center', p: 1.5, bgcolor: 'grey.50', borderRadius: 2 }}>
+            <Typography
+              variant="h6"
+              fontWeight="bold"
+              sx={{ color: completas >= 90 ? 'success.main' : 'warning.main' }}
+            >
+              {completas}%
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Completas
+            </Typography>
+          </Box>
+        </Grid>
+      </Grid>
+    </Paper>
   );
 };
 
-// Tabla de proveedores
-const ProveedoresTable = ({ title, data, columns }) => {
+// Tabla de proveedores migrada a SPMAgGrid
+const ProveedoresTable = ({ data, columns }) => {
+  const { t } = useI18n();
+
+  const rows = useMemo(() => {
+    if (!data || data.length === 0) return [];
+    return data.map((row, idx) => ({ ...row, id: idx }));
+  }, [data]);
+
+  const columnDefs = useMemo(() => {
+    return columns.map((col) => ({
+      field: col.key,
+      headerName: col.header,
+      flex: 1,
+      minWidth: 120,
+      cellRenderer: col.render
+        ? (params) => col.render(params.value, params.data)
+        : undefined,
+    }));
+  }, [columns]);
+
   if (!data || data.length === 0) {
     return (
-      <div className="text-center py-4 text-gray-500">
-        No hay datos disponibles
-      </div>
+      <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+        {t("common_no_data", "No hay datos disponibles")}
+      </Typography>
     );
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            {columns.map((col, idx) => (
-              <th key={idx} className={`px-4 py-3 text-xs font-medium text-gray-500 uppercase ${col.align === 'right' ? 'text-right' : 'text-left'}`}>
-                {col.header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {data.map((row, idx) => (
-            <tr key={idx} className="hover:bg-gray-50">
-              {columns.map((col, cidx) => (
-                <td key={cidx} className={`px-4 py-3 text-sm ${col.align === 'right' ? 'text-right' : ''} ${col.className || 'text-gray-900'}`}>
-                  {col.render ? col.render(row[col.key], row) : row[col.key]}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <SPMAgGrid
+      rowData={rows}
+      columnDefs={columnDefs}
+      height={300}
+      pagination={false}
+      enableQuickFilter={true}
+      exportFileName="procurement_analytics"
+      emptyMessage={t("common_no_data", "Sin datos")}
+    />
   );
 };
 
@@ -184,25 +295,40 @@ const CentrosChart = ({ data }) => {
   const maxSolpeds = Math.max(...data.map(d => d.total_solpeds || 0));
 
   return (
-    <div className="space-y-3">
+    <Stack spacing={1.5}>
       {data.map((centro, idx) => (
-        <div key={idx} className="flex items-center gap-3">
-          <div className="w-16 text-sm font-medium text-gray-700">{centro.centro}</div>
-          <div className="flex-1">
-            <div className="h-6 bg-gray-100 rounded overflow-hidden">
-              <div
-                className="h-full bg-indigo-500 rounded"
-                style={{ width: `${(centro.total_solpeds / maxSolpeds) * 100}%` }}
+        <Stack key={idx} direction="row" alignItems="center" spacing={1.5}>
+          <Typography
+            variant="body2"
+            fontWeight={500}
+            color="text.secondary"
+            sx={{ width: 64 }}
+          >
+            {centro.centro}
+          </Typography>
+          <Box sx={{ flex: 1 }}>
+            <Box sx={{ height: 24, bgcolor: 'grey.100', borderRadius: 1, overflow: 'hidden' }}>
+              <Box
+                sx={{
+                  height: '100%',
+                  bgcolor: 'secondary.main',
+                  borderRadius: 1,
+                  width: `${(centro.total_solpeds / maxSolpeds) * 100}%`
+                }}
               />
-            </div>
-          </div>
-          <div className="w-24 text-right">
-            <span className="text-sm font-semibold text-gray-900">{centro.total_solpeds}</span>
-            <span className="text-xs text-gray-500 ml-1">solpeds</span>
-          </div>
-        </div>
+            </Box>
+          </Box>
+          <Box sx={{ width: 96, textAlign: 'right' }}>
+            <Typography component="span" variant="body2" fontWeight={600} color="text.primary">
+              {centro.total_solpeds}
+            </Typography>
+            <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+              solpeds
+            </Typography>
+          </Box>
+        </Stack>
       ))}
-    </div>
+    </Stack>
   );
 };
 
@@ -235,198 +361,299 @@ export default function ProcurementAnalytics() {
 
   if (loading && !analytics) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-500">Cargando analytics...</p>
-        </div>
-      </div>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100vh'
+        }}
+      >
+        <Box sx={{ textAlign: 'center' }}>
+          <CircularProgress size={48} />
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            Cargando analytics...
+          </Typography>
+        </Box>
+      </Box>
     );
   }
 
   return (
-    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {t('procurement_analytics', 'Analítica de Compras SAP')}
-          </h1>
-          <p className="text-sm text-gray-500">
-            Impacto del módulo de compras en producción
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          {lastUpdated && (
-            <span className="text-xs text-gray-400">
-              Actualizado: {lastUpdated.toLocaleTimeString('es-AR')}
-            </span>
-          )}
-          <button
-            onClick={fetchData}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Actualizar
-          </button>
-        </div>
-      </div>
+    <Box sx={{ p: 3, bgcolor: 'grey.50', minHeight: '100vh' }}>
+      <Stack spacing={3}>
+        {/* Header */}
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Box>
+            <Typography variant="h5" fontWeight="bold" color="text.primary">
+              {t('procurement_analytics', 'Analítica de Compras SAP')}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Impacto del módulo de compras en producción
+            </Typography>
+          </Box>
+          <Stack direction="row" alignItems="center" spacing={2}>
+            {lastUpdated && (
+              <Typography variant="caption" color="text.disabled">
+                Actualizado: {lastUpdated.toLocaleTimeString('es-AR')}
+              </Typography>
+            )}
+            <Button
+              variant="contained"
+              onClick={fetchData}
+              disabled={loading}
+              startIcon={
+                <RefreshIcon
+                  sx={{
+                    animation: loading ? 'spin 1s linear infinite' : 'none',
+                    '@keyframes spin': {
+                      '0%': { transform: 'rotate(0deg)' },
+                      '100%': { transform: 'rotate(360deg)' }
+                    }
+                  }}
+                />
+              }
+            >
+              Actualizar
+            </Button>
+          </Stack>
+        </Stack>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5" />
-          {error}
-        </div>
-      )}
+        {error && (
+          <Alert severity="error" icon={<WarningAmberIcon />}>
+            {error}
+          </Alert>
+        )}
 
-      {analytics && (
-        <>
-          {/* Metricas principales */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <MetricCard
-              title="Total SOLPEDs"
-              value={analytics.volumenes?.solpeds?.toLocaleString() || 0}
-              subtitle={`${analytics.volumenes?.materiales || 0} materiales únicos`}
-              icon={Package}
-              color="blue"
-            />
-            <MetricCard
-              title="Órdenes de Compra"
-              value={analytics.volumenes?.orders?.toLocaleString() || 0}
-              subtitle={`${analytics.volumenes?.recibidos || 0} recibidos`}
-              icon={Truck}
-              color="green"
-            />
-            <MetricCard
-              title="Proveedores"
-              value={analytics.volumenes?.proveedores || 0}
-              subtitle={`${analytics.cumplimiento?.proveedores_evaluados || 0} evaluados`}
-              icon={Users}
-              color="purple"
-            />
-            <MetricCard
-              title="Tiempo de Entrega Promedio"
-              value={`${analytics.lead_times?.promedio || 0} días`}
-              subtitle={`Mín: ${analytics.lead_times?.minimo || 0}d | Máx: ${analytics.lead_times?.maximo || 0}d`}
-              icon={Clock}
-              color="orange"
-            />
-          </div>
+        {analytics && (
+          <>
+            {/* Metricas principales */}
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6} lg={3}>
+                <MetricCard
+                  title="Total SOLPEDs"
+                  value={analytics.volumenes?.solpeds?.toLocaleString() || 0}
+                  subtitle={`${analytics.volumenes?.materiales || 0} materiales únicos`}
+                  icon={InventoryIcon}
+                  color="blue"
+                />
+              </Grid>
+              <Grid item xs={12} md={6} lg={3}>
+                <MetricCard
+                  title="Órdenes de Compra"
+                  value={analytics.volumenes?.orders?.toLocaleString() || 0}
+                  subtitle={`${analytics.volumenes?.recibidos || 0} recibidos`}
+                  icon={LocalShippingIcon}
+                  color="green"
+                />
+              </Grid>
+              <Grid item xs={12} md={6} lg={3}>
+                <MetricCard
+                  title="Proveedores"
+                  value={analytics.volumenes?.proveedores || 0}
+                  subtitle={`${analytics.cumplimiento?.proveedores_evaluados || 0} evaluados`}
+                  icon={PeopleIcon}
+                  color="purple"
+                />
+              </Grid>
+              <Grid item xs={12} md={6} lg={3}>
+                <MetricCard
+                  title="Tiempo de Entrega Promedio"
+                  value={`${analytics.lead_times?.promedio || 0} días`}
+                  subtitle={`Mín: ${analytics.lead_times?.minimo || 0}d | Máx: ${analytics.lead_times?.maximo || 0}d`}
+                  icon={AccessTimeIcon}
+                  color="orange"
+                />
+              </Grid>
+            </Grid>
 
-          {/* Segunda fila: Pipeline + OTIF */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Pipeline */}
-            <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="h-5 w-5 text-blue-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Embudo de Conversión</h3>
-              </div>
-              <PipelineViz data={analytics.pipeline} />
-            </div>
+            {/* Segunda fila: Pipeline + OTIF */}
+            <Grid container spacing={3}>
+              {/* Pipeline */}
+              <Grid item xs={12} lg={8}>
+                <Paper elevation={1} sx={{ p: 3 }}>
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+                    <TrendingUpIcon sx={{ color: 'primary.main' }} />
+                    <Typography variant="h6" fontWeight={600} color="text.primary">
+                      Embudo de Conversión
+                    </Typography>
+                  </Stack>
+                  <PipelineViz data={analytics.pipeline} />
+                </Paper>
+              </Grid>
 
-            {/* OTIF Gauge */}
-            <OTIFGaugeCard data={analytics.cumplimiento} />
-          </div>
+              {/* OTIF Gauge */}
+              <Grid item xs={12} lg={4}>
+                <OTIFGaugeCard data={analytics.cumplimiento} />
+              </Grid>
+            </Grid>
 
-          {/* Tercera fila: Top Proveedores + Mas Rapidos */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Top por volumen */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Users className="h-5 w-5 text-blue-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Top Proveedores por Volumen</h3>
-              </div>
-              <ProveedoresTable
-                data={analytics.top_proveedores_volumen}
-                columns={[
-                  { key: 'proveedor_nombre', header: 'Proveedor', render: (v) => v || 'Sin nombre' },
-                  { key: 'total_pedidos', header: 'Pedidos', align: 'right' },
-                  { key: 'pct_completas', header: '% Completas', align: 'right', render: (v) => `${v || 0}%` }
-                ]}
-              />
-            </div>
+            {/* Tercera fila: Top Proveedores + Mas Rapidos */}
+            <Grid container spacing={3}>
+              {/* Top por volumen */}
+              <Grid item xs={12} lg={6}>
+                <Paper elevation={1} sx={{ p: 3 }}>
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+                    <PeopleIcon sx={{ color: 'primary.main' }} />
+                    <Typography variant="h6" fontWeight={600} color="text.primary">
+                      Top Proveedores por Volumen
+                    </Typography>
+                  </Stack>
+                  <ProveedoresTable
+                    data={analytics.top_proveedores_volumen}
+                    columns={[
+                      { key: 'proveedor_nombre', header: 'Proveedor', render: (v) => v || 'Sin nombre' },
+                      { key: 'total_pedidos', header: 'Pedidos', align: 'right' },
+                      { key: 'pct_completas', header: '% Completas', align: 'right', render: (v) => `${v || 0}%` }
+                    ]}
+                  />
+                </Paper>
+              </Grid>
 
-            {/* Mas rapidos */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Clock className="h-5 w-5 text-green-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Proveedores Más Rápidos</h3>
-              </div>
-              <ProveedoresTable
-                data={analytics.proveedores_mas_rapidos}
-                columns={[
-                  { key: 'proveedor_nombre', header: 'Proveedor', render: (v) => v || 'Sin nombre' },
-                  { key: 'entregas', header: 'Entregas', align: 'right' },
-                  { key: 'lead_time_promedio', header: 'Tiempo Entrega', align: 'right', render: (v) => `${v || 0} días` }
-                ]}
-              />
-            </div>
-          </div>
+              {/* Mas rapidos */}
+              <Grid item xs={12} lg={6}>
+                <Paper elevation={1} sx={{ p: 3 }}>
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+                    <AccessTimeIcon sx={{ color: 'success.main' }} />
+                    <Typography variant="h6" fontWeight={600} color="text.primary">
+                      Proveedores Más Rápidos
+                    </Typography>
+                  </Stack>
+                  <ProveedoresTable
+                    data={analytics.proveedores_mas_rapidos}
+                    columns={[
+                      { key: 'proveedor_nombre', header: 'Proveedor', render: (v) => v || 'Sin nombre' },
+                      { key: 'entregas', header: 'Entregas', align: 'right' },
+                      { key: 'lead_time_promedio', header: 'Tiempo Entrega', align: 'right', render: (v) => `${v || 0} días` }
+                    ]}
+                  />
+                </Paper>
+              </Grid>
+            </Grid>
 
-          {/* Cuarta fila: Centros + Info importacion */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Distribucion por centro */}
-            <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Building2 className="h-5 w-5 text-indigo-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Distribución por Centro</h3>
-              </div>
-              <CentrosChart data={analytics.distribucion_centros} />
-            </div>
+            {/* Cuarta fila: Centros + Info importacion */}
+            <Grid container spacing={3}>
+              {/* Distribucion por centro */}
+              <Grid item xs={12} lg={8}>
+                <Paper elevation={1} sx={{ p: 3 }}>
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+                    <BusinessIcon sx={{ color: 'secondary.main' }} />
+                    <Typography variant="h6" fontWeight={600} color="text.primary">
+                      Distribución por Centro
+                    </Typography>
+                  </Stack>
+                  <CentrosChart data={analytics.distribucion_centros} />
+                </Paper>
+              </Grid>
 
-            {/* Info de importacion */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <FileSpreadsheet className="h-5 w-5 text-gray-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Importaciones</h3>
-              </div>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="text-sm text-gray-500">Total importaciones</span>
-                  <span className="font-semibold">{analytics.importaciones?.total || 0}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="text-sm text-gray-500">Registros insertados</span>
-                  <span className="font-semibold">{analytics.importaciones?.registros_insertados?.toLocaleString() || 0}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="text-sm text-gray-500">Errores</span>
-                  <span className={`font-semibold ${analytics.importaciones?.errores > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                    {analytics.importaciones?.errores || 0}
-                  </span>
-                </div>
-                {analytics.importaciones?.ultima && (
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-sm text-gray-500">Última importación</span>
-                    <span className="text-sm text-gray-700">
-                      {new Date(analytics.importaciones.ultima).toLocaleDateString('es-AR')}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+              {/* Info de importacion */}
+              <Grid item xs={12} lg={4}>
+                <Paper elevation={1} sx={{ p: 3 }}>
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+                    <DescriptionIcon sx={{ color: 'text.secondary' }} />
+                    <Typography variant="h6" fontWeight={600} color="text.primary">
+                      Importaciones
+                    </Typography>
+                  </Stack>
+                  <Stack spacing={2}>
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      sx={{ py: 1, borderBottom: 1, borderColor: 'divider' }}
+                    >
+                      <Typography variant="body2" color="text.secondary">
+                        Total importaciones
+                      </Typography>
+                      <Typography variant="body2" fontWeight={600}>
+                        {analytics.importaciones?.total || 0}
+                      </Typography>
+                    </Stack>
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      sx={{ py: 1, borderBottom: 1, borderColor: 'divider' }}
+                    >
+                      <Typography variant="body2" color="text.secondary">
+                        Registros insertados
+                      </Typography>
+                      <Typography variant="body2" fontWeight={600}>
+                        {analytics.importaciones?.registros_insertados?.toLocaleString() || 0}
+                      </Typography>
+                    </Stack>
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      sx={{ py: 1, borderBottom: 1, borderColor: 'divider' }}
+                    >
+                      <Typography variant="body2" color="text.secondary">
+                        Errores
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        fontWeight={600}
+                        sx={{
+                          color: analytics.importaciones?.errores > 0 ? 'error.main' : 'success.main'
+                        }}
+                      >
+                        {analytics.importaciones?.errores || 0}
+                      </Typography>
+                    </Stack>
+                    {analytics.importaciones?.ultima && (
+                      <Stack
+                        direction="row"
+                        justifyContent="space-between"
+                        alignItems="center"
+                        sx={{ py: 1 }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          Última importación
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {new Date(analytics.importaciones.ultima).toLocaleDateString('es-AR')}
+                        </Typography>
+                      </Stack>
+                    )}
+                  </Stack>
+                </Paper>
+              </Grid>
+            </Grid>
 
-          {/* Resumen de valor */}
-          {analytics.volumenes?.valor_total > 0 && (
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg shadow p-6 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm opacity-80">Valor Total de Órdenes</p>
-                  <p className="text-3xl font-bold mt-1">
-                    ${analytics.volumenes.valor_total.toLocaleString('es-AR', { minimumFractionDigits: 0 })}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm opacity-80">Centros activos</p>
-                  <p className="text-3xl font-bold mt-1">{analytics.volumenes?.centros || 0}</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-    </div>
+            {/* Resumen de valor */}
+            {analytics.volumenes?.valor_total > 0 && (
+              <Paper
+                elevation={2}
+                sx={{
+                  p: 3,
+                  background: 'linear-gradient(to right, var(--primary), var(--info))',
+                  color: 'white'
+                }}
+              >
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Box>
+                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                      Valor Total de Órdenes
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold" sx={{ mt: 0.5 }}>
+                      ${analytics.volumenes.valor_total.toLocaleString('es-AR', { minimumFractionDigits: 0 })}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                      Centros activos
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold" sx={{ mt: 0.5 }}>
+                      {analytics.volumenes?.centros || 0}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Paper>
+            )}
+          </>
+        )}
+      </Stack>
+    </Box>
   );
 }

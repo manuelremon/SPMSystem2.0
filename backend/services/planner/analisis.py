@@ -32,9 +32,9 @@ def _analizar_item_material(
     Retorna informacion del material con stock, consumo y criticidad.
     Incluye stock de equivalencias para calculo correcto de deficit.
     """
-    codigo = item.get("codigo") or item.get("material_id") or ""
+    codigo = item.get("codigo") or item.get("material") or item.get("material_id") or ""
     cantidad = float(item.get("cantidad", 0) or 0)
-    precio_unitario = float(item.get("precio_unitario", 0) or 0)
+    precio_unitario = float(item.get("precio_unitario") or item.get("precio_usd") or 0)
     costo_item = cantidad * precio_unitario
 
     criticidad = (item.get("criticidad") or solicitud.get("criticidad") or "Normal").capitalize()
@@ -209,9 +209,9 @@ def _validar_integridad_items(items: List[Dict[str, Any]]) -> List[Dict[str, Any
     codigos_vistos = {}
 
     for idx, item in enumerate(items):
-        codigo = (item.get("codigo") or item.get("material_id") or "").strip()
+        codigo = (item.get("codigo") or item.get("material") or item.get("material_id") or "").strip()
         cantidad = float(item.get("cantidad", 0) or 0)
-        precio_unitario = float(item.get("precio_unitario", 0) or 0)
+        precio_unitario = float(item.get("precio_unitario") or item.get("precio_usd") or 0)
         descripcion = item.get("descripcion", "")
 
         # Codigo vacio

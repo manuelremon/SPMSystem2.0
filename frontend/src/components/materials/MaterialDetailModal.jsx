@@ -1,22 +1,44 @@
 /**
  * MaterialDetailModal - Modal showing detailed material information
  * Displays stock, MRP parameters, and consumption history
+ *
+ * Migrated to MUI (2026-02)
  */
 import { useState } from 'react'
 import { Modal } from '../ui/Modal'
 import { useI18n } from '../../context/i18n'
 import { formatCurrency, formatAlmacen } from '../../utils/formatters'
-import { ChevronDown, ChevronRight } from '../ui/Icons'
+import {
+  Box,
+  Typography,
+  Paper,
+  Stack,
+  Collapse,
+  Button,
+  Divider,
+  Grid,
+} from '@mui/material'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 
 /**
  * InfoRow - Key-value display row
  */
 function InfoRow({ label, value }) {
   return (
-    <div className="flex items-center justify-between text-sm">
-      <span className="text-[var(--fg-muted)]">{label}</span>
-      <span className="font-semibold text-[var(--fg-strong)]">{value}</span>
-    </div>
+    <Stack
+      direction="row"
+      justifyContent="space-between"
+      alignItems="center"
+      sx={{ typography: 'body2' }}
+    >
+      <Typography variant="body2" color="text.secondary">
+        {label}
+      </Typography>
+      <Typography variant="body2" fontWeight={600} color="text.primary">
+        {value}
+      </Typography>
+    </Stack>
   )
 }
 
@@ -25,21 +47,32 @@ function InfoRow({ label, value }) {
  */
 function StockList({ rows = [], compact = false }) {
   if (!rows || rows.length === 0) {
-    return <p className="text-xs text-[var(--fg-muted)]">Sin stock registrado</p>
+    return (
+      <Typography variant="caption" color="text.secondary">
+        Sin stock registrado
+      </Typography>
+    )
   }
 
   return (
-    <div className={`space-y-1 ${compact ? 'mt-1' : 'mt-2'}`}>
+    <Stack spacing={0.5} sx={{ mt: compact ? 0.5 : 1 }}>
       {rows.map((r, idx) => (
-        <div
+        <Paper
           key={idx}
-          className="text-xs text-[var(--fg)] border border-dashed border-[var(--border)] px-2 py-1 rounded"
+          variant="outlined"
+          sx={{
+            px: 1,
+            py: 0.5,
+            borderStyle: 'dashed',
+          }}
         >
-          Centro {r.centro || 'N/D'} / Almacen {formatAlmacen(r.almacen_consultado || r.almacen)}
-          {r.lote ? ` / Lote ${r.lote}` : ''} / Stock {r.stock ?? r.cantidad ?? 'N/D'}
-        </div>
+          <Typography variant="caption" color="text.primary">
+            Centro {r.centro || 'N/D'} / Almacen {formatAlmacen(r.almacen_consultado || r.almacen)}
+            {r.lote ? ` / Lote ${r.lote}` : ''} / Stock {r.stock ?? r.cantidad ?? 'N/D'}
+          </Typography>
+        </Paper>
       ))}
-    </div>
+    </Stack>
   )
 }
 
@@ -66,171 +99,275 @@ export function MaterialDetailModal({
       title={`${selectedMaterial.codigo} — ${selectedMaterial.descripcion}`}
       size="xl"
     >
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Stack spacing={2}>
+        <Grid container spacing={2}>
           {/* Descripcion larga */}
-          <div className="p-4 bg-[var(--bg-soft)] border border-[var(--border)] rounded-lg">
-            <p className="text-xs uppercase font-semibold text-[var(--fg-muted)] mb-2">
-              {t('materials_desc_larga', 'Descripción larga')}
-            </p>
-            <p className="text-[var(--fg)]">
-              {selectedMaterial.descripcion_larga || 'N/D'}
-            </p>
-          </div>
+          <Grid item xs={12} md={6}>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                height: '100%',
+                bgcolor: 'action.hover',
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  textTransform: 'uppercase',
+                  fontWeight: 600,
+                  color: 'text.secondary',
+                  mb: 1,
+                  display: 'block',
+                }}
+              >
+                {t('materials_desc_larga', 'Descripcion larga')}
+              </Typography>
+              <Typography variant="body2" color="text.primary">
+                {selectedMaterial.descripcion_larga || 'N/D'}
+              </Typography>
+            </Paper>
+          </Grid>
 
           {/* Info general */}
-          <div className="p-4 bg-[var(--bg-soft)] border border-[var(--border)] rounded-lg space-y-2">
-            <InfoRow
-              label={t('materials_unidad', 'Unidad de medida')}
-              value={selectedMaterial.unidad_medida || selectedMaterial.unidad || 'N/D'}
-            />
-            <InfoRow
-              label={t('materials_precio_usd', 'Precio USD')}
-              value={formatCurrency(selectedMaterial.precio_usd || 0)}
-            />
-            <InfoRow
-              label={t('materials_centro', 'Centro consultado')}
-              value={detail?.centro_consultado || contextoCentro || 'N/D'}
-            />
-            <InfoRow
-              label={t('materials_almacen', 'Almacen consultado')}
-              value={detail?.almacen_consultado || contextoAlmacen || 'N/D'}
-            />
-            <InfoRow
-              label={t('materials_stock', 'Stock (centro/almacen)')}
-              value={loadingDetail ? '...' : detail?.stock_total ?? 'N/D'}
-            />
-            <InfoRow
-              label={t('materials_pedidos', 'Pedidos en curso')}
-              value={loadingDetail ? '...' : detail?.pedidos_en_curso ?? 'N/D'}
-            />
-            <InfoRow
-              label={t('materials_spm_en_curso', 'Solicitudes SPM en curso')}
-              value="N/D"
-            />
+          <Grid item xs={12} md={6}>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                height: '100%',
+                bgcolor: 'action.hover',
+              }}
+            >
+              <Stack spacing={1}>
+                <InfoRow
+                  label={t('materials_unidad', 'Unidad de medida')}
+                  value={selectedMaterial.unidad_medida || selectedMaterial.unidad || 'N/D'}
+                />
+                <InfoRow
+                  label={t('materials_precio_usd', 'Precio USD')}
+                  value={formatCurrency(selectedMaterial.precio_usd || 0)}
+                />
+                <InfoRow
+                  label={t('materials_centro', 'Centro consultado')}
+                  value={detail?.centro_consultado || contextoCentro || 'N/D'}
+                />
+                <InfoRow
+                  label={t('materials_almacen', 'Almacen consultado')}
+                  value={detail?.almacen_consultado || contextoAlmacen || 'N/D'}
+                />
+                <InfoRow
+                  label={t('materials_stock', 'Stock (centro/almacen)')}
+                  value={loadingDetail ? '...' : detail?.stock_total ?? 'N/D'}
+                />
+                <InfoRow
+                  label={t('materials_pedidos', 'Pedidos en curso')}
+                  value={loadingDetail ? '...' : detail?.pedidos_en_curso ?? 'N/D'}
+                />
+                <InfoRow
+                  label={t('materials_spm_en_curso', 'Solicitudes SPM en curso')}
+                  value="N/D"
+                />
 
-            {/* Stock detallado - Colapsable */}
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => setShowStockDetalle((v) => !v)}
-                className="flex items-center gap-1 text-xs uppercase font-semibold text-[var(--fg-muted)] hover:text-[var(--accent)] transition-colors cursor-pointer"
-              >
-                {showStockDetalle ? (
-                  <ChevronDown className="w-4 h-4" />
-                ) : (
-                  <ChevronRight className="w-4 h-4" />
-                )}
-                {t('materials_stock_detalle', 'Stock detallado (centro)')}
-                <span className="ml-1 text-[var(--accent)]">
-                  ({(detail?.stock_detalle?.length || 0)})
-                </span>
-              </button>
-              {showStockDetalle && (
-                <>
-                  <StockList rows={detail?.stock_detalle || []} />
-                  {(detail?.stock_detalle_full?.length || 0) > (detail?.stock_detalle?.length || 0) && (
-                    <button
-                      type="button"
-                      className="text-xs font-semibold text-[var(--accent)] hover:underline mt-2"
-                      onClick={() => setShowStockFull((v) => !v)}
+                {/* Stock detallado - Colapsable */}
+                <Box sx={{ pt: 1 }}>
+                  <Button
+                    size="small"
+                    onClick={() => setShowStockDetalle((v) => !v)}
+                    startIcon={showStockDetalle ? <ExpandMoreIcon /> : <ChevronRightIcon />}
+                    sx={{
+                      textTransform: 'uppercase',
+                      fontSize: '0.7rem',
+                      fontWeight: 600,
+                      color: 'text.secondary',
+                      p: 0,
+                      minWidth: 'auto',
+                      '&:hover': {
+                        bgcolor: 'transparent',
+                        color: 'primary.main',
+                      },
+                    }}
+                  >
+                    {t('materials_stock_detalle', 'Stock detallado (centro)')}
+                    <Typography
+                      component="span"
+                      sx={{ ml: 0.5, color: 'primary.main', fontSize: 'inherit' }}
                     >
-                      {showStockFull
-                        ? t('materials_ocultar_stock', 'Ocultar stock interno completo')
-                        : t('materials_ver_stock', 'Ver stock interno completo (+)')}
-                    </button>
-                  )}
-                  {showStockFull && <StockList rows={detail?.stock_detalle_full || []} compact />}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+                      ({(detail?.stock_detalle?.length || 0)})
+                    </Typography>
+                  </Button>
+                  <Collapse in={showStockDetalle}>
+                    <StockList rows={detail?.stock_detalle || []} />
+                    {(detail?.stock_detalle_full?.length || 0) > (detail?.stock_detalle?.length || 0) && (
+                      <Button
+                        size="small"
+                        onClick={() => setShowStockFull((v) => !v)}
+                        sx={{
+                          mt: 1,
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          textTransform: 'none',
+                          p: 0,
+                          minWidth: 'auto',
+                        }}
+                      >
+                        {showStockFull
+                          ? t('materials_ocultar_stock', 'Ocultar stock interno completo')
+                          : t('materials_ver_stock', 'Ver stock interno completo (+)')}
+                      </Button>
+                    )}
+                    {showStockFull && <StockList rows={detail?.stock_detalle_full || []} compact />}
+                  </Collapse>
+                </Box>
+              </Stack>
+            </Paper>
+          </Grid>
+        </Grid>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Grid container spacing={2}>
           {/* MRP */}
-          <div className="p-4 bg-[var(--warning-bg)] border border-[var(--warning-border)] rounded-lg space-y-2">
-            <p className="text-xs uppercase font-semibold text-[var(--fg-muted)] mb-2">
-              {t('materials_mrp', 'MRP / Reposición automática')}
-            </p>
-            <InfoRow
-              label={t('materials_planificado_mrp', 'Planificado MRP')}
-              value={detail?.mrp?.planificado_mrp ? 'Sí' : 'No'}
-            />
-            <InfoRow
-              label={t('materials_sector', 'Sector')}
-              value={detail?.mrp?.sector || 'N/D'}
-            />
-            <InfoRow
-              label={t('materials_stock_seguridad', 'Stock seguridad')}
-              value={detail?.mrp?.stock_seguridad ?? 'N/D'}
-            />
-            <InfoRow
-              label={t('materials_punto_pedido', 'Punto pedido')}
-              value={detail?.mrp?.punto_pedido ?? 'N/D'}
-            />
-            <InfoRow
-              label={t('materials_stock_maximo', 'Stock máximo')}
-              value={detail?.mrp?.stock_maximo ?? 'N/D'}
-            />
-          </div>
+          <Grid item xs={12} md={6}>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                height: '100%',
+                bgcolor: 'warning.lighter',
+                borderColor: 'warning.light',
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  textTransform: 'uppercase',
+                  fontWeight: 600,
+                  color: 'text.secondary',
+                  mb: 1,
+                  display: 'block',
+                }}
+              >
+                {t('materials_mrp', 'MRP / Reposicion automatica')}
+              </Typography>
+              <Stack spacing={1}>
+                <InfoRow
+                  label={t('materials_planificado_mrp', 'Planificado MRP')}
+                  value={detail?.mrp?.planificado_mrp ? 'Si' : 'No'}
+                />
+                <InfoRow
+                  label={t('materials_sector', 'Sector')}
+                  value={detail?.mrp?.sector || 'N/D'}
+                />
+                <InfoRow
+                  label={t('materials_stock_seguridad', 'Stock seguridad')}
+                  value={detail?.mrp?.stock_seguridad ?? 'N/D'}
+                />
+                <InfoRow
+                  label={t('materials_punto_pedido', 'Punto pedido')}
+                  value={detail?.mrp?.punto_pedido ?? 'N/D'}
+                />
+                <InfoRow
+                  label={t('materials_stock_maximo', 'Stock maximo')}
+                  value={detail?.mrp?.stock_maximo ?? 'N/D'}
+                />
+              </Stack>
+            </Paper>
+          </Grid>
 
           {/* Consumo historico */}
-          <div className="p-4 bg-[var(--info-bg)] border border-[var(--info-border)] rounded-lg space-y-2">
-            <p className="text-xs uppercase font-semibold text-[var(--fg-muted)] mb-2">
-              {t('materials_consumo', 'Consumo histórico')}
-            </p>
-            <InfoRow
-              label={t('materials_total_consumo', 'Total consumo')}
-              value={
-                detail?.consumo?.total?.toFixed
-                  ? detail.consumo.total.toFixed(0)
-                  : 'N/D'
-              }
-            />
-            <InfoRow
-              label={t('materials_promedio_anual', 'Promedio anual')}
-              value={
-                detail?.consumo?.promedio_anual?.toFixed
-                  ? detail.consumo.promedio_anual.toFixed(0)
-                  : 'N/D'
-              }
-            />
-            <InfoRow
-              label={t('materials_rango_anios', 'Rango anios')}
-              value={
-                detail?.consumo?.anio_desde
-                  ? `${detail.consumo.anio_desde} - ${detail.consumo.anio_hasta}`
-                  : 'N/D'
-              }
-            />
+          <Grid item xs={12} md={6}>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                height: '100%',
+                bgcolor: 'info.lighter',
+                borderColor: 'info.light',
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  textTransform: 'uppercase',
+                  fontWeight: 600,
+                  color: 'text.secondary',
+                  mb: 1,
+                  display: 'block',
+                }}
+              >
+                {t('materials_consumo', 'Consumo historico')}
+              </Typography>
+              <Stack spacing={1}>
+                <InfoRow
+                  label={t('materials_total_consumo', 'Total consumo')}
+                  value={
+                    detail?.consumo?.total?.toFixed
+                      ? detail.consumo.total.toFixed(0)
+                      : 'N/D'
+                  }
+                />
+                <InfoRow
+                  label={t('materials_promedio_anual', 'Promedio anual')}
+                  value={
+                    detail?.consumo?.promedio_anual?.toFixed
+                      ? detail.consumo.promedio_anual.toFixed(0)
+                      : 'N/D'
+                  }
+                />
+                <InfoRow
+                  label={t('materials_rango_anios', 'Rango anios')}
+                  value={
+                    detail?.consumo?.anio_desde
+                      ? `${detail.consumo.anio_desde} - ${detail.consumo.anio_hasta}`
+                      : 'N/D'
+                  }
+                />
 
-            {/* Ultimos consumos */}
-            <div className="pt-2">
-              <p className="text-xs uppercase font-semibold text-[var(--fg-muted)] mb-1">
-                {t('materials_ultimos_consumos', 'Ultimos consumos')}
-              </p>
-              {(detail?.consumo?.registros || []).length === 0 ? (
-                <p className="text-xs text-[var(--fg-muted)]">
-                  {t('materials_sin_registros', 'Sin registros')}
-                </p>
-              ) : (
-                <div className="space-y-1">
-                  {(detail?.consumo?.registros || []).map((r, idx) => (
-                    <div
-                      key={idx}
-                      className="flex justify-between text-xs text-[var(--fg)]"
-                    >
-                      <span>{r.fecha}</span>
-                      <span className="font-semibold font-mono">{r.cantidad}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+                {/* Ultimos consumos */}
+                <Box sx={{ pt: 1 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      textTransform: 'uppercase',
+                      fontWeight: 600,
+                      color: 'text.secondary',
+                      mb: 0.5,
+                      display: 'block',
+                    }}
+                  >
+                    {t('materials_ultimos_consumos', 'Ultimos consumos')}
+                  </Typography>
+                  {(detail?.consumo?.registros || []).length === 0 ? (
+                    <Typography variant="caption" color="text.secondary">
+                      {t('materials_sin_registros', 'Sin registros')}
+                    </Typography>
+                  ) : (
+                    <Stack spacing={0.5}>
+                      {(detail?.consumo?.registros || []).map((r, idx) => (
+                        <Stack
+                          key={idx}
+                          direction="row"
+                          justifyContent="space-between"
+                        >
+                          <Typography variant="caption" color="text.primary">
+                            {r.fecha}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            fontWeight={600}
+                            sx={{ fontFamily: 'monospace' }}
+                          >
+                            {r.cantidad}
+                          </Typography>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  )}
+                </Box>
+              </Stack>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Stack>
     </Modal>
   )
 }

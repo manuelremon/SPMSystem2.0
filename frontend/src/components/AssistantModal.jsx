@@ -1,8 +1,26 @@
 import { useState, useCallback } from "react";
-import { Modal } from "./ui/Modal";
-import { Button } from "./ui/Button";
-import { Badge } from "./ui/Badge";
-import { Sparkles, Loader2, Check, Plus, AlertCircle } from "./ui/Icons";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Chip,
+  Stack,
+  CircularProgress,
+  Alert,
+  IconButton,
+  Paper,
+} from "@mui/material";
+import {
+  AutoAwesome as SparklesIcon,
+  Check as CheckIcon,
+  Add as PlusIcon,
+  Error as AlertCircleIcon,
+  Close as CloseIcon,
+} from "@mui/icons-material";
 import api from "../services/api";
 import { useI18n } from "../context/i18n";
 
@@ -91,157 +109,216 @@ export function AssistantModal({ isOpen, onClose, onUseSuggestions }) {
   }, [onClose]);
 
   return (
-    <Modal
-      isOpen={isOpen}
+    <Dialog
+      open={isOpen}
       onClose={handleClose}
-      title={t("assistant_title", "Asistente IA")}
-      size="lg"
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: { borderRadius: 2 }
+      }}
     >
-      <div className="space-y-4">
-        {/* Descripción del problema */}
-        <div className="space-y-1.5">
-          <label
-            htmlFor="assistant-descripcion"
-            className="text-xs uppercase font-semibold tracking-wide text-[var(--fg-muted)]"
-          >
-            {t("assistant_describe", "Describí el problema o necesidad")}
-          </label>
-          <textarea
-            id="assistant-descripcion"
-            value={descripcion}
-            onChange={(e) => setDescripcion(e.target.value)}
-            placeholder={t(
-              "assistant_placeholder",
-              "Ej: Se rompió la bomba de agua de la línea 3, pierde por el sello mecánico..."
-            )}
-            rows={4}
-            className="w-full px-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--input-border)] bg-[var(--input-bg)] text-sm text-[var(--fg)] placeholder:text-[var(--fg-subtle)] focus:ring-2 focus:ring-[var(--input-focus)] focus:border-[var(--primary)] outline-none transition-all resize-none"
-          />
-        </div>
+      <DialogTitle
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <Typography variant="h6">
+          {t("assistant_title", "Asistente IA")}
+        </Typography>
+        <IconButton onClick={handleClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
 
-        {/* Error message */}
-        {error && (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-[var(--status-danger-bg)] text-[var(--status-danger-text)] text-sm">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+      <DialogContent>
+        <Stack spacing={2}>
+          {/* Descripción del problema */}
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{
+                textTransform: "uppercase",
+                fontWeight: 600,
+                letterSpacing: "0.05em",
+                color: "text.secondary",
+                display: "block",
+                mb: 0.75,
+              }}
+            >
+              {t("assistant_describe", "Describí el problema o necesidad")}
+            </Typography>
+            <TextField
+              id="assistant-descripcion"
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              placeholder={t(
+                "assistant_placeholder",
+                "Ej: Se rompió la bomba de agua de la línea 3, pierde por el sello mecánico..."
+              )}
+              multiline
+              rows={4}
+              fullWidth
+              size="small"
+            />
+          </Box>
 
-        {/* Botón analizar */}
-        <Button
-          onClick={handleAnalizar}
-          disabled={!descripcion.trim() || loading}
-          className="w-full"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              {t("assistant_analyzing", "Analizando...")}
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-4 h-4" />
-              {t("assistant_analyze", "Analizar y sugerir materiales")}
-            </>
+          {/* Error message */}
+          {error && (
+            <Alert severity="error" icon={<AlertCircleIcon />}>
+              {error}
+            </Alert>
           )}
-        </Button>
 
-        {/* Resultados */}
-        {result && (
-          <div className="space-y-4 pt-4 border-t border-[var(--border)]">
-            {/* Análisis - Entidades detectadas */}
-            <div>
-              <p className="text-xs text-[var(--fg-muted)] mb-2 uppercase tracking-wide">
-                {t("assistant_detected", "Detectado en tu descripción")}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {result.analisis?.equipos_detectados?.map((e) => (
-                  <Badge key={`equipo-${e}`} variant="info">
-                    {e}
-                  </Badge>
-                ))}
-                {result.analisis?.componentes_detectados?.map((c) => (
-                  <Badge key={`comp-${c}`} variant="success">
-                    {c}
-                  </Badge>
-                ))}
-                {result.analisis?.tipo_falla?.map((f) => (
-                  <Badge key={`falla-${f}`} variant="warning">
-                    {f}
-                  </Badge>
-                ))}
-              </div>
-            </div>
+          {/* Botón analizar */}
+          <Button
+            variant="contained"
+            onClick={handleAnalizar}
+            disabled={!descripcion.trim() || loading}
+            fullWidth
+            startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <SparklesIcon />}
+          >
+            {loading
+              ? t("assistant_analyzing", "Analizando...")
+              : t("assistant_analyze", "Analizar y sugerir materiales")}
+          </Button>
 
-            {/* Materiales sugeridos */}
-            {result.sugerencias?.length > 0 ? (
-              <div>
-                <p className="text-xs text-[var(--fg-muted)] mb-2 uppercase tracking-wide">
-                  {t("assistant_suggestions", "Materiales sugeridos")} ({result.sugerencias.length})
-                </p>
-                <div className="max-h-64 overflow-y-auto space-y-2">
-                  {result.sugerencias.map((sug) => (
-                    <div
-                      key={sug.material_id}
-                      onClick={() => toggleItem(sug.material_id)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => e.key === "Enter" && toggleItem(sug.material_id)}
-                      className={`
-                        p-3 rounded-lg border cursor-pointer transition-all
-                        ${
-                          selectedItems.includes(sug.material_id)
-                            ? "border-[hsl(var(--primary))] bg-[hsl(var(--primary))]/5"
-                            : "border-[var(--border)] hover:border-[var(--border-hover)]"
-                        }
-                      `}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-[var(--fg)] truncate">
-                            {sug.descripcion}
-                          </p>
-                          <p className="text-xs text-[var(--fg-muted)] truncate">
-                            {sug.codigo_sap} · {sug.motivo}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-sm font-bold text-[var(--fg)] tabular-nums">
-                            {sug.cantidad_sugerida} {sug.unidad}
-                          </span>
-                          {selectedItems.includes(sug.material_id) && (
-                            <Check className="w-4 h-4 text-[hsl(var(--primary))]" />
-                          )}
-                        </div>
-                      </div>
-                    </div>
+          {/* Resultados */}
+          {result && (
+            <Stack spacing={2} sx={{ pt: 2, borderTop: 1, borderColor: "divider" }}>
+              {/* Análisis - Entidades detectadas */}
+              <Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    color: "text.secondary",
+                    display: "block",
+                    mb: 1,
+                  }}
+                >
+                  {t("assistant_detected", "Detectado en tu descripción")}
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {result.analisis?.equipos_detectados?.map((e) => (
+                    <Chip key={`equipo-${e}`} label={e} color="info" size="small" />
                   ))}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-6 text-[var(--fg-muted)]">
-                <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">
-                  {t("assistant_no_results", "No se encontraron materiales. Intenta con otra descripción.")}
-                </p>
-              </div>
-            )}
+                  {result.analisis?.componentes_detectados?.map((c) => (
+                    <Chip key={`comp-${c}`} label={c} color="success" size="small" />
+                  ))}
+                  {result.analisis?.tipo_falla?.map((f) => (
+                    <Chip key={`falla-${f}`} label={f} color="warning" size="small" />
+                  ))}
+                </Stack>
+              </Box>
 
-            {/* Botón usar sugerencias */}
-            {result.sugerencias?.length > 0 && (
-              <Button
-                onClick={handleUsar}
-                disabled={selectedItems.length === 0}
-                className="w-full"
-              >
-                <Plus className="w-4 h-4" />
-                {t("assistant_use", "Usar estas sugerencias")} ({selectedItems.length})
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
-    </Modal>
+              {/* Materiales sugeridos */}
+              {result.sugerencias?.length > 0 ? (
+                <Box>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      color: "text.secondary",
+                      display: "block",
+                      mb: 1,
+                    }}
+                  >
+                    {t("assistant_suggestions", "Materiales sugeridos")} ({result.sugerencias.length})
+                  </Typography>
+                  <Box sx={{ maxHeight: 256, overflowY: "auto" }}>
+                    <Stack spacing={1}>
+                      {result.sugerencias.map((sug) => (
+                        <Paper
+                          key={sug.material_id}
+                          onClick={() => toggleItem(sug.material_id)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => e.key === "Enter" && toggleItem(sug.material_id)}
+                          elevation={0}
+                          sx={{
+                            p: 1.5,
+                            cursor: "pointer",
+                            transition: "all 0.2s",
+                            border: 1,
+                            borderColor: selectedItems.includes(sug.material_id)
+                              ? "primary.main"
+                              : "divider",
+                            bgcolor: selectedItems.includes(sug.material_id)
+                              ? "primary.lighter"
+                              : "transparent",
+                            "&:hover": {
+                              borderColor: selectedItems.includes(sug.material_id)
+                                ? "primary.main"
+                                : "action.hover",
+                            },
+                          }}
+                        >
+                          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1.5}>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography
+                                variant="body2"
+                                fontWeight="medium"
+                                noWrap
+                              >
+                                {sug.descripcion}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                noWrap
+                              >
+                                {sug.codigo_sap} · {sug.motivo}
+                              </Typography>
+                            </Box>
+                            <Stack direction="row" spacing={1} alignItems="center" flexShrink={0}>
+                              <Typography
+                                variant="body2"
+                                fontWeight="bold"
+                                sx={{ fontVariantNumeric: "tabular-nums" }}
+                              >
+                                {sug.cantidad_sugerida} {sug.unidad}
+                              </Typography>
+                              {selectedItems.includes(sug.material_id) && (
+                                <CheckIcon color="primary" sx={{ width: 16, height: 16 }} />
+                              )}
+                            </Stack>
+                          </Stack>
+                        </Paper>
+                      ))}
+                    </Stack>
+                  </Box>
+                </Box>
+              ) : (
+                <Box sx={{ textAlign: "center", py: 3 }}>
+                  <AlertCircleIcon sx={{ width: 32, height: 32, color: "text.disabled", mb: 1 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {t("assistant_no_results", "No se encontraron materiales. Intenta con otra descripción.")}
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Botón usar sugerencias */}
+              {result.sugerencias?.length > 0 && (
+                <Button
+                  variant="contained"
+                  onClick={handleUsar}
+                  disabled={selectedItems.length === 0}
+                  fullWidth
+                  startIcon={<PlusIcon />}
+                >
+                  {t("assistant_use", "Usar estas sugerencias")} ({selectedItems.length})
+                </Button>
+              )}
+            </Stack>
+          )}
+        </Stack>
+      </DialogContent>
+    </Dialog>
   );
 }
 

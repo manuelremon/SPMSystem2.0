@@ -1,46 +1,93 @@
+/**
+ * Badge Component - MUI Chip
+ * Etiquetas de estado profesionales con estilo MUI
+ */
+
 import React, { memo } from "react";
 import PropTypes from "prop-types";
-import clsx from "clsx";
+import Chip from "@mui/material/Chip";
 
-/**
- * Badge Component - Glass Morphism Style
- * Translucent badges with subtle blur effect
- * Memoizado para evitar re-renders innecesarios
- */
-const variants = {
-  default: "bg-slate-100/70 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 border-slate-200/50 dark:border-slate-600/50",
-  success: "bg-emerald-50/70 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/50 dark:border-emerald-700/50",
-  warning: "bg-amber-50/70 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border-amber-200/50 dark:border-amber-700/50",
-  danger: "bg-red-50/70 dark:bg-red-900/40 text-red-700 dark:text-red-300 border-red-200/50 dark:border-red-700/50",
-  info: "bg-blue-50/70 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-blue-200/50 dark:border-blue-700/50",
-  primary: "bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-300/30 dark:border-blue-600/30",
+// Mapeo de variantes legacy a colores MUI
+const variantColorMap = {
+  default: 'default',
+  success: 'success',
+  warning: 'warning',
+  danger: 'error',
+  error: 'error',
+  info: 'info',
+  primary: 'primary',
+  secondary: 'secondary',
 };
 
-export const Badge = memo(function Badge({ variant = "default", className, children }) {
+// Mapeo de tamaños
+const sizeMap = {
+  sm: 'small',
+  md: 'small',
+  lg: 'medium',
+};
+
+/**
+ * Badge - Etiqueta de estado con MUI Chip
+ *
+ * @param {string} variant - Variante de color: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'primary'
+ * @param {string} size - Tamaño: 'sm' | 'md' | 'lg'
+ * @param {string} className - Clases adicionales (compatibilidad)
+ * @param {object} sx - Estilos MUI adicionales
+ * @param {React.ReactNode} children - Contenido del badge
+ * @param {React.ReactNode} icon - Icono opcional al inicio
+ * @param {function} onDelete - Callback para mostrar botón de eliminar
+ */
+export const Badge = memo(function Badge({
+  variant = "default",
+  size = "md",
+  className,
+  sx,
+  children,
+  icon,
+  onDelete,
+  ...props
+}) {
+  const muiColor = variantColorMap[variant] || 'default';
+  const muiSize = sizeMap[size] || 'small';
+
   return (
-    <span
-      className={clsx(
-        // Glass base
-        "inline-flex items-center gap-1.5",
-        "rounded-full px-2.5 py-1",
-        "text-xs font-semibold",
-        "border backdrop-blur-sm",
-        // Variant styles
-        variants[variant],
-        className
-      )}
-    >
-      {children}
-    </span>
+    <Chip
+      label={children}
+      color={muiColor}
+      size={muiSize}
+      variant="outlined"
+      icon={icon}
+      onDelete={onDelete}
+      className={className}
+      sx={{
+        fontWeight: 500,
+        textTransform: 'uppercase',
+        letterSpacing: '0.025em',
+        fontSize: size === 'sm' ? '0.625rem' : size === 'lg' ? '0.8125rem' : '0.6875rem',
+        ...sx,
+      }}
+      {...props}
+    />
   );
 });
 
 Badge.propTypes = {
-  variant: PropTypes.oneOf(["default", "success", "warning", "danger", "info", "primary"]),
+  variant: PropTypes.oneOf([
+    "default",
+    "success",
+    "warning",
+    "danger",
+    "error",
+    "info",
+    "primary",
+    "secondary",
+  ]),
+  size: PropTypes.oneOf(["sm", "md", "lg"]),
   className: PropTypes.string,
+  sx: PropTypes.object,
   children: PropTypes.node,
+  icon: PropTypes.node,
+  onDelete: PropTypes.func,
 };
 
-Badge.defaultProps = {
-  variant: "default",
-};
+export default Badge;

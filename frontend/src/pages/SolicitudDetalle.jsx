@@ -1,56 +1,223 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { solicitudes } from "../services/spm";
 import { useI18n } from "../context/i18n";
-import { Card, CardHeader, CardContent, CardTitle } from "../components/ui/Card";
-import { Button } from "../components/ui/Button";
-import { Badge } from "../components/ui/Badge";
-import { Alert } from "../components/ui/Alert";
-import { PageHeader } from "../components/ui/PageHeader";
-import { ScrollReveal } from "../components/ui/ScrollReveal";
-import StatusBadge from "../components/ui/StatusBadge";
 import { formatDate, formatCurrency, getSectorNombre, formatAlmacen } from "../utils/formatters";
-import {
-  ArrowLeft,
-  Calendar,
-  Building2,
-  MapPin,
-  FileText,
-  Package,
-  DollarSign,
-  AlertTriangle,
-  Clock,
-  User,
-  Hash,
-  ICON_COLORS,
-} from "../components/ui/Icons";
+import { SPMAgGrid } from "../components/ui/SPMAgGrid";
 
-function DetailRow({ icon: Icon, label, value, className = "" }) {
+// MUI Components
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
+import Chip from "@mui/material/Chip";
+import Divider from "@mui/material/Divider";
+import Alert from "@mui/material/Alert";
+import Skeleton from "@mui/material/Skeleton";
+
+// MUI Icons
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import BusinessIcon from "@mui/icons-material/Business";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import DescriptionIcon from "@mui/icons-material/Description";
+import InventoryIcon from "@mui/icons-material/Inventory";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import PersonIcon from "@mui/icons-material/Person";
+import TagIcon from "@mui/icons-material/Tag";
+
+import StatusBadge from "../components/ui/StatusBadge";
+
+/**
+ * Tabla de items migrada a SPMAgGrid
+ */
+function ItemsTable({ items, totalMonto }) {
+  const { t } = useI18n();
+
+  const rows = useMemo(() => {
+    if (!items || items.length === 0) return [];
+    return items.map((item, idx) => {
+      const precio = Number(item.precio_unitario || item.precio || 0);
+      const cantidad = Number(item.cantidad || 0);
+      const subtotal = precio * cantidad;
+      return {
+        ...item,
+        id: idx,
+        precio_unitario: precio,
+        cantidad: cantidad,
+        subtotal: subtotal,
+      };
+    });
+  }, [items]);
+
+  const columnDefs = useMemo(() => [
+    {
+      field: 'codigo',
+      headerName: t('detalle_item_codigo', 'Código'),
+      flex: 0.3,
+      minWidth: 100,
+      valueFormatter: (params) => params.data?.codigo || params.data?.material_codigo || '-',
+    },
+    {
+      field: 'descripcion',
+      headerName: t('detalle_item_descripcion', 'Descripción'),
+      flex: 0.8,
+      minWidth: 200,
+      cellRenderer: (params) => (
+        <Box sx={{ maxWidth: 280 }}>
+          <Typography
+            variant="body2"
+            noWrap
+            title={params.data?.descripcion || params.data?.material_descripcion}
+          >
+            {params.data?.descripcion || params.data?.material_descripcion || '-'}
+          </Typography>
+          {params.data?.comentario && (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              noWrap
+              component="p"
+              title={params.data?.comentario}
+            >
+              {params.data?.comentario}
+            </Typography>
+          )}
+        </Box>
+      ),
+    },
+    {
+      field: 'cantidad',
+      headerName: t('detalle_item_cantidad', 'Cantidad'),
+      flex: 0.25,
+      minWidth: 80,
+      type: 'numericColumn',
+      valueFormatter: (params) => `${params.data?.cantidad || 0} ${params.data?.unidad || ''}`,
+    },
+    {
+      field: 'precio_unitario',
+      headerName: t('detalle_item_precio', 'Precio Unit.'),
+      flex: 0.3,
+      minWidth: 100,
+      type: 'numericColumn',
+      cellStyle: { textAlign: 'right', paddingRight: '16px' },
+      valueFormatter: (params) => formatCurrency(params.data?.precio_unitario || 0),
+    },
+    {
+      field: 'subtotal',
+      headerName: t('detalle_item_subtotal', 'Subtotal'),
+      flex: 0.3,
+      minWidth: 100,
+      type: 'numericColumn',
+      cellStyle: { textAlign: 'right', paddingRight: '16px' },
+      valueFormatter: (params) => formatCurrency(params.data?.subtotal || 0),
+    },
+  ], [t]);
+
   return (
-    <div className={`flex items-start gap-3 ${className}`}>
-      <div className="h-9 w-9 rounded-lg bg-white/50 dark:bg-slate-800/50 border border-white/30 dark:border-slate-700/30 grid place-items-center flex-shrink-0">
-        <Icon className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-          {label}
-        </p>
-        <p className="text-sm text-slate-800 dark:text-slate-200 mt-0.5 break-words">{value || "-"}</p>
-      </div>
-    </div>
+    <Stack spacing={1.5}>
+      <SPMAgGrid
+        rowData={rows}
+        columnDefs={columnDefs}
+        height={300}
+        pagination={false}
+        enableQuickFilter={true}
+        exportFileName="items_solicitud"
+        emptyMessage={t('detalle_sin_items', 'No hay materiales en esta solicitud')}
+      />
+      {/* Total Footer */}
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          p: 2,
+          bgcolor: 'action.hover',
+          borderRadius: 1,
+          border: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        <Stack direction="row" spacing={2} sx={{ width: '100%', maxWidth: 400 }}>
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 600, flex: 1, textAlign: 'right' }}
+          >
+            {t('detalle_total', 'Total')}:
+          </Typography>
+          <Typography
+            variant="body1"
+            sx={{
+              fontFamily: 'monospace',
+              fontWeight: 700,
+              color: 'primary.main',
+              minWidth: 120,
+              textAlign: 'right',
+            }}
+          >
+            {formatCurrency(totalMonto || 0)}
+          </Typography>
+        </Stack>
+      </Box>
+    </Stack>
   );
 }
 
+// DetailRow component using MUI
+function DetailRow({ icon: Icon, label, value }) {
+  return (
+    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+      <Box
+        sx={{
+          height: 36,
+          width: 36,
+          borderRadius: 2,
+          bgcolor: "action.hover",
+          border: "1px solid",
+          borderColor: "divider",
+          display: "grid",
+          placeItems: "center",
+          flexShrink: 0,
+        }}
+      >
+        <Icon sx={{ fontSize: 18, color: "text.secondary" }} />
+      </Box>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: 500,
+            color: "text.secondary",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+          }}
+        >
+          {label}
+        </Typography>
+        <Typography
+          variant="body2"
+          sx={{ color: "text.primary", mt: 0.5, wordBreak: "break-word" }}
+        >
+          {value || "-"}
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
+// Loading skeleton using MUI
 function LoadingSkeleton() {
   return (
-    <div className="space-y-6 animate-pulse">
-      <div className="h-8 bg-slate-100/70 dark:bg-slate-700/70 rounded w-1/3"></div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="h-48 bg-slate-100/70 dark:bg-slate-700/70 rounded-xl"></div>
-        <div className="h-48 bg-slate-100/70 dark:bg-slate-700/70 rounded-xl"></div>
-      </div>
-      <div className="h-64 bg-slate-100/70 dark:bg-slate-700/70 rounded-xl"></div>
-    </div>
+    <Stack spacing={3}>
+      <Skeleton variant="rounded" width="33%" height={32} />
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
+        <Skeleton variant="rounded" height={192} />
+        <Skeleton variant="rounded" height={192} />
+      </Box>
+      <Skeleton variant="rounded" height={256} />
+    </Stack>
   );
 }
 
@@ -73,7 +240,7 @@ export default function SolicitudDetalle() {
         } else if (res.data) {
           setSolicitud(res.data);
         } else {
-          setError("No se encontró la solicitud");
+          setError("No se encontro la solicitud");
         }
       } catch (err) {
         console.error("Error fetching solicitud:", err);
@@ -88,54 +255,59 @@ export default function SolicitudDetalle() {
     }
   }, [id]);
 
+  // Back button component
+  const BackButton = () => (
+    <Button
+      variant="text"
+      startIcon={<ArrowBackIcon />}
+      onClick={() => navigate(-1)}
+      sx={{ color: "text.secondary" }}
+    >
+      {t("common_back", "Volver")}
+    </Button>
+  );
+
   if (loading) {
     return (
-      <div className="space-y-6">
-        <PageHeader
-          title={t("detalle_loading", "Cargando solicitud...")}
-          actions={
-            <Button variant="ghost" onClick={() => navigate(-1)}>
-              <ArrowLeft className="w-4 h-4" />
-              {t("common_back", "Volver")}
-            </Button>
-          }
-        />
+      <Stack spacing={3}>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Typography variant="h5" fontWeight={600}>
+            {t("detalle_loading", "Cargando solicitud...")}
+          </Typography>
+          <BackButton />
+        </Box>
         <LoadingSkeleton />
-      </div>
+      </Stack>
     );
   }
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <PageHeader
-          title={t("detalle_error_title", "Error")}
-          actions={
-            <Button variant="ghost" onClick={() => navigate(-1)}>
-              <ArrowLeft className="w-4 h-4" />
-              {t("common_back", "Volver")}
-            </Button>
-          }
-        />
-        <Alert variant="danger">{error}</Alert>
-      </div>
+      <Stack spacing={3}>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Typography variant="h5" fontWeight={600}>
+            {t("detalle_error_title", "Error")}
+          </Typography>
+          <BackButton />
+        </Box>
+        <Alert severity="error">{error}</Alert>
+      </Stack>
     );
   }
 
   if (!solicitud) {
     return (
-      <div className="space-y-6">
-        <PageHeader
-          title={t("detalle_not_found", "Solicitud no encontrada")}
-          actions={
-            <Button variant="ghost" onClick={() => navigate(-1)}>
-              <ArrowLeft className="w-4 h-4" />
-              {t("common_back", "Volver")}
-            </Button>
-          }
-        />
-        <Alert variant="warning">{t("detalle_not_found_msg", "La solicitud solicitada no existe o fue eliminada.")}</Alert>
-      </div>
+      <Stack spacing={3}>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Typography variant="h5" fontWeight={600}>
+            {t("detalle_not_found", "Solicitud no encontrada")}
+          </Typography>
+          <BackButton />
+        </Box>
+        <Alert severity="warning">
+          {t("detalle_not_found_msg", "La solicitud solicitada no existe o fue eliminada.")}
+        </Alert>
+      </Stack>
     );
   }
 
@@ -144,237 +316,242 @@ export default function SolicitudDetalle() {
   const criticidad = solicitud.criticidad || "Normal";
   const isAltaCriticidad = criticidad.toLowerCase().includes("alta");
 
+  // Construir info del aprobador para el tooltip
+  const aprobadorNombre = [solicitud.aprobador_nombre, solicitud.aprobador_apellido]
+    .filter(Boolean)
+    .join(" ") || null;
+
+  const tooltipInfo = {
+    aprobador: aprobadorNombre,
+    fechaEnvio: solicitud.created_at,
+    fechaAprobacion: solicitud.fecha_aprobacion,
+    planificador: [solicitud.planner_nombre, solicitud.planner_apellido]
+      .filter(Boolean)
+      .join(" ") || null,
+  };
+
   return (
-    <div className="space-y-6">
+    <Stack spacing={3}>
       {/* Header */}
-      <ScrollReveal>
-        <PageHeader
-          title={`${t("detalle_title", "Solicitud")} #${solicitud.id}`}
-          actions={
-            <div className="flex items-center gap-3">
-              <StatusBadge estado={estado} />
-              <Button variant="ghost" onClick={() => navigate(-1)}>
-                <ArrowLeft className="w-4 h-4" />
-                {t("common_back", "Volver")}
-              </Button>
-            </div>
-          }
-        />
-      </ScrollReveal>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 2 }}>
+        <Typography variant="h5" fontWeight={600}>
+          {`${t("detalle_title", "Solicitud")} #${solicitud.id}`}
+        </Typography>
+        <Stack direction="row" spacing={2} alignItems="center">
+          <StatusBadge estado={estado} tooltipInfo={tooltipInfo} />
+          <BackButton />
+        </Stack>
+      </Box>
 
       {/* Info Cards */}
-      <ScrollReveal delay={100}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Información General */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("detalle_info_general", "Información General")}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 3 }}>
+        {/* Informacion General */}
+        <Paper elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+          <Box sx={{ px: 3, py: 2, borderBottom: "1px solid", borderColor: "divider" }}>
+            <Typography variant="subtitle1" fontWeight={600}>
+              {t("detalle_info_general", "Informacion General")}
+            </Typography>
+          </Box>
+          <Stack spacing={2.5} sx={{ p: 3 }}>
             <DetailRow
-              icon={Hash}
+              icon={TagIcon}
               label={t("detalle_id", "ID de Solicitud")}
               value={solicitud.id}
             />
             <DetailRow
-              icon={User}
+              icon={PersonIcon}
               label={t("detalle_solicitante", "Solicitante")}
               value={solicitud.id_usuario || solicitud.solicitante}
             />
             <DetailRow
-              icon={Calendar}
-              label={t("detalle_fecha_creacion", "Fecha de Creación")}
+              icon={CalendarTodayIcon}
+              label={t("detalle_fecha_creacion", "Fecha de Creacion")}
               value={formatDate(solicitud.created_at || solicitud.fecha_creacion)}
             />
             <DetailRow
-              icon={Clock}
+              icon={AccessTimeIcon}
               label={t("detalle_fecha_necesidad", "Fecha de Necesidad")}
               value={formatDate(solicitud.fecha_necesidad)}
             />
-            <div className="flex items-start gap-3">
-              <div className="h-9 w-9 rounded-lg bg-white/50 dark:bg-slate-800/50 border border-white/30 dark:border-slate-700/30 grid place-items-center flex-shrink-0">
-                <AlertTriangle className={`w-4 h-4 ${isAltaCriticidad ? "text-red-600 dark:text-red-400" : "text-slate-500 dark:text-slate-400"}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  {t("detalle_criticidad", "Criticidad")}
-                </p>
-                <Badge
-                  variant={isAltaCriticidad ? "danger" : "default"}
-                  className="mt-1 uppercase text-xs font-semibold"
+            {/* Criticidad row */}
+            <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+              <Box
+                sx={{
+                  height: 36,
+                  width: 36,
+                  borderRadius: 2,
+                  bgcolor: "action.hover",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  display: "grid",
+                  placeItems: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <WarningAmberIcon
+                  sx={{
+                    fontSize: 18,
+                    color: isAltaCriticidad ? "error.main" : "text.secondary",
+                  }}
+                />
+              </Box>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 500,
+                    color: "text.secondary",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
                 >
-                  {criticidad}
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                  {t("detalle_criticidad", "Criticidad")}
+                </Typography>
+                <Box sx={{ mt: 0.5 }}>
+                  <Chip
+                    label={criticidad}
+                    size="small"
+                    color={isAltaCriticidad ? "error" : "default"}
+                    sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "0.7rem" }}
+                  />
+                </Box>
+              </Box>
+            </Box>
+          </Stack>
+        </Paper>
 
-        {/* Ubicación y Costos */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("detalle_ubicacion", "Ubicación y Costos")}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        {/* Ubicacion y Costos */}
+        <Paper elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+          <Box sx={{ px: 3, py: 2, borderBottom: "1px solid", borderColor: "divider" }}>
+            <Typography variant="subtitle1" fontWeight={600}>
+              {t("detalle_ubicacion", "Ubicacion y Costos")}
+            </Typography>
+          </Box>
+          <Stack spacing={2.5} sx={{ p: 3 }}>
             <DetailRow
-              icon={Building2}
+              icon={BusinessIcon}
               label={t("detalle_centro", "Centro")}
               value={solicitud.centro || solicitud.centro_id}
             />
             <DetailRow
-              icon={MapPin}
+              icon={LocationOnIcon}
               label={t("detalle_sector", "Sector")}
               value={getSectorNombre(solicitud.sector || solicitud.sector_id)}
             />
             <DetailRow
-              icon={Package}
-              label={t("detalle_almacen", "Almacén Virtual")}
+              icon={InventoryIcon}
+              label={t("detalle_almacen", "Almacen Virtual")}
               value={formatAlmacen(solicitud.almacen_virtual || solicitud.almacen)}
             />
             <DetailRow
-              icon={DollarSign}
+              icon={AttachMoneyIcon}
               label={t("detalle_centro_costos", "Centro de Costos")}
               value={solicitud.centro_costos}
             />
-            <div className="flex items-start gap-3">
-              <div className="h-9 w-9 rounded-lg bg-blue-50/70 dark:bg-blue-900/30 border border-blue-200/50 dark:border-blue-700/50 grid place-items-center flex-shrink-0">
-                <DollarSign className={`w-4 h-4 ${ICON_COLORS.money}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            {/* Monto Total row */}
+            <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+              <Box
+                sx={{
+                  height: 36,
+                  width: 36,
+                  borderRadius: 2,
+                  bgcolor: "primary.50",
+                  border: "1px solid",
+                  borderColor: "primary.200",
+                  display: "grid",
+                  placeItems: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <AttachMoneyIcon sx={{ fontSize: 18, color: "primary.main" }} />
+              </Box>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 500,
+                    color: "text.secondary",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
                   {t("detalle_monto_total", "Monto Total")}
-                </p>
-                <p className="text-lg font-bold text-blue-600 dark:text-blue-400 mt-0.5">
+                </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{ color: "primary.main", fontWeight: 700, mt: 0.5 }}
+                >
                   {formatCurrency(solicitud.total_monto || 0)}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        </div>
-      </ScrollReveal>
+                </Typography>
+              </Box>
+            </Box>
+          </Stack>
+        </Paper>
+      </Box>
 
-      {/* Justificación */}
-      <ScrollReveal delay={200}>
-        <Card>
-        <CardHeader>
-          <CardTitle>{t("detalle_justificacion", "Justificación")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-start gap-3">
-            <div className="h-9 w-9 rounded-lg bg-white/50 dark:bg-slate-800/50 border border-white/30 dark:border-slate-700/30 grid place-items-center flex-shrink-0">
-              <FileText className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-            </div>
-            <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed flex-1">
-              {solicitud.justificacion || t("detalle_sin_justificacion", "Sin justificación proporcionada")}
-            </p>
-          </div>
-        </CardContent>
-        </Card>
-      </ScrollReveal>
+      {/* Justificacion */}
+      <Paper elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+        <Box sx={{ px: 3, py: 2, borderBottom: "1px solid", borderColor: "divider" }}>
+          <Typography variant="subtitle1" fontWeight={600}>
+            {t("detalle_justificacion", "Justificacion")}
+          </Typography>
+        </Box>
+        <Box sx={{ p: 3 }}>
+          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+            <Box
+              sx={{
+                height: 36,
+                width: 36,
+                borderRadius: 2,
+                bgcolor: "action.hover",
+                border: "1px solid",
+                borderColor: "divider",
+                display: "grid",
+                placeItems: "center",
+                flexShrink: 0,
+              }}
+            >
+              <DescriptionIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+            </Box>
+            <Typography variant="body2" sx={{ color: "text.primary", lineHeight: 1.7, flex: 1 }}>
+              {solicitud.justificacion || t("detalle_sin_justificacion", "Sin justificacion proporcionada")}
+            </Typography>
+          </Box>
+        </Box>
+      </Paper>
 
       {/* Items/Materiales */}
-      <ScrollReveal delay={300}>
-        <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>
+      <Paper elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+        <Box sx={{ px: 3, py: 2, borderBottom: "1px solid", borderColor: "divider", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Typography variant="subtitle1" fontWeight={600}>
             {t("detalle_materiales", "Materiales")} ({items.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </Typography>
+        </Box>
+        <Box sx={{ p: 3 }}>
           {items.length === 0 ? (
-            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-              <Package className={`w-12 h-12 mx-auto mb-3 opacity-50 ${ICON_COLORS.logistics}`} />
-              <p>{t("detalle_sin_items", "No hay materiales en esta solicitud")}</p>
-            </div>
+            <Box sx={{ textAlign: "center", py: 4 }}>
+              <InventoryIcon sx={{ fontSize: 48, color: "text.disabled", mb: 1.5 }} />
+              <Typography variant="body2" color="text.secondary">
+                {t("detalle_sin_items", "No hay materiales en esta solicitud")}
+              </Typography>
+            </Box>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-white/30 dark:border-slate-700/30">
-              <table className="w-full text-sm">
-                <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
-                  <tr>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">
-                      {t("detalle_item_codigo", "Código")}
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">
-                      {t("detalle_item_descripcion", "Descripción")}
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">
-                      {t("detalle_item_cantidad", "Cantidad")}
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">
-                      {t("detalle_item_precio", "Precio Unit.")}
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">
-                      {t("detalle_item_subtotal", "Subtotal")}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item, idx) => {
-                    const precio = Number(item.precio_unitario || item.precio || 0);
-                    const cantidad = Number(item.cantidad || 0);
-                    const subtotal = precio * cantidad;
-                    return (
-                      <tr
-                        key={idx}
-                        className="border-b border-white/30 dark:border-slate-700/30 last:border-b-0 hover:bg-white/50 dark:hover:bg-slate-700/50 transition-colors"
-                      >
-                        <td className="py-3 px-4 font-mono text-slate-800 dark:text-slate-200 border-r border-b border-slate-200 dark:border-slate-700">
-                          {item.codigo || item.material_codigo || "-"}
-                        </td>
-                        <td className="py-3 px-4 text-slate-800 dark:text-slate-200 border-r border-b border-slate-200 dark:border-slate-700">
-                          <div className="max-w-xs">
-                            <p className="truncate" title={item.descripcion || item.material_descripcion}>
-                              {item.descripcion || item.material_descripcion || "-"}
-                            </p>
-                            {item.comentario && (
-                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate" title={item.comentario}>
-                                {item.comentario}
-                              </p>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-right font-medium text-slate-800 dark:text-slate-200 border-r border-b border-slate-200 dark:border-slate-700">
-                          {cantidad} {item.unidad || ""}
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono text-slate-500 dark:text-slate-400 border-r border-b border-slate-200 dark:border-slate-700">
-                          {formatCurrency(precio)}
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono font-medium text-slate-800 dark:text-slate-200">
-                          {formatCurrency(subtotal)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-white/50 dark:bg-slate-800/50">
-                    <td colSpan={4} className="py-3 px-4 text-right font-semibold text-slate-800 dark:text-slate-200">
-                      {t("detalle_total", "Total")}:
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-lg text-blue-600 dark:text-blue-400">
-                      {formatCurrency(solicitud.total_monto || 0)}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+            <ItemsTable items={items} totalMonto={solicitud.total_monto} />
           )}
-        </CardContent>
-        </Card>
-      </ScrollReveal>
+        </Box>
+      </Paper>
 
-      {/* Acciones según estado */}
+      {/* Acciones segun estado */}
       {estado.toLowerCase() === "borrador" && (
-        <div className="flex justify-end gap-3">
+        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1.5 }}>
           <Button
-            variant="secondary"
+            variant="outlined"
             onClick={() => navigate(`/solicitudes/${solicitud.id}/materiales`)}
           >
             {t("detalle_btn_editar", "Editar Solicitud")}
           </Button>
-        </div>
+        </Box>
       )}
-    </div>
+    </Stack>
   );
 }

@@ -17,15 +17,17 @@ export const solicitudes = {
 
 export const materiales = {
   listar: (q) => api.get('/materiales', { params: q }),
-  buscar: ({ codigo = '', descripcion = '', limit = 500 } = {}) =>
-    api.get('/materiales', { params: { codigo, descripcion, limit } }),
+  buscar: ({ codigo = '', descripcion = '', grupo = '', limit = 500 } = {}) =>
+    api.get('/materiales', { params: { codigo, descripcion, grupo, limit } }),
   detalle: (codigo, params = {}) => api.get(`/materiales/${codigo}/detalle`, { params }),
   solicitudes: (codigo, limit = 20) => api.get(`/materiales/${codigo}/solicitudes`, { params: { limit } }),
+  grupos: (q = '', limit = 100) => api.get('/materiales/grupos', { params: { q, limit } }),
 }
 
 export const equivalencias = {
   listar: (params = {}) => api.get('/equivalencias', { params }),
   porMaterial: (codigo) => api.get(`/equivalencias/${codigo}`),
+  tipos: () => api.get('/equivalencias/tipos'),
   crear: (payload) => api.post('/equivalencias', payload),
   actualizar: (id, payload) => api.put(`/equivalencias/${id}`, payload),
   eliminar: (id) => api.delete(`/equivalencias/${id}`),

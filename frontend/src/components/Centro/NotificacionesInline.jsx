@@ -11,12 +11,22 @@ import {
   Package,
   MessageSquare,
   RefreshCw,
-  ExternalLink,
   User,
 } from "../ui/Icons";
-import { Button } from "../ui/Button";
-import { Badge } from "../ui/Badge";
-import { Card, CardContent } from "../ui/Card";
+import {
+  Box,
+  Paper,
+  Typography,
+  Button,
+  IconButton,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert,
+  CircularProgress,
+} from "@mui/material";
 import { useI18n } from "../../context/i18n";
 import api from "../../services/api";
 import ProfileRequestActionModal from "./ProfileRequestActionModal";
@@ -36,29 +46,24 @@ const tipoIcons = {
 };
 
 const tipoColors = {
-  solicitud_approved: "text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30",
-  solicitud_rejected: "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30",
-  solicitud_to_plan: "text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30",
-  stock_consulta: "text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30",
-  mensaje_nuevo: "text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30",
-  budget_approved: "text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30",
-  budget_rejected: "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30",
-  profile_request: "text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/30",
-  profile_approved: "text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30",
-  profile_rejected: "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30",
-  default: "text-[var(--fg-muted)] bg-[var(--bg-soft)]",
+  solicitud_approved: { bg: "rgba(34, 197, 94, 0.12)", color: "var(--success)" },
+  solicitud_rejected: { bg: "rgba(239, 68, 68, 0.12)", color: "var(--danger)" },
+  solicitud_to_plan: { bg: "rgba(59, 130, 246, 0.12)", color: "var(--primary)" },
+  stock_consulta: { bg: "rgba(249, 115, 22, 0.12)", color: "#f97316" },
+  mensaje_nuevo: { bg: "rgba(168, 85, 247, 0.12)", color: "#a855f7" },
+  budget_approved: { bg: "rgba(34, 197, 94, 0.12)", color: "var(--success)" },
+  budget_rejected: { bg: "rgba(239, 68, 68, 0.12)", color: "var(--danger)" },
+  profile_request: { bg: "rgba(99, 102, 241, 0.12)", color: "#6366f1" },
+  profile_approved: { bg: "rgba(34, 197, 94, 0.12)", color: "var(--success)" },
+  profile_rejected: { bg: "rgba(239, 68, 68, 0.12)", color: "var(--danger)" },
+  default: { bg: "var(--bg-soft)", color: "var(--fg-muted)" },
 };
 
-// Tipos que requieren respuesta del usuario
 const TIPOS_REQUIEREN_RESPUESTA = ["stock_consulta", "mensaje_nuevo", "profile_request"];
-
-// Tipos que abren modal de acción de perfil
 const TIPOS_PROFILE_ACTION = ["profile_request"];
 
-// Detectar si una notificación es de cambio de perfil por contenido
 function isProfileRequestNotif(notif) {
   if (TIPOS_PROFILE_ACTION.includes(notif.tipo)) return true;
-  // También detectar por contenido del mensaje
   const msg = (notif.mensaje || "").toLowerCase();
   return msg.includes("cambio de perfil") || msg.includes("solicitud de perfil");
 }
@@ -91,22 +96,20 @@ function formatDateTime(dateStr) {
   });
 }
 
-// Modal de detalle de notificacion
 function NotificacionDetailModal({ notif, onClose, onMarcarLeida }) {
   const navigate = useNavigate();
   const { t } = useI18n();
   const [marcando, setMarcando] = useState(false);
 
   const IconComponent = tipoIcons[notif.tipo] || tipoIcons.default;
-  const colorClass = tipoColors[notif.tipo] || tipoColors.default;
+  const colors = tipoColors[notif.tipo] || tipoColors.default;
   const requiereRespuesta = TIPOS_REQUIEREN_RESPUESTA.includes(notif.tipo);
 
-  // Auto-marcar como leida despues de 2 minutos
   useEffect(() => {
     if (!notif.leido) {
       const timer = setTimeout(() => {
         handleMarcarLeida();
-      }, 120000); // 2 minutos
+      }, 120000);
       return () => clearTimeout(timer);
     }
   }, [notif.id, notif.leido]);
@@ -139,117 +142,121 @@ function NotificacionDetailModal({ notif, onClose, onMarcarLeida }) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{
-        backgroundColor: "rgba(15, 23, 42, 0.4)",
-        backdropFilter: "blur(4px)",
-        WebkitBackdropFilter: "blur(4px)",
-      }}
-      onClick={onClose}
-    >
-      <div
-        className="relative w-full max-w-lg rounded-2xl border border-[var(--border)] overflow-hidden bg-[var(--card)] shadow-elevated"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-[var(--border)]">
-          <div className="flex items-center gap-4">
-            <div className={`p-3 rounded-xl ${colorClass}`}>
-              <IconComponent className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-[var(--fg)]">
-                  {t("centro_notificacion", "Notificacion")}
-                </span>
-                {!notif.leido && (
-                  <span className="w-2 h-2 bg-blue-500 rounded-full" />
-                )}
-              </div>
-              <p className="text-xs text-[var(--fg-muted)] mt-1">
-                {formatDateTime(notif.created_at)}
-              </p>
-            </div>
-          </div>
-
-          <Button
-            onClick={onClose}
-            variant="icon"
-            size="icon-md"
+    <Dialog open={true} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Box
+            sx={{
+              p: 1.5,
+              borderRadius: 2,
+              bgcolor: colors.bg,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
+            <IconComponent style={{ width: 24, height: 24, color: colors.color }} />
+          </Box>
+          <Box sx={{ flex: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>
+                {t("centro_notificacion", "Notificacion")}
+              </Typography>
+              {!notif.leido && (
+                <Box sx={{ width: 8, height: 8, bgcolor: "var(--primary)", borderRadius: "50%" }} />
+              )}
+            </Box>
+            <Typography variant="caption" sx={{ color: "var(--fg-muted)" }}>
+              {formatDateTime(notif.created_at)}
+            </Typography>
+          </Box>
+          <IconButton onClick={onClose} size="small">
+            <X style={{ width: 20, height: 20, color: "var(--fg-muted)" }} />
+          </IconButton>
+        </Box>
+      </DialogTitle>
 
-        {/* Advertencia si requiere respuesta */}
+      <DialogContent dividers>
         {requiereRespuesta && (
-          <div className="mx-6 mt-4 p-3 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                {t("centro_requiere_respuesta", "Esta notificacion requiere tu respuesta")}
-              </p>
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                {notif.tipo === "stock_consulta"
-                  ? t("centro_responder_consulta", "Hay una consulta de stock pendiente")
-                  : t("centro_responder_mensaje", "Tienes un mensaje sin responder")}
-              </p>
-            </div>
-          </div>
+          <Alert
+            severity="warning"
+            icon={<AlertTriangle style={{ width: 20, height: 20 }} />}
+            sx={{ mb: 2, borderRadius: 2 }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {t("centro_requiere_respuesta", "Esta notificacion requiere tu respuesta")}
+            </Typography>
+            <Typography variant="caption" sx={{ color: "var(--fg-muted)" }}>
+              {notif.tipo === "stock_consulta"
+                ? t("centro_responder_consulta", "Hay una consulta de stock pendiente")
+                : t("centro_responder_mensaje", "Tienes un mensaje sin responder")}
+            </Typography>
+          </Alert>
         )}
 
-        {/* Content */}
-        <div className="p-6">
-          <p className="text-[var(--fg)] leading-relaxed">{notif.mensaje}</p>
+        <Typography variant="body1" sx={{ color: "var(--fg-strong)", lineHeight: 1.6 }}>
+          {notif.mensaje}
+        </Typography>
 
-          {notif.solicitud_id && (
-            <div className="mt-4 p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
-              <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
-                {t("centro_solicitud_relacionada", "Solicitud relacionada")}:{" "}
-                <span className="font-bold">#{notif.solicitud_id}</span>
-              </p>
-            </div>
-          )}
-        </div>
+        {notif.solicitud_id && (
+          <Paper
+            elevation={0}
+            sx={{
+              mt: 2,
+              p: 2,
+              bgcolor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+              borderRadius: 2,
+            }}
+          >
+            <Typography variant="body2" sx={{ color: "var(--primary)", fontWeight: 500 }}>
+              {t("centro_solicitud_relacionada", "Solicitud relacionada")}:{" "}
+              <strong>#{notif.solicitud_id}</strong>
+            </Typography>
+          </Paper>
+        )}
+      </DialogContent>
 
-        {/* Footer */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-6 border-t border-[var(--border)] bg-[var(--bg-soft)]/50">
-          <div className="flex gap-2">
-            {!notif.leido && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleMarcarLeida}
-                disabled={marcando}
-              >
-                <Check className="w-4 h-4 mr-2" />
-                {marcando
-                  ? t("common_loading", "...")
-                  : t("centro_marcar_leida", "Marcar como leida")}
-              </Button>
-            )}
-            {requiereRespuesta && (
-              <Button size="sm" onClick={handleResponder}>
-                <MessageSquare className="w-4 h-4 mr-2" />
-                {t("centro_responder", "Responder")}
-              </Button>
-            )}
-          </div>
-
-          {notif.solicitud_id && (
-            <Button variant="outline" size="sm" onClick={handleVerSolicitud}>
-              <FileText className="w-4 h-4 mr-2" />
-              {t("centro_ver_solicitud", "Ver Solicitud")}
-            </Button>
-          )}
-        </div>
-      </div>
-    </div>
+      <DialogActions sx={{ p: 2, gap: 1 }}>
+        {!notif.leido && (
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={handleMarcarLeida}
+            disabled={marcando}
+            startIcon={<Check style={{ width: 16, height: 16 }} />}
+            sx={{ color: "var(--fg-muted)", borderColor: "var(--border)" }}
+          >
+            {marcando ? t("common_loading", "...") : t("centro_marcar_leida", "Marcar como leida")}
+          </Button>
+        )}
+        {requiereRespuesta && (
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleResponder}
+            startIcon={<MessageSquare style={{ width: 16, height: 16 }} />}
+            sx={{ bgcolor: "var(--primary)", "&:hover": { bgcolor: "var(--primary-dark)" } }}
+          >
+            {t("centro_responder", "Responder")}
+          </Button>
+        )}
+        {notif.solicitud_id && (
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={handleVerSolicitud}
+            startIcon={<FileText style={{ width: 16, height: 16 }} />}
+            sx={{ color: "var(--primary)", borderColor: "var(--primary)" }}
+          >
+            {t("centro_ver_solicitud", "Ver Solicitud")}
+          </Button>
+        )}
+      </DialogActions>
+    </Dialog>
   );
 }
 
-// Componente principal
 export default function NotificacionesInline({ onUpdate }) {
   const { t } = useI18n();
   const [notificaciones, setNotificaciones] = useState([]);
@@ -303,131 +310,203 @@ export default function NotificacionesInline({ onUpdate }) {
   const unreadCount = notificaciones.filter((n) => !n.leido).length;
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <h3 className="text-lg font-semibold">
-              {t("centro_notificaciones_recientes", "Notificaciones Recientes")}
-            </h3>
-            {unreadCount > 0 && (
-              <Badge variant="danger">{unreadCount} sin leer</Badge>
-            )}
-          </div>
-          <div className="flex gap-2">
-            {unreadCount > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleMarcarTodasLeidas}
-                disabled={marcandoTodas}
-              >
-                <CheckCheck className="w-4 h-4 mr-2" />
-                {marcandoTodas
-                  ? t("common_loading", "...")
-                  : t("centro_marcar_todas", "Marcar todas")}
-              </Button>
-            )}
+    <Paper elevation={2}>
+      {/* Header */}
+      <Box
+        sx={{
+          px: 3,
+          py: 2,
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Typography variant="subtitle1" fontWeight={700} sx={{ textTransform: "uppercase" }}>
+            {t("centro_notificaciones_recientes", "Notificaciones Recientes")}
+          </Typography>
+          {unreadCount > 0 && (
+            <Chip
+              label={`${unreadCount} sin leer`}
+              size="small"
+              sx={{
+                height: 22,
+                fontSize: "0.7rem",
+                fontWeight: 600,
+                bgcolor: "color-mix(in srgb, var(--danger) 12%, transparent)",
+                color: "var(--danger)",
+              }}
+            />
+          )}
+        </Box>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          {unreadCount > 0 && (
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={loadNotificaciones}
-              disabled={loading}
+              variant="outlined"
+              size="small"
+              onClick={handleMarcarTodasLeidas}
+              disabled={marcandoTodas}
+              startIcon={<CheckCheck style={{ width: 16, height: 16 }} />}
+              sx={{ color: "var(--fg-muted)", borderColor: "var(--border)", textTransform: "none" }}
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              {marcandoTodas ? t("common_loading", "...") : t("centro_marcar_todas", "Marcar todas")}
             </Button>
-          </div>
-        </div>
+          )}
+          <IconButton
+            onClick={loadNotificaciones}
+            disabled={loading}
+            size="small"
+            sx={{ border: "1px solid var(--border)", borderRadius: 1 }}
+          >
+            <RefreshCw
+              style={{
+                width: 16,
+                height: 16,
+                color: "var(--fg-muted)",
+                animation: loading ? "spin 1s linear infinite" : "none",
+              }}
+            />
+          </IconButton>
+        </Box>
+      </Box>
 
-        {/* Error */}
+      {/* Content */}
+      <Box sx={{ p: 3 }}>
         {error && (
-          <div className="mb-4 p-3 bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg text-sm border border-red-500/20">
+          <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
             {error}
-          </div>
+          </Alert>
         )}
 
-        {/* Lista */}
         {loading ? (
-          <div className="flex justify-center py-8">
-            <RefreshCw className="w-6 h-6 animate-spin text-[var(--fg-muted)]" />
-          </div>
+          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+            <CircularProgress size={32} sx={{ color: "var(--primary)" }} />
+          </Box>
         ) : notificaciones.length === 0 ? (
-          <div className="text-center py-8 text-[var(--fg-muted)]">
-            <Bell className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>{t("centro_sin_notificaciones", "No tienes notificaciones")}</p>
-          </div>
+          <Box sx={{ textAlign: "center", py: 4 }}>
+            <Bell style={{ width: 48, height: 48, color: "var(--border)", margin: "0 auto 12px" }} />
+            <Typography variant="body2" sx={{ color: "var(--fg-muted)" }}>
+              {t("centro_sin_notificaciones", "No tienes notificaciones")}
+            </Typography>
+          </Box>
         ) : (
-          <div className="space-y-2 max-h-[400px] overflow-y-auto">
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1, maxHeight: 400, overflowY: "auto" }}>
             {notificaciones.map((notif) => {
               const IconComponent = tipoIcons[notif.tipo] || tipoIcons.default;
-              const colorClass = tipoColors[notif.tipo] || tipoColors.default;
+              const colors = tipoColors[notif.tipo] || tipoColors.default;
               const requiereRespuesta = TIPOS_REQUIEREN_RESPUESTA.includes(notif.tipo);
 
               return (
-                <div
+                <Paper
                   key={notif.id}
+                  elevation={0}
                   onClick={() => setSelectedNotif(notif)}
-                  className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all
-                    border border-transparent hover:border-[var(--border)] hover:shadow-sm
-                    ${notif.leido ? "bg-[var(--card)]" : "bg-blue-100/50 dark:bg-blue-900/20"}`}
+                  sx={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 2,
+                    p: 2,
+                    borderRadius: 2,
+                    cursor: "pointer",
+                    border: "1px solid transparent",
+                    bgcolor: notif.leido ? "transparent" : "color-mix(in srgb, var(--primary) 5%, transparent)",
+                    transition: "all 0.15s ease",
+                    "&:hover": {
+                      bgcolor: "var(--bg-soft)",
+                      borderColor: "var(--border)",
+                    },
+                  }}
                 >
-                  <div className={`p-2 rounded-lg ${colorClass}`}>
-                    <IconComponent className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <p
-                        className={`text-sm line-clamp-2 ${
-                          notif.leido ? "text-[var(--fg-muted)]" : "text-[var(--fg)] font-medium"
-                        }`}
+                  <Box
+                    sx={{
+                      p: 1,
+                      borderRadius: 1.5,
+                      bgcolor: colors.bg,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <IconComponent style={{ width: 16, height: 16, color: colors.color }} />
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: notif.leido ? "var(--fg-muted)" : "var(--fg-strong)",
+                          fontWeight: notif.leido ? 400 : 500,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                        }}
                       >
                         {notif.mensaje}
-                      </p>
+                      </Typography>
                       {!notif.leido && (
-                        <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5" />
+                        <Box sx={{ width: 8, height: 8, bgcolor: "var(--primary)", borderRadius: "50%", flexShrink: 0, mt: 0.5 }} />
                       )}
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-[var(--fg-muted)]">
+                    </Box>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5, flexWrap: "wrap" }}>
+                      <Typography variant="caption" sx={{ color: "var(--fg-muted)" }}>
                         {formatTimeAgo(notif.created_at)}
-                      </span>
+                      </Typography>
                       {notif.solicitud_id && (
-                        <span className="text-xs text-[var(--primary)]">
-                          #{notif.solicitud_id}
-                        </span>
+                        <Chip
+                          label={`#${notif.solicitud_id}`}
+                          size="small"
+                          sx={{
+                            height: 18,
+                            fontSize: "0.65rem",
+                            fontWeight: 600,
+                            bgcolor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                            color: "var(--primary)",
+                          }}
+                        />
                       )}
                       {requiereRespuesta && (
-                        <Badge variant="warning" className="text-xs py-0">
-                          {t("centro_requiere_accion", "Requiere accion")}
-                        </Badge>
+                        <Chip
+                          label={t("centro_requiere_accion", "Requiere accion")}
+                          size="small"
+                          sx={{
+                            height: 18,
+                            fontSize: "0.65rem",
+                            fontWeight: 600,
+                            bgcolor: "rgba(245, 158, 11, 0.12)",
+                            color: "var(--warning)",
+                          }}
+                        />
                       )}
-                    </div>
-                  </div>
-                </div>
+                    </Box>
+                  </Box>
+                </Paper>
               );
             })}
-          </div>
+          </Box>
         )}
+      </Box>
 
-        {/* Modal de detalle - diferente según tipo */}
-        {selectedNotif && isProfileRequestNotif(selectedNotif) ? (
-          <ProfileRequestActionModal
-            notif={selectedNotif}
-            onClose={() => setSelectedNotif(null)}
-            onAction={() => {
-              handleMarcarLeida(selectedNotif.id);
-              loadNotificaciones();
-            }}
-          />
-        ) : selectedNotif ? (
-          <NotificacionDetailModal
-            notif={selectedNotif}
-            onClose={() => setSelectedNotif(null)}
-            onMarcarLeida={handleMarcarLeida}
-          />
-        ) : null}
-      </CardContent>
-    </Card>
+      {/* Modals */}
+      {selectedNotif && isProfileRequestNotif(selectedNotif) ? (
+        <ProfileRequestActionModal
+          notif={selectedNotif}
+          onClose={() => setSelectedNotif(null)}
+          onAction={() => {
+            handleMarcarLeida(selectedNotif.id);
+            loadNotificaciones();
+          }}
+        />
+      ) : selectedNotif ? (
+        <NotificacionDetailModal
+          notif={selectedNotif}
+          onClose={() => setSelectedNotif(null)}
+          onMarcarLeida={handleMarcarLeida}
+        />
+      ) : null}
+    </Paper>
   );
 }

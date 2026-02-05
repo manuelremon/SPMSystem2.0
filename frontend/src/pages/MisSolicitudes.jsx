@@ -1,76 +1,381 @@
+/**
+ * MisSolicitudes - Lista de solicitudes del usuario
+ * Material UI Implementation
+ */
+
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import clsx from "clsx";
 import { solicitudes } from "../services/spm";
 import api from "../services/api";
 import { useAuthStore } from "../store/authStore";
 import { useDebounced } from "../hooks/useDebounced";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
-import { Select } from "../components/ui/Select";
-import { Button } from "../components/ui/Button";
-import { Input } from "../components/ui/Input";
-import { SearchInput } from "../components/ui/SearchInput";
-import { PageHeader } from "../components/ui/PageHeader";
-import { Alert } from "../components/ui/Alert";
-import { ModernDataTable as DataTable } from "../components/features/DataTable";
-import { withSpmAlignments } from "../utils/tableAlignments";
-import { Pagination } from "../components/ui/Pagination";
-import { EmptyState } from "../components/ui/EmptyState";
-import { ConfirmModal } from "../components/ui/ConfirmModal";
-import { Modal } from "../components/ui/Modal";
-import StatusBadge from "../components/ui/StatusBadge";
-import { Tabs, TabsList, TabsTrigger } from "../components/ui/Tabs";
-import { TableSkeleton } from "../components/ui/Skeleton";
-import { ScrollReveal } from "../components/ui/ScrollReveal";
 import { useI18n } from "../context/i18n";
-import { formatDate, formatDateTime, formatCurrency, exportToExcel, getSectorNombre, formatAlmacen } from "../utils/formatters";
-import { ExportButton } from "../components/export/ExportButton";
-import exportService from "../services/export";
+import { formatDate, formatCurrency, getSectorNombre, formatAlmacen } from "../utils/formatters";
 import { getCriticidadConfig } from "../utils/styleConfig";
-import { InfoTooltip } from "../components/ui/Tooltip";
+import StatusBadge from "../components/ui/StatusBadge";
+import { SPMAgGrid } from "../components/ui/SPMAgGrid";
+
+// MUI Components
 import {
-  FileSpreadsheet,
-  FilePlus2,
-  Trash2,
-  Edit3,
-  Eye,
-  FileText,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Search,
-  Inbox,
-  HelpCircle,
-  RefreshCw,
-  Calendar,
-  Building2,
-  MapPin,
-  Package,
-  DollarSign,
-  AlertTriangle,
-  User,
-  Hash,
-  ICON_COLORS,
-} from "../components/ui/Icons";
+  Box,
+  Paper,
+  Typography,
+  Button,
+  IconButton,
+  Alert,
+  Tabs,
+  Tab,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TableFooter,
+  Stack,
+  Divider,
+} from "@mui/material";
+
+// MUI Icons
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import CloseIcon from "@mui/icons-material/Close";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import BusinessIcon from "@mui/icons-material/Business";
+import PlaceIcon from "@mui/icons-material/Place";
+import WarehouseIcon from "@mui/icons-material/Warehouse";
+import TagIcon from "@mui/icons-material/Tag";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import AddIcon from "@mui/icons-material/Add";
 
 const DEBOUNCE_MS = 300;
-const PAGE_SIZE = 20;
 
-// Componente helper para mostrar filas de detalle
-function DetailRow({ icon: Icon, label, value }) {
+/* -------------------------------------------------------------
+   Delete Modal
+------------------------------------------------------------- */
+function DeleteModal({ open, onClose, onConfirm, deleting, t }) {
   return (
-    <div className="flex items-center gap-3">
-      <div className="h-8 w-8 rounded-lg bg-white/50 dark:bg-slate-800/50 border border-white/30 dark:border-slate-700/30 grid place-items-center flex-shrink-0">
-        <Icon className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
-        <p className="text-sm text-slate-800 dark:text-slate-200">{value || "-"}</p>
-      </div>
-    </div>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="xs"
+      fullWidth
+      PaperProps={{
+        sx: { borderRadius: 2 }
+      }}
+    >
+      <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1 }}>
+        <Box
+          sx={{
+            p: 1,
+            borderRadius: "50%",
+            bgcolor: "error.lighter",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <DeleteIcon sx={{ fontSize: 20, color: "error.main" }} />
+        </Box>
+        <Typography variant="subtitle1" fontWeight={600} color="text.primary">
+          {t("mis_delete_title", "Eliminar solicitud")}
+        </Typography>
+      </DialogTitle>
+
+      <DialogContent>
+        <Typography variant="body2" color="text.secondary">
+          {t("mis_delete_desc", "Esta seguro de eliminar esta solicitud? Esta accion no se puede deshacer.")}
+        </Typography>
+      </DialogContent>
+
+      <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50" }}>
+        <Button
+          onClick={onClose}
+          variant="outlined"
+          size="small"
+          sx={{ textTransform: "none" }}
+        >
+          {t("common_cancel", "Cancelar")}
+        </Button>
+        <Button
+          onClick={onConfirm}
+          disabled={deleting}
+          variant="contained"
+          color="error"
+          size="small"
+          sx={{ textTransform: "none" }}
+        >
+          {deleting ? "Eliminando..." : t("mis_delete_confirm", "Eliminar")}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
+/* -------------------------------------------------------------
+   Detail Modal
+------------------------------------------------------------- */
+function DetalleModal({ open, solicitud, sectores, onClose, onViewFull, t }) {
+  if (!solicitud) return null;
+
+  const criticidadConfig = getCriticidadConfig(solicitud.criticidad || "Normal");
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: { borderRadius: 2, maxHeight: "90vh" }
+      }}
+    >
+      <DialogTitle
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: 1,
+          borderColor: "divider",
+        }}
+      >
+        <Typography variant="subtitle1" fontWeight={600} color="text.primary">
+          Solicitud #{solicitud.id}
+        </Typography>
+        <IconButton
+          onClick={onClose}
+          size="small"
+          sx={{ color: "text.secondary" }}
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
+
+      <DialogContent sx={{ py: 3 }}>
+        <Stack spacing={3}>
+          {/* Estado y Criticidad */}
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <StatusBadge
+              estado={solicitud.estado || solicitud.status}
+              tooltipInfo={{
+                aprobador: [solicitud.aprobador_nombre, solicitud.aprobador_apellido].filter(Boolean).join(" ") || null,
+                planificador: [solicitud.planner_nombre, solicitud.planner_apellido].filter(Boolean).join(" ") || null,
+                fechaEnvio: solicitud.created_at,
+              }}
+            />
+            {solicitud.criticidad && (
+              <Chip
+                label={criticidadConfig.label}
+                size="small"
+                sx={{
+                  color: criticidadConfig.color,
+                  bgcolor: criticidadConfig.bg,
+                  fontWeight: 600,
+                  fontSize: "0.75rem",
+                }}
+              />
+            )}
+          </Box>
+
+          {/* Info y Ubicacion */}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+              gap: 2,
+            }}
+          >
+            {/* Informacion General */}
+            <Paper variant="outlined" sx={{ p: 2 }}>
+              <Typography
+                variant="caption"
+                fontWeight={700}
+                color="text.secondary"
+                sx={{ textTransform: "uppercase", letterSpacing: "0.05em", mb: 1.5, display: "block" }}
+              >
+                Informacion General
+              </Typography>
+              <Stack spacing={1.5}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <TagIcon sx={{ fontSize: 16, color: "text.disabled" }} />
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>ID:</strong> {solicitud.id}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <CalendarTodayIcon sx={{ fontSize: 16, color: "text.disabled" }} />
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Creacion:</strong> {formatDate(solicitud.created_at)}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <AccessTimeIcon sx={{ fontSize: 16, color: "text.disabled" }} />
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Necesidad:</strong> {formatDate(solicitud.fecha_necesidad)}
+                  </Typography>
+                </Box>
+              </Stack>
+            </Paper>
+
+            {/* Ubicacion */}
+            <Paper variant="outlined" sx={{ p: 2 }}>
+              <Typography
+                variant="caption"
+                fontWeight={700}
+                color="text.secondary"
+                sx={{ textTransform: "uppercase", letterSpacing: "0.05em", mb: 1.5, display: "block" }}
+              >
+                Ubicacion
+              </Typography>
+              <Stack spacing={1.5}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <BusinessIcon sx={{ fontSize: 16, color: "text.disabled" }} />
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Centro:</strong> {solicitud.centro || "-"}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <PlaceIcon sx={{ fontSize: 16, color: "text.disabled" }} />
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Sector:</strong> {getSectorNombre(solicitud.sector, sectores)}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <WarehouseIcon sx={{ fontSize: 16, color: "text.disabled" }} />
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Almacen:</strong> {formatAlmacen(solicitud.almacen_virtual) || "-"}
+                  </Typography>
+                </Box>
+              </Stack>
+            </Paper>
+          </Box>
+
+          {/* Justificacion */}
+          {solicitud.justificacion && (
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                borderColor: "info.light",
+                bgcolor: "info.lighter",
+              }}
+            >
+              <Typography
+                variant="caption"
+                fontWeight={700}
+                color="text.secondary"
+                sx={{ textTransform: "uppercase", letterSpacing: "0.05em", mb: 1, display: "block" }}
+              >
+                Justificacion
+              </Typography>
+              <Typography variant="body2" color="text.primary">
+                {solicitud.justificacion}
+              </Typography>
+            </Paper>
+          )}
+
+          {/* Items */}
+          {solicitud.items && solicitud.items.length > 0 && (
+            <Box>
+              <Typography
+                variant="caption"
+                fontWeight={700}
+                color="text.secondary"
+                sx={{ textTransform: "uppercase", letterSpacing: "0.05em", mb: 1.5, display: "block" }}
+              >
+                Materiales ({solicitud.items.length})
+              </Typography>
+              <TableContainer component={Paper} variant="outlined">
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: "grey.50" }}>
+                      <TableCell sx={{ fontWeight: 700, fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        Codigo
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        Descripcion
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        Cant.
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        Precio
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        Subtotal
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {solicitud.items.map((item, idx) => (
+                      <TableRow key={idx} hover>
+                        <TableCell sx={{ fontFamily: "monospace", fontSize: "0.75rem", color: "text.secondary" }}>
+                          {item.codigo || item.codigo_sap}
+                        </TableCell>
+                        <TableCell sx={{ color: "text.primary" }}>
+                          {item.descripcion}
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600, color: "text.primary" }}>
+                          {item.cantidad}
+                        </TableCell>
+                        <TableCell align="right" sx={{ color: "text.secondary" }}>
+                          {formatCurrency(item.precio_unitario || 0)}
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600, color: "text.primary" }}>
+                          {formatCurrency((item.cantidad || 0) * (item.precio_unitario || 0))}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                  <TableFooter>
+                    <TableRow sx={{ bgcolor: "grey.50" }}>
+                      <TableCell colSpan={4} align="right" sx={{ fontWeight: 700, color: "text.primary", borderTop: 1, borderColor: "divider" }}>
+                        Total:
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: "primary.main", borderTop: 1, borderColor: "divider" }}>
+                        {formatCurrency(solicitud.total_monto || 0)}
+                      </TableCell>
+                    </TableRow>
+                  </TableFooter>
+                </Table>
+              </TableContainer>
+            </Box>
+          )}
+        </Stack>
+      </DialogContent>
+
+      <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50", borderTop: 1, borderColor: "divider" }}>
+        <Button
+          onClick={onClose}
+          variant="outlined"
+          size="small"
+          sx={{ textTransform: "none" }}
+        >
+          Cerrar
+        </Button>
+        <Button
+          onClick={onViewFull}
+          variant="contained"
+          size="small"
+          sx={{ textTransform: "none" }}
+        >
+          Ver detalle completo
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+/* -------------------------------------------------------------
+   Main Component
+------------------------------------------------------------- */
 export default function MisSolicitudes() {
   const { user } = useAuthStore();
   const { t } = useI18n();
@@ -84,23 +389,16 @@ export default function MisSolicitudes() {
   const debouncedQ = useDebounced(q, DEBOUNCE_MS);
 
   // Filtros
-  const [centroFilter, setCentroFilter] = useState("");
-  const [activeTab, setActiveTab] = useState("todas");
-  const [fechaDesde, setFechaDesde] = useState("");
-  const [fechaHasta, setFechaHasta] = useState("");
+  const [activeTab, setActiveTab] = useState(0);
 
-  // Paginación
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // Modal de confirmación para eliminar
+  // Modal de confirmacion para eliminar
   const [deleteModal, setDeleteModal] = useState({ open: false, solicitudId: null });
   const [deleting, setDeleting] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
 
   // Modal de detalle de solicitud
   const [detalleModal, setDetalleModal] = useState({ open: false, solicitud: null });
 
-  // Auto-clear success messages with proper cleanup to prevent memory leaks
+  // Auto-clear success messages
   useEffect(() => {
     if (success) {
       const timer = setTimeout(() => setSuccess(""), 3000);
@@ -108,26 +406,26 @@ export default function MisSolicitudes() {
     }
   }, [success]);
 
-  // Cargar sectores desde el backend (endpoint público)
+  // Cargar sectores desde el backend
   useEffect(() => {
     const fetchSectores = async () => {
       try {
-        const res = await api.get('/catalogos/sectores');
+        const res = await api.get("/catalogos/sectores");
         const data = Array.isArray(res.data) ? res.data : [];
         setSectores(data);
       } catch (err) {
-        console.error('Error cargando sectores:', err);
+        console.error("Error cargando sectores:", err);
       }
     };
     fetchSectores();
   }, []);
 
-  // Función para cargar solicitudes (reutilizable)
+  // Funcion para cargar solicitudes
   const fetchSolicitudes = useCallback(async (showLoading = true) => {
     if (!user?.id) return;
     if (showLoading) setLoading(true);
     try {
-      const res = await solicitudes.listar({ user_id: user.id });
+      const res = await solicitudes.listar({ user_id: user.id, page_size: 500 });
       const data = res.data.solicitudes || res.data.results || [];
       setItems(data);
     } catch (err) {
@@ -141,78 +439,51 @@ export default function MisSolicitudes() {
     fetchSolicitudes();
   }, [fetchSolicitudes]);
 
-  // Función de refresh manual
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    setError("");
-    try {
-      const res = await solicitudes.listar({ user_id: user.id });
-      const data = res.data.solicitudes || res.data.results || [];
-      setItems(data);
-      setSuccess(t("mis_refresh_success", "Datos actualizados"));
-    } catch (err) {
-      setError(err.response?.data?.error?.message || err.message);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [user, t]);
+  // Mapeo de tabs a estados
+  const tabFilters = [
+    { label: "Todas", key: "todas", filter: () => true },
+    { label: "Borradores", key: "borradores", filter: (e) => e === "draft" || e === "borrador" },
+    { label: "Enviadas", key: "enviadas", filter: (e) => e === "submitted" || e === "enviada" },
+    { label: "Aprobadas", key: "aprobadas", filter: (e) => ["approved", "aprobada", "in_planning", "in_treatment", "treated"].includes(e) },
+    { label: "Rechazadas", key: "rechazadas", filter: (e) => e === "rejected" || e === "rechazada" || e === "cancelled" },
+    { label: "Cerradas", key: "cerradas", filter: (e) => e === "closed" || e === "completed" },
+  ];
 
-  // Filtrado avanzado
+  // Calcular estadisticas
+  const stats = useMemo(() => {
+    return tabFilters.map((tab) => {
+      if (tab.key === "todas") return items.length;
+      return items.filter((s) => tab.filter((s.estado || s.status || "").toLowerCase())).length;
+    });
+  }, [items]);
+
+  // Filtrado
   const filtered = useMemo(() => {
     let result = items;
 
     // Filtro por tab activo
-    if (activeTab !== "todas") {
+    const currentTab = tabFilters[activeTab];
+    if (currentTab && currentTab.key !== "todas") {
       result = result.filter((s) => {
         const estado = (s.estado || s.status || "").toLowerCase();
-        if (activeTab === "borradores") return estado === "borrador";
-        if (activeTab === "enviadas") return estado === "enviada" || estado === "pendiente_de_aprobacion";
-        if (activeTab === "aprobadas") return estado === "aprobada";
-        if (activeTab === "rechazadas") return estado === "rechazada" || estado === "eliminada";
-        return true;
+        return currentTab.filter(estado);
       });
     }
 
-    // Filtro de búsqueda
+    // Filtro de busqueda
     const term = debouncedQ.trim().toLowerCase();
     if (term) {
       result = result.filter((s) => {
         return (
           String(s.id).includes(term) ||
-          (s.asunto || "").toLowerCase().includes(term) ||
           (s.justificacion || "").toLowerCase().includes(term) ||
-          (s.descripcion || "").toLowerCase().includes(term) ||
-          (s.estado || s.status || "").toLowerCase().includes(term) ||
           (s.centro || "").toLowerCase().includes(term) ||
           (s.sector || "").toLowerCase().includes(term)
         );
       });
     }
 
-    // Filtro por centro
-    if (centroFilter) {
-      result = result.filter((s) => (s.centro || s.centro_id || "") === centroFilter);
-    }
-
-    // Filtro por rango de fechas
-    if (fechaDesde) {
-      const desde = new Date(fechaDesde);
-      desde.setHours(0, 0, 0, 0);
-      result = result.filter((s) => {
-        const fecha = new Date(s.fecha_creacion || s.created_at);
-        return fecha >= desde;
-      });
-    }
-    if (fechaHasta) {
-      const hasta = new Date(fechaHasta);
-      hasta.setHours(23, 59, 59, 999);
-      result = result.filter((s) => {
-        const fecha = new Date(s.fecha_creacion || s.created_at);
-        return fecha <= hasta;
-      });
-    }
-
-    // Ordenar por fecha de creación descendente (más recientes primero)
+    // Ordenar por fecha descendente
     result.sort((a, b) => {
       const fechaA = new Date(a.fecha_creacion || a.created_at || 0).getTime();
       const fechaB = new Date(b.fecha_creacion || b.created_at || 0).getTime();
@@ -220,49 +491,9 @@ export default function MisSolicitudes() {
     });
 
     return result;
-  }, [items, debouncedQ, centroFilter, activeTab, fechaDesde, fechaHasta]);
+  }, [items, debouncedQ, activeTab]);
 
-  // Paginación
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paginatedItems = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return filtered.slice(start, start + PAGE_SIZE);
-  }, [filtered, currentPage]);
-
-  // Reset página cuando cambian filtros
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedQ, centroFilter, activeTab, fechaDesde, fechaHasta]);
-
-  // Obtener centros únicos
-  const centrosUnicos = useMemo(() => {
-    const centros = new Set(items.map((s) => s.centro || s.centro_id).filter(Boolean));
-    return Array.from(centros).sort();
-  }, [items]);
-
-  // Calcular estadísticas
-  const stats = useMemo(() => {
-    const total = items.length;
-    const borradores = items.filter(s => (s.estado || s.status || "").toLowerCase() === "borrador").length;
-    const enviadas = items.filter(s => {
-      const estado = (s.estado || s.status || "").toLowerCase();
-      return estado === "enviada" || estado === "pendiente_de_aprobacion";
-    }).length;
-    const aprobadas = items.filter(s => (s.estado || s.status || "").toLowerCase() === "aprobada").length;
-    const rechazadas = items.filter(s => {
-      const estado = (s.estado || s.status || "").toLowerCase();
-      return estado === "rechazada" || estado === "eliminada";
-    }).length;
-
-    return { total, borradores, enviadas, aprobadas, rechazadas };
-  }, [items]);
-
-  // Abrir modal de confirmación para eliminar
-  const openDeleteModal = useCallback((id) => {
-    setDeleteModal({ open: true, solicitudId: id });
-  }, []);
-
-  // Eliminar solicitud (solo borradores)
+  // Eliminar solicitud
   const handleEliminar = useCallback(async () => {
     const id = deleteModal.solicitudId;
     if (!id) return;
@@ -280,703 +511,342 @@ export default function MisSolicitudes() {
     }
   }, [deleteModal.solicitudId, t]);
 
-  // Exportar
-  const handleExport = useCallback(() => {
-    const dataToExport = filtered.map((s) => ({
-      ID: s.id,
-      Justificacion: s.justificacion || s.asunto || "",
-      Centro: s.centro || s.centro_id || "",
-      Sector: getSectorNombre(s.sector || s.sector_id, sectores),
-      Criticidad: s.criticidad || "Normal",
-      Monto: s.total_monto || 0,
-      Estado: s.estado || s.status || "",
-      Planificador: `${s.planner_nombre || ""} ${s.planner_apellido || ""}`.trim() || "-",
-      Fecha: formatDate(s.fecha_creacion || s.created_at),
-    }));
-    exportToExcel(dataToExport, `mis-solicitudes-${new Date().toISOString().split("T")[0]}.xls`);
-    setSuccess(t("mis_export_success", "Datos exportados correctamente"));
-  }, [filtered, sectores, t]);
-
-  // Columnas de la tabla (memoizadas para evitar re-renders, con alineación SPM automática)
-  const columns = useMemo(() => withSpmAlignments([
-    {
-      key: "id",
-      header: "ID",
-      sortAccessor: (row) => Number(row.id) || 0,
-      render: (row) => <span className="font-semibold text-slate-700">{row.id}</span>,
-    },
-    {
-      key: "fecha_creacion",
-      header: t("mis_col_fecha", "Fecha"),
-      sortAccessor: (row) => new Date(row.fecha_creacion || row.created_at || 0).getTime(),
-      render: (row) => (
-        <span className="text-sm text-slate-500">
-          {formatDate(row.fecha_creacion || row.created_at)}
-        </span>
-      ),
-    },
-    {
-      key: "justificacion",
-      header: t("mis_col_justificacion", "Justificación"),
-      sortAccessor: (row) => (row.justificacion || row.asunto || "").toLowerCase(),
-      render: (row) => {
-        const texto = row.justificacion || row.asunto || "-";
-        const MAX_CHARS = 15;
-        const truncado = texto.length > MAX_CHARS;
-        const textoVisible = truncado ? texto.slice(0, MAX_CHARS) + "..." : texto;
-
-        if (truncado) {
-          return (
-            <button
-              type="button"
-              onClick={() => setDetalleModal({ open: true, solicitud: row })}
-              className="text-left text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
-              title={t("mis_click_ver_completo", "Click para ver completo")}
-            >
-              {textoVisible}
-            </button>
-          );
-        }
-
-        return <span>{textoVisible}</span>;
+  // Columnas del DataGrid - AG Grid format
+  const columnDefs = useMemo(
+    () => [
+      {
+        field: "id",
+        headerName: "ID",
+        flex: 0.4,
+        minWidth: 60,
       },
-    },
-    {
-      key: "centro",
-      header: t("mis_col_centro", "Centro"),
-      sortAccessor: (row) => row.centro || row.centro_id || "",
-      render: (row) => row.centro || row.centro_id || "-",
-    },
-    {
-      key: "almacen",
-      header: t("mis_col_almacen", "Almacén"),
-      sortAccessor: (row) => row.almacen_virtual || row.almacen || "",
-      render: (row) => formatAlmacen(row.almacen_virtual || row.almacen) || "-",
-    },
-    {
-      key: "sector",
-      header: t("mis_col_sector", "Sector"),
-      sortAccessor: (row) => getSectorNombre(row.sector || row.sector_id, sectores),
-      render: (row) => getSectorNombre(row.sector || row.sector_id, sectores),
-    },
-    {
-      key: "criticidad",
-      header: t("mis_col_criticidad", "Criticidad"),
-      sortAccessor: (row) => (row.criticidad || "Normal").toLowerCase(),
-      render: (row) => {
-        const criticidad = row.criticidad || "Normal";
-        const config = getCriticidadConfig(criticidad);
-        const Icon = config.icon;
-        return (
-          <div className="inline-flex items-center gap-1.5">
-            {Icon && (
-              <Icon
-                className="w-4 h-4 flex-shrink-0"
-                style={{ color: config.color }}
-              />
-            )}
-            <span
-              className="text-xs font-semibold tracking-wide uppercase"
-              style={{ color: config.color }}
+      {
+        field: "fecha_creacion",
+        headerName: "Fecha",
+        flex: 0.6,
+        minWidth: 90,
+        valueGetter: (params) => params.data.fecha_creacion || params.data.created_at,
+        cellRenderer: (params) => (
+          <Typography variant="body2" color="text.secondary">
+            {formatDate(params.value)}
+          </Typography>
+        ),
+      },
+      {
+        field: "justificacion",
+        headerName: "Justificacion",
+        flex: 1.5,
+        minWidth: 150,
+        cellRenderer: (params) => {
+          const texto = params.value || "-";
+          const truncado = texto.length > 30;
+          return (
+            <Typography
+              variant="body2"
+              color="text.primary"
+              noWrap
+              title={truncado ? texto : undefined}
+            >
+              {truncado ? texto.slice(0, 30) + "..." : texto}
+            </Typography>
+          );
+        },
+      },
+      {
+        field: "centro",
+        headerName: "Centro",
+        flex: 0.5,
+        minWidth: 70,
+        valueGetter: (params) => params.data.centro || params.data.centro_id || "-",
+      },
+      {
+        field: "almacen_virtual",
+        headerName: "Almacen",
+        flex: 0.5,
+        minWidth: 70,
+        cellRenderer: (params) => formatAlmacen(params.value || params.data.almacen) || "-",
+      },
+      {
+        field: "sector",
+        headerName: "Sector",
+        flex: 0.8,
+        minWidth: 100,
+        valueGetter: (params) => getSectorNombre(params.data.sector || params.data.sector_id, sectores),
+      },
+      {
+        field: "criticidad",
+        headerName: "Criticidad",
+        flex: 0.5,
+        minWidth: 80,
+        cellRenderer: (params) => {
+          const criticidad = params.value || "Normal";
+          const config = getCriticidadConfig(criticidad);
+          return (
+            <Typography
+              variant="body2"
+              fontWeight={600}
+              sx={{ color: config.color }}
             >
               {config.label}
-            </span>
-          </div>
-        );
-      },
-    },
-    {
-      key: "total_monto",
-      header: t("mis_col_monto", "Monto"),
-      sortAccessor: (row) => Number(row.total_monto || 0),
-      render: (row) => {
-        const monto = Number(row.total_monto || 0);
-        return (
-          <span className="font-mono text-sm text-slate-700">
-            {formatCurrency(monto)}
-          </span>
-        );
-      },
-    },
-    {
-      key: "estado",
-      header: t("mis_estado", "Estado"),
-      sortAccessor: (row) => (row.estado || row.status || "").toLowerCase(),
-      render: (row) => {
-        const estado = (row.estado || row.status || "pendiente").toLowerCase();
-        const plannerNombre = row.planner_nombre ? `${row.planner_nombre} ${row.planner_apellido || ""}`.trim() : null;
-        const aprobadorNombre = row.aprobador_nombre ? `${row.aprobador_nombre} ${row.aprobador_apellido || ""}`.trim() : null;
-
-        // Generar información del tooltip según el estado
-        const getTooltipInfo = () => {
-          switch (estado) {
-            case "borrador":
-            case "draft":
-              return {
-                title: t("estado_borrador_title", "Borrador"),
-                lines: [t("estado_borrador_desc", "Solicitud en borrador. Completa los datos y envíala para su aprobación.")]
-              };
-            case "enviada":
-            case "pendiente_de_aprobacion":
-            case "submitted":
-              if (aprobadorNombre) {
-                return {
-                  title: t("estado_enviada_title", "Pendiente de aprobación"),
-                  lines: [
-                    t("estado_enviada_esperando", "Esperando aprobación de:"),
-                    `→ ${aprobadorNombre}`
-                  ]
-                };
-              }
-              return {
-                title: t("estado_enviada_title", "Pendiente de aprobación"),
-                lines: [t("estado_enviada_desc", "Esperando aprobación del coordinador o jefe de área.")]
-              };
-            case "aprobada":
-            case "approved":
-              if (plannerNombre) {
-                return {
-                  title: t("estado_aprobada_title", "Aprobada"),
-                  lines: [
-                    aprobadorNombre ? `${t("estado_aprobada_por", "Aprobada por:")} ${aprobadorNombre}` : null,
-                    t("estado_aprobada_asignada", "Asignada al planificador:"),
-                    `→ ${plannerNombre}`
-                  ].filter(Boolean)
-                };
-              }
-              return {
-                title: t("estado_aprobada_title", "Aprobada"),
-                lines: [
-                  aprobadorNombre ? `${t("estado_aprobada_por", "Aprobada por:")} ${aprobadorNombre}` : null,
-                  t("estado_aprobada_desc", "Pendiente de asignación a planificador.")
-                ].filter(Boolean)
-              };
-            case "rechazada":
-            case "rejected":
-              return {
-                title: t("estado_rechazada_title", "Rechazada"),
-                lines: [
-                  aprobadorNombre ? `${t("estado_rechazada_por", "Rechazada por:")} ${aprobadorNombre}` : null,
-                  t("estado_rechazada_desc", "Revisa los comentarios del aprobador.")
-                ].filter(Boolean)
-              };
-            case "en_tratamiento":
-            case "processing":
-              return {
-                title: t("estado_tratamiento_title", "En tratamiento"),
-                lines: plannerNombre
-                  ? [`${t("estado_tratamiento_por", "Siendo procesada por:")} ${plannerNombre}`]
-                  : [t("estado_tratamiento_desc", "El planificador está procesando la solicitud.")]
-              };
-            case "despachada":
-            case "dispatched":
-              return {
-                title: t("estado_despachada_title", "Despachada"),
-                lines: [t("estado_despachada_desc", "Los materiales han sido despachados.")]
-              };
-            case "cerrada":
-            case "closed":
-              return {
-                title: t("estado_cerrada_title", "Cerrada"),
-                lines: [t("estado_cerrada_desc", "Solicitud completada y cerrada.")]
-              };
-            default:
-              return { title: estado, lines: [] };
-          }
-        };
-
-        const tooltipInfo = getTooltipInfo();
-
-        return (
-          <InfoTooltip title={tooltipInfo.title} lines={tooltipInfo.lines} position="bottom">
-            <StatusBadge estado={estado} disableTooltip />
-          </InfoTooltip>
-        );
-      },
-    },
-    {
-      key: "planificador",
-      header: t("mis_col_planificador", "Planificador"),
-      sortAccessor: (row) => {
-        const nombre = row.planner_nombre || "";
-        const apellido = row.planner_apellido || "";
-        return `${nombre} ${apellido}`.trim().toLowerCase();
-      },
-      render: (row) => {
-        const nombre = row.planner_nombre || "";
-        const apellido = row.planner_apellido || "";
-        const nombreCompleto = `${nombre} ${apellido}`.trim();
-
-        if (!nombreCompleto) {
-          return <span className="text-slate-400">—</span>;
-        }
-
-        return (
-          <span className="text-sm text-slate-700" title={nombreCompleto}>
-            {nombreCompleto}
-          </span>
-        );
-      },
-    },
-    {
-      key: "acciones",
-      header: (
-        <div className="flex items-center gap-1.5">
-          <span>{t("mis_col_accion", "Acciones")}</span>
-          <div className="relative group">
-            <HelpCircle
-              className="w-4 h-4 text-slate-500 cursor-help hover:text-blue-600 transition-colors"
-              aria-label={t("mis_help_title", "Acciones disponibles")}
-              role="img"
-            />
-            <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border border-white/50 dark:border-slate-700/50 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none text-left z-50">
-              <div className="absolute -top-1.5 right-2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-white/90 dark:border-b-slate-800/90"></div>
-              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 mb-2">{t("mis_help_title", "Acciones disponibles:")}</p>
-              <ul className="text-xs text-slate-500 dark:text-slate-400 space-y-1.5">
-                <li className="flex items-start gap-2">
-                  <Edit3 className={`w-3 h-3 mt-0.5 ${ICON_COLORS.warning} flex-shrink-0`} />
-                  <span><strong>{t("mis_help_editar", "Editar")}:</strong> {t("mis_help_editar_desc", "Solo borradores propios")}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Trash2 className={`w-3 h-3 mt-0.5 ${ICON_COLORS.danger} flex-shrink-0`} />
-                  <span><strong>{t("mis_help_eliminar", "Eliminar")}:</strong> {t("mis_help_eliminar_desc", "Solo borradores propios")}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Eye className={`w-3 h-3 mt-0.5 ${ICON_COLORS.info} flex-shrink-0`} />
-                  <span><strong>{t("mis_help_ver", "Ver")}:</strong> {t("mis_help_ver_desc", "Todas tus solicitudes")}</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      ),
-      render: (row) => {
-        const estado = (row.estado || row.status || "").toLowerCase();
-
-        // Acciones contextuales por estado
-        if (estado === "borrador") {
-          return (
-            <div className="flex items-center justify-center gap-1">
-              <Button
-                variant="icon-warning"
-                size="icon-sm"
-                onClick={() => navigate(`/solicitudes/${row.id}/materiales`)}
-                title={t("mis_btn_editar", "Editar")}
-                aria-label={`${t("mis_btn_editar", "Editar")} solicitud ${row.id}`}
-              >
-                <Edit3 className="w-4 h-4" aria-hidden="true" />
-              </Button>
-              <Button
-                variant="icon-danger"
-                size="icon-sm"
-                onClick={() => openDeleteModal(row.id)}
-                title={t("mis_btn_eliminar", "Eliminar")}
-                aria-label={`${t("mis_btn_eliminar", "Eliminar")} solicitud ${row.id}`}
-              >
-                <Trash2 className="w-4 h-4" aria-hidden="true" />
-              </Button>
-            </div>
+            </Typography>
           );
-        }
-
-        return (
-          <div className="flex items-center justify-center">
-            <Button
-              variant="icon-primary"
-              size="icon-sm"
-              onClick={() => setDetalleModal({ open: true, solicitud: row })}
-              title={t("mis_btn_ver", "Ver")}
-              aria-label={`${t("mis_btn_ver", "Ver")} solicitud ${row.id}`}
-            >
-              <Eye className="w-4 h-4" aria-hidden="true" />
-            </Button>
-          </div>
-        );
+        },
       },
-    },
-  ]), [t, navigate, sectores, openDeleteModal, setDetalleModal]);
+      {
+        field: "total_monto",
+        headerName: "Monto",
+        flex: 0.7,
+        minWidth: 100,
+        cellStyle: { textAlign: 'right', paddingRight: '16px' },
+        cellRenderer: (params) => (
+          <Typography variant="body2" sx={{ fontFamily: "monospace", color: "text.primary" }}>
+            {formatCurrency(params.value || 0)}
+          </Typography>
+        ),
+      },
+      {
+        field: "status",
+        headerName: "Estado",
+        flex: 0.7,
+        minWidth: 100,
+        valueGetter: (params) => params.data.estado || params.data.status || "pendiente",
+        cellRenderer: (params) => {
+          const data = params.data;
+          const aprobador = [data.aprobador_nombre, data.aprobador_apellido].filter(Boolean).join(" ") || null;
+          const planner = [data.planner_nombre, data.planner_apellido].filter(Boolean).join(" ") || null;
+          return (
+            <StatusBadge
+              estado={params.value}
+              showIcon={false}
+              tooltipInfo={{
+                aprobador,
+                planificador: planner,
+                fechaEnvio: data.created_at,
+              }}
+            />
+          );
+        },
+      },
+      {
+        field: "planner_nombre",
+        headerName: "Planificador",
+        flex: 0.8,
+        minWidth: 120,
+        valueGetter: (params) => {
+          const nombre = params.data.planner_nombre || "";
+          const apellido = params.data.planner_apellido || "";
+          return `${nombre} ${apellido}`.trim() || "-";
+        },
+      },
+      {
+        field: "acciones",
+        headerName: "Acciones",
+        flex: 1,
+        minWidth: 180,
+        sortable: false,
+        filter: false,
+        cellRenderer: (params) => {
+          const estado = (params.data.estado || params.data.status || "").toLowerCase();
+          const esBorrador = estado === "draft" || estado === "borrador";
+
+          return (
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              {esBorrador ? (
+                <>
+                  <Button
+                    size="small"
+                    variant="text"
+                    onClick={() => navigate(`/solicitudes/${params.data.id}/materiales`)}
+                    sx={{
+                      minWidth: "auto",
+                      px: 1,
+                      py: 0.25,
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      color: "warning.dark",
+                      "&:hover": { bgcolor: "warning.lighter" },
+                    }}
+                  >
+                    Editar
+                  </Button>
+                  <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
+                  <Button
+                    size="small"
+                    variant="text"
+                    onClick={() => setDeleteModal({ open: true, solicitudId: params.data.id })}
+                    sx={{
+                      minWidth: "auto",
+                      px: 1,
+                      py: 0.25,
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      color: "error.main",
+                      "&:hover": { bgcolor: "error.lighter" },
+                    }}
+                  >
+                    Borrar
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() => setDetalleModal({ open: true, solicitud: params.data })}
+                  sx={{
+                    minWidth: "auto",
+                    px: 1,
+                    py: 0.25,
+                    fontSize: "0.75rem",
+                    fontWeight: 600,
+                    color: "primary.main",
+                    "&:hover": { bgcolor: "primary.lighter" },
+                  }}
+                >
+                  Ver
+                </Button>
+              )}
+            </Stack>
+          );
+        },
+      },
+    ],
+    [navigate, sectores]
+  );
+
+  // Rows para DataGrid
+  const rows = useMemo(() => filtered.map((item) => ({ ...item, id: item.id })), [filtered]);
 
   return (
-    <div className="space-y-6">
-      {/* Encabezado de página */}
-      <ScrollReveal>
-        <PageHeader
-          title={t("mis_page_title", "MIS SOLICITUDES")}
-          actions={
-            <div className="flex items-center gap-2">
-              <ExportButton
-                onExport={(formato) => exportService.exportSolicitudes({ formato })}
-                label={t("common_export", "Exportar")}
-              />
-              <Button
-                variant="ghost"
-                onClick={handleRefresh}
-                disabled={refreshing || loading}
-                className="flex items-center gap-2"
-                title={t("mis_btn_refresh", "Actualizar")}
-                aria-label={t("mis_btn_refresh", "Actualizar datos")}
-              >
-                <RefreshCw className={`w-4 h-4 text-slate-600 ${refreshing ? 'animate-spin' : ''}`} />
-              </Button>
-              <Button
-                onClick={() => navigate("/solicitudes/nueva")}
-                className="flex items-center gap-2"
-              >
-                <FilePlus2 className="w-4 h-4" />
-                {t("nav_nueva", "Nueva Solicitud")}
-              </Button>
-            </div>
-          }
-        />
-      </ScrollReveal>
-
-      {/* Mensajes */}
-      {error && <Alert variant="danger" onDismiss={() => setError("")}>{error}</Alert>}
-      {success && <Alert variant="success" onDismiss={() => setSuccess("")}>{success}</Alert>}
-
-      {/* Tabs de filtro por estado */}
-      <ScrollReveal delay={100}>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full flex flex-wrap gap-1">
-            <TabsTrigger value="todas" className="flex items-center gap-2">
-              <FileText className={`w-4 h-4 ${ICON_COLORS.info}`} />
-              <span>{t("mis_stats_total", "Todas")}</span>
-              <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-[var(--bg-soft)] text-[var(--fg-muted)]">
-                {stats.total}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger value="borradores" className="flex items-center gap-2">
-              <Edit3 className={`w-4 h-4 ${ICON_COLORS.primary}`} />
-              <span>{t("mis_stats_borradores", "Borradores")}</span>
-              {stats.borradores > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-[var(--bg-soft)] text-[var(--fg-muted)]">
-                  {stats.borradores}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="enviadas" className="flex items-center gap-2">
-              <Clock className={`w-4 h-4 ${ICON_COLORS.time}`} />
-              <span>{t("mis_stats_enviadas", "Enviadas")}</span>
-              {stats.enviadas > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-[var(--bg-soft)] text-[var(--fg-muted)]">
-                  {stats.enviadas}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="aprobadas" className="flex items-center gap-2">
-              <CheckCircle2 className={`w-4 h-4 ${ICON_COLORS.success}`} />
-              <span>{t("mis_stats_aprobadas", "Aprobadas")}</span>
-              {stats.aprobadas > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-[var(--bg-soft)] text-[var(--fg-muted)]">
-                  {stats.aprobadas}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="rechazadas" className="flex items-center gap-2">
-              <XCircle className={`w-4 h-4 ${ICON_COLORS.danger}`} />
-              <span>{t("mis_stats_rechazadas", "Rechazadas")}</span>
-              {stats.rechazadas > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-[var(--bg-soft)] text-[var(--fg-muted)]">
-                  {stats.rechazadas}
-                </span>
-              )}
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </ScrollReveal>
-
-
-      {/* Card principal */}
-      <ScrollReveal delay={200}>
-      <Card className="transition-all duration-200">
-        <CardHeader className="px-6 pt-5 pb-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>{t("mis_table_title", "Listado de Solicitudes")}</CardTitle>
-              <p className="text-sm text-slate-500 mt-1">
-                {filtered.length} {filtered.length === 1 ? t("mis_solicitud", "solicitud") : t("mis_solicitudes", "solicitudes")}
-                {activeTab !== "todas" && ` - ${t(`mis_tab_${activeTab}`, activeTab)}`}
-              </p>
-            </div>
-            <Button
-              variant="secondary"
-              className="flex items-center gap-2"
-              onClick={handleExport}
-              disabled={filtered.length === 0}
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        {/* Header */}
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <IconButton
+              onClick={() => navigate(-1)}
+              sx={{
+                color: "text.disabled",
+                "&:hover": {
+                  color: "text.secondary",
+                  bgcolor: "background.paper",
+                  border: 1,
+                  borderColor: "divider",
+                },
+              }}
             >
-              <FileSpreadsheet className={`w-4 h-4 ${ICON_COLORS.success}`} />
-              {t("mis_btn_export", "Exportar XLS")}
-            </Button>
-          </div>
-        </CardHeader>
-
-        <CardContent className="px-6 pb-6 pt-1 space-y-4">
-          {/* Filtros y búsqueda - Una sola fila */}
-          <div className="flex flex-col md:flex-row gap-3 items-end">
-            {/* Búsqueda */}
-            <SearchInput
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder={t("mis_search", "Buscar por ID, asunto, centro, sector...")}
-              className="flex-1"
-            />
-
-            {/* Fecha Desde */}
-            <div className="flex-shrink-0">
-              <label htmlFor="fecha-desde" className="block text-xs font-medium text-slate-500 mb-1">
-                {t("mis_filter_desde", "Desde")}
-              </label>
-              <Input
-                id="fecha-desde"
-                type="date"
-                value={fechaDesde}
-                onChange={(e) => setFechaDesde(e.target.value)}
-                aria-label={t("mis_filter_desde", "Desde")}
-                className="w-36"
-              />
-            </div>
-
-            {/* Fecha Hasta */}
-            <div className="flex-shrink-0">
-              <label htmlFor="fecha-hasta" className="block text-xs font-medium text-slate-500 mb-1">
-                {t("mis_filter_hasta", "Hasta")}
-              </label>
-              <Input
-                id="fecha-hasta"
-                type="date"
-                value={fechaHasta}
-                onChange={(e) => setFechaHasta(e.target.value)}
-                aria-label={t("mis_filter_hasta", "Hasta")}
-                className="w-36"
-              />
-            </div>
-
-            {/* Limpiar fechas */}
-            {(fechaDesde || fechaHasta) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs h-9 px-2"
-                onClick={() => {
-                  setFechaDesde("");
-                  setFechaHasta("");
-                }}
-                title={t("mis_clear_dates", "Limpiar fechas")}
+              <ArrowBackIcon />
+            </IconButton>
+            <Box>
+              <Typography
+                variant="h5"
+                component="h1"
+                sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}
               >
-                ✕
-              </Button>
-            )}
+                {t("mis_page_title", "Mis Solicitudes")}
+              </Typography>
+            </Box>
+          </Box>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={() => navigate("/solicitudes/nueva")}
+            sx={{ textTransform: "none" }}
+          >
+            {t("btn_crear_solicitud", "Crear Solicitud")}
+          </Button>
+        </Box>
 
-            {/* Centro */}
-            <Select
-              value={centroFilter}
-              onChange={(e) => setCentroFilter(e.target.value)}
-              className="w-44"
-            >
-              <option value="">{t("mis_filter_all_centros", "Todos los centros")}</option>
-              {centrosUnicos.map((centro) => (
-                <option key={centro} value={centro}>
-                  {centro}
-                </option>
-              ))}
-            </Select>
-          </div>
-
-          {/* Loading skeleton o tabla */}
-          {loading ? (
-            <TableSkeleton rows={5} columns={9} />
-          ) : (
-            <>
-              <DataTable
-                columns={columns}
-                rows={paginatedItems}
-                emptyMessage={
-                  filtered.length === 0 && items.length > 0 ? (
-                    <EmptyState
-                      icon={<Search className="w-8 h-8 text-blue-500" />}
-                      title={t("mis_no_results_title", "Sin resultados")}
-                      description={t("mis_no_results", "No hay solicitudes que coincidan con los filtros aplicados")}
-                      action={
-                        <Button
-                          variant="ghost"
-                          onClick={() => {
-                            setQ("");
-                            setCentroFilter("");
-                            setActiveTab("todas");
-                            setFechaDesde("");
-                            setFechaHasta("");
-                          }}
-                        >
-                          {t("mis_clear_filters", "Limpiar filtros")}
-                        </Button>
-                      }
-                    />
-                  ) : items.length === 0 ? (
-                    <EmptyState
-                      icon={<Inbox className="w-8 h-8 text-slate-500" />}
-                      title={t("mis_empty_title", "No tienes solicitudes")}
-                      description={t("mis_empty_desc", "Crea tu primera solicitud de materiales para comenzar")}
-                      action={
-                        <Button onClick={() => navigate("/solicitudes/nueva")}>
-                          <FilePlus2 className="w-4 h-4" />
-                          {t("nav_nueva", "Nueva Solicitud")}
-                        </Button>
-                      }
-                    />
-                  ) : null
-                }
-              />
-
-              {/* Paginación */}
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={filtered.length}
-                itemsPerPage={PAGE_SIZE}
-                onPageChange={setCurrentPage}
-                labels={{
-                  page: t("mis_page", "Página"),
-                  of: t("mis_of", "de"),
-                  showing: t("mis_showing", "Mostrando"),
-                  prev: t("mis_prev", "Anterior"),
-                  next: t("mis_next", "Siguiente"),
-                }}
-              />
-            </>
-          )}
-        </CardContent>
-      </Card>
-      </ScrollReveal>
-
-      {/* Modal de confirmación para eliminar */}
-      <ConfirmModal
-        isOpen={deleteModal.open}
-        onClose={() => setDeleteModal({ open: false, solicitudId: null })}
-        onConfirm={handleEliminar}
-        title={t("mis_delete_title", "Eliminar solicitud")}
-        description={t("mis_delete_desc", "¿Estás seguro de eliminar esta solicitud? Esta acción no se puede deshacer.")}
-        confirmText={t("mis_delete_confirm", "Eliminar")}
-        cancelText={t("common_cancel", "Cancelar")}
-        variant="danger"
-        loading={deleting}
-      />
-
-      {/* Modal de detalle de solicitud */}
-      <Modal
-        isOpen={detalleModal.open}
-        onClose={() => setDetalleModal({ open: false, solicitud: null })}
-        title={`${t("detalle_title", "Solicitud")} #${detalleModal.solicitud?.id || ""}`}
-        size="xl"
-      >
-        {detalleModal.solicitud && (
-          <div className="space-y-6">
-            {/* Estado actual */}
-            <div className="flex items-center justify-between">
-              <StatusBadge estado={detalleModal.solicitud.estado || detalleModal.solicitud.status || "pendiente"} />
-              {detalleModal.solicitud.criticidad && (
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase ${
-                  detalleModal.solicitud.criticidad.toLowerCase().includes("alta")
-                    ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400"
-                    : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
-                }`}>
-                  {detalleModal.solicitud.criticidad}
-                </span>
-              )}
-            </div>
-
-            {/* Información General y Ubicación */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Información General */}
-              <div className="space-y-3 p-4 rounded-xl bg-slate-50/70 dark:bg-slate-800/70 border border-white/30 dark:border-slate-700/30">
-                <h4 className="text-xs uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-                  {t("detalle_info_general", "Información General")}
-                </h4>
-                <DetailRow icon={Hash} label={t("detalle_id", "ID")} value={detalleModal.solicitud.id} />
-                <DetailRow icon={Calendar} label={t("detalle_fecha_creacion", "Creación")} value={formatDate(detalleModal.solicitud.created_at)} />
-                <DetailRow icon={Clock} label={t("detalle_fecha_necesidad", "Fecha Necesidad")} value={formatDate(detalleModal.solicitud.fecha_necesidad)} />
-              </div>
-
-              {/* Ubicación */}
-              <div className="space-y-3 p-4 rounded-xl bg-slate-50/70 dark:bg-slate-800/70 border border-white/30 dark:border-slate-700/30">
-                <h4 className="text-xs uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-                  {t("detalle_ubicacion", "Ubicación")}
-                </h4>
-                <DetailRow icon={Building2} label={t("detalle_centro", "Centro")} value={detalleModal.solicitud.centro} />
-                <DetailRow icon={MapPin} label={t("detalle_sector", "Sector")} value={getSectorNombre(detalleModal.solicitud.sector, sectores)} />
-                <DetailRow icon={Package} label={t("detalle_almacen", "Almacén")} value={formatAlmacen(detalleModal.solicitud.almacen_virtual)} />
-              </div>
-            </div>
-
-            {/* Justificación */}
-            {detalleModal.solicitud.justificacion && (
-              <div className="p-4 rounded-xl bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100/50 dark:border-blue-800/30">
-                <h4 className="text-xs uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-                  {t("detalle_justificacion", "Justificación")}
-                </h4>
-                <p className="text-sm text-slate-700 dark:text-slate-300">{detalleModal.solicitud.justificacion}</p>
-              </div>
-            )}
-
-            {/* Items */}
-            {detalleModal.solicitud.items && detalleModal.solicitud.items.length > 0 && (
-              <div className="space-y-3">
-                <h4 className="text-xs uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
-                  {t("detalle_items", "Materiales")} ({detalleModal.solicitud.items.length})
-                </h4>
-                <div className="border border-white/30 dark:border-slate-700/30 rounded-xl overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
-                      <tr>
-                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">{t("detalle_codigo", "Código")}</th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">{t("detalle_descripcion", "Descripción")}</th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">{t("detalle_cantidad", "Cant.")}</th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200 dark:border-slate-700">{t("detalle_precio", "Precio")}</th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">{t("detalle_subtotal", "Subtotal")}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/30 dark:divide-slate-700/30">
-                      {detalleModal.solicitud.items.map((item, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/50">
-                          <td className="px-4 py-2 font-mono text-xs text-slate-600 dark:text-slate-400 border-r border-b border-slate-200 dark:border-slate-700">{item.codigo || item.codigo_sap}</td>
-                          <td className="px-4 py-2 text-slate-800 dark:text-slate-200 border-r border-b border-slate-200 dark:border-slate-700">{item.descripcion}</td>
-                          <td className="px-4 py-2 text-right font-semibold border-r border-b border-slate-200 dark:border-slate-700">{item.cantidad}</td>
-                          <td className="px-4 py-2 text-right text-slate-600 dark:text-slate-400 border-r border-b border-slate-200 dark:border-slate-700">{formatCurrency(item.precio_unitario || 0)}</td>
-                          <td className="px-4 py-2 text-right font-semibold text-slate-800 dark:text-slate-200">
-                            {formatCurrency((item.cantidad || 0) * (item.precio_unitario || 0))}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="bg-slate-50/70 dark:bg-slate-800/70">
-                      <tr>
-                        <td colSpan={4} className="px-4 py-2 text-right font-bold text-slate-700 dark:text-slate-300">
-                          {t("detalle_total", "Total")}:
-                        </td>
-                        <td className="px-4 py-2 text-right font-bold text-blue-600 dark:text-blue-400">
-                          {formatCurrency(detalleModal.solicitud.total_monto || 0)}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Botón para ir a detalle completo */}
-            <div className="flex justify-end pt-2">
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setDetalleModal({ open: false, solicitud: null });
-                  navigate(`/solicitudes/${detalleModal.solicitud.id}`);
-                }}
-              >
-                {t("detalle_ver_completo", "Ver detalle completo")}
-              </Button>
-            </div>
-          </div>
+        {/* Alertas */}
+        {error && (
+          <Alert severity="error" onClose={() => setError("")}>
+            {error}
+          </Alert>
         )}
-      </Modal>
-    </div>
+        {success && (
+          <Alert severity="success" onClose={() => setSuccess("")}>
+            {success}
+          </Alert>
+        )}
+
+        {/* Main Card */}
+        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+          {/* Tabs */}
+          <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "grey.50" }}>
+            <Tabs
+              value={activeTab}
+              onChange={(e, newValue) => setActiveTab(newValue)}
+              variant="scrollable"
+              scrollButtons="auto"
+              sx={{
+                minHeight: 48,
+                "& .MuiTab-root": {
+                  minHeight: 48,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  fontSize: "0.875rem",
+                },
+              }}
+            >
+              {tabFilters.map((tab, idx) => (
+                <Tab
+                  key={tab.key}
+                  label={
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      {tab.label}
+                      <Chip
+                        label={stats[idx]}
+                        size="small"
+                        sx={{
+                          height: 20,
+                          fontSize: "0.625rem",
+                          fontWeight: 700,
+                          bgcolor: activeTab === idx ? "primary.light" : "grey.200",
+                          color: activeTab === idx ? "primary.dark" : "text.secondary",
+                        }}
+                      />
+                    </Box>
+                  }
+                />
+              ))}
+            </Tabs>
+          </Box>
+
+          {/* AG Grid */}
+          <SPMAgGrid
+            rowData={rows}
+            columnDefs={columnDefs}
+            loading={loading}
+            height={600}
+            paginationPageSize={25}
+            paginationPageSizeSelector={[10, 25, 50, 100]}
+            enableQuickFilter={true}
+            onRowDoubleClick={(data) => setDetalleModal({ open: true, solicitud: data })}
+            exportFileName="mis_solicitudes"
+            emptyMessage={t("mis_empty_title", "No tienes solicitudes")}
+          />
+        </Paper>
+
+        {/* Modal de confirmacion para eliminar */}
+        <DeleteModal
+          open={deleteModal.open}
+          onClose={() => setDeleteModal({ open: false, solicitudId: null })}
+          onConfirm={handleEliminar}
+          deleting={deleting}
+          t={t}
+        />
+
+        {/* Modal de detalle */}
+        <DetalleModal
+          open={detalleModal.open}
+          solicitud={detalleModal.solicitud}
+          sectores={sectores}
+          onClose={() => setDetalleModal({ open: false, solicitud: null })}
+          onViewFull={() => {
+            setDetalleModal({ open: false, solicitud: null });
+            navigate(`/solicitudes/${detalleModal.solicitud?.id}`);
+          }}
+          t={t}
+        />
+    </Box>
   );
 }

@@ -5,25 +5,92 @@
  * de consumo historico importados desde Excel.
  */
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import Layout from '../../components/Layout'
 import { TempDataBanner } from '../../components/ui/TempDataBanner'
 import { useI18n } from '../../context/i18n'
 import { useNavigate } from 'react-router-dom'
-import { Button } from '../../components/ui/Button'
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card'
-import { Select } from '../../components/ui/Select'
 import api from '../../services/api'
-import clsx from 'clsx'
+import { SPMAgGrid } from '../../components/ui/SPMAgGrid'
 import {
-  LineChart,
-  TrendingUp,
-  RefreshCw,
-  Loader2,
-  ChevronLeft,
-  Search,
-  BarChart2,
-} from '../../components/ui/Icons'
+  Box,
+  Paper,
+  Typography,
+  Button,
+  Stack,
+  Alert,
+  CircularProgress,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
+} from '@mui/material'
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
+import TrendingUpIcon from '@mui/icons-material/TrendingUp'
+import SearchIcon from '@mui/icons-material/Search'
+import ShowChartIcon from '@mui/icons-material/ShowChart'
+import BarChartIcon from '@mui/icons-material/BarChart'
+
+/**
+ * Componente tabla de predicciones migrado a SPMAgGrid
+ */
+function PredictionTable({ data }) {
+  const { t } = useI18n()
+
+  const rows = useMemo(() => {
+    return data.map((pred, idx) => ({
+      ...pred,
+      id: idx,
+    }))
+  }, [data])
+
+  const columnDefs = useMemo(() => [
+    {
+      field: 'fecha',
+      headerName: t('common_date', 'Fecha'),
+      flex: 0.4,
+      minWidth: 100,
+    },
+    {
+      field: 'prediccion',
+      headerName: t('forecast_prediction', 'Predicción'),
+      flex: 0.3,
+      minWidth: 100,
+      type: 'numericColumn',
+      valueFormatter: (params) => params.value?.toFixed(2) || '0',
+    },
+    {
+      field: 'intervalo_min',
+      headerName: t('forecast_min', 'Mín'),
+      flex: 0.25,
+      minWidth: 80,
+      type: 'numericColumn',
+      valueFormatter: (params) => params.value?.toFixed(2) || '-',
+    },
+    {
+      field: 'intervalo_max',
+      headerName: t('forecast_max', 'Máx'),
+      flex: 0.25,
+      minWidth: 80,
+      type: 'numericColumn',
+      valueFormatter: (params) => params.value?.toFixed(2) || '-',
+    },
+  ], [t])
+
+  return (
+    <SPMAgGrid
+      rowData={rows}
+      columnDefs={columnDefs}
+      height={300}
+      pagination={true}
+      paginationPageSize={10}
+      enableQuickFilter={true}
+      exportFileName="predicciones_forecast"
+      emptyMessage={t('common_no_data', 'Sin datos')}
+    />
+  )
+}
 
 export default function AnalisisPuntualForecast() {
   const { t } = useI18n()
@@ -108,250 +175,285 @@ export default function AnalisisPuntualForecast() {
     { value: 'linear', label: 'Regresion Lineal' },
   ]
 
+  const diasOptions = [
+    { value: 7, label: '7 dias' },
+    { value: 15, label: '15 dias' },
+    { value: 30, label: '30 dias' },
+    { value: 60, label: '60 dias' },
+    { value: 90, label: '90 dias' },
+  ]
+
   return (
     <Layout>
-      <div className="space-y-4">
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {/* Banner siempre visible */}
         <TempDataBanner onStatusChange={setTempActive} />
 
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm">
+        <Stack direction="row" alignItems="center" spacing={1}>
           <Button
-            variant="ghost"
-            size="sm"
+            variant="text"
+            size="small"
+            startIcon={<ChevronLeftIcon />}
             onClick={() => navigate('/admin/analisis-puntual')}
+            sx={{ textTransform: 'none' }}
           >
-            <ChevronLeft className="w-4 h-4 mr-1" />
             {t('admin_ap_volver', 'Analisis Puntual')}
           </Button>
-          <span className="text-[var(--text-muted)]">/</span>
-          <span className="text-[var(--text-primary)] font-medium">
+          <Typography variant="body2" color="text.secondary">/</Typography>
+          <Typography variant="body2" color="text.primary" fontWeight={500}>
             {t('admin_ap_forecast', 'Forecast Temporal')}
-          </span>
-        </div>
+          </Typography>
+        </Stack>
 
         {/* Header */}
-        <div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">
-            Forecast - Pronosticos con Datos Temporales
-          </h1>
-          <p className="text-sm text-[var(--text-secondary)]">
-            Genera pronosticos de demanda utilizando el consumo historico del Excel importado
-          </p>
-        </div>
+        <Box>
+          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Forecast - Pronósticos con Datos Temporales
+          </Typography>
+        </Box>
 
         {/* Formulario de busqueda */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="w-5 h-5" />
-              Configuracion del Forecast
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-4 gap-4">
+        <Paper elevation={1}>
+          <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <SearchIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+              <Typography variant="h6" fontWeight={600}>
+                Configuracion del Forecast
+              </Typography>
+            </Stack>
+          </Box>
+          <Box sx={{ p: 2 }}>
+            <Grid container spacing={2} alignItems="flex-end">
               {/* Material */}
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                  Material
-                </label>
+              <Grid item xs={12} md={3}>
                 {loadingMateriales ? (
-                  <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Cargando materiales...
-                  </div>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <CircularProgress size={16} />
+                    <Typography variant="body2" color="text.secondary">
+                      Cargando materiales...
+                    </Typography>
+                  </Stack>
                 ) : (
-                  <Select
-                    value={materialCodigo}
-                    onChange={(e) => setMaterialCodigo(e.target.value)}
-                    disabled={materialesDisponibles.length === 0}
-                  >
-                    <option value="">Seleccionar material</option>
-                    {materialesDisponibles.map((mat) => (
-                      <option key={mat.material} value={mat.material}>
-                        {mat.material} - {mat.descripcion?.substring(0, 30)}
-                      </option>
-                    ))}
-                  </Select>
+                  <FormControl fullWidth size="small">
+                    <InputLabel id="material-label">Material</InputLabel>
+                    <Select
+                      labelId="material-label"
+                      value={materialCodigo}
+                      label="Material"
+                      onChange={(e) => setMaterialCodigo(e.target.value)}
+                      disabled={materialesDisponibles.length === 0}
+                    >
+                      <MenuItem value="">
+                        <em>Seleccionar material</em>
+                      </MenuItem>
+                      {materialesDisponibles.map((mat) => (
+                        <MenuItem key={mat.material} value={mat.material}>
+                          {mat.material} - {mat.descripcion?.substring(0, 30)}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 )}
-              </div>
+              </Grid>
 
               {/* Modelo */}
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                  Modelo
-                </label>
-                <Select
-                  value={modelo}
-                  onChange={(e) => setModelo(e.target.value)}
-                >
-                  {modelosDisponibles.map((m) => (
-                    <option key={m.value} value={m.value}>
-                      {m.label}
-                    </option>
-                  ))}
-                </Select>
-              </div>
+              <Grid item xs={12} md={3}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="modelo-label">Modelo</InputLabel>
+                  <Select
+                    labelId="modelo-label"
+                    value={modelo}
+                    label="Modelo"
+                    onChange={(e) => setModelo(e.target.value)}
+                  >
+                    {modelosDisponibles.map((m) => (
+                      <MenuItem key={m.value} value={m.value}>
+                        {m.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
 
               {/* Dias de prediccion */}
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                  Dias a predecir
-                </label>
-                <Select
-                  value={diasPrediccion}
-                  onChange={(e) => setDiasPrediccion(Number(e.target.value))}
-                >
-                  <option value={7}>7 dias</option>
-                  <option value={15}>15 dias</option>
-                  <option value={30}>30 dias</option>
-                  <option value={60}>60 dias</option>
-                  <option value={90}>90 dias</option>
-                </Select>
-              </div>
+              <Grid item xs={12} md={3}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="dias-label">Dias a predecir</InputLabel>
+                  <Select
+                    labelId="dias-label"
+                    value={diasPrediccion}
+                    label="Dias a predecir"
+                    onChange={(e) => setDiasPrediccion(Number(e.target.value))}
+                  >
+                    {diasOptions.map((opt) => (
+                      <MenuItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
 
               {/* Boton */}
-              <div className="flex items-end">
+              <Grid item xs={12} md={3}>
                 <Button
-                  variant="primary"
+                  variant="contained"
+                  fullWidth
                   onClick={ejecutarForecast}
                   disabled={loading || !materialCodigo}
-                  className="w-full"
+                  startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <TrendingUpIcon />}
+                  sx={{ textTransform: 'none' }}
                 >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Generando...
-                    </>
-                  ) : (
-                    <>
-                      <TrendingUp className="w-4 h-4 mr-2" />
-                      Generar Forecast
-                    </>
-                  )}
+                  {loading ? 'Generando...' : 'Generar Forecast'}
                 </Button>
-              </div>
-            </div>
+              </Grid>
+            </Grid>
 
             {materialesDisponibles.length === 0 && !loadingMateriales && (
-              <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm">
+              <Alert severity="warning" sx={{ mt: 2 }}>
                 No hay materiales disponibles en los datos temporales. Verifica que el Excel importado tenga la hoja &quot;consumo_historico&quot;.
-              </div>
+              </Alert>
             )}
-          </CardContent>
-        </Card>
+          </Box>
+        </Paper>
 
         {/* Error */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-            {error}
-          </div>
+          <Alert severity="error">{error}</Alert>
         )}
 
         {/* Resultados */}
         {forecastData && (
-          <div className="grid md:grid-cols-2 gap-4">
+          <Grid container spacing={2}>
             {/* KPIs */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart2 className="w-5 h-5" />
-                  Metricas del Modelo
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-[var(--bg-secondary)] rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-[var(--accent)]">
-                      {forecastData.metricas?.mape?.toFixed(1) || 'N/A'}%
-                    </p>
-                    <p className="text-sm text-[var(--text-muted)]">MAPE</p>
-                  </div>
-                  <div className="bg-[var(--bg-secondary)] rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-[var(--accent)]">
-                      {forecastData.metricas?.rmse?.toFixed(2) || 'N/A'}
-                    </p>
-                    <p className="text-sm text-[var(--text-muted)]">RMSE</p>
-                  </div>
-                  <div className="bg-[var(--bg-secondary)] rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-[var(--text-primary)]">
-                      {forecastData.modelo_usado || modelo}
-                    </p>
-                    <p className="text-sm text-[var(--text-muted)]">Modelo</p>
-                  </div>
-                  <div className="bg-[var(--bg-secondary)] rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-[var(--text-primary)]">
-                      {forecastData.registros_historico || 0}
-                    </p>
-                    <p className="text-sm text-[var(--text-muted)]">Registros Historico</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <Grid item xs={12} md={6}>
+              <Paper elevation={1}>
+                <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <BarChartIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                    <Typography variant="h6" fontWeight={600}>
+                      Metricas del Modelo
+                    </Typography>
+                  </Stack>
+                </Box>
+                <Box sx={{ p: 2 }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <Paper
+                        elevation={0}
+                        sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.100', borderRadius: 2 }}
+                      >
+                        <Typography variant="h5" fontWeight="bold" color="primary.main">
+                          {forecastData.metricas?.mape?.toFixed(1) || 'N/A'}%
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          MAPE
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Paper
+                        elevation={0}
+                        sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.100', borderRadius: 2 }}
+                      >
+                        <Typography variant="h5" fontWeight="bold" color="primary.main">
+                          {forecastData.metricas?.rmse?.toFixed(2) || 'N/A'}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          RMSE
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Paper
+                        elevation={0}
+                        sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.100', borderRadius: 2 }}
+                      >
+                        <Typography variant="h5" fontWeight="bold" color="text.primary">
+                          {forecastData.modelo_usado || modelo}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Modelo
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Paper
+                        elevation={0}
+                        sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.100', borderRadius: 2 }}
+                      >
+                        <Typography variant="h5" fontWeight="bold" color="text.primary">
+                          {forecastData.registros_historico || 0}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Registros Historico
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  </Grid>
+                </Box>
+              </Paper>
+            </Grid>
 
             {/* Predicciones */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <LineChart className="w-5 h-5" />
-                  Predicciones
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {forecastData.predicciones?.length > 0 ? (
-                  <div className="max-h-[300px] overflow-y-auto">
-                    <table className="w-full text-sm">
-                      <thead className="sticky top-0 bg-[var(--card)]">
-                        <tr className="border-b border-[var(--border)]">
-                          <th className="text-left py-2 px-3 font-medium text-[var(--text-muted)]">Fecha</th>
-                          <th className="text-right py-2 px-3 font-medium text-[var(--text-muted)]">Prediccion</th>
-                          <th className="text-right py-2 px-3 font-medium text-[var(--text-muted)]">Min</th>
-                          <th className="text-right py-2 px-3 font-medium text-[var(--text-muted)]">Max</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {forecastData.predicciones.map((pred, idx) => (
-                          <tr key={idx} className="border-b border-[var(--border)]">
-                            <td className="py-2 px-3 text-[var(--text-secondary)]">{pred.fecha}</td>
-                            <td className="py-2 px-3 text-right font-medium text-[var(--text-primary)]">
-                              {pred.prediccion?.toFixed(2) || 0}
-                            </td>
-                            <td className="py-2 px-3 text-right text-[var(--text-muted)]">
-                              {pred.intervalo_min?.toFixed(2) || '-'}
-                            </td>
-                            <td className="py-2 px-3 text-right text-[var(--text-muted)]">
-                              {pred.intervalo_max?.toFixed(2) || '-'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-[var(--text-muted)]">
-                    No hay predicciones disponibles
-                  </div>
+            <Grid item xs={12} md={6}>
+              <Paper elevation={1} sx={{ borderRadius: 2, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <ShowChartIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                    <Typography variant="h6" fontWeight={600}>
+                      {t('forecast_predictions', 'Predicciones')}
+                    </Typography>
+                  </Stack>
+                </Box>
+                {forecastData.predicciones?.length > 0 && (
+                  <Box sx={{ flex: 1, minHeight: 300 }}>
+                    <PredictionTable data={forecastData.predicciones} />
+                  </Box>
                 )}
-              </CardContent>
-            </Card>
-          </div>
+                {!forecastData.predicciones?.length && (
+                  <Box sx={{ p: 4, textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      {t('common_no_data', 'No hay predicciones disponibles')}
+                    </Typography>
+                  </Box>
+                )}
+              </Paper>
+            </Grid>
+          </Grid>
         )}
 
         {/* Mensaje de ayuda cuando no hay resultados */}
         {!forecastData && !loading && !error && (
-          <div className="bg-[var(--card)] rounded-xl p-8 border border-[var(--border)] text-center">
-            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
-              <LineChart className="w-8 h-8 text-blue-500" />
-            </div>
-            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+          <Paper
+            elevation={1}
+            sx={{ p: 4, textAlign: 'center' }}
+          >
+            <Box
+              sx={{
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                bgcolor: 'primary.light',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mx: 'auto',
+                mb: 2
+              }}
+            >
+              <ShowChartIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+            </Box>
+            <Typography variant="h6" fontWeight={600} color="text.primary" sx={{ mb: 1 }}>
               Selecciona un material para comenzar
-            </h3>
-            <p className="text-[var(--text-muted)]">
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
               Elige un material de la lista y configura los parametros del modelo para generar un pronostico de demanda.
-            </p>
-          </div>
+            </Typography>
+          </Paper>
         )}
-      </div>
+      </Box>
     </Layout>
   )
 }

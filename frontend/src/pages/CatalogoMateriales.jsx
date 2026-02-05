@@ -1,728 +1,893 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
-import { materiales, equivalencias } from '../services/spm'
-import { formatCurrency, formatAlmacen } from '../utils/formatters'
-import { useI18n } from '../context/i18n'
+/**
+ * CatalogoMateriales - Catalogo de materiales SAP
+ * Enterprise Design - MUI components
+ * Mantiene MUI DataGrid para performance con 28K+ items
+ */
 
-// UI Components
-import { Button } from '../components/ui/Button'
-import { Input } from '../components/ui/Input'
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
-import { Alert } from '../components/ui/Alert'
-import { PageHeader } from '../components/ui/PageHeader'
-import { Modal } from '../components/ui/Modal'
-import { Badge } from '../components/ui/Badge'
-import { TableSkeleton } from '../components/ui/Skeleton'
-import { ScrollReveal } from '../components/ui/ScrollReveal'
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { materiales, equivalencias } from "../services/spm";
+import { formatCurrency, formatAlmacen } from "../utils/formatters";
+import { useI18n } from "../context/i18n";
+import { SPMAgGrid } from "../components/ui/SPMAgGrid";
 import {
-  Search,
-  Loader2,
-  Package,
-  TrendingUp,
-  Boxes,
-  ClipboardList,
-  GitCompare,
-  ChevronRight,
-  X
-} from '../components/ui/Icons'
+  Box,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  IconButton,
+  Alert,
+  CircularProgress,
+  Stack,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Collapse,
+  List,
+  ListItem,
+  Autocomplete,
+  InputAdornment,
+} from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import InventoryIcon from "@mui/icons-material/Inventory";
+import Inventory2Icon from "@mui/icons-material/Inventory2";
+import CloseIcon from "@mui/icons-material/Close";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import DescriptionIcon from "@mui/icons-material/Description";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 
-const DEBOUNCE_MS = 300
-const MAX_RESULTS = 100
+const DEBOUNCE_MS = 300;
+const MAX_RESULTS = 500;
 
 function useDebouncedValue(value, delay) {
-  const [debounced, setDebounced] = useState(value)
-
+  const [debounced, setDebounced] = useState(value);
   useEffect(() => {
-    const handler = setTimeout(() => setDebounced(value), delay)
-    return () => clearTimeout(handler)
-  }, [value, delay])
-
-  return debounced
+    const handler = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debounced;
 }
 
-export default function CatalogoMateriales() {
-  const { t } = useI18n()
+/* ─────────────────────────────────────────────────────────────
+   Collapsible Section
+───────────────────────────────────────────────────────────── */
+function CollapsibleSection({ title, icon, expanded, onToggle, variant = "default", badge, loading, children }) {
+  const getVariantStyles = () => {
+    const variants = {
+      default: { bg: "grey.100", borderColor: "grey.300" },
+      primary: { bg: "primary.50", borderColor: "primary.main" },
+      warning: { bg: "warning.50", borderColor: "warning.main" },
+      success: { bg: "success.50", borderColor: "success.main" },
+      info: { bg: "info.50", borderColor: "info.main" },
+    };
+    return variants[variant] || variants.default;
+  };
 
-  // Search state
-  const [searchCodigo, setSearchCodigo] = useState('')
-  const [searchDesc, setSearchDesc] = useState('')
-  const [searchKeyword, setSearchKeyword] = useState('')
+  const styles = getVariantStyles();
 
-  const debouncedCodigo = useDebouncedValue(searchCodigo, DEBOUNCE_MS)
-  const debouncedDesc = useDebouncedValue(searchDesc, DEBOUNCE_MS)
-  const debouncedKeyword = useDebouncedValue(searchKeyword, DEBOUNCE_MS)
+  return (
+    <Paper
+      variant="outlined"
+      sx={{
+        borderRadius: 2,
+        overflow: "hidden",
+        borderColor: expanded ? "grey.400" : "grey.300",
+      }}
+    >
+      <Box
+        component="button"
+        onClick={onToggle}
+        sx={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          p: 1.5,
+          textAlign: "left",
+          transition: "background-color 0.2s",
+          bgcolor: styles.bg,
+          border: "none",
+          cursor: "pointer",
+          "&:hover": { bgcolor: "grey.200" },
+        }}
+      >
+        <Box sx={{ color: "text.secondary" }}>{icon}</Box>
+        <Typography variant="body2" fontWeight={600} color="text.primary">
+          {title}
+        </Typography>
+        {badge !== undefined && badge > 0 && (
+          <Chip
+            label={badge}
+            size="small"
+            color="primary"
+            sx={{ height: 20, fontSize: "0.75rem" }}
+          />
+        )}
+        {loading && (
+          <CircularProgress size={16} sx={{ ml: 0.5, color: "text.secondary" }} />
+        )}
+        <Box sx={{ ml: "auto", color: "text.secondary" }}>
+          {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+        </Box>
+      </Box>
+      <Collapse in={expanded}>
+        <Box sx={{ p: 2, borderTop: 1, borderColor: "divider" }}>
+          {children}
+        </Box>
+      </Collapse>
+    </Paper>
+  );
+}
 
-  // Results state
-  const [results, setResults] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [hasSearched, setHasSearched] = useState(false)
-
-  // Detail state
-  const [selectedMaterial, setSelectedMaterial] = useState(null)
-  const [detail, setDetail] = useState(null)
-  const [loadingDetail, setLoadingDetail] = useState(false)
-  const [showDetailModal, setShowDetailModal] = useState(false)
-
-  // Additional detail data
-  const [solicitudesData, setSolicitudesData] = useState([])
-  const [loadingSolicitudes, setLoadingSolicitudes] = useState(false)
-  const [equivalenciasData, setEquivalenciasData] = useState([])
-  const [loadingEquivalencias, setLoadingEquivalencias] = useState(false)
-
-  // Expanded sections
+/* ─────────────────────────────────────────────────────────────
+   Detail Modal
+───────────────────────────────────────────────────────────── */
+function DetailModal({ open, material, detail, loadingDetail, solicitudesData, loadingSolicitudes, equivalenciasData, loadingEquivalencias, onClose, t }) {
   const [expandedSections, setExpandedSections] = useState({
     stock: true,
     mrp: true,
     consumo: true,
     solicitudes: true,
-    equivalencias: true
-  })
+    equivalencias: true,
+  });
 
   const toggleSection = (section) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }))
-  }
+    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  };
 
-  // Search materials
-  useEffect(() => {
-    const shouldSearch =
-      debouncedCodigo.trim() !== '' ||
-      debouncedDesc.trim() !== '' ||
-      debouncedKeyword.trim() !== ''
+  if (!open || !material) return null;
 
-    if (!shouldSearch) {
-      if (hasSearched) {
-        setResults([])
-        setHasSearched(false)
-      }
-      return
-    }
-
-    setLoading(true)
-    setError('')
-    setHasSearched(true)
-
-    // Combine description and keyword for search
-    const searchTerms = [debouncedDesc.trim(), debouncedKeyword.trim()]
-      .filter(Boolean)
-      .join(' ')
-
-    materiales
-      .buscar({
-        codigo: debouncedCodigo.trim(),
-        descripcion: searchTerms,
-        limit: MAX_RESULTS
-      })
-      .then((res) => {
-        // Backend devuelve {ok, data: [...], total}, necesitamos res.data.data
-        const data = res.data?.data || res.data || []
-        setResults(Array.isArray(data) ? data : [])
-      })
-      .catch((err) => {
-        console.error('search materiales', err)
-        setError(err.response?.data?.error?.message || err.message)
-        setResults([])
-      })
-      .finally(() => setLoading(false))
-  }, [debouncedCodigo, debouncedDesc, debouncedKeyword, hasSearched])
-
-  // Load material detail
-  const loadDetail = useCallback(async (mat) => {
-    setSelectedMaterial(mat)
-    setShowDetailModal(true)
-    setLoadingDetail(true)
-    setDetail(null)
-    setSolicitudesData([])
-    setEquivalenciasData([])
-
-    try {
-      const res = await materiales.detalle(mat.codigo)
-      setDetail(res.data || {})
-    } catch (err) {
-      console.error('detalle material', err)
-      setDetail(null)
-    } finally {
-      setLoadingDetail(false)
-    }
-
-    // Load solicitudes
-    setLoadingSolicitudes(true)
-    try {
-      const res = await materiales.solicitudes(mat.codigo)
-      setSolicitudesData(res.data?.solicitudes || [])
-    } catch (err) {
-      console.error('solicitudes material', err)
-      setSolicitudesData([])
-    } finally {
-      setLoadingSolicitudes(false)
-    }
-
-    // Load equivalencias
-    setLoadingEquivalencias(true)
-    try {
-      const res = await equivalencias.porMaterial(mat.codigo)
-      setEquivalenciasData(res.data?.equivalencias || [])
-    } catch (err) {
-      console.error('equivalencias material', err)
-      setEquivalenciasData([])
-    } finally {
-      setLoadingEquivalencias(false)
-    }
-  }, [])
-
-  // Clear search
-  const handleClearSearch = useCallback(() => {
-    setSearchCodigo('')
-    setSearchDesc('')
-    setSearchKeyword('')
-    setResults([])
-    setHasSearched(false)
-    setSelectedMaterial(null)
-  }, [])
-
-  // Close modal
-  const handleCloseModal = useCallback(() => {
-    setShowDetailModal(false)
-    setSelectedMaterial(null)
-    setDetail(null)
-  }, [])
+  const getStatusColor = (status) => {
+    const colors = {
+      submitted: "warning",
+      approved: "success",
+      processing: "info",
+      dispatched: "info",
+      rejected: "error",
+    };
+    return colors[status] || "default";
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <ScrollReveal>
-        <PageHeader
-          title={t('catalogo_materiales_titulo', 'Catálogo de Materiales')}
-        />
-      </ScrollReveal>
-
-      {/* Search Card */}
-      <ScrollReveal delay={100}>
-        <Card hover={false}>
-        <CardContent className="pt-6">
-          <div className="flex flex-col lg:flex-row gap-4">
-            {/* Código SAP */}
-            <div className="lg:w-40">
-              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
-                {t('catalogo_codigo_sap', 'Código SAP')}
-              </label>
-              <Input
-                value={searchCodigo}
-                onChange={(e) => setSearchCodigo(e.target.value)}
-                placeholder="Ej: 100012345"
-                className="font-mono"
-              />
-            </div>
-
-            {/* Descripción */}
-            <div className="flex-1 lg:max-w-md">
-              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
-                {t('catalogo_descripcion', 'Descripción')}
-              </label>
-              <Input
-                value={searchDesc}
-                onChange={(e) => setSearchDesc(e.target.value)}
-                placeholder={t('catalogo_buscar_desc', 'Buscar por descripción...')}
-              />
-            </div>
-
-            {/* Palabra clave */}
-            <div className="flex-1 lg:max-w-sm">
-              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
-                {t('catalogo_palabra_clave', 'Palabra clave')}
-              </label>
-              <div className="relative">
-                <Input
-                  value={searchKeyword}
-                  onChange={(e) => setSearchKeyword(e.target.value)}
-                  placeholder={t('catalogo_buscar_keyword', 'Filtro adicional...')}
-                />
-                {(searchCodigo || searchDesc || searchKeyword) && (
-                  <button
-                    type="button"
-                    onClick={handleClearSearch}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100/70 rounded transition-colors"
-                  >
-                    <X className="h-4 w-4 text-red-500" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Search indicator */}
-            <div className="flex items-end">
-              {loading ? (
-                <div className="flex items-center gap-2 h-10 px-4 text-slate-500">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm">{t('common_buscando', 'Buscando...')}</span>
-                </div>
-              ) : hasSearched && (
-                <div className="flex items-center h-10 px-4">
-                  <Badge variant={results.length > 0 ? 'primary' : 'ghost'}>
-                    {results.length} {t('common_resultados', 'resultados')}
-                  </Badge>
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-        </Card>
-      </ScrollReveal>
-
-      {/* Error */}
-      {error && (
-        <Alert variant="danger" onDismiss={() => setError('')}>
-          {error}
-        </Alert>
-      )}
-
-      {/* Results Table */}
-      <ScrollReveal delay={200}>
-        <Card hover={false}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-indigo-500" />
-              {t('catalogo_resultados', 'Resultados de Búsqueda')}
-            </CardTitle>
-          </CardHeader>
-        <CardContent>
-          {loading ? (
-            <TableSkeleton rows={5} columns={5} />
-          ) : !hasSearched ? (
-            <div className="py-12 text-center">
-              <Search className="h-12 w-12 text-blue-500/30 mx-auto mb-4" />
-              <p className="text-slate-500">
-                {t('catalogo_instruccion', 'Ingresa un código SAP, descripción o palabra clave para buscar materiales')}
-              </p>
-            </div>
-          ) : results.length === 0 ? (
-            <div className="py-12 text-center">
-              <Package className="h-12 w-12 text-indigo-500/30 mx-auto mb-4" />
-              <p className="text-slate-500">
-                {t('catalogo_sin_resultados', 'No se encontraron materiales con los criterios de búsqueda')}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto border border-white/30 rounded-lg">
-              <table className="w-full text-sm">
-                <thead className="bg-[var(--bg-soft)] backdrop-blur-sm border-b-2 border-[var(--border)]">
-                  <tr>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
-                      {t('catalogo_col_codigo', 'Código')}
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
-                      {t('catalogo_col_descripcion', 'Descripción')}
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
-                      {t('catalogo_col_unidad', 'Unidad')}
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)] border-r border-b border-slate-200">
-                      {t('catalogo_col_precio', 'Precio USD')}
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--fg-muted)]">
-                      {t('catalogo_col_acciones', 'Acciones')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {results.map((mat, idx) => (
-                    <tr
-                      key={mat.codigo}
-                      className={`
-                        border-b border-white/30 transition-colors cursor-pointer
-                        ${idx % 2 === 0 ? 'bg-transparent' : 'bg-slate-50/70/30'}
-                        hover:bg-slate-100/70
-                        ${selectedMaterial?.codigo === mat.codigo ? 'ring-2 ring-inset ring-blue-500' : ''}
-                      `}
-                      onClick={() => loadDetail(mat)}
-                    >
-                      <td className="px-4 py-3 font-mono font-semibold text-blue-600 border-r border-b border-slate-200">
-                        {mat.codigo}
-                      </td>
-                      <td className="px-4 py-3 text-slate-800 border-r border-b border-slate-200">
-                        <p className="line-clamp-1">{mat.descripcion}</p>
-                        {mat.descripcion_larga && mat.descripcion_larga !== mat.descripcion && (
-                          <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
-                            {mat.descripcion_larga}
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center text-slate-500 border-r border-b border-slate-200">
-                        {mat.unidad_medida || mat.unidad || '-'}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-slate-800 border-r border-b border-slate-200">
-                        {formatCurrency(mat.precio_usd || 0)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            loadDetail(mat)
-                          }}
-                        >
-                          <ChevronRight className="h-4 w-4 text-slate-600" />
-                          {t('catalogo_ver_detalle', 'Ver detalle')}
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          </CardContent>
-        </Card>
-      </ScrollReveal>
-
-      {/* Detail Modal */}
-      <Modal
-        isOpen={showDetailModal}
-        onClose={handleCloseModal}
-        title={
-          selectedMaterial
-            ? `${selectedMaterial.codigo} — ${selectedMaterial.descripcion}`
-            : t('catalogo_detalle_titulo', 'Detalle del Material')
-        }
-        size="xl"
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
+      fullWidth
+      PaperProps={{
+        sx: { maxHeight: "90vh" }
+      }}
+    >
+      <DialogTitle
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: 1,
+          borderColor: "divider",
+          py: 2,
+          px: 3,
+        }}
       >
+        <Stack direction="row" alignItems="center" spacing={1.5}>
+          <Typography
+            variant="subtitle1"
+            fontFamily="monospace"
+            fontWeight={700}
+            color="primary.main"
+          >
+            {material.codigo}
+          </Typography>
+          <Typography variant="body1" color="text.primary">
+            {material.descripcion}
+          </Typography>
+        </Stack>
+        <IconButton onClick={onClose} size="small" sx={{ color: "text.secondary" }}>
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+
+      <DialogContent sx={{ p: 3 }}>
         {loadingDetail ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          </div>
-        ) : selectedMaterial && (
-          <div className="space-y-4">
+          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <Stack spacing={2}>
             {/* Basic Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-slate-50/70 border border-white/30 rounded-lg">
-                <p className="text-xs uppercase font-semibold text-slate-500 mb-2">
-                  {t('catalogo_desc_larga', 'Descripción larga')}
-                </p>
-                <p className="text-slate-800">
-                  {selectedMaterial.descripcion_larga || selectedMaterial.descripcion || 'N/D'}
-                </p>
-              </div>
-              <div className="p-4 bg-slate-50/70 border border-white/30 rounded-lg space-y-2">
-                <InfoRow label={t('catalogo_unidad', 'Unidad')} value={selectedMaterial.unidad || 'N/D'} />
-                <InfoRow label={t('catalogo_precio_usd', 'Precio USD')} value={formatCurrency(selectedMaterial.precio_usd || 0)} />
-              </div>
-            </div>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
+              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                <Typography
+                  variant="caption"
+                  fontWeight={700}
+                  textTransform="uppercase"
+                  letterSpacing={0.5}
+                  color="text.secondary"
+                  sx={{ mb: 1, display: "block" }}
+                >
+                  {t("catalogo_desc_larga", "Descripcion larga")}
+                </Typography>
+                <Typography variant="body2" color="text.primary">
+                  {material.descripcion_larga || material.descripcion || "N/D"}
+                </Typography>
+              </Paper>
+              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                  <Typography variant="caption" fontWeight={700} textTransform="uppercase" letterSpacing={0.5} color="text.secondary">
+                    {t("catalogo_unidad", "Unidad")}
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600} color="text.primary">
+                    {material.unidad || "N/D"}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Typography variant="caption" fontWeight={700} textTransform="uppercase" letterSpacing={0.5} color="text.secondary">
+                    {t("catalogo_precio_usd", "Precio USD")}
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600} color="text.primary">
+                    {formatCurrency(material.precio_usd || 0)}
+                  </Typography>
+                </Box>
+              </Paper>
+            </Box>
 
             {/* Stock Section */}
             <CollapsibleSection
-              title={t('catalogo_stock', 'Stock')}
-              icon={<Boxes className="h-4 w-4" />}
+              title={t("catalogo_stock", "Stock")}
+              icon={<InventoryIcon fontSize="small" />}
               expanded={expandedSections.stock}
-              onToggle={() => toggleSection('stock')}
+              onToggle={() => toggleSection("stock")}
               variant="info"
             >
-              <div className="space-y-2">
-                <InfoRow
-                  label={t('catalogo_stock_total', 'Stock Total')}
-                  value={detail?.stock_total ?? 'N/D'}
-                />
-                <InfoRow
-                  label={t('catalogo_pedidos_curso', 'Pedidos en Curso')}
-                  value={detail?.pedidos_en_curso ?? 'N/D'}
-                />
-                {(detail?.stock_detalle?.length > 0) && (
-                  <div className="mt-3">
-                    <p className="text-xs uppercase font-semibold text-slate-500 mb-2">
-                      {t('catalogo_stock_por_centro', 'Desglose por Centro/Almacén')}
-                    </p>
-                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                      {detail.stock_detalle.map((row, idx) => (
-                        <div key={idx} className="text-xs p-2 bg-white rounded border border-white/30">
-                          <span className="font-medium">Centro {row.centro}</span> /
-                          <span className="ml-1">Almacén {formatAlmacen(row.almacen_consultado || row.almacen)}</span>
-                          {row.lote && <span className="ml-1">/ Lote {row.lote}</span>}
-                          <span className="ml-2 font-mono font-semibold text-blue-600">
-                            Stock: {row.stock}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <Stack direction="row" spacing={4} sx={{ mb: 2 }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">Stock Total</Typography>
+                  <Typography variant="h5" fontWeight={700} color="text.primary">
+                    {detail?.stock_total ?? "N/D"}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">Pedidos en Curso</Typography>
+                  <Typography variant="h5" fontWeight={700} color="text.primary">
+                    {detail?.pedidos_en_curso ?? "N/D"}
+                  </Typography>
+                </Box>
+              </Stack>
+              {detail?.stock_detalle?.length > 0 && (
+                <Box sx={{ maxHeight: 160, overflow: "auto" }}>
+                  <List disablePadding>
+                    {detail.stock_detalle.map((row, idx) => (
+                      <ListItem
+                        key={idx}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                          py: 0.75,
+                          px: 1.5,
+                          borderRadius: 1,
+                          bgcolor: idx % 2 ? "grey.50" : "background.paper",
+                        }}
+                      >
+                        <Typography variant="body2">Centro {row.centro}</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          / Almacen {formatAlmacen(row.almacen_consultado || row.almacen)}
+                        </Typography>
+                        {row.lote && <Typography variant="body2" color="text.secondary">/ Lote {row.lote}</Typography>}
+                        <Typography variant="body2" fontWeight={600} color="primary.main" sx={{ ml: "auto" }}>
+                          Stock: {row.stock}
+                        </Typography>
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+              )}
             </CollapsibleSection>
 
             {/* MRP Section */}
             <CollapsibleSection
-              title={t('catalogo_mrp', 'Parámetros MRP')}
-              icon={<TrendingUp className="h-4 w-4" />}
+              title={t("catalogo_mrp", "Parametros MRP")}
+              icon={<TrendingUpIcon fontSize="small" />}
               expanded={expandedSections.mrp}
-              onToggle={() => toggleSection('mrp')}
+              onToggle={() => toggleSection("mrp")}
               variant="warning"
-              badge={detail?.mrp_list?.length > 0 ? detail.mrp_list.length : undefined}
+              badge={detail?.mrp_list?.length}
             >
               {detail?.mrp_list?.length > 0 ? (
-                <div className="space-y-3">
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 1.5 }}>
                   {detail.mrp_list.map((mrp, idx) => (
-                    <div
-                      key={`${mrp.centro}-${mrp.almacen}-${idx}`}
-                      className="p-3 bg-white border border-white/30 rounded-lg"
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm font-semibold text-amber-700">
-                          {t('catalogo_centro', 'Centro')}: {mrp.centro}
-                        </span>
-                        <span className="text-slate-400">|</span>
-                        <span className="text-sm text-slate-600">
-                          {t('catalogo_almacen', 'Almacén')}: {mrp.almacen}
-                        </span>
+                    <Paper key={idx} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                        <Typography variant="body2" fontWeight={600}>Centro: {mrp.centro}</Typography>
+                        <Typography variant="body2" color="text.secondary">| Almacen: {mrp.almacen}</Typography>
                         {mrp.sector && (
-                          <>
-                            <span className="text-slate-400">|</span>
-                            <span className="text-xs px-2 py-0.5 bg-amber-50 text-amber-700 rounded">
-                              {mrp.sector}
-                            </span>
-                          </>
+                          <Chip label={mrp.sector} size="small" variant="outlined" sx={{ height: 20, fontSize: "0.7rem" }} />
                         )}
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 text-sm">
-                        <div className="text-center p-2 bg-slate-50/50 rounded">
-                          <div className="text-xs text-slate-500">{t('catalogo_stock_seguridad', 'Stock Seg.')}</div>
-                          <div className="font-semibold text-slate-800">{mrp.stock_seguridad ?? 0}</div>
-                        </div>
-                        <div className="text-center p-2 bg-slate-50/50 rounded">
-                          <div className="text-xs text-slate-500">{t('catalogo_punto_pedido', 'Pto. Pedido')}</div>
-                          <div className="font-semibold text-slate-800">{mrp.punto_pedido ?? 0}</div>
-                        </div>
-                        <div className="text-center p-2 bg-slate-50/50 rounded">
-                          <div className="text-xs text-slate-500">{t('catalogo_stock_maximo', 'Stock Máx.')}</div>
-                          <div className="font-semibold text-slate-800">{mrp.stock_maximo ?? 0}</div>
-                        </div>
-                      </div>
-                    </div>
+                      </Stack>
+                      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, textAlign: "center" }}>
+                        <Paper sx={{ p: 1, bgcolor: "grey.50", borderRadius: 1 }} elevation={0}>
+                          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>Stock Seg.</Typography>
+                          <Typography variant="body2" fontWeight={600}>{mrp.stock_seguridad ?? 0}</Typography>
+                        </Paper>
+                        <Paper sx={{ p: 1, bgcolor: "grey.50", borderRadius: 1 }} elevation={0}>
+                          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>Pto. Pedido</Typography>
+                          <Typography variant="body2" fontWeight={600}>{mrp.punto_pedido ?? 0}</Typography>
+                        </Paper>
+                        <Paper sx={{ p: 1, bgcolor: "grey.50", borderRadius: 1 }} elevation={0}>
+                          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>Stock Max.</Typography>
+                          <Typography variant="body2" fontWeight={600}>{mrp.stock_maximo ?? 0}</Typography>
+                        </Paper>
+                      </Box>
+                    </Paper>
                   ))}
-                </div>
+                </Box>
               ) : (
-                <p className="text-sm text-slate-500">
-                  {t('catalogo_sin_mrp', 'Este material no está planificado en MRP')}
-                </p>
+                <Typography variant="body2" color="text.secondary">
+                  {t("catalogo_sin_mrp", "Este material no esta planificado en MRP")}
+                </Typography>
               )}
             </CollapsibleSection>
 
-            {/* Consumo Histórico */}
+            {/* Consumo Section */}
             <CollapsibleSection
-              title={t('catalogo_consumo', 'Consumo Histórico')}
-              icon={<TrendingUp className="h-4 w-4" />}
+              title={t("catalogo_consumo", "Consumo Historico")}
+              icon={<ScheduleIcon fontSize="small" />}
               expanded={expandedSections.consumo}
-              onToggle={() => toggleSection('consumo')}
+              onToggle={() => toggleSection("consumo")}
               variant="success"
-              badge={detail?.consumo_list?.length > 0 ? detail.consumo_list.length : undefined}
+              badge={detail?.consumo_list?.length}
             >
               {detail?.consumo_list?.length > 0 ? (
-                <div className="space-y-3">
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 1.5 }}>
                   {detail.consumo_list.map((c, idx) => (
-                    <div
-                      key={`${c.centro}-${c.almacen}-${idx}`}
-                      className="p-3 bg-white border border-white/30 rounded-lg"
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm font-semibold text-emerald-700">
-                          {t('catalogo_centro', 'Centro')}: {c.centro}
-                        </span>
-                        <span className="text-slate-400">|</span>
-                        <span className="text-sm text-slate-600">
-                          {t('catalogo_almacen', 'Almacén')}: {c.almacen}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 text-sm">
-                        <div className="text-center p-2 bg-slate-50/50 rounded">
-                          <div className="text-xs text-slate-500">{t('catalogo_promedio_anual', 'Prom. Anual')}</div>
-                          <div className="font-semibold text-emerald-700">{c.promedio_anual}</div>
-                        </div>
-                        <div className="text-center p-2 bg-slate-50/50 rounded">
-                          <div className="text-xs text-slate-500">{t('catalogo_total_consumo', 'Total')}</div>
-                          <div className="font-semibold text-slate-800">{c.total}</div>
-                        </div>
-                        <div className="text-center p-2 bg-slate-50/50 rounded">
-                          <div className="text-xs text-slate-500">{t('catalogo_rango_anios', 'Años')}</div>
-                          <div className="font-semibold text-slate-800">{c.anio_desde}-{c.anio_hasta}</div>
-                        </div>
-                      </div>
-                    </div>
+                    <Paper key={idx} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                        <Typography variant="body2" fontWeight={600}>Centro: {c.centro}</Typography>
+                        <Typography variant="body2" color="text.secondary">| Almacen: {c.almacen}</Typography>
+                      </Stack>
+                      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, textAlign: "center" }}>
+                        <Paper sx={{ p: 1, bgcolor: "grey.50", borderRadius: 1 }} elevation={0}>
+                          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>Prom. Anual</Typography>
+                          <Typography variant="body2" fontWeight={600} color="success.main">{c.promedio_anual}</Typography>
+                        </Paper>
+                        <Paper sx={{ p: 1, bgcolor: "grey.50", borderRadius: 1 }} elevation={0}>
+                          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>Total</Typography>
+                          <Typography variant="body2" fontWeight={600}>{c.total}</Typography>
+                        </Paper>
+                        <Paper sx={{ p: 1, bgcolor: "grey.50", borderRadius: 1 }} elevation={0}>
+                          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>Anos</Typography>
+                          <Typography variant="body2" fontWeight={600}>{c.anio_desde}-{c.anio_hasta}</Typography>
+                        </Paper>
+                      </Box>
+                    </Paper>
                   ))}
-                </div>
+                </Box>
               ) : (
-                <p className="text-sm text-slate-500">
-                  {t('catalogo_sin_consumo', 'No hay consumo histórico registrado')}
-                </p>
+                <Typography variant="body2" color="text.secondary">
+                  {t("catalogo_sin_consumo", "No hay consumo historico registrado")}
+                </Typography>
               )}
             </CollapsibleSection>
 
-            {/* Solicitudes SPM Activas */}
+            {/* Solicitudes Section */}
             <CollapsibleSection
-              title={t('catalogo_solicitudes_spm', 'Solicitudes SPM Activas')}
-              icon={<ClipboardList className="h-4 w-4" />}
+              title={t("catalogo_solicitudes_spm", "Solicitudes SPM Activas")}
+              icon={<DescriptionIcon fontSize="small" />}
               expanded={expandedSections.solicitudes}
-              onToggle={() => toggleSection('solicitudes')}
+              onToggle={() => toggleSection("solicitudes")}
               variant="primary"
-              badge={solicitudesData.length > 0 ? solicitudesData.length : undefined}
+              badge={solicitudesData.length}
+              loading={loadingSolicitudes}
             >
-              {loadingSolicitudes ? (
-                <div className="flex items-center gap-2 text-slate-500">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm">{t('common_cargando', 'Cargando...')}</span>
-                </div>
-              ) : solicitudesData.length === 0 ? (
-                <p className="text-sm text-slate-500">
-                  {t('catalogo_sin_solicitudes', 'No hay solicitudes SPM activas para este material')}
-                </p>
+              {solicitudesData.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  {t("catalogo_sin_solicitudes", "No hay solicitudes SPM activas para este material")}
+                </Typography>
               ) : (
-                <div className="space-y-2">
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 1.5 }}>
                   {solicitudesData.map((sol) => (
-                    <div
-                      key={sol.id}
-                      className="p-3 bg-white border border-white/30 rounded-lg"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold text-blue-600">
+                    <Paper key={sol.id} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                        <Typography variant="body2" fontWeight={600} color="primary.main">
                           SPM #{sol.id}
-                        </span>
-                        <Badge variant={getStatusVariant(sol.estado)}>
-                          {sol.estado}
-                        </Badge>
-                      </div>
-                      <div className="text-xs text-slate-500 space-y-0.5">
-                        <p><span className="font-medium">Solicitante:</span> {sol.solicitante}</p>
-                        <p><span className="font-medium">Cantidad:</span> {sol.cantidad_solicitada}</p>
-                        <p><span className="font-medium">Fecha:</span> {new Date(sol.fecha).toLocaleDateString()}</p>
-                        {sol.centro && <p><span className="font-medium">Centro:</span> {sol.centro}</p>}
-                      </div>
-                    </div>
+                        </Typography>
+                        <Chip
+                          label={sol.estado}
+                          size="small"
+                          color={getStatusColor(sol.estado)}
+                          sx={{ height: 20, fontSize: "0.7rem" }}
+                        />
+                      </Stack>
+                      <Typography variant="caption" display="block" color="text.secondary">Solicitante: {sol.solicitante}</Typography>
+                      <Typography variant="caption" display="block" color="text.secondary">Cantidad: {sol.cantidad_solicitada}</Typography>
+                      <Typography variant="caption" display="block" color="text.secondary">
+                        Fecha: {new Date(sol.fecha).toLocaleDateString()}
+                      </Typography>
+                    </Paper>
                   ))}
-                </div>
+                </Box>
               )}
             </CollapsibleSection>
 
-            {/* Equivalencias */}
+            {/* Equivalencias Section */}
             <CollapsibleSection
-              title={t('catalogo_equivalencias', 'Materiales Equivalentes')}
-              icon={<GitCompare className="h-4 w-4" />}
+              title={t("catalogo_equivalencias", "Materiales Equivalentes")}
+              icon={<SwapHorizIcon fontSize="small" />}
               expanded={expandedSections.equivalencias}
-              onToggle={() => toggleSection('equivalencias')}
-              variant="accent"
-              badge={equivalenciasData.length > 0 ? equivalenciasData.length : undefined}
+              onToggle={() => toggleSection("equivalencias")}
+              badge={equivalenciasData.length}
+              loading={loadingEquivalencias}
             >
-              {loadingEquivalencias ? (
-                <div className="flex items-center gap-2 text-slate-500">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm">{t('common_cargando', 'Cargando...')}</span>
-                </div>
-              ) : equivalenciasData.length === 0 ? (
-                <p className="text-sm text-slate-500">
-                  {t('catalogo_sin_equivalencias', 'No hay materiales equivalentes registrados')}
-                </p>
+              {equivalenciasData.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  {t("catalogo_sin_equivalencias", "No hay materiales equivalentes registrados")}
+                </Typography>
               ) : (
-                <div className="space-y-2">
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 1.5 }}>
                   {equivalenciasData.map((eq, idx) => (
-                    <div
-                      key={eq.codigo_equivalente || idx}
-                      className="p-3 bg-white border border-white/30 rounded-lg"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-mono font-semibold text-cyan-600">
+                    <Paper key={eq.codigo_equivalente || idx} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                        <Typography variant="body2" fontFamily="monospace" fontWeight={600} color="primary.main">
                           {eq.codigo_equivalente}
-                        </span>
+                        </Typography>
                         {eq.tipo_equivalencia && (
-                          <span className="text-xs px-2 py-0.5 bg-cyan-50 text-cyan-700 rounded">
-                            {eq.tipo_equivalencia}
-                          </span>
+                          <Chip label={eq.tipo_equivalencia} size="small" variant="outlined" sx={{ height: 20, fontSize: "0.7rem" }} />
                         )}
-                      </div>
-                      <p className="text-sm text-slate-800">{eq.descripcion_equivalente}</p>
+                      </Stack>
+                      <Typography variant="body2" color="text.primary">{eq.descripcion_equivalente}</Typography>
                       {eq.criterio && (
-                        <p className="text-xs text-slate-500 mt-1">
-                          <span className="font-medium">{t('catalogo_criterio', 'Criterio')}:</span> {eq.criterio}
-                        </p>
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+                          Criterio: {eq.criterio}
+                        </Typography>
                       )}
-                      {eq.motivo && (
-                        <p className="text-xs text-slate-500 mt-1">
-                          <span className="font-medium">{t('catalogo_motivo', 'Motivo')}:</span> {eq.motivo}
-                        </p>
-                      )}
-                    </div>
+                    </Paper>
                   ))}
-                </div>
+                </Box>
               )}
             </CollapsibleSection>
-          </div>
+          </Stack>
         )}
-      </Modal>
-    </div>
-  )
+      </DialogContent>
+    </Dialog>
+  );
 }
 
-// Helper Components
+/* ─────────────────────────────────────────────────────────────
+   Main Component
+───────────────────────────────────────────────────────────── */
+export default function CatalogoMateriales() {
+  const { t } = useI18n();
+  const navigate = useNavigate();
 
-function InfoRow({ label, value }) {
+  // Search state
+  const [searchCodigo, setSearchCodigo] = useState("");
+  const [searchDesc, setSearchDesc] = useState("");
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [searchGrupo, setSearchGrupo] = useState("");
+  const [gruposOptions, setGruposOptions] = useState([]);
+  const [loadingGrupos, setLoadingGrupos] = useState(false);
+
+  const debouncedCodigo = useDebouncedValue(searchCodigo, DEBOUNCE_MS);
+  const debouncedDesc = useDebouncedValue(searchDesc, DEBOUNCE_MS);
+  const debouncedKeyword = useDebouncedValue(searchKeyword, DEBOUNCE_MS);
+  const debouncedGrupo = useDebouncedValue(searchGrupo, DEBOUNCE_MS);
+
+  // Results state
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [hasSearched, setHasSearched] = useState(false);
+
+  // Detail state
+  const [selectedMaterial, setSelectedMaterial] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [solicitudesData, setSolicitudesData] = useState([]);
+  const [loadingSolicitudes, setLoadingSolicitudes] = useState(false);
+  const [equivalenciasData, setEquivalenciasData] = useState([]);
+  const [loadingEquivalencias, setLoadingEquivalencias] = useState(false);
+
+  // Load grupos options
+  useEffect(() => {
+    setLoadingGrupos(true);
+    materiales
+      .grupos(debouncedGrupo, 100)
+      .then((res) => setGruposOptions(res.data?.data || []))
+      .catch(() => setGruposOptions([]))
+      .finally(() => setLoadingGrupos(false));
+  }, [debouncedGrupo]);
+
+  // Search materials
+  useEffect(() => {
+    const shouldSearch = debouncedCodigo.trim() !== "" || debouncedDesc.trim() !== "" || debouncedKeyword.trim() !== "" || searchGrupo !== "";
+    if (!shouldSearch) {
+      if (hasSearched) {
+        setResults([]);
+        setHasSearched(false);
+      }
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setHasSearched(true);
+
+    const searchTerms = [debouncedDesc.trim(), debouncedKeyword.trim()].filter(Boolean).join(" ");
+
+    materiales
+      .buscar({ codigo: debouncedCodigo.trim(), descripcion: searchTerms, grupo: searchGrupo || "", limit: MAX_RESULTS })
+      .then((res) => {
+        const data = res.data?.data || res.data || [];
+        setResults(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        setError(err.response?.data?.error?.message || err.message);
+        setResults([]);
+      })
+      .finally(() => setLoading(false));
+  }, [debouncedCodigo, debouncedDesc, debouncedKeyword, searchGrupo, hasSearched]);
+
+  // Load material detail
+  const loadDetail = useCallback(async (mat) => {
+    setSelectedMaterial(mat);
+    setShowDetailModal(true);
+    setLoadingDetail(true);
+    setDetail(null);
+    setSolicitudesData([]);
+    setEquivalenciasData([]);
+
+    try {
+      const res = await materiales.detalle(mat.codigo);
+      setDetail(res.data || {});
+    } catch (err) {
+      setDetail(null);
+    } finally {
+      setLoadingDetail(false);
+    }
+
+    setLoadingSolicitudes(true);
+    try {
+      const res = await materiales.solicitudes(mat.codigo);
+      setSolicitudesData(res.data?.solicitudes || []);
+    } catch (err) {
+      setSolicitudesData([]);
+    } finally {
+      setLoadingSolicitudes(false);
+    }
+
+    setLoadingEquivalencias(true);
+    try {
+      const res = await equivalencias.porMaterial(mat.codigo);
+      setEquivalenciasData(res.data?.equivalencias || []);
+    } catch (err) {
+      setEquivalenciasData([]);
+    } finally {
+      setLoadingEquivalencias(false);
+    }
+  }, []);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchCodigo("");
+    setSearchDesc("");
+    setSearchKeyword("");
+    setSearchGrupo("");
+    setResults([]);
+    setHasSearched(false);
+    setSelectedMaterial(null);
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setShowDetailModal(false);
+    setSelectedMaterial(null);
+    setDetail(null);
+  }, []);
+
+  // AG Grid column definitions
+  const columnDefs = useMemo(
+    () => [
+      {
+        field: "codigo",
+        headerName: "Codigo",
+        flex: 0.6,
+        minWidth: 120,
+        cellStyle: { textAlign: 'center' },
+        headerClass: 'ag-center-aligned-header',
+        cellRenderer: (params) => (
+          <Typography variant="body2" fontFamily="monospace" fontWeight={600} color="primary.main">
+            {params.value}
+          </Typography>
+        ),
+      },
+      {
+        field: "descripcion",
+        headerName: "Descripcion",
+        flex: 1.5,
+        minWidth: 250,
+        cellRenderer: (params) => (
+          <Box>
+            <Typography variant="body2" sx={{ lineHeight: 1.3 }}>{params.value}</Typography>
+            {params.data.descripcion_larga && params.data.descripcion_larga !== params.value && (
+              <Typography variant="caption" color="text.secondary">
+                {params.data.descripcion_larga.substring(0, 60)}...
+              </Typography>
+            )}
+          </Box>
+        ),
+      },
+      {
+        field: "unidad_medida",
+        headerName: "Unidad",
+        flex: 0.4,
+        minWidth: 80,
+        cellStyle: { textAlign: 'center' },
+        headerClass: 'ag-center-aligned-header',
+        valueGetter: (params) => params.data.unidad_medida || params.data.unidad || "-",
+      },
+      {
+        field: "precio_usd",
+        headerName: "Precio USD",
+        flex: 0.5,
+        minWidth: 100,
+        cellStyle: { textAlign: 'right' },
+        headerClass: 'ag-right-aligned-header',
+        cellRenderer: (params) => (
+          <Typography variant="body2" fontFamily="monospace">{formatCurrency(params.value || 0)}</Typography>
+        ),
+      },
+      {
+        field: "acciones",
+        headerName: "Acciones",
+        flex: 0.5,
+        minWidth: 120,
+        cellStyle: { textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center' },
+        headerClass: 'ag-center-aligned-header',
+        sortable: false,
+        filter: false,
+        cellRenderer: (params) => (
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              loadDetail(params.data);
+            }}
+            sx={{ textTransform: "uppercase", fontSize: "0.75rem", fontWeight: 600 }}
+          >
+            Ver Detalle
+          </Button>
+        ),
+      },
+    ],
+    [loadDetail]
+  );
+
   return (
-    <div className="flex items-center justify-between text-sm">
-      <span className="text-slate-500">{label}</span>
-      <span className="font-semibold text-slate-900">{value}</span>
-    </div>
-  )
-}
+    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+      <Box sx={{ maxWidth: 1600, mx: "auto", px: 3, py: 3 }}>
+        {/* Header */}
+        <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
+          <IconButton onClick={() => navigate(-1)} sx={{ color: "text.secondary" }}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Box>
+            <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              {t("catalogo_materiales_titulo", "Catálogo de Materiales")}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {t("catalogo_materiales_subtitulo", "Busca y consulta informacion de materiales SAP")}
+            </Typography>
+          </Box>
+        </Stack>
 
-function CollapsibleSection({ title, icon, expanded, onToggle, variant = 'default', badge, children }) {
-  const variantStyles = {
-    default: 'border-white/30',
-    primary: 'border-blue-500/30 bg-blue-500/5',
-    info: 'border-blue-500/30 bg-blue-500/5',
-    warning: 'border-amber-500/30 bg-amber-500/5',
-    success: 'border-emerald-500/30 bg-emerald-500/5',
-    accent: 'border-cyan-500/30 bg-cyan-500/5',
-  }
+        {/* Search Card */}
+        <Paper variant="outlined" sx={{ p: 2.5, mb: 3, borderRadius: 2 }}>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "flex-end" }}>
+            <Box sx={{ minWidth: 150 }}>
+              <Typography
+                variant="caption"
+                fontWeight={700}
+                textTransform="uppercase"
+                letterSpacing={0.5}
+                color="text.secondary"
+                sx={{ mb: 0.75, display: "block" }}
+              >
+                {t("catalogo_codigo_sap", "Codigo SAP")}
+              </Typography>
+              <TextField
+                size="small"
+                value={searchCodigo}
+                onChange={(e) => setSearchCodigo(e.target.value)}
+                placeholder="Ej: 100012345"
+                fullWidth
+                InputProps={{
+                  sx: { fontFamily: "monospace" }
+                }}
+              />
+            </Box>
 
-  return (
-    <div className={`border rounded-lg overflow-hidden ${variantStyles[variant]}`}>
-      <button
-        type="button"
-        onClick={onToggle}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-100/70 transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          {icon}
-          <span className="font-medium text-slate-900">{title}</span>
-          {badge !== undefined && (
-            <Badge variant="primary" size="sm">{badge}</Badge>
+            <Box sx={{ flex: 1, minWidth: 200 }}>
+              <Typography
+                variant="caption"
+                fontWeight={700}
+                textTransform="uppercase"
+                letterSpacing={0.5}
+                color="text.secondary"
+                sx={{ mb: 0.75, display: "block" }}
+              >
+                {t("catalogo_descripcion", "Descripcion")}
+              </Typography>
+              <TextField
+                size="small"
+                value={searchDesc}
+                onChange={(e) => setSearchDesc(e.target.value)}
+                placeholder={t("catalogo_buscar_desc", "Buscar por descripcion...")}
+                fullWidth
+              />
+            </Box>
+
+            <Box sx={{ flex: 1, minWidth: 200 }}>
+              <Typography
+                variant="caption"
+                fontWeight={700}
+                textTransform="uppercase"
+                letterSpacing={0.5}
+                color="text.secondary"
+                sx={{ mb: 0.75, display: "block" }}
+              >
+                {t("catalogo_palabra_clave", "Palabra clave")}
+              </Typography>
+              <TextField
+                size="small"
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                placeholder={t("catalogo_buscar_keyword", "Filtro adicional...")}
+                fullWidth
+              />
+            </Box>
+
+            <Box sx={{ flex: 1, minWidth: 200 }}>
+              <Typography
+                variant="caption"
+                fontWeight={700}
+                textTransform="uppercase"
+                letterSpacing={0.5}
+                color="text.secondary"
+                sx={{ mb: 0.75, display: "block" }}
+              >
+                {t("catalogo_grupo_articulos", "Grupo de Articulos")}
+              </Typography>
+              <Autocomplete
+                freeSolo
+                size="small"
+                options={gruposOptions}
+                value={searchGrupo}
+                onInputChange={(event, newValue) => setSearchGrupo(newValue)}
+                loading={loadingGrupos}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder={t("catalogo_buscar_grupo", "Buscar grupo...")}
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {loadingGrupos ? <CircularProgress color="inherit" size={16} /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+              />
+            </Box>
+
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ height: 40 }}>
+              {loading ? (
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <CircularProgress size={20} />
+                  <Typography variant="body2" color="text.secondary">
+                    {t("common_buscando", "Buscando...")}
+                  </Typography>
+                </Stack>
+              ) : hasSearched ? (
+                <>
+                  <Chip
+                    label={`${results.length} ${t("common_resultados", "resultados")}`}
+                    color={results.length > 0 ? "primary" : "default"}
+                    variant={results.length > 0 ? "filled" : "outlined"}
+                    size="small"
+                  />
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    onClick={handleClearSearch}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    {t("common_limpiar", "Limpiar")}
+                  </Button>
+                </>
+              ) : (searchCodigo || searchDesc || searchKeyword || searchGrupo) ? (
+                <IconButton onClick={handleClearSearch} size="small" color="error">
+                  <CloseIcon />
+                </IconButton>
+              ) : null}
+            </Stack>
+          </Box>
+        </Paper>
+
+        {/* Error */}
+        {error && (
+          <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        {/* Results */}
+        <Paper
+          variant="outlined"
+          sx={{
+            borderRadius: 2,
+            height: "calc(100vh - 280px)",
+            minHeight: 500,
+          }}
+        >
+          {!hasSearched ? (
+            <Stack alignItems="center" justifyContent="center" sx={{ height: "100%", color: "text.secondary" }}>
+              <SearchIcon sx={{ fontSize: 40, color: "grey.400" }} />
+              <Typography variant="body2" sx={{ mt: 2 }}>
+                {t("catalogo_instruccion", "Ingresa un codigo SAP, descripcion o palabra clave para buscar materiales")}
+              </Typography>
+            </Stack>
+          ) : results.length === 0 && !loading ? (
+            <Stack alignItems="center" justifyContent="center" sx={{ height: "100%", color: "text.secondary" }}>
+              <Inventory2Icon sx={{ fontSize: 40, color: "grey.400" }} />
+              <Typography variant="body2" sx={{ mt: 2 }}>
+                {t("catalogo_sin_resultados", "No se encontraron materiales con los criterios de busqueda")}
+              </Typography>
+            </Stack>
+          ) : (
+            <SPMAgGrid
+              rowData={results}
+              columnDefs={columnDefs}
+              loading={loading}
+              height="100%"
+              pagination={true}
+              paginationPageSize={100}
+              paginationPageSizeSelector={[25, 50, 100]}
+              enableQuickFilter={true}
+              onRowClick={(data) => loadDetail(data)}
+              exportFileName="catalogo_materiales"
+              emptyMessage={t("catalogo_sin_resultados", "No se encontraron materiales")}
+              gridOptions={{
+                getRowId: (params) => params.data.codigo,
+                rowHeight: 67,
+              }}
+            />
           )}
-        </div>
-        <ChevronRight className={`h-4 w-4 text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`} />
-      </button>
-      {expanded && (
-        <div className="px-4 pb-4 pt-2 border-t border-white/30">
-          {children}
-        </div>
-      )}
-    </div>
-  )
-}
+        </Paper>
 
-function CompatibilityBadge({ percent }) {
-  let variant = 'success'
-  if (percent < 50) variant = 'danger'
-  else if (percent < 80) variant = 'warning'
-
-  return (
-    <Badge variant={variant}>
-      {percent}% compatible
-    </Badge>
-  )
-}
-
-function getStatusVariant(status) {
-  const variants = {
-    submitted: 'warning',
-    approved: 'success',
-    processing: 'info',
-    dispatched: 'primary',
-    rejected: 'danger',
-    closed: 'ghost',
-    draft: 'ghost',
-  }
-  return variants[status] || 'ghost'
+        {/* Detail Modal */}
+        <DetailModal
+          open={showDetailModal}
+          material={selectedMaterial}
+          detail={detail}
+          loadingDetail={loadingDetail}
+          solicitudesData={solicitudesData}
+          loadingSolicitudes={loadingSolicitudes}
+          equivalenciasData={equivalenciasData}
+          loadingEquivalencias={loadingEquivalencias}
+          onClose={handleCloseModal}
+          t={t}
+        />
+      </Box>
+    </Box>
+  );
 }

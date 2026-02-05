@@ -12,16 +12,17 @@ logger = logging.getLogger(__name__)
 
 
 class MaterialRepository:
-    """Repositorio para operaciones de Material (usa catalogo_materiales.db)"""
+    """Repositorio para operaciones de Material (usa master_materiales.db)"""
 
     @staticmethod
     def get_info(codigo: str) -> Optional[Dict[str, Any]]:
-        """Obtiene información de material desde catalogo_materiales.db"""
+        """Obtiene información de material desde master_materiales.db - tabla catalogo_materiales"""
         conn = _connect_catalogo()
         try:
             cur = conn.cursor()
+            # Tabla catalogo_materiales en master_materiales.db
             cur.execute(
-                "SELECT descripcion, precio_usd FROM materiales WHERE codigo = ?", (codigo,)
+                "SELECT descripcion, precio_usd FROM catalogo_materiales WHERE id_material = ?", (codigo,)
             )
             row = cur.fetchone()
             return dict(row) if row else None
@@ -88,10 +89,7 @@ class MaterialRepository:
 
         # Si no hay datos en BD, usar Excel cache
         if not rows_raw:
-            try:
-                from backend.core.cache_loader import get_stock_cache
-            except ImportError:
-                from core.cache_loader import get_stock_cache
+            from backend.core.cache_loader import get_stock_cache
             df = get_stock_cache()
             if df is not None and not df.empty:
 

@@ -145,7 +145,7 @@ class PresupuestoService:
             _execute(
                 cur,
                 """SELECT centro, sector, monto_cents, saldo_cents, version
-                   FROM presupuestos WHERE centro = ? AND sector = ?""",
+                   FROM presupuesto WHERE centro = ? AND sector = ?""",
                 (centro, sector_normalizado),
             )
             row = _fetchone(cur)
@@ -309,7 +309,7 @@ class BURService:
             cur = conn.cursor()
             _execute(
                 cur,
-                """INSERT INTO budget_update_requests
+                """INSERT INTO presupuesto_solicitud_cambio
                    (centro, sector, monto_solicitado_cents, saldo_actual_cents,
                     nivel_aprobacion_requerido, solicitante_id, solicitante_rol, justificacion)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -329,7 +329,7 @@ class BURService:
             bur_id = row["id"] if isinstance(row, dict) else row[0]
             conn.commit()
 
-            _execute(cur, "SELECT * FROM budget_update_requests WHERE id = ?", (bur_id,))
+            _execute(cur, "SELECT * FROM presupuesto_solicitud_cambio WHERE id = ?", (bur_id,))
             row = _fetchone(cur)
             return {"ok": True, "bur": BudgetUpdateRequest.from_row(dict(row)).to_dict()}
         except Exception as e:
@@ -347,7 +347,7 @@ class BURService:
         conn = _connect()
         try:
             cur = conn.cursor()
-            _execute(cur, "SELECT * FROM budget_update_requests WHERE id = ?", (bur_id,))
+            _execute(cur, "SELECT * FROM presupuesto_solicitud_cambio WHERE id = ?", (bur_id,))
             row = _fetchone(cur)
             return BudgetUpdateRequest.from_row(dict(row)) if row else None
         finally:
@@ -389,7 +389,7 @@ class BURService:
 
             _execute(
                 cur,
-                f"""SELECT * FROM budget_update_requests
+                f"""SELECT * FROM presupuesto_solicitud_cambio
                     {where_sql}
                     ORDER BY created_at DESC
                     LIMIT ? OFFSET ?""",
@@ -465,7 +465,7 @@ class BURService:
             # Actualizar BUR
             _execute(
                 cur,
-                f"""UPDATE budget_update_requests
+                f"""UPDATE presupuesto_solicitud_cambio
                     SET estado = ?, {campo_aprobador} = ?, {campo_fecha} = ?,
                         {campo_comentario} = ?, updated_at = ?
                     WHERE id = ?""",
@@ -532,7 +532,7 @@ class BURService:
             cur = conn.cursor()
             _execute(
                 cur,
-                """UPDATE budget_update_requests
+                """UPDATE presupuesto_solicitud_cambio
                    SET estado = ?, rechazado_por = ?, motivo_rechazo = ?,
                        fecha_rechazo = ?, updated_at = ?
                    WHERE id = ?""",
@@ -600,7 +600,7 @@ class BURService:
             nuevo_saldo = info.saldo_cents - bur.monto_solicitado_cents
             _execute(
                 cur,
-                """UPDATE presupuestos
+                """UPDATE presupuesto
                    SET saldo_cents = ?, saldo_usd = ?, version = version + 1, updated_by = ?
                    WHERE centro = ? AND sector = ?""",
                 (nuevo_saldo, nuevo_saldo / 100, revertido_por, bur.centro, bur.sector),
@@ -633,7 +633,7 @@ class BURService:
             # Actualizar estado del BUR
             _execute(
                 cur,
-                """UPDATE budget_update_requests
+                """UPDATE presupuesto_solicitud_cambio
                    SET estado = ?, rechazado_por = ?, motivo_rechazo = ?,
                        fecha_rechazo = ?, updated_at = ?
                    WHERE id = ?""",

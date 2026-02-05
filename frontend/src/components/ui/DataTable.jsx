@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from "react";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import { ChevronUp, ChevronDown, ChevronsUpDown, Inbox } from "./Icons";
 
 // Columnas que deben centrarse automáticamente
@@ -33,12 +35,71 @@ function getColumnAlignment(key) {
   return 'center';
 }
 
+/**
+ * MobileCard Component - Renderiza una fila como card en móvil
+ */
+function MobileCard({ row, columns, rowIndex }) {
+  // Determinar columnas principales vs secundarias
+  // Las primeras 2-3 columnas son principales, el resto secundarias
+  const primaryColumns = columns.slice(0, 3);
+  const secondaryColumns = columns.slice(3);
+
+  return (
+    <div
+      className={`
+        p-4 rounded-lg border border-[var(--border-glass)]
+        bg-[var(--card-glass)] backdrop-blur-sm
+        ${rowIndex % 2 === 0 ? '' : 'bg-[var(--bg-soft)]/30'}
+      `}
+    >
+      {/* Columnas principales - más prominentes */}
+      <div className="space-y-2 mb-3">
+        {primaryColumns.map((col) => {
+          const value = col.render ? col.render(row) : row[col.key];
+          return (
+            <div key={col.key} className="flex justify-between items-start gap-2">
+              <span className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wide flex-shrink-0">
+                {col.header}
+              </span>
+              <span className="text-sm text-[var(--fg)] text-right">
+                {value}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Columnas secundarias - menos prominentes */}
+      {secondaryColumns.length > 0 && (
+        <div className="pt-3 border-t border-[var(--border-glass-subtle)] space-y-1.5">
+          {secondaryColumns.map((col) => {
+            const value = col.render ? col.render(row) : row[col.key];
+            return (
+              <div key={col.key} className="flex justify-between items-center gap-2">
+                <span className="text-xs text-[var(--fg-muted)]">
+                  {col.header}
+                </span>
+                <span className="text-xs text-[var(--fg)]">
+                  {value}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function DataTable({
   columns = [],
   rows = [],
   emptyMessage = "Sin datos",
-  className = ""
+  className = "",
+  mobileCardLayout = true, // Nueva prop para habilitar/deshabilitar cards en móvil
 }) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
 
   const handleSort = (key, sortAccessor) => {
@@ -99,6 +160,23 @@ export function DataTable({
     );
   }
 
+  // Mobile: Renderizar como cards
+  if (isMobile && mobileCardLayout) {
+    return (
+      <div className={`space-y-3 ${className}`} role="list" aria-label="Lista de datos">
+        {sortedRows.map((row, rowIndex) => (
+          <MobileCard
+            key={row.id || rowIndex}
+            row={row}
+            columns={columns}
+            rowIndex={rowIndex}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  // Desktop: Renderizar como tabla
   return (
     <div className={`overflow-x-auto rounded-lg border border-[var(--border-glass)] ${className}`} role="region" aria-label="Tabla de datos">
       <table className="w-full text-sm" role="table">

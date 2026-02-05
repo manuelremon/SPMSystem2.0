@@ -1,14 +1,12 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
-import { ModernDataTable as DataTable } from "../components/features/DataTable";
+import { SPMAgGrid } from "../components/ui/SPMAgGrid";
 import { TableSkeleton } from "../components/ui/Skeleton";
 import { ScrollReveal } from "../components/ui/ScrollReveal";
 import { solicitudes } from "../services/spm";
 import api from "../services/api";
-import { formatCurrency } from "../utils/formatters";
+import { formatCurrency, formatAlmacen, formatDate } from "../utils/formatters";
 import {
   Calendar,
-  Plus,
   TrendingUp,
   TrendingDown,
   FileText,
@@ -21,11 +19,22 @@ import {
 } from "../components/ui/Icons";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
-import { useNavigate, Link } from "react-router-dom";
-import { getTableColumns } from "./DashboardShared";
-import { Button } from "../components/ui/Button";
+import { useNavigate } from "react-router-dom";
 import { WeeklyRequestsKpiCard } from "../components/dashboard/WeeklyRequestsKpiCard";
-import clsx from "clsx";
+import StatusBadge from "../components/ui/StatusBadge";
+import { getCriticidadConfig } from "../utils/styleConfig";
+import { SPM_COLORS } from "../utils/chartTheme";
+
+// MUI Components
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
+import Stack from "@mui/material/Stack";
+import Grid from "@mui/material/Grid";
+import Chip from "@mui/material/Chip";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import CircularProgress from "@mui/material/CircularProgress";
 
 // KPI CHART COMPONENTS
 function DonutChart({ data, colors, labels }) {
@@ -34,41 +43,75 @@ function DonutChart({ data, colors, labels }) {
   const circumference = 2 * Math.PI * innerRadius;
   let currentOffset = 0;
   return (
-    <div className="relative w-full flex items-center justify-center">
-      <div className="relative w-48 h-48">
-        <svg viewBox="0 0 160 160" className="w-full h-full -rotate-90">
-          <circle cx="80" cy="80" r={innerRadius} fill="none" stroke="#f1f5f9" strokeWidth={strokeWidth} />
+    <Box sx={{ position: "relative", width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Box sx={{ position: "relative", width: 192, height: 192 }}>
+        <svg viewBox="0 0 160 160" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
+          <circle cx="80" cy="80" r={innerRadius} fill="none" stroke="var(--bg-soft)" strokeWidth={strokeWidth} />
           {data.map((value, idx) => {
             const pct = value / total, dashLength = pct * circumference, dashOffset = currentOffset;
             currentOffset += dashLength;
             if (value === 0) return null;
-            return <circle key={idx} cx="80" cy="80" r={innerRadius} fill="none" stroke={colors[idx]} strokeWidth={strokeWidth} strokeDasharray={`${dashLength} ${circumference - dashLength}`} strokeDashoffset={-dashOffset} strokeLinecap="round" className="transition-all duration-500" />;
+            return (
+              <circle
+                key={idx}
+                cx="80"
+                cy="80"
+                r={innerRadius}
+                fill="none"
+                stroke={colors[idx]}
+                strokeWidth={strokeWidth}
+                strokeDasharray={`${dashLength} ${circumference - dashLength}`}
+                strokeDashoffset={-dashOffset}
+                strokeLinecap="round"
+                style={{ transition: "all 0.5s" }}
+              />
+            );
           })}
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-bold text-slate-800">{total}</span>
-          <span className="text-xs text-slate-500 uppercase tracking-wider">Total</span>
-        </div>
-      </div>
-      <div className="ml-6 space-y-3">
+        <Box sx={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+          <Typography variant="h4" sx={{ fontWeight: 700, color: "slate.800" }}>{total}</Typography>
+          <Typography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em" }}>Total</Typography>
+        </Box>
+      </Box>
+      <Stack spacing={1.5} sx={{ ml: 3 }}>
         {labels.map((label, idx) => (
-          <div key={idx} className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: colors[idx] }} />
-            <div className="flex items-center gap-2"><span className="text-sm text-slate-600">{label}</span><span className="text-sm font-semibold text-slate-800">{data[idx]}</span><span className="text-xs text-slate-400">({total > 0 ? Math.round((data[idx] / total) * 100) : 0}%)</span></div>
-          </div>
+          <Stack key={idx} direction="row" alignItems="center" spacing={1.5}>
+            <Box sx={{ width: 12, height: 12, borderRadius: "50%", flexShrink: 0, bgcolor: colors[idx] }} />
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Typography variant="body2" color="text.secondary">{label}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>{data[idx]}</Typography>
+              <Typography variant="caption" color="text.disabled">({total > 0 ? Math.round((data[idx] / total) * 100) : 0}%)</Typography>
+            </Stack>
+          </Stack>
         ))}
-      </div>
-    </div>
+      </Stack>
+    </Box>
   );
 }
 
-function ProgressCircle({ percentage, color = "#3b82f6" }) {
+function ProgressCircle({ percentage, color = "var(--primary)" }) {
   const radius = 40, circumference = 2 * Math.PI * radius, offset = circumference - (percentage / 100) * circumference;
   return (
-    <div className="relative w-24 h-24">
-      <svg className="w-full h-full -rotate-90"><circle cx="48" cy="48" r={radius} stroke="#e2e8f0" strokeWidth="8" fill="none" /><circle cx="48" cy="48" r={radius} stroke={color} strokeWidth="8" fill="none" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-500" /></svg>
-      <div className="absolute inset-0 flex items-center justify-center"><span className="text-xl font-bold text-slate-800">{percentage}%</span></div>
-    </div>
+    <Box sx={{ position: "relative", width: 96, height: 96 }}>
+      <svg style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
+        <circle cx="48" cy="48" r={radius} stroke="var(--border)" strokeWidth="8" fill="none" />
+        <circle
+          cx="48"
+          cy="48"
+          r={radius}
+          stroke={color}
+          strokeWidth="8"
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          style={{ transition: "all 0.5s" }}
+        />
+      </svg>
+      <Box sx={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, color: "text.primary" }}>{percentage}%</Typography>
+      </Box>
+    </Box>
   );
 }
 
@@ -77,7 +120,7 @@ export default function DashboardPlanificador() {
   const navigate = useNavigate();
   const { t } = useI18n();
 
-  const [activeTab, setActiveTab] = useState("todas");
+  const [activeTab, setActiveTab] = useState(0);
   const [stats, setStats] = useState({ todas: 0, por_planificar: 0, en_proceso: 0, completadas: 0 });
   const [allData, setAllData] = useState({ todas: [], por_planificar: [], en_proceso: [], completadas: [] });
   const [loading, setLoading] = useState(true);
@@ -90,6 +133,8 @@ export default function DashboardPlanificador() {
     materialesMasSolicitados: [],
     gruposArticulosMasSolicitados: [],
   });
+
+  const tabKeys = ["todas", "por_planificar", "en_proceso", "completadas"];
 
   useEffect(() => {
     setLoading(true);
@@ -122,19 +167,246 @@ export default function DashboardPlanificador() {
     fetchKpis();
   }, []);
 
-  const columns = useMemo(() => getTableColumns(t), [t]);
+  // AG Grid column definitions
+  const columnDefs = useMemo(() => [
+    {
+      field: "id",
+      headerName: "ID",
+      width: 80,
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontFamily: "monospace",
+            fontSize: "0.75rem",
+            fontVariantNumeric: "tabular-nums",
+            color: "slate.700",
+          }}
+        >
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: "solicitante",
+      headerName: t("dash_table_solicitante", "Solicitante"),
+      flex: 1,
+      minWidth: 150,
+      valueGetter: (params) => {
+        const data = params.data || {};
+        return [data.solicitante_nombre, data.solicitante_apellido]
+          .filter(Boolean).join(" ").trim() || "-";
+      },
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+            fontWeight: 500,
+          }}
+        >
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: "created_at",
+      headerName: t("dash_table_fecha", "Fecha"),
+      width: 110,
+      valueGetter: (params) => params.data?.created_at,
+      valueFormatter: (params) => formatDate(params.value),
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {formatDate(params.data?.created_at)}
+        </Typography>
+      ),
+    },
+    {
+      field: "estado",
+      headerName: t("dash_table_estado", "Estado"),
+      width: 140,
+      cellRenderer: (params) => {
+        const data = params.data || {};
+        const aprobadorNombre = [data.aprobador_nombre, data.aprobador_apellido]
+          .filter(Boolean).join(" ").trim() || null;
+        const plannerNombre = [data.planner_nombre, data.planner_apellido]
+          .filter(Boolean).join(" ").trim() || null;
+        return (
+          <StatusBadge
+            estado={data.estado || data.status || "Desconocido"}
+            showIcon={false}
+            tooltipInfo={{
+              aprobador: aprobadorNombre,
+              planificador: plannerNombre,
+              fechaAprobacion: data.updated_at,
+              fechaEnvio: data.created_at,
+            }}
+          />
+        );
+      },
+    },
+    {
+      field: "criticidad",
+      headerName: "Criticidad",
+      width: 100,
+      cellRenderer: (params) => {
+        const criticidad = params.data?.criticidad || "Normal";
+        const config = getCriticidadConfig(criticidad);
+        return (
+          <Typography
+            component="span"
+            sx={{
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              color: config.color,
+            }}
+          >
+            {config.label}
+          </Typography>
+        );
+      },
+    },
+    {
+      field: "items",
+      headerName: "Items",
+      width: 70,
+      valueGetter: (params) => (params.data?.items || []).length,
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontFamily: "monospace",
+            fontSize: "0.75rem",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {(params.data?.items || []).length}
+        </Typography>
+      ),
+    },
+    {
+      field: "total_monto",
+      headerName: "Monto",
+      width: 120,
+      type: "numericColumn",
+      cellStyle: { textAlign: 'right', paddingRight: '16px' },
+      valueFormatter: (params) => formatCurrency(params.value || 0),
+      cellRenderer: (params) => (
+        <Box
+          component="span"
+          sx={{
+            fontFamily: "monospace",
+            fontSize: "0.75rem",
+            fontVariantNumeric: "tabular-nums",
+            fontWeight: 500,
+            display: "block",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {formatCurrency(params.data?.total_monto || 0)}
+        </Box>
+      ),
+    },
+    {
+      field: "sector_nombre",
+      headerName: "Sector",
+      flex: 1,
+      minWidth: 100,
+      valueGetter: (params) => params.data?.sector_nombre || params.data?.sector || "-",
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+          }}
+        >
+          {params.data?.sector_nombre || params.data?.sector || "-"}
+        </Typography>
+      ),
+    },
+    {
+      field: "centro",
+      headerName: "Centro",
+      width: 100,
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+          }}
+        >
+          {params.data?.centro || "-"}
+        </Typography>
+      ),
+    },
+    {
+      field: "almacen_virtual",
+      headerName: "Almacen",
+      width: 100,
+      valueGetter: (params) => formatAlmacen(params.data?.almacen_virtual),
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+          }}
+        >
+          {formatAlmacen(params.data?.almacen_virtual)}
+        </Typography>
+      ),
+    },
+    {
+      field: "planificador",
+      headerName: "Planificador",
+      flex: 1,
+      minWidth: 120,
+      valueGetter: (params) => {
+        const data = params.data || {};
+        return [data.planner_nombre, data.planner_apellido]
+          .filter(Boolean).join(" ").trim() || "-";
+      },
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+          }}
+        >
+          {params.value}
+        </Typography>
+      ),
+    },
+  ], [t]);
+
   const tabs = [
     { key: "todas", label: t("dash_todas", "Todas"), count: stats.todas },
     { key: "por_planificar", label: t("dash_por_planificar", "Por Planificar"), count: stats.por_planificar },
     { key: "en_proceso", label: t("dash_en_proceso", "En Proceso"), count: stats.en_proceso },
     { key: "completadas", label: t("dash_despachadas", "Despachadas"), count: stats.completadas },
   ];
-  const currentData = allData[activeTab] || [];
+  const currentData = allData[tabKeys[activeTab]] || [];
+
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+  };
 
   const getTableTitle = () => {
-    switch (activeTab) {
+    const key = tabKeys[activeTab];
+    switch (key) {
       case "todas": return t("dash_all_requests", "Todas las Solicitudes");
-      case "por_planificar": return t("dash_pending_planning", "Solicitudes Pendientes de Planificación");
+      case "por_planificar": return t("dash_pending_planning", "Solicitudes Pendientes de Planificacion");
       case "en_proceso": return t("dash_in_progress", "Solicitudes En Proceso");
       case "completadas": return t("dash_dispatched", "Solicitudes Despachadas");
       default: return t("dash_solicitudes", "Solicitudes");
@@ -142,180 +414,433 @@ export default function DashboardPlanificador() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-xl border border-white/30">
+    <Stack spacing={3}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          sx={{
+            "& .MuiTab-root": {
+              textTransform: "none",
+              fontWeight: 500,
+              minHeight: 40,
+            },
+          }}
+        >
           {tabs.map((tab) => (
-            <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)}
-              className={clsx("flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                activeTab === tab.key ? "bg-white shadow-sm text-blue-600" : "text-slate-600 hover:text-slate-800 hover:bg-white/50")}>
-              <span>{tab.label}</span>
-              <span className={clsx("px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums", activeTab === tab.key ? "bg-blue-100 text-blue-600" : "bg-slate-100 text-slate-500")}>{tab.count}</span>
-            </button>
+            <Tab
+              key={tab.key}
+              label={`${tab.label} (${tab.count})`}
+            />
           ))}
-        </div>
-        <Button as={Link} to="/solicitudes/nueva"><Plus className="w-4 h-4" />{t("dash_new_request", "Nueva Solicitud")}</Button>
-      </div>
+        </Tabs>
+      </Box>
 
-      <Card>
-        <CardContent className="p-0">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <h2 className="text-base font-semibold text-slate-800">{getTableTitle()}</h2>
-            <span className="text-xs text-slate-500 tabular-nums">{currentData.length} {t("dash_items", "items")}</span>
-          </div>
-          <div className="p-4">
-            {loading ? <TableSkeleton rows={5} columns={7} /> : currentData.length === 0 ? (
-              <div className="py-16 text-center">
-                <Calendar className="w-12 h-12 text-cyan-500 mx-auto mb-4 opacity-60" />
-                <p className="text-slate-500 text-sm">{activeTab === "por_planificar" ? t("dash_no_pending_planning", "No hay solicitudes pendientes de planificación") : t("dash_no_requests_category", "No hay solicitudes en esta categoría")}</p>
-              </div>
-            ) : <DataTable columns={columns} rows={currentData} emptyMessage={t("dash_no_requests", "No hay solicitudes")} onRowClick={(row) => navigate(`/planificador?solicitud=${row.id}`)} />}
-          </div>
-        </CardContent>
-      </Card>
+      <Paper elevation={0} sx={{ border: "1px solid", borderColor: "divider" }}>
+        <Box sx={{ p: 2 }}>
+          {loading ? <TableSkeleton rows={5} columns={7} /> : currentData.length === 0 ? (
+            <Box sx={{ py: 8, textAlign: "center" }}>
+              <Calendar sx={{ width: 48, height: 48, color: "info.main", mx: "auto", mb: 2, opacity: 0.6 }} />
+              <Typography variant="body2" color="text.secondary">
+                {tabKeys[activeTab] === "por_planificar"
+                  ? t("dash_no_pending_planning", "No hay solicitudes pendientes de planificacion")
+                  : t("dash_no_requests_category", "No hay solicitudes en esta categoria")}
+              </Typography>
+            </Box>
+          ) : (
+            <SPMAgGrid
+              columnDefs={columnDefs}
+              rowData={currentData}
+              emptyMessage={t("dash_no_requests", "No hay solicitudes")}
+              onRowClick={(row) => navigate(`/planificador?solicitud=${row.id}`)}
+              height={400}
+              pagination={true}
+              paginationPageSize={10}
+              enableQuickFilter={true}
+              exportFileName="solicitudes_planificador"
+            />
+          )}
+        </Box>
+      </Paper>
 
-      {kpiLoading ? <div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div> : (
+      {kpiLoading ? (
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", py: 6 }}>
+          <CircularProgress size={32} />
+        </Box>
+      ) : (
         <>
           <ScrollReveal delay={100}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="h-[150px] bg-white/70 backdrop-blur-md border-white/30">
-                <CardContent className="h-full flex flex-col justify-between py-5">
-                  <div className="flex items-start justify-between">
-                    <div><p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Total Solicitudes</p><p className="text-3xl font-bold text-slate-800">{kpiData.solicitudes.total}</p></div>
-                    <div className="h-12 w-12 rounded-2xl bg-blue-500/10 grid place-items-center"><FileText className="w-6 h-6 text-blue-600" /></div>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    {kpiData.solicitudes.trendPercentage >= 0 ? <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><TrendingUp className="w-4 h-4" /><span className="font-semibold">+{kpiData.solicitudes.trendPercentage}%</span></div>
-                      : <div className="flex items-center gap-1 text-red-600 dark:text-red-400"><TrendingDown className="w-4 h-4" /><span className="font-semibold">{kpiData.solicitudes.trendPercentage}%</span></div>}
-                    <span className="text-slate-500 dark:text-slate-400">vs mes anterior</span>
-                  </div>
-                </CardContent>
-              </Card>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6} lg={3}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    height: 150,
+                    bgcolor: "rgba(255, 255, 255, 0.7)",
+                    backdropFilter: "blur(12px)",
+                    border: "1px solid rgba(255, 255, 255, 0.3)",
+                  }}
+                >
+                  <Box sx={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", p: 2.5 }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                      <Box>
+                        <Typography variant="caption" sx={{ fontWeight: 500, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", mb: 0.5, display: "block" }}>
+                          Total Solicitudes
+                        </Typography>
+                        <Typography variant="h4" sx={{ fontWeight: 700, color: "text.primary" }}>
+                          {kpiData.solicitudes.total}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ height: 48, width: 48, borderRadius: 4, bgcolor: "primary.main", opacity: 0.1, display: "grid", placeItems: "center", position: "relative" }}>
+                        <FileText sx={{ position: "absolute", width: 24, height: 24, color: "primary.main" }} />
+                      </Box>
+                    </Stack>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      {kpiData.solicitudes.trendPercentage >= 0 ? (
+                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: "success.main" }}>
+                          <TrendingUp sx={{ width: 16, height: 16 }} />
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>+{kpiData.solicitudes.trendPercentage}%</Typography>
+                        </Stack>
+                      ) : (
+                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: "error.main" }}>
+                          <TrendingDown sx={{ width: 16, height: 16 }} />
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{kpiData.solicitudes.trendPercentage}%</Typography>
+                        </Stack>
+                      )}
+                      <Typography variant="body2" color="text.secondary">vs mes anterior</Typography>
+                    </Stack>
+                  </Box>
+                </Paper>
+              </Grid>
 
-              {(() => {
-                const tasa = kpiData.solicitudes.total > 0 ? Math.round((kpiData.solicitudes.aprobadas / kpiData.solicitudes.total) * 100) : 0;
-                const isGood = tasa >= 70, isWarning = tasa >= 40 && tasa < 70;
-                const bgColor = isGood ? "bg-emerald-500/10 dark:bg-emerald-500/20" : isWarning ? "bg-amber-500/10 dark:bg-amber-500/20" : "bg-red-500/10 dark:bg-red-500/20";
-                const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
-                const Icon = isGood ? CheckCircle2 : isWarning ? Clock : XCircle;
-                return (
-                  <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                    <CardContent className="h-full flex flex-col justify-between py-5">
-                      <div className="flex items-start justify-between">
-                        <div><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Tasa de Aprobación</p><p className={`text-3xl font-bold ${isGood ? 'text-emerald-600 dark:text-emerald-400' : isWarning ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{tasa}%</p></div>
-                        <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><Icon className={`w-6 h-6 ${iconColor}`} /></div>
-                      </div>
-                      <div className="text-sm text-slate-500 dark:text-slate-400">{kpiData.solicitudes.aprobadas} aprobadas de {kpiData.solicitudes.total}</div>
-                    </CardContent>
-                  </Card>
-                );
-              })()}
+              <Grid item xs={12} md={6} lg={3}>
+                {(() => {
+                  const tasa = kpiData.solicitudes.total > 0 ? Math.round((kpiData.solicitudes.aprobadas / kpiData.solicitudes.total) * 100) : 0;
+                  const isGood = tasa >= 70, isWarning = tasa >= 40 && tasa < 70;
+                  const bgColor = isGood ? "success.main" : isWarning ? "warning.main" : "error.main";
+                  const Icon = isGood ? CheckCircle2 : isWarning ? Clock : XCircle;
+                  return (
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        height: 150,
+                        bgcolor: "rgba(255, 255, 255, 0.7)",
+                        backdropFilter: "blur(12px)",
+                        border: "1px solid rgba(255, 255, 255, 0.3)",
+                      }}
+                    >
+                      <Box sx={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", p: 2.5 }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                          <Box>
+                            <Typography variant="caption" sx={{ fontWeight: 500, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", mb: 0.5, display: "block" }}>
+                              Tasa de Aprobacion
+                            </Typography>
+                            <Typography variant="h4" sx={{ fontWeight: 700, color: bgColor }}>
+                              {tasa}%
+                            </Typography>
+                          </Box>
+                          <Box sx={{ height: 48, width: 48, borderRadius: 4, bgcolor: bgColor, opacity: 0.1, display: "grid", placeItems: "center", position: "relative" }}>
+                            <Icon sx={{ position: "absolute", width: 24, height: 24, color: bgColor }} />
+                          </Box>
+                        </Stack>
+                        <Typography variant="body2" color="text.secondary">
+                          {kpiData.solicitudes.aprobadas} aprobadas de {kpiData.solicitudes.total}
+                        </Typography>
+                      </Box>
+                    </Paper>
+                  );
+                })()}
+              </Grid>
 
-              {(() => {
-                const prom = kpiData.tiempoAprobacion.promedio, meta = kpiData.tiempoAprobacion.meta;
-                const isGood = prom <= meta, isWarning = prom > meta && prom <= meta * 1.5;
-                const bgColor = isGood ? "bg-emerald-500/10 dark:bg-emerald-500/20" : isWarning ? "bg-amber-500/10 dark:bg-amber-500/20" : "bg-red-500/10 dark:bg-red-500/20";
-                const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
-                const valueColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
-                return (
-                  <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                    <CardContent className="h-full flex flex-col justify-between py-5">
-                      <div className="flex items-start justify-between">
-                        <div><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Tiempo Promedio</p><p className={`text-3xl font-bold ${valueColor}`}>{prom} días</p></div>
-                        <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><Clock className={`w-6 h-6 ${iconColor}`} /></div>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        {isGood ? <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><TrendingDown className="w-4 h-4" /><span className="font-semibold">Bajo meta</span></div>
-                          : <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400"><TrendingUp className="w-4 h-4" /><span className="font-semibold">Sobre meta</span></div>}
-                        <span className="text-slate-500 dark:text-slate-400">Meta: {meta} días</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })()}
+              <Grid item xs={12} md={6} lg={3}>
+                {(() => {
+                  const prom = kpiData.tiempoAprobacion.promedio, meta = kpiData.tiempoAprobacion.meta;
+                  const isGood = prom <= meta, isWarning = prom > meta && prom <= meta * 1.5;
+                  const bgColor = isGood ? "success.main" : isWarning ? "warning.main" : "error.main";
+                  return (
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        height: 150,
+                        bgcolor: "rgba(255, 255, 255, 0.7)",
+                        backdropFilter: "blur(12px)",
+                        border: "1px solid rgba(255, 255, 255, 0.3)",
+                      }}
+                    >
+                      <Box sx={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", p: 2.5 }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                          <Box>
+                            <Typography variant="caption" sx={{ fontWeight: 500, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", mb: 0.5, display: "block" }}>
+                              Tiempo Promedio
+                            </Typography>
+                            <Typography variant="h4" sx={{ fontWeight: 700, color: bgColor }}>
+                              {prom} dias
+                            </Typography>
+                          </Box>
+                          <Box sx={{ height: 48, width: 48, borderRadius: 4, bgcolor: bgColor, opacity: 0.1, display: "grid", placeItems: "center", position: "relative" }}>
+                            <Clock sx={{ position: "absolute", width: 24, height: 24, color: bgColor }} />
+                          </Box>
+                        </Stack>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          {isGood ? (
+                            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: "success.main" }}>
+                              <TrendingDown sx={{ width: 16, height: 16 }} />
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>Bajo meta</Typography>
+                            </Stack>
+                          ) : (
+                            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: "warning.main" }}>
+                              <TrendingUp sx={{ width: 16, height: 16 }} />
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>Sobre meta</Typography>
+                            </Stack>
+                          )}
+                          <Typography variant="body2" color="text.secondary">Meta: {meta} dias</Typography>
+                        </Stack>
+                      </Box>
+                    </Paper>
+                  );
+                })()}
+              </Grid>
 
-              {(() => {
-                const pct = kpiData.presupuesto.percentage;
-                const isGood = pct < 70, isWarning = pct >= 70 && pct <= 90;
-                const bgColor = isGood ? "bg-emerald-500/10 dark:bg-emerald-500/20" : isWarning ? "bg-amber-500/10 dark:bg-amber-500/20" : "bg-red-500/10 dark:bg-red-500/20";
-                const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
-                const textColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
-                return (
-                  <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                    <CardContent className="h-full flex flex-col justify-between py-5">
-                      <div className="flex items-start justify-between">
-                        <div><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Presupuesto</p><p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(kpiData.presupuesto.utilizado)}</p></div>
-                        <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><DollarSign className={`w-6 h-6 ${iconColor}`} /></div>
-                      </div>
-                      <div className="text-sm"><span className={`font-semibold ${textColor}`}>{pct}%</span><span className="text-slate-500 dark:text-slate-400"> de {formatCurrency(kpiData.presupuesto.total)}</span></div>
-                    </CardContent>
-                  </Card>
-                );
-              })()}
-            </div>
+              <Grid item xs={12} md={6} lg={3}>
+                {(() => {
+                  const pct = kpiData.presupuesto.percentage;
+                  const isGood = pct < 70, isWarning = pct >= 70 && pct <= 90;
+                  const bgColor = isGood ? "success.main" : isWarning ? "warning.main" : "error.main";
+                  return (
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        height: 150,
+                        bgcolor: "rgba(255, 255, 255, 0.7)",
+                        backdropFilter: "blur(12px)",
+                        border: "1px solid rgba(255, 255, 255, 0.3)",
+                      }}
+                    >
+                      <Box sx={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", p: 2.5 }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                          <Box>
+                            <Typography variant="caption" sx={{ fontWeight: 500, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", mb: 0.5, display: "block" }}>
+                              Presupuesto
+                            </Typography>
+                            <Typography variant="h5" sx={{ fontWeight: 700, color: "text.primary" }}>
+                              {formatCurrency(kpiData.presupuesto.utilizado)}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ height: 48, width: 48, borderRadius: 4, bgcolor: bgColor, opacity: 0.1, display: "grid", placeItems: "center", position: "relative" }}>
+                            <DollarSign sx={{ position: "absolute", width: 24, height: 24, color: bgColor }} />
+                          </Box>
+                        </Stack>
+                        <Typography variant="body2">
+                          <Box component="span" sx={{ fontWeight: 600, color: bgColor }}>{pct}%</Box>
+                          <Box component="span" sx={{ color: "text.secondary" }}> de {formatCurrency(kpiData.presupuesto.total)}</Box>
+                        </Typography>
+                      </Box>
+                    </Paper>
+                  );
+                })()}
+              </Grid>
+            </Grid>
           </ScrollReveal>
 
           <ScrollReveal delay={200}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <WeeklyRequestsKpiCard
-                data={kpiData.solicitudes.trend}
-                trendPercentage={kpiData.solicitudes.trendPercentage}
-              />
-              <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                <CardHeader className="px-6 pt-5 pb-3">
-                  <CardTitle className="text-base">Distribución de Estados</CardTitle>
-                </CardHeader>
-                <CardContent className="px-6 pb-5 flex items-center justify-center">
-                  <DonutChart data={[kpiData.solicitudes.aprobadas, kpiData.solicitudes.rechazadas, kpiData.solicitudes.pendientes]} colors={["#10b981", "#ef4444", "#f59e0b"]} labels={["Aprobadas", "Rechazadas", "Pendientes"]} />
-                </CardContent>
-              </Card>
-            </div>
+            <Grid container spacing={3}>
+              <Grid item xs={12} lg={6}>
+                <WeeklyRequestsKpiCard
+                  data={kpiData.solicitudes.trend}
+                  trendPercentage={kpiData.solicitudes.trendPercentage}
+                />
+              </Grid>
+              <Grid item xs={12} lg={6}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    bgcolor: "rgba(255, 255, 255, 0.7)",
+                    backdropFilter: "blur(12px)",
+                    border: "1px solid rgba(255, 255, 255, 0.3)",
+                  }}
+                >
+                  <Box sx={{ px: 3, pt: 2.5, pb: 1.5 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>Distribucion de Estados</Typography>
+                  </Box>
+                  <Box sx={{ px: 3, pb: 2.5, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <DonutChart
+                      data={[kpiData.solicitudes.aprobadas, kpiData.solicitudes.rechazadas, kpiData.solicitudes.pendientes]}
+                      colors={[SPM_COLORS.success, SPM_COLORS.error, SPM_COLORS.warning]}
+                      labels={["Aprobadas", "Rechazadas", "Pendientes"]}
+                    />
+                  </Box>
+                </Paper>
+              </Grid>
+            </Grid>
           </ScrollReveal>
 
           <ScrollReveal delay={250}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
-                <CardHeader className="px-5 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Materiales Más Solicitados</CardTitle><Package className="w-5 h-5 text-blue-600" /></div></CardHeader>
-                <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
-                  <div className="space-y-3">
-                    {(kpiData.materialesMasSolicitados || []).length > 0 ? kpiData.materialesMasSolicitados.map((m, i) => {
-                      const maxC = Math.max(...kpiData.materialesMasSolicitados.map(x => x.cantidad), 1);
-                      return (<div key={i} className="group"><div className="flex items-center justify-between mb-1.5"><div className="flex items-center gap-2 min-w-0 flex-1"><div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500/10 grid place-items-center text-xs font-bold text-blue-600">{i + 1}</div><span className="text-sm text-slate-700 font-medium truncate" title={m.nombre}>{m.nombre}</span></div><span className="text-xs font-semibold text-slate-800 tabular-nums flex-shrink-0 ml-2">{(m.cantidad || 0).toLocaleString()}</span></div><div className="h-2.5 bg-slate-100/70 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-500 group-hover:from-blue-600 group-hover:to-blue-500" style={{ width: `${(m.cantidad / maxC) * 100}%` }} /></div></div>);
-                    }) : <p className="text-sm text-slate-500 text-center py-4">No hay datos disponibles</p>}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="h-[320px] bg-white/70 backdrop-blur-md border-white/30">
-                <CardHeader className="px-5 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Presupuesto por Centro</CardTitle><DollarSign className="w-5 h-5 text-emerald-600" /></div></CardHeader>
-                <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
-                  <div className="space-y-3">
-                    {(kpiData.presupuesto.porCentro || []).length > 0 ? kpiData.presupuesto.porCentro.map((c, i) => {
-                      const maxV = Math.max(...kpiData.presupuesto.porCentro.map(x => x.valor), 1);
-                      return (<div key={i} className="group"><div className="flex items-center justify-between mb-1.5"><span className="text-sm text-slate-700 font-medium truncate flex-1" title={c.nombre}>{c.nombre}</span><span className="text-xs font-semibold text-slate-800 tabular-nums flex-shrink-0 ml-2">{formatCurrency(c.valor)}</span></div><div className="h-2.5 bg-slate-100/70 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500 group-hover:from-emerald-600 group-hover:to-emerald-500" style={{ width: `${(c.valor / maxV) * 100}%` }} /></div></div>);
-                    }) : <p className="text-sm text-slate-500 text-center py-4">No hay datos disponibles</p>}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <Grid container spacing={3}>
+              <Grid item xs={12} lg={6}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    height: 320,
+                    bgcolor: "rgba(255, 255, 255, 0.7)",
+                    backdropFilter: "blur(12px)",
+                    border: "1px solid rgba(255, 255, 255, 0.3)",
+                  }}
+                >
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 2.5, pt: 2.5, pb: 1.5 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>Materiales Mas Solicitados</Typography>
+                    <Package sx={{ width: 20, height: 20, color: "primary.main" }} />
+                  </Stack>
+                  <Box sx={{ px: 2.5, pb: 2.5, overflow: "auto", height: "calc(100% - 60px)" }}>
+                    <Stack spacing={1.5}>
+                      {(kpiData.materialesMasSolicitados || []).length > 0 ? kpiData.materialesMasSolicitados.map((m, i) => {
+                        const maxC = Math.max(...kpiData.materialesMasSolicitados.map(x => x.cantidad), 1);
+                        return (
+                          <Box key={i} sx={{ "&:hover .progress-bar": { bgcolor: "primary.dark" } }}>
+                            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.75 }}>
+                              <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0, flex: 1 }}>
+                                <Box sx={{ flexShrink: 0, width: 20, height: 20, borderRadius: "50%", bgcolor: "primary.main", opacity: 0.1, display: "grid", placeItems: "center" }}>
+                                  <Typography variant="caption" sx={{ fontWeight: 700, color: "primary.main" }}>{i + 1}</Typography>
+                                </Box>
+                                <Typography variant="body2" sx={{ fontWeight: 500, color: "text.primary", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={m.nombre}>
+                                  {m.nombre}
+                                </Typography>
+                              </Stack>
+                              <Typography variant="caption" sx={{ fontWeight: 600, color: "text.primary", fontVariantNumeric: "tabular-nums", flexShrink: 0, ml: 1 }}>
+                                {(m.cantidad || 0).toLocaleString()}
+                              </Typography>
+                            </Stack>
+                            <Box sx={{ height: 10, bgcolor: "grey.100", borderRadius: 5, overflow: "hidden" }}>
+                              <Box
+                                className="progress-bar"
+                                sx={{
+                                  height: "100%",
+                                  background: `linear-gradient(to right, ${SPM_COLORS.primary}, ${SPM_COLORS.primaryLight})`,
+                                  borderRadius: 5,
+                                  transition: "all 0.5s",
+                                  width: `${(m.cantidad / maxC) * 100}%`,
+                                }}
+                              />
+                            </Box>
+                          </Box>
+                        );
+                      }) : (
+                        <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 2 }}>
+                          No hay datos disponibles
+                        </Typography>
+                      )}
+                    </Stack>
+                  </Box>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} lg={6}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    height: 320,
+                    bgcolor: "rgba(255, 255, 255, 0.7)",
+                    backdropFilter: "blur(12px)",
+                    border: "1px solid rgba(255, 255, 255, 0.3)",
+                  }}
+                >
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 2.5, pt: 2.5, pb: 1.5 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>Presupuesto por Centro</Typography>
+                    <DollarSign sx={{ width: 20, height: 20, color: "success.main" }} />
+                  </Stack>
+                  <Box sx={{ px: 2.5, pb: 2.5, overflow: "auto", height: "calc(100% - 60px)" }}>
+                    <Stack spacing={1.5}>
+                      {(kpiData.presupuesto.porCentro || []).length > 0 ? kpiData.presupuesto.porCentro.map((c, i) => {
+                        const maxV = Math.max(...kpiData.presupuesto.porCentro.map(x => x.valor), 1);
+                        return (
+                          <Box key={i} sx={{ "&:hover .progress-bar": { bgcolor: "success.dark" } }}>
+                            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.75 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 500, color: "text.primary", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }} title={c.nombre}>
+                                {c.nombre}
+                              </Typography>
+                              <Typography variant="caption" sx={{ fontWeight: 600, color: "text.primary", fontVariantNumeric: "tabular-nums", flexShrink: 0, ml: 1 }}>
+                                {formatCurrency(c.valor)}
+                              </Typography>
+                            </Stack>
+                            <Box sx={{ height: 10, bgcolor: "grey.100", borderRadius: 5, overflow: "hidden" }}>
+                              <Box
+                                className="progress-bar"
+                                sx={{
+                                  height: "100%",
+                                  background: `linear-gradient(to right, ${SPM_COLORS.success}, ${SPM_COLORS.successLight})`,
+                                  borderRadius: 5,
+                                  transition: "all 0.5s",
+                                  width: `${(c.valor / maxV) * 100}%`,
+                                }}
+                              />
+                            </Box>
+                          </Box>
+                        );
+                      }) : (
+                        <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 2 }}>
+                          No hay datos disponibles
+                        </Typography>
+                      )}
+                    </Stack>
+                  </Box>
+                </Paper>
+              </Grid>
+            </Grid>
           </ScrollReveal>
 
           <ScrollReveal delay={300}>
-            <Card className="bg-white/70 backdrop-blur-md border-white/30">
-              <CardHeader className="px-6 pt-6 pb-4"><CardTitle>Resumen de Presupuesto</CardTitle></CardHeader>
-              <CardContent className="px-6 pb-6">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-                  <div className="flex-shrink-0"><ProgressCircle percentage={kpiData.presupuesto.percentage} /></div>
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
-                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Presupuesto Total</p><p className="text-2xl font-bold text-slate-800">{formatCurrency(kpiData.presupuesto.total)}</p></div>
-                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Utilizado</p><p className="text-2xl font-bold text-amber-500">{formatCurrency(kpiData.presupuesto.utilizado)}</p></div>
-                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Disponible</p><p className="text-2xl font-bold text-emerald-500">{formatCurrency(kpiData.presupuesto.disponible)}</p></div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <Paper
+              elevation={0}
+              sx={{
+                bgcolor: "rgba(255, 255, 255, 0.7)",
+                backdropFilter: "blur(12px)",
+                border: "1px solid rgba(255, 255, 255, 0.3)",
+              }}
+            >
+              <Box sx={{ px: 3, pt: 3, pb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>Resumen de Presupuesto</Typography>
+              </Box>
+              <Box sx={{ px: 3, pb: 3 }}>
+                <Stack direction={{ xs: "column", md: "row" }} alignItems="center" justifyContent="space-between" spacing={4}>
+                  <Box sx={{ flexShrink: 0 }}>
+                    <ProgressCircle percentage={kpiData.presupuesto.percentage} />
+                  </Box>
+                  <Grid container spacing={3} sx={{ flex: 1 }}>
+                    <Grid item xs={12} md={4}>
+                      <Box sx={{ textAlign: { xs: "center", md: "left" } }}>
+                        <Typography variant="caption" sx={{ fontWeight: 500, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", mb: 1, display: "block" }}>
+                          Presupuesto Total
+                        </Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 700, color: "text.primary" }}>
+                          {formatCurrency(kpiData.presupuesto.total)}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <Box sx={{ textAlign: { xs: "center", md: "left" } }}>
+                        <Typography variant="caption" sx={{ fontWeight: 500, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", mb: 1, display: "block" }}>
+                          Utilizado
+                        </Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 700, color: "warning.main" }}>
+                          {formatCurrency(kpiData.presupuesto.utilizado)}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <Box sx={{ textAlign: { xs: "center", md: "left" } }}>
+                        <Typography variant="caption" sx={{ fontWeight: 500, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", mb: 1, display: "block" }}>
+                          Disponible
+                        </Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 700, color: "success.main" }}>
+                          {formatCurrency(kpiData.presupuesto.disponible)}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </Stack>
+              </Box>
+            </Paper>
           </ScrollReveal>
         </>
       )}
-    </div>
+    </Stack>
   );
 }

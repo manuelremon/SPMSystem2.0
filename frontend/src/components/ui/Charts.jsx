@@ -1,114 +1,82 @@
 /**
  * Componentes de visualizacion reutilizables
  * Estilo: KPI Dashboard - Visual y moderno
+ * Usando MUI X Charts donde es apropiado
  */
 
-// Mini grafico de barras
-export function MiniBarChart({ data, maxValue, color = "#3B82F6", height = 64 }) {
-  const max = maxValue || Math.max(...data, 1);
+import { SparkLineChart } from '@mui/x-charts/SparkLineChart';
+import { Gauge, gaugeClasses } from '@mui/x-charts/Gauge';
+
+// Mini grafico de barras - MUI X Charts SparkLineChart
+export function MiniBarChart({ data, color = "#1976d2", height = 64, width }) {
+  if (!data || data.length === 0) return null;
+
   return (
-    <div className="flex items-end gap-1" style={{ height }}>
-      {data.map((value, idx) => {
-        const barHeight = (value / max) * 100;
-        return (
-          <div
-            key={idx}
-            className="flex-1 rounded-t-sm transition-all duration-300 hover:opacity-80"
-            style={{
-              height: `${barHeight}%`,
-              backgroundColor: color,
-              minHeight: value > 0 ? '4px' : '0'
-            }}
-            title={value.toString()}
-          />
-        );
-      })}
-    </div>
+    <SparkLineChart
+      data={data}
+      height={height}
+      width={width}
+      plotType="bar"
+      colors={[color]}
+      showHighlight
+      showTooltip
+    />
   );
 }
 
-// Circulo de progreso
+// Circulo de progreso - MUI X Charts Gauge
 export function ProgressCircle({
   percentage,
   size = 96,
-  strokeWidth = 8,
-  color = "#3B82F6",
-  bgColor = "#E2E8F0",
+  color = "#1976d2",
   showLabel = true,
   label
 }) {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (percentage / 100) * circumference;
-  const center = size / 2;
-
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      <svg className="w-full h-full -rotate-90">
-        <circle
-          cx={center}
-          cy={center}
-          r={radius}
-          stroke={bgColor}
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
-        <circle
-          cx={center}
-          cy={center}
-          r={radius}
-          stroke={color}
-          strokeWidth={strokeWidth}
-          fill="none"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          className="transition-all duration-700 ease-out"
-        />
-      </svg>
-      {showLabel && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-bold text-slate-800 tabular-nums">{percentage}%</span>
-          {label && <span className="text-xs text-slate-500">{label}</span>}
+      <Gauge
+        value={percentage}
+        valueMin={0}
+        valueMax={100}
+        height={size}
+        width={size}
+        startAngle={-110}
+        endAngle={110}
+        text={showLabel ? ({ value }) => `${value}%` : undefined}
+        sx={{
+          [`& .${gaugeClasses.valueText}`]: {
+            fontSize: size > 80 ? 20 : 14,
+            fontWeight: 'bold',
+          },
+          [`& .${gaugeClasses.valueArc}`]: {
+            fill: color,
+          },
+        }}
+      />
+      {label && showLabel && (
+        <div className="absolute bottom-0 left-0 right-0 text-center">
+          <span className="text-xs text-slate-500">{label}</span>
         </div>
       )}
     </div>
   );
 }
 
-// Linea de tendencia mini
-export function TrendLine({ data, color = "#3B82F6", height = 48 }) {
+// Linea de tendencia mini - MUI X Charts SparkLineChart
+export function TrendLine({ data, color = "#1976d2", height = 48, width, area = true }) {
   if (!data || data.length < 2) return null;
 
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const range = max - min || 1;
-
-  const points = data
-    .map((value, idx) => {
-      const x = (idx / (data.length - 1)) * 100;
-      const y = 100 - ((value - min) / range) * 100;
-      return `${x},${y}`;
-    })
-    .join(" ");
-
   return (
-    <div style={{ height }} className="w-full">
-      <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
-        <polyline
-          points={`0,100 ${points} 100,100`}
-          fill={color}
-          fillOpacity="0.1"
-        />
-        <polyline
-          points={points}
-          fill="none"
-          stroke={color}
-          strokeWidth="2"
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
-    </div>
+    <SparkLineChart
+      data={data}
+      height={height}
+      width={width}
+      plotType="line"
+      colors={[color]}
+      showHighlight
+      showTooltip
+      area={area}
+    />
   );
 }
 

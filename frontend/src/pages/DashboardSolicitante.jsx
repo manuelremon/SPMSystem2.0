@@ -1,83 +1,111 @@
+/**
+ * DashboardSolicitante - Dashboard para usuarios solicitantes
+ * Chart.js Implementation
+ */
+
 import React, { useEffect, useState, useMemo } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
-import { ModernDataTable as DataTable } from "../components/features/DataTable";
+import { useNavigate, Link } from "react-router-dom";
+
+// MUI Components
+import {
+  Box,
+  Paper,
+  Typography,
+  Button,
+  Tabs,
+  Tab,
+  Chip,
+  Stack,
+  Grid,
+  CircularProgress,
+  Tooltip,
+} from "@mui/material";
+
+// MUI Icons
+import DescriptionIcon from "@mui/icons-material/Description";
+import AddIcon from "@mui/icons-material/Add";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import TrendingDownIcon from "@mui/icons-material/TrendingDown";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import InventoryIcon from "@mui/icons-material/Inventory";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+
+// Custom components
+import { SPMAgGrid } from "../components/ui/SPMAgGrid";
 import { TableSkeleton } from "../components/ui/Skeleton";
 import { ScrollReveal } from "../components/ui/ScrollReveal";
+import { ParallaxSection } from "../components/ui/ParallaxSection";
+import { WeeklyRequestsKpiCard } from "../components/dashboard/WeeklyRequestsKpiCard";
+import { SPMDoughnut, SPMGauge } from "../components/ui/SPMChartJS";
+
+// Services and utilities
 import { solicitudes } from "../services/spm";
 import api from "../services/api";
-import { formatCurrency } from "../utils/formatters";
-import {
-  FileText,
-  Plus,
-  TrendingUp,
-  TrendingDown,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  DollarSign,
-  Package,
-  BarChart3,
-  Loader2,
-  HelpCircle,
-  ICON_COLORS,
-} from "../components/ui/Icons";
-import { Tooltip } from "../components/ui/Tooltip";
+import { formatCurrency, formatAlmacen, formatDate } from "../utils/formatters";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
-import { useNavigate, Link } from "react-router-dom";
-import { getTableColumns } from "./DashboardShared";
-import { Button } from "../components/ui/Button";
-import { WeeklyRequestsKpiCard } from "../components/dashboard/WeeklyRequestsKpiCard";
-import clsx from "clsx";
+import StatusBadge from "../components/ui/StatusBadge";
+import { getCriticidadConfig } from "../utils/styleConfig";
+import { SPM_COLORS } from "../utils/chartTheme";
 
-// KPI CHART COMPONENTS
+// KPI CHART COMPONENTS using Chart.js
 function DonutChart({ data, colors, labels }) {
   const total = data.reduce((sum, val) => sum + val, 0) || 1;
-  const radius = 70, strokeWidth = 24, innerRadius = radius - strokeWidth / 2;
-  const circumference = 2 * Math.PI * innerRadius;
-  let currentOffset = 0;
-  // Detectar dark mode para el color del fondo del círculo
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const bgStroke = isDark ? '#334155' : '#f1f5f9'; // slate-700 vs slate-100
+
+  // Convert data to SPMDoughnut format
+  const chartData = labels.map((label, idx) => ({
+    label,
+    value: data[idx],
+    color: colors[idx],
+  }));
+
   return (
-    <div className="relative w-full flex items-center justify-center">
-      <div className="relative w-48 h-48">
-        <svg viewBox="0 0 160 160" className="w-full h-full -rotate-90">
-          <circle cx="80" cy="80" r={innerRadius} fill="none" stroke={bgStroke} strokeWidth={strokeWidth} />
-          {data.map((value, idx) => {
-            const pct = value / total, dashLength = pct * circumference, dashOffset = currentOffset;
-            currentOffset += dashLength;
-            if (value === 0) return null;
-            return <circle key={idx} cx="80" cy="80" r={innerRadius} fill="none" stroke={colors[idx]} strokeWidth={strokeWidth} strokeDasharray={`${dashLength} ${circumference - dashLength}`} strokeDashoffset={-dashOffset} strokeLinecap="round" className="transition-all duration-500" />;
-          })}
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-bold text-slate-800 dark:text-slate-100">{total}</span>
-          <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total</span>
-        </div>
-      </div>
-      <div className="ml-6 space-y-3">
+    <Box sx={{ position: "relative", width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Box sx={{ position: "relative", width: 192, height: 192 }}>
+        <SPMDoughnut
+          data={chartData}
+          height={192}
+          centerText={total}
+          options={{
+            plugins: {
+              legend: { display: false },
+            },
+          }}
+        />
+      </Box>
+      <Stack spacing={1.5} sx={{ ml: 3 }}>
         {labels.map((label, idx) => (
-          <div key={idx} className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: colors[idx] }} />
-            <div className="flex items-center gap-2"><span className="text-sm text-slate-600 dark:text-slate-300">{label}</span><span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{data[idx]}</span><span className="text-xs text-slate-400 dark:text-slate-500">({total > 0 ? Math.round((data[idx] / total) * 100) : 0}%)</span></div>
-          </div>
+          <Box key={idx} sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <Box sx={{ width: 12, height: 12, borderRadius: "50%", flexShrink: 0, bgcolor: colors[idx] }} />
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography variant="body2" color="text.secondary">{label}</Typography>
+              <Typography variant="body2" fontWeight={600} color="text.primary">{data[idx]}</Typography>
+              <Typography variant="caption" color="text.disabled">
+                ({total > 0 ? Math.round((data[idx] / total) * 100) : 0}%)
+              </Typography>
+            </Box>
+          </Box>
         ))}
-      </div>
-    </div>
+      </Stack>
+    </Box>
   );
 }
 
-function ProgressCircle({ percentage, color = "#3b82f6" }) {
-  const radius = 40, circumference = 2 * Math.PI * radius, offset = circumference - (percentage / 100) * circumference;
-  // Detectar dark mode para el color del fondo del círculo
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const bgStroke = isDark ? '#334155' : '#e2e8f0'; // slate-700 vs slate-200
+function ProgressCircle({ percentage, color = "var(--primary)" }) {
   return (
-    <div className="relative w-24 h-24">
-      <svg className="w-full h-full -rotate-90"><circle cx="48" cy="48" r={radius} stroke={bgStroke} strokeWidth="8" fill="none" /><circle cx="48" cy="48" r={radius} stroke={color} strokeWidth="8" fill="none" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-500" /></svg>
-      <div className="absolute inset-0 flex items-center justify-center"><span className="text-xl font-bold text-slate-800 dark:text-slate-100">{percentage}%</span></div>
-    </div>
+    <Box sx={{ position: "relative", width: 96, height: 96 }}>
+      <SPMGauge
+        value={percentage}
+        max={100}
+        height={96}
+        unit="%"
+        thresholds={{ warning: 70, danger: 90 }}
+      />
+    </Box>
   );
 }
 
@@ -86,7 +114,7 @@ export default function DashboardSolicitante() {
   const navigate = useNavigate();
   const { t } = useI18n();
 
-  const [activeTab, setActiveTab] = useState("todas");
+  const [activeTab, setActiveTab] = useState(0);
   const [stats, setStats] = useState({ todas: 0, borradores: 0, enviadas: 0, aprobadas: 0, rechazadas: 0 });
   const [allData, setAllData] = useState({ todas: [], borradores: [], enviadas: [], aprobadas: [], rechazadas: [] });
   const [loading, setLoading] = useState(true);
@@ -133,7 +161,212 @@ export default function DashboardSolicitante() {
     fetchKpis();
   }, []);
 
-  const columns = useMemo(() => getTableColumns(t), [t]);
+  // Columnas para SPMAgGrid (formato AG Grid)
+  const columnDefs = useMemo(() => [
+    {
+      field: "id",
+      headerName: "ID",
+      width: 80,
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontFamily: "monospace",
+            fontSize: "0.75rem",
+            fontVariantNumeric: "tabular-nums",
+            color: "slate.700",
+          }}
+        >
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: "solicitante",
+      headerName: t("dash_table_solicitante", "Solicitante"),
+      valueGetter: (params) => {
+        const nombre = [params.data?.solicitante_nombre, params.data?.solicitante_apellido]
+          .filter(Boolean).join(" ").trim();
+        return nombre || "-";
+      },
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+            fontWeight: 500,
+          }}
+        >
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: "created_at",
+      headerName: t("dash_table_fecha", "Fecha"),
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {formatDate(params.value)}
+        </Typography>
+      ),
+    },
+    {
+      field: "estado",
+      headerName: t("dash_table_estado", "Estado"),
+      cellRenderer: (params) => {
+        const row = params.data;
+        const aprobadorNombre = [row?.aprobador_nombre, row?.aprobador_apellido]
+          .filter(Boolean).join(" ").trim() || null;
+        const plannerNombre = [row?.planner_nombre, row?.planner_apellido]
+          .filter(Boolean).join(" ").trim() || null;
+        return (
+          <StatusBadge
+            estado={row?.estado || row?.status || "Desconocido"}
+            showIcon={false}
+            tooltipInfo={{
+              aprobador: aprobadorNombre,
+              planificador: plannerNombre,
+              fechaAprobacion: row?.updated_at,
+              fechaEnvio: row?.created_at,
+            }}
+          />
+        );
+      },
+    },
+    {
+      field: "criticidad",
+      headerName: "Criticidad",
+      cellRenderer: (params) => {
+        const criticidad = params.value || "Normal";
+        const config = getCriticidadConfig(criticidad);
+        return (
+          <Typography
+            component="span"
+            sx={{
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              color: config.color,
+            }}
+          >
+            {config.label}
+          </Typography>
+        );
+      },
+    },
+    {
+      field: "items",
+      headerName: "Items",
+      width: 80,
+      valueGetter: (params) => (params.data?.items || []).length,
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontFamily: "monospace",
+            fontSize: "0.75rem",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: "total_monto",
+      headerName: "Monto",
+      width: 120,
+      cellStyle: { textAlign: 'right', paddingRight: '16px' },
+      cellRenderer: (params) => (
+        <Box
+          component="span"
+          sx={{
+            fontFamily: "monospace",
+            fontSize: "0.75rem",
+            fontVariantNumeric: "tabular-nums",
+            fontWeight: 500,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {formatCurrency(params.value || 0)}
+        </Box>
+      ),
+    },
+    {
+      field: "sector_nombre",
+      headerName: "Sector",
+      valueGetter: (params) => params.data?.sector_nombre || params.data?.sector || "-",
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+          }}
+        >
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: "centro",
+      headerName: "Centro",
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+          }}
+        >
+          {params.value || "-"}
+        </Typography>
+      ),
+    },
+    {
+      field: "almacen_virtual",
+      headerName: "Almacen",
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+          }}
+        >
+          {formatAlmacen(params.value)}
+        </Typography>
+      ),
+    },
+    {
+      field: "planificador",
+      headerName: "Planificador",
+      valueGetter: (params) => {
+        const plannerNombre = [params.data?.planner_nombre, params.data?.planner_apellido]
+          .filter(Boolean).join(" ").trim();
+        return plannerNombre || "-";
+      },
+      cellRenderer: (params) => (
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            color: "text.secondary",
+          }}
+        >
+          {params.value}
+        </Typography>
+      ),
+    },
+  ], [t]);
+  const tabKeys = ["todas", "borradores", "enviadas", "aprobadas", "rechazadas"];
   const tabs = [
     { key: "todas", label: t("dash_todas", "Todas"), count: stats.todas },
     { key: "borradores", label: t("dash_borradores", "Borradores"), count: stats.borradores },
@@ -141,10 +374,14 @@ export default function DashboardSolicitante() {
     { key: "aprobadas", label: t("dash_aprobadas", "Aprobadas"), count: stats.aprobadas },
     { key: "rechazadas", label: t("dash_rechazadas", "Rechazadas"), count: stats.rechazadas },
   ];
-  const currentData = allData[activeTab] || [];
+  const currentData = allData[tabKeys[activeTab]] || [];
+
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+  };
 
   const getTableTitle = () => {
-    switch (activeTab) {
+    switch (tabKeys[activeTab]) {
       case "todas": return t("dash_mis_solicitudes", "Mis Solicitudes");
       case "borradores": return t("dash_borradores_title", "Mis Borradores");
       case "enviadas": return t("dash_enviadas_title", "Solicitudes Enviadas");
@@ -155,196 +392,666 @@ export default function DashboardSolicitante() {
   };
 
   return (
-    <div className="space-y-6">
+    <Stack spacing={3}>
       {/* Contenedor unificado: Tabs + Tabla de Solicitudes */}
-      <Card>
-        <CardContent className="p-0">
-          {/* Header con tabs y botón */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-700">
-            <div className="flex items-center gap-1 p-1 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-              {tabs.map((tab) => (
-                <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)}
-                  className={clsx("flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
-                    activeTab === tab.key ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50")}>
-                  <span>{tab.label}</span>
-                  <span className={clsx("px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums", activeTab === tab.key ? "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400" : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400")}>{tab.count}</span>
-                </button>
-              ))}
-            </div>
-            <Button as={Link} to="/solicitudes/nueva" size="sm"><Plus className="w-4 h-4" />{t("dash_new_request", "Nueva Solicitud")}</Button>
-          </div>
-
-          {/* Subtítulo con contador */}
-          <div className="flex items-center justify-between px-6 py-3 bg-slate-50/50 dark:bg-slate-800/30">
-            <h2 className="text-sm font-medium text-slate-700 dark:text-slate-300">{getTableTitle()}</h2>
-            <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">{currentData.length} {t("dash_items", "items")}</span>
-          </div>
-
-          {/* Tabla */}
-          <div className="p-4">
-            {loading ? <TableSkeleton rows={5} columns={7} /> : currentData.length === 0 ? (
-              <div className="py-16 text-center">
-                <FileText className="w-12 h-12 text-slate-400 mx-auto mb-4 opacity-60" />
-                <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">{stats.todas === 0 ? t("dash_no_requests_user", "No tienes solicitudes. Crea tu primera solicitud.") : t("dash_no_requests_category", "No hay solicitudes en esta categoría")}</p>
-                {stats.todas === 0 && <Button as={Link} to="/solicitudes/nueva"><Plus className="w-4 h-4" />{t("dash_create_first", "Crear solicitud")}</Button>}
-              </div>
-            ) : <DataTable columns={columns} rows={currentData} emptyMessage={t("dash_no_requests", "No hay solicitudes")} onRowClick={(row) => navigate(`/solicitudes/${row.id}`)} />}
-          </div>
-        </CardContent>
-      </Card>
-
-      {kpiLoading ? <div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div> : (
-        <>
-          <ScrollReveal delay={100}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                <CardContent className="h-full flex flex-col justify-between py-5">
-                  <div className="flex items-start justify-between">
-                    <div><div className="flex items-center gap-1 mb-1"><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Solicitudes</p><Tooltip content="Número total de solicitudes que has creado, incluyendo borradores, enviadas, aprobadas y rechazadas." position="top"><HelpCircle className="w-3.5 h-3.5 text-slate-400 cursor-help hover:text-slate-600 dark:hover:text-slate-300 transition-colors" /></Tooltip></div><p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{kpiData.solicitudes.total}</p></div>
-                    <div className="h-12 w-12 rounded-2xl bg-blue-500/10 dark:bg-blue-500/20 grid place-items-center"><FileText className={`w-6 h-6 ${ICON_COLORS.primary}`} /></div>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    {kpiData.solicitudes.trendPercentage >= 0 ? <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><TrendingUp className="w-4 h-4" /><span className="font-semibold">+{kpiData.solicitudes.trendPercentage}%</span></div>
-                      : <div className="flex items-center gap-1 text-red-600 dark:text-red-400"><TrendingDown className="w-4 h-4" /><span className="font-semibold">{kpiData.solicitudes.trendPercentage}%</span></div>}
-                    <span className="text-slate-500 dark:text-slate-400">vs mes anterior</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {(() => {
-                const tasa = kpiData.solicitudes.total > 0 ? Math.round((kpiData.solicitudes.aprobadas / kpiData.solicitudes.total) * 100) : 0;
-                const isGood = tasa >= 70, isWarning = tasa >= 40 && tasa < 70;
-                const bgColor = isGood ? "bg-emerald-500/10 dark:bg-emerald-500/20" : isWarning ? "bg-amber-500/10 dark:bg-amber-500/20" : "bg-red-500/10 dark:bg-red-500/20";
-                const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
-                const Icon = isGood ? CheckCircle2 : isWarning ? Clock : XCircle;
-                return (
-                  <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                    <CardContent className="h-full flex flex-col justify-between py-5">
-                      <div className="flex items-start justify-between">
-                        <div><div className="flex items-center gap-1 mb-1"><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tasa de Aprobación</p><Tooltip content="Porcentaje de solicitudes aprobadas del total enviadas. Verde ≥70% (bueno), amarillo 40-70% (mejorable), rojo <40% (crítico)." position="top"><HelpCircle className="w-3.5 h-3.5 text-slate-400 cursor-help hover:text-slate-600 dark:hover:text-slate-300 transition-colors" /></Tooltip></div><p className={`text-3xl font-bold ${isGood ? 'text-emerald-600 dark:text-emerald-400' : isWarning ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{tasa}%</p></div>
-                        <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><Icon className={`w-6 h-6 ${iconColor}`} /></div>
-                      </div>
-                      <div className="text-sm text-slate-500 dark:text-slate-400">{kpiData.solicitudes.aprobadas} aprobadas de {kpiData.solicitudes.total}</div>
-                    </CardContent>
-                  </Card>
-                );
-              })()}
-
-              {(() => {
-                const prom = kpiData.tiempoAprobacion.promedio, meta = kpiData.tiempoAprobacion.meta;
-                const isGood = prom <= meta, isWarning = prom > meta && prom <= meta * 1.5;
-                const bgColor = isGood ? "bg-emerald-500/10 dark:bg-emerald-500/20" : isWarning ? "bg-amber-500/10 dark:bg-amber-500/20" : "bg-red-500/10 dark:bg-red-500/20";
-                const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
-                const valueColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
-                return (
-                  <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                    <CardContent className="h-full flex flex-col justify-between py-5">
-                      <div className="flex items-start justify-between">
-                        <div><div className="flex items-center gap-1 mb-1"><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tiempo Promedio</p><Tooltip content="Días promedio que tardan tus solicitudes en ser aprobadas. La meta es 3 días o menos." position="top"><HelpCircle className="w-3.5 h-3.5 text-slate-400 cursor-help hover:text-slate-600 dark:hover:text-slate-300 transition-colors" /></Tooltip></div><p className={`text-3xl font-bold ${valueColor}`}>{prom} días</p></div>
-                        <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><Clock className={`w-6 h-6 ${iconColor}`} /></div>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        {isGood ? <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><TrendingDown className="w-4 h-4" /><span className="font-semibold">Bajo meta</span></div>
-                          : <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400"><TrendingUp className="w-4 h-4" /><span className="font-semibold">Sobre meta</span></div>}
-                        <span className="text-slate-500 dark:text-slate-400">Meta: {meta} días</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })()}
-
-              {(() => {
-                const pct = kpiData.presupuesto.percentage;
-                const isGood = pct < 70, isWarning = pct >= 70 && pct <= 90;
-                const bgColor = isGood ? "bg-emerald-500/10 dark:bg-emerald-500/20" : isWarning ? "bg-amber-500/10 dark:bg-amber-500/20" : "bg-red-500/10 dark:bg-red-500/20";
-                const iconColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
-                const textColor = isGood ? "text-emerald-600 dark:text-emerald-400" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
-                return (
-                  <Card className="h-[150px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                    <CardContent className="h-full flex flex-col justify-between py-5">
-                      <div className="flex items-start justify-between">
-                        <div><div className="flex items-center gap-1 mb-1"><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Presupuesto</p><Tooltip content="Porcentaje del presupuesto consumido en el período actual. Muestra cuánto has gastado del total asignado." position="top"><HelpCircle className="w-3.5 h-3.5 text-slate-400 cursor-help hover:text-slate-600 dark:hover:text-slate-300 transition-colors" /></Tooltip></div><p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(kpiData.presupuesto.utilizado)}</p></div>
-                        <div className={`h-12 w-12 rounded-2xl ${bgColor} grid place-items-center`}><DollarSign className={`w-6 h-6 ${iconColor}`} /></div>
-                      </div>
-                      <div className="text-sm"><span className={`font-semibold ${textColor}`}>{pct}%</span><span className="text-slate-500 dark:text-slate-400"> de {formatCurrency(kpiData.presupuesto.total)}</span></div>
-                    </CardContent>
-                  </Card>
-                );
-              })()}
-            </div>
-          </ScrollReveal>
-
-          <ScrollReveal delay={200}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* KPI Card compacta con sparkline */}
-              <WeeklyRequestsKpiCard
-                data={kpiData.solicitudes.trend}
-                trendPercentage={kpiData.solicitudes.trendPercentage}
+      <Paper sx={{ borderRadius: 2, overflow: "hidden" }}>
+        {/* Header con tabs */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            px: 2,
+            py: 1.5,
+            borderBottom: 1,
+            borderColor: "divider",
+          }}
+        >
+          <Tabs
+            value={activeTab}
+            onChange={handleTabChange}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              "& .MuiTab-root": {
+                textTransform: "none",
+                minHeight: 48,
+                fontWeight: 500,
+              },
+            }}
+          >
+            {tabs.map((tab, index) => (
+              <Tab
+                key={tab.key}
+                label={`${tab.label} (${tab.count})`}
               />
+            ))}
+          </Tabs>
+        </Box>
 
-              {/* Distribucion de Estados */}
-              <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                <CardHeader className="px-6 pt-5 pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">Distribución de Estados</CardTitle>
-                    <BarChart3 className={`w-5 h-5 ${ICON_COLORS.charts}`} />
-                  </div>
-                </CardHeader>
-                <CardContent className="px-6 pb-5 flex items-center justify-center">
-                  <DonutChart
-                    data={[kpiData.solicitudes.aprobadas, kpiData.solicitudes.rechazadas, kpiData.solicitudes.pendientes]}
-                    colors={["#10b981", "#ef4444", "#f59e0b"]}
-                    labels={["Aprobadas", "Rechazadas", "Pendientes"]}
+        {/* Tabla */}
+        <Box sx={{ p: 2 }}>
+          {loading ? (
+            <TableSkeleton rows={5} columns={7} />
+          ) : currentData.length === 0 ? (
+            <Box sx={{ py: 8, textAlign: "center" }}>
+              <DescriptionIcon sx={{ fontSize: 48, color: "text.disabled", mb: 2, opacity: 0.6 }} />
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                {stats.todas === 0
+                  ? t("dash_no_requests_user", "No tienes solicitudes. Crea tu primera solicitud.")
+                  : t("dash_no_requests_category", "No hay solicitudes en esta categoria")}
+              </Typography>
+              {stats.todas === 0 && (
+                <Button
+                  component={Link}
+                  to="/solicitudes/nueva"
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  sx={{ textTransform: "none" }}
+                >
+                  {t("dash_create_first", "Crear solicitud")}
+                </Button>
+              )}
+            </Box>
+          ) : (
+            <SPMAgGrid
+              columnDefs={columnDefs}
+              rowData={currentData}
+              emptyMessage={t("dash_no_requests", "No hay solicitudes")}
+              onRowClick={(row) => navigate(`/solicitudes/${row.id}`)}
+              height={400}
+              pagination={true}
+              paginationPageSize={10}
+              enableQuickFilter={true}
+              exportFileName="dashboard_solicitante"
+            />
+          )}
+        </Box>
+      </Paper>
+
+      {kpiLoading ? (
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", py: 6 }}>
+          <CircularProgress size={32} />
+        </Box>
+      ) : (
+        <>
+          <ParallaxSection.Light>
+            <ScrollReveal delay={100}>
+              <Grid container spacing={2}>
+                {/* Total Solicitudes Card */}
+                <Grid item xs={12} md={6} lg={3}>
+                  <Paper
+                    sx={{
+                      height: 150,
+                      p: 2.5,
+                      borderRadius: 2,
+                      bgcolor: "rgba(255, 255, 255, 0.7)",
+                      backdropFilter: "blur(12px)",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                      <Box>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: 1, fontWeight: 500 }}>
+                            Total Solicitudes
+                          </Typography>
+                          <Tooltip title="Numero total de solicitudes que has creado, incluyendo borradores, enviadas, aprobadas y rechazadas." arrow>
+                            <HelpOutlineIcon sx={{ fontSize: 14, color: "text.disabled", cursor: "help" }} />
+                          </Tooltip>
+                        </Box>
+                        <Typography variant="h4" fontWeight={700} color="text.primary">
+                          {kpiData.solicitudes.total}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 3,
+                          bgcolor: "primary.lighter",
+                          display: "grid",
+                          placeItems: "center",
+                        }}
+                      >
+                        <DescriptionIcon sx={{ fontSize: 24, color: "primary.main" }} />
+                      </Box>
+                    </Box>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      {kpiData.solicitudes.trendPercentage >= 0 ? (
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "success.main" }}>
+                          <TrendingUpIcon sx={{ fontSize: 16 }} />
+                          <Typography variant="body2" fontWeight={600}>+{kpiData.solicitudes.trendPercentage}%</Typography>
+                        </Box>
+                      ) : (
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "error.main" }}>
+                          <TrendingDownIcon sx={{ fontSize: 16 }} />
+                          <Typography variant="body2" fontWeight={600}>{kpiData.solicitudes.trendPercentage}%</Typography>
+                        </Box>
+                      )}
+                      <Typography variant="body2" color="text.secondary">vs mes anterior</Typography>
+                    </Box>
+                  </Paper>
+                </Grid>
+
+                {/* Tasa de Aprobacion Card */}
+                <Grid item xs={12} md={6} lg={3}>
+                  {(() => {
+                    const tasa = kpiData.solicitudes.total > 0 ? Math.round((kpiData.solicitudes.aprobadas / kpiData.solicitudes.total) * 100) : 0;
+                    const isGood = tasa >= 70, isWarning = tasa >= 40 && tasa < 70;
+                    const bgColor = isGood ? "success.lighter" : isWarning ? "warning.lighter" : "error.lighter";
+                    const iconColor = isGood ? "success.main" : isWarning ? "warning.main" : "error.main";
+                    const textColor = isGood ? "success.main" : isWarning ? "warning.main" : "error.main";
+                    const Icon = isGood ? CheckCircleIcon : isWarning ? AccessTimeIcon : CancelIcon;
+                    return (
+                      <Paper
+                        sx={{
+                          height: 150,
+                          p: 2.5,
+                          borderRadius: 2,
+                          bgcolor: "rgba(255, 255, 255, 0.7)",
+                          backdropFilter: "blur(12px)",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                          <Box>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5 }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: 1, fontWeight: 500 }}>
+                                Tasa de Aprobacion
+                              </Typography>
+                              <Tooltip title="Porcentaje de solicitudes aprobadas del total enviadas. Verde >=70% (bueno), amarillo 40-70% (mejorable), rojo <40% (critico)." arrow>
+                                <HelpOutlineIcon sx={{ fontSize: 14, color: "text.disabled", cursor: "help" }} />
+                              </Tooltip>
+                            </Box>
+                            <Typography variant="h4" fontWeight={700} color={textColor}>
+                              {tasa}%
+                            </Typography>
+                          </Box>
+                          <Box
+                            sx={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: 3,
+                              bgcolor: bgColor,
+                              display: "grid",
+                              placeItems: "center",
+                            }}
+                          >
+                            <Icon sx={{ fontSize: 24, color: iconColor }} />
+                          </Box>
+                        </Box>
+                        <Typography variant="body2" color="text.secondary">
+                          {kpiData.solicitudes.aprobadas} aprobadas de {kpiData.solicitudes.total}
+                        </Typography>
+                      </Paper>
+                    );
+                  })()}
+                </Grid>
+
+                {/* Tiempo Promedio Card */}
+                <Grid item xs={12} md={6} lg={3}>
+                  {(() => {
+                    const prom = kpiData.tiempoAprobacion.promedio, meta = kpiData.tiempoAprobacion.meta;
+                    const isGood = prom <= meta, isWarning = prom > meta && prom <= meta * 1.5;
+                    const bgColor = isGood ? "success.lighter" : isWarning ? "warning.lighter" : "error.lighter";
+                    const iconColor = isGood ? "success.main" : isWarning ? "warning.main" : "error.main";
+                    const valueColor = isGood ? "success.main" : isWarning ? "warning.main" : "error.main";
+                    return (
+                      <Paper
+                        sx={{
+                          height: 150,
+                          p: 2.5,
+                          borderRadius: 2,
+                          bgcolor: "rgba(255, 255, 255, 0.7)",
+                          backdropFilter: "blur(12px)",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                          <Box>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5 }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: 1, fontWeight: 500 }}>
+                                Tiempo Promedio
+                              </Typography>
+                              <Tooltip title="Dias promedio que tardan tus solicitudes en ser aprobadas. La meta es 3 dias o menos." arrow>
+                                <HelpOutlineIcon sx={{ fontSize: 14, color: "text.disabled", cursor: "help" }} />
+                              </Tooltip>
+                            </Box>
+                            <Typography variant="h4" fontWeight={700} color={valueColor}>
+                              {prom} dias
+                            </Typography>
+                          </Box>
+                          <Box
+                            sx={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: 3,
+                              bgcolor: bgColor,
+                              display: "grid",
+                              placeItems: "center",
+                            }}
+                          >
+                            <AccessTimeIcon sx={{ fontSize: 24, color: iconColor }} />
+                          </Box>
+                        </Box>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          {isGood ? (
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "success.main" }}>
+                              <TrendingDownIcon sx={{ fontSize: 16 }} />
+                              <Typography variant="body2" fontWeight={600}>Bajo meta</Typography>
+                            </Box>
+                          ) : (
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "warning.main" }}>
+                              <TrendingUpIcon sx={{ fontSize: 16 }} />
+                              <Typography variant="body2" fontWeight={600}>Sobre meta</Typography>
+                            </Box>
+                          )}
+                          <Typography variant="body2" color="text.secondary">Meta: {meta} dias</Typography>
+                        </Box>
+                      </Paper>
+                    );
+                  })()}
+                </Grid>
+
+                {/* Presupuesto Card */}
+                <Grid item xs={12} md={6} lg={3}>
+                  {(() => {
+                    const pct = kpiData.presupuesto.percentage;
+                    const isGood = pct < 70, isWarning = pct >= 70 && pct <= 90;
+                    const bgColor = isGood ? "success.lighter" : isWarning ? "warning.lighter" : "error.lighter";
+                    const iconColor = isGood ? "success.main" : isWarning ? "warning.main" : "error.main";
+                    const textColor = isGood ? "success.main" : isWarning ? "warning.main" : "error.main";
+                    return (
+                      <Paper
+                        sx={{
+                          height: 150,
+                          p: 2.5,
+                          borderRadius: 2,
+                          bgcolor: "rgba(255, 255, 255, 0.7)",
+                          backdropFilter: "blur(12px)",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                          <Box>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5 }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: 1, fontWeight: 500 }}>
+                                Presupuesto
+                              </Typography>
+                              <Tooltip title="Porcentaje del presupuesto consumido en el periodo actual. Muestra cuanto has gastado del total asignado." arrow>
+                                <HelpOutlineIcon sx={{ fontSize: 14, color: "text.disabled", cursor: "help" }} />
+                              </Tooltip>
+                            </Box>
+                            <Typography variant="h5" fontWeight={700} color="text.primary">
+                              {formatCurrency(kpiData.presupuesto.utilizado)}
+                            </Typography>
+                          </Box>
+                          <Box
+                            sx={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: 3,
+                              bgcolor: bgColor,
+                              display: "grid",
+                              placeItems: "center",
+                            }}
+                          >
+                            <AttachMoneyIcon sx={{ fontSize: 24, color: iconColor }} />
+                          </Box>
+                        </Box>
+                        <Typography variant="body2">
+                          <Typography component="span" fontWeight={600} color={textColor}>{pct}%</Typography>
+                          <Typography component="span" color="text.secondary"> de {formatCurrency(kpiData.presupuesto.total)}</Typography>
+                        </Typography>
+                      </Paper>
+                    );
+                  })()}
+                </Grid>
+              </Grid>
+            </ScrollReveal>
+          </ParallaxSection.Light>
+
+          <ParallaxSection.Moderate>
+            <ScrollReveal delay={200}>
+              <Grid container spacing={3}>
+                {/* KPI Card compacta con sparkline */}
+                <Grid item xs={12} lg={6}>
+                  <WeeklyRequestsKpiCard
+                    data={kpiData.solicitudes.trend}
+                    trendPercentage={kpiData.solicitudes.trendPercentage}
                   />
-                </CardContent>
-              </Card>
-            </div>
-          </ScrollReveal>
+                </Grid>
 
-          <ScrollReveal delay={250}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="h-[320px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                <CardHeader className="px-5 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Materiales Más Solicitados</CardTitle><Package className={`w-5 h-5 ${ICON_COLORS.logistics}`} /></div></CardHeader>
-                <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
-                  <div className="space-y-3">
-                    {(kpiData.materialesMasSolicitados || []).length > 0 ? kpiData.materialesMasSolicitados.map((m, i) => {
-                      const maxC = Math.max(...kpiData.materialesMasSolicitados.map(x => x.cantidad), 1);
-                      return (<div key={i} className="group"><div className="flex items-center justify-between mb-1.5"><div className="flex items-center gap-2 min-w-0 flex-1"><div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500/10 dark:bg-blue-500/20 grid place-items-center text-xs font-bold text-blue-600 dark:text-blue-400">{i + 1}</div><span className="text-sm text-slate-700 dark:text-slate-300 font-medium truncate" title={m.nombre}>{m.nombre}</span></div><span className="text-xs font-semibold text-slate-800 dark:text-slate-200 tabular-nums flex-shrink-0 ml-2">{(m.cantidad || 0).toLocaleString()}</span></div><div className="h-2.5 bg-slate-100/70 dark:bg-slate-700/70 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-500 group-hover:from-blue-600 group-hover:to-blue-500" style={{ width: `${(m.cantidad / maxC) * 100}%` }} /></div></div>);
-                    }) : <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No hay datos disponibles</p>}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="h-[320px] bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-                <CardHeader className="px-5 pt-5 pb-3"><div className="flex items-center justify-between"><CardTitle className="text-base">Presupuesto por Centro</CardTitle><DollarSign className={`w-5 h-5 ${ICON_COLORS.money}`} /></div></CardHeader>
-                <CardContent className="px-5 pb-5 overflow-auto h-[calc(100%-60px)]">
-                  <div className="space-y-3">
-                    {(kpiData.presupuesto.porCentro || []).length > 0 ? kpiData.presupuesto.porCentro.map((c, i) => {
-                      const maxV = Math.max(...kpiData.presupuesto.porCentro.map(x => x.valor), 1);
-                      return (<div key={i} className="group"><div className="flex items-center justify-between mb-1.5"><span className="text-sm text-slate-700 dark:text-slate-300 font-medium truncate flex-1" title={c.nombre}>{c.nombre}</span><span className="text-xs font-semibold text-slate-800 dark:text-slate-200 tabular-nums flex-shrink-0 ml-2">{formatCurrency(c.valor)}</span></div><div className="h-2.5 bg-slate-100/70 dark:bg-slate-700/70 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500 group-hover:from-emerald-600 group-hover:to-emerald-500" style={{ width: `${(c.valor / maxV) * 100}%` }} /></div></div>);
-                    }) : <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No hay datos disponibles</p>}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </ScrollReveal>
+                {/* Distribucion de Estados */}
+                <Grid item xs={12} lg={6}>
+                  <Paper
+                    sx={{
+                      borderRadius: 2,
+                      bgcolor: "rgba(255, 255, 255, 0.7)",
+                      backdropFilter: "blur(12px)",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        px: 3,
+                        pt: 2.5,
+                        pb: 1.5,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <Typography variant="subtitle1" fontWeight={600}>
+                        Distribucion de Estados
+                      </Typography>
+                      <BarChartIcon sx={{ fontSize: 20, color: "text.secondary" }} />
+                    </Box>
+                    <Box sx={{ px: 3, pb: 2.5, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <DonutChart
+                        data={[kpiData.solicitudes.aprobadas, kpiData.solicitudes.rechazadas, kpiData.solicitudes.pendientes]}
+                        colors={[SPM_COLORS.success, SPM_COLORS.error, SPM_COLORS.warning]}
+                        labels={["Aprobadas", "Rechazadas", "Pendientes"]}
+                      />
+                    </Box>
+                  </Paper>
+                </Grid>
+              </Grid>
+            </ScrollReveal>
+          </ParallaxSection.Moderate>
 
-          <ScrollReveal delay={300}>
-            <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/30 dark:border-slate-700/30">
-              <CardHeader className="px-6 pt-6 pb-4"><CardTitle>Resumen de Presupuesto</CardTitle></CardHeader>
-              <CardContent className="px-6 pb-6">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-                  <div className="flex-shrink-0"><ProgressCircle percentage={kpiData.presupuesto.percentage} /></div>
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
-                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Presupuesto Total</p><p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(kpiData.presupuesto.total)}</p></div>
-                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Utilizado</p><p className="text-2xl font-bold text-amber-500 dark:text-amber-400">{formatCurrency(kpiData.presupuesto.utilizado)}</p></div>
-                    <div className="text-center md:text-left"><p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Disponible</p><p className="text-2xl font-bold text-emerald-500 dark:text-emerald-400">{formatCurrency(kpiData.presupuesto.disponible)}</p></div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </ScrollReveal>
+          <ParallaxSection.Subtle>
+            <ScrollReveal delay={250}>
+              <Grid container spacing={3}>
+                {/* Materiales Mas Solicitados */}
+                <Grid item xs={12} lg={6}>
+                  <Paper
+                    sx={{
+                      height: 320,
+                      borderRadius: 2,
+                      bgcolor: "rgba(255, 255, 255, 0.7)",
+                      backdropFilter: "blur(12px)",
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        px: 2.5,
+                        pt: 2.5,
+                        pb: 1.5,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <Typography variant="subtitle1" fontWeight={600}>
+                        Materiales Mas Solicitados
+                      </Typography>
+                      <InventoryIcon sx={{ fontSize: 20, color: "text.secondary" }} />
+                    </Box>
+                    <Box sx={{ px: 2.5, pb: 2.5, overflow: "auto", flex: 1 }}>
+                      <Stack spacing={1.5}>
+                        {(kpiData.materialesMasSolicitados || []).length > 0 ? (
+                          kpiData.materialesMasSolicitados.map((m, i) => {
+                            const maxC = Math.max(...kpiData.materialesMasSolicitados.map(x => x.cantidad), 1);
+                            return (
+                              <Box key={i}>
+                                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.75 }}>
+                                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0, flex: 1 }}>
+                                    <Box
+                                      sx={{
+                                        flexShrink: 0,
+                                        width: 20,
+                                        height: 20,
+                                        borderRadius: "50%",
+                                        bgcolor: "primary.lighter",
+                                        display: "grid",
+                                        placeItems: "center",
+                                      }}
+                                    >
+                                      <Typography variant="caption" fontWeight={700} color="primary.main">
+                                        {i + 1}
+                                      </Typography>
+                                    </Box>
+                                    <Typography
+                                      variant="body2"
+                                      fontWeight={500}
+                                      color="text.primary"
+                                      title={m.nombre}
+                                      sx={{
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                      }}
+                                    >
+                                      {m.nombre}
+                                    </Typography>
+                                  </Box>
+                                  <Typography
+                                    variant="caption"
+                                    fontWeight={600}
+                                    color="text.primary"
+                                    sx={{ flexShrink: 0, ml: 1, fontVariantNumeric: "tabular-nums" }}
+                                  >
+                                    {(m.cantidad || 0).toLocaleString()}
+                                  </Typography>
+                                </Box>
+                                <Box
+                                  sx={{
+                                    height: 10,
+                                    bgcolor: "grey.100",
+                                    borderRadius: 2,
+                                    overflow: "hidden",
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      height: "100%",
+                                      background: `linear-gradient(to right, ${SPM_COLORS.primary}, ${SPM_COLORS.info})`,
+                                      borderRadius: 2,
+                                      transition: "all 500ms",
+                                      width: `${(m.cantidad / maxC) * 100}%`,
+                                      "&:hover": {
+                                        background: `linear-gradient(to right, ${SPM_COLORS.primary}, ${SPM_COLORS.primary})`,
+                                      },
+                                    }}
+                                  />
+                                </Box>
+                              </Box>
+                            );
+                          })
+                        ) : (
+                          <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 2 }}>
+                            No hay datos disponibles
+                          </Typography>
+                        )}
+                      </Stack>
+                    </Box>
+                  </Paper>
+                </Grid>
+
+                {/* Presupuesto por Centro */}
+                <Grid item xs={12} lg={6}>
+                  <Paper
+                    sx={{
+                      height: 320,
+                      borderRadius: 2,
+                      bgcolor: "rgba(255, 255, 255, 0.7)",
+                      backdropFilter: "blur(12px)",
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        px: 2.5,
+                        pt: 2.5,
+                        pb: 1.5,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <Typography variant="subtitle1" fontWeight={600}>
+                        Presupuesto por Centro
+                      </Typography>
+                      <AttachMoneyIcon sx={{ fontSize: 20, color: "text.secondary" }} />
+                    </Box>
+                    <Box sx={{ px: 2.5, pb: 2.5, overflow: "auto", flex: 1 }}>
+                      <Stack spacing={1.5}>
+                        {(kpiData.presupuesto.porCentro || []).length > 0 ? (
+                          kpiData.presupuesto.porCentro.map((c, i) => {
+                            const maxV = Math.max(...kpiData.presupuesto.porCentro.map(x => x.valor), 1);
+                            return (
+                              <Box key={i}>
+                                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.75 }}>
+                                  <Typography
+                                    variant="body2"
+                                    fontWeight={500}
+                                    color="text.primary"
+                                    title={c.nombre}
+                                    sx={{
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                      whiteSpace: "nowrap",
+                                      flex: 1,
+                                    }}
+                                  >
+                                    {c.nombre}
+                                  </Typography>
+                                  <Typography
+                                    variant="caption"
+                                    fontWeight={600}
+                                    color="text.primary"
+                                    sx={{ flexShrink: 0, ml: 1, fontVariantNumeric: "tabular-nums" }}
+                                  >
+                                    {formatCurrency(c.valor)}
+                                  </Typography>
+                                </Box>
+                                <Box
+                                  sx={{
+                                    height: 10,
+                                    bgcolor: "grey.100",
+                                    borderRadius: 2,
+                                    overflow: "hidden",
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      height: "100%",
+                                      background: `linear-gradient(to right, ${SPM_COLORS.success}, ${SPM_COLORS.successLight})`,
+                                      borderRadius: 2,
+                                      transition: "all 500ms",
+                                      width: `${(c.valor / maxV) * 100}%`,
+                                      "&:hover": {
+                                        background: `linear-gradient(to right, ${SPM_COLORS.successLight}, ${SPM_COLORS.success})`,
+                                      },
+                                    }}
+                                  />
+                                </Box>
+                              </Box>
+                            );
+                          })
+                        ) : (
+                          <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 2 }}>
+                            No hay datos disponibles
+                          </Typography>
+                        )}
+                      </Stack>
+                    </Box>
+                  </Paper>
+                </Grid>
+              </Grid>
+            </ScrollReveal>
+          </ParallaxSection.Subtle>
+
+          <ParallaxSection.Light>
+            <ScrollReveal delay={300}>
+              <Paper
+                sx={{
+                  borderRadius: 2,
+                  bgcolor: "rgba(255, 255, 255, 0.7)",
+                  backdropFilter: "blur(12px)",
+                }}
+              >
+                <Box sx={{ px: 3, pt: 3, pb: 2 }}>
+                  <Typography variant="h6" fontWeight={600}>
+                    Resumen de Presupuesto
+                  </Typography>
+                </Box>
+                <Box sx={{ px: 3, pb: 3 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: { xs: "column", md: "row" },
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 4,
+                    }}
+                  >
+                    <Box sx={{ flexShrink: 0 }}>
+                      <ProgressCircle percentage={kpiData.presupuesto.percentage} />
+                    </Box>
+                    <Grid container spacing={3} sx={{ flex: 1, width: "100%" }}>
+                      <Grid item xs={12} md={4}>
+                        <Box sx={{ textAlign: { xs: "center", md: "left" } }}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ textTransform: "uppercase", letterSpacing: 1, fontWeight: 500, display: "block", mb: 1 }}
+                          >
+                            Presupuesto Total
+                          </Typography>
+                          <Typography variant="h5" fontWeight={700} color="text.primary">
+                            {formatCurrency(kpiData.presupuesto.total)}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <Box sx={{ textAlign: { xs: "center", md: "left" } }}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ textTransform: "uppercase", letterSpacing: 1, fontWeight: 500, display: "block", mb: 1 }}
+                          >
+                            Utilizado
+                          </Typography>
+                          <Typography variant="h5" fontWeight={700} color="warning.main">
+                            {formatCurrency(kpiData.presupuesto.utilizado)}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <Box sx={{ textAlign: { xs: "center", md: "left" } }}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ textTransform: "uppercase", letterSpacing: 1, fontWeight: 500, display: "block", mb: 1 }}
+                          >
+                            Disponible
+                          </Typography>
+                          <Typography variant="h5" fontWeight={700} color="success.main">
+                            {formatCurrency(kpiData.presupuesto.disponible)}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                </Box>
+              </Paper>
+            </ScrollReveal>
+          </ParallaxSection.Light>
         </>
       )}
-    </div>
+    </Stack>
   );
 }

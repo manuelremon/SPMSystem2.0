@@ -1,5 +1,20 @@
 import React, { useMemo } from "react";
-import { Package, ShoppingCart, DollarSign } from "../ui/Icons";
+import {
+  Box,
+  Paper,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  Stack,
+} from "@mui/material";
+import InventoryIcon from "@mui/icons-material/Inventory";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 
 export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
   // Agrupar fuentes por tipo: stock vs compra + calcular costos
@@ -67,87 +82,193 @@ export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
   }, [decisiones, items]);
 
   return (
-    <div className="space-y-6">
-      {/* Sección Stock */}
+    <Stack spacing={3}>
+      {/* Seccion Stock */}
       {stockRows.length > 0 && (
-        <div className="space-y-3">
+        <Box>
           <SectionHeader
-            icon={Package}
+            icon={InventoryIcon}
             title="DESDE STOCK"
             variant="success"
           />
-          <StockTable rows={stockRows} />
-        </div>
+          <Box sx={{ mt: 1.5 }}>
+            <StockTable rows={stockRows} />
+          </Box>
+        </Box>
       )}
 
-      {/* Sección Compra */}
+      {/* Seccion Compra */}
       {compraRows.length > 0 && (
-        <div className="space-y-3">
+        <Box>
           <SectionHeader
-            icon={ShoppingCart}
+            icon={ShoppingCartIcon}
             title="POR COMPRA"
             variant="info"
           />
-          <CompraTable rows={compraRows} />
-        </div>
+          <Box sx={{ mt: 1.5 }}>
+            <CompraTable rows={compraRows} />
+          </Box>
+        </Box>
       )}
 
-      {/* Estado vacío */}
+      {/* Estado vacio */}
       {stockRows.length === 0 && compraRows.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-[var(--fg-muted)]">
+        <Box sx={{ textAlign: "center", py: 6 }}>
+          <Typography color="text.secondary">
             No hay decisiones de abastecimiento registradas.
-          </p>
-        </div>
+          </Typography>
+        </Box>
       )}
 
       {/* G4: Sumario de Costos */}
       {(stockRows.length > 0 || compraRows.length > 0) && (
-        <div className="mt-8">
+        <Box sx={{ mt: 4 }}>
           <SectionHeader
-            icon={DollarSign}
+            icon={AttachMoneyIcon}
             title="RESUMEN DE COSTOS"
             variant="warning"
           />
-          <div
-            className="mt-3 p-4 rounded-2xl"
-            style={{
+          <Paper
+            elevation={0}
+            sx={{
+              mt: 1.5,
+              p: 2,
+              borderRadius: 4,
               backgroundColor: "var(--card)",
               boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
             }}
           >
-            <div className="grid grid-cols-3 gap-4">
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: 2,
+              }}
+            >
               {/* Costo Stock */}
-              <div className="text-center p-4 rounded-xl" style={{ backgroundColor: "rgba(16, 185, 129, 0.08)" }}>
-                <p className="text-xs uppercase tracking-wide text-[var(--fg-muted)] mb-1">Desde Stock</p>
-                <p className="text-2xl font-bold" style={{ color: "var(--success)" }}>
+              <Box
+                sx={{
+                  textAlign: "center",
+                  p: 2,
+                  borderRadius: 3,
+                  backgroundColor: "rgba(16, 185, 129, 0.08)",
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    color: "var(--fg-muted)",
+                    mb: 0.5,
+                  }}
+                >
+                  Desde Stock
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: "1.5rem",
+                    fontWeight: 700,
+                    color: "var(--success)",
+                  }}
+                >
                   ${costoStock.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-                <p className="text-xs text-[var(--fg-muted)] mt-1">{stockRows.length} líneas</p>
-              </div>
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: "0.75rem",
+                    color: "var(--fg-muted)",
+                    mt: 0.5,
+                  }}
+                >
+                  {stockRows.length} lineas
+                </Typography>
+              </Box>
 
               {/* Costo Compra */}
-              <div className="text-center p-4 rounded-xl" style={{ backgroundColor: "rgba(59, 130, 246, 0.08)" }}>
-                <p className="text-xs uppercase tracking-wide text-[var(--fg-muted)] mb-1">Por Compra</p>
-                <p className="text-2xl font-bold" style={{ color: "var(--info)" }}>
+              <Box
+                sx={{
+                  textAlign: "center",
+                  p: 2,
+                  borderRadius: 3,
+                  backgroundColor: "rgba(59, 130, 246, 0.08)",
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    color: "var(--fg-muted)",
+                    mb: 0.5,
+                  }}
+                >
+                  Por Compra
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: "1.5rem",
+                    fontWeight: 700,
+                    color: "var(--info)",
+                  }}
+                >
                   ${costoCompra.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-                <p className="text-xs text-[var(--fg-muted)] mt-1">{compraRows.length} líneas</p>
-              </div>
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: "0.75rem",
+                    color: "var(--fg-muted)",
+                    mt: 0.5,
+                  }}
+                >
+                  {compraRows.length} lineas
+                </Typography>
+              </Box>
 
               {/* Costo Total */}
-              <div className="text-center p-4 rounded-xl" style={{ backgroundColor: "rgba(139, 92, 246, 0.08)" }}>
-                <p className="text-xs uppercase tracking-wide text-[var(--fg-muted)] mb-1">Costo Total</p>
-                <p className="text-2xl font-bold" style={{ color: "var(--primary)" }}>
+              <Box
+                sx={{
+                  textAlign: "center",
+                  p: 2,
+                  borderRadius: 3,
+                  backgroundColor: "rgba(139, 92, 246, 0.08)",
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    color: "var(--fg-muted)",
+                    mb: 0.5,
+                  }}
+                >
+                  Costo Total
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: "1.5rem",
+                    fontWeight: 700,
+                    color: "var(--primary)",
+                  }}
+                >
                   ${costoTotal.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-                <p className="text-xs text-[var(--fg-muted)] mt-1">{stockRows.length + compraRows.length} líneas</p>
-              </div>
-            </div>
-          </div>
-        </div>
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: "0.75rem",
+                    color: "var(--fg-muted)",
+                    mt: 0.5,
+                  }}
+                >
+                  {stockRows.length + compraRows.length} lineas
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
+        </Box>
       )}
-    </div>
+    </Stack>
   );
 }
 
@@ -170,147 +291,224 @@ function SectionHeader({ icon: Icon, title, variant }) {
   const style = variantStyles[variant] || variantStyles.info;
 
   return (
-    <div className="flex items-center gap-3">
-      <div
-        className="p-2 rounded-lg"
-        style={{ backgroundColor: style.bg, color: style.text }}
+    <Stack direction="row" alignItems="center" spacing={1.5}>
+      <Box
+        sx={{
+          p: 1,
+          borderRadius: 2,
+          backgroundColor: style.bg,
+          color: style.text,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
-        <Icon className="w-5 h-5" />
-      </div>
-      <h3 className="text-sm font-bold uppercase tracking-wide text-[var(--fg)]">
+        <Icon sx={{ fontSize: 20 }} />
+      </Box>
+      <Typography
+        sx={{
+          fontSize: "0.875rem",
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          color: "var(--fg)",
+        }}
+      >
         {title}
-      </h3>
-    </div>
+      </Typography>
+    </Stack>
   );
 }
 
 function StockTable({ rows }) {
+  const headerCellSx = {
+    px: 2,
+    py: 1.75,
+    fontSize: "0.75rem",
+    fontWeight: 600,
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+    color: "var(--fg-muted)",
+    backgroundColor: "var(--bg-soft)",
+    borderBottom: "1px solid var(--border)",
+  };
+
+  const bodyCellSx = {
+    px: 2,
+    py: 1.75,
+    color: "var(--fg)",
+  };
+
   return (
-    <div
-      className="overflow-hidden rounded-2xl"
-      style={{
+    <TableContainer
+      component={Paper}
+      elevation={0}
+      sx={{
+        borderRadius: 4,
         backgroundColor: "var(--card)",
         boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
+        overflow: "hidden",
       }}
     >
-      <table className="w-full text-sm">
-        <thead>
-          <tr
-            style={{
-              backgroundColor: "var(--bg-soft)",
-              borderBottom: "1px solid var(--border)",
-            }}
-          >
-            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Código SAP</th>
-            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Descripción</th>
-            <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Solicitado</th>
-            <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Asignado</th>
-            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Ubicación</th>
-            <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Plazo</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell sx={{ ...headerCellSx, textAlign: "center" }}>Codigo SAP</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "center" }}>Descripcion</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "right" }}>Solicitado</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "right" }}>Asignado</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "center" }}>Ubicacion</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "right" }}>Plazo</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
           {rows.map((row, i) => (
-            <tr
+            <TableRow
               key={i}
-              style={{
-                borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none",
+              sx={{
+                "&:last-child td": { borderBottom: "none" },
+                "& td": { borderBottom: "1px solid var(--border)" },
               }}
             >
-              <td className="px-4 py-3.5 font-mono text-[var(--fg)]">{row.codigo}</td>
-              <td className="px-4 py-3.5 text-[var(--fg)]">{row.descripcion}</td>
-              <td className="px-4 py-3.5 text-right text-[var(--fg-muted)]">
+              <TableCell sx={{ ...bodyCellSx, fontFamily: "monospace" }}>{row.codigo}</TableCell>
+              <TableCell sx={bodyCellSx}>{row.descripcion}</TableCell>
+              <TableCell sx={{ ...bodyCellSx, textAlign: "right", color: "var(--fg-muted)" }}>
                 {row.cantidadSolicitada}
-              </td>
-              <td className="px-4 py-3.5 text-right">
-                <span className="font-semibold text-[var(--fg)]">{row.cantidadAsignada}</span>
-                <span
-                  className="ml-2 text-xs px-2 py-0.5 rounded-full font-medium"
-                  style={{
-                    backgroundColor: "rgba(16, 185, 129, 0.12)",
-                    color: "var(--success)",
-                  }}
-                >
-                  {row.porcentaje}%
-                </span>
-              </td>
-              <td className="px-4 py-3.5 text-[var(--fg-muted)]">
-                {row.centro} / Alm {String(row.almacen || "").padStart(4, "0")}
-                {row.nombre_almacen && (
-                  <span className="block text-xs text-[var(--fg-muted)] opacity-70">
-                    {row.nombre_almacen}
-                  </span>
-                )}
-              </td>
-              <td className="px-4 py-3.5 text-right text-[var(--fg-muted)]">
-                {row.plazo ? `${row.plazo} días` : "Inmediato"}
-              </td>
-            </tr>
+              </TableCell>
+              <TableCell sx={{ ...bodyCellSx, textAlign: "right" }}>
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1 }}>
+                  <Typography component="span" sx={{ fontWeight: 600, color: "var(--fg)" }}>
+                    {row.cantidadAsignada}
+                  </Typography>
+                  <Chip
+                    label={`${row.porcentaje}%`}
+                    size="small"
+                    sx={{
+                      height: "auto",
+                      fontSize: "0.75rem",
+                      fontWeight: 500,
+                      px: 0.5,
+                      py: 0.25,
+                      backgroundColor: "rgba(16, 185, 129, 0.12)",
+                      color: "var(--success)",
+                      "& .MuiChip-label": { px: 1, py: 0.25 },
+                    }}
+                  />
+                </Box>
+              </TableCell>
+              <TableCell sx={{ ...bodyCellSx, color: "var(--fg-muted)" }}>
+                <Box>
+                  {row.centro} / Alm {String(row.almacen || "").padStart(4, "0")}
+                  {row.nombre_almacen && (
+                    <Typography
+                      component="span"
+                      sx={{
+                        display: "block",
+                        fontSize: "0.75rem",
+                        color: "var(--fg-muted)",
+                        opacity: 0.7,
+                      }}
+                    >
+                      {row.nombre_almacen}
+                    </Typography>
+                  )}
+                </Box>
+              </TableCell>
+              <TableCell sx={{ ...bodyCellSx, textAlign: "right", color: "var(--fg-muted)" }}>
+                {row.plazo ? `${row.plazo} dias` : "Inmediato"}
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 }
 
 function CompraTable({ rows }) {
+  const headerCellSx = {
+    px: 2,
+    py: 1.75,
+    fontSize: "0.75rem",
+    fontWeight: 600,
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+    color: "var(--fg-muted)",
+    backgroundColor: "var(--bg-soft)",
+    borderBottom: "1px solid var(--border)",
+  };
+
+  const bodyCellSx = {
+    px: 2,
+    py: 1.75,
+    color: "var(--fg)",
+  };
+
   return (
-    <div
-      className="overflow-hidden rounded-2xl"
-      style={{
+    <TableContainer
+      component={Paper}
+      elevation={0}
+      sx={{
+        borderRadius: 4,
         backgroundColor: "var(--card)",
         boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
+        overflow: "hidden",
       }}
     >
-      <table className="w-full text-sm">
-        <thead>
-          <tr
-            style={{
-              backgroundColor: "var(--bg-soft)",
-              borderBottom: "1px solid var(--border)",
-            }}
-          >
-            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Código SAP</th>
-            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Descripción</th>
-            <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Solicitado</th>
-            <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Asignado</th>
-            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Proveedor</th>
-            <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">Plazo</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell sx={{ ...headerCellSx, textAlign: "center" }}>Codigo SAP</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "center" }}>Descripcion</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "right" }}>Solicitado</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "right" }}>Asignado</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "center" }}>Proveedor</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "right" }}>Plazo</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
           {rows.map((row, i) => (
-            <tr
+            <TableRow
               key={i}
-              style={{
-                borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none",
+              sx={{
+                "&:last-child td": { borderBottom: "none" },
+                "& td": { borderBottom: "1px solid var(--border)" },
               }}
             >
-              <td className="px-4 py-3.5 font-mono text-[var(--fg)]">{row.codigo}</td>
-              <td className="px-4 py-3.5 text-[var(--fg)]">{row.descripcion}</td>
-              <td className="px-4 py-3.5 text-right text-[var(--fg-muted)]">
+              <TableCell sx={{ ...bodyCellSx, fontFamily: "monospace" }}>{row.codigo}</TableCell>
+              <TableCell sx={bodyCellSx}>{row.descripcion}</TableCell>
+              <TableCell sx={{ ...bodyCellSx, textAlign: "right", color: "var(--fg-muted)" }}>
                 {row.cantidadSolicitada}
-              </td>
-              <td className="px-4 py-3.5 text-right">
-                <span className="font-semibold text-[var(--fg)]">{row.cantidadAsignada}</span>
-                <span
-                  className="ml-2 text-xs px-2 py-0.5 rounded-full font-medium"
-                  style={{
-                    backgroundColor: "rgba(59, 130, 246, 0.12)",
-                    color: "var(--info)",
-                  }}
-                >
-                  {row.porcentaje}%
-                </span>
-              </td>
-              <td className="px-4 py-3.5 text-[var(--fg)]">{row.proveedor || "N/D"}</td>
-              <td className="px-4 py-3.5 text-right text-[var(--fg-muted)]">
-                {row.plazo ? `${row.plazo} días` : "N/D"}
-              </td>
-            </tr>
+              </TableCell>
+              <TableCell sx={{ ...bodyCellSx, textAlign: "right" }}>
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1 }}>
+                  <Typography component="span" sx={{ fontWeight: 600, color: "var(--fg)" }}>
+                    {row.cantidadAsignada}
+                  </Typography>
+                  <Chip
+                    label={`${row.porcentaje}%`}
+                    size="small"
+                    sx={{
+                      height: "auto",
+                      fontSize: "0.75rem",
+                      fontWeight: 500,
+                      px: 0.5,
+                      py: 0.25,
+                      backgroundColor: "rgba(59, 130, 246, 0.12)",
+                      color: "var(--info)",
+                      "& .MuiChip-label": { px: 1, py: 0.25 },
+                    }}
+                  />
+                </Box>
+              </TableCell>
+              <TableCell sx={bodyCellSx}>{row.proveedor || "N/D"}</TableCell>
+              <TableCell sx={{ ...bodyCellSx, textAlign: "right", color: "var(--fg-muted)" }}>
+                {row.plazo ? `${row.plazo} dias` : "N/D"}
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 }

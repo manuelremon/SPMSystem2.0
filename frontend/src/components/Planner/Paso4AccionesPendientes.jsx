@@ -1,56 +1,77 @@
 import React, { useEffect, useState, useMemo } from "react";
 import {
-  Package,
-  ShoppingCart,
-  Send,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  Loader2,
-  ArrowRight,
-  Mail,
-  FileText,
-  UserCheck,
-} from "../ui/Icons";
-import { Button } from "../ui/Button";
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Box,
+  Typography,
+  Paper,
+  Button as MuiButton,
+  Chip,
+  Stack,
+  Checkbox,
+  FormControlLabel,
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from "@mui/material";
+import { useNavigate } from "react-router-dom";
+
+// MUI Icons
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import SendIcon from "@mui/icons-material/Send";
+import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
+import CancelIcon from "@mui/icons-material/Cancel";
+import WarningIcon from "@mui/icons-material/Warning";
+import Inventory2Icon from "@mui/icons-material/Inventory2";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import EmailIcon from "@mui/icons-material/Email";
+import DescriptionIcon from "@mui/icons-material/Description";
+import HowToRegIcon from "@mui/icons-material/HowToReg";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
 const ESTADO_CONFIG = {
   pendiente: {
     label: "Pendiente",
-    icon: Clock,
+    icon: AccessTimeIcon,
     color: "var(--fg-muted)",
-    bg: "rgba(100, 100, 100, 0.12)",
+    bg: "var(--neutral-bg)",
   },
   transferencia_solicitada: {
     label: "Traspaso Solicitado",
-    icon: Send,
+    icon: SendIcon,
     color: "var(--success)",
-    bg: "rgba(16, 185, 129, 0.12)",
+    bg: "var(--success-bg)",
   },
   esperando_confirmacion: {
     label: "Esperando Confirmacion",
-    icon: Clock,
+    icon: AccessTimeIcon,
     color: "var(--warning)",
-    bg: "rgba(245, 158, 11, 0.12)",
+    bg: "var(--warning-bg)",
   },
   confirmado: {
     label: "Confirmado",
-    icon: CheckCircle,
+    icon: CheckCircleOutlinedIcon,
     color: "var(--success)",
-    bg: "rgba(16, 185, 129, 0.12)",
+    bg: "var(--success-bg)",
   },
   rechazado: {
     label: "Rechazado",
-    icon: XCircle,
-    color: "var(--error)",
-    bg: "rgba(239, 68, 68, 0.12)",
+    icon: CancelIcon,
+    color: "var(--danger)",
+    bg: "var(--danger-bg)",
   },
   solped_pendiente: {
     label: "SOLPED Pendiente",
-    icon: AlertTriangle,
+    icon: WarningIcon,
     color: "var(--info)",
-    bg: "rgba(59, 130, 246, 0.12)",
+    bg: "var(--info-bg)",
   },
 };
 
@@ -58,23 +79,23 @@ const TIPO_ACCION_CONFIG = {
   traspaso_mismo_centro: {
     label: "Traspaso de Almacen",
     descripcion: "Notificar al almacen para traspaso interno",
-    icon: Package,
+    icon: Inventory2Icon,
     color: "var(--success)",
-    bg: "rgba(16, 185, 129, 0.12)",
+    bg: "var(--success-bg)",
   },
   consulta_otro_centro: {
     label: "Consulta a Referente",
     descripcion: "Solicitar confirmacion de disponibilidad",
-    icon: Mail,
+    icon: EmailIcon,
     color: "var(--warning)",
-    bg: "rgba(245, 158, 11, 0.12)",
+    bg: "var(--warning-bg)",
   },
   solped_proveedor: {
     label: "Generar SOLPED",
     descripcion: "Pendiente generacion en SAP",
-    icon: FileText,
+    icon: DescriptionIcon,
     color: "var(--info)",
-    bg: "rgba(59, 130, 246, 0.12)",
+    bg: "var(--info-bg)",
   },
 };
 
@@ -90,6 +111,18 @@ export default function Paso4AccionesPendientes({
   const [ejecutando, setEjecutando] = useState(false);
   const [resultadoAcciones, setResultadoAcciones] = useState(acciones);
   const [enviarResumenSolicitante, setEnviarResumenSolicitante] = useState(false);
+  const [selectedAccion, setSelectedAccion] = useState(null);
+  const [showMensajeModal, setShowMensajeModal] = useState(false);
+
+  const handleEstadoClick = (accion) => {
+    setSelectedAccion(accion);
+    setShowMensajeModal(true);
+  };
+
+  const handleCloseMensajeModal = () => {
+    setShowMensajeModal(false);
+    setSelectedAccion(null);
+  };
 
   useEffect(() => {
     if (acciones) {
@@ -213,290 +246,340 @@ export default function Paso4AccionesPendientes({
     );
 
     return (
-      <div className="space-y-6">
+      <Stack spacing={3}>
         {/* Resumen de resultados */}
-        <div
-          className="p-4 rounded-xl"
-          style={{ backgroundColor: "var(--bg-soft)" }}
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2,
+            borderRadius: 3,
+            bgcolor: "var(--bg-soft)",
+          }}
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="w-5 h-5" style={{ color: "var(--success)" }} />
-              <span className="font-medium text-[var(--fg)]">
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <CheckCircleOutlinedIcon sx={{ fontSize: 20, color: "var(--success)" }} />
+              <Typography sx={{ fontWeight: 500, color: "var(--fg-strong)" }}>
                 Acciones Ejecutadas
-              </span>
-            </div>
-            <div className="flex items-center gap-4 text-sm">
-              <span className="text-[var(--fg-muted)]">
-                <span className="font-semibold text-[var(--success)]">
+              </Typography>
+            </Stack>
+            <Stack direction="row" spacing={2} sx={{ fontSize: 14 }}>
+              <Typography sx={{ color: "var(--fg-muted)" }}>
+                <Box component="span" sx={{ fontWeight: 600, color: "var(--success)" }}>
                   {resultadoAcciones?.traspasos_solicitados || 0}
-                </span>{" "}
+                </Box>{" "}
                 traspasos
-              </span>
-              <span className="text-[var(--fg-muted)]">
-                <span className="font-semibold text-[var(--warning)]">
+              </Typography>
+              <Typography sx={{ color: "var(--fg-muted)" }}>
+                <Box component="span" sx={{ fontWeight: 600, color: "var(--warning)" }}>
                   {resultadoAcciones?.consultas_pendientes || 0}
-                </span>{" "}
+                </Box>{" "}
                 consultas
-              </span>
-              <span className="text-[var(--fg-muted)]">
-                <span className="font-semibold text-[var(--info)]">
+              </Typography>
+              <Typography sx={{ color: "var(--fg-muted)" }}>
+                <Box component="span" sx={{ fontWeight: 600, color: "var(--info)" }}>
                   {resultadoAcciones?.solped_pendientes || 0}
-                </span>{" "}
+                </Box>{" "}
                 SOLPED
-              </span>
-            </div>
-          </div>
-        </div>
+              </Typography>
+            </Stack>
+          </Stack>
+        </Paper>
 
         {/* Confirmación de resumen enviado al solicitante */}
         {resultadoAcciones?.resumen_enviado_solicitante && (
-          <div
-            className="p-4 rounded-xl border flex items-center gap-3"
-            style={{
-              backgroundColor: "rgba(99, 102, 241, 0.08)",
-              borderColor: "var(--primary)",
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2,
+              borderRadius: 3,
+              bgcolor: "var(--primary-muted)",
+              border: "1px solid var(--primary)",
             }}
           >
-            <UserCheck className="w-5 h-5" style={{ color: "var(--primary)" }} />
-            <div>
-              <p className="font-medium text-[var(--fg)]">
-                Resumen enviado al solicitante
-              </p>
-              <p className="text-sm text-[var(--fg-muted)]">
-                El solicitante recibira una notificacion con el detalle del tratamiento para su revision y aceptacion.
-              </p>
-            </div>
-          </div>
+            <Stack direction="row" spacing={1.5} alignItems="flex-start">
+              <HowToRegIcon sx={{ fontSize: 20, color: "var(--primary)" }} />
+              <Box>
+                <Typography sx={{ fontWeight: 500, color: "var(--fg-strong)" }}>
+                  Resumen enviado al solicitante
+                </Typography>
+                <Typography variant="body2" sx={{ color: "var(--fg-muted)" }}>
+                  El solicitante recibira una notificacion con el detalle del tratamiento para su revision y aceptacion.
+                </Typography>
+              </Box>
+            </Stack>
+          </Paper>
         )}
 
         {/* Seccion Stock/Traspasos */}
         {accionesStock.length > 0 && (
-          <div className="space-y-3">
+          <Stack spacing={1.5}>
             <SectionHeader
-              icon={Package}
+              icon={Inventory2Icon}
               title="NOTIFICACIONES ENVIADAS"
               subtitle="Traspasos y consultas de stock"
               variant="success"
             />
-            <AccionesTable acciones={accionesStock} />
-          </div>
+            <AccionesTable acciones={accionesStock} onEstadoClick={handleEstadoClick} />
+          </Stack>
         )}
 
         {/* Seccion Compras/SOLPED */}
         {accionesCompra.length > 0 && (
-          <div className="space-y-3">
+          <Stack spacing={1.5}>
             <SectionHeader
-              icon={ShoppingCart}
+              icon={ShoppingCartIcon}
               title="PENDIENTES SAP"
               subtitle="Materiales que requieren SOLPED"
               variant="info"
             />
-            <AccionesTable acciones={accionesCompra} tipo="compra" />
-          </div>
+            <AccionesTable acciones={accionesCompra} tipo="compra" onEstadoClick={handleEstadoClick} />
+          </Stack>
         )}
 
         {accionesStock.length === 0 && accionesCompra.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-[var(--fg-muted)]">
+          <Box sx={{ textAlign: "center", py: 6 }}>
+            <Typography sx={{ color: "var(--fg-muted)" }}>
               No hay acciones pendientes para esta solicitud.
-            </p>
-          </div>
+            </Typography>
+          </Box>
         )}
-      </div>
+
+        {/* Modal de detalle de mensaje */}
+        <MensajeAccionModal
+          accion={selectedAccion}
+          isOpen={showMensajeModal}
+          onClose={handleCloseMensajeModal}
+        />
+      </Stack>
     );
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" />
-      </div>
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", py: 8 }}>
+        <CircularProgress sx={{ color: "var(--primary)" }} />
+      </Box>
     );
   }
 
   // Mostrar preview de acciones pendientes
   return (
-    <div className="space-y-6">
+    <Stack spacing={3}>
       {/* Header con resumen */}
-      <div
-        className="p-4 rounded-xl"
-        style={{ backgroundColor: "var(--bg-soft)" }}
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          borderRadius: 3,
+          bgcolor: "var(--bg-soft)",
+        }}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Clock className="w-5 h-5" style={{ color: "var(--primary)" }} />
-            <span className="font-medium text-[var(--fg)]">
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <AccessTimeIcon sx={{ fontSize: 20, color: "var(--primary)" }} />
+            <Typography sx={{ fontWeight: 500, color: "var(--fg-strong)" }}>
               Acciones Pendientes de Ejecutar
-            </span>
-          </div>
-          <div className="flex items-center gap-4 text-sm">
-            <span className="text-[var(--fg-muted)]">
-              <span className="font-semibold text-[var(--success)]">
+            </Typography>
+          </Stack>
+          <Stack direction="row" spacing={2} sx={{ fontSize: 14 }}>
+            <Typography sx={{ color: "var(--fg-muted)" }}>
+              <Box component="span" sx={{ fontWeight: 600, color: "var(--success)" }}>
                 {previewAcciones.traspasos.length}
-              </span>{" "}
+              </Box>{" "}
               traspasos
-            </span>
-            <span className="text-[var(--fg-muted)]">
-              <span className="font-semibold text-[var(--warning)]">
+            </Typography>
+            <Typography sx={{ color: "var(--fg-muted)" }}>
+              <Box component="span" sx={{ fontWeight: 600, color: "var(--warning)" }}>
                 {previewAcciones.consultas.length}
-              </span>{" "}
+              </Box>{" "}
               consultas
-            </span>
-            <span className="text-[var(--fg-muted)]">
-              <span className="font-semibold text-[var(--info)]">
+            </Typography>
+            <Typography sx={{ color: "var(--fg-muted)" }}>
+              <Box component="span" sx={{ fontWeight: 600, color: "var(--info)" }}>
                 {previewAcciones.solpeds.length}
-              </span>{" "}
+              </Box>{" "}
               SOLPED
-            </span>
-          </div>
-        </div>
-      </div>
+            </Typography>
+          </Stack>
+        </Stack>
+      </Paper>
 
       {/* Traspasos de almacen (mismo centro) */}
       {previewAcciones.traspasos.length > 0 && (
-        <div className="space-y-3">
+        <Stack spacing={1.5}>
           <SectionHeader
-            icon={Package}
+            icon={Inventory2Icon}
             title="TRASPASOS DE ALMACEN"
             subtitle="Se notificara al almacen para realizar el traspaso"
             variant="success"
           />
           <PreviewTable acciones={previewAcciones.traspasos} tipo="traspaso" />
-        </div>
+        </Stack>
       )}
 
       {/* Consultas a referentes (otro centro) */}
       {previewAcciones.consultas.length > 0 && (
-        <div className="space-y-3">
+        <Stack spacing={1.5}>
           <SectionHeader
-            icon={Mail}
+            icon={EmailIcon}
             title="CONSULTAS A REFERENTES"
             subtitle="Se enviara consulta de disponibilidad a otros centros"
             variant="warning"
           />
           <PreviewTable acciones={previewAcciones.consultas} tipo="consulta" />
-        </div>
+        </Stack>
       )}
 
       {/* SOLPED a proveedores */}
       {previewAcciones.solpeds.length > 0 && (
-        <div className="space-y-3">
+        <Stack spacing={1.5}>
           <SectionHeader
-            icon={FileText}
+            icon={DescriptionIcon}
             title="SOLPED A GENERAR"
             subtitle="Pendiente generacion de pedido en SAP"
             variant="info"
           />
           <PreviewTable acciones={previewAcciones.solpeds} tipo="solped" />
-        </div>
+        </Stack>
       )}
 
       {/* Estado vacio */}
       {totalAccionesPendientes === 0 && (
-        <div className="text-center py-12">
-          <p className="text-[var(--fg-muted)]">
+        <Box sx={{ textAlign: "center", py: 6 }}>
+          <Typography sx={{ color: "var(--fg-muted)" }}>
             No hay acciones pendientes para ejecutar.
-          </p>
-        </div>
+          </Typography>
+        </Box>
       )}
 
       {/* Opcion de enviar resumen al solicitante */}
-      <div
-        className="p-4 rounded-xl border"
-        style={{
-          backgroundColor: enviarResumenSolicitante ? "rgba(99, 102, 241, 0.08)" : "var(--card)",
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          borderRadius: 3,
+          bgcolor: enviarResumenSolicitante ? "var(--primary-muted)" : "var(--card)",
+          border: "1px solid",
           borderColor: enviarResumenSolicitante ? "var(--primary)" : "var(--border)",
         }}
       >
-        <label className="flex items-start gap-3 cursor-pointer">
-          <div className="pt-0.5">
-            <input
-              type="checkbox"
+        <FormControlLabel
+          control={
+            <Checkbox
               checked={enviarResumenSolicitante}
               onChange={(e) => setEnviarResumenSolicitante(e.target.checked)}
-              className="w-5 h-5 rounded border-2 border-[var(--border)] text-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-0 cursor-pointer"
+              sx={{
+                color: "var(--border)",
+                "&.Mui-checked": {
+                  color: "var(--primary)",
+                },
+              }}
             />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <UserCheck className="w-4 h-4" style={{ color: "var(--primary)" }} />
-              <span className="font-semibold text-[var(--fg)]">
-                Enviar resumen al solicitante para aceptacion
-              </span>
-              <span
-                className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full"
-                style={{
-                  backgroundColor: "rgba(100, 100, 100, 0.12)",
-                  color: "var(--fg-muted)",
-                }}
-              >
-                Opcional
-              </span>
-            </div>
-            <p className="text-sm text-[var(--fg-muted)] mt-1">
-              El solicitante recibira un mensaje con el detalle del tratamiento propuesto
-              y podra aceptarlo o solicitar modificaciones antes de que se ejecuten las acciones.
-            </p>
-            {enviarResumenSolicitante && (
-              <div
-                className="mt-3 p-3 rounded-lg text-sm"
-                style={{ backgroundColor: "rgba(99, 102, 241, 0.08)" }}
-              >
-                <p className="font-medium text-[var(--fg)]">
-                  Se enviara notificacion a: {solicitud?.solicitante_nombre || solicitud?.nombre || "Solicitante"} {solicitud?.solicitante_apellido || solicitud?.apellido || ""}
-                </p>
-                <p className="text-[var(--fg-muted)] mt-1">
-                  Las acciones quedaran en estado "Pendiente de aceptacion" hasta que el solicitante confirme.
-                </p>
-              </div>
-            )}
-          </div>
-        </label>
-      </div>
+          }
+          label={
+            <Box sx={{ flex: 1 }}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <HowToRegIcon sx={{ fontSize: 16, color: "var(--primary)" }} />
+                <Typography sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>
+                  Enviar resumen al solicitante para aceptacion
+                </Typography>
+                <Chip
+                  label="Opcional"
+                  size="small"
+                  sx={{
+                    height: 18,
+                    fontSize: "0.625rem",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    bgcolor: "var(--neutral-bg)",
+                    color: "var(--fg-muted)",
+                  }}
+                />
+              </Stack>
+              <Typography variant="body2" sx={{ color: "var(--fg-muted)", mt: 0.5 }}>
+                El solicitante recibira un mensaje con el detalle del tratamiento propuesto
+                y podra aceptarlo o solicitar modificaciones antes de que se ejecuten las acciones.
+              </Typography>
+              {enviarResumenSolicitante && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    mt: 1.5,
+                    p: 1.5,
+                    borderRadius: 2,
+                    bgcolor: "var(--primary-muted)",
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontWeight: 500, color: "var(--fg-strong)" }}>
+                    Se enviara notificacion a: {solicitud?.solicitante_nombre || solicitud?.nombre || "Solicitante"} {solicitud?.solicitante_apellido || solicitud?.apellido || ""}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "var(--fg-muted)", mt: 0.5 }}>
+                    Las acciones quedaran en estado "Pendiente de aceptacion" hasta que el solicitante confirme.
+                  </Typography>
+                </Paper>
+              )}
+            </Box>
+          }
+          sx={{
+            alignItems: "flex-start",
+            m: 0,
+            "& .MuiFormControlLabel-label": {
+              flex: 1,
+            },
+          }}
+        />
+      </Paper>
 
       {/* Boton de ejecutar */}
       {(totalAccionesPendientes > 0 || enviarResumenSolicitante) && (
-        <div className="flex justify-center pt-4">
-          <Button
+        <Box sx={{ display: "flex", justifyContent: "center", pt: 2 }}>
+          <MuiButton
             onClick={handleEjecutar}
             disabled={ejecutando}
-            variant="primary"
-            size="lg"
+            variant="contained"
+            size="large"
+            startIcon={
+              ejecutando ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                <SendIcon />
+              )
+            }
+            endIcon={!ejecutando && <ArrowForwardIcon />}
+            sx={{
+              bgcolor: "var(--primary)",
+              "&:hover": { bgcolor: "var(--primary-dark)" },
+              textTransform: "none",
+              px: 3,
+            }}
           >
-            {ejecutando ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                {enviarResumenSolicitante ? "Enviando resumen..." : "Ejecutando acciones..."}
-              </>
-            ) : (
-              <>
-                <Send className="w-5 h-5" />
-                {enviarResumenSolicitante
-                  ? `Enviar resumen${totalAccionesPendientes > 0 ? ` y ejecutar ${totalAccionesPendientes} acciones` : ""}`
-                  : `Ejecutar ${totalAccionesPendientes} acciones`}
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </Button>
-        </div>
+            {ejecutando
+              ? enviarResumenSolicitante
+                ? "Enviando resumen..."
+                : "Ejecutando acciones..."
+              : enviarResumenSolicitante
+              ? `Enviar resumen${totalAccionesPendientes > 0 ? ` y ejecutar ${totalAccionesPendientes} acciones` : ""}`
+              : `Ejecutar ${totalAccionesPendientes} acciones`}
+          </MuiButton>
+        </Box>
       )}
-    </div>
+    </Stack>
   );
 }
 
 function SectionHeader({ icon: Icon, title, subtitle, variant }) {
   const variantStyles = {
     success: {
-      bg: "rgba(16, 185, 129, 0.12)",
+      bg: "var(--success-bg)",
       text: "var(--success)",
     },
     info: {
-      bg: "rgba(59, 130, 246, 0.12)",
+      bg: "var(--info-bg)",
       text: "var(--info)",
     },
     warning: {
-      bg: "rgba(245, 158, 11, 0.12)",
+      bg: "var(--warning-bg)",
       text: "var(--warning)",
     },
   };
@@ -504,187 +587,543 @@ function SectionHeader({ icon: Icon, title, subtitle, variant }) {
   const style = variantStyles[variant] || variantStyles.info;
 
   return (
-    <div className="flex items-center gap-3">
-      <div
-        className="p-2 rounded-lg"
-        style={{ backgroundColor: style.bg, color: style.text }}
+    <Stack direction="row" spacing={1.5} alignItems="center">
+      <Box
+        sx={{
+          p: 1,
+          borderRadius: 2,
+          bgcolor: style.bg,
+          color: style.text,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
-        <Icon className="w-5 h-5" />
-      </div>
-      <div>
-        <h3 className="text-sm font-bold uppercase tracking-wide text-[var(--fg)]">
+        <Icon sx={{ fontSize: 20 }} />
+      </Box>
+      <Box>
+        <Typography
+          sx={{
+            fontSize: "0.75rem",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            color: "var(--fg-strong)",
+          }}
+        >
           {title}
-        </h3>
+        </Typography>
         {subtitle && (
-          <p className="text-xs text-[var(--fg-muted)]">{subtitle}</p>
+          <Typography variant="caption" sx={{ color: "var(--fg-muted)" }}>
+            {subtitle}
+          </Typography>
         )}
-      </div>
-    </div>
+      </Box>
+    </Stack>
   );
 }
 
 function PreviewTable({ acciones, tipo }) {
   return (
-    <div
-      className="overflow-hidden rounded-2xl"
-      style={{
-        backgroundColor: "var(--card)",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
+    <TableContainer
+      component={Paper}
+      elevation={0}
+      sx={{
+        borderRadius: 4,
+        bgcolor: "var(--card)",
+        boxShadow: "var(--shadow-sm)",
       }}
     >
-      <table className="w-full text-sm">
-        <thead>
-          <tr
-            style={{
-              backgroundColor: "var(--bg-soft)",
-              borderBottom: "1px solid var(--border)",
-            }}
-          >
-            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+      <Table size="small">
+        <TableHead>
+          <TableRow sx={{ bgcolor: "var(--bg-soft)" }}>
+            <TableCell
+              sx={{
+                textAlign: "center",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: "var(--fg-muted)",
+                borderBottom: "1px solid var(--border)",
+              }}
+            >
               Codigo SAP
-            </th>
-            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+            </TableCell>
+            <TableCell
+              sx={{
+                textAlign: "center",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: "var(--fg-muted)",
+                borderBottom: "1px solid var(--border)",
+              }}
+            >
               Descripcion
-            </th>
-            <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+            </TableCell>
+            <TableCell
+              sx={{
+                textAlign: "right",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: "var(--fg-muted)",
+                borderBottom: "1px solid var(--border)",
+              }}
+            >
               Cantidad
-            </th>
-            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+            </TableCell>
+            <TableCell
+              sx={{
+                textAlign: "center",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: "var(--fg-muted)",
+                borderBottom: "1px solid var(--border)",
+              }}
+            >
               {tipo === "solped" ? "Proveedor" : "Destinatario"}
-            </th>
-            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+            </TableCell>
+            <TableCell
+              sx={{
+                textAlign: "center",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: "var(--fg-muted)",
+                borderBottom: "1px solid var(--border)",
+              }}
+            >
               Accion
-            </th>
-          </tr>
-        </thead>
-        <tbody>
+            </TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
           {acciones.map((accion, i) => {
             const config = TIPO_ACCION_CONFIG[accion.tipo] || {};
-            const AccionIcon = config.icon || Clock;
+            const AccionIcon = config.icon || AccessTimeIcon;
 
             return (
-              <tr
+              <TableRow
                 key={i}
-                style={{
-                  borderBottom:
-                    i < acciones.length - 1 ? "1px solid var(--border)" : "none",
+                sx={{
+                  "&:last-child td": { borderBottom: 0 },
                 }}
               >
-                <td className="px-4 py-3.5 font-mono text-[var(--fg)]">
+                <TableCell
+                  sx={{
+                    fontFamily: "monospace",
+                    color: "var(--fg-strong)",
+                    borderBottom: i < acciones.length - 1 ? "1px solid var(--border)" : 0,
+                  }}
+                >
                   {accion.codigo}
-                </td>
-                <td className="px-4 py-3.5 text-[var(--fg)]">
+                </TableCell>
+                <TableCell
+                  sx={{
+                    color: "var(--fg-strong)",
+                    borderBottom: i < acciones.length - 1 ? "1px solid var(--border)" : 0,
+                  }}
+                >
                   {accion.descripcion}
-                </td>
-                <td className="px-4 py-3.5 text-right font-semibold text-[var(--fg)]">
+                </TableCell>
+                <TableCell
+                  sx={{
+                    textAlign: "right",
+                    fontWeight: 600,
+                    color: "var(--fg-strong)",
+                    borderBottom: i < acciones.length - 1 ? "1px solid var(--border)" : 0,
+                  }}
+                >
                   {accion.cantidad}
-                </td>
-                <td className="px-4 py-3.5 text-[var(--fg-muted)]">
+                </TableCell>
+                <TableCell
+                  sx={{
+                    color: "var(--fg-muted)",
+                    borderBottom: i < acciones.length - 1 ? "1px solid var(--border)" : 0,
+                  }}
+                >
                   {accion.destinatario}
                   {accion.plazo && (
-                    <span className="block text-xs opacity-70">
+                    <Typography
+                      component="span"
+                      sx={{ display: "block", fontSize: "0.75rem", opacity: 0.7 }}
+                    >
                       Plazo: {accion.plazo} dias
-                    </span>
+                    </Typography>
                   )}
-                </td>
-                <td className="px-4 py-3.5">
-                  <div className="flex items-center gap-2">
-                    <AccionIcon
-                      className="w-4 h-4"
-                      style={{ color: config.color }}
-                    />
-                    <span className="text-[var(--fg-muted)]">
-                      {accion.accion}
-                    </span>
-                  </div>
-                </td>
-              </tr>
+                </TableCell>
+                <TableCell
+                  sx={{
+                    borderBottom: i < acciones.length - 1 ? "1px solid var(--border)" : 0,
+                  }}
+                >
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <AccionIcon sx={{ fontSize: 16, color: config.color }} />
+                    <Typography sx={{ color: "var(--fg-muted)" }}>{accion.accion}</Typography>
+                  </Stack>
+                </TableCell>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 }
 
-function AccionesTable({ acciones, tipo = "stock" }) {
+function AccionesTable({ acciones, tipo = "stock", onEstadoClick }) {
   return (
-    <div
-      className="overflow-hidden rounded-2xl"
-      style={{
-        backgroundColor: "var(--card)",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
+    <TableContainer
+      component={Paper}
+      elevation={0}
+      sx={{
+        borderRadius: 4,
+        bgcolor: "var(--card)",
+        boxShadow: "var(--shadow-sm)",
       }}
     >
-      <table className="w-full text-sm">
-        <thead>
-          <tr
-            style={{
-              backgroundColor: "var(--bg-soft)",
-              borderBottom: "1px solid var(--border)",
-            }}
-          >
-            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+      <Table size="small">
+        <TableHead>
+          <TableRow sx={{ bgcolor: "var(--bg-soft)" }}>
+            <TableCell
+              sx={{
+                textAlign: "center",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: "var(--fg-muted)",
+                borderBottom: "1px solid var(--border)",
+              }}
+            >
               Codigo SAP
-            </th>
-            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+            </TableCell>
+            <TableCell
+              sx={{
+                textAlign: "center",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: "var(--fg-muted)",
+                borderBottom: "1px solid var(--border)",
+              }}
+            >
               Descripcion
-            </th>
-            <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+            </TableCell>
+            <TableCell
+              sx={{
+                textAlign: "right",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: "var(--fg-muted)",
+                borderBottom: "1px solid var(--border)",
+              }}
+            >
               Cantidad
-            </th>
-            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+            </TableCell>
+            <TableCell
+              sx={{
+                textAlign: "center",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: "var(--fg-muted)",
+                borderBottom: "1px solid var(--border)",
+              }}
+            >
               {tipo === "compra" ? "Proveedor" : "Destinatario"}
-            </th>
-            <th className="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+            </TableCell>
+            <TableCell
+              sx={{
+                textAlign: "center",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: "var(--fg-muted)",
+                borderBottom: "1px solid var(--border)",
+              }}
+            >
               Estado
-            </th>
-          </tr>
-        </thead>
-        <tbody>
+            </TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
           {acciones.map((accion, i) => {
             const estadoConfig = ESTADO_CONFIG[accion.estado] || ESTADO_CONFIG.pendiente;
             const EstadoIcon = estadoConfig.icon;
+            const tieneAccionEnviada =
+              accion.estado === "transferencia_solicitada" ||
+              accion.estado === "esperando_confirmacion" ||
+              accion.mensaje_enviado;
 
             return (
-              <tr
+              <TableRow
                 key={i}
-                style={{
-                  borderBottom:
-                    i < acciones.length - 1 ? "1px solid var(--border)" : "none",
+                sx={{
+                  "&:last-child td": { borderBottom: 0 },
                 }}
               >
-                <td className="px-4 py-3.5 font-mono text-[var(--fg)]">
+                <TableCell
+                  sx={{
+                    fontFamily: "monospace",
+                    color: "var(--fg-strong)",
+                    borderBottom: i < acciones.length - 1 ? "1px solid var(--border)" : 0,
+                  }}
+                >
                   {accion.codigo_material}
-                </td>
-                <td className="px-4 py-3.5 text-[var(--fg)]">
+                </TableCell>
+                <TableCell
+                  sx={{
+                    color: "var(--fg-strong)",
+                    borderBottom: i < acciones.length - 1 ? "1px solid var(--border)" : 0,
+                  }}
+                >
                   {accion.descripcion}
-                </td>
-                <td className="px-4 py-3.5 text-right font-semibold text-[var(--fg)]">
+                </TableCell>
+                <TableCell
+                  sx={{
+                    textAlign: "right",
+                    fontWeight: 600,
+                    color: "var(--fg-strong)",
+                    borderBottom: i < acciones.length - 1 ? "1px solid var(--border)" : 0,
+                  }}
+                >
                   {accion.cantidad}
-                </td>
-                <td className="px-4 py-3.5 text-[var(--fg-muted)]">
+                </TableCell>
+                <TableCell
+                  sx={{
+                    color: "var(--fg-muted)",
+                    borderBottom: i < acciones.length - 1 ? "1px solid var(--border)" : 0,
+                  }}
+                >
                   {accion.destinatario || "N/D"}
-                </td>
-                <td className="px-4 py-3.5">
-                  <div className="flex items-center justify-center">
-                    <span
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-                      style={{
-                        backgroundColor: estadoConfig.bg,
+                </TableCell>
+                <TableCell
+                  sx={{
+                    borderBottom: i < acciones.length - 1 ? "1px solid var(--border)" : 0,
+                  }}
+                >
+                  <Box sx={{ display: "flex", justifyContent: "center" }}>
+                    <Chip
+                      icon={<EstadoIcon sx={{ fontSize: 14 }} />}
+                      label={estadoConfig.label}
+                      size="small"
+                      onClick={tieneAccionEnviada ? () => onEstadoClick?.(accion) : undefined}
+                      sx={{
+                        bgcolor: estadoConfig.bg,
                         color: estadoConfig.color,
+                        fontWeight: 500,
+                        fontSize: "0.75rem",
+                        cursor: tieneAccionEnviada ? "pointer" : "default",
+                        "&:hover": tieneAccionEnviada
+                          ? { opacity: 0.8 }
+                          : {},
+                        "& .MuiChip-icon": {
+                          color: estadoConfig.color,
+                        },
                       }}
-                    >
-                      <EstadoIcon className="w-3.5 h-3.5" />
-                      {estadoConfig.label}
-                    </span>
-                  </div>
-                </td>
-              </tr>
+                    />
+                  </Box>
+                </TableCell>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+}
+
+function MensajeAccionModal({ accion, isOpen, onClose }) {
+  const navigate = useNavigate();
+
+  if (!accion) return null;
+
+  const estadoConfig = ESTADO_CONFIG[accion.estado] || ESTADO_CONFIG.pendiente;
+  const EstadoIcon = estadoConfig.icon;
+
+  const handleIrACentroInteraccion = () => {
+    onClose();
+    navigate("/centro-interaccion");
+  };
+
+  return (
+    <Dialog open={isOpen} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Box
+            sx={{
+              p: 1,
+              borderRadius: 1,
+              bgcolor: estadoConfig.bg,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <EstadoIcon sx={{ fontSize: 20, color: estadoConfig.color }} />
+          </Box>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>
+              Detalle de Accion
+            </Typography>
+            <Chip
+              label={estadoConfig.label}
+              size="small"
+              sx={{
+                mt: 0.5,
+                bgcolor: estadoConfig.bg,
+                color: estadoConfig.color,
+                fontWeight: 600,
+                fontSize: "0.7rem",
+              }}
+            />
+          </Box>
+        </Box>
+      </DialogTitle>
+      <DialogContent dividers>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+          {/* Info del material */}
+          <Paper elevation={0} sx={{ p: 2, bgcolor: "var(--bg-soft)", borderRadius: 2 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "var(--fg-muted)",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+              }}
+            >
+              Material
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{ fontWeight: 600, color: "var(--fg-strong)", fontFamily: "monospace" }}
+            >
+              {accion.codigo_material}
+            </Typography>
+            <Typography variant="body2" sx={{ color: "var(--fg-muted)", mt: 0.5 }}>
+              {accion.descripcion}
+            </Typography>
+            <Typography variant="body2" sx={{ color: "var(--fg-strong)", mt: 1, fontWeight: 600 }}>
+              Cantidad: {accion.cantidad}
+            </Typography>
+          </Paper>
+
+          {/* Destinatario */}
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "var(--fg-muted)",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+              }}
+            >
+              Destinatario
+            </Typography>
+            <Typography variant="body1" sx={{ color: "var(--fg-strong)" }}>
+              {accion.destinatario || "No especificado"}
+            </Typography>
+          </Box>
+
+          {/* Mensaje enviado */}
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "var(--fg-muted)",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+                display: "block",
+                mb: 1,
+              }}
+            >
+              Mensaje Enviado
+            </Typography>
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2,
+                border: "1px solid var(--border)",
+                borderRadius: 2,
+                bgcolor: "var(--card)",
+              }}
+            >
+              <Typography variant="body2" sx={{ color: "var(--fg-strong)", whiteSpace: "pre-wrap" }}>
+                {accion.mensaje_enviado ||
+                  accion.mensaje ||
+                  (accion.estado === "transferencia_solicitada"
+                    ? `Se ha solicitado el traspaso del material ${accion.codigo_material} (${accion.cantidad} unidades) desde ${accion.centro_origen || "almacen origen"} hacia el centro solicitante.`
+                    : accion.estado === "esperando_confirmacion"
+                    ? `Se ha enviado una consulta de disponibilidad del material ${accion.codigo_material} (${accion.cantidad} unidades) al referente del centro ${accion.centro_origen || "destino"}.`
+                    : "Notificacion enviada correctamente.")}
+              </Typography>
+              {accion.fecha_envio && (
+                <Typography
+                  variant="caption"
+                  sx={{ color: "var(--fg-muted)", display: "block", mt: 1.5 }}
+                >
+                  Enviado: {new Date(accion.fecha_envio).toLocaleString("es-AR")}
+                </Typography>
+              )}
+            </Paper>
+          </Box>
+
+          {/* Referencia al mensaje */}
+          {accion.mensaje_id && (
+            <Box>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "var(--fg-muted)",
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5,
+                }}
+              >
+                ID del Mensaje
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ color: "var(--primary)", fontFamily: "monospace" }}
+              >
+                #{accion.mensaje_id}
+              </Typography>
+            </Box>
+          )}
+        </Box>
+      </DialogContent>
+      <DialogActions sx={{ p: 2, gap: 1 }}>
+        <MuiButton onClick={onClose} sx={{ color: "var(--fg-muted)" }}>
+          Cerrar
+        </MuiButton>
+        <MuiButton
+          variant="contained"
+          onClick={handleIrACentroInteraccion}
+          startIcon={<OpenInNewIcon sx={{ fontSize: 16 }} />}
+          sx={{
+            bgcolor: "var(--primary)",
+            "&:hover": { bgcolor: "var(--primary-dark)" },
+          }}
+        >
+          Ir al Centro de Interaccion
+        </MuiButton>
+      </DialogActions>
+    </Dialog>
   );
 }

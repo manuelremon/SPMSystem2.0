@@ -1,0 +1,311 @@
+/**
+ * SPMAgGrid - Estilos personalizados para AG Grid
+ * Tema SPM basado en ag-theme-alpine
+ */
+
+/* Contenedor principal - IMPORTANTE: necesita height y width para que AG Grid funcione */
+.spm-ag-grid {
+  --ag-background-color: #ffffff;
+  --ag-foreground-color: #1f1f20;
+  --ag-header-background-color: #f8f9fa;
+  --ag-header-foreground-color: #1f1f20;
+  --ag-odd-row-background-color: #fafbfc;
+  --ag-row-hover-color: #f0f4f8;
+  --ag-selected-row-background-color: #e3f2fd;
+  --ag-border-color: #e0e0e0;
+  --ag-secondary-border-color: #e0e0e0;
+  --ag-row-border-color: #eeeeee;
+  --ag-header-column-separator-color: #e0e0e0;
+  --ag-range-selection-border-color: #1976d2;
+  --ag-input-focus-border-color: #1976d2;
+  --ag-checkbox-checked-color: #1976d2;
+  --ag-checkbox-unchecked-color: #606d80;
+  --ag-icon-color: #606d80;
+  --ag-font-size: 0.875rem;
+  --ag-font-family: 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+  --ag-grid-size: 6px;
+  --ag-row-height: 44px;
+  --ag-header-height: 48px;
+  --ag-list-item-height: 32px;
+
+  /* CRÍTICO: Asegurar que el grid ocupe todo el espacio disponible */
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden;
+}
+
+/* Asegurar que el wrapper raíz de AG Grid ocupe todo el espacio */
+.spm-ag-grid .ag-root-wrapper {
+  height: 100% !important;
+  width: 100% !important;
+  border: 1px solid var(--ag-border-color);
+  border-radius: 4px;
+}
+
+.spm-ag-grid .ag-root-wrapper-body {
+  height: 100% !important;
+}
+
+.spm-ag-grid .ag-root {
+  height: 100% !important;
+}
+
+/* Header de columnas */
+.spm-ag-grid .ag-header {
+  border-bottom: 2px solid #1976d2;
+  background-color: #f8f9fa;
+}
+
+.spm-ag-grid .ag-header-row {
+  background-color: #f8f9fa;
+}
+
+.spm-ag-grid .ag-header-cell {
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0 12px;
+  background-color: #f8f9fa;
+  color: #1f1f20;
+}
+
+.spm-ag-grid .ag-header-cell-label {
+  justify-content: center;
+}
+
+.spm-ag-grid .ag-header-cell-text {
+  color: #1f1f20;
+  font-weight: 600;
+}
+
+/* Separador entre columnas del header */
+.spm-ag-grid .ag-header-cell::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 25%;
+  height: 50%;
+  width: 1px;
+  background-color: #d0d0d0;
+}
+
+.spm-ag-grid .ag-header-cell:last-child::after {
+  display: none;
+}
+
+/* Celdas */
+.spm-ag-grid .ag-cell {
+  padding: 0 12px;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  border-right: 1px solid #eeeeee;
+  color: #1f1f20;
+  line-height: 1.5;
+}
+
+.spm-ag-grid .ag-cell:last-child {
+  border-right: none;
+}
+
+/* Asegurar visibilidad del texto en celdas */
+.spm-ag-grid .ag-cell-value {
+  color: #1f1f20;
+}
+
+/* Filas */
+.spm-ag-grid .ag-row {
+  border-bottom: 1px solid #eeeeee;
+  background-color: #ffffff;
+}
+
+.spm-ag-grid .ag-row-even {
+  background-color: #ffffff;
+}
+
+.spm-ag-grid .ag-row-odd {
+  background-color: #fafbfc;
+}
+
+.spm-ag-grid .ag-row:hover {
+  background-color: #e8f4fd !important;
+}
+
+.spm-ag-grid .ag-row-selected {
+  background-color: #e3f2fd !important;
+}
+
+.spm-ag-grid .ag-row-selected:hover {
+  background-color: #bbdefb !important;
+}
+
+/* Paginación */
+.spm-ag-grid .ag-paging-panel {
+  border-top: 1px solid var(--ag-border-color);
+  background-color: #f5f7fa;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  color: #1f1f20;
+}
+
+.spm-ag-grid .ag-paging-button {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 4px 8px;
+  transition: background-color 0.15s ease;
+}
+
+.spm-ag-grid .ag-paging-button:hover {
+  background-color: #e8eef5;
+}
+
+.spm-ag-grid .ag-paging-button.ag-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Iconos de ordenamiento */
+.spm-ag-grid .ag-icon-asc,
+.spm-ag-grid .ag-icon-desc,
+.spm-ag-grid .ag-icon-filter,
+.spm-ag-grid .ag-icon-menu {
+  color: #606d80 !important;
+}
+
+.spm-ag-grid .ag-header-cell:hover .ag-icon-asc,
+.spm-ag-grid .ag-header-cell:hover .ag-icon-desc,
+.spm-ag-grid .ag-header-cell:hover .ag-icon-filter,
+.spm-ag-grid .ag-header-cell:hover .ag-icon-menu {
+  color: #1f1f20 !important;
+}
+
+/* Filtros */
+.spm-ag-grid .ag-filter-toolpanel-search-input {
+  border-radius: 4px;
+  border: 1px solid var(--ag-border-color);
+  padding: 6px 10px;
+}
+
+.spm-ag-grid .ag-filter-toolpanel-search-input:focus {
+  border-color: #1976d2;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+}
+
+/* Menú contextual */
+.spm-ag-grid .ag-menu {
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--ag-border-color);
+  overflow: hidden;
+}
+
+.spm-ag-grid .ag-menu-option {
+  padding: 8px 12px;
+}
+
+.spm-ag-grid .ag-menu-option:hover {
+  background-color: #f0f2f5;
+}
+
+.spm-ag-grid .ag-menu-option-active {
+  background-color: #e8eef5;
+}
+
+/* Overlay de carga */
+.spm-ag-grid .ag-overlay-loading-center {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  padding: 20px 40px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Scrollbar personalizada */
+.spm-ag-grid .ag-body-horizontal-scroll,
+.spm-ag-grid .ag-body-vertical-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c7d0 transparent;
+}
+
+.spm-ag-grid .ag-body-horizontal-scroll::-webkit-scrollbar,
+.spm-ag-grid .ag-body-vertical-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.spm-ag-grid .ag-body-horizontal-scroll::-webkit-scrollbar-track,
+.spm-ag-grid .ag-body-vertical-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.spm-ag-grid .ag-body-horizontal-scroll::-webkit-scrollbar-thumb,
+.spm-ag-grid .ag-body-vertical-scroll::-webkit-scrollbar-thumb {
+  background-color: #c1c7d0;
+  border-radius: 4px;
+}
+
+.spm-ag-grid .ag-body-horizontal-scroll::-webkit-scrollbar-thumb:hover,
+.spm-ag-grid .ag-body-vertical-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #a5adb8;
+}
+
+/* Selector de página */
+.spm-ag-grid .ag-paging-page-size .ag-picker-field-wrapper {
+  border-radius: 4px;
+  border: 1px solid var(--ag-border-color);
+  padding: 4px 8px;
+  min-width: 70px;
+}
+
+/* Checkbox en celdas */
+.spm-ag-grid .ag-checkbox-input-wrapper {
+  width: 18px;
+  height: 18px;
+}
+
+.spm-ag-grid .ag-checkbox-input-wrapper.ag-checked::after {
+  color: #1976d2;
+}
+
+/* Celda con foco */
+.spm-ag-grid .ag-cell-focus {
+  border: 1px solid #1976d2 !important;
+  outline: none;
+}
+
+/* Alineación de celdas */
+.spm-ag-grid .ag-cell[col-id] {
+  display: flex;
+  align-items: center;
+}
+
+.spm-ag-grid .ag-right-aligned-cell {
+  justify-content: flex-end;
+}
+
+.spm-ag-grid .ag-center-aligned-cell {
+  justify-content: center;
+}
+
+/* Tooltip */
+.spm-ag-grid .ag-tooltip {
+  background-color: #1f1f20;
+  color: #ffffff;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive: más compacto en móviles */
+@media (max-width: 768px) {
+  .spm-ag-grid {
+    --ag-row-height: 40px;
+    --ag-header-height: 44px;
+    --ag-font-size: 0.8125rem;
+  }
+
+  .spm-ag-grid .ag-cell,
+  .spm-ag-grid .ag-header-cell {
+    padding: 0 8px;
+  }
+}

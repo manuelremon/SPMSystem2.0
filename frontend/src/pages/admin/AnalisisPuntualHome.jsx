@@ -7,123 +7,139 @@
  * - Acceder a MRP y Forecast temporales
  */
 
-import React, { useState, useCallback } from 'react'
-import Layout from '../../components/Layout'
-import { Button } from '../../components/ui/Button'
-import { TempDataBanner } from '../../components/ui/TempDataBanner'
-import { ImportExcelModal } from '../../components/admin/ImportExcelModal'
-import { useI18n } from '../../context/i18n'
-import { useNavigate } from 'react-router-dom'
+import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { useI18n } from "../../context/i18n";
+import { TempDataBanner } from "../../components/ui/TempDataBanner";
+import { ImportExcelModal } from "../../components/admin/ImportExcelModal";
+
+// MUI Components
+import Container from "@mui/material/Container";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import ShowChartIcon from "@mui/icons-material/ShowChart";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 
 export default function AnalisisPuntualHome() {
-  const { t } = useI18n()
-  const navigate = useNavigate()
-  const [showImportModal, setShowImportModal] = useState(false)
-  const [tempDataActive, setTempDataActive] = useState(false)
+  const { t } = useI18n();
+  const navigate = useNavigate();
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [tempDataActive, setTempDataActive] = useState(false);
 
-  const handleImportSuccess = useCallback((result) => {
-    setTempDataActive(true)
-    setShowImportModal(false)
-  }, [])
+  const handleImportSuccess = useCallback(() => {
+    setTempDataActive(true);
+    setShowImportModal(false);
+  }, []);
 
   const handleStatusChange = useCallback((active) => {
-    setTempDataActive(active)
-  }, [])
+    setTempDataActive(active);
+  }, []);
 
   return (
-    <Layout>
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-            {t('admin_ap_titulo', 'Analisis Puntual con Datos Excel')}
-          </h1>
-          <p className="text-[var(--text-secondary)] mt-1">
-            {t('admin_ap_descripcion', 'Importa un archivo Excel para analizar MRP y Forecast sin afectar los datos del sistema.')}
-          </p>
-        </div>
+    <Container maxWidth={false} sx={{ py: 2, px: "75px" }}>
+      {/* Header */}
+      <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
+        <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "#606d80" }}>
+          <ArrowBackIcon />
+        </IconButton>
+        <Box>
+          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {t("admin_ap_titulo", "ANÁLISIS PUNTUAL")}
+          </Typography>
+        </Box>
+      </Box>
 
-        {/* Banner de estado */}
-        <TempDataBanner onStatusChange={handleStatusChange} />
+      {/* Banner de estado */}
+      <TempDataBanner onStatusChange={handleStatusChange} />
 
-        {/* Contenido segun estado */}
-        {tempDataActive ? (
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Card MRP */}
-            <div className="bg-[var(--card)] rounded-xl p-6 border border-[var(--border)]">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-[var(--text-primary)]">
-                    {t('admin_ap_mrp', 'MRP Temporal')}
-                  </h3>
-                  <p className="text-sm text-[var(--text-muted)]">Alertas y KPIs con datos importados</p>
-                </div>
-              </div>
-              <Button
-                variant="primary"
-                className="w-full"
-                onClick={() => navigate('/admin/analisis-puntual/mrp')}
-              >
-                {t('admin_ap_abrir_mrp', 'Abrir MRP Temporal')}
-              </Button>
-            </div>
-
-            {/* Card Forecast */}
-            <div className="bg-[var(--card)] rounded-xl p-6 border border-[var(--border)]">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-[var(--text-primary)]">
-                    {t('admin_ap_forecast', 'Forecast Temporal')}
-                  </h3>
-                  <p className="text-sm text-[var(--text-muted)]">Pronosticos con consumo historico importado</p>
-                </div>
-              </div>
-              <Button
-                variant="primary"
-                className="w-full"
-                onClick={() => navigate('/admin/analisis-puntual/forecast')}
-              >
-                {t('admin_ap_abrir_forecast', 'Abrir Forecast Temporal')}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          /* Estado sin datos */
-          <div className="bg-[var(--card)] rounded-xl p-8 border border-[var(--border)] text-center">
-            <div className="w-16 h-16 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
-              {t('admin_ap_sin_datos', 'Sin datos temporales cargados')}
-            </h3>
-            <p className="text-[var(--text-muted)] mb-6">
-              {t('admin_ap_sin_datos_desc', 'Importa un archivo Excel para comenzar el analisis.')}
-            </p>
-            <Button variant="primary" onClick={() => setShowImportModal(true)}>
-              {t('admin_ap_importar_excel', 'Importar Excel')}
+      {/* Contenido segun estado */}
+      {tempDataActive ? (
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3, mt: 3 }}>
+          {/* Card MRP */}
+          <Paper elevation={0} sx={{ border: "1px solid #dce0e6", borderRadius: 2, p: 3 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
+              <Box sx={{ width: 48, height: 48, borderRadius: 2, bgcolor: "rgba(245, 158, 11, 0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <WarningAmberIcon sx={{ color: "#f59e0b", fontSize: 24 }} />
+              </Box>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#1f1f20" }}>
+                  {t("admin_ap_mrp", "MRP Temporal")}
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#606d80" }}>
+                  Alertas y KPIs con datos importados
+                </Typography>
+              </Box>
+            </Box>
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={() => navigate("/admin/analisis-puntual/mrp")}
+              sx={{ bgcolor: "#1976d2", textTransform: "none", fontWeight: 600 }}
+            >
+              {t("admin_ap_abrir_mrp", "Abrir MRP Temporal")}
             </Button>
-          </div>
-        )}
+          </Paper>
 
-        {/* Modal de importacion */}
-        <ImportExcelModal
-          isOpen={showImportModal}
-          onClose={() => setShowImportModal(false)}
-          onSuccess={handleImportSuccess}
-        />
-      </div>
-    </Layout>
-  )
+          {/* Card Forecast */}
+          <Paper elevation={0} sx={{ border: "1px solid #dce0e6", borderRadius: 2, p: 3 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
+              <Box sx={{ width: 48, height: 48, borderRadius: 2, bgcolor: "rgba(59, 130, 246, 0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <ShowChartIcon sx={{ color: "#3b82f6", fontSize: 24 }} />
+              </Box>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#1f1f20" }}>
+                  {t("admin_ap_forecast", "Forecast Temporal")}
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#606d80" }}>
+                  Pronósticos con consumo histórico importado
+                </Typography>
+              </Box>
+            </Box>
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={() => navigate("/admin/analisis-puntual/forecast")}
+              sx={{ bgcolor: "#1976d2", textTransform: "none", fontWeight: 600 }}
+            >
+              {t("admin_ap_abrir_forecast", "Abrir Forecast Temporal")}
+            </Button>
+          </Paper>
+        </Box>
+      ) : (
+        /* Estado sin datos */
+        <Paper elevation={0} sx={{ border: "1px solid #dce0e6", borderRadius: 2, p: 6, textAlign: "center", mt: 3 }}>
+          <Box sx={{ width: 80, height: 80, borderRadius: "50%", bgcolor: "#f5f7fa", display: "flex", alignItems: "center", justifyContent: "center", mx: "auto", mb: 3 }}>
+            <InsertDriveFileIcon sx={{ fontSize: 40, color: "#9ca3af" }} />
+          </Box>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: "#1f1f20", mb: 1 }}>
+            {t("admin_ap_sin_datos", "Sin datos temporales cargados")}
+          </Typography>
+          <Typography variant="body2" sx={{ color: "#606d80", mb: 4 }}>
+            {t("admin_ap_sin_datos_desc", "Importa un archivo Excel para comenzar el análisis.")}
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<UploadFileIcon />}
+            onClick={() => setShowImportModal(true)}
+            sx={{ bgcolor: "#1976d2", textTransform: "none", fontWeight: 600 }}
+          >
+            {t("admin_ap_importar_excel", "Importar Excel")}
+          </Button>
+        </Paper>
+      )}
+
+      {/* Modal de importacion */}
+      <ImportExcelModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onSuccess={handleImportSuccess}
+      />
+    </Container>
+  );
 }

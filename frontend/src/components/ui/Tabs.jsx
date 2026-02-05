@@ -1,13 +1,21 @@
+/**
+ * Tabs Component - SPM Design System
+ * Usa MUI Tabs internamente para consistencia con Material Design
+ */
+
 import React, { createContext, useContext, useState } from "react";
 import PropTypes from "prop-types";
-import clsx from "clsx";
+import MuiTabsBase from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import Box from "@mui/material/Box";
+import Tooltip from "@mui/material/Tooltip";
+import Badge from "@mui/material/Badge";
 
 // Context for Tabs state
 const TabsContext = createContext(null);
 
 /**
- * Tabs Component - SPM Design System
- * Usa CSS variables para consistencia global
+ * Tabs Component - Wrapper principal
  */
 export function Tabs({
   children,
@@ -30,90 +38,109 @@ export function Tabs({
 
   return (
     <TabsContext.Provider value={{ activeValue, onValueChange: handleChange, variant }}>
-      <div className={clsx("w-full", className)} {...props}>
+      <Box className={className} sx={{ width: '100%' }} {...props}>
         {children}
-      </div>
+      </Box>
     </TabsContext.Provider>
   );
 }
 
 /**
- * TabsList - Container for tab triggers
+ * TabsList - Container for tab triggers usando MUI Tabs
  */
 export function TabsList({ children, className, ...props }) {
-  const { variant } = useContext(TabsContext);
+  const { activeValue, onValueChange } = useContext(TabsContext);
 
-  const variantStyles = {
-    default: "bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm p-1 rounded-xl border border-white/30 dark:border-white/10 gap-1",
-    pills: "gap-2",
-    underline: "border-b border-white/30 gap-0",
+  // Extraer valores de los children (TabsTrigger)
+  const tabs = React.Children.toArray(children).filter(
+    (child) => React.isValidElement(child) && child.type === TabsTrigger
+  );
+
+  const handleChange = (event, newValue) => {
+    onValueChange(newValue);
   };
 
   return (
-    <div
-      role="tablist"
-      className={clsx(
-        "inline-flex items-center",
-        variantStyles[variant] || variantStyles.default,
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </div>
+    <Box sx={{ borderBottom: 1, borderColor: 'divider' }} className={className} {...props}>
+      <MuiTabsBase
+        value={activeValue}
+        onChange={handleChange}
+        variant="standard"
+        aria-label="tabs"
+      >
+        {tabs.map((child) => {
+          const { value, children: label, disabled, className: tabClassName, tooltip, count, icon, sx: tabSx } = child.props;
+
+          // Build label with optional badge and icon
+          let tabLabel = label;
+          if (count !== undefined) {
+            tabLabel = (
+              <Badge
+                badgeContent={count}
+                color="primary"
+                max={99}
+                sx={{
+                  '& .MuiBadge-badge': {
+                    right: -12,
+                    top: 2,
+                    fontSize: '0.65rem',
+                    minWidth: 18,
+                    height: 18,
+                  },
+                }}
+              >
+                <span style={{ paddingRight: count > 0 ? 8 : 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {icon}
+                  {label}
+                </span>
+              </Badge>
+            );
+          } else if (icon) {
+            tabLabel = (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                {icon}
+                {label}
+              </span>
+            );
+          }
+
+          const tabElement = (
+            <Tab
+              key={value}
+              value={value}
+              label={tabLabel}
+              disabled={disabled}
+              className={tabClassName}
+              sx={tabSx}
+              id={`tab-${value}`}
+              aria-controls={`tabpanel-${value}`}
+            />
+          );
+          return tooltip ? (
+            <Tooltip key={value} title={tooltip} arrow placement="top">
+              <span>{tabElement}</span>
+            </Tooltip>
+          ) : tabElement;
+        })}
+      </MuiTabsBase>
+    </Box>
   );
 }
 
 /**
- * TabsTrigger - Tab button
+ * TabsTrigger - Tab button (usado para definir tabs, renderizado por TabsList)
+ *
+ * @param {string} value - Unique value for this tab
+ * @param {ReactNode} children - Tab label
+ * @param {boolean} disabled - Whether tab is disabled
+ * @param {string} tooltip - Optional tooltip text
+ * @param {number} count - Optional badge count
+ * @param {ReactNode} icon - Optional icon to display before label
  */
-export function TabsTrigger({ children, value, className, disabled = false, ...props }) {
-  const { activeValue, onValueChange, variant } = useContext(TabsContext);
-  const isActive = activeValue === value;
-
-  const baseStyles = clsx(
-    "inline-flex items-center justify-center gap-2",
-    "text-sm font-medium",
-    "transition-all duration-200",
-    "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-2",
-    disabled && "opacity-50 cursor-not-allowed pointer-events-none"
-  );
-
-  const variantStyles = {
-    default: clsx(
-      "px-4 py-2 rounded-lg",
-      isActive
-        ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400"
-        : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50"
-    ),
-    pills: clsx(
-      "px-4 py-2 rounded-full border",
-      isActive
-        ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-500/50 shadow-lg"
-        : "bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm text-slate-600 dark:text-slate-400 border-white/30 dark:border-white/10 hover:border-white/50 dark:hover:border-white/20 hover:text-slate-800 dark:hover:text-slate-200"
-    ),
-    underline: clsx(
-      "px-4 py-3 border-b-2 -mb-px",
-      isActive
-        ? "text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400"
-        : "text-slate-600 dark:text-slate-400 border-transparent hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-200 dark:hover:border-slate-600"
-    ),
-  };
-
-  return (
-    <button
-      role="tab"
-      aria-selected={isActive}
-      aria-controls={`tabpanel-${value}`}
-      tabIndex={isActive ? 0 : -1}
-      disabled={disabled}
-      onClick={() => !disabled && onValueChange(value)}
-      className={clsx(baseStyles, variantStyles[variant] || variantStyles.default, className)}
-      {...props}
-    >
-      {children}
-    </button>
-  );
+export function TabsTrigger({ children, value, className, disabled = false, tooltip = null, count, icon, ...props }) {
+  // Este componente solo se usa para definir la estructura
+  // El renderizado real lo hace TabsList con MUI Tab
+  return null;
 }
 
 /**
@@ -125,19 +152,17 @@ export function TabsContent({ children, value, className, ...props }) {
   if (activeValue !== value) return null;
 
   return (
-    <div
+    <Box
       role="tabpanel"
       id={`tabpanel-${value}`}
+      aria-labelledby={`tab-${value}`}
       tabIndex={0}
-      className={clsx(
-        "mt-4 focus:outline-none",
-        "animate-in fade-in-0 zoom-in-95 duration-200",
-        className
-      )}
+      sx={{ pt: 3 }}
+      className={className}
       {...props}
     >
       {children}
-    </div>
+    </Box>
   );
 }
 
@@ -150,10 +175,6 @@ Tabs.propTypes = {
   className: PropTypes.string,
 };
 
-Tabs.defaultProps = {
-  variant: "default",
-};
-
 TabsList.propTypes = {
   children: PropTypes.node,
   className: PropTypes.string,
@@ -164,10 +185,9 @@ TabsTrigger.propTypes = {
   value: PropTypes.string.isRequired,
   className: PropTypes.string,
   disabled: PropTypes.bool,
-};
-
-TabsTrigger.defaultProps = {
-  disabled: false,
+  tooltip: PropTypes.string,
+  count: PropTypes.number,
+  icon: PropTypes.node,
 };
 
 TabsContent.propTypes = {

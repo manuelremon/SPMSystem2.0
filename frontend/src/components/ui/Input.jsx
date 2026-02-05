@@ -72,8 +72,8 @@ export const Input = React.forwardRef(
             "w-full bg-[var(--bg-glass)] backdrop-blur-sm",
             "rounded-lg",
             "px-4 py-3",
-            // Typography
-            "text-sm text-[var(--text-primary)]",
+            // Typography - texto más grande en móvil (16px para evitar zoom en iOS)
+            "text-base sm:text-sm text-[var(--text-primary)]",
             "placeholder:text-[var(--text-muted)]",
             // Focus state - Glass effect intensifies
             "focus:bg-[var(--bg-glass-strong)]",
@@ -84,6 +84,8 @@ export const Input = React.forwardRef(
             "disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[var(--bg-glass-subtle)]",
             // Transition
             "transition-all duration-300 ease-spring",
+            // Touch target mínimo de 44px
+            "min-h-[44px]",
             // Border states
             error
               ? "border border-red-400 ring-1 ring-red-100 focus:border-red-400 focus:ring-2 focus:ring-red-200"

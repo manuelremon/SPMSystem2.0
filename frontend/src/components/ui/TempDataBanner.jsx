@@ -194,8 +194,4 @@ TempDataBanner.propTypes = {
   variant: PropTypes.oneOf(['full', 'compact', 'minimal'])
 }
 
-TempDataBanner.defaultProps = {
-  variant: 'full'
-}
-
 export default TempDataBanner

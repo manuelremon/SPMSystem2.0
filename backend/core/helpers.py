@@ -170,7 +170,7 @@ def get_current_user() -> Dict[str, Any] | None:
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT id_spm, nombre, apellido FROM usuarios WHERE id_spm=?",
+                "SELECT id_spm, nombre, apellido FROM usuario WHERE id_spm=?",
                 (str(user_id),),
             )
             row = cur.fetchone()
@@ -202,7 +202,7 @@ def is_admin(user_id: str) -> bool:
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (user_id,))
+            cursor.execute("SELECT rol FROM usuario WHERE id_spm = ?", (user_id,))
             row = cursor.fetchone()
             if row:
                 rol = row["rol"] if isinstance(row, dict) else row[0]
@@ -322,7 +322,7 @@ def resolve_sector_name(sector_value: str) -> str:
     Centraliza la normalización de sector ID -> nombre para
     consistencia en todo el sistema de presupuestos.
 
-    Si es numérico, busca en catalog_sectores.
+    Si es numérico, busca en catalogo_sector.
     Si no encuentra, devuelve el valor original.
 
     Args:
@@ -340,7 +340,7 @@ def resolve_sector_name(sector_value: str) -> str:
             with get_db_connection() as conn:
                 cur = conn.cursor()
                 cur.execute(
-                    "SELECT nombre FROM catalog_sectores WHERE id = ?",
+                    "SELECT nombre FROM catalogo_sector WHERE id = ?",
                     (int(sector_value),)
                 )
                 row = cur.fetchone()
@@ -383,7 +383,7 @@ def get_user_almacenes(user_id: str) -> list[str]:
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT almacenes, rol FROM usuarios WHERE id_spm = ?",
+                "SELECT almacenes, rol FROM usuario WHERE id_spm = ?",
                 (str(user_id),)
             )
             row = cur.fetchone()
