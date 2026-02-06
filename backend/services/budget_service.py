@@ -250,7 +250,7 @@ class BURService:
     """Servicio para Budget Update Requests"""
 
     # Roles que pueden crear BUR
-    ROLES_CREAR = {"jefe", "admin", "administrador"}
+    ROLES_CREAR = {"jefe", "admin", "administrador", "coordinador", "aprobador presupuestos", "aprobador_presupuestos", "aprobador de presupuesto"}
 
     # Roles por nivel de aprobacion
     ROLES_APROBAR = {
