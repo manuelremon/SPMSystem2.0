@@ -129,7 +129,7 @@ function NotificacionDetailModal({ notif, onClose, onMarcarLeida }) {
 
   const handleVerSolicitud = () => {
     onClose();
-    navigate(`/solicitud/${notif.solicitud_id}`);
+    navigate(`/solicitudes/${notif.solicitud_id}`);
   };
 
   const handleResponder = () => {

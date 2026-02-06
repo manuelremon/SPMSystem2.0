@@ -84,7 +84,7 @@ export default function TimelineDetailModal({ item, onClose }) {
 
   const handleVerSolicitud = () => {
     onClose();
-    navigate(`/solicitud/${item.solicitud_id}`);
+    navigate(`/solicitudes/${item.solicitud_id}`);
   };
 
   const handleIrAModulo = () => {

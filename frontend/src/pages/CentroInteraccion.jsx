@@ -30,7 +30,6 @@ import {
 
 // MUI Icons
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import RefreshIcon from "@mui/icons-material/Refresh";
 import ChatIcon from "@mui/icons-material/Chat";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import InventoryIcon from "@mui/icons-material/Inventory";
@@ -254,37 +253,7 @@ export default function CentroInteraccion() {
               </Stack>
             </Stack>
 
-            {/* Right */}
-            <Button
-              onClick={loadData}
-              disabled={loading}
-              variant="outlined"
-              size="small"
-              startIcon={
-                loading ? (
-                  <RefreshIcon sx={{ fontSize: 16, animation: "spin 1s linear infinite", "@keyframes spin": { "0%": { transform: "rotate(0deg)" }, "100%": { transform: "rotate(360deg)" } } }} />
-                ) : (
-                  <RefreshIcon sx={{ fontSize: 16 }} />
-                )
-              }
-              sx={{
-                height: 36,
-                textTransform: "uppercase",
-                fontSize: 12,
-                fontWeight: 600,
-                letterSpacing: "0.05em",
-                color: "grey.600",
-                borderColor: "grey.200",
-                bgcolor: "common.white",
-                "&:hover": {
-                  bgcolor: "grey.50",
-                },
-              }}
-            >
-              <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-                Actualizar
-              </Box>
-            </Button>
+            {/* Right - spacer */}
           </Stack>
         </Box>
       </Box>
