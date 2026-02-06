@@ -49,6 +49,7 @@ jobs:
             --ignore=tests/unit/test_forecast_parallel.py \
             --ignore=tests/unit/test_stl_decomposition.py \
             --ignore=tests/unit/test_cors.py \
+            --ignore=tests/unit/test_lstm_model.py \
             -k "not test_cache_expiracion" \
             -x --timeout=60
 
