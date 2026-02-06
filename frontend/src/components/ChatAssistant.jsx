@@ -305,7 +305,7 @@ export default function ChatAssistant() {
       // Llamar al endpoint de Google Cloud TTS
       const response = await api.post('/vertex/tts', { text: cleanText, voice: 'tomas' }, {
         responseType: 'blob',
-        timeout: 10000, // 10 segundos timeout
+        timeout: 30000, // 30 segundos timeout para textos largos
       })
 
       // Crear audio desde blob
@@ -331,16 +331,11 @@ export default function ChatAssistant() {
       await audio.play()
 
     } catch (err) {
-      // Si falla Google Cloud TTS, usar Web Speech API como fallback
-      console.warn('Google TTS error, using fallback:', err.message || err)
+      // Si falla Edge TTS, no usar fallback robotico - simplemente silenciar
+      console.warn('Edge TTS error:', err.message || err)
       setIsSpeaking(false)
-
-      // Solo usar fallback si hay soporte de sintesis
-      if (synthesisRef.current) {
-        fallbackSpeak(cleanText)
-      }
     }
-  }, [voiceEnabled, fallbackSpeak])
+  }, [voiceEnabled])
 
   /**
    * Toggle voice input (microphone)

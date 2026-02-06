@@ -50,6 +50,9 @@ psycopg2-binary>=2.9.9
 # Push Notifications
 pywebpush>=1.14.0
 
+# Text-to-Speech (Edge TTS - voces neurales gratuitas)
+edge-tts>=7.0.0
+
 # Forecast ML Avanzado (opcionales)
 xgboost>=2.0.0
 statsmodels>=0.14.0
