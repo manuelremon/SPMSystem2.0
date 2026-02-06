@@ -276,7 +276,6 @@ def centro_interaccion():
             notif_count = cur.fetchone()["count"]
 
             # 2. Consultas de stock pendientes (si es responsable/referente)
-            # Nota: SQLite no soporta ANY(string_to_array), usamos INSTR para buscar en lista CSV
             cur.execute(
                 """
                 SELECT COUNT(*) as count
@@ -292,8 +291,8 @@ def centro_interaccion():
                       OR EXISTS (
                           SELECT 1 FROM usuario u
                           WHERE u.id_spm = ?
-                          AND (',' || u.centros || ',' LIKE '%,' || f.centro_origen || ',%')
-                          AND (u.rol LIKE '%coordinador%' OR u.rol LIKE '%jefe%')
+                          AND POSITION(f.centro_origen IN u.centros) > 0
+                          AND (u.rol LIKE '%%coordinador%%' OR u.rol LIKE '%%jefe%%')
                       )
                   )
                 """,
