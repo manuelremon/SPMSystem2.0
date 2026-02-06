@@ -183,8 +183,8 @@ def obtener_regla_aprobacion(
                 SELECT * FROM reglas_aprobacion
                 WHERE activo = 1
                     AND criticidad = ?
-                    AND (monto_minimo <= ? OR monto_minimo IS NULL)
-                    AND (monto_maximo >= ? OR monto_maximo IS NULL)
+                    AND (monto_minimo_usd <= ? OR monto_minimo_usd IS NULL)
+                    AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)
                 ORDER BY nivel DESC
                 LIMIT 1
             """,
@@ -201,8 +201,8 @@ def obtener_regla_aprobacion(
                 SELECT * FROM reglas_aprobacion
                 WHERE activo = 1
                     AND centro = ?
-                    AND (monto_minimo <= ? OR monto_minimo IS NULL)
-                    AND (monto_maximo >= ? OR monto_maximo IS NULL)
+                    AND (monto_minimo_usd <= ? OR monto_minimo_usd IS NULL)
+                    AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)
                 ORDER BY nivel DESC
                 LIMIT 1
             """,
@@ -222,10 +222,10 @@ def obtener_regla_aprobacion(
                 AND centro IS NULL
                 AND sector IS NULL
                 AND criticidad IS NULL
-                AND monto_minimo <= ?
-                AND (monto_maximo >= ? OR monto_maximo IS NULL)
-                AND LOWER(rol_aprobador) != 'admin'
-            ORDER BY monto_minimo DESC
+                AND monto_minimo_usd <= ?
+                AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)
+                AND LOWER(posicion_requerida) != 'admin'
+            ORDER BY monto_minimo_usd DESC
             LIMIT 1
         """,
             (monto_usd, monto_usd),
@@ -239,9 +239,9 @@ def obtener_regla_aprobacion(
                 """
                 SELECT * FROM reglas_aprobacion
                 WHERE activo = 1
-                    AND LOWER(rol_aprobador) = 'admin'
-                    AND monto_minimo <= ?
-                    AND (monto_maximo >= ? OR monto_maximo IS NULL)
+                    AND LOWER(posicion_requerida) = 'admin'
+                    AND monto_minimo_usd <= ?
+                    AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)
                 LIMIT 1
             """,
                 (monto_usd, monto_usd),
@@ -786,14 +786,14 @@ def listar_reglas(solo_activas: bool = True) -> List[Dict[str, Any]]:
                 """
                 SELECT * FROM reglas_aprobacion
                 WHERE activo = 1
-                ORDER BY nivel, monto_minimo
+                ORDER BY nivel, monto_minimo_usd
             """
             )
         else:
             cursor.execute(
                 """
                 SELECT * FROM reglas_aprobacion
-                ORDER BY nivel, monto_minimo
+                ORDER BY nivel, monto_minimo_usd
             """
             )
 
