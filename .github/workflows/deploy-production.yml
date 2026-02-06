@@ -166,20 +166,22 @@ jobs:
 
       - name: Deploy code and frontend
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'SCRIPT'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'ENDSSH'
             set -e
             echo "=== Starting deployment ==="
             cd /opt/spm
             echo "=== Pulling latest code ==="
+            git remote set-url origin https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
             git fetch origin main
             git reset --hard origin/main
+            git remote set-url origin https://github.com/${{ github.repository }}.git
             echo "=== Building frontend ==="
             cd frontend
             npm ci
             npm run build
             cd ..
             echo "=== Code and frontend deployed ==="
-          SCRIPT
+          ENDSSH
 
       - name: Rebuild and restart Docker containers
         run: |
