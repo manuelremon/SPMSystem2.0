@@ -184,6 +184,40 @@ VERTEX_AVAILABLE = bool(vertex_memory_module and vertex_prompts_module and llm_c
 bp = Blueprint("vertex_ia", __name__, url_prefix="/api/vertex")
 
 
+def ensure_vertex_tables():
+    """
+    Crea tablas de Vertex si no existen (idempotente).
+    Usa CREATE TABLE IF NOT EXISTS, seguro de ejecutar multiples veces.
+    Se llama desde create_app() en startup.
+    """
+    global _vertex_tables_exist
+    try:
+        import os
+        import importlib.util
+
+        database_url = os.environ.get("DATABASE_URL", "")
+        if not database_url.startswith("postgresql://"):
+            return  # Solo relevante para PostgreSQL en produccion
+
+        migration_path = os.path.join(
+            os.path.dirname(__file__), "..", "migrations", "022_vertex_ia_tables.py"
+        )
+        migration_path = os.path.abspath(migration_path)
+
+        if not os.path.exists(migration_path):
+            logger.warning(f"Vertex migration file not found: {migration_path}")
+            return
+
+        spec = importlib.util.spec_from_file_location("migration_022", migration_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        mod.run_migration_postgresql()
+        _vertex_tables_exist = True
+        logger.info("Vertex tables verified/created successfully")
+    except Exception as e:
+        logger.warning(f"Vertex tables auto-creation skipped: {e}")
+
+
 # =============================================================================
 # Health & Status
 # =============================================================================
@@ -211,17 +245,23 @@ def status():
 
     gemini_key = os.getenv("GOOGLE_AI_API_KEY")
 
+    tables_exist = _check_vertex_tables()
+
     return jsonify({
         "ok": True,
         "service": "vertex_ia",
         "available": VERTEX_AVAILABLE,
         "gemini_configured": bool(gemini_key),
+        "tables_exist": tables_exist,
+        "tts_available": TTS_AVAILABLE,
+        "tts_voice": tts_service._voice_type if tts_service else None,
         "features": {
             "chat": VERTEX_AVAILABLE and bool(gemini_key),
             "memory": bool(vertex_memory_module),
             "prompts": bool(vertex_prompts_module),
             "llm_client": bool(llm_client_module),
             "proactive_alerts": VERTEX_AVAILABLE,
+            "tts": TTS_AVAILABLE,
         },
         "error": None if VERTEX_AVAILABLE else import_error,
         "modules": {
@@ -244,7 +284,7 @@ def text_to_speech():
     """
     Sintetiza texto a audio usando Edge TTS (Microsoft) - GRATIS.
 
-    Genera audio MP3 de alta calidad con voz argentina nativa (Elena).
+    Genera audio MP3 de alta calidad con voz argentina nativa (Tomas).
     No requiere API key ni autenticacion.
 
     Request JSON:
@@ -284,7 +324,7 @@ def text_to_speech():
     try:
         data = request.get_json() or {}
         text = data.get("text", "").strip()
-        voice_type = data.get("voice", "elena")
+        voice_type = data.get("voice", "tomas")
 
         # Validar texto
         if not text:

@@ -111,6 +111,13 @@ def create_app(config_override: dict | None = None) -> Flask:
         except Exception as e:
             app.logger.warning(f"No se pudieron crear indices: {e}")
 
+        # Ensure Vertex IA tables exist (idempotent, PostgreSQL only)
+        try:
+            from backend.routes.vertex_ia import ensure_vertex_tables
+            ensure_vertex_tables()
+        except Exception as e:
+            app.logger.warning(f"Vertex tables check skipped: {e}")
+
     # ==================== BLUEPRINTS ====================
 
     register_blueprints(app)

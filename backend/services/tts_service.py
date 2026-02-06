@@ -5,8 +5,8 @@ Usa voces neurales de Microsoft Edge, incluyendo voz argentina nativa.
 No requiere API key ni autenticacion.
 
 Voces argentinas disponibles:
-- es-AR-ElenaNeural: Voz femenina argentina (default)
-- es-AR-TomasNeural: Voz masculina argentina
+- es-AR-TomasNeural: Voz masculina argentina (default)
+- es-AR-ElenaNeural: Voz femenina argentina
 
 Uso:
     from backend.services.tts_service import tts_service
@@ -38,7 +38,7 @@ class TTSService:
     Servicio de Text-to-Speech usando Edge TTS (Microsoft).
 
     Usa voces neurales gratuitas de alta calidad.
-    Incluye voz argentina nativa (es-AR-ElenaNeural).
+    Incluye voz argentina nativa (es-AR-TomasNeural).
     """
 
     # Voces disponibles - Argentina primero!
@@ -69,7 +69,7 @@ class TTSService:
         },
     }
 
-    def __init__(self, voice_type: str = "elena"):
+    def __init__(self, voice_type: str = "tomas"):
         """
         Inicializa el servicio TTS con voz argentina.
 
@@ -78,7 +78,7 @@ class TTSService:
         """
         self._voice_type = voice_type
         self._voice_name = self.VOICE_OPTIONS.get(
-            voice_type, self.VOICE_OPTIONS["elena"]
+            voice_type, self.VOICE_OPTIONS["tomas"]
         )["name"]
         self._available = TTS_AVAILABLE
         self._error = _init_error if not TTS_AVAILABLE else ""
@@ -237,15 +237,15 @@ class TTSService:
             return asyncio.run(self.get_available_voices_async())
 
 
-# Instancia singleton - voz Elena argentina por default
-tts_service = TTSService(voice_type="elena")
+# Instancia singleton - voz Tomas argentina por default
+tts_service = TTSService(voice_type="tomas")
 
 
-def get_tts_service(voice_type: str = "elena") -> TTSService:
+def get_tts_service(voice_type: str = "tomas") -> TTSService:
     """Factory para obtener instancia del servicio TTS."""
     global tts_service
 
-    if voice_type == "elena":
+    if voice_type == "tomas":
         return tts_service
 
     return TTSService(voice_type=voice_type)

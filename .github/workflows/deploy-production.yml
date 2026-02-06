@@ -222,6 +222,19 @@ jobs:
             echo "=== Restart completed ==="
           SCRIPT
 
+      - name: Run database migrations
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'MIGRATE_SCRIPT'
+            set -e
+            echo "=== Running database migrations ==="
+            cd /opt/spm
+
+            # Run Vertex IA tables migration (idempotent - uses CREATE TABLE IF NOT EXISTS)
+            docker exec spm-backend python backend/migrations/022_vertex_ia_tables.py || echo "Migration 022 skipped or already applied"
+
+            echo "=== Migrations completed ==="
+          MIGRATE_SCRIPT
+
       - name: Show container logs
         continue-on-error: true
         run: |
