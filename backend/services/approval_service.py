@@ -357,7 +357,9 @@ def puede_aprobar(
     posicion_requerida = regla.get("rol_aprobador") or regla.get("posicion_requerida") or regla.get("rol_requerido", "admin")
 
     # Verificar si el usuario tiene el ROL de aprobador
-    if "aprobador_solicitudes" not in rol_usuario:
+    # Normalizar: aceptar "aprobador_solicitudes" y "aprobador solicitudes"
+    rol_normalizado = rol_usuario.replace(" ", "_")
+    if "aprobador_solicitudes" not in rol_normalizado:
         return {
             "puede_aprobar": False,
             "posicion_usuario": posicion_usuario,
