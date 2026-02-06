@@ -105,9 +105,10 @@ def _verificar_material_existe(material_id: str) -> bool:
                        OR REPLACE(codigo_original, '-', '') = ?
                        OR id_material = ?
                        OR id_material = ?
+                       OR id_material = ?
                     LIMIT 1
                     """,
-                    (material_id, material_id.replace("-", ""), codigo_norm, sufijo),
+                    (material_id, material_id.replace("-", ""), material_id, codigo_norm, sufijo),
                 )
                 existe = cursor.fetchone() is not None
 
