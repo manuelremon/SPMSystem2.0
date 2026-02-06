@@ -241,24 +241,6 @@ def update_contacto():
     values.append(user_id)
 
     try:
-        with get_db_connection() as conn:
-            cur = conn.cursor()
-            cur.execute("PRAGMA table_info(usuario)")
-            columns = [col[1] for col in cur.fetchall()]
-
-        if "mail_respaldo" not in columns and mail_respaldo:
-            logger.warning("Columna mail_respaldo no existe en usuarios, se omitirá")
-            updates = [u for u in updates if "mail_respaldo" not in u]
-            values = [v for i, v in enumerate(values) if i == 0 or (i == len(values) - 1)]
-
-        if not updates:
-            return (
-                jsonify(
-                    {"ok": False, "error": {"message": "No hay campos válidos para actualizar"}}
-                ),
-                400,
-            )
-
         with get_db_transaction() as conn:
             cur = conn.cursor()
             query = f"UPDATE usuario SET {', '.join(updates)} WHERE id_spm=?"
@@ -339,7 +321,7 @@ def solicitar_cambio_perfil():
             request_id = insert_returning_id(
                 cur,
                 """INSERT INTO usuario_solicitud_perfil
-                   (usuario_id, tipo, payload, estado, created_at, updated_at)
+                   (usuario_id, tipo_cambio, valor_nuevo, estado, created_at, resolved_at)
                    VALUES (?, ?, ?, ?, ?, ?)""",
                 (user_id, "cambio_perfil", payload_json, "pendiente", now, now),
             )
@@ -403,7 +385,7 @@ def listar_cambios_perfil():
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                """SELECT id, tipo, payload, estado, created_at, updated_at
+                """SELECT id, tipo_cambio, valor_nuevo, estado, created_at, resolved_at
                    FROM usuario_solicitud_perfil
                    WHERE usuario_id=?
                    ORDER BY created_at DESC
@@ -417,9 +399,9 @@ def listar_cambios_perfil():
         for row in rows:
             row_dict = dict(row)
 
-            # Parse payload JSON
+            # Parse valor_nuevo JSON
             try:
-                payload = json.loads(row_dict.get("payload", "{}"))
+                payload = json.loads(row_dict.get("valor_nuevo", "{}"))
             except (json.JSONDecodeError, TypeError):
                 payload = {}
 
@@ -502,7 +484,7 @@ def cancelar_solicitud_cambio(request_id: int):
         with get_db_transaction() as conn:
             cur = conn.cursor()
             cur.execute(
-                "UPDATE usuario_solicitud_perfil SET estado=?, updated_at=? WHERE id=?",
+                "UPDATE usuario_solicitud_perfil SET estado=?, resolved_at=? WHERE id=?",
                 ("cancelado", now, request_id),
             )
 
@@ -814,7 +796,7 @@ def admin_aprobar_profile_request(request_id: int):
 
         # Parse payload y preparar cambios
         try:
-            payload = json.loads(req["payload"])
+            payload = json.loads(req["valor_nuevo"])
         except (json.JSONDecodeError, TypeError):
             payload = {}
 
@@ -870,7 +852,7 @@ def admin_aprobar_profile_request(request_id: int):
 
             # Actualizar estado de la solicitud
             cur.execute(
-                "UPDATE usuario_solicitud_perfil SET estado=?, updated_at=? WHERE id=?",
+                "UPDATE usuario_solicitud_perfil SET estado=?, resolved_at=? WHERE id=?",
                 ("aprobado", now, request_id),
             )
 
@@ -947,7 +929,7 @@ def admin_rechazar_profile_request(request_id: int):
 
             # Actualizar estado
             cur.execute(
-                "UPDATE usuario_solicitud_perfil SET estado=?, updated_at=? WHERE id=?",
+                "UPDATE usuario_solicitud_perfil SET estado=?, resolved_at=? WHERE id=?",
                 ("rechazado", now, request_id),
             )
 
@@ -1070,7 +1052,7 @@ def get_notification_preferences():
             with get_db_transaction() as conn:
                 cur = conn.cursor()
                 cur.execute(
-                    "INSERT INTO usuario_preferencia_notificacion (user_id) VALUES (%s) ON CONFLICT (user_id) DO NOTHING",
+                    "INSERT INTO usuario_preferencia_notificacion (user_id) VALUES (?) ON CONFLICT (user_id) DO NOTHING",
                     (str(user_id),),
                 )
 
@@ -1146,14 +1128,14 @@ def update_notification_preferences():
 
     for camel_key, snake_key in field_mapping.items():
         if camel_key in data:
-            updates.append(f"{snake_key} = %s")
+            updates.append(f"{snake_key} = ?")
             values.append(1 if data[camel_key] else 0)
 
     if not updates:
         return jsonify({"ok": False, "error": {"message": "No hay preferencias para actualizar"}}), 400
 
     # Agregar updated_at
-    updates.append("updated_at = %s")
+    updates.append("updated_at = ?")
     values.append(datetime.utcnow().isoformat())
     values.append(str(user_id))
 
@@ -1163,12 +1145,12 @@ def update_notification_preferences():
 
             # Primero intentar INSERT si no existe
             cur.execute(
-                "INSERT INTO usuario_preferencia_notificacion (user_id) VALUES (%s) ON CONFLICT (user_id) DO NOTHING",
+                "INSERT INTO usuario_preferencia_notificacion (user_id) VALUES (?) ON CONFLICT (user_id) DO NOTHING",
                 (str(user_id),),
             )
 
             # Luego UPDATE
-            query = f"UPDATE usuario_preferencia_notificacion SET {', '.join(updates)} WHERE user_id = %s"
+            query = f"UPDATE usuario_preferencia_notificacion SET {', '.join(updates)} WHERE user_id = ?"
             cur.execute(query, values)
 
         logger.info(f"Preferencias de notificacion actualizadas para usuario {user_id}")

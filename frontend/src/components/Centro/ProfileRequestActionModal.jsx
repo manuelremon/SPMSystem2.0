@@ -167,8 +167,11 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
         setError(res.data?.error?.message || "Error al cargar datos");
       }
     } catch (err) {
-      console.error("Error loading profile request:", err);
-      setError("Error de conexión");
+      if (err?.response?.status === 404) {
+        setError("Esta solicitud ya no existe o fue eliminada.");
+      } else {
+        setError("Error de conexión");
+      }
     } finally {
       setLoading(false);
     }
