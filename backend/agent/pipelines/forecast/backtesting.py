@@ -44,12 +44,12 @@ class BacktestStep:
             'fecha_corte': self.fecha_corte.isoformat(),
             'fecha_inicio_test': self.fecha_inicio_test.isoformat(),
             'fecha_fin_test': self.fecha_fin_test.isoformat(),
-            'n_train': self.n_train,
-            'n_test': self.n_test,
-            'mae': round(self.mae, 2),
-            'rmse': round(self.rmse, 2),
-            'mape': round(self.mape, 2) if not np.isinf(self.mape) else None,
-            'r2': round(self.r2, 4)
+            'n_train': int(self.n_train),
+            'n_test': int(self.n_test),
+            'mae': round(float(self.mae), 2),
+            'rmse': round(float(self.rmse), 2),
+            'mape': round(float(self.mape), 2) if not np.isinf(self.mape) else None,
+            'r2': round(float(self.r2), 4)
         }
 
 
@@ -85,8 +85,8 @@ class BacktestReport:
             'modelo_tipo': self.modelo_tipo,
             'ventana_test': self.ventana_test,
             'n_pasos': self.n_pasos,
-            'metricas_agregadas': {k: round(v, 4) for k, v in self.metricas_agregadas.items()},
-            'es_estable': self.es_estable,
+            'metricas_agregadas': {k: round(float(v), 4) for k, v in self.metricas_agregadas.items()},
+            'es_estable': bool(self.es_estable),
             'steps': [s.to_dict() for s in self.steps],
             'timestamp': self.timestamp.isoformat()
         }

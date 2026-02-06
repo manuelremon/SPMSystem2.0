@@ -77,7 +77,7 @@ export const runBacktest = async (codigo, options = {}) => {
 
   const response = await api.post('/ai/forecast/backtest', {
     material_codigo: codigo,
-    centro: centro || '1000',
+    centro: Array.isArray(centro) ? centro.join(',') : (centro || ''),
     modelo,
     ventana_test: ventana,
     n_pasos: pasos
@@ -95,7 +95,7 @@ export const compareModels = async (codigo, options = {}) => {
 
   const response = await api.post('/ai/forecast/compare', {
     material_codigo: codigo,
-    centro: centro || '1000',
+    centro: Array.isArray(centro) ? centro.join(',') : (centro || ''),
     modelos
   });
   return response.data;
@@ -111,7 +111,7 @@ export const autoSelectModel = async (codigo, options = {}) => {
 
   const response = await api.post('/ai/forecast/auto-select', {
     material_codigo: codigo,
-    centro: centro || '1000',
+    centro: Array.isArray(centro) ? centro.join(',') : (centro || ''),
     optimizar_params: optimizar
   });
   return response.data;
@@ -127,7 +127,7 @@ export const tuneHyperparameters = async (codigo, options = {}) => {
 
   const response = await api.post('/ai/forecast/tune', {
     material_codigo: codigo,
-    centro: centro || '1000',
+    centro: Array.isArray(centro) ? centro.join(',') : (centro || ''),
     modelo,
     n_iter: iteraciones
   });
