@@ -522,53 +522,70 @@ export default function BudgetRequests() {
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <IconButton
-              onClick={() => navigate(-1)}
-              size="small"
-              sx={{
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <IconButton
+            onClick={() => navigate(-1)}
+            sx={{
+              color: 'text.disabled',
+              '&:hover': {
                 color: 'text.secondary',
+                bgcolor: 'background.paper',
                 border: 1,
                 borderColor: 'divider',
-                bgcolor: 'background.paper',
-                '&:hover': { bgcolor: 'grey.100', borderColor: 'grey.400' },
+              },
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Box>
+            <Typography
+              variant="h5"
+              component="h1"
+              sx={{
+                fontWeight: 700,
+                color: 'text.primary',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
               }}
             >
-              <ArrowBackIcon fontSize="small" />
-            </IconButton>
-            <Box>
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 700,
-                  color: 'text.primary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                {t("bur_title", "Gestión de Presupuestos")}
-              </Typography>
-            </Box>
+              {t("bur_title", "Gestión de Presupuestos")}
+            </Typography>
           </Box>
         </Box>
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<AddIcon />}
+          onClick={() => navigate("/presupuestos/nueva")}
+          sx={{ textTransform: 'none' }}
+        >
+          {t("bur_crear", "Incorporar Saldo")}
+        </Button>
+      </Box>
 
-        {/* Alerts */}
-        {error && (
-          <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2, borderRadius: 2 }}>
-            {error}
-          </Alert>
-        )}
-        {success && (
-          <Alert severity="success" onClose={() => setSuccess("")} sx={{ mb: 2, borderRadius: 2 }}>
-            {success}
-          </Alert>
-        )}
+      {/* Alerts */}
+      {error && (
+        <Alert severity="error" onClose={() => setError("")}>
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert severity="success" onClose={() => setSuccess("")}>
+          {success}
+        </Alert>
+      )}
 
-        {/* Main Card with Tabs */}
-        <Paper elevation={0} sx={{ border: 1, borderColor: 'grey.200', overflow: 'hidden', borderRadius: 2 }}>
-          {/* Main Tabs */}
-          <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'grey.50', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Tabs
+      {/* Main Card with Tabs */}
+      <Paper
+        variant="outlined"
+        sx={{
+          borderRadius: 2,
+          overflow: 'hidden',
+        }}
+      >
+        {/* Main Tabs */}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'grey.50' }}>
+          <Tabs
               value={mainTab}
               onChange={(_, v) => setMainTab(v)}
               variant="scrollable"
@@ -620,14 +637,6 @@ export default function BudgetRequests() {
                 }
               />
             </Tabs>
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<AddIcon />}
-              onClick={() => navigate("/presupuestos/nueva")}
-            >
-              {t("bur_crear", "Incorporar Saldo")}
-            </Button>
           </Box>
 
           {/* Historial Tab Content */}
