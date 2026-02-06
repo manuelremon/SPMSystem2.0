@@ -194,6 +194,58 @@ def materiales_similares(material_codigo):
         return jsonify({"ok": False, "error": {"code": "similares_error", "message": str(e)}}), 500
 
 
+@bp.route("/materiales/buscar-consumo", methods=["GET"])
+@require_auth
+def buscar_materiales_consumo():
+    """
+    Busca materiales que tienen historial de consumo en sap_data.db.
+
+    Query params:
+        q: Texto de búsqueda (código o descripción, mínimo 2 caracteres)
+        limit: Máximo de resultados (default 20, max 100)
+
+    Returns:
+        Lista de materiales con: codigo, descripcion
+    """
+    from backend.core.db import get_db_connection
+
+    q = (request.args.get("q") or "").strip()
+    limit = min(int(request.args.get("limit", 20)), 100)
+
+    if len(q) < 2:
+        return jsonify({"ok": True, "data": []})
+
+    try:
+        with get_db_connection("sap_data") as conn:
+            cur = conn.cursor()
+            # Search in both consumo_historico and materiales_bbdd,
+            # prioritizing materials that have consumption data
+            cur.execute("""
+                SELECT codigo, descripcion, has_consumo FROM (
+                    SELECT DISTINCT material AS codigo, descripcion, 1 AS has_consumo
+                    FROM consumo_historico
+                    WHERE UPPER(material) LIKE UPPER(?) OR UPPER(descripcion) LIKE UPPER(?)
+                    UNION
+                    SELECT DISTINCT codigo_material AS codigo, descripcion, 0 AS has_consumo
+                    FROM materiales_bbdd
+                    WHERE (UPPER(codigo_material) LIKE UPPER(?) OR UPPER(descripcion) LIKE UPPER(?))
+                    AND codigo_material NOT IN (
+                        SELECT DISTINCT material FROM consumo_historico
+                        WHERE UPPER(material) LIKE UPPER(?) OR UPPER(descripcion) LIKE UPPER(?)
+                    )
+                )
+                ORDER BY has_consumo DESC, codigo
+                LIMIT ?
+            """, (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%", limit))
+            rows = cur.fetchall()
+            data = [{"codigo": r[0], "descripcion": r[1], "has_consumo": bool(r[2])} for r in rows]
+
+        return jsonify({"ok": True, "data": data, "total": len(data)})
+    except Exception as e:
+        logger.error(f"Error buscando materiales con consumo: {e}")
+        return jsonify({"ok": False, "error": {"code": "search_error", "message": str(e)}}), 500
+
+
 @bp.route("/materiales/forecast/<material_codigo>", methods=["GET"])
 @require_auth
 @rate_limit(requests=5, window_seconds=60)
@@ -215,8 +267,14 @@ def forecast_demanda(material_codigo):
     Returns:
         Proyeccion con intervalo de confianza
     """
-    centro = request.args.get("centro", "")
-    almacen = request.args.get("almacen", "")
+    # Soportar centro/almacen como multiselect (getlist) o string individual
+    centro = request.args.getlist("centro") or request.args.get("centro", "")
+    almacen = request.args.getlist("almacen") or request.args.get("almacen", "")
+    # Si viene como lista de un solo elemento, convertir a string
+    if isinstance(centro, list) and len(centro) == 1:
+        centro = centro[0]
+    if isinstance(almacen, list) and len(almacen) == 1:
+        almacen = almacen[0]
     dias = int(request.args.get("dias", 30))
     modelo = request.args.get("modelo", "random_forest")
     meses_historico = int(request.args.get("meses_historico", 0))  # 0 = todo el histórico

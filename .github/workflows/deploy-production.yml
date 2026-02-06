@@ -156,32 +156,21 @@ jobs:
             echo "=== Environment variables updated ==="
           ENVSCRIPT
 
-      - name: Sync code to VPS
-        run: |
-          echo "=== Syncing code to VPS via rsync ==="
-          rsync -avz --delete \
-            --exclude '.git' \
-            --exclude 'node_modules' \
-            --exclude 'data' \
-            --exclude '__pycache__' \
-            --exclude '.env' \
-            --exclude '.claude' \
-            --exclude 'venv' \
-            --exclude 'backups' \
-            --exclude 'frontend/dist' \
-            -e "ssh -o StrictHostKeyChecking=no" \
-            ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/opt/spm/
-          echo "=== Code synced ==="
-
-      - name: Build frontend on VPS
+      - name: Deploy code and frontend
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'SCRIPT'
             set -e
+            echo "=== Starting deployment ==="
+            cd /opt/spm
+            echo "=== Pulling latest code ==="
+            git fetch origin main
+            git reset --hard origin/main
             echo "=== Building frontend ==="
-            cd /opt/spm/frontend
+            cd frontend
             npm ci
             npm run build
-            echo "=== Frontend built ==="
+            cd ..
+            echo "=== Code and frontend deployed ==="
           SCRIPT
 
       - name: Rebuild and restart Docker containers
@@ -222,23 +211,6 @@ jobs:
             docker compose -f infra/docker-compose.prod.yml ps
             echo "=== Restart completed ==="
           SCRIPT
-
-      - name: Run database migrations
-        continue-on-error: true
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'MIGRATION_SCRIPT'
-            echo "=== Running database migrations ==="
-            cd /opt/spm
-
-            # Run all pending migrations
-            for migration in infra/migrations/0*.sql; do
-              echo "Running migration: $migration"
-              docker cp "$migration" spm-postgres:/tmp/migration.sql
-              docker exec spm-postgres psql -U spm -d spm_production -f /tmp/migration.sql
-            done
-
-            echo "=== Database migration completed ==="
-          MIGRATION_SCRIPT
 
       - name: Show container logs
         continue-on-error: true

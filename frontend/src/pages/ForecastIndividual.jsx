@@ -24,6 +24,7 @@ import {
   MaterialSearchInput
 } from '../components/forecast';
 import { TempDataBanner } from '../components/ui/TempDataBanner';
+import api from '../services/api';
 
 // MUI Components
 import Container from '@mui/material/Container';
@@ -169,6 +170,16 @@ const ForecastIndividual = () => {
     }
   }, [loading]);
 
+  // Search materials from consumo_historico (sap_data.db) instead of catalogo
+  const searchConsumoMaterials = useCallback(async (query) => {
+    try {
+      const response = await api.get('/ai/materiales/buscar-consumo', { params: { q: query, limit: 20 } });
+      return response.data?.data || [];
+    } catch {
+      return [];
+    }
+  }, []);
+
   const handleMaterialSelect = useCallback((material) => {
     setSelectedMaterial(material);
     if (material) {
@@ -256,6 +267,7 @@ const ForecastIndividual = () => {
                 placeholder={t('forecast_placeholder_buscar', 'Código o descripción...')}
                 disabled={loading}
                 showSelectedInfo={false}
+                searchFn={searchConsumoMaterials}
               />
             </Box>
 

@@ -56,7 +56,8 @@ const MaterialSearchInput = ({
   placeholder = '',
   disabled = false,
   className = '',
-  showSelectedInfo = true
+  showSelectedInfo = true,
+  searchFn = null
 }) => {
   const { t } = useI18n();
   const inputRef = useRef(null);
@@ -88,14 +89,19 @@ const MaterialSearchInput = ({
 
       setLoading(true);
       try {
-        const response = await materiales.buscar({
-          codigo: debouncedQuery,
-          descripcion: debouncedQuery,
-          limit: 20
-        });
-
-        // Backend returns { ok: true, data: [...] }
-        const data = response.data?.data || response.data || [];
+        let data;
+        if (searchFn) {
+          // Custom search function (e.g., search in consumo_historico)
+          data = await searchFn(debouncedQuery);
+        } else {
+          const response = await materiales.buscar({
+            codigo: debouncedQuery,
+            descripcion: debouncedQuery,
+            limit: 20
+          });
+          // Backend returns { ok: true, data: [...] }
+          data = response.data?.data || response.data || [];
+        }
         setResults(Array.isArray(data) ? data : []);
         setHighlightedIndex(-1);
       } catch (error) {

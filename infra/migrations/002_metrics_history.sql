@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS system_alerts (
     actual_value REAL,
     message TEXT,
     acknowledged BOOLEAN DEFAULT FALSE,
-    acknowledged_by TEXT REFERENCES usuario(id_spm),
+    acknowledged_by TEXT REFERENCES usuarios(id_spm),
     acknowledged_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

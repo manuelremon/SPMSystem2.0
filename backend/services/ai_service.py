@@ -269,12 +269,30 @@ class AIService:
                 conditions = ["material = ?"]
 
                 if centro:
-                    conditions.append("centro = ?")
-                    params.append(centro)
+                    # Soportar centro como lista (multiselect) o string individual
+                    if isinstance(centro, list):
+                        centro_list = [c for c in centro if c]
+                    elif "," in centro:
+                        centro_list = [c.strip() for c in centro.split(",") if c.strip()]
+                    else:
+                        centro_list = [centro]
+                    if centro_list:
+                        placeholders = ",".join(["?"] * len(centro_list))
+                        conditions.append(f"centro IN ({placeholders})")
+                        params.extend(centro_list)
 
                 if almacen:
-                    conditions.append("almacen = ?")
-                    params.append(almacen)
+                    # Soportar almacen como lista (multiselect) o string individual
+                    if isinstance(almacen, list):
+                        almacen_list = [a for a in almacen if a]
+                    elif "," in almacen:
+                        almacen_list = [a.strip() for a in almacen.split(",") if a.strip()]
+                    else:
+                        almacen_list = [almacen]
+                    if almacen_list:
+                        placeholders = ",".join(["?"] * len(almacen_list))
+                        conditions.append(f"almacen IN ({placeholders})")
+                        params.extend(almacen_list)
 
                 # Filtrar por rango de meses si se especifica
                 if meses_historico and meses_historico > 0:
@@ -294,7 +312,7 @@ class AIService:
                 df = pd.read_sql_query(query, conn, params=params)
 
             if len(df) < 10:
-                return self._fallback_proyeccion(material_codigo, centro, dias)
+                return self._fallback_proyeccion(material_codigo, centro, dias, df=df)
 
             # Crear predictor y generar forecast
             predictor = DemandPredictor(modelo=modelo_tipo)
@@ -749,23 +767,51 @@ class AIService:
             "mensaje": "ML no entrenado, usar busqueda manual",
         }
 
-    def _fallback_proyeccion(self, material_codigo: str, centro: str, dias: int) -> Dict[str, Any]:
-        """Fallback para proyeccion sin ML."""
-        try:
-            with get_db_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    f"""
-                    SELECT AVG(total_monto) as consumo_promedio
-                    FROM solicitud
-                    WHERE material_codigo = ? AND centro = ?
-                    AND created_at > {_sql_now_minus("90 days")}
-                """,
-                    (material_codigo, centro),
-                )
-                result = cursor.fetchone()
-                consumo = (result.get("consumo_promedio") or 0) if result else 0
-        except Exception:
+    def _fallback_proyeccion(self, material_codigo: str, centro: str, dias: int, df=None) -> Dict[str, Any]:
+        """Fallback para proyeccion sin ML. Usa datos de consumo_historico."""
+        import pandas as pd
+
+        consumo = 0
+        historico = []
+        historico_info = {}
+
+        # Si ya tenemos un DataFrame con datos (< 10 registros), usarlo
+        if df is not None and len(df) > 0:
+            consumo = float(df['cantidad'].mean())
+            df_copy = df.copy()
+            df_copy['fecha'] = pd.to_datetime(df_copy['fecha'])
+            fecha_min = df_copy['fecha'].min()
+            fecha_max = df_copy['fecha'].max()
+            historico = df_copy.assign(
+                fecha=df_copy['fecha'].dt.strftime('%Y-%m-%d')
+            ).to_dict('records')
+            historico_info = {
+                "total_registros": len(df),
+                "fecha_inicio": fecha_min.strftime('%Y-%m-%d') if pd.notna(fecha_min) else None,
+                "fecha_fin": fecha_max.strftime('%Y-%m-%d') if pd.notna(fecha_max) else None
+            }
+        else:
+            # Intentar buscar en consumo_historico directamente
+            try:
+                with get_db_connection("sap_data") as conn:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "SELECT fecha, SUM(cantidad) as cantidad FROM consumo_historico WHERE material = ? GROUP BY fecha ORDER BY fecha",
+                        (material_codigo,),
+                    )
+                    rows = cursor.fetchall()
+                    if rows:
+                        consumo = sum(r[1] for r in rows) / len(rows)
+                        historico = [{"fecha": r[0][:10] if r[0] else "", "cantidad": r[1]} for r in rows]
+                        historico_info = {
+                            "total_registros": len(rows),
+                            "fecha_inicio": rows[0][0][:10] if rows[0][0] else None,
+                            "fecha_fin": rows[-1][0][:10] if rows[-1][0] else None
+                        }
+            except Exception:
+                consumo = 0
+
+        if consumo == 0:
             consumo = 100  # Default
 
         # Generar predicciones para cada día con estructura consistente
@@ -794,7 +840,9 @@ class AIService:
                 "r2": 0,
                 "mape": 0
             },
-            "historico": [],
+            "historico": historico,
+            "historico_info": historico_info,
+            "patrones": {"semanal": None, "mensual": None},
             "metodo": "promedio_historico",
             "fecha_generacion": datetime.now(timezone.utc).isoformat()
         }

@@ -39,8 +39,13 @@ export const getModelsDisponibles = async () => {
 export const getForecast = async (codigo, options = {}) => {
   const { dias = 30, modelo = 'random_forest', centro = null, almacen = null, mesesHistorico = 0 } = options;
   const params = { dias, modelo, meses_historico: mesesHistorico };
-  if (centro) params.centro = centro;
-  if (almacen) params.almacen = almacen;
+  // Soportar centro/almacen como arrays (multiselect) - enviar como CSV
+  if (centro) {
+    params.centro = Array.isArray(centro) ? centro.join(',') : centro;
+  }
+  if (almacen) {
+    params.almacen = Array.isArray(almacen) ? almacen.join(',') : almacen;
+  }
 
   console.log('[Forecast] Enviando request con dias:', dias, 'params:', params);
 

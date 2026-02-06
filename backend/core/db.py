@@ -388,7 +388,7 @@ def get_db_connection(db_name: str = "spm") -> Generator:
     """
     conn = None
     # Bases de datos auxiliares que siempre usan SQLite (datos SAP importados)
-    sqlite_only_dbs = {"equivalentes", "sap_data", "catalogo_materiales", "master_materiales"}
+    sqlite_only_dbs = {"equivalentes", "sap_data", "catalogo_materiales"}
 
     try:
         # PostgreSQL solo para BD principal (spm)
@@ -429,7 +429,7 @@ def get_db_transaction(db_name: str = "spm") -> Generator:
     """
     conn = None
     # Bases de datos auxiliares que siempre usan SQLite (datos SAP importados)
-    sqlite_only_dbs = {"equivalentes", "sap_data", "catalogo_materiales", "master_materiales"}
+    sqlite_only_dbs = {"equivalentes", "sap_data", "catalogo_materiales"}
 
     try:
         # PostgreSQL solo para BD principal (spm)
