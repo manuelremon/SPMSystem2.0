@@ -215,7 +215,11 @@ def get_solicitud(solicitud_id):
     roles_permitidos = [
         "aprobador",
         "aprobador_solicitudes",
+        "aprobador solicitudes",
+        "aprobador de solicitudes",
         "aprobador_presupuestos",
+        "aprobador presupuestos",
+        "aprobador de presupuesto",
         "approver",
         "coordinador",
         "coordinator",
@@ -1071,6 +1075,9 @@ def rechazar_solicitud(solicitud_id):
     # SEGURIDAD: Validar autorización - solo aprobadores/coordinadores/admin pueden rechazar
     roles_rechazo = [
         "aprobador",
+        "aprobador_solicitudes",
+        "aprobador solicitudes",
+        "aprobador de solicitudes",
         "approver",
         "coordinador",
         "coordinator",
@@ -1732,7 +1739,7 @@ def _validar_consumo_previo_balanceado(solicitud_id: int) -> tuple:
     try:
         with get_db_connection() as conn:
             cur = conn.cursor()
-            # Contar consumos
+            # Contar consumos (referencia_id es TEXT en PG, castear solicitud_id)
             cur.execute(
                 """
                 SELECT COUNT(*) as cnt FROM presupuesto_ledger
@@ -1740,7 +1747,7 @@ def _validar_consumo_previo_balanceado(solicitud_id: int) -> tuple:
                 AND referencia_id = ?
                 AND tipo_movimiento = ?
                 """,
-                (solicitud_id, TipoMovimiento.CONSUMO_APROBACION.value),
+                (str(solicitud_id), TipoMovimiento.CONSUMO_APROBACION.value),
             )
             row = cur.fetchone()
             consumos = row["cnt"] if isinstance(row, dict) else row[0]
@@ -1753,7 +1760,7 @@ def _validar_consumo_previo_balanceado(solicitud_id: int) -> tuple:
                 AND referencia_id = ?
                 AND tipo_movimiento = ?
                 """,
-                (solicitud_id, TipoMovimiento.REVERSION_RECHAZO.value),
+                (str(solicitud_id), TipoMovimiento.REVERSION_RECHAZO.value),
             )
             row = cur.fetchone()
             reversiones = row["cnt"] if isinstance(row, dict) else row[0]
@@ -1787,7 +1794,7 @@ def _obtener_monto_consumo_solicitud(solicitud_id: int) -> int:
                 ORDER BY created_at DESC
                 LIMIT 1
                 """,
-                (solicitud_id, TipoMovimiento.CONSUMO_APROBACION.value),
+                (str(solicitud_id), TipoMovimiento.CONSUMO_APROBACION.value),
             )
             row = cur.fetchone()
             if row:
