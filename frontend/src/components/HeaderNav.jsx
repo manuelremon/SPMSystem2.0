@@ -52,7 +52,7 @@ function HeaderNav() {
   const isPlanner = () => hasRole("planificador");
   const isJefe = () => hasRole("jefe");
   const isCoordinador = () => hasRole("coordinador");
-  const isBudgetApprover = () => hasRole("aprobador presupuestos") || hasRole("aprobador_presupuestos");
+  const isBudgetApprover = () => hasRole("aprobador presupuestos") || hasRole("aprobador_presupuestos") || hasRole("aprobador de presupuesto");
   const isRequestApprover = () => hasRole("aprobador solicitudes") || hasRole("aprobador_solicitudes");
   const canSeePlanner = isPlanner() || isAdmin();
   const canSeeBudget = isAdmin() || isJefe() || isCoordinador() || isBudgetApprover();
