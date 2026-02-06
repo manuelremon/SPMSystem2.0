@@ -45,13 +45,13 @@ class TTSService:
     VOICE_OPTIONS = {
         "elena": {
             "name": "es-AR-ElenaNeural",
-            "description": "Voz femenina argentina - Elena (default)",
+            "description": "Voz femenina argentina - Elena",
             "gender": "Female",
             "locale": "es-AR",
         },
         "tomas": {
             "name": "es-AR-TomasNeural",
-            "description": "Voz masculina argentina - Tomas",
+            "description": "Voz masculina argentina - Tomas (default)",
             "gender": "Male",
             "locale": "es-AR",
         },

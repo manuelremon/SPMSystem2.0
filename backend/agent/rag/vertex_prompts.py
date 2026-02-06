@@ -353,4 +353,12 @@ def get_greeting(hour: int, user_name: str = None) -> str:
         Saludo personalizado
     """
     name_part = f" {user_name.split()[0]}" if user_name else ""
-    return f"Hola{name_part}! Soy Vertex y estoy para ayudarte."
+
+    if 5 <= hour < 12:
+        saludo = "Buen dia"
+    elif 12 <= hour < 20:
+        saludo = "Buenas tardes"
+    else:
+        saludo = "Buenas noches"
+
+    return f"{saludo}{name_part}! Soy Vertex y estoy para ayudarte."

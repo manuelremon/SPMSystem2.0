@@ -303,7 +303,7 @@ export default function ChatAssistant() {
 
     try {
       // Llamar al endpoint de Google Cloud TTS
-      const response = await api.post('/vertex/tts', { text: cleanText }, {
+      const response = await api.post('/vertex/tts', { text: cleanText, voice: 'tomas' }, {
         responseType: 'blob',
         timeout: 10000, // 10 segundos timeout
       })

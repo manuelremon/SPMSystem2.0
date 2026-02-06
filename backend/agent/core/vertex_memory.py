@@ -1,12 +1,13 @@
 """
 Memoria persistente para Vertex IA.
 
-Almacena en PostgreSQL:
+Almacena en PostgreSQL/SQLite:
 - Conversaciones con historial completo
 - Hechos de largo plazo por usuario
 - Contexto entre sesiones
 
 Usa los context managers de backend/core/db.py para conexiones seguras.
+Usa placeholders ? (convertidos automáticamente a %s en PostgreSQL por PostgresCursorWrapper).
 """
 
 import json
@@ -15,7 +16,14 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    insert_returning_id,
+    is_using_postgresql,
+    sql_datetime_now,
+    sql_now_minus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -63,20 +71,26 @@ class VertexMemory:
         self._tables_exist = False
 
     def _check_tables_exist(self) -> bool:
-        """Verifica si las tablas de Vertex existen."""
+        """Verifica si las tablas de Vertex existen. Soporta PostgreSQL y SQLite."""
         if self._tables_checked:
             return self._tables_exist
 
         try:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT EXISTS (
-                        SELECT FROM information_schema.tables
-                        WHERE table_name = 'vertex_conversations'
+                if is_using_postgresql():
+                    cursor.execute("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables
+                            WHERE table_name = 'vertex_conversations'
+                        )
+                    """)
+                    self._tables_exist = cursor.fetchone()[0]
+                else:
+                    cursor.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name='vertex_conversations'"
                     )
-                """)
-                self._tables_exist = cursor.fetchone()[0]
+                    self._tables_exist = cursor.fetchone() is not None
                 self._tables_checked = True
         except Exception as e:
             logger.warning(f"Error checking Vertex tables: {e}")
@@ -112,7 +126,7 @@ class VertexMemory:
                 cursor.execute(
                     """
                     INSERT INTO vertex_conversations (user_id, context)
-                    VALUES (%s, %s)
+                    VALUES (?, ?)
                     """,
                     (self.user_id, json.dumps(context or {})),
                 )
@@ -121,7 +135,7 @@ class VertexMemory:
                 cursor.execute(
                     """
                     SELECT id, session_id FROM vertex_conversations
-                    WHERE user_id = %s ORDER BY id DESC LIMIT 1
+                    WHERE user_id = ? ORDER BY id DESC LIMIT 1
                     """,
                     (self.user_id,),
                 )
@@ -155,7 +169,7 @@ class VertexMemory:
             cursor.execute(
                 """
                 SELECT id FROM vertex_conversations
-                WHERE session_id = %s AND user_id = %s AND ended_at IS NULL
+                WHERE session_id = ? AND user_id = ? AND ended_at IS NULL
                 """,
                 (session_id, self.user_id),
             )
@@ -199,7 +213,7 @@ class VertexMemory:
             cursor.execute(
                 """
                 INSERT INTO vertex_messages (conversation_id, role, content, metadata)
-                VALUES (%s, %s, %s, %s)
+                VALUES (?, ?, ?, ?)
                 """,
                 (
                     self.current_conversation_id,
@@ -213,7 +227,7 @@ class VertexMemory:
             cursor.execute(
                 """
                 SELECT id FROM vertex_messages
-                WHERE conversation_id = %s ORDER BY id DESC LIMIT 1
+                WHERE conversation_id = ? ORDER BY id DESC LIMIT 1
                 """,
                 (self.current_conversation_id,),
             )
@@ -241,9 +255,9 @@ class VertexMemory:
                 """
                 SELECT role, content, metadata, created_at
                 FROM vertex_messages
-                WHERE conversation_id = %s
+                WHERE conversation_id = ?
                 ORDER BY created_at DESC
-                LIMIT %s
+                LIMIT ?
                 """,
                 (self.current_conversation_id, limit),
             )
@@ -292,13 +306,14 @@ class VertexMemory:
             self.current_session_id = None
             return
 
+        now = sql_datetime_now()
         with get_db_transaction() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                f"""
                 UPDATE vertex_conversations
-                SET ended_at = NOW(), summary = %s
-                WHERE id = %s
+                SET ended_at = {now}, summary = ?
+                WHERE id = ?
                 """,
                 (summary, self.current_conversation_id),
             )
@@ -332,15 +347,16 @@ class VertexMemory:
         if not self._check_tables_exist():
             return
 
+        now = sql_datetime_now()
         with get_db_transaction() as conn:
             cursor = conn.cursor()
 
             # Intentar actualizar primero
             cursor.execute(
-                """
+                f"""
                 UPDATE vertex_user_memory
-                SET fact_value = %s, learned_at = NOW(), confidence = %s, expires_at = %s
-                WHERE user_id = %s AND fact_key = %s
+                SET fact_value = ?, learned_at = {now}, confidence = ?, expires_at = ?
+                WHERE user_id = ? AND fact_key = ?
                 """,
                 (json.dumps(value), confidence, expires_at, self.user_id, key),
             )
@@ -350,7 +366,7 @@ class VertexMemory:
                 cursor.execute(
                     """
                     INSERT INTO vertex_user_memory (user_id, fact_key, fact_value, confidence, expires_at)
-                    VALUES (%s, %s, %s, %s, %s)
+                    VALUES (?, ?, ?, ?, ?)
                     """,
                     (self.user_id, key, json.dumps(value), confidence, expires_at),
                 )
@@ -369,13 +385,15 @@ class VertexMemory:
         """
         if not self._check_tables_exist():
             return None
+
+        now = sql_datetime_now()
         with get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                f"""
                 SELECT fact_value FROM vertex_user_memory
-                WHERE user_id = %s AND fact_key = %s
-                AND (expires_at IS NULL OR expires_at > NOW())
+                WHERE user_id = ? AND fact_key = ?
+                AND (expires_at IS NULL OR expires_at > {now})
                 """,
                 (self.user_id, key),
             )
@@ -398,13 +416,15 @@ class VertexMemory:
         """
         if not self._check_tables_exist():
             return {}
+
+        now = sql_datetime_now()
         with get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                f"""
                 SELECT fact_key, fact_value FROM vertex_user_memory
-                WHERE user_id = %s
-                AND (expires_at IS NULL OR expires_at > NOW())
+                WHERE user_id = ?
+                AND (expires_at IS NULL OR expires_at > {now})
                 """,
                 (self.user_id,),
             )
@@ -434,7 +454,7 @@ class VertexMemory:
             cursor.execute(
                 """
                 DELETE FROM vertex_user_memory
-                WHERE user_id = %s AND fact_key = %s
+                WHERE user_id = ? AND fact_key = ?
                 """,
                 (self.user_id, key),
             )
@@ -456,17 +476,19 @@ class VertexMemory:
         """
         if not self._check_tables_exist():
             return []
+
+        since = sql_now_minus(f"{days} days")
         with get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                f"""
                 SELECT summary FROM vertex_conversations
-                WHERE user_id = %s
-                AND started_at > NOW() - INTERVAL '%s days'
+                WHERE user_id = ?
+                AND started_at > {since}
                 AND summary IS NOT NULL
                 ORDER BY started_at DESC
-                LIMIT %s
-                """.replace("%s days", f"{days} days"),
+                LIMIT ?
+                """,
                 (self.user_id, limit),
             )
             rows = cursor.fetchall()
@@ -483,7 +505,7 @@ class VertexMemory:
         with get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT COUNT(*) FROM vertex_conversations WHERE user_id = %s",
+                "SELECT COUNT(*) FROM vertex_conversations WHERE user_id = ?",
                 (self.user_id,),
             )
             row = cursor.fetchone()
@@ -499,7 +521,7 @@ class VertexMemory:
                 """
                 SELECT COUNT(*) FROM vertex_messages vm
                 JOIN vertex_conversations vc ON vm.conversation_id = vc.id
-                WHERE vc.user_id = %s
+                WHERE vc.user_id = ?
                 """,
                 (self.user_id,),
             )
@@ -542,12 +564,14 @@ class VertexMemory:
         """Elimina hechos expirados de la memoria."""
         if not self._check_tables_exist():
             return
+
+        now = sql_datetime_now()
         with get_db_transaction() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                f"""
                 DELETE FROM vertex_user_memory
-                WHERE user_id = %s AND expires_at IS NOT NULL AND expires_at < NOW()
+                WHERE user_id = ? AND expires_at IS NOT NULL AND expires_at < {now}
                 """,
                 (self.user_id,),
             )

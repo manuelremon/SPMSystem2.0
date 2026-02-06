@@ -83,6 +83,52 @@ def sql_now_minus(interval: str) -> str:
     return f"datetime('now', '-{interval}')"
 
 
+def sql_now_plus(interval: str) -> str:
+    """
+    Retorna expresión SQL para NOW() + interval.
+
+    Args:
+        interval: Intervalo en formato "24 hours", "7 days", etc.
+
+    Returns:
+        Expresión SQL compatible con el motor actual
+
+    Example:
+        >>> sql_now_plus("24 hours")
+        # PostgreSQL: "NOW() + INTERVAL '24 hours'"
+        # SQLite: "datetime('now', '+24 hours')"
+    """
+    if is_using_postgresql():
+        return f"NOW() + INTERVAL '{interval}'"
+    return f"datetime('now', '+{interval}')"
+
+
+def sql_extract_year(column: str = None) -> str:
+    """
+    Retorna expresión SQL para extraer el año de una columna o de NOW().
+
+    Args:
+        column: Nombre de columna (None = año actual)
+
+    Returns:
+        Expresión SQL compatible con el motor actual
+
+    Example:
+        >>> sql_extract_year()
+        # PostgreSQL: "EXTRACT(YEAR FROM NOW())"
+        # SQLite: "CAST(strftime('%Y', 'now') AS INTEGER)"
+
+        >>> sql_extract_year('created_at')
+        # PostgreSQL: "EXTRACT(YEAR FROM created_at)"
+        # SQLite: "CAST(strftime('%Y', created_at) AS INTEGER)"
+    """
+    if is_using_postgresql():
+        source = column if column else "NOW()"
+        return f"EXTRACT(YEAR FROM {source})"
+    source = column if column else "'now'"
+    return f"CAST(strftime('%Y', {source}) AS INTEGER)"
+
+
 def sql_date_relative(days: int = 0, months: int = 0) -> str:
     """
     Retorna expresión SQL para fecha relativa a hoy.

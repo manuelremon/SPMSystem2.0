@@ -5,6 +5,8 @@ Analiza el contexto del usuario y genera alertas inteligentes:
 - Stock bajo de materiales frecuentes
 - Solicitudes en riesgo de SLA
 - Presupuesto agotandose
+
+Usa placeholders ? (convertidos automáticamente a %s en PostgreSQL por PostgresCursorWrapper).
 """
 
 import json
@@ -12,7 +14,14 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List
 
-from backend.core.db import get_db_connection, get_db_transaction
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    sql_datetime_now,
+    sql_extract_year,
+    sql_now_minus,
+    sql_now_plus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -74,16 +83,17 @@ class AlertEngine:
         alerts = []
 
         try:
+            deadline_limit = sql_now_plus("24 hours")
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    """
+                    f"""
                     SELECT id, status, created_at, sla_deadline
                     FROM solicitud
                     WHERE id_usuario = ?
                     AND status NOT IN ('closed', 'rejected', 'cancelled')
                     AND sla_deadline IS NOT NULL
-                    AND sla_deadline < NOW() + INTERVAL '24 hours'
+                    AND sla_deadline < {deadline_limit}
                     ORDER BY sla_deadline ASC
                     LIMIT 5
                     """,
@@ -133,6 +143,7 @@ class AlertEngine:
         alerts = []
 
         try:
+            year_expr = sql_extract_year()
             with get_db_connection() as conn:
                 cursor = conn.cursor()
 
@@ -155,10 +166,10 @@ class AlertEngine:
 
                 # Verificar presupuesto
                 cursor.execute(
-                    """
+                    f"""
                     SELECT monto_total, monto_usado, monto_reservado
                     FROM presupuesto
-                    WHERE centro = ? AND anio = EXTRACT(YEAR FROM NOW())
+                    WHERE centro = ? AND anio = {year_expr}
                     """,
                     (centro,),
                 )
@@ -264,10 +275,11 @@ class AlertEngine:
             alert_id: ID de la alerta
         """
         try:
+            now = sql_datetime_now()
             with get_db_transaction() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "UPDATE vertex_proactive_alerts SET shown_at = NOW() WHERE id = ?",
+                    f"UPDATE vertex_proactive_alerts SET shown_at = {now} WHERE id = ?",
                     (alert_id,),
                 )
         except Exception as e:
@@ -281,10 +293,11 @@ class AlertEngine:
             alert_id: ID de la alerta
         """
         try:
+            now = sql_datetime_now()
             with get_db_transaction() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "UPDATE vertex_proactive_alerts SET dismissed_at = NOW() WHERE id = ? AND user_id = ?",
+                    f"UPDATE vertex_proactive_alerts SET dismissed_at = {now} WHERE id = ? AND user_id = ?",
                     (alert_id, self.user_id),
                 )
         except Exception as e:
@@ -302,13 +315,14 @@ class AlertEngine:
         """
         try:
             # Verificar si ya existe una alerta similar reciente
+            since = sql_now_minus("4 hours")
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    """
+                    f"""
                     SELECT id FROM vertex_proactive_alerts
                     WHERE user_id = ? AND alert_type = ?
-                    AND created_at > NOW() - INTERVAL '4 hours'
+                    AND created_at > {since}
                     AND dismissed_at IS NULL
                     """,
                     (self.user_id, alert["type"]),

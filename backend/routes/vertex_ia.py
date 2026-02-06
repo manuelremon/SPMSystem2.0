@@ -95,6 +95,7 @@ def _check_vertex_tables() -> bool:
     """
     Verifica si las tablas de Vertex existen en la BD.
     Cachea el resultado para evitar queries repetidas (thread-safe).
+    Soporta PostgreSQL y SQLite.
     """
     global _vertex_tables_exist
 
@@ -108,19 +109,25 @@ def _check_vertex_tables() -> bool:
             return _vertex_tables_exist
 
         try:
-            from backend.core.db import get_db_connection
+            from backend.core.db import get_db_connection, is_using_postgresql
 
             with get_db_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute(
-                    """
-                    SELECT EXISTS (
-                        SELECT FROM information_schema.tables
-                        WHERE table_name = 'vertex_conversations'
+                if is_using_postgresql():
+                    cursor.execute(
+                        """
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables
+                            WHERE table_name = 'vertex_conversations'
+                        )
+                        """
                     )
-                    """
-                )
-                _vertex_tables_exist = cursor.fetchone()[0]
+                    _vertex_tables_exist = cursor.fetchone()[0]
+                else:
+                    cursor.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name='vertex_conversations'"
+                    )
+                    _vertex_tables_exist = cursor.fetchone() is not None
                 return _vertex_tables_exist
         except Exception as e:
             logger.warning(f"Error verificando tablas Vertex: {e}")
@@ -189,15 +196,12 @@ def ensure_vertex_tables():
     Crea tablas de Vertex si no existen (idempotente).
     Usa CREATE TABLE IF NOT EXISTS, seguro de ejecutar multiples veces.
     Se llama desde create_app() en startup.
+    Soporta PostgreSQL (produccion) y SQLite (desarrollo).
     """
     global _vertex_tables_exist
     try:
         import os
         import importlib.util
-
-        database_url = os.environ.get("DATABASE_URL", "")
-        if not database_url.startswith("postgresql://"):
-            return  # Solo relevante para PostgreSQL en produccion
 
         migration_path = os.path.join(
             os.path.dirname(__file__), "..", "migrations", "022_vertex_ia_tables.py"
@@ -211,7 +215,7 @@ def ensure_vertex_tables():
         spec = importlib.util.spec_from_file_location("migration_022", migration_path)
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
-        mod.run_migration_postgresql()
+        mod.run_migration()  # Auto-detecta SQLite o PostgreSQL
         _vertex_tables_exist = True
         logger.info("Vertex tables verified/created successfully")
     except Exception as e:
@@ -807,9 +811,27 @@ def _search_materials_direct(query: str) -> list:
         return []
 
     try:
-        conn = sqlite3.connect('data/catalogo_materiales.db')
+        from backend.core.db import get_master_materiales_db_path
+        from pathlib import Path
+
+        # Buscar la BD que contenga la tabla 'materiales'
+        db_path = str(get_master_materiales_db_path())
+        conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
+
+        # Verificar si la tabla existe en esta BD
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='materiales'")
+        if not cur.fetchone():
+            conn.close()
+            # Fallback: buscar en catalogo_materiales.db directamente
+            fallback_path = Path(db_path).parent / "catalogo_materiales.db"
+            if fallback_path.exists():
+                conn = sqlite3.connect(str(fallback_path))
+                conn.row_factory = sqlite3.Row
+                cur = conn.cursor()
+            else:
+                return []
 
         # Limitar a 5 keywords más relevantes
         keywords = keywords[:5]
@@ -864,7 +886,7 @@ def _get_user_data_context(user_id: str, message: str) -> str:
     context_parts = []
 
     try:
-        from backend.core.db import get_db_connection
+        from backend.core.db import get_db_connection, sql_extract_year
 
         with get_db_connection() as conn:
             cursor = conn.cursor()
@@ -875,7 +897,7 @@ def _get_user_data_context(user_id: str, message: str) -> str:
                     """
                     SELECT id, status, total_monto, created_at
                     FROM solicitud
-                    WHERE id_usuario = %s
+                    WHERE id_usuario = ?
                     AND status NOT IN ('closed', 'rejected', 'cancelled')
                     ORDER BY created_at DESC
                     LIMIT 5
@@ -895,7 +917,7 @@ def _get_user_data_context(user_id: str, message: str) -> str:
             # Si pregunta por presupuesto, obtener info del centro
             if any(kw in message.lower() for kw in ["presupuesto", "budget", "plata", "dinero"]):
                 cursor.execute(
-                    "SELECT centros FROM usuario WHERE id_spm = %s",
+                    "SELECT centros FROM usuario WHERE id_spm = ?",
                     (user_id,),
                 )
                 user_row = cursor.fetchone()
@@ -903,11 +925,12 @@ def _get_user_data_context(user_id: str, message: str) -> str:
                     centros = user_row[0] if isinstance(user_row, (list, tuple)) else user_row.get("centros")
                     if centros:
                         centro = centros.split(",")[0].strip() if "," in str(centros) else centros
+                        year_expr = sql_extract_year()
                         cursor.execute(
-                            """
+                            f"""
                             SELECT monto_total, monto_usado, monto_reservado
                             FROM presupuesto
-                            WHERE centro = %s AND anio = EXTRACT(YEAR FROM NOW())
+                            WHERE centro = ? AND anio = {year_expr}
                             """,
                             (centro,),
                         )
@@ -1123,7 +1146,7 @@ def get_alerts():
                 """
                 SELECT id, alert_type, priority, title, message, context, created_at
                 FROM vertex_proactive_alerts
-                WHERE user_id = %s AND shown_at IS NULL
+                WHERE user_id = ? AND shown_at IS NULL
                 ORDER BY priority ASC, created_at ASC
                 LIMIT 5
                 """,
@@ -1174,17 +1197,18 @@ def dismiss_alert(alert_id: int):
     }
     """
     try:
-        from backend.core.db import get_db_transaction
+        from backend.core.db import get_db_transaction, sql_datetime_now
 
         user_id = g.user["id_spm"]
+        now = sql_datetime_now()
 
         with get_db_transaction() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                f"""
                 UPDATE vertex_proactive_alerts
-                SET dismissed_at = NOW()
-                WHERE id = %s AND user_id = %s
+                SET dismissed_at = {now}
+                WHERE id = ? AND user_id = ?
                 """,
                 (alert_id, user_id),
             )
@@ -1221,17 +1245,18 @@ def mark_alert_shown(alert_id: int):
     }
     """
     try:
-        from backend.core.db import get_db_transaction
+        from backend.core.db import get_db_transaction, sql_datetime_now
 
         user_id = g.user["id_spm"]
+        now = sql_datetime_now()
 
         with get_db_transaction() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
+                f"""
                 UPDATE vertex_proactive_alerts
-                SET shown_at = NOW()
-                WHERE id = %s AND user_id = %s AND shown_at IS NULL
+                SET shown_at = {now}
+                WHERE id = ? AND user_id = ? AND shown_at IS NULL
                 """,
                 (alert_id, user_id),
             )
@@ -1349,7 +1374,7 @@ def resume_session():
             cursor.execute(
                 """
                 SELECT session_id FROM vertex_conversations
-                WHERE user_id = %s AND ended_at IS NULL
+                WHERE user_id = ? AND ended_at IS NULL
                 ORDER BY started_at DESC
                 LIMIT 1
                 """,
@@ -1440,10 +1465,10 @@ def get_history():
                     COUNT(vm.id) as message_count
                 FROM vertex_conversations vc
                 LEFT JOIN vertex_messages vm ON vc.id = vm.conversation_id
-                WHERE vc.user_id = %s
+                WHERE vc.user_id = ?
                 GROUP BY vc.id, vc.session_id, vc.started_at, vc.ended_at, vc.summary
                 ORDER BY vc.started_at DESC
-                LIMIT %s
+                LIMIT ?
                 """,
                 (user_id, limit),
             )
@@ -1451,7 +1476,7 @@ def get_history():
 
             # Obtener total
             cursor.execute(
-                "SELECT COUNT(*) FROM vertex_conversations WHERE user_id = %s",
+                "SELECT COUNT(*) FROM vertex_conversations WHERE user_id = ?",
                 (user_id,),
             )
             total_row = cursor.fetchone()
