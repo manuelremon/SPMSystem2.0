@@ -693,7 +693,7 @@ def init_observability(app) -> None:
     @app.teardown_request
     def cleanup_trace(exception=None):
         """Limpia contexto de trace."""
-        if exception:
+        if exception and str(exception):
             logger = get_logger("http")
             logger.error(
                 f"Request failed: {exception}",
