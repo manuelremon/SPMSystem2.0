@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify
 
 from backend.core.cache import cached, catalog_cache
 from backend.core.db import get_db_connection
+from backend.core.roles import require_auth
 
 bp = Blueprint("catalogos", __name__)
 
@@ -17,6 +18,7 @@ def _fetch(query: str, mapper):
 
 
 @bp.route("", methods=["GET"])
+@require_auth
 def get_catalogos():
     """Catálogo combinado desde la base real"""
     return (
@@ -33,26 +35,31 @@ def get_catalogos():
 
 
 @bp.route("/centros", methods=["GET"])
+@require_auth
 def get_centros():
     return jsonify(_centros()), 200
 
 
 @bp.route("/sectores", methods=["GET"])
+@require_auth
 def get_sectores():
     return jsonify(_sectores()), 200
 
 
 @bp.route("/almacenes", methods=["GET"])
+@require_auth
 def get_almacenes():
     return jsonify(_almacenes()), 200
 
 
 @bp.route("/usuarios", methods=["GET"])
+@require_auth
 def get_usuarios():
     return jsonify(_usuarios()), 200
 
 
 @bp.route("/roles", methods=["GET"])
+@require_auth
 def get_roles():
     """Retorna catalogo de roles disponibles para solicitud"""
     return jsonify(_roles()), 200

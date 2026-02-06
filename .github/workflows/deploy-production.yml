@@ -39,7 +39,6 @@ jobs:
           SECRET_KEY: test-secret-key-for-ci
           DATABASE_URL: sqlite:///data/spm_test.db
           LOG_LEVEL: WARNING
-        continue-on-error: true  # Temporary: allow deploy while investigating CI failures
         run: |
           python -m pytest tests/unit/ -v --tb=short \
             --ignore=tests/unit/test_openapi.py \
@@ -251,9 +250,7 @@ jobs:
           exit 1
 
       - name: Rollback on failure
-        # TEMPORARILY DISABLED - Re-enable after system is stable
-        # The rollback was preventing bug fixes from being deployed
-        if: false && failure() && steps.health_check.outputs.health_status == 'failed'
+        if: failure() && steps.health_check.outputs.health_status == 'failed'
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'ROLLBACK_SCRIPT'
             set -e

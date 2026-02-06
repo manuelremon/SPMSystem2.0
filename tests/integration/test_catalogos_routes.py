@@ -7,8 +7,10 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
+from flask import g
 
 from backend.app import create_app
 from backend.core.config import settings
@@ -87,6 +89,16 @@ def _seed_catalog_data():
     conn.close()
 
 
+# Mock user for authenticated requests
+_MOCK_USER = {
+    "id_spm": "test_user",
+    "user_id": "test_user",
+    "nombre": "Test",
+    "apellido": "User",
+    "rol": "Solicitante",
+}
+
+
 @pytest.fixture
 def app():
     """Create Flask app with test configuration"""
@@ -100,8 +112,13 @@ def app():
 
 @pytest.fixture
 def client(app):
-    """Create test client"""
+    """Create authenticated test client"""
     with app.test_client() as testing_client:
+        # Set g.user before each request to simulate authenticated user
+        @app.before_request
+        def _set_test_user():
+            g.user = _MOCK_USER
+
         yield testing_client
 
 
@@ -381,3 +398,28 @@ def test_catalogos_response_time(client):
 
     assert response.status_code == 200
     assert elapsed < 0.5  # Should be very fast from cache
+
+
+# ==================== Auth Protection ====================
+
+
+def test_catalogos_requires_auth(app):
+    """Test that catalog endpoints return 401 without authentication"""
+    with app.test_client() as unauth_client:
+        # Override g.user to None (unauthenticated)
+        @app.before_request
+        def _clear_user():
+            g.user = None
+
+        endpoints = [
+            "/api/catalogos",
+            "/api/catalogos/centros",
+            "/api/catalogos/sectores",
+            "/api/catalogos/almacenes",
+            "/api/catalogos/usuarios",
+            "/api/catalogos/roles",
+        ]
+
+        for endpoint in endpoints:
+            response = unauth_client.get(endpoint)
+            assert response.status_code == 401, f"{endpoint} should require auth"

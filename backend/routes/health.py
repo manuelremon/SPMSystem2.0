@@ -22,7 +22,7 @@ from flask import Blueprint, jsonify, request
 
 from backend.core.config import settings
 from backend.core.db import get_db_path
-from backend.core.roles import require_auth
+from backend.core.roles import require_admin, require_auth
 
 logger = logging.getLogger(__name__)
 
@@ -246,13 +246,23 @@ def health_check_detailed():
     """
     Health check detallado con verificacion de dependencias.
 
-    Query params:
+    Sin autenticación: retorna solo status básico (ok, status, version).
+    Con autenticación: retorna detalles completos de infraestructura.
+
+    Query params (solo con auth):
         - include: Componentes a incluir (db,cache,metrics,redis) separados por coma
         - verbose: true para informacion extra
 
     Returns:
-        JSON con estado detallado del sistema
+        JSON con estado del sistema
     """
+    from flask import g
+
+    # Sin auth: solo status básico (seguro para load balancers y monitoreo externo)
+    if not getattr(g, "user", None):
+        return jsonify({"ok": True, "status": "healthy", "version": API_VERSION}), 200
+
+    # Con auth: detalles completos
     include = request.args.get("include", "db,cache,metrics,redis,jobs,celery").split(",")
     verbose = request.args.get("verbose", "false").lower() == "true"
 
@@ -363,6 +373,7 @@ def readiness_probe():
 
 
 @bp.route("/api/health/dependencies", methods=["GET"])
+@require_admin
 def check_dependencies():
     """
     Verifica estado de todas las dependencias.
@@ -862,6 +873,7 @@ def infrastructure_status():
 
 
 @bp.route("/api/health/routes", methods=["GET"])
+@require_admin
 def list_routes():
     """
     Lista todas las rutas registradas en la aplicacion.

@@ -10,8 +10,9 @@ Endpoints:
 
 import json
 
-from flask import Blueprint, Response, jsonify, render_template_string
+from flask import Blueprint, Response, g, jsonify, render_template_string
 
+from backend.core.config import settings
 from backend.core.openapi import API_TITLE, API_VERSION, generate_openapi_spec
 
 bp = Blueprint("docs", __name__, url_prefix="/api/docs")
@@ -81,15 +82,30 @@ REDOC_HTML = """
 """
 
 
+def _require_auth_in_production():
+    """En producción, requiere autenticación para acceder a la documentación API."""
+    if settings.ENV == "production" and not getattr(g, "user", None):
+        return jsonify({
+            "ok": False,
+            "error": {"code": "unauthorized", "message": "API docs require authentication in production."},
+        }), 401
+    return None
+
+
 @bp.route("", methods=["GET"])
 @bp.route("/", methods=["GET"])
 def swagger_ui():
     """
     Sirve UI Swagger interactiva.
 
+    En producción requiere autenticación.
+
     Returns:
         HTML con Swagger UI
     """
+    auth_response = _require_auth_in_production()
+    if auth_response:
+        return auth_response
     return render_template_string(SWAGGER_UI_HTML, title=API_TITLE, spec_url="/api/docs/openapi")
 
 
@@ -99,9 +115,14 @@ def openapi_spec():
     """
     Sirve especificacion OpenAPI 3.0 en JSON.
 
+    En producción requiere autenticación.
+
     Returns:
         JSON con especificacion OpenAPI
     """
+    auth_response = _require_auth_in_production()
+    if auth_response:
+        return auth_response
     spec = generate_openapi_spec()
     return Response(
         json.dumps(spec, indent=2, ensure_ascii=False),
@@ -115,9 +136,14 @@ def redoc_ui():
     """
     Sirve UI Redoc alternativa.
 
+    En producción requiere autenticación.
+
     Returns:
         HTML con Redoc UI
     """
+    auth_response = _require_auth_in_production()
+    if auth_response:
+        return auth_response
     return render_template_string(REDOC_HTML, title=API_TITLE, spec_url="/api/docs/openapi")
 
 
