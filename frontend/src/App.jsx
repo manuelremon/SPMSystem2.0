@@ -162,9 +162,9 @@ function App() {
             <Route path="/planificador/forecast/masivo" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ForecastMasivo /></ProtectedRoute>} />
             <Route path="/forecast/individual" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ForecastIndividual /></ProtectedRoute>} />
             <Route path="/forecast/masivo" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ForecastMasivo /></ProtectedRoute>} />
-            <Route path="/presupuestos" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe', 'coordinador']}><BudgetRequests /></ProtectedRoute>} />
-            <Route path="/presupuestos/nueva" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe']}><BudgetRequestCreate /></ProtectedRoute>} />
-            <Route path="/presupuestos/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe', 'coordinador']}><BudgetRequestDetail /></ProtectedRoute>} />
+            <Route path="/presupuestos" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe', 'coordinador', 'aprobador presupuestos', 'aprobador_presupuestos', 'aprobador de presupuesto']}><BudgetRequests /></ProtectedRoute>} />
+            <Route path="/presupuestos/nueva" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe', 'aprobador presupuestos', 'aprobador_presupuestos', 'aprobador de presupuesto']}><BudgetRequestCreate /></ProtectedRoute>} />
+            <Route path="/presupuestos/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe', 'coordinador', 'aprobador presupuestos', 'aprobador_presupuestos', 'aprobador de presupuesto']}><BudgetRequestDetail /></ProtectedRoute>} />
             <Route path="/procurement" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ProcurementDashboard /></ProtectedRoute>} />
             <Route path="/procurement/analytics" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ProcurementAnalytics /></ProtectedRoute>} />
             <Route path="/kpi" element={<ProtectedRoute><KPI /></ProtectedRoute>} />
