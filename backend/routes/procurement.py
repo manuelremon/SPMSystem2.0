@@ -546,13 +546,10 @@ def get_compliance():
 
         with get_db_connection() as conn:
             cur = conn.cursor()
-            # Verificar si la vista existe
-            cur.execute("""
-                SELECT name FROM sqlite_master
-                WHERE type='view' AND name='v_sap_cumplimiento'
-            """)
-            if not cur.fetchone():
-                # Vista no existe, retornar datos vacíos
+            # Verificar si la vista existe (compatible SQLite y PostgreSQL)
+            try:
+                cur.execute("SELECT 1 FROM v_sap_cumplimiento LIMIT 1")
+            except Exception:
                 return jsonify({"items": [], "message": "Datos SAP no disponibles"})
 
             cur.execute("""

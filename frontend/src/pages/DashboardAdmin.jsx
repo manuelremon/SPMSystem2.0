@@ -333,8 +333,8 @@ export default function DashboardAdmin() {
           if (proveedoresSeleccionados.length === 0) {
             setProveedoresSeleccionados(items.map(p => p.proveedor_cuit || p.proveedor_nombre));
           }
-        } else {
-          // Fallback: obtener lista de proveedores externos activos
+        } else if (user?.is_admin) {
+          // Fallback solo para admin: obtener lista de proveedores externos activos
           const provResponse = await api.get("/admin/proveedores/externos", {
             signal: abortController.signal,
           });
@@ -354,35 +354,14 @@ export default function DashboardAdmin() {
           if (proveedores.length > 0 && proveedoresSeleccionados.length === 0) {
             setProveedoresSeleccionados(proveedores.map(p => p.proveedor_cuit || p.proveedor_nombre));
           }
+        } else {
+          setCumplimientoProveedores([]);
         }
       } catch (err) {
         if (!isMounted || err?.name === 'AbortError') return;
 
-        // Si hay error, intentar fallback
-        try {
-          const provResponse = await api.get("/admin/proveedores/externos", {
-            signal: abortController.signal,
-          });
-
-          if (!isMounted) return;
-
-          const proveedores = (provResponse.data?.data || provResponse.data || [])
-            .filter(p => p.activo !== false && p.activo !== 0)
-            .map(p => ({
-              proveedor_cuit: p.cuit,
-              proveedor_nombre: p.razon_social || p.nombre || p.cuit,
-              total_pedidos: 0,
-              entregas_a_tiempo: 0,
-              pct_otif: null
-            }));
-          setCumplimientoProveedores(proveedores);
-          if (proveedores.length > 0 && proveedoresSeleccionados.length === 0) {
-            setProveedoresSeleccionados(proveedores.map(p => p.proveedor_cuit || p.proveedor_nombre));
-          }
-        } catch {
-          if (isMounted) {
-            setCumplimientoProveedores([]);
-          }
+        if (isMounted) {
+          setCumplimientoProveedores([]);
         }
       }
     };
