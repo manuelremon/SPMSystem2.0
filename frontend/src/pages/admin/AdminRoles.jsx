@@ -1,14 +1,14 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { admin } from "../../services/spm";
 import { useI18n } from "../../context/i18n";
 import { useNavigate } from "react-router-dom";
+import { SPMAgGrid } from "../../components/ui/SPMAgGrid";
 
 // MUI Components
 import {
   Box,
   Paper,
   Typography,
-  TextField,
   Button,
   IconButton,
   FormControl,
@@ -16,13 +16,7 @@ import {
   Select,
   MenuItem,
   Alert,
-  Skeleton,
   Stack,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
   Drawer,
   Chip,
   FormControlLabel,
@@ -34,12 +28,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloseIcon from "@mui/icons-material/Close";
-import DescriptionIcon from "@mui/icons-material/Description";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import Tooltip from "@mui/material/Tooltip";
-
-// Services
-import { exportToXLSX } from "../../services/export";
+import AddIcon from "@mui/icons-material/Add";
 
 const ROLES_OPTIONS = [
   { value: "solicitante", label: "Solicitante" },
@@ -55,71 +44,6 @@ const initialForm = {
 };
 
 /* ─────────────────────────────────────────────────────────────
-   Skeleton Component
-───────────────────────────────────────────────────────────── */
-function TableSkeleton({ rows = 5 }) {
-  return (
-    <Box>
-      {[...Array(rows)].map((_, i) => (
-        <Box
-          key={i}
-          sx={{
-            display: "flex",
-            borderBottom: 1,
-            borderColor: "divider",
-            py: 1.5,
-            px: 2,
-            gap: 2,
-          }}
-        >
-          <Skeleton variant="text" width={64} height={24} />
-          <Skeleton variant="text" sx={{ flex: 1 }} height={24} />
-          <Skeleton variant="text" width={80} height={24} />
-          <Skeleton variant="text" width={128} height={24} />
-          <Skeleton variant="text" width={48} height={24} />
-        </Box>
-      ))}
-    </Box>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────
-   Empty State Component
-───────────────────────────────────────────────────────────── */
-function EmptyState({ message, onAction, actionLabel }) {
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        py: 8,
-        color: "text.disabled",
-      }}
-    >
-      <DescriptionIcon sx={{ fontSize: 48, mb: 1.5, opacity: 0.5 }} />
-      <Typography variant="body2" sx={{ mb: 2 }}>
-        {message}
-      </Typography>
-      {onAction && (
-        <Button
-          onClick={onAction}
-          size="small"
-          sx={{
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-            fontSize: "0.75rem",
-          }}
-        >
-          {actionLabel}
-        </Button>
-      )}
-    </Box>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────
    Main Component
 ───────────────────────────────────────────────────────────── */
 export default function AdminRoles() {
@@ -130,7 +54,6 @@ export default function AdminRoles() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [exporting, setExporting] = useState(false);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -138,7 +61,6 @@ export default function AdminRoles() {
   const [submitting, setSubmitting] = useState(false);
 
   const [deletingId, setDeletingId] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
 
   // ─── Load Data ────────────────────────────────────────────
   const loadRoles = useCallback(async () => {
@@ -158,12 +80,11 @@ export default function AdminRoles() {
     loadRoles();
   }, [loadRoles]);
 
-  // ─── Filtered Data ────────────────────────────────────────
-  const filteredRoles = roles.filter((r) => {
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    return r.nombre?.toLowerCase().includes(term);
-  });
+  // ─── Helpers ────────────────────────────────────────────
+  const getRoleLabel = (value) => {
+    const opt = ROLES_OPTIONS.find((o) => o.value === value);
+    return opt ? opt.label : value;
+  };
 
   // ─── Handlers ─────────────────────────────────────────────
   const handleNew = () => {
@@ -233,409 +154,205 @@ export default function AdminRoles() {
     }
   };
 
-  const getRoleLabel = (value) => {
-    const opt = ROLES_OPTIONS.find((o) => o.value === value);
-    return opt ? opt.label : value;
-  };
-
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      await exportToXLSX(
-        filteredRoles,
-        "roles",
-        "Roles"
-      );
-      setSuccess("Roles exportados correctamente");
-    } catch (err) {
-      setError(err.message || "Error al exportar roles");
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  // ─── Render ───────────────────────────────────────────────
-  return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1152, mx: "auto", px: 2, py: 3 }}>
-        {/* Header */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            mb: 3,
-          }}
-        >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+  // ─── AG Grid Column Defs ─────────────────────────────────
+  const columnDefs = useMemo(
+    () => [
+      {
+        field: "nombre",
+        headerName: "Codigo",
+        flex: 0.6,
+        minWidth: 150,
+        cellRenderer: (params) => (
+          <Typography
+            variant="body2"
+            sx={{ fontFamily: "monospace", fontSize: "0.875rem", color: "text.primary" }}
+          >
+            {params.value}
+          </Typography>
+        ),
+      },
+      {
+        headerName: "Descripcion",
+        flex: 1,
+        minWidth: 200,
+        valueGetter: (params) => getRoleLabel(params.data.nombre),
+      },
+      {
+        field: "activo",
+        headerName: "Estado",
+        flex: 0.4,
+        minWidth: 100,
+        cellRenderer: (params) => (
+          <Chip
+            label={
+              params.value === 1 || params.value === true
+                ? "Activo"
+                : "Inactivo"
+            }
+            size="small"
+            color={
+              params.value === 1 || params.value === true
+                ? "success"
+                : "default"
+            }
+            sx={{
+              fontSize: "0.625rem",
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              height: 20,
+            }}
+          />
+        ),
+      },
+      {
+        headerName: "Acciones",
+        flex: 0.4,
+        minWidth: 100,
+        sortable: false,
+        filter: false,
+        cellRenderer: (params) => (
+          <Stack direction="row" spacing={0.5} justifyContent="center">
             <IconButton
-              onClick={() => navigate("/admin")}
               size="small"
+              onClick={() => handleEdit(params.data)}
+              title="Editar"
               sx={{
                 color: "text.secondary",
                 "&:hover": {
-                  color: "text.primary",
-                  bgcolor: "grey.200",
+                  color: "primary.main",
+                  bgcolor: "primary.lighter",
                 },
               }}
             >
-              <ArrowBackIcon fontSize="small" />
+              <EditIcon fontSize="small" />
             </IconButton>
-            <Typography
-              variant="subtitle1"
-              sx={{
-                fontWeight: 600,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                color: "text.primary",
-              }}
-            >
-              {t("admin_roles", "Roles")}
-            </Typography>
-          </Box>
-          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-            <Tooltip title="Descargar XLSX">
-              <span>
-                <IconButton
-                  onClick={handleExport}
-                  disabled={loading || exporting || filteredRoles.length === 0}
-                  size="small"
-                  sx={{
-                    color: "var(--success)",
-                    border: "1px solid var(--success)",
-                    borderRadius: "4px",
-                    padding: "4px 8px",
-                    "&:hover": {
-                      backgroundColor: "var(--success)",
-                      color: "var(--card)",
-                    },
-                    "&:disabled": {
-                      opacity: 0.5,
-                      cursor: "not-allowed",
-                    },
-                  }}
-                >
-                  {exporting ? (
-                    <CircularProgress size={14} sx={{ color: "var(--success)" }} />
-                  ) : (
-                    <>
-                      <FileDownloadIcon sx={{ fontSize: "1rem", mr: 0.5 }} />
-                      <span style={{ fontSize: "0.75rem", fontWeight: 500 }}>XLSX</span>
-                    </>
-                  )}
-                </IconButton>
-              </span>
-            </Tooltip>
-            <Button
-              variant="contained"
-              onClick={handleNew}
+            <IconButton
               size="small"
+              onClick={() => setDeletingId(params.data.nombre)}
+              title="Eliminar"
               sx={{
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                fontSize: "0.75rem",
-                fontWeight: 500,
+                color: "text.secondary",
+                "&:hover": {
+                  color: "error.main",
+                  bgcolor: "error.lighter",
+                },
               }}
             >
-              {t("crud_new", "Nuevo")}
-            </Button>
-          </Box>
-        </Box>
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+        ),
+      },
+    ],
+    []
+  );
 
-        {/* Alerts */}
-        {error && (
-          <Alert
-            severity="error"
-            sx={{ mb: 2 }}
-            onClose={() => setError("")}
+  // ─── Render ───────────────────────────────────────────────
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      {/* Header */}
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <IconButton
+            onClick={() => navigate("/admin")}
+            sx={{
+              color: "text.disabled",
+              "&:hover": {
+                color: "text.secondary",
+                bgcolor: "background.paper",
+                border: 1,
+                borderColor: "divider",
+              },
+            }}
           >
-            {error}
-          </Alert>
-        )}
-        {success && (
-          <Alert
-            severity="success"
-            sx={{ mb: 2 }}
-            onClose={() => setSuccess("")}
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography
+            variant="h5"
+            component="h1"
+            sx={{
+              fontWeight: 700,
+              color: "text.primary",
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+            }}
           >
-            {success}
-          </Alert>
-        )}
-
-        {/* Search */}
-        <Box sx={{ mb: 2 }}>
-          <TextField
-            size="small"
-            placeholder="Buscar por nombre..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            autoComplete="off"
-            sx={{ width: 320 }}
-          />
+            {t("admin_roles", "Roles")}
+          </Typography>
         </Box>
-
-        {/* Table */}
-        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
-          {loading ? (
-            <TableSkeleton rows={5} />
-          ) : filteredRoles.length === 0 ? (
-            <EmptyState
-              message={
-                searchTerm
-                  ? "No se encontraron roles"
-                  : "No hay roles registrados"
-              }
-              onAction={!searchTerm ? handleNew : undefined}
-              actionLabel="Crear primer rol"
-            />
-          ) : (
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ bgcolor: "grey.50" }}>
-                  <TableCell
-                    sx={{
-                      width: 70,
-                      fontWeight: 600,
-                      textTransform: "uppercase",
-                      fontSize: "0.6875rem",
-                      letterSpacing: "0.05em",
-                      color: "text.secondary",
-                      borderRight: 1,
-                      borderColor: "divider",
-                    }}
-                  >
-                    #
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: 200,
-                      fontWeight: 600,
-                      textTransform: "uppercase",
-                      fontSize: "0.6875rem",
-                      letterSpacing: "0.05em",
-                      color: "text.secondary",
-                      borderRight: 1,
-                      borderColor: "divider",
-                    }}
-                  >
-                    Codigo
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: 600,
-                      textTransform: "uppercase",
-                      fontSize: "0.6875rem",
-                      letterSpacing: "0.05em",
-                      color: "text.secondary",
-                      borderRight: 1,
-                      borderColor: "divider",
-                    }}
-                  >
-                    Descripcion
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{
-                      width: 90,
-                      fontWeight: 600,
-                      textTransform: "uppercase",
-                      fontSize: "0.6875rem",
-                      letterSpacing: "0.05em",
-                      color: "text.secondary",
-                      borderRight: 1,
-                      borderColor: "divider",
-                    }}
-                  >
-                    Estado
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{
-                      width: 100,
-                      fontWeight: 600,
-                      textTransform: "uppercase",
-                      fontSize: "0.6875rem",
-                      letterSpacing: "0.05em",
-                      color: "text.secondary",
-                    }}
-                  >
-                    Acciones
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredRoles.map((row, idx) =>
-                  deletingId === row.nombre ? (
-                    <TableRow
-                      key={row.nombre}
-                      sx={{ bgcolor: "error.lighter" }}
-                    >
-                      <TableCell colSpan={5}>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <Typography variant="body2" color="error.dark">
-                            Eliminar{" "}
-                            <Box component="strong" sx={{ fontWeight: 600 }}>
-                              {getRoleLabel(row.nombre)}
-                            </Box>
-                            ?
-                          </Typography>
-                          <Stack direction="row" spacing={1}>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              onClick={() => setDeletingId(null)}
-                              disabled={submitting}
-                              sx={{
-                                textTransform: "uppercase",
-                                letterSpacing: "0.05em",
-                                fontSize: "0.75rem",
-                              }}
-                            >
-                              Cancelar
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="error"
-                              onClick={() => handleDelete(row.nombre)}
-                              disabled={submitting}
-                              sx={{
-                                textTransform: "uppercase",
-                                letterSpacing: "0.05em",
-                                fontSize: "0.75rem",
-                              }}
-                            >
-                              {submitting ? "..." : "Eliminar"}
-                            </Button>
-                          </Stack>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    <TableRow
-                      key={row.nombre}
-                      hover
-                      sx={{
-                        "&:hover": { bgcolor: "grey.50" },
-                      }}
-                    >
-                      <TableCell
-                        sx={{
-                          fontSize: "0.75rem",
-                          color: "text.secondary",
-                          borderRight: 1,
-                          borderColor: "grey.100",
-                        }}
-                      >
-                        {idx + 1}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          fontSize: "0.875rem",
-                          fontFamily: "monospace",
-                          color: "text.primary",
-                          borderRight: 1,
-                          borderColor: "grey.100",
-                        }}
-                      >
-                        {row.nombre}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          fontSize: "0.875rem",
-                          color: "text.primary",
-                          borderRight: 1,
-                          borderColor: "grey.100",
-                        }}
-                      >
-                        {getRoleLabel(row.nombre)}
-                      </TableCell>
-                      <TableCell
-                        align="center"
-                        sx={{
-                          borderRight: 1,
-                          borderColor: "grey.100",
-                        }}
-                      >
-                        <Chip
-                          label={
-                            row.activo === 1 || row.activo === true
-                              ? "Activo"
-                              : "Inactivo"
-                          }
-                          size="small"
-                          color={
-                            row.activo === 1 || row.activo === true
-                              ? "success"
-                              : "default"
-                          }
-                          sx={{
-                            fontSize: "0.625rem",
-                            fontWeight: 600,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            height: 20,
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Stack
-                          direction="row"
-                          spacing={0.5}
-                          justifyContent="center"
-                        >
-                          <IconButton
-                            size="small"
-                            onClick={() => handleEdit(row)}
-                            title="Editar"
-                            sx={{
-                              color: "text.secondary",
-                              "&:hover": {
-                                color: "primary.main",
-                                bgcolor: "primary.lighter",
-                              },
-                            }}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={() => setDeletingId(row.nombre)}
-                            title="Eliminar"
-                            sx={{
-                              color: "text.secondary",
-                              "&:hover": {
-                                color: "error.main",
-                                bgcolor: "error.lighter",
-                              },
-                            }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  )
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </Paper>
-
-        {/* Footer */}
-        <Typography
-          variant="caption"
-          sx={{ display: "block", mt: 2, color: "text.disabled" }}
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<AddIcon />}
+          onClick={handleNew}
+          sx={{ textTransform: "none" }}
         >
-          {filteredRoles.length} de {roles.length} roles
-        </Typography>
+          {t("crud_new", "Nuevo")}
+        </Button>
       </Box>
+
+      {/* Alerts */}
+      {error && (
+        <Alert severity="error" onClose={() => setError("")}>
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert severity="success" onClose={() => setSuccess("")}>
+          {success}
+        </Alert>
+      )}
+
+      {/* Delete Confirmation */}
+      {deletingId && (
+        <Alert
+          severity="warning"
+          action={
+            <Stack direction="row" spacing={1}>
+              <Button
+                size="small"
+                onClick={() => setDeletingId(null)}
+                disabled={submitting}
+                sx={{ textTransform: "none" }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                color="error"
+                onClick={() => handleDelete(deletingId)}
+                disabled={submitting}
+                sx={{ textTransform: "none" }}
+              >
+                {submitting ? "..." : "Eliminar"}
+              </Button>
+            </Stack>
+          }
+        >
+          Eliminar rol <strong>{getRoleLabel(deletingId)}</strong>?
+        </Alert>
+      )}
+
+      {/* Main Card */}
+      <Paper
+        variant="outlined"
+        sx={{
+          borderRadius: 2,
+          overflow: "hidden",
+        }}
+      >
+        <SPMAgGrid
+          rowData={roles}
+          columnDefs={columnDefs}
+          loading={loading}
+          height={500}
+          enableQuickFilter={true}
+          exportFileName="roles"
+          emptyMessage="No hay roles registrados"
+        />
+      </Paper>
 
       {/* Drawer */}
       <Drawer
@@ -759,11 +476,7 @@ export default function AdminRoles() {
                 onClick={() => setDrawerOpen(false)}
                 disabled={submitting}
                 fullWidth
-                sx={{
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  fontSize: "0.75rem",
-                }}
+                sx={{ textTransform: "none" }}
               >
                 Cancelar
               </Button>
@@ -772,11 +485,7 @@ export default function AdminRoles() {
                 variant="contained"
                 disabled={submitting}
                 fullWidth
-                sx={{
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  fontSize: "0.75rem",
-                }}
+                sx={{ textTransform: "none" }}
               >
                 {submitting
                   ? "Guardando..."
