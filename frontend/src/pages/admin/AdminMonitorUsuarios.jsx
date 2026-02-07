@@ -872,9 +872,6 @@ export default function AdminMonitorUsuarios() {
                   >
                     {t("admin_monitor_usuarios", "Monitor de Usuarios")}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    Auditoría y seguimiento de actividad
-                  </Typography>
                 </Box>
               </Stack>
             </Stack>
