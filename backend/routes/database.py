@@ -1407,17 +1407,18 @@ def get_audit_logs():
                 cur = conn.cursor()
 
                 # Construir query con filtros
-                conditions = ["created_at >= CURRENT_DATE - INTERVAL '%s days'"]
+                # Columnas en PostgreSQL usan mismos nombres que SQLite (español)
+                conditions = ["created_at >= CURRENT_DATE - %s * INTERVAL '1 day'"]
                 params = [days]
 
                 if table:
-                    conditions.append("entity_type LIKE %s")
+                    conditions.append("entidad LIKE %s")
                     params.append(f"%{table}%")
                 if user_id:
-                    conditions.append("user_id = %s")
-                    params.append(user_id)
+                    conditions.append("actor_id = %s")
+                    params.append(str(user_id))
                 if operation:
-                    conditions.append("action LIKE %s")
+                    conditions.append("accion LIKE %s")
                     params.append(f"%{operation}%")
 
                 where_clause = " AND ".join(conditions)
@@ -1431,7 +1432,9 @@ def get_audit_logs():
                 # Obtener logs
                 params.extend([limit, offset])
                 cur.execute(f"""
-                    SELECT id, user_id, action, entity_type, entity_id, details, created_at
+                    SELECT id, actor_id, accion, entidad, entidad_id,
+                           COALESCE(valor_nuevo, valor_anterior, campo_modificado) as details,
+                           created_at, ip_address
                     FROM audit_trail
                     WHERE {where_clause}
                     ORDER BY created_at DESC
@@ -1440,14 +1443,21 @@ def get_audit_logs():
 
                 logs = []
                 for row in cur.fetchall():
+                    details = row[5]
+                    if isinstance(details, str):
+                        try:
+                            details = json.loads(details)
+                        except (json.JSONDecodeError, TypeError):
+                            pass
                     logs.append({
                         "id": row[0],
                         "user_id": row[1],
                         "action": row[2],
                         "entity_type": row[3],
                         "entity_id": row[4],
-                        "details": row[5] if isinstance(row[5], dict) else (json.loads(row[5]) if row[5] else None),
-                        "created_at": row[6].isoformat() if row[6] else None,
+                        "details": details,
+                        "created_at": row[6].isoformat() if hasattr(row[6], 'isoformat') else row[6],
+                        "ip_address": row[7] if len(row) > 7 else None,
                     })
 
             return jsonify({
