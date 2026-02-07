@@ -818,20 +818,22 @@ def _get_table_columns_info(db_name: str, table: str):
 
 
 def _log_crud_operation(operation: str, table: str, db_name: str, data: dict, user_id: int):
-    """Registra operacion CRUD en audit_log"""
+    """Registra operacion CRUD en audit_trail"""
     try:
+        entity_id = data.get("id") or (data.get("pk", {}) or {}).get("id")
+        details = json.dumps(data, default=str)
         if db_name == "spm" and is_postgres():
             with get_db_connection() as conn:
                 cur = conn.cursor()
                 cur.execute("""
-                    INSERT INTO audit_log (user_id, action, entity_type, entity_id, details, created_at)
+                    INSERT INTO audit_trail (actor_id, accion, entidad, entidad_id, valor_nuevo, created_at)
                     VALUES (%s, %s, %s, %s, %s, %s)
                 """, (
-                    user_id,
+                    str(user_id),
                     f"DB_{operation}",
                     f"table:{table}",
-                    data.get("id") or data.get("pk", {}).get("id"),
-                    json.dumps(data, default=str),
+                    str(entity_id) if entity_id else None,
+                    details,
                     datetime.utcnow(),
                 ))
                 conn.commit()
@@ -840,14 +842,14 @@ def _log_crud_operation(operation: str, table: str, db_name: str, data: dict, us
             conn = sqlite3.connect(db_path)
             cur = conn.cursor()
             cur.execute("""
-                INSERT INTO audit_log (user_id, action, entity_type, entity_id, details, created_at)
+                INSERT INTO audit_trail (actor_id, accion, entidad, entidad_id, valor_nuevo, created_at)
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (
-                user_id,
+                str(user_id),
                 f"DB_{operation}",
                 f"table:{table}",
-                data.get("id") or (data.get("pk", {}) or {}).get("id"),
-                json.dumps(data, default=str),
+                str(entity_id) if entity_id else None,
+                details,
                 datetime.utcnow().isoformat(),
             ))
             conn.commit()
