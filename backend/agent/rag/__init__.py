@@ -3,13 +3,13 @@ Módulo RAG (Retrieval-Augmented Generation) para SPM v2.0
 =========================================================
 
 Proporciona búsqueda semántica de materiales y generación de respuestas
-usando LLMs (OpenAI/Anthropic).
+usando LLMs (Google Gemini, Anthropic Claude, OpenAI GPT, Deepseek-r1 local).
 
 Componentes:
 - Embedder: Genera embeddings con SentenceTransformers
 - VectorStore: Almacena y busca vectores con ChromaDB
 - MaterialRetriever: Búsqueda semántica de materiales
-- LLMClient: Cliente para OpenAI/Anthropic
+- LLMClient: Cliente multi-provider (Gemini/Anthropic/OpenAI/Deepseek)
 - RAGPipeline: Pipeline completo retrieve + generate
 
 Uso básico (solo búsqueda):
@@ -96,6 +96,11 @@ try:
         OpenAIClient,
         get_llm_client,
     )
+    from .deepseek_client import (
+        DeepseekClient,
+        OllamaConnectionError,
+        OllamaModelNotFoundError,
+    )
     from .pipeline import RAGPipeline, get_rag_pipeline
     from .prompts import (
         TEMPLATES,
@@ -120,7 +125,16 @@ except ImportError as e:
     class AnthropicClient(BaseLLMClient):
         pass
 
+    class DeepseekClient(BaseLLMClient):
+        pass
+
     class MockLLMClient(BaseLLMClient):
+        pass
+
+    class OllamaConnectionError(Exception):
+        pass
+
+    class OllamaModelNotFoundError(Exception):
         pass
 
     class RAGPipeline:
@@ -200,8 +214,12 @@ __all__ = [
     "BaseLLMClient",
     "OpenAIClient",
     "AnthropicClient",
+    "DeepseekClient",
     "MockLLMClient",
     "get_llm_client",
+    # Deepseek/Ollama errores
+    "OllamaConnectionError",
+    "OllamaModelNotFoundError",
     # Prompts
     "PromptTemplate",
     "get_template",

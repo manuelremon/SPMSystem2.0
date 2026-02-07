@@ -360,7 +360,7 @@ def get_llm_client(
     Factory para obtener cliente LLM.
 
     Args:
-        provider: 'gemini', 'openai', 'anthropic', 'mock', o 'auto'
+        provider: 'gemini', 'openai', 'anthropic', 'deepseek', 'mock', o 'auto'
         model: Modelo específico (opcional)
         api_key: API key (opcional, usa env vars)
 
@@ -368,14 +368,16 @@ def get_llm_client(
         Cliente LLM configurado
     """
     if provider == "auto":
-        # Detectar automáticamente basado en API keys disponibles
-        # Prioridad: Gemini > Anthropic > OpenAI > Mock
+        # Detectar automaticamente basado en API keys / servicios disponibles
+        # Prioridad: Gemini > Anthropic > OpenAI > Deepseek (local) > Mock
         if os.getenv("GOOGLE_AI_API_KEY"):
             provider = "gemini"
         elif os.getenv("ANTHROPIC_API_KEY") or api_key:
             provider = "anthropic"
         elif os.getenv("OPENAI_API_KEY"):
             provider = "openai"
+        elif os.getenv("OLLAMA_BASE_URL") or os.getenv("DEEPSEEK_MODEL"):
+            provider = "deepseek"
         else:
             logger.warning("No se encontraron API keys, usando cliente mock")
             provider = "mock"
@@ -387,6 +389,9 @@ def get_llm_client(
         return OpenAIClient(api_key=api_key, model=model or "gpt-4o-mini")
     elif provider == "anthropic":
         return AnthropicClient(api_key=api_key, model=model or "claude-3-haiku-20240307")
+    elif provider == "deepseek":
+        from backend.agent.rag.deepseek_client import DeepseekClient
+        return DeepseekClient(model=model, verify_on_init=True)
     elif provider == "mock":
         return MockLLMClient(model=model or "mock-model")
     else:
