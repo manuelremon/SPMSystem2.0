@@ -816,6 +816,7 @@ export default function AdminUsuarios() {
       contrasena: "",
     });
     setFormErrors({});
+    setDeletingId(null);
     setDrawerOpen(true);
   };
 

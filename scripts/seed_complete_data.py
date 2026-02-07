@@ -78,7 +78,7 @@ JUSTIFICACIONES = [
     'Preparación para auditoría externa'
 ]
 
-FORO_CATEGORIAS = ['General', 'Técnico', 'Procesos', 'Sistemas', 'Anuncios']
+FORO_CATEGORIAS = ['general', 'ayuda', 'sugerencias', 'problemas', 'anuncios']
 
 FORO_TITULOS = [
     '¿Cómo optimizar el proceso de aprobación?',

@@ -309,7 +309,7 @@ class BURService:
             cur = conn.cursor()
             _execute(
                 cur,
-                """INSERT INTO presupuesto_solicitud_cambio
+                """INSERT INTO budget_update_requests
                    (centro, sector, monto_solicitado_cents, saldo_actual_cents,
                     nivel_aprobacion_requerido, solicitante_id, solicitante_rol, justificacion)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -329,7 +329,7 @@ class BURService:
             bur_id = row["id"] if isinstance(row, dict) else row[0]
             conn.commit()
 
-            _execute(cur, "SELECT * FROM presupuesto_solicitud_cambio WHERE id = ?", (bur_id,))
+            _execute(cur, "SELECT * FROM budget_update_requests WHERE id = ?", (bur_id,))
             row = _fetchone(cur)
             return {"ok": True, "bur": BudgetUpdateRequest.from_row(dict(row)).to_dict()}
         except Exception as e:
@@ -347,7 +347,7 @@ class BURService:
         conn = _connect()
         try:
             cur = conn.cursor()
-            _execute(cur, "SELECT * FROM presupuesto_solicitud_cambio WHERE id = ?", (bur_id,))
+            _execute(cur, "SELECT * FROM budget_update_requests WHERE id = ?", (bur_id,))
             row = _fetchone(cur)
             return BudgetUpdateRequest.from_row(dict(row)) if row else None
         finally:
@@ -389,7 +389,7 @@ class BURService:
 
             _execute(
                 cur,
-                f"""SELECT * FROM presupuesto_solicitud_cambio
+                f"""SELECT * FROM budget_update_requests
                     {where_sql}
                     ORDER BY created_at DESC
                     LIMIT ? OFFSET ?""",
@@ -465,7 +465,7 @@ class BURService:
             # Actualizar BUR
             _execute(
                 cur,
-                f"""UPDATE presupuesto_solicitud_cambio
+                f"""UPDATE budget_update_requests
                     SET estado = ?, {campo_aprobador} = ?, {campo_fecha} = ?,
                         {campo_comentario} = ?, updated_at = ?
                     WHERE id = ?""",
@@ -478,20 +478,37 @@ class BURService:
                 ctx = TransactionContext(
                     trace_id=str(uuid.uuid4()), actor_id=aprobador_id, actor_rol=aprobador_rol
                 )
-                with AtomicBudgetTransaction() as txn:
-                    result = txn.aplicar_bur(
-                        centro=bur.centro,
-                        sector=bur.sector,
-                        monto_cents=bur.monto_solicitado_cents,
-                        bur_id=bur_id,
-                        ctx=ctx,
+                try:
+                    with AtomicBudgetTransaction() as txn:
+                        result = txn.aplicar_bur(
+                            centro=bur.centro,
+                            sector=bur.sector,
+                            monto_cents=bur.monto_solicitado_cents,
+                            bur_id=bur_id,
+                            ctx=ctx,
+                        )
+                        if not result.success:
+                            # Revertir estado del BUR ya que no se pudo aplicar al presupuesto
+                            _execute(
+                                cur,
+                                "UPDATE budget_update_requests SET estado = ?, updated_at = ? WHERE id = ?",
+                                (estado_actual, now, bur_id),
+                            )
+                            conn.commit()
+                            return {
+                                "ok": False,
+                                "error": result.error_message,
+                                "code": result.error_code,
+                            }
+                except Exception as e:
+                    # Revertir estado del BUR en caso de error inesperado
+                    _execute(
+                        cur,
+                        "UPDATE budget_update_requests SET estado = ?, updated_at = ? WHERE id = ?",
+                        (estado_actual, now, bur_id),
                     )
-                    if not result.success:
-                        return {
-                            "ok": False,
-                            "error": result.error_message,
-                            "code": result.error_code,
-                        }
+                    conn.commit()
+                    return {"ok": False, "error": f"Error al aplicar presupuesto: {e}", "code": "budget_apply_error"}
 
             return {
                 "ok": True,
@@ -532,7 +549,7 @@ class BURService:
             cur = conn.cursor()
             _execute(
                 cur,
-                """UPDATE presupuesto_solicitud_cambio
+                """UPDATE budget_update_requests
                    SET estado = ?, rechazado_por = ?, motivo_rechazo = ?,
                        fecha_rechazo = ?, updated_at = ?
                    WHERE id = ?""",
@@ -633,7 +650,7 @@ class BURService:
             # Actualizar estado del BUR
             _execute(
                 cur,
-                """UPDATE presupuesto_solicitud_cambio
+                """UPDATE budget_update_requests
                    SET estado = ?, rechazado_por = ?, motivo_rechazo = ?,
                        fecha_rechazo = ?, updated_at = ?
                    WHERE id = ?""",

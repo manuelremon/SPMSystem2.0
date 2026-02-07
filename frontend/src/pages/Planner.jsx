@@ -507,6 +507,16 @@ export default function Planner({ filterMode }) {
         flex: 0.7,
         minWidth: 100,
         valueGetter: (params) => params.data.status || params.data.estado || "pendiente",
+        valueFormatter: (params) => {
+          const map = {
+            draft: "Borrador", submitted: "Enviada", pending: "Pendiente",
+            processing: "En Proceso", in_planning: "En Progreso",
+            in_treatment: "En tratamiento", treated: "Tratado",
+            approved: "Aprobada", completed: "Completada", closed: "Cerrada",
+            rejected: "Rechazada", dispatched: "Despachada", cancelled: "Cancelada",
+          };
+          return map[params.value] || params.value;
+        },
         cellRenderer: (params) => {
           const data = params.data;
           const aprobador = [data.aprobador_nombre, data.aprobador_apellido].filter(Boolean).join(" ") || null;

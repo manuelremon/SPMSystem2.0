@@ -143,10 +143,20 @@ export function SPMAgGrid({
   emptyMessage = 'Sin datos para mostrar',
   defaultColDef: customDefaultColDef,
   gridOptions = {},
+  getRowId: customGetRowId,
   sx,
   ...props
 }) {
   const gridRef = useRef(null);
+
+  // Smart default para getRowId: usa data.id si existe para evitar
+  // warnings de "duplicate node id" en AG Grid
+  const hasIdField = rowData?.length > 0 && rowData[0]?.id != null;
+  const getRowId = useMemo(() => {
+    if (customGetRowId !== undefined) return customGetRowId;
+    if (hasIdField) return (params) => String(params.data.id);
+    return undefined;
+  }, [customGetRowId, hasIdField]);
 
   // Configuración por defecto de columnas
   const defaultColDef = useMemo(() => ({
@@ -300,6 +310,7 @@ export function SPMAgGrid({
           rowData={rowData}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
+          getRowId={getRowId}
           localeText={AG_GRID_LOCALE_ES}
           pagination={pagination}
           paginationPageSize={paginationPageSize}
@@ -342,6 +353,7 @@ SPMAgGrid.propTypes = {
   emptyMessage: PropTypes.string,
   defaultColDef: PropTypes.object,
   gridOptions: PropTypes.object,
+  getRowId: PropTypes.func,
   sx: PropTypes.object,
 };
 

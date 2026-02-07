@@ -327,7 +327,12 @@ export default function MRPTableroAlertas() {
   }, []);
 
   const handleLimpiarFiltros = () => {
-    setFiltros({ centros: [], almacenes: [], sectores: [], estados: [] });
+    setFiltros({
+      centros: (catalogos.centros || []).map((c) => c.codigo),
+      almacenes: (catalogos.almacenes || []).map((a) => a.codigo),
+      sectores: (catalogos.sectores || []).map((s) => s.nombre),
+      estados: ESTADOS_OPTIONS.map((e) => e.value),
+    });
     setSearchTerm("");
     setRangoFechasLocal([0, 365]);
   };
@@ -668,8 +673,12 @@ export default function MRPTableroAlertas() {
       {
         field: "sugerencia",
         headerName: "Sugerencia",
-        flex: 1,
-        minWidth: 150,
+        flex: 1.5,
+        minWidth: 250,
+        wrapText: true,
+        autoHeight: true,
+        tooltipField: "sugerencia",
+        cellStyle: { whiteSpace: "normal", lineHeight: "1.4", paddingTop: 4, paddingBottom: 4 },
       },
     ],
     []

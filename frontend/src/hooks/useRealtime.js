@@ -89,7 +89,6 @@ export function useRealtime({ enabled = true, subscriptions = [] } = {}) {
     setConnectionError,
     setNotifications,
     addNotification,
-    markNotificationRead,
     markAllNotificationsRead,
     removeNotification,
     setUnreadCount,
@@ -172,13 +171,13 @@ export function useRealtime({ enabled = true, subscriptions = [] } = {}) {
   }, [sseConnected, sseError, setConnected, setConnectionError])
 
   // Wrapper para marcar como leida que actualiza el store
+  // Nota: NO llamar markNotificationRead() aqui porque markAsRead() ya
+  // actualiza hookUnreadCount, que se sincroniza al store via useEffect (linea 153).
+  // Llamar ambos causaba doble decremento (10 -> 8 en vez de 10 -> 9).
   const handleMarkAsRead = useCallback(async (notificationId) => {
     const success = await markAsRead(notificationId)
-    if (success) {
-      markNotificationRead(notificationId)
-    }
     return success
-  }, [markAsRead, markNotificationRead])
+  }, [markAsRead])
 
   // Wrapper para marcar todas como leidas
   const handleMarkAllAsRead = useCallback(async () => {

@@ -160,13 +160,13 @@ export default function Foro() {
       post.titulo.toLowerCase().includes(searchQuery.toLowerCase()) ||
       post.contenido.toLowerCase().includes(searchQuery.toLowerCase()) ||
       post.autor_nombre?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategoria = selectedCategoria === null || post.categoria === selectedCategoria;
+    const matchesCategoria = selectedCategoria === null || post.categoria?.toLowerCase() === selectedCategoria;
     return matchesSearch && matchesCategoria;
   });
 
   // Contar posts por categoria
   const getCategoriaCount = (catId) => {
-    return posts.filter(p => p.categoria === catId).length;
+    return posts.filter(p => p.categoria?.toLowerCase() === catId).length;
   };
 
   return (

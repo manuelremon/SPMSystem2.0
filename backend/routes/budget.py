@@ -376,7 +376,7 @@ def aprobar_budget_request(bur_id):
     # Notificar al solicitante
     solicitante_id = bur.solicitante_id
     monto_usd = bur.monto_solicitado_cents / 100
-    nuevo_estado = result.get("nuevo_estado", "aprobado")
+    nuevo_estado = result.get("estado", "aprobado")
 
     if nuevo_estado == "aprobado":
         NotificationService.create_notification(
@@ -605,7 +605,7 @@ def get_bur_pendientes():
         # Construir placeholders dinamicos para IN clause (compatible SQLite/PostgreSQL)
         placeholders = ",".join(["?"] * len(niveles_aprobables))
         cur.execute(
-            f"""SELECT * FROM presupuesto_solicitud_cambio
+            f"""SELECT * FROM budget_update_requests
                 WHERE estado IN ('pendiente', 'aprobado_l1', 'aprobado_l2')
                 AND nivel_aprobacion_requerido IN ({placeholders})
                 ORDER BY created_at DESC""",
