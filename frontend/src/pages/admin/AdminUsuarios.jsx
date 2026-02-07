@@ -7,7 +7,6 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { admin } from "../../services/spm";
 import { useI18n } from "../../context/i18n";
-import { exportUsuarios } from "../../services/export";
 import { SPMAgGrid } from "../../components/ui/SPMAgGrid";
 
 // MUI Components
@@ -44,7 +43,6 @@ import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import WarningIcon from "@mui/icons-material/Warning";
 import InboxIcon from "@mui/icons-material/Inbox";
 import CloseIcon from "@mui/icons-material/Close";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
 
 // ============================================================================
 // CONSTANTES
@@ -442,7 +440,7 @@ function UsuariosTable({
         enableQuickFilter={true}
         exportFileName="usuarios"
         emptyMessage={t("common_no_data", "Sin usuarios")}
-        onRowClicked={(data) => onEdit && onEdit(data)}
+        onRowClick={(row) => onEdit && onEdit(row)}
         sx={{
           cursor: "pointer",
         }}
@@ -718,9 +716,6 @@ export default function AdminUsuarios() {
   // Eliminacion inline
   const [deletingId, setDeletingId] = useState(null);
 
-  // Exportacion
-  const [exporting, setExporting] = useState(false);
-
   // Cargar usuarios
   const loadUsuarios = useCallback(async () => {
     setLoading(true);
@@ -807,28 +802,6 @@ export default function AdminUsuarios() {
     setFormErrors({});
     setDrawerOpen(true);
   };
-
-  const handleExport = useCallback(async () => {
-    setExporting(true);
-    setError("");
-    try {
-      // Obtener filtros actuales
-      const estado = filterEstado && filterEstado !== "" ? filterEstado : undefined;
-      const rol = filterRol && filterRol !== "" ? filterRol : undefined;
-
-      await exportUsuarios({
-        formato: "xlsx",
-        estado,
-        rol,
-      });
-
-      setSuccess("Usuarios exportados correctamente");
-    } catch (err) {
-      setError(err.response?.data?.error?.message || "Error al exportar usuarios");
-    } finally {
-      setExporting(false);
-    }
-  }, [filterEstado, filterRol]);
 
   const handleEdit = (user) => {
     setEditingUser(user);
@@ -978,49 +951,12 @@ export default function AdminUsuarios() {
                   >
                     {t("admin_usuarios", "Usuarios")}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Administracion de usuarios del sistema
-                  </Typography>
                 </Box>
               </Stack>
             </Stack>
 
             {/* Right */}
             <Stack direction="row" spacing={1}>
-              {/* Botón de exportación */}
-              <Tooltip title="Descargar XLSX">
-                <span>
-                  <IconButton
-                    onClick={handleExport}
-                    disabled={loading || exporting || filteredUsuarios.length === 0}
-                    size="small"
-                    sx={{
-                      color: "var(--success)",
-                      border: "1px solid var(--success)",
-                      borderRadius: "4px",
-                      padding: "4px 8px",
-                      "&:hover": {
-                        backgroundColor: "var(--success)",
-                        color: "var(--card)",
-                      },
-                      "&:disabled": {
-                        opacity: 0.5,
-                        cursor: "not-allowed",
-                      },
-                    }}
-                  >
-                    {exporting ? (
-                      <CircularProgress size={14} sx={{ color: "var(--success)" }} />
-                    ) : (
-                      <>
-                        <FileDownloadIcon sx={{ fontSize: "1rem", mr: 0.5 }} />
-                        <span style={{ fontSize: "0.75rem", fontWeight: 500 }}>XLSX</span>
-                      </>
-                    )}
-                  </IconButton>
-                </span>
-              </Tooltip>
-
               {/* Botón "Nuevo" */}
               <Button
                 variant="contained"
