@@ -133,7 +133,10 @@ def dashboard_stats():
 
 
 
-def _load_solicitudes(filters: dict):
+def _load_solicitudes(filters: dict, page: int = 1, page_size: int = 50):
+    # Validate page_size
+    page_size = min(max(page_size, 1), 200)
+
     # FSM: Soportar tanto estados legacy como nuevos (normalizados)
     where = [
         """(
@@ -157,6 +160,21 @@ def _load_solicitudes(filters: dict):
 
     with get_db_connection() as conn:
         cur = conn.cursor()
+
+        # Get total count using same WHERE clause
+        cur.execute(
+            f"""
+            SELECT COUNT(*) as total
+            FROM solicitud s
+            {where_sql}
+            """,
+            params,
+        )
+        count_row = cur.fetchone()
+        total_count = count_row["total"] if isinstance(count_row, dict) else count_row[0]
+
+        # Get paginated results
+        offset = (page - 1) * page_size
         cur.execute(
             f"""
             SELECT
@@ -171,8 +189,9 @@ def _load_solicitudes(filters: dict):
             LEFT JOIN usuario up ON s.planner_id = up.id_spm
             {where_sql}
             ORDER BY s.updated_at DESC
+            LIMIT ? OFFSET ?
             """,
-            params,
+            params + [page_size, offset],
         )
         rows = cur.fetchall()
 
@@ -186,7 +205,13 @@ def _load_solicitudes(filters: dict):
             extra = {}
         d["items"] = extra.get("items", [])
         results.append(d)
-    return results
+
+    return {
+        "items": results,
+        "total": total_count,
+        "page": page,
+        "page_size": page_size
+    }
 
 
 @bp.route("/solicitudes", methods=["GET"])
@@ -205,6 +230,10 @@ def listar_solicitudes_aprobadas():
     sector = request.args.get("sector")
     sin_asignar = request.args.get("sin_asignar", "").lower() in ("true", "1", "yes")
 
+    # Parámetros de paginación
+    page = int(request.args.get("page", 1))
+    page_size = int(request.args.get("page_size", 50))
+
     filters = {"centro": centro, "sector": sector}
 
     if sin_asignar:
@@ -219,7 +248,7 @@ def listar_solicitudes_aprobadas():
         # Usuario normal solo ve las asignadas a él
         filters["planner_id"] = user.get("id_spm")
 
-    data = _load_solicitudes(filters)
+    data = _load_solicitudes(filters, page=page, page_size=page_size)
     return jsonify(data), 200
 
 

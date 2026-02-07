@@ -46,6 +46,17 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-mui': ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
+          'vendor-charts': ['chart.js', 'react-chartjs-2', '@mui/x-charts'],
+          'vendor-grid': ['@tanstack/react-table', '@mui/x-data-grid', 'ag-grid-community', 'ag-grid-react'],
+          'vendor-utils': ['axios', 'zustand', 'xlsx', 'clsx'],
+        },
+      },
+    },
   },
   server: {
     port: 5173,

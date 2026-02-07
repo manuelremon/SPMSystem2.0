@@ -380,3 +380,9 @@ export const useDashboardStore = create((set, get) => ({
    */
   clearError: () => set({ error: null }),
 }));
+
+// Granular selectors
+export const useDashboards = () => useDashboardStore(s => s.dashboards);
+export const useCurrentDashboard = () => useDashboardStore(s => s.currentDashboard);
+export const useDashboardLoading = () => useDashboardStore(s => s.isLoading);
+export const useDashboardError = () => useDashboardStore(s => s.error);

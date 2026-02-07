@@ -222,3 +222,10 @@ export const selectUnshownAlerts = (state) => {
 export const selectAlertsByPriority = (state) => {
   return [...state.pendingAlerts].sort((a, b) => a.priority - b.priority)
 }
+
+// Granular selectors for state values
+export const useVertexMessages = () => useVertexStore(s => s.messages);
+export const useVertexIsOpen = () => useVertexStore(s => s.isOpen);
+export const useVertexIsLoading = () => useVertexStore(s => s.isLoading);
+export const useVertexSessionId = () => useVertexStore(s => s.sessionId);
+export const useVertexAlerts = () => useVertexStore(s => s.pendingAlerts);

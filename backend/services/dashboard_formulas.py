@@ -9,6 +9,7 @@ Ejecuta formulas personalizadas que conectan con los datos de SPM:
 - SPM.MRP: Alertas y KPIs MRP
 """
 
+import threading
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -77,6 +78,7 @@ def _fetchall(cursor):
 
 _formula_cache: Dict[str, Dict[str, Any]] = {}
 _cache_ttl = 60  # segundos
+_formula_cache_lock = threading.Lock()
 
 
 def _get_cache_key(formula: str, params: List[Any]) -> str:
@@ -86,20 +88,28 @@ def _get_cache_key(formula: str, params: List[Any]) -> str:
 
 def _get_cached(key: str) -> Optional[Any]:
     """Obtiene valor de cache si no ha expirado"""
-    if key in _formula_cache:
-        entry = _formula_cache[key]
-        if time.time() - entry["timestamp"] < _cache_ttl:
-            return entry["value"]
-        del _formula_cache[key]
-    return None
+    with _formula_cache_lock:
+        if key in _formula_cache:
+            entry = _formula_cache[key]
+            if time.time() - entry["timestamp"] < _cache_ttl:
+                return entry["value"]
+            del _formula_cache[key]
+        return None
 
 
 def _set_cache(key: str, value: Any):
     """Guarda valor en cache"""
-    _formula_cache[key] = {
-        "value": value,
-        "timestamp": time.time(),
-    }
+    with _formula_cache_lock:
+        # Enforce max size of 200 entries
+        if len(_formula_cache) >= 200:
+            # Remove oldest quarter
+            oldest = sorted(_formula_cache.items(), key=lambda x: x[1]["timestamp"])[:50]
+            for k, _ in oldest:
+                del _formula_cache[k]
+        _formula_cache[key] = {
+            "value": value,
+            "timestamp": time.time(),
+        }
 
 
 # ============================================================================
@@ -618,8 +628,8 @@ class FormulaExecutor:
     @staticmethod
     def clear_cache():
         """Limpia la cache de formulas"""
-        global _formula_cache
-        _formula_cache = {}
+        with _formula_cache_lock:
+            _formula_cache.clear()
 
     @staticmethod
     def set_cache_ttl(ttl_seconds: int):

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { SPMAgGrid } from "../components/ui/SPMAgGrid";
 import { TableSkeleton } from "../components/ui/Skeleton";
 import { ScrollReveal } from "../components/ui/ScrollReveal";
@@ -173,7 +173,7 @@ export default function DashboardAdmin() {
 
   // Función para convertir valor del slider a fecha (formato DD/MM/AA)
   // valor 0 = hace 365 días, valor 365 = hoy
-  const sliderAFecha = (valor) => {
+  const sliderAFecha = useCallback((valor) => {
     const diasHaciaAtras = 365 - valor;
     const fecha = new Date();
     fecha.setDate(fecha.getDate() - diasHaciaAtras);
@@ -181,7 +181,7 @@ export default function DashboardAdmin() {
     const mm = String(fecha.getMonth() + 1).padStart(2, '0');
     const yy = String(fecha.getFullYear()).slice(-2);
     return `${dd}/${mm}/${yy}`;
-  };
+  }, []);
 
   // Opciones de filtros (extraídas de los datos)
   const [filtrosOpciones, setFiltrosOpciones] = useState({
@@ -562,13 +562,13 @@ export default function DashboardAdmin() {
   }, [allData.todas, filtrosInicializados]);
 
   // Función para convertir valor del slider a fecha Date
-  const sliderAFechaDate = (valor) => {
+  const sliderAFechaDate = useCallback((valor) => {
     const diasHaciaAtras = 365 - valor;
     const fecha = new Date();
     fecha.setDate(fecha.getDate() - diasHaciaAtras);
     fecha.setHours(0, 0, 0, 0);
     return fecha;
-  };
+  }, []);
 
   // Crear índices de filtrado O(1) para búsqueda rápida
   const filterIndices = useMemo(() => ({
@@ -679,7 +679,7 @@ export default function DashboardAdmin() {
   const trendData = useTrendData(datosFiltrados, 12);
 
   // Handler para drill-down desde graficos
-  const handleDrillDown = (statusId, item) => {
+  const handleDrillDown = useCallback((statusId, item) => {
     setDrillDownFilter(statusId);
     // Mapear el ID del estado al tab correspondiente
     const tabMapping = {
@@ -693,30 +693,30 @@ export default function DashboardAdmin() {
     const targetTab = tabMapping[statusId] || 'todas';
     setActiveTab(targetTab);
     setSolicitudesCollapsed(false); // Expandir la tabla
-  };
+  }, []);
 
   const columnDefs = useMemo(() => getTableColumnsAgGrid(t), [t]);
 
   // Tabs configuration
-  const tabs = [
+  const tabs = useMemo(() => [
     { key: "todas", label: t("dash_todas", "Todas"), count: stats.todas },
     { key: "pendientes", label: t("dash_pendientes", "Pendientes"), count: stats.pendientes },
     { key: "en_proceso", label: t("dash_en_proceso", "En Proceso"), count: stats.en_proceso },
     { key: "completadas", label: t("dash_completadas", "Completadas"), count: stats.completadas },
     { key: "rechazadas", label: t("dash_rechazadas", "Rechazadas"), count: stats.rechazadas },
-  ];
+  ], [t, stats]);
 
   const currentData = allData[activeTab] || [];
 
-  const handleTabChange = (value) => {
+  const handleTabChange = useCallback((value) => {
     if (value === "crear") {
       navigate("/solicitudes/nueva");
     } else {
       setActiveTab(value);
     }
-  };
+  }, [navigate]);
 
-  const getTableTitle = () => {
+  const tableTitle = useMemo(() => {
     switch (activeTab) {
       case "todas":
         return t("dash_all_requests", "Todas las Solicitudes");
@@ -731,7 +731,7 @@ export default function DashboardAdmin() {
       default:
         return t("dash_solicitudes", "Solicitudes");
     }
-  };
+  }, [activeTab, t]);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>

@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 # FIX 4.6: Lock global para prevenir entrenamientos concurrentes
 _training_lock = threading.Lock()
+_CACHE_MAX_SIZE = 100
 
 
 def get_db_connection():
@@ -104,16 +105,16 @@ class AIService:
         Returns:
             Resultado del entrenamiento de cada pipeline
         """
-        # FIX 4.6: Prevenir entrenamientos concurrentes con lock
-        with _training_lock:
-            if self._is_training:
-                return {
-                    "ok": False,
-                    "status": "busy",
-                    "message": "Entrenamiento ya en progreso, intente más tarde",
-                }
+        # FIX 4.6: Prevenir entrenamientos concurrentes con lock no bloqueante
+        if not _training_lock.acquire(blocking=False):
+            return {
+                "ok": False,
+                "status": "busy",
+                "message": "Entrenamiento ya en progreso, intente más tarde",
+            }
 
-            self._is_training = True
+        self._is_training = True
+        _training_lock.release()
 
         try:
             results = {
@@ -722,6 +723,21 @@ class AIService:
             ttl_seconds: Tiempo de vida en segundos
         """
         cache_key = f"{key}:{tipo}"
+
+        # Evict expired entries and enforce max size
+        if len(self._cache) >= _CACHE_MAX_SIZE:
+            now = datetime.now(timezone.utc)
+            expired = [k for k, ts in self._cache_timestamps.items() if now > ts]
+            for k in expired:
+                self._cache.pop(k, None)
+                self._cache_timestamps.pop(k, None)
+            # If still full, remove oldest entries
+            if len(self._cache) >= _CACHE_MAX_SIZE:
+                oldest = sorted(self._cache_timestamps.items(), key=lambda x: x[1])[:len(self._cache) // 4]
+                for k, _ in oldest:
+                    self._cache.pop(k, None)
+                    self._cache_timestamps.pop(k, None)
+
         self._cache[cache_key] = data
         self._cache_timestamps[cache_key] = datetime.now(timezone.utc) + timedelta(
             seconds=ttl_seconds

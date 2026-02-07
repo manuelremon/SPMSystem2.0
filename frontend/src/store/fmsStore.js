@@ -230,3 +230,9 @@ export const useFmsStore = create((set, get) => ({
     error: null,
   }),
 }))
+
+// Granular selectors
+export const useFmsVehicles = () => useFmsStore(s => s.vehicles);
+export const useFmsCurrentVehicle = () => useFmsStore(s => s.currentVehicle);
+export const useFmsKpis = () => useFmsStore(s => s.kpis);
+export const useFmsLoading = () => useFmsStore(s => s.vehiclesLoading);

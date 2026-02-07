@@ -69,12 +69,15 @@ def _is_cache_expired(timestamp: datetime, ttl_hours: int = None) -> bool:
 
 
 def _compute_data_hash(df: pd.DataFrame, codigo: str = None) -> str:
-    """Calcula hash único para los datos de entrenamiento"""
+    """Calcula hash único para los datos de entrenamiento.
+
+    Uses material code + date (truncated to day) for stable cache keys.
+    Models retrain at most once per day per material.
+    """
     if df is None or len(df) == 0:
         return "empty"
-    sample = f"{codigo or 'global'}_{len(df)}_{df['cantidad'].sum() if 'cantidad' in df.columns else 0}"
-    if 'fecha' in df.columns:
-        sample += f"_{df['fecha'].min()}_{df['fecha'].max()}"
+    today = datetime.now().strftime('%Y-%m-%d')
+    sample = f"{codigo or 'global'}_{today}"
     return hashlib.md5(sample.encode()).hexdigest()[:16]
 
 
@@ -383,9 +386,10 @@ class DemandPredictor:
         """Lista los identificadores de modelos disponibles."""
         return obtener_estrategias_disponibles()
 
-    def _preparar_features(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _preparar_features(self, df: pd.DataFrame, copy: bool = True) -> pd.DataFrame:
         """Prepara features temporales para el modelo"""
-        df = df.copy()
+        if copy:
+            df = df.copy()
         df['fecha'] = pd.to_datetime(df['fecha'])
 
         df['dia_semana'] = df['fecha'].dt.dayofweek
@@ -407,10 +411,12 @@ class DemandPredictor:
         self,
         df: pd.DataFrame,
         columna: str = 'cantidad',
-        lags: List[int] = [1, 7, 14, 30]
+        lags: List[int] = [1, 7, 14, 30],
+        copy: bool = True
     ) -> pd.DataFrame:
         """Crea features de lag (valores anteriores)"""
-        df = df.copy()
+        if copy:
+            df = df.copy()
 
         for lag in lags:
             df[f'{columna}_lag_{lag}'] = df[columna].shift(lag)
@@ -455,7 +461,7 @@ class DemandPredictor:
         else:
             lags = [1, 7, 14, 30]
 
-        df_prep = self._crear_lag_features(df_prep, columna_objetivo, lags=lags)
+        df_prep = self._crear_lag_features(df_prep, columna_objetivo, lags=lags, copy=False)
         df_prep = df_prep.dropna()
 
         if len(df_prep) < 5:
@@ -591,7 +597,7 @@ class DemandPredictor:
         else:
             lags = [1, 7, 14, 30]
 
-        df = self._crear_lag_features(df, lags=lags)
+        df = self._crear_lag_features(df, lags=lags, copy=False)
         ultimo = df.iloc[-1].copy()
 
         for i in range(1, periodos + 1):

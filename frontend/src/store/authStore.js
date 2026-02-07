@@ -117,3 +117,16 @@ export const useAuthStore = create((set, get) => ({
 
   clearError: () => set({ error: null })
 }))
+
+// Granular selectors to avoid unnecessary re-renders
+export const useUser = () => useAuthStore(s => s.user);
+export const useIsAuthenticated = () => useAuthStore(s => s.isAuthenticated);
+export const useAuthLoading = () => useAuthStore(s => s.isLoading);
+export const useAuthError = () => useAuthStore(s => s.error);
+export const useAuthActions = () => useAuthStore(s => ({
+  login: s.login,
+  logout: s.logout,
+  register: s.register,
+  getCurrentUser: s.getCurrentUser,
+  clearError: s.clearError,
+}));

@@ -220,3 +220,9 @@ export const useTmsStore = create((set, get) => ({
     error: null,
   }),
 }))
+
+// Granular selectors
+export const useTmsShipments = () => useTmsStore(s => s.shipments);
+export const useTmsCurrentShipment = () => useTmsStore(s => s.currentShipment);
+export const useTmsKpis = () => useTmsStore(s => s.kpis);
+export const useTmsLoading = () => useTmsStore(s => s.shipmentsLoading);

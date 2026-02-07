@@ -225,14 +225,16 @@ def buscar_materiales_consumo():
                     SELECT DISTINCT material AS codigo, descripcion, 1 AS has_consumo
                     FROM consumo_historico
                     WHERE UPPER(material) LIKE UPPER(?) OR UPPER(descripcion) LIKE UPPER(?)
-                    UNION
-                    SELECT DISTINCT codigo_material AS codigo, descripcion, 0 AS has_consumo
-                    FROM materiales_bbdd
-                    WHERE (UPPER(codigo_material) LIKE UPPER(?) OR UPPER(descripcion) LIKE UPPER(?))
-                    AND codigo_material NOT IN (
-                        SELECT DISTINCT material FROM consumo_historico
-                        WHERE UPPER(material) LIKE UPPER(?) OR UPPER(descripcion) LIKE UPPER(?)
-                    )
+
+                    UNION ALL
+
+                    SELECT DISTINCT m.codigo_material AS codigo, m.descripcion, 0 AS has_consumo
+                    FROM materiales_bbdd m
+                    LEFT JOIN consumo_historico c
+                        ON m.codigo_material = c.material
+                        AND (UPPER(c.material) LIKE UPPER(?) OR UPPER(c.descripcion) LIKE UPPER(?))
+                    WHERE (UPPER(m.codigo_material) LIKE UPPER(?) OR UPPER(m.descripcion) LIKE UPPER(?))
+                    AND c.material IS NULL
                 )
                 ORDER BY has_consumo DESC, codigo
                 LIMIT ?

@@ -275,13 +275,6 @@ class DemandPredictor:
     def predict(self, df: pd.DataFrame, dias: int = 30) -> ForecastResult:
         """
         Genera predicciones para los próximos días.
-
-        Args:
-            df: DataFrame histórico
-            dias: Días a predecir
-
-        Returns:
-            ForecastResult con predicciones
         """
         if not self.is_fitted:
             self.fit(df)
@@ -294,24 +287,52 @@ class DemandPredictor:
         predicciones = []
         ultima_fecha = df_prep['fecha'].max()
 
-        # DataFrame temporal para ir agregando predicciones
-        df_temp = df_prep.copy()
+        # Use deque for efficient lag lookups instead of pd.concat in loop
+        from collections import deque
+        recent_values = deque(df_prep['cantidad'].tolist(), maxlen=max(30, dias))
+
+        # Pre-compute std for confidence intervals
+        std_estimado = df_prep['cantidad'].std() * 0.2
 
         for i in range(dias):
             fecha_pred = ultima_fecha + timedelta(days=i+1)
 
-            # Crear fila con features para la fecha
-            nueva_fila = self._crear_fila_prediccion(df_temp, fecha_pred)
+            # Build features from recent_values instead of full DataFrame
+            fila_dict = {
+                'fecha': fecha_pred,
+                'cantidad': 0,
+                'dia_semana': fecha_pred.weekday(),
+                'dia_mes': fecha_pred.day,
+                'mes': fecha_pred.month,
+                'trimestre': (fecha_pred.month - 1) // 3 + 1,
+                'es_fin_semana': 1 if fecha_pred.weekday() >= 5 else 0,
+                'semana_año': fecha_pred.isocalendar()[1]
+            }
 
-            # Predecir
-            X_pred = nueva_fila[self.feature_cols].values.reshape(1, -1)
+            # Add lag features from deque
+            vals = list(recent_values)
+            for lag in [1, 2, 3, 7, 14, 30]:
+                col_name = f'cantidad_lag_{lag}'
+                if col_name in self.feature_cols:
+                    if len(vals) >= lag:
+                        fila_dict[col_name] = vals[-lag]
+                    else:
+                        fila_dict[col_name] = np.mean(vals) if vals else 0
+
+            # Rolling features from deque
+            for window in [7, 14, 30]:
+                window_vals = vals[-window:] if len(vals) >= window else vals
+                if f'cantidad_media_{window}d' in self.feature_cols:
+                    fila_dict[f'cantidad_media_{window}d'] = np.mean(window_vals) if window_vals else 0
+                if f'cantidad_std_{window}d' in self.feature_cols:
+                    fila_dict[f'cantidad_std_{window}d'] = np.std(window_vals) if len(window_vals) > 1 else 0
+
+            # Predict
+            X_pred = pd.DataFrame([fila_dict])[self.feature_cols].values.reshape(1, -1)
             X_pred_scaled = self.scaler.transform(X_pred)
 
             pred = self.modelo.predict(X_pred_scaled)[0]
-            pred = max(0, pred)  # No permitir negativos
-
-            # Calcular intervalo de confianza (aproximado)
-            std_estimado = df_prep['cantidad'].std() * 0.2
+            pred = max(0, pred)
 
             predicciones.append({
                 "fecha": fecha_pred.strftime("%Y-%m-%d"),
@@ -320,9 +341,8 @@ class DemandPredictor:
                 "limite_superior": round(pred + 1.96 * std_estimado, 2)
             })
 
-            # Agregar predicción al DataFrame temporal para siguientes lags
-            nueva_fila['cantidad'] = pred
-            df_temp = pd.concat([df_temp, nueva_fila], ignore_index=True)
+            # Append prediction to deque for next iteration's lags
+            recent_values.append(pred)
 
         # Calcular métricas en datos de entrenamiento
         X_train = df_prep[self.feature_cols].values
@@ -343,37 +363,6 @@ class DemandPredictor:
             modelo=self.modelo_tipo,
             material=""
         )
-
-    def _crear_fila_prediccion(self, df: pd.DataFrame, fecha: datetime) -> pd.DataFrame:
-        """Crea una fila con features para una fecha de predicción."""
-        fila = pd.DataFrame([{
-            'fecha': fecha,
-            'cantidad': 0,  # Placeholder
-            'dia_semana': fecha.weekday(),
-            'dia_mes': fecha.day,
-            'mes': fecha.month,
-            'trimestre': (fecha.month - 1) // 3 + 1,
-            'es_fin_semana': 1 if fecha.weekday() >= 5 else 0,
-            'semana_año': fecha.isocalendar()[1]
-        }])
-
-        # Agregar lag features basados en el histórico
-        for lag in [1, 2, 3, 7, 14, 30]:
-            col_name = f'cantidad_lag_{lag}'
-            if col_name in self.feature_cols:
-                if len(df) >= lag:
-                    fila[col_name] = df['cantidad'].iloc[-lag]
-                else:
-                    fila[col_name] = df['cantidad'].mean()
-
-        # Rolling features
-        for window in [7, 14, 30]:
-            if f'cantidad_media_{window}d' in self.feature_cols:
-                fila[f'cantidad_media_{window}d'] = df['cantidad'].tail(window).mean()
-            if f'cantidad_std_{window}d' in self.feature_cols:
-                fila[f'cantidad_std_{window}d'] = df['cantidad'].tail(window).std()
-
-        return fila
 
 
 # =============================================================================
@@ -397,17 +386,9 @@ class Backtester:
         self.modelo_tipo = modelo_tipo
 
     def ejecutar(self, df: pd.DataFrame, ventana_test: int = 30, n_pasos: int = 5) -> BacktestReport:
-        """
-        Ejecuta backtesting walk-forward.
+        """Ejecuta backtesting walk-forward con paralelismo."""
+        from concurrent.futures import ThreadPoolExecutor, as_completed
 
-        Args:
-            df: DataFrame con datos históricos
-            ventana_test: Tamaño de ventana de test en días
-            n_pasos: Número de pasos de validación
-
-        Returns:
-            BacktestReport con resultados
-        """
         df = df.copy()
         if not pd.api.types.is_datetime64_any_dtype(df['fecha']):
             df['fecha'] = pd.to_datetime(df['fecha'])
@@ -416,58 +397,55 @@ class Backtester:
         total_dias = len(df)
         min_train = max(60, total_dias // 2)
 
-        metricas_pasos = []
-        predicciones_vs_real = []
-
-        for paso in range(n_pasos):
-            # Calcular índices
+        def _run_paso(paso):
             test_end = total_dias - paso * ventana_test
             test_start = test_end - ventana_test
             train_end = test_start
 
             if train_end < min_train:
-                break
+                return None, []
 
-            # Dividir datos
             df_train = df.iloc[:train_end]
             df_test = df.iloc[test_start:test_end]
 
             if len(df_test) == 0:
-                continue
+                return None, []
 
-            # Entrenar y predecir
             predictor = self.predictor_class(modelo_tipo=self.modelo_tipo)
             try:
                 result = predictor.fit(df_train).predict(df_train, dias=len(df_test))
-
-                # Comparar predicciones con valores reales
                 y_real = df_test['cantidad'].values
                 y_pred = [p['prediccion'] for p in result.predicciones[:len(y_real)]]
-
                 mae = mean_absolute_error(y_real, y_pred)
                 rmse = np.sqrt(mean_squared_error(y_real, y_pred))
 
-                metricas_pasos.append({
-                    "paso": paso + 1,
-                    "mae": round(mae, 2),
-                    "rmse": round(rmse, 2),
-                    "n_dias": len(y_real)
-                })
-
-                # Guardar algunas predicciones vs real
+                metrica = {"paso": paso + 1, "mae": round(mae, 2), "rmse": round(rmse, 2), "n_dias": len(y_real)}
+                preds = []
                 for i in range(min(5, len(y_real))):
-                    predicciones_vs_real.append({
+                    preds.append({
                         "fecha": result.predicciones[i]['fecha'],
                         "real": round(y_real[i], 2),
                         "prediccion": round(y_pred[i], 2),
                         "error": round(abs(y_real[i] - y_pred[i]), 2)
                     })
-
+                return metrica, preds
             except Exception as e:
                 logger.warning(f"Error en paso {paso}: {e}")
-                continue
+                return None, []
 
-        # Calcular métricas promedio
+        metricas_pasos = []
+        predicciones_vs_real = []
+
+        with ThreadPoolExecutor(max_workers=min(4, n_pasos)) as executor:
+            futures = {executor.submit(_run_paso, paso): paso for paso in range(n_pasos)}
+            for future in as_completed(futures):
+                metrica, preds = future.result()
+                if metrica is not None:
+                    metricas_pasos.append(metrica)
+                    predicciones_vs_real.extend(preds)
+
+        metricas_pasos.sort(key=lambda x: x['paso'])
+
         if metricas_pasos:
             metricas_promedio = {
                 "mae": round(np.mean([m['mae'] for m in metricas_pasos]), 2),
@@ -504,27 +482,19 @@ class ModelComparator:
         self.predictor_class = predictor_class
 
     def comparar(self, df: pd.DataFrame, modelos: List[str] = None) -> Dict[str, Any]:
-        """
-        Compara múltiples modelos usando backtesting.
+        """Compara múltiples modelos usando backtesting con paralelismo."""
+        from concurrent.futures import ThreadPoolExecutor, as_completed
 
-        Args:
-            df: DataFrame con datos
-            modelos: Lista de modelos a comparar
-
-        Returns:
-            Diccionario con resultados de comparación
-        """
         if modelos is None:
             modelos = MODELOS_DISPONIBLES
 
         resultados = {}
 
-        for modelo in modelos:
+        def _eval_modelo(modelo):
             try:
                 backtester = Backtester(self.predictor_class, modelo)
                 report = backtester.ejecutar(df, ventana_test=30, n_pasos=3)
-
-                resultados[modelo] = {
+                return modelo, {
                     "mae": report.metricas_promedio['mae'],
                     "rmse": report.metricas_promedio['rmse'],
                     "nombre": NOMBRES_MODELOS.get(modelo, modelo),
@@ -532,14 +502,19 @@ class ModelComparator:
                 }
             except Exception as e:
                 logger.warning(f"Error comparando modelo {modelo}: {e}")
-                resultados[modelo] = {
+                return modelo, {
                     "mae": float('inf'),
                     "rmse": float('inf'),
                     "nombre": NOMBRES_MODELOS.get(modelo, modelo),
                     "error": str(e)
                 }
 
-        # Ranking por MAE
+        with ThreadPoolExecutor(max_workers=min(4, len(modelos))) as executor:
+            futures = [executor.submit(_eval_modelo, m) for m in modelos]
+            for future in as_completed(futures):
+                modelo, result = future.result()
+                resultados[modelo] = result
+
         ranking = sorted(
             [(m, r['mae']) for m, r in resultados.items()],
             key=lambda x: x[1]
