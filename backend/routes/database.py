@@ -1409,8 +1409,10 @@ def get_audit_logs():
                 cur = conn.cursor()
 
                 # Verificar si la tabla audit_trail existe en PostgreSQL
-                cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'audit_trail')")
-                if not cur.fetchone()[0]:
+                # fetchone() retorna dict en PostgresCursorWrapper
+                cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'audit_trail') as table_exists")
+                result = cur.fetchone()
+                if not result or not result.get('table_exists', False):
                     return jsonify({"ok": True, "logs": [], "total": 0, "message": "Tabla audit_trail no existe"}), 200
 
                 # Construir query con filtros
@@ -1429,11 +1431,12 @@ def get_audit_logs():
 
                 where_clause = " AND ".join(conditions)
 
-                # Contar total
+                # Contar total - fetchone() retorna dict
                 cur.execute(f"""
-                    SELECT COUNT(*) FROM audit_trail WHERE {where_clause}
+                    SELECT COUNT(*) as total FROM audit_trail WHERE {where_clause}
                 """, params)
-                total = cur.fetchone()[0]
+                count_row = cur.fetchone()
+                total = count_row.get('total', 0) if count_row else 0
 
                 # Obtener logs
                 params.extend([limit, offset])
@@ -1449,21 +1452,22 @@ def get_audit_logs():
 
                 logs = []
                 for row in cur.fetchall():
-                    details = row[5]
+                    details = row.get('details')
                     if isinstance(details, str):
                         try:
                             details = json.loads(details)
                         except (json.JSONDecodeError, TypeError):
                             pass
+                    created_at = row.get('created_at')
                     logs.append({
-                        "id": row[0],
-                        "user_id": row[1],
-                        "action": row[2],
-                        "entity_type": row[3],
-                        "entity_id": row[4],
+                        "id": row.get('id'),
+                        "user_id": row.get('actor_id'),
+                        "action": row.get('accion'),
+                        "entity_type": row.get('entidad'),
+                        "entity_id": row.get('entidad_id'),
                         "details": details,
-                        "created_at": row[6].isoformat() if hasattr(row[6], 'isoformat') else row[6],
-                        "ip_address": row[7] if len(row) > 7 else None,
+                        "created_at": created_at.isoformat() if hasattr(created_at, 'isoformat') else created_at,
+                        "ip_address": row.get('ip_address'),
                     })
 
             return jsonify({
