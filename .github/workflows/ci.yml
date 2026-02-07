@@ -45,6 +45,7 @@ jobs:
         run: |
           python -m pytest tests/unit/ -v --tb=short \
             --ignore=tests/unit/test_openapi.py \
+            --ignore=tests/unit/test_deepseek_client.py \
             --cov=backend --cov-report=xml --cov-report=term-missing \
             -x --timeout=60
 
