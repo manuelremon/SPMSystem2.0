@@ -1408,8 +1408,12 @@ def get_audit_logs():
             with get_db_connection() as conn:
                 cur = conn.cursor()
 
+                # Verificar si la tabla audit_trail existe en PostgreSQL
+                cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'audit_trail')")
+                if not cur.fetchone()[0]:
+                    return jsonify({"ok": True, "logs": [], "total": 0, "message": "Tabla audit_trail no existe"}), 200
+
                 # Construir query con filtros
-                # Columnas en PostgreSQL usan mismos nombres que SQLite (español)
                 conditions = ["created_at >= CURRENT_DATE - %s * INTERVAL '1 day'"]
                 params = [days]
 
