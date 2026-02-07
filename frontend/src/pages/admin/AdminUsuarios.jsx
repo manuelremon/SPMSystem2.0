@@ -805,9 +805,13 @@ export default function AdminUsuarios() {
 
   const handleEdit = (user) => {
     setEditingUser(user);
+    // Sanitizar nulls para evitar warnings de MUI TextField
+    const sanitized = Object.fromEntries(
+      Object.entries(user).map(([k, v]) => [k, v ?? ""])
+    );
     setForm({
       ...initialForm,
-      ...user,
+      ...sanitized,
       roles: parseRoles(user.roles || user.rol),
       contrasena: "",
     });
