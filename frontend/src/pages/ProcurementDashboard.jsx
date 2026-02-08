@@ -10,7 +10,6 @@ import { procurementService } from '../services/procurement';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 
 // MUI Components
-import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
@@ -41,7 +40,7 @@ import UploadFileIcon from '@mui/icons-material/UploadFile';
 
 // Componente StatCard estilo MUI
 const StatCard = ({ title, value, subtitle, icon: Icon, color = 'var(--primary)', trend }) => (
-  <Paper elevation={0} sx={{ p: 3, border: "1px solid var(--border)", borderRadius: 2 }}>
+  <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
     <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
       <Box>
         <Typography variant="body2" color="text.secondary" fontWeight={500}>
@@ -61,7 +60,7 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color = 'var(--primary)'
             sx={{
               display: "block",
               mt: 0.5,
-              color: trend >= 0 ? "var(--success)" : "var(--danger)",
+              color: trend >= 0 ? "success.main" : "error.main",
               fontWeight: 500
             }}
           >
@@ -71,7 +70,7 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color = 'var(--primary)'
       </Box>
       <Box sx={{
         p: 1.5,
-        bgcolor: `${color}15`,
+        bgcolor: `color-mix(in srgb, ${color} 12%, transparent)`,
         borderRadius: 2,
         display: "flex",
         alignItems: "center",
@@ -452,11 +451,11 @@ export default function ProcurementDashboard() {
 
   if (loading && !kpis) {
     return (
-      <Container maxWidth={false} sx={{ py: 2, px: "75px" }}>
-        <Box sx={{ mb: 3 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <Box>
           <Skeleton variant="text" width={300} height={40} />
         </Box>
-        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2, mb: 3 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2 }}>
           {[1, 2, 3, 4].map(i => (
             <Skeleton key={i} variant="rectangular" height={120} sx={{ borderRadius: 2 }} />
           ))}
@@ -465,64 +464,62 @@ export default function ProcurementDashboard() {
           <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 2 }} />
           <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 2 }} />
         </Box>
-      </Container>
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth={false} sx={{ py: 2, px: "75px" }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header con filtros */}
-      <Paper elevation={0} sx={{ mb: 3, border: "1px solid var(--border)", borderRadius: 2, overflow: "hidden" }}>
-        <Box sx={{ py: 2, px: 3, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            {t('procurement_dashboard', 'PANEL DE COMPRAS SAP')}
-          </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          {t('procurement_dashboard', 'PANEL DE COMPRAS SAP')}
+        </Typography>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel sx={{ fontSize: "0.75rem" }}>Período</InputLabel>
-              <Select
-                value={periodo}
-                onChange={(e) => setPeriodo(e.target.value)}
-                label="Período"
-                sx={{ fontSize: "0.75rem" }}
-              >
-                <MenuItem value="mes">Último Mes</MenuItem>
-                <MenuItem value="trimestre">Último Trimestre</MenuItem>
-                <MenuItem value="anio">Último Año</MenuItem>
-              </Select>
-            </FormControl>
-
-            <IconButton
-              onClick={fetchData}
-              disabled={loading}
-              size="small"
-              sx={{ color: "var(--fg-muted)" }}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel sx={{ fontSize: "0.75rem" }}>Período</InputLabel>
+            <Select
+              value={periodo}
+              onChange={(e) => setPeriodo(e.target.value)}
+              label="Período"
+              sx={{ fontSize: "0.75rem" }}
             >
-              <RefreshIcon className={loading ? 'animate-spin' : ''} />
-            </IconButton>
+              <MenuItem value="mes">Último Mes</MenuItem>
+              <MenuItem value="trimestre">Último Trimestre</MenuItem>
+              <MenuItem value="anio">Último Año</MenuItem>
+            </Select>
+          </FormControl>
 
-            <Button
-              variant="contained"
-              startIcon={<UploadFileIcon />}
-              onClick={() => setShowImportModal(true)}
-              size="small"
-            >
-              Importar ZM65
-            </Button>
-          </Box>
+          <IconButton
+            onClick={fetchData}
+            disabled={loading}
+            size="small"
+            sx={{ color: "text.disabled" }}
+          >
+            <RefreshIcon className={loading ? 'animate-spin' : ''} />
+          </IconButton>
+
+          <Button
+            variant="contained"
+            startIcon={<UploadFileIcon />}
+            onClick={() => setShowImportModal(true)}
+            size="small"
+          >
+            Importar ZM65
+          </Button>
         </Box>
-      </Paper>
+      </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }} icon={<WarningAmberIcon />}>
+        <Alert severity="error" icon={<WarningAmberIcon />}>
           {error}
         </Alert>
       )}
 
       {/* KPIs Cards */}
       {kpis && (
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" }, gap: 2, mb: 3 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" }, gap: 2 }}>
           <StatCard
             title="Requisiciones (SOLPEDs)"
             value={kpis.totales?.solpeds?.toLocaleString() || 0}
@@ -555,10 +552,10 @@ export default function ProcurementDashboard() {
       )}
 
       {/* Segunda fila: OTIF Gauge + Top Proveedores */}
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 2fr" }, gap: 3, mb: 3 }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 2fr" }, gap: 3 }}>
         {/* OTIF Gauge */}
-        <Paper elevation={0} sx={{ p: 3, border: "1px solid var(--border)", borderRadius: 2 }}>
-          <Typography variant="subtitle1" fontWeight={600} color="var(--fg-strong)" sx={{ mb: 3 }}>
+        <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+          <Typography variant="h6" fontWeight={600} color="text.primary" sx={{ mb: 3 }}>
             Cumplimiento OTIF
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
@@ -566,13 +563,13 @@ export default function ProcurementDashboard() {
           </Box>
           <Box sx={{ mt: 3, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, textAlign: "center" }}>
             <Box>
-              <Typography variant="h5" fontWeight={700} color="var(--primary)">
+              <Typography variant="h5" fontWeight={700} color="primary.main">
                 {kpis?.cumplimiento?.pct_a_tiempo || 0}%
               </Typography>
               <Typography variant="caption" color="text.secondary">A Tiempo</Typography>
             </Box>
             <Box>
-              <Typography variant="h5" fontWeight={700} color="var(--success)">
+              <Typography variant="h5" fontWeight={700} color="success.main">
                 {kpis?.cumplimiento?.pct_completas || 0}%
               </Typography>
               <Typography variant="caption" color="text.secondary">Completas</Typography>
@@ -581,8 +578,8 @@ export default function ProcurementDashboard() {
         </Paper>
 
         {/* Top Proveedores */}
-        <Paper elevation={0} sx={{ p: 3, border: "1px solid var(--border)", borderRadius: 2 }}>
-          <Typography variant="subtitle1" fontWeight={600} color="var(--fg-strong)" sx={{ mb: 2 }}>
+        <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+          <Typography variant="h6" fontWeight={600} color="text.primary" sx={{ mb: 2 }}>
             Top 5 Proveedores por Volumen
           </Typography>
           <TopProveedoresTable data={kpis?.top_proveedores} />
@@ -591,8 +588,8 @@ export default function ProcurementDashboard() {
 
       {/* Pipeline */}
       {pipeline.length > 0 && (
-        <Paper elevation={0} sx={{ p: 3, border: "1px solid var(--border)", borderRadius: 2, mb: 3 }}>
-          <Typography variant="subtitle1" fontWeight={600} color="var(--fg-strong)" sx={{ mb: 3 }}>
+        <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+          <Typography variant="h6" fontWeight={600} color="text.primary" sx={{ mb: 3 }}>
             Embudo de Conversión
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}>
@@ -605,18 +602,18 @@ export default function ProcurementDashboard() {
                     sx={{
                       height: 8,
                       borderRadius: 4,
-                      bgcolor: "var(--border)",
-                      "& .MuiLinearProgress-bar": { bgcolor: "var(--primary)", borderRadius: 4 }
+                      bgcolor: 'grey.200',
+                      "& .MuiLinearProgress-bar": { borderRadius: 4 }
                     }}
                   />
                 </Box>
-                <Typography variant="h5" fontWeight={700} color="var(--fg-strong)">
+                <Typography variant="h5" fontWeight={700} color="text.primary">
                   {etapa.cantidad?.toLocaleString()}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" display="block">
                   {etapa.etapa}
                 </Typography>
-                <Typography variant="caption" color="var(--primary)" fontWeight={500}>
+                <Typography variant="caption" color="primary.main" fontWeight={500}>
                   {etapa.porcentaje}%
                 </Typography>
               </Box>
@@ -627,8 +624,8 @@ export default function ProcurementDashboard() {
 
       {/* Tabla Cumplimiento por Proveedor */}
       {compliance.length > 0 && (
-        <Paper elevation={0} sx={{ p: 3, border: "1px solid var(--border)", borderRadius: 2, mb: 3 }}>
-          <Typography variant="subtitle1" fontWeight={600} color="var(--fg-strong)" sx={{ mb: 2 }}>
+        <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+          <Typography variant="h6" fontWeight={600} color="text.primary" sx={{ mb: 2 }}>
             Cumplimiento por Proveedor
           </Typography>
           <ComplianceTable data={compliance} />
@@ -637,8 +634,8 @@ export default function ProcurementDashboard() {
 
       {/* Historial de Importaciones */}
       {importHistory.length > 0 && (
-        <Paper elevation={0} sx={{ p: 3, border: "1px solid var(--border)", borderRadius: 2 }}>
-          <Typography variant="subtitle1" fontWeight={600} color="var(--fg-strong)" sx={{ mb: 2 }}>
+        <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+          <Typography variant="h6" fontWeight={600} color="text.primary" sx={{ mb: 2 }}>
             Últimas Importaciones
           </Typography>
           <ImportHistoryTable data={importHistory} />
@@ -692,6 +689,6 @@ export default function ProcurementDashboard() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+    </Box>
   );
 }
