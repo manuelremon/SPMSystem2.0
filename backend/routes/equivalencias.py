@@ -5,10 +5,18 @@ CRUD completo con permisos para Admin y Planificador
 
 from flask import Blueprint, jsonify, request
 
-from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
+from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id, is_using_postgresql
 from backend.core.roles import require_auth, require_role
 
 bp = Blueprint("equivalencias", __name__, url_prefix="/api/equivalencias")
+
+# Configuración según entorno (PostgreSQL prod vs SQLite dev)
+_PG = is_using_postgresql()
+_DB_EQUIV = "spm" if _PG else "equivalentes"
+_TABLA_EQUIV = "cat_equivalencias" if _PG else "materiales_equivalencias"
+_DB_CATALOGO = "spm" if _PG else "catalogo_materiales"
+_TABLA_CATALOGO = "cat_materiales" if _PG else "catalogo_materiales"
+_COL_MAT_ID = "codigo" if _PG else "id_material"
 
 
 @bp.route("", methods=["GET"])
@@ -33,8 +41,8 @@ def listar_equivalencias():
     offset = int(request.args.get("offset", 0))
 
     try:
-        # Consultar equivalentes.db (datos SAP reales)
-        with get_db_connection("equivalentes") as conn:
+        # Consultar equivalencias SAP (PG: cat_equivalencias, SQLite: equivalentes.db)
+        with get_db_connection(_DB_EQUIV) as conn:
             cursor = conn.cursor()
 
             # Construir clausula WHERE dinamicamente
@@ -87,7 +95,7 @@ def listar_equivalencias():
             # Contar total (sin subquery para compatibilidad SQLite)
             count_query = f"""
                 SELECT COUNT(*) as total
-                FROM materiales_equivalencias
+                FROM {_TABLA_EQUIV}
                 WHERE {where_clause}
             """
             cursor.execute(count_query, params)
@@ -105,7 +113,7 @@ def listar_equivalencias():
                     tipo_equiv,
                     criterio,
                     motivo_equivalencia
-                FROM materiales_equivalencias
+                FROM {_TABLA_EQUIV}
                 WHERE {where_clause}
                 ORDER BY material_base
                 LIMIT ? OFFSET ?
@@ -156,11 +164,11 @@ def get_tipos_equivalencia():
         Lista de tipos de equivalencia únicos con sus etiquetas
     """
     try:
-        with get_db_connection("equivalentes") as conn:
+        with get_db_connection(_DB_EQUIV) as conn:
             cursor = conn.cursor()
-            query = """
+            query = f"""
                 SELECT DISTINCT tipo_equiv
-                FROM materiales_equivalencias
+                FROM {_TABLA_EQUIV}
                 WHERE tipo_equiv IS NOT NULL
                 ORDER BY tipo_equiv
             """
@@ -197,12 +205,12 @@ def equivalencias_por_material(codigo):
     Busca en equivalentes.db tabla equivalencias.
     """
     try:
-        # Buscar en master_materiales.db (tabla con datos SAP)
-        with get_db_connection("equivalentes") as conn:
+        # Buscar equivalencias SAP (PG: cat_equivalencias, SQLite: equivalentes.db)
+        with get_db_connection(_DB_EQUIV) as conn:
             cursor = conn.cursor()
             # Buscar donde el material es base O es equivalente (bidireccional)
             cursor.execute(
-                """
+                f"""
                 SELECT
                     material_base,
                     texto_breve_base,
@@ -211,7 +219,7 @@ def equivalencias_por_material(codigo):
                     tipo_equiv,
                     criterio,
                     motivo_equivalencia
-                FROM materiales_equivalencias
+                FROM {_TABLA_EQUIV}
                 WHERE material_base = ? OR material_equivalente = ?
             """,
                 (codigo, codigo),
@@ -316,22 +324,14 @@ def crear_equivalencia():
             400,
         )
 
-    # Fase 1: Verificar que los materiales existen en master_materiales.db
-    # Whitelist de tablas permitidas para catálogo de materiales
-    ALLOWED_CATALOG_TABLES = {"cat_materiales", "catalogo_materiales"}
+    # Fase 1: Verificar que los materiales existen en catálogo
     try:
-        with get_db_connection("catalogo_materiales") as conn:
+        with get_db_connection(_DB_CATALOGO) as conn:
             cursor = conn.cursor()
-            # En PostgreSQL usa cat_materiales, en SQLite usa catalogo_materiales
-            from backend.core.db import is_using_postgresql
-            tabla = "cat_materiales" if is_using_postgresql() else "catalogo_materiales"
-            # Validación explícita contra whitelist (defensa en profundidad)
-            if tabla not in ALLOWED_CATALOG_TABLES:
-                raise ValueError(f"Tabla no permitida: {tabla}")
-            cursor.execute(f"SELECT id_material FROM {tabla} WHERE id_material = ?", (codigo_original,))
+            cursor.execute(f"SELECT {_COL_MAT_ID} FROM {_TABLA_CATALOGO} WHERE {_COL_MAT_ID} = ?", (codigo_original,))
             original_exists = cursor.fetchone() is not None
 
-            cursor.execute(f"SELECT id_material FROM {tabla} WHERE id_material = ?", (codigo_equivalente,))
+            cursor.execute(f"SELECT {_COL_MAT_ID} FROM {_TABLA_CATALOGO} WHERE {_COL_MAT_ID} = ?", (codigo_equivalente,))
             equivalente_exists = cursor.fetchone() is not None
 
     except Exception as e:

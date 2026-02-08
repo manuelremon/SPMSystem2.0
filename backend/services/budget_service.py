@@ -677,6 +677,115 @@ class BURService:
 # ============================================================================
 
 
+def verificar_umbrales_presupuesto() -> Dict[str, Any]:
+    """
+    Verifica todos los presupuestos y genera alertas cuando el saldo
+    está por debajo de umbrales críticos (20%, 10%, agotado).
+
+    Se ejecuta periódicamente via ScheduledJobRunner.
+
+    Returns:
+        Dict con presupuestos revisados y alertas generadas
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    alertas_generadas = 0
+    presupuestos_revisados = 0
+
+    try:
+        conn = _connect()
+        try:
+            cur = conn.cursor()
+            _execute(cur, """
+                SELECT centro, sector, monto_cents, saldo_cents
+                FROM presupuesto
+                WHERE monto_cents > 0
+            """)
+            presupuestos = _fetchall(cur)
+        finally:
+            conn.close()
+
+        if not presupuestos:
+            return {"presupuestos_revisados": 0, "alertas_generadas": 0}
+
+        for p in presupuestos:
+            presupuestos_revisados += 1
+            centro = p["centro"]
+            sector = p["sector"]
+            monto = p["monto_cents"] or 0
+            saldo = p["saldo_cents"] or 0
+
+            if monto <= 0:
+                continue
+
+            porcentaje_restante = (saldo / monto) * 100
+
+            tipo_alerta = None
+            severidad = None
+
+            if saldo <= 0:
+                tipo_alerta = "presupuesto_agotado"
+                severidad = "danger"
+                mensaje = f"Presupuesto AGOTADO para {centro}/{sector}. Saldo: $0"
+            elif porcentaje_restante <= 10:
+                tipo_alerta = "presupuesto_critico"
+                severidad = "danger"
+                mensaje = (
+                    f"Presupuesto CRITICO para {centro}/{sector}: "
+                    f"solo queda {porcentaje_restante:.1f}% (${saldo/100:,.2f})"
+                )
+            elif porcentaje_restante <= 20:
+                tipo_alerta = "presupuesto_bajo"
+                severidad = "warning"
+                mensaje = (
+                    f"Presupuesto BAJO para {centro}/{sector}: "
+                    f"queda {porcentaje_restante:.1f}% (${saldo/100:,.2f})"
+                )
+
+            if tipo_alerta:
+                try:
+                    from backend.services.notification_service import NotificationService
+
+                    # Notificar a admins y coordinadores
+                    conn2 = _connect()
+                    try:
+                        cur2 = conn2.cursor()
+                        _execute(cur2, """
+                            SELECT DISTINCT u.id FROM usuario u
+                            JOIN usuario_rol ur ON u.id = ur.usuario_id
+                            JOIN rol r ON ur.rol_id = r.id
+                            WHERE LOWER(r.nombre) IN ('admin', 'administrador', 'coordinador', 'jefe')
+                            AND u.activo = 1
+                        """)
+                        admins = _fetchall(cur2)
+                    finally:
+                        conn2.close()
+
+                    for admin in admins:
+                        admin_id = admin["id"] if isinstance(admin, dict) else admin[0]
+                        NotificationService.create_notification(
+                            destinatario_id=str(admin_id),
+                            mensaje=mensaje,
+                            tipo="budget_alert",
+                        )
+                    alertas_generadas += 1
+                except Exception as e:
+                    logger.warning(f"Error notificando alerta presupuesto {centro}/{sector}: {e}")
+
+        logger.info(
+            f"[BUDGET] Revisión umbrales: {presupuestos_revisados} presupuestos, "
+            f"{alertas_generadas} alertas"
+        )
+    except Exception as e:
+        logger.error(f"[BUDGET] Error verificando umbrales: {e}")
+
+    return {
+        "presupuestos_revisados": presupuestos_revisados,
+        "alertas_generadas": alertas_generadas,
+    }
+
+
 def aprobar_solicitud_con_presupuesto(
     solicitud_id: int,
     solicitud: Dict[str, Any],

@@ -180,6 +180,7 @@ def _load_solicitudes(filters: dict, page: int = 1, page_size: int = 50):
             SELECT
                 s.id, s.id_usuario, s.centro, s.sector, s.justificacion, s.centro_costos, s.almacen_virtual,
                 s.criticidad, s.fecha_necesidad, s.status, s.total_monto, s.planner_id, s.created_at, s.updated_at, s.data_json, s.aprobador_id,
+                s.ai_score, s.ai_priority,
                 u.nombre AS solicitante_nombre, u.apellido AS solicitante_apellido,
                 ua.nombre AS aprobador_nombre, ua.apellido AS aprobador_apellido,
                 up.nombre AS planner_nombre, up.apellido AS planner_apellido
@@ -188,7 +189,7 @@ def _load_solicitudes(filters: dict, page: int = 1, page_size: int = 50):
             LEFT JOIN usuario ua ON s.aprobador_id = ua.id_spm
             LEFT JOIN usuario up ON s.planner_id = up.id_spm
             {where_sql}
-            ORDER BY s.updated_at DESC
+            ORDER BY COALESCE(s.ai_score, 0) DESC, s.updated_at DESC
             LIMIT ? OFFSET ?
             """,
             params + [page_size, offset],
@@ -1186,9 +1187,9 @@ def ejecutar_acciones_post_tratamiento(solicitud_id):
             fuentes = DecisionAbastecimientoRepository.get_fuentes(decision["id"])
 
             for fuente in fuentes:
-                tipo_fuente = fuente.get("tipo_fuente", "")
-                centro_origen = fuente.get("centro_origen", "")
-                almacen_origen = fuente.get("almacen_origen", "")
+                tipo_fuente = fuente.get("tipo_fuente") or ""
+                centro_origen = fuente.get("centro_origen") or ""
+                almacen_origen = fuente.get("almacen_origen") or ""
                 cantidad = fuente.get("cantidad_asignada", 0)
 
                 accion = {
@@ -1929,6 +1930,8 @@ def _enviar_consulta_stock(
     Returns: Lista de user_ids notificados
     """
     notificados = []
+    centro = centro or ""
+    almacen = almacen or ""
     mensaje = (
         f"Consulta disponibilidad: {cantidad} uds de {material} "
         f"({descripcion}) - {centro}/{almacen}"
@@ -2042,3 +2045,118 @@ def _enviar_notificacion_finalizacion(solicitud_id: int):
                 )
     except Exception as e:
         logging.warning(f"Error notificando finalizacion {solicitud_id}: {e}")
+
+
+@planner_bp.route('/simular', methods=['POST'])
+@require_auth
+def simular_compra():
+    """
+    Feature 4.2: Simula el impacto de una compra propuesta.
+
+    Body JSON:
+        material_codigo: str
+        centro: str
+        cantidad: int
+        precio_unitario: float (optional)
+
+    Returns:
+        Simulación con impacto en cobertura, presupuesto y stock
+    """
+    from backend.services.mrp_service import calcular_requerimiento_neto
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "JSON requerido"}), 400
+
+    material_codigo = data.get('material_codigo')
+    centro = data.get('centro')
+    cantidad = data.get('cantidad', 0)
+    precio_unitario = data.get('precio_unitario', 0)
+
+    if not material_codigo or not centro or cantidad <= 0:
+        return jsonify({"error": "material_codigo, centro y cantidad > 0 requeridos"}), 400
+
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+
+            # Get current material data
+            cur.execute("""
+                SELECT codigo_material, descripcion, stock_actual, stock_seguridad,
+                       punto_pedido, consumo_promedio_mensual, lead_time_dias
+                FROM materiales_mrp
+                WHERE codigo_material = ? AND centro = ?
+            """, (material_codigo, centro))
+            mat = cur.fetchone()
+
+            if not mat:
+                return jsonify({"error": "Material no encontrado en MRP"}), 404
+
+            mat_dict = dict(mat) if hasattr(mat, 'keys') else {
+                'stock_actual': mat[2], 'stock_seguridad': mat[3],
+                'punto_pedido': mat[4], 'consumo_promedio_mensual': mat[5],
+                'lead_time_dias': mat[6], 'descripcion': mat[1]
+            }
+
+            stock_actual = mat_dict.get('stock_actual') or 0
+            consumo_mensual = mat_dict.get('consumo_promedio_mensual') or 0
+            consumo_diario = consumo_mensual / 30 if consumo_mensual > 0 else 0
+            ss = mat_dict.get('stock_seguridad') or 0
+            pp = mat_dict.get('punto_pedido') or 0
+
+            # Current coverage
+            cobertura_actual = round(stock_actual / consumo_diario, 1) if consumo_diario > 0 else 0
+
+            # Simulated coverage after purchase
+            stock_simulado = stock_actual + cantidad
+            cobertura_simulada = round(stock_simulado / consumo_diario, 1) if consumo_diario > 0 else 0
+
+            # Budget impact
+            costo_total = round(cantidad * precio_unitario, 2) if precio_unitario > 0 else 0
+
+            # Status change
+            estado_actual = "quiebre" if stock_actual <= 0 else ("critico" if stock_actual < ss else ("bajo_punto_pedido" if stock_actual < pp else "normal"))
+            estado_simulado = "quiebre" if stock_simulado <= 0 else ("critico" if stock_simulado < ss else ("bajo_punto_pedido" if stock_simulado < pp else "normal"))
+
+            # Get budget info if we have price
+            presupuesto_impacto = None
+            if precio_unitario > 0:
+                # Get user's centro/sector budget
+                cur.execute("""
+                    SELECT saldo_cents, monto_cents FROM presupuesto WHERE centro = ? LIMIT 1
+                """, (centro,))
+                budget_row = cur.fetchone()
+                if budget_row:
+                    budget_dict = dict(budget_row) if hasattr(budget_row, 'keys') else {'saldo_cents': budget_row[0], 'monto_cents': budget_row[1]}
+                    saldo = budget_dict.get('saldo_cents', 0) or 0
+                    presupuesto_impacto = {
+                        "saldo_actual_usd": round(saldo / 100, 2),
+                        "costo_compra_usd": costo_total,
+                        "saldo_post_compra_usd": round((saldo / 100) - costo_total, 2),
+                        "pct_presupuesto": round(costo_total / (saldo / 100) * 100, 1) if saldo > 0 else 0
+                    }
+
+        return jsonify({
+            "material": material_codigo,
+            "descripcion": mat_dict.get('descripcion', ''),
+            "cantidad_propuesta": cantidad,
+            "precio_unitario": precio_unitario,
+            "simulacion": {
+                "stock_actual": stock_actual,
+                "stock_simulado": stock_simulado,
+                "cobertura_actual_dias": cobertura_actual,
+                "cobertura_simulada_dias": cobertura_simulada,
+                "ganancia_cobertura_dias": round(cobertura_simulada - cobertura_actual, 1),
+                "estado_actual": estado_actual,
+                "estado_simulado": estado_simulado,
+                "stock_seguridad": ss,
+                "punto_pedido": pp,
+                "consumo_diario": round(consumo_diario, 2)
+            },
+            "presupuesto": presupuesto_impacto,
+            "costo_total": costo_total
+        })
+
+    except Exception as e:
+        logger.error(f"Error en simulación: {e}")
+        return jsonify({"error": "Error al simular compra"}), 500

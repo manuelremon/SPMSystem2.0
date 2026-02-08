@@ -11,6 +11,7 @@ from flask import Blueprint, jsonify
 from backend.core.cache import cached, kpi_cache, invalidate_kpi_cache
 from backend.core.db import (
     get_db_connection,
+    is_using_postgresql,
     sql_date_diff_days,
     sql_date_relative,
     sql_format_date,
@@ -30,6 +31,7 @@ bp = Blueprint("kpis", __name__, url_prefix="/api/kpis")
 
 
 @bp.route("/stock-inmovilizado", methods=["GET"])
+@require_auth
 def get_stock_inmovilizado():
     """
     Obtiene materiales inmovilizados con información de centro.
@@ -77,7 +79,7 @@ def get_stock_inmovilizado():
         limit = int(request.args.get("limit", 50))
         limit = min(max(limit, 1), 100)  # Entre 1 y 100
 
-        with get_db_connection("sap_data") as conn:
+        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
             cursor = conn.cursor()
 
             # Primero obtener totales globales (sin filtros de centro)
@@ -192,6 +194,7 @@ def get_stock_inmovilizado():
 
 
 @bp.route("/compras-evitadas-detalle", methods=["GET"])
+@require_auth
 def get_compras_evitadas_detalle():
     """
     Obtiene detalle de compras evitadas por solicitud para filtrado en frontend.
@@ -267,6 +270,7 @@ def get_compras_evitadas_detalle():
 
 
 @bp.route("", methods=["GET"])
+@require_auth
 @cached(kpi_cache, "kpis")
 def get_kpis():
     """

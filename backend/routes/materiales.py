@@ -9,14 +9,23 @@ Busca en master_materiales.db que contiene:
 
 from flask import Blueprint, jsonify, request
 
-from backend.core.db import get_db_connection
+from backend.core.db import get_db_connection, is_using_postgresql
+from backend.core.roles import require_auth
 
 bp = Blueprint("materiales", __name__, url_prefix="/api/materiales")
 
+# Tabla y conexión según entorno
+_PG = is_using_postgresql()
+_TABLA = "cat_materiales" if _PG else "catalogo_materiales"
+_DB = "spm" if _PG else "master_materiales"
+# Mapeo de columnas: SQLite usa id_material, PG usa codigo
+_COL_ID = "codigo" if _PG else "id_material"
+_COL_GRUPO = "grupo_articulos" if _PG else "grupo_articulo"
+
 
 def _fetch_catalogo(query: str, params: tuple) -> list[dict]:
-    """Ejecuta una query en master_materiales.db y retorna lista de diccionarios."""
-    with get_db_connection("master_materiales") as conn:
+    """Ejecuta una query en la BD de catálogo y retorna lista de diccionarios."""
+    with get_db_connection(_DB) as conn:
         cur = conn.cursor()
         cur.execute(query, params)
         rows = cur.fetchall()
@@ -25,6 +34,7 @@ def _fetch_catalogo(query: str, params: tuple) -> list[dict]:
 
 
 @bp.route("", methods=["GET"])
+@require_auth
 def search_materiales():
     """
     Búsqueda rápida de materiales por código o descripción.
@@ -52,7 +62,7 @@ def search_materiales():
     # Búsqueda por código o descripción (OR)
     search_conditions = []
     if q_codigo:
-        search_conditions.append("UPPER(id_material) LIKE UPPER(?)")
+        search_conditions.append(f"UPPER({_COL_ID}) LIKE UPPER(?)")
         params.append(f"%{q_codigo}%")
     if q_desc:
         search_conditions.append("UPPER(descripcion) LIKE UPPER(?)")
@@ -63,17 +73,17 @@ def search_materiales():
 
     # Filtro por grupo de artículos (AND)
     if q_grupo:
-        filters.append("UPPER(grupo_articulo) LIKE UPPER(?)")
+        filters.append(f"UPPER({_COL_GRUPO}) LIKE UPPER(?)")
         params.append(f"%{q_grupo}%")
 
     where = "WHERE " + " AND ".join(filters) if filters else ""
 
     query = f"""
-        SELECT id_material AS codigo, descripcion, descripcion_larga,
-               grupo_articulo AS grupo_articulos, unidad_medida, precio_usd
-        FROM catalogo_materiales
+        SELECT {_COL_ID} AS codigo, descripcion, descripcion_larga,
+               {_COL_GRUPO} AS grupo_articulos, unidad_medida, precio_usd
+        FROM {_TABLA}
         {where}
-        ORDER BY id_material ASC
+        ORDER BY {_COL_ID} ASC
         LIMIT ?
     """
     params.append(limit)
@@ -86,6 +96,7 @@ def search_materiales():
 
 
 @bp.route("/<codigo>", methods=["GET"])
+@require_auth
 def get_material(codigo: str):
     """
     Obtiene un material específico por su código desde master_materiales.db.
@@ -93,16 +104,16 @@ def get_material(codigo: str):
     Returns:
         Material completo o 404 si no existe
     """
-    query = """
+    query = f"""
         SELECT
-            id_material AS codigo,
+            {_COL_ID} AS codigo,
             descripcion,
             descripcion_larga,
-            grupo_articulo AS grupo_articulos,
+            {_COL_GRUPO} AS grupo_articulos,
             unidad_medida,
             precio_usd
-        FROM catalogo_materiales
-        WHERE id_material = ?
+        FROM {_TABLA}
+        WHERE {_COL_ID} = ?
     """
 
     try:
@@ -122,6 +133,7 @@ def get_material(codigo: str):
 
 
 @bp.route("/grupos", methods=["GET"])
+@require_auth
 def get_grupos():
     """
     Obtiene la lista de grupos de artículos únicos desde master_materiales.db.
@@ -140,14 +152,14 @@ def get_grupos():
     params = []
 
     if q:
-        where = "WHERE UPPER(grupo_articulo) LIKE UPPER(?)"
+        where = f"WHERE UPPER({_COL_GRUPO}) LIKE UPPER(?)"
         params.append(f"%{q}%")
 
     query = f"""
-        SELECT DISTINCT grupo_articulo AS grupo
-        FROM catalogo_materiales
+        SELECT DISTINCT {_COL_GRUPO} AS grupo
+        FROM {_TABLA}
         {where}
-        ORDER BY grupo_articulo ASC
+        ORDER BY {_COL_GRUPO} ASC
         LIMIT ?
     """
     params.append(limit)
@@ -162,6 +174,7 @@ def get_grupos():
 
 
 @bp.route("/stats", methods=["GET"])
+@require_auth
 def get_stats():
     """
     Obtiene estadísticas del catálogo de materiales desde master_materiales.db.
@@ -170,7 +183,7 @@ def get_stats():
         Estadísticas del catálogo (total, con precio, precios min/max, grupos únicos)
     """
     try:
-        with get_db_connection("master_materiales") as conn:
+        with get_db_connection(_DB) as conn:
             cur = conn.cursor()
 
             stats = {}
@@ -180,21 +193,21 @@ def get_stats():
                 return row[idx] if row else 0
 
             # Total de materiales
-            cur.execute("SELECT COUNT(*) FROM catalogo_materiales")
+            cur.execute(f"SELECT COUNT(*) FROM {_TABLA}")
             stats["total"] = get_val(cur.fetchone(), 0)
 
             # Materiales con precio
-            cur.execute("SELECT COUNT(*) FROM catalogo_materiales WHERE precio_usd > 0")
+            cur.execute(f"SELECT COUNT(*) FROM {_TABLA} WHERE precio_usd > 0")
             stats["con_precio"] = get_val(cur.fetchone(), 0)
 
             # Precios min/max
-            cur.execute("SELECT COALESCE(MIN(precio_usd), 0), COALESCE(MAX(precio_usd), 0) FROM catalogo_materiales")
+            cur.execute(f"SELECT COALESCE(MIN(precio_usd), 0), COALESCE(MAX(precio_usd), 0) FROM {_TABLA}")
             row = cur.fetchone()
             stats["precio_min"] = get_val(row, 0)
             stats["precio_max"] = get_val(row, 1)
 
             # Grupos únicos
-            cur.execute("SELECT COUNT(DISTINCT grupo_articulo) FROM catalogo_materiales WHERE grupo_articulo IS NOT NULL AND grupo_articulo != ''")
+            cur.execute(f"SELECT COUNT(DISTINCT {_COL_GRUPO}) FROM {_TABLA} WHERE {_COL_GRUPO} IS NOT NULL AND {_COL_GRUPO} != ''")
             stats["grupos_unicos"] = get_val(cur.fetchone(), 0)
 
         return jsonify({"ok": True, "data": stats}), 200

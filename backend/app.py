@@ -118,6 +118,65 @@ def create_app(config_override: dict | None = None) -> Flask:
         except Exception as e:
             app.logger.warning(f"Vertex tables check skipped: {e}")
 
+        # Ensure SAP procurement views exist (idempotent, PostgreSQL only)
+        try:
+            from backend.routes.procurement import ensure_procurement_views
+            ensure_procurement_views()
+        except Exception as e:
+            app.logger.warning(f"Procurement views check skipped: {e}")
+
+    # ==================== SCHEDULED JOBS ====================
+
+    if settings.ENV != "test" and not config_override:
+        try:
+            from backend.core.background_jobs import get_scheduler
+
+            scheduler = get_scheduler()
+
+            # Revisión MRP cada 4 horas (14400 seg)
+            def _run_mrp_alerts():
+                with app.app_context():
+                    from backend.services.mrp_service import ejecutar_revision_alertas
+                    ejecutar_revision_alertas()
+
+            scheduler.add_schedule(
+                name="mrp_alerts_review",
+                func=_run_mrp_alerts,
+                interval_seconds=14400,
+                run_on_start=False,
+            )
+
+            # Verificación de presupuestos cada 1 hora (3600 seg)
+            def _run_budget_check():
+                with app.app_context():
+                    from backend.services.budget_service import verificar_umbrales_presupuesto
+                    verificar_umbrales_presupuesto()
+
+            scheduler.add_schedule(
+                name="budget_threshold_check",
+                func=_run_budget_check,
+                interval_seconds=3600,
+                run_on_start=False,
+            )
+
+            # Limpieza de notificaciones antiguas cada 24 horas (86400 seg)
+            def _run_notification_cleanup():
+                with app.app_context():
+                    from backend.services.notification_service import cleanup_old_notifications
+                    cleanup_old_notifications(days_old=30)
+
+            scheduler.add_schedule(
+                name="notification_cleanup",
+                func=_run_notification_cleanup,
+                interval_seconds=86400,
+                run_on_start=False,
+            )
+
+            scheduler.start()
+            app.logger.info(f"ScheduledJobRunner started with {len(scheduler.get_status())} jobs")
+        except Exception as e:
+            app.logger.warning(f"ScheduledJobRunner init failed: {e}")
+
     # ==================== BLUEPRINTS ====================
 
     register_blueprints(app)

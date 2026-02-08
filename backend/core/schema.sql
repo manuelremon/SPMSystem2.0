@@ -2,7 +2,7 @@
 -- Este archivo se ejecuta automáticamente si la BD está vacía
 
 -- Tabla principal de usuarios
-CREATE TABLE IF NOT EXISTS usuarios(
+CREATE TABLE IF NOT EXISTS usuario(
     id_spm TEXT PRIMARY KEY,
     nombre TEXT NOT NULL,
     apellido TEXT NOT NULL,
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS user_profile_requests(
     estado TEXT NOT NULL DEFAULT 'pendiente',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(usuario_id) REFERENCES usuarios(id_spm)
+    FOREIGN KEY(usuario_id) REFERENCES usuario(id_spm)
 );
 
 -- NOTA: El catálogo de materiales (44,461 items) está en data/catalogo_materiales.db
@@ -54,10 +54,12 @@ CREATE TABLE IF NOT EXISTS solicitudes(
     planner_id TEXT,
     total_monto REAL DEFAULT 0,
     notificado_at TEXT,
+    ai_score REAL DEFAULT NULL,
+    ai_priority TEXT DEFAULT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(id_usuario) REFERENCES usuarios(id_spm),
-    FOREIGN KEY(planner_id) REFERENCES usuarios(id_spm)
+    FOREIGN KEY(id_usuario) REFERENCES usuario(id_spm),
+    FOREIGN KEY(planner_id) REFERENCES usuario(id_spm)
 );
 
 -- Asignaciones de planificadores
@@ -99,8 +101,8 @@ CREATE TABLE IF NOT EXISTS presupuesto_incorporaciones(
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     resolved_at TEXT,
-    FOREIGN KEY(solicitante_id) REFERENCES usuarios(id_spm),
-    FOREIGN KEY(aprobador_id) REFERENCES usuarios(id_spm)
+    FOREIGN KEY(solicitante_id) REFERENCES usuario(id_spm),
+    FOREIGN KEY(aprobador_id) REFERENCES usuario(id_spm)
 );
 
 -- Archivos adjuntos de solicitudes
@@ -115,7 +117,7 @@ CREATE TABLE IF NOT EXISTS archivos_adjuntos(
     usuario_id TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(solicitud_id) REFERENCES solicitudes(id) ON DELETE CASCADE,
-    FOREIGN KEY(usuario_id) REFERENCES usuarios(id_spm)
+    FOREIGN KEY(usuario_id) REFERENCES usuario(id_spm)
 );
 
 -- Tratamiento de items de solicitud
@@ -324,7 +326,7 @@ CREATE TABLE IF NOT EXISTS proveedores_internos (
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (centro, almacen),
-    FOREIGN KEY (referente_id) REFERENCES usuarios(id_spm)
+    FOREIGN KEY (referente_id) REFERENCES usuario(id_spm)
 );
 
 -- NOTA: Equivalencias de materiales (34,865 items) están en data/equivalentes.db
@@ -386,7 +388,7 @@ CREATE TABLE IF NOT EXISTS decision_abastecimiento (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(solicitud_id, item_index),
     FOREIGN KEY (solicitud_id) REFERENCES solicitudes(id) ON DELETE CASCADE,
-    FOREIGN KEY (planner_id) REFERENCES usuarios(id_spm)
+    FOREIGN KEY (planner_id) REFERENCES usuario(id_spm)
 );
 
 -- Fuentes seleccionadas para cada decision (N fuentes por item)
@@ -435,8 +437,8 @@ CREATE TABLE IF NOT EXISTS mensajes (
     metadata_json TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(remitente_id) REFERENCES usuarios(id_spm),
-    FOREIGN KEY(destinatario_id) REFERENCES usuarios(id_spm),
+    FOREIGN KEY(remitente_id) REFERENCES usuario(id_spm),
+    FOREIGN KEY(destinatario_id) REFERENCES usuario(id_spm),
     FOREIGN KEY(solicitud_id) REFERENCES solicitudes(id),
     FOREIGN KEY(parent_id) REFERENCES mensajes(id)
 );
@@ -620,7 +622,7 @@ CREATE TABLE IF NOT EXISTS config_lotes_excluidos (
 -- ============================================================================
 
 -- Usuarios del sistema (DATOS ANONIMIZADOS)
-INSERT OR IGNORE INTO usuarios (id_spm, nombre, apellido, rol, contrasena, mail, posicion, sector, centros, jefe, gerente1, gerente2, telefono, estado_registro, id_ypf, mail_respaldo, almacenes) VALUES
+INSERT OR IGNORE INTO usuario (id_spm, nombre, apellido, rol, contrasena, mail, posicion, sector, centros, jefe, gerente1, gerente2, telefono, estado_registro, id_ypf, mail_respaldo, almacenes) VALUES
 ('1', 'Admin', 'Demo', 'Admin, Administrador, Aprobador_presupuestos, Aprobador_solicitudes, Planificador', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'admin@demo.local', 'Administrador General', 'Mantenimiento', 'AA101,AA102', NULL, NULL, NULL, '', 'Activo', '', NULL, NULL),
 ('2', 'Laura', 'Planificador', 'Planificador, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'planner1@demo.local', 'Planificador Senior', 'Planificacion', 'AA104', '6', '6', '7', '', 'Activo', '', NULL, NULL),
 ('3', 'Sergio', 'Planificador', 'Planificador, Solicitante', '$2b$12$VmNDvYxnTQKZfQQU9CmKt.Nr0K9Qui5WG1WqcVBpLI/NxhgJW3xkG', 'planner2@demo.local', 'Planificador', 'Mantenimiento', 'AA101,AA102', '6', '6', '7', '', 'Activo', '', NULL, NULL),

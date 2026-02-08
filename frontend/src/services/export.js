@@ -209,6 +209,23 @@ export const exportToXLSX = async (data, filename = 'export', sheetName = 'Datos
 }
 
 /**
+ * Exportar recomendaciones de compra
+ * @param {Object} params
+ * @param {string} params.formato - xlsx, csv (default: xlsx)
+ * @param {string} params.centro - Centro de distribución (requerido)
+ * @param {number} params.limit - Máximo de recomendaciones
+ * @returns {Promise<void>}
+ */
+export const exportRecomendaciones = async ({
+  formato = 'xlsx',
+  centro,
+  limit = 50
+} = {}) => {
+  const params = { formato, centro, limit }
+  await downloadFile('/export/recomendaciones', params, `recomendaciones_compra_${centro}_${new Date().toISOString().split('T')[0]}`)
+}
+
+/**
  * Obtener formatos disponibles
  * @returns {Promise<Object>} Lista de formatos y default
  */
@@ -229,6 +246,7 @@ export default {
   exportKPIs,
   exportUsuarios,
   exportToXLSX,
+  exportRecomendaciones,
   getFormatos,
   FORMATOS
 }

@@ -110,6 +110,28 @@ export const procurementService = {
   getAnalytics: () =>
     api.get(`${BASE_URL}/analytics`),
 
+  // ==================== SCORECARD Y PRECIOS ====================
+
+  /**
+   * Obtiene scorecard de un proveedor
+   * @param {string} proveedor - CUIT o nombre
+   * @param {Object} params
+   * @param {string} params.periodo - 'mes', 'trimestre', 'anio'
+   */
+  getScorecard: (proveedor, params = {}) =>
+    api.get(`${BASE_URL}/scorecard/${encodeURIComponent(proveedor)}`, { params }),
+
+  /**
+   * Obtiene historial de precios de un material
+   * @param {string} materialCodigo - Código del material
+   * @param {Object} params
+   * @param {string} params.centro - Filtrar por centro
+   * @param {string} params.moneda - Filtrar por moneda
+   * @param {number} params.limit - Máximo registros
+   */
+  getPriceHistory: (materialCodigo, params = {}) =>
+    api.get(`${BASE_URL}/price-history/${encodeURIComponent(materialCodigo)}`, { params }),
+
   // ==================== IMPORTACION ====================
 
   /**

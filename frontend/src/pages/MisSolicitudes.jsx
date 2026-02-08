@@ -439,14 +439,14 @@ export default function MisSolicitudes() {
     fetchSolicitudes();
   }, [fetchSolicitudes]);
 
-  // Mapeo de tabs a estados
+  // Mapeo de tabs a estados (cubre valores en ingles y espanol legacy)
   const tabFilters = [
     { label: "Todas", key: "todas", filter: () => true },
-    { label: "Borradores", key: "borradores", filter: (e) => e === "draft" || e === "borrador" },
-    { label: "Enviadas", key: "enviadas", filter: (e) => e === "submitted" || e === "enviada" },
-    { label: "Aprobadas", key: "aprobadas", filter: (e) => ["approved", "aprobada", "in_planning", "in_treatment", "treated"].includes(e) },
-    { label: "Rechazadas", key: "rechazadas", filter: (e) => e === "rejected" || e === "rechazada" || e === "cancelled" },
-    { label: "Cerradas", key: "cerradas", filter: (e) => e === "closed" || e === "completed" },
+    { label: "Borradores", key: "borradores", filter: (e) => ["draft", "borrador"].includes(e) },
+    { label: "Enviadas", key: "enviadas", filter: (e) => ["submitted", "enviada", "pendiente", "pendiente_de_aprobacion"].includes(e) },
+    { label: "Aprobadas", key: "aprobadas", filter: (e) => ["approved", "aprobada", "in_planning", "in_treatment", "treated", "en_planificacion", "en_tratamiento", "tratado"].includes(e) },
+    { label: "Rechazadas", key: "rechazadas", filter: (e) => ["rejected", "rechazada", "cancelled", "cancelada"].includes(e) },
+    { label: "Cerradas", key: "cerradas", filter: (e) => ["closed", "completed", "cerrada", "completada", "finalizada"].includes(e) },
   ];
 
   // Calcular estadisticas

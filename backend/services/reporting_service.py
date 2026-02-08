@@ -186,6 +186,12 @@ class ReportingService:
                 cursor.execute(query, params)
                 solicitudes = [dict(row) for row in cursor.fetchall()]
 
+                # Traducir estados de inglés a español para export
+                from backend.core.fsm import ESTADO_NUEVO_A_DISPLAY
+                for sol in solicitudes:
+                    estado_raw = sol.get("estado", "")
+                    sol["estado"] = ESTADO_NUEVO_A_DISPLAY.get(estado_raw, estado_raw)
+
                 # Obtener items para cada solicitud
                 if incluir_items and solicitudes:
                     solicitud_ids = [s["id"] for s in solicitudes]

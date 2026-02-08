@@ -456,14 +456,14 @@ export default function TodasLasSolicitudes() {
     fetchSolicitudes();
   }, [fetchSolicitudes]);
 
-  // Mapeo de tabs a estados
+  // Mapeo de tabs a estados (cubre valores en ingles y espanol legacy)
   const tabFilters = [
     { label: "Todas", key: "todas", filter: () => true },
-    { label: "Pendientes", key: "pendientes", filter: (e) => e === "submitted" || e === "enviada" },
-    { label: "En Proceso", key: "en_proceso", filter: (e) => ["processing", "in_planning", "in_treatment"].includes(e) },
-    { label: "Aprobadas", key: "completadas", filter: (e) => ["approved", "aprobada", "treated"].includes(e) },
-    { label: "Rechazadas", key: "rechazadas", filter: (e) => e === "rejected" || e === "rechazada" || e === "cancelled" },
-    { label: "Cerradas", key: "cerradas", filter: (e) => e === "closed" || e === "completed" },
+    { label: "Pendientes", key: "pendientes", filter: (e) => ["submitted", "enviada", "pendiente", "pendiente_de_aprobacion"].includes(e) },
+    { label: "En Proceso", key: "en_proceso", filter: (e) => ["processing", "in_planning", "in_treatment", "en_planificacion", "en_tratamiento", "en progreso", "en_progreso"].includes(e) },
+    { label: "Aprobadas", key: "completadas", filter: (e) => ["approved", "aprobada", "treated", "tratado"].includes(e) },
+    { label: "Rechazadas", key: "rechazadas", filter: (e) => ["rejected", "rechazada", "cancelled", "cancelada"].includes(e) },
+    { label: "Cerradas", key: "cerradas", filter: (e) => ["closed", "completed", "cerrada", "completada", "finalizada"].includes(e) },
   ];
 
   // Calcular estadísticas
@@ -588,6 +588,23 @@ export default function TodasLasSolicitudes() {
               sx={{ fontWeight: 600, fontSize: "0.875rem", color: config.color }}
             >
               {config.label}
+            </Typography>
+          );
+        },
+      },
+      {
+        field: "ai_priority",
+        headerName: "Prioridad IA",
+        flex: 0.5,
+        minWidth: 80,
+        cellRenderer: (params) => {
+          const priority = params.value;
+          if (!priority) return null;
+          const colors = { 'Critica': '#ef4444', 'Alta': '#f59e0b', 'Media': '#3b82f6', 'Baja': '#6b7280' };
+          return (
+            <Typography variant="body2" fontWeight={700}
+              sx={{ color: colors[priority] || 'var(--fg-muted)', fontSize: '0.75rem' }}>
+              {priority}
             </Typography>
           );
         },

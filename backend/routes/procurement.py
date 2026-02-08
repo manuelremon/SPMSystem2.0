@@ -33,6 +33,122 @@ logger = logging.getLogger(__name__)
 procurement_bp = Blueprint('procurement', __name__, url_prefix='/api/procurement')
 
 
+def ensure_procurement_views():
+    """Crea vistas SAP de procurement si no existen (idempotente)."""
+    if not is_postgres():
+        return
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                CREATE OR REPLACE VIEW v_sap_cumplimiento AS
+                SELECT
+                    p.proveedor_cuit,
+                    p.proveedor_nombre,
+                    COUNT(*) as total_pedidos,
+                    SUM(CASE WHEN p.fecha_recepcion <= s.fecha_entrega_solicitada THEN 1 ELSE 0 END) as entregas_a_tiempo,
+                    SUM(CASE WHEN p.cantidad_recepcionada >= p.cantidad_pedida THEN 1 ELSE 0 END) as entregas_completas,
+                    SUM(CASE
+                        WHEN p.fecha_recepcion <= s.fecha_entrega_solicitada
+                         AND p.cantidad_recepcionada >= p.cantidad_pedida
+                        THEN 1 ELSE 0
+                    END) as otif_count,
+                    ROUND(100.0 * SUM(CASE WHEN p.fecha_recepcion <= s.fecha_entrega_solicitada THEN 1 ELSE 0 END) / COUNT(*), 1) as pct_a_tiempo,
+                    ROUND(100.0 * SUM(CASE WHEN p.cantidad_recepcionada >= p.cantidad_pedida THEN 1 ELSE 0 END) / COUNT(*), 1) as pct_completas,
+                    ROUND(100.0 * SUM(CASE
+                        WHEN p.fecha_recepcion <= s.fecha_entrega_solicitada
+                         AND p.cantidad_recepcionada >= p.cantidad_pedida
+                        THEN 1 ELSE 0
+                    END) / COUNT(*), 1) as pct_otif,
+                    SUM(p.valor_pedido) as valor_total_pedido,
+                    SUM(p.valor_recibido) as valor_total_recibido
+                FROM sap_purchase_orders p
+                INNER JOIN sap_solpeds s
+                    ON p.solped_id = s.solped_id
+                    AND p.solped_posicion = s.posicion
+                WHERE p.fecha_recepcion IS NOT NULL
+                GROUP BY p.proveedor_cuit, p.proveedor_nombre
+            """)
+            cur.execute("""
+                CREATE OR REPLACE VIEW v_sap_lead_times AS
+                SELECT
+                    s.material_codigo,
+                    s.material_descripcion,
+                    p.proveedor_nombre,
+                    s.centro,
+                    s.solped_id,
+                    s.posicion as solped_posicion,
+                    p.pedido_id,
+                    s.fecha_creacion as fecha_solicitud,
+                    p.fecha_pedido,
+                    p.fecha_recepcion,
+                    s.fecha_entrega_solicitada,
+                    EXTRACT(DAY FROM (p.fecha_pedido - s.fecha_creacion))::INTEGER as dias_aprobacion,
+                    EXTRACT(DAY FROM (p.fecha_recepcion - p.fecha_pedido))::INTEGER as dias_entrega,
+                    EXTRACT(DAY FROM (p.fecha_recepcion - s.fecha_creacion))::INTEGER as dias_total,
+                    EXTRACT(DAY FROM (p.fecha_recepcion - s.fecha_entrega_solicitada))::INTEGER as dias_desviacion,
+                    s.cantidad,
+                    s.precio_unitario,
+                    s.importe_total,
+                    s.moneda
+                FROM sap_solpeds s
+                INNER JOIN sap_purchase_orders p
+                    ON s.solped_id = p.solped_id
+                    AND s.posicion = p.solped_posicion
+                WHERE p.fecha_recepcion IS NOT NULL
+                  AND p.fecha_pedido IS NOT NULL
+            """)
+            cur.execute("""
+                CREATE OR REPLACE VIEW v_sap_resumen_centro AS
+                SELECT
+                    s.centro,
+                    COUNT(DISTINCT s.solped_id) as total_solpeds,
+                    COUNT(*) as total_items,
+                    COUNT(DISTINCT s.material_codigo) as materiales_unicos,
+                    COUNT(DISTINCT p.proveedor_cuit) as proveedores_unicos,
+                    SUM(CASE WHEN s.estrategia_liberacion = 'LIBERADA' THEN 1 ELSE 0 END) as solpeds_liberadas,
+                    SUM(CASE WHEN p.fecha_recepcion IS NOT NULL THEN 1 ELSE 0 END) as items_recibidos,
+                    SUM(s.importe_total) as importe_total,
+                    AVG(EXTRACT(DAY FROM (p.fecha_recepcion - s.fecha_creacion))::INTEGER) as lead_time_promedio
+                FROM sap_solpeds s
+                LEFT JOIN sap_purchase_orders p
+                    ON s.solped_id = p.solped_id
+                    AND s.posicion = p.solped_posicion
+                GROUP BY s.centro
+            """)
+            cur.execute("""
+                CREATE OR REPLACE VIEW v_sap_analisis_costos AS
+                SELECT
+                    s.material_codigo,
+                    s.material_descripcion,
+                    p.proveedor_cuit,
+                    p.proveedor_nombre,
+                    s.moneda,
+                    AVG(s.precio_unitario) as precio_promedio,
+                    MIN(s.precio_unitario) as precio_minimo,
+                    MAX(s.precio_unitario) as precio_maximo,
+                    CASE
+                        WHEN AVG(s.precio_unitario) > 0
+                        THEN ROUND((MAX(s.precio_unitario) - MIN(s.precio_unitario)) / AVG(s.precio_unitario) * 100, 2)
+                        ELSE 0
+                    END as variacion_pct,
+                    SUM(s.cantidad) as cantidad_total,
+                    SUM(s.importe_total) as importe_total,
+                    COUNT(*) as num_transacciones,
+                    MIN(s.fecha_creacion) as primera_transaccion,
+                    MAX(s.fecha_creacion) as ultima_transaccion
+                FROM sap_solpeds s
+                LEFT JOIN sap_purchase_orders p
+                    ON s.solped_id = p.solped_id
+                    AND s.posicion = p.solped_posicion
+                GROUP BY s.material_codigo, s.material_descripcion, p.proveedor_cuit, p.proveedor_nombre, s.moneda
+            """)
+            conn.commit()
+            logger.info("Procurement views created/verified successfully")
+    except Exception as e:
+        logger.warning(f"Could not create procurement views: {e}")
+
+
 def _row_to_dict(row) -> Dict[str, Any]:
     """Convierte una fila de BD a diccionario."""
     if row is None:
@@ -883,3 +999,299 @@ def get_procurement_analytics():
     except Exception as e:
         logger.error(f"Error obteniendo analytics: {e}")
         return jsonify({"error": "Error al obtener analytics de procurement"}), 500
+
+
+# =============================================================================
+# SCORECARD Y HISTORIAL DE PRECIOS
+# =============================================================================
+
+@procurement_bp.route('/scorecard/<proveedor>', methods=['GET'])
+@require_auth
+def get_provider_scorecard(proveedor):
+    """
+    Genera scorecard consolidado de un proveedor.
+
+    Path params:
+        - proveedor: CUIT o nombre del proveedor
+
+    Query params:
+        - periodo: 'mes', 'trimestre', 'anio' (default: 'anio')
+
+    Returns:
+        Scorecard con métricas de cumplimiento, lead time, calidad y costos
+    """
+    try:
+        periodo = request.args.get('periodo', 'anio')
+
+        fecha_filtro = {
+            'mes': "NOW() - INTERVAL '30 days'",
+            'trimestre': "NOW() - INTERVAL '90 days'",
+            'anio': "NOW() - INTERVAL '365 days'"
+        }.get(periodo, "NOW() - INTERVAL '365 days'")
+
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+
+            # Información general del proveedor
+            cur.execute("""
+                SELECT
+                    p.proveedor_cuit,
+                    p.proveedor_nombre,
+                    COUNT(DISTINCT p.pedido_id) as total_pedidos,
+                    COUNT(DISTINCT s.solped_id) as total_solpeds,
+                    COUNT(DISTINCT s.material_codigo) as materiales_unicos,
+                    COUNT(DISTINCT s.centro) as centros_atendidos,
+                    MIN(s.fecha_creacion) as primera_transaccion,
+                    MAX(s.fecha_creacion) as ultima_transaccion,
+                    SUM(p.valor_pedido) as valor_total_pedido,
+                    SUM(p.valor_recibido) as valor_total_recibido
+                FROM sap_purchase_orders p
+                INNER JOIN sap_solpeds s
+                    ON p.solped_id = s.solped_id AND p.solped_posicion = s.posicion
+                WHERE (p.proveedor_cuit = ? OR p.proveedor_nombre LIKE ?)
+                GROUP BY p.proveedor_cuit, p.proveedor_nombre
+            """, (proveedor, f"%{proveedor}%"))
+            info_row = cur.fetchone()
+
+            if not info_row:
+                return jsonify({"error": "Proveedor no encontrado"}), 404
+
+            info = _row_to_dict(info_row)
+
+            # Métricas de cumplimiento (OTIF)
+            lead_time_diff = _date_diff_sql('p.fecha_recepcion', 's.fecha_creacion')
+            aprobacion_diff = _date_diff_sql('p.fecha_pedido', 's.fecha_creacion')
+            entrega_diff = _date_diff_sql('p.fecha_recepcion', 'p.fecha_pedido')
+
+            cur.execute(f"""
+                SELECT
+                    COUNT(*) as total_entregas,
+                    SUM(CASE WHEN p.fecha_recepcion <= s.fecha_entrega_solicitada THEN 1 ELSE 0 END) as a_tiempo,
+                    SUM(CASE WHEN p.cantidad_recepcionada >= p.cantidad_pedida THEN 1 ELSE 0 END) as completas,
+                    SUM(CASE
+                        WHEN p.fecha_recepcion <= s.fecha_entrega_solicitada
+                         AND p.cantidad_recepcionada >= p.cantidad_pedida
+                        THEN 1 ELSE 0
+                    END) as otif,
+                    {_round_avg_sql(lead_time_diff)} as lead_time_promedio,
+                    MIN({lead_time_diff}) as lead_time_min,
+                    MAX({lead_time_diff}) as lead_time_max,
+                    {_round_avg_sql(aprobacion_diff)} as tiempo_aprobacion,
+                    {_round_avg_sql(entrega_diff)} as tiempo_entrega
+                FROM sap_purchase_orders p
+                INNER JOIN sap_solpeds s
+                    ON p.solped_id = s.solped_id AND p.solped_posicion = s.posicion
+                WHERE (p.proveedor_cuit = ? OR p.proveedor_nombre LIKE ?)
+                  AND p.fecha_recepcion IS NOT NULL
+                  AND s.fecha_creacion >= {fecha_filtro}
+            """, (proveedor, f"%{proveedor}%"))
+            cumplimiento_row = cur.fetchone()
+            cumplimiento = _row_to_dict(cumplimiento_row)
+
+            total_entregas = cumplimiento.get('total_entregas', 0) or 1
+
+            # Top materiales del proveedor
+            cur.execute(f"""
+                SELECT
+                    s.material_codigo,
+                    s.material_descripcion,
+                    COUNT(*) as pedidos,
+                    SUM(s.cantidad) as cantidad_total,
+                    SUM(s.importe_total) as importe_total,
+                    {_round_avg_sql('s.precio_unitario')} as precio_promedio
+                FROM sap_solpeds s
+                INNER JOIN sap_purchase_orders p
+                    ON s.solped_id = p.solped_id AND s.posicion = p.solped_posicion
+                WHERE (p.proveedor_cuit = ? OR p.proveedor_nombre LIKE ?)
+                  AND s.fecha_creacion >= {fecha_filtro}
+                GROUP BY s.material_codigo, s.material_descripcion
+                ORDER BY importe_total DESC
+                LIMIT 10
+            """, (proveedor, f"%{proveedor}%"))
+            top_materiales = [_row_to_dict(r) for r in cur.fetchall()]
+
+        # Calcular scores (0-100)
+        pct_a_tiempo = round(100 * (cumplimiento.get('a_tiempo', 0) or 0) / total_entregas, 1)
+        pct_completas = round(100 * (cumplimiento.get('completas', 0) or 0) / total_entregas, 1)
+        pct_otif = round(100 * (cumplimiento.get('otif', 0) or 0) / total_entregas, 1)
+
+        # Score general ponderado
+        score_general = round(pct_otif * 0.5 + pct_a_tiempo * 0.3 + pct_completas * 0.2, 1)
+
+        return jsonify({
+            "proveedor": {
+                "cuit": info.get('proveedor_cuit'),
+                "nombre": info.get('proveedor_nombre'),
+                "primera_transaccion": str(info.get('primera_transaccion', '')),
+                "ultima_transaccion": str(info.get('ultima_transaccion', '')),
+                "total_pedidos": info.get('total_pedidos', 0),
+                "total_solpeds": info.get('total_solpeds', 0),
+                "materiales_unicos": info.get('materiales_unicos', 0),
+                "centros_atendidos": info.get('centros_atendidos', 0),
+                "valor_total_pedido": float(info.get('valor_total_pedido') or 0),
+                "valor_total_recibido": float(info.get('valor_total_recibido') or 0)
+            },
+            "scorecard": {
+                "score_general": score_general,
+                "pct_a_tiempo": pct_a_tiempo,
+                "pct_completas": pct_completas,
+                "pct_otif": pct_otif,
+                "total_entregas_evaluadas": cumplimiento.get('total_entregas', 0)
+            },
+            "lead_times": {
+                "promedio": float(cumplimiento.get('lead_time_promedio') or 0),
+                "minimo": int(cumplimiento.get('lead_time_min') or 0),
+                "maximo": int(cumplimiento.get('lead_time_max') or 0),
+                "aprobacion": float(cumplimiento.get('tiempo_aprobacion') or 0),
+                "entrega": float(cumplimiento.get('tiempo_entrega') or 0)
+            },
+            "top_materiales": top_materiales,
+            "periodo": periodo
+        })
+
+    except Exception as e:
+        logger.error(f"Error obteniendo scorecard de proveedor: {e}")
+        return jsonify({"error": "Error al obtener scorecard del proveedor"}), 500
+
+
+@procurement_bp.route('/price-history/<material_codigo>', methods=['GET'])
+@require_auth
+def get_price_history(material_codigo):
+    """
+    Obtiene historial de precios de un material a través de compras SAP.
+
+    Path params:
+        - material_codigo: Código del material
+
+    Query params:
+        - centro: Filtrar por centro (opcional)
+        - moneda: Filtrar por moneda (opcional)
+        - limit: Máximo de registros (default: 50, max: 200)
+
+    Returns:
+        Historial de precios con tendencia y estadísticas
+    """
+    try:
+        centro = request.args.get('centro')
+        moneda = request.args.get('moneda')
+        limit = min(request.args.get('limit', 50, type=int), 200)
+
+        conditions = ["s.material_codigo = ?"]
+        params = [material_codigo]
+
+        if centro:
+            conditions.append("s.centro = ?")
+            params.append(centro)
+        if moneda:
+            conditions.append("s.moneda = ?")
+            params.append(moneda)
+
+        where_clause = " AND ".join(conditions)
+
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+
+            # Historial de precios
+            cur.execute(f"""
+                SELECT
+                    s.fecha_creacion,
+                    s.precio_unitario,
+                    s.cantidad,
+                    s.importe_total,
+                    s.moneda,
+                    s.centro,
+                    s.solped_id,
+                    s.posicion,
+                    p.proveedor_nombre,
+                    p.proveedor_cuit,
+                    p.pedido_id,
+                    p.fecha_pedido,
+                    p.fecha_recepcion
+                FROM sap_solpeds s
+                LEFT JOIN sap_purchase_orders p
+                    ON s.solped_id = p.solped_id AND s.posicion = p.solped_posicion
+                WHERE {where_clause}
+                ORDER BY s.fecha_creacion DESC
+                LIMIT ?
+            """, params + [limit])
+            rows = cur.fetchall()
+
+            if not rows:
+                return jsonify({
+                    "material": material_codigo,
+                    "historial": [],
+                    "estadisticas": {},
+                    "message": "Sin historial de precios para este material"
+                })
+
+            historial = [_row_to_dict(r) for r in rows]
+
+            # Estadísticas de precios
+            cur.execute(f"""
+                SELECT
+                    s.material_descripcion,
+                    COUNT(*) as num_transacciones,
+                    AVG(s.precio_unitario) as precio_promedio,
+                    MIN(s.precio_unitario) as precio_minimo,
+                    MAX(s.precio_unitario) as precio_maximo,
+                    SUM(s.cantidad) as cantidad_total,
+                    SUM(s.importe_total) as importe_total,
+                    COUNT(DISTINCT p.proveedor_cuit) as proveedores_unicos,
+                    MIN(s.fecha_creacion) as primera_compra,
+                    MAX(s.fecha_creacion) as ultima_compra
+                FROM sap_solpeds s
+                LEFT JOIN sap_purchase_orders p
+                    ON s.solped_id = p.solped_id AND s.posicion = p.solped_posicion
+                WHERE {where_clause}
+            """, params)
+            stats_row = cur.fetchone()
+            stats = _row_to_dict(stats_row)
+
+            # Precios por proveedor
+            cur.execute(f"""
+                SELECT
+                    p.proveedor_nombre,
+                    p.proveedor_cuit,
+                    COUNT(*) as transacciones,
+                    AVG(s.precio_unitario) as precio_promedio,
+                    MIN(s.precio_unitario) as precio_minimo,
+                    MAX(s.precio_unitario) as precio_maximo
+                FROM sap_solpeds s
+                INNER JOIN sap_purchase_orders p
+                    ON s.solped_id = p.solped_id AND s.posicion = p.solped_posicion
+                WHERE {where_clause}
+                  AND p.proveedor_nombre IS NOT NULL
+                GROUP BY p.proveedor_nombre, p.proveedor_cuit
+                ORDER BY precio_promedio ASC
+            """, params)
+            por_proveedor = [_row_to_dict(r) for r in cur.fetchall()]
+
+        precio_promedio = float(stats.get('precio_promedio') or 0)
+        precio_min = float(stats.get('precio_minimo') or 0)
+        precio_max = float(stats.get('precio_maximo') or 0)
+        variacion_pct = round(
+            ((precio_max - precio_min) / precio_promedio * 100) if precio_promedio > 0 else 0, 2
+        )
+
+        return jsonify({
+            "material": material_codigo,
+            "descripcion": stats.get('material_descripcion', ''),
+            "historial": historial,
+            "estadisticas": {
+                "num_transacciones": stats.get('num_transacciones', 0),
+                "precio_promedio": round(precio_promedio, 2),
+                "precio_minimo": round(precio_min, 2),
+                "precio_maximo": round(precio_max, 2),
+                "variacion_pct": variacion_pct,
+                "cantidad_total": float(stats.get('cantidad_total') or 0),
+                "importe_total": float(stats.get('importe_total') or 0),
+                "proveedores_unicos": stats.get('proveedores_unicos', 0),
+                "primera_compra": str(stats.get('primera_compra', '')),
+                "ultima_compra": str(stats.get('ultima_compra', ''))
+            },
+            "precios_por_proveedor": por_proveedor
+        })
+
+    except Exception as e:
+        logger.error(f"Error obteniendo historial de precios: {e}")
+        return jsonify({"error": "Error al obtener historial de precios"}), 500

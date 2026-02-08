@@ -106,6 +106,11 @@ const Dashboards = lazy(() => import('./pages/Dashboards'))
 const DashboardEditor = lazy(() => import('./pages/DashboardEditor'))
 const SpreadsheetShared = lazy(() => import('./pages/SpreadsheetShared'))
 
+// New feature pages (lazy-loaded)
+const AnomaliaDetection = lazy(() => import('./pages/AnomaliaDetection'))
+const MaterialClusters = lazy(() => import('./pages/MaterialClusters'))
+const ProveedorScorecard = lazy(() => import('./pages/ProveedorScorecard'))
+
 function App() {
   const { user, isLoading, getCurrentUser } = useAuthStore()
   const [appLoading, setAppLoading] = useState(true)
@@ -198,6 +203,10 @@ function App() {
             <Route path="/fms/work-orders" element={<ProtectedRoute><WorkOrders /></ProtectedRoute>} />
             <Route path="/fms/work-orders/:id" element={<ProtectedRoute><WorkOrderDetail /></ProtectedRoute>} />
             <Route path="/fms/kpis" element={<ProtectedRoute><FMSKPIs /></ProtectedRoute>} />
+            {/* IA / Analytics Routes */}
+            <Route path="/planificador/anomalias" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><AnomaliaDetection /></ProtectedRoute>} />
+            <Route path="/planificador/clusters" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><MaterialClusters /></ProtectedRoute>} />
+            <Route path="/procurement/scorecard" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ProveedorScorecard /></ProtectedRoute>} />
             {/* Admin Routes */}
             <Route path="/admin/centros" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminCentros /></ProtectedRoute>} />
             <Route path="/admin/almacenes" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminAlmacenes /></ProtectedRoute>} />

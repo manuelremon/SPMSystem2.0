@@ -5,7 +5,7 @@ Returns materials planned by MRP with their planning parameters.
 
 from flask import Blueprint, jsonify, request, g
 
-from backend.core.db import get_db_connection
+from backend.core.db import get_db_connection, is_using_postgresql
 from backend.core.roles import require_auth
 
 bp = Blueprint("mrp_portfolio", __name__, url_prefix="/api/mrp")
@@ -47,7 +47,7 @@ def get_mrp_portfolio():
     offset = int(request.args.get("offset", 0))
 
     try:
-        with get_db_connection("sap_data") as conn:
+        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
             cur = conn.cursor()
 
             # Build WHERE clauses - only include materials with MRP params

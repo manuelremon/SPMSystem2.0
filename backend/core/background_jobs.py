@@ -512,6 +512,116 @@ def init_background_jobs(app, start_worker: bool = True) -> None:
         pass  # El worker es daemon, se cierra automaticamente
 
 
+class ScheduledJobRunner:
+    """
+    Runner de jobs programados con intervalos recurrentes.
+
+    Ejecuta tareas registradas a intervalos fijos (en segundos)
+    usando un thread daemon que no bloquea el proceso principal.
+    """
+
+    def __init__(self):
+        self._schedules: List[Dict[str, Any]] = []
+        self._running = False
+        self._thread: Optional[threading.Thread] = None
+        self._lock = threading.Lock()
+
+    def add_schedule(
+        self,
+        name: str,
+        func: Callable,
+        interval_seconds: int,
+        run_on_start: bool = False,
+    ) -> None:
+        """
+        Registra un job programado.
+
+        Args:
+            name: Nombre del job
+            func: Función a ejecutar
+            interval_seconds: Intervalo en segundos entre ejecuciones
+            run_on_start: Ejecutar inmediatamente al iniciar
+        """
+        with self._lock:
+            self._schedules.append({
+                "name": name,
+                "func": func,
+                "interval": interval_seconds,
+                "run_on_start": run_on_start,
+                "last_run": None if run_on_start else datetime.utcnow(),
+            })
+        logger.info(f"Scheduled job registered: {name} (every {interval_seconds}s)")
+
+    def start(self) -> None:
+        """Inicia el runner en un thread daemon."""
+        if self._running:
+            return
+        self._running = True
+        self._thread = threading.Thread(
+            target=self._loop,
+            daemon=True,
+            name="ScheduledJobRunner",
+        )
+        self._thread.start()
+        logger.info(f"ScheduledJobRunner started with {len(self._schedules)} jobs")
+
+    def stop(self) -> None:
+        """Detiene el runner."""
+        self._running = False
+        if self._thread:
+            self._thread.join(timeout=5.0)
+            self._thread = None
+        logger.info("ScheduledJobRunner stopped")
+
+    def _loop(self) -> None:
+        """Loop principal que verifica y ejecuta jobs pendientes."""
+        while self._running:
+            now = datetime.utcnow()
+            with self._lock:
+                schedules = list(self._schedules)
+
+            for schedule in schedules:
+                last_run = schedule["last_run"]
+                if last_run is None or (now - last_run).total_seconds() >= schedule["interval"]:
+                    try:
+                        logger.info(f"Running scheduled job: {schedule['name']}")
+                        schedule["func"]()
+                        schedule["last_run"] = datetime.utcnow()
+                        logger.info(f"Scheduled job completed: {schedule['name']}")
+                    except Exception as e:
+                        schedule["last_run"] = datetime.utcnow()
+                        logger.error(f"Scheduled job failed: {schedule['name']} - {e}")
+
+            time.sleep(30)  # Check every 30 seconds
+
+    def get_status(self) -> List[Dict[str, Any]]:
+        """Retorna estado de todos los jobs programados."""
+        with self._lock:
+            return [
+                {
+                    "name": s["name"],
+                    "interval_seconds": s["interval"],
+                    "last_run": s["last_run"].isoformat() if s["last_run"] else None,
+                }
+                for s in self._schedules
+            ]
+
+
+# Singleton del scheduler
+_scheduler: Optional[ScheduledJobRunner] = None
+_scheduler_lock = threading.Lock()
+
+
+def get_scheduler() -> ScheduledJobRunner:
+    """Obtiene la instancia singleton del ScheduledJobRunner."""
+    global _scheduler
+    if _scheduler is None:
+        with _scheduler_lock:
+            if _scheduler is None:
+                _scheduler = ScheduledJobRunner()
+    return _scheduler
+
+
 def _register_default_tasks(queue: JobQueue) -> None:
     """Registra tareas predefinidas del sistema."""
 

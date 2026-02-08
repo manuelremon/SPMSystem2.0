@@ -92,3 +92,14 @@ export const system = {
   acknowledgeAllAlerts: () =>
     api.post('/metrics/alerts/acknowledge-all'),
 }
+
+// Feature 4.2: What-If simulation
+export const simularCompra = (data) => api.post('/planner/simular', data)
+
+// Feature 4.4: Plan de compras
+export const getPlanCompras = (centro, params = {}) =>
+  api.get(`/ai/plan-compras/${encodeURIComponent(centro)}`, { params })
+
+// Feature 4.3: Inventory health
+export const getInventoryHealth = (params = {}) =>
+  api.get('/stock/health', { params })

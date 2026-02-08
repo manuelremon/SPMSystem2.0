@@ -162,6 +162,65 @@ export const getCantidadOptima = async ({
   return response.data?.data || {}
 }
 
+/**
+ * Obtener recomendaciones de compra para un centro
+ * @param {string} centro - Centro de distribución
+ * @param {Object} params
+ * @param {number} params.limit - Máximo de recomendaciones
+ * @returns {Promise<Object>} Recomendaciones con scoring
+ */
+export const getRecomendaciones = async (centro, { limit = 10 } = {}) => {
+  const response = await api.get(`/ai/recomendaciones/${centro}`, {
+    params: { limit }
+  })
+  return response.data?.data || {}
+}
+
+/**
+ * Obtener recomendación para un material específico
+ * @param {string} materialCodigo - Código del material
+ * @param {Object} params
+ * @param {string} params.centro - Centro de distribución
+ * @returns {Promise<Object>} Recomendación con scoring detallado
+ */
+export const getRecomendacionMaterial = async (materialCodigo, { centro } = {}) => {
+  const response = await api.get(`/ai/recomendaciones/material/${materialCodigo}`, {
+    params: { centro }
+  })
+  return response.data?.data || {}
+}
+
+/**
+ * Detectar anomalías en consumo de un material
+ * @param {string} materialCodigo - Código del material
+ * @param {Object} params
+ * @param {string} params.centro - Centro
+ * @param {number} params.dias - Días a analizar
+ * @param {number} params.threshold - Score mínimo
+ * @returns {Promise<Object>} Anomalías detectadas
+ */
+export const getAnomalias = async (materialCodigo, { centro, dias = 90, threshold = 0.5 } = {}) => {
+  const response = await api.post(`/ai/anomalias/${materialCodigo}`, {
+    centro, dias, threshold
+  })
+  return response.data?.data || {}
+}
+
+/**
+ * Ejecutar clustering de materiales
+ * @param {Object} params
+ * @param {string} params.centro - Centro
+ * @param {number} params.nClusters - Número de clusters
+ * @param {number} params.limit - Máximo de materiales
+ * @returns {Promise<Object>} Clusters con materiales
+ */
+export const getClustering = async ({ centro, nClusters = 5, limit = 200 } = {}) => {
+  const response = await api.post('/ai/clustering', {
+    centro, n_clusters: nClusters, limit
+  })
+  return response.data?.data || {}
+}
+
 // Export default con todos los metodos
 export default {
   getStatus,
@@ -172,5 +231,9 @@ export default {
   getAnalisisMaterial,
   sugerirAccion,
   getAlertasInteligentes,
-  getCantidadOptima
+  getCantidadOptima,
+  getRecomendaciones,
+  getRecomendacionMaterial,
+  getAnomalias,
+  getClustering
 }

@@ -1058,6 +1058,118 @@ def calcular_parametros_mrp_completo(
     }
 
 
+def ejecutar_revision_alertas() -> Dict[str, Any]:
+    """
+    Revisa todos los materiales MRP y genera alertas para aquellos
+    con stock bajo punto de pedido o en quiebre.
+
+    Se ejecuta periódicamente via ScheduledJobRunner.
+
+    Returns:
+        Dict con cantidad de alertas generadas y materiales revisados
+    """
+    alertas_generadas = 0
+    materiales_revisados = 0
+
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT codigo_material, centro, stock_actual,
+                       punto_pedido, stock_seguridad, descripcion
+                FROM materiales_mrp
+                WHERE stock_actual IS NOT NULL
+            """)
+            materiales = cursor.fetchall()
+
+        for mat in materiales:
+            materiales_revisados += 1
+            codigo = mat["codigo_material"]
+            centro = mat["centro"]
+            stock = mat["stock_actual"] or 0
+            pp = mat["punto_pedido"] or 0
+            ss = mat["stock_seguridad"] or 0
+            desc = mat.get("descripcion", codigo)
+
+            if stock <= 0:
+                crear_alerta_mrp(
+                    material_codigo=codigo,
+                    centro=centro,
+                    tipo="quiebre",
+                    severidad="danger",
+                    mensaje=f"Quiebre de stock: {desc} (stock=0)",
+                )
+                alertas_generadas += 1
+                # Notificar a planificadores
+                _notificar_planificadores_alerta(
+                    codigo, centro, "quiebre",
+                    f"URGENTE: Material {desc} ({codigo}) en quiebre de stock en {centro}"
+                )
+            elif stock < ss:
+                crear_alerta_mrp(
+                    material_codigo=codigo,
+                    centro=centro,
+                    tipo="bajo_seguridad",
+                    severidad="danger",
+                    mensaje=f"Stock bajo seguridad: {desc} (stock={stock}, SS={ss})",
+                )
+                alertas_generadas += 1
+                _notificar_planificadores_alerta(
+                    codigo, centro, "bajo_seguridad",
+                    f"Material {desc} ({codigo}) bajo stock de seguridad en {centro}"
+                )
+            elif stock < pp:
+                crear_alerta_mrp(
+                    material_codigo=codigo,
+                    centro=centro,
+                    tipo="bajo_punto_pedido",
+                    severidad="warning",
+                    mensaje=f"Stock bajo punto pedido: {desc} (stock={stock}, PP={pp})",
+                )
+                alertas_generadas += 1
+
+        logger.info(
+            f"[MRP] Revisión alertas: {materiales_revisados} materiales, "
+            f"{alertas_generadas} alertas generadas"
+        )
+    except Exception as e:
+        logger.error(f"[MRP] Error en revisión de alertas: {e}")
+
+    return {
+        "materiales_revisados": materiales_revisados,
+        "alertas_generadas": alertas_generadas,
+    }
+
+
+def _notificar_planificadores_alerta(
+    material_codigo: str, centro: str, tipo: str, mensaje: str
+) -> None:
+    """Notifica a planificadores sobre alertas MRP críticas."""
+    try:
+        from backend.services.notification_service import NotificationService
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT u.id FROM usuario u
+                JOIN usuario_rol ur ON u.id = ur.usuario_id
+                JOIN rol r ON ur.rol_id = r.id
+                WHERE LOWER(r.nombre) IN ('planner', 'planificador', 'admin')
+                AND u.activo = 1
+            """)
+            planificadores = cursor.fetchall()
+
+        for p in planificadores:
+            user_id = p["id"] if isinstance(p, dict) else p[0]
+            NotificationService.create_notification(
+                destinatario_id=str(user_id),
+                mensaje=mensaje,
+                tipo="mrp_alert",
+            )
+    except Exception as e:
+        logger.warning(f"[MRP] Error notificando planificadores: {e}")
+
+
 def obtener_configuracion_global() -> Dict[str, Any]:
     """
     Obtiene configuración global MRP de la tabla mrp_configuracion.

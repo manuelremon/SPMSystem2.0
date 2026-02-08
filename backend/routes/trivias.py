@@ -15,6 +15,7 @@ from jwt import InvalidTokenError
 from backend.core.config import settings
 from backend.core.db import get_db_connection, get_db_transaction
 from backend.core.helpers import safe_json as _safe_json
+from backend.core.roles import require_auth
 
 
 bp = Blueprint("trivias", __name__)
@@ -76,6 +77,7 @@ def _get_current_user() -> Dict[str, Any] | None:
 
 
 @bp.route("/trivias/rankings", methods=["GET"])
+@require_auth
 def get_rankings():
     """
     Get trivia rankings - top players by total score
@@ -189,6 +191,7 @@ def get_rankings():
 
 
 @bp.route("/trivias/score", methods=["POST"])
+@require_auth
 def save_score():
     """
     Save a trivia game score
@@ -322,6 +325,7 @@ def save_score():
 
 
 @bp.route("/trivias/my-stats", methods=["GET"])
+@require_auth
 def get_my_stats():
     """
     Get current user's trivia statistics

@@ -11,44 +11,13 @@ import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import CircularProgress from '@mui/material/CircularProgress'
 import DownloadIcon from '@mui/icons-material/Download'
-
-/**
- * Carga html2canvas desde CDN
- */
-async function loadHtml2Canvas() {
-  if (window.html2canvas) {
-    return window.html2canvas
-  }
-
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script')
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
-    script.async = true
-
-    script.onload = () => {
-      if (window.html2canvas) {
-        resolve(window.html2canvas)
-      } else {
-        reject(new Error('html2canvas no se cargó'))
-      }
-    }
-
-    script.onerror = () => {
-      reject(new Error('Error al cargar html2canvas desde CDN'))
-    }
-
-    document.head.appendChild(script)
-  })
-}
+import html2canvas from 'html2canvas'
 
 /**
  * Exportar card como PNG
  */
 async function exportCard(element, filename) {
   try {
-    // Cargar html2canvas
-    const html2canvas = await loadHtml2Canvas()
-
     // Capturar elemento
     const canvas = await html2canvas(element, {
       backgroundColor: '#ffffff',

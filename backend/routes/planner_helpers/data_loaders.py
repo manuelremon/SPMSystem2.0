@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from backend.core.db import get_db_connection
+from backend.core.db import get_db_connection, is_using_postgresql
 from backend.routes.planner_helpers.helpers import _norm_codigo, _table_exists
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ def _load_stock_db():
         return _STOCK_XLS_CACHE
 
     try:
-        with get_db_connection("sap_data") as conn:
+        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
             cur = conn.cursor()
             cur.execute(
                 """
@@ -189,7 +189,7 @@ def _load_consumo_db():
         return _CONSUMO_XLS_CACHE
 
     try:
-        with get_db_connection("sap_data") as conn:
+        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
             cur = conn.cursor()
             cur.execute(
                 """
@@ -226,7 +226,7 @@ def _get_consumo_sql(codigo: str, centro: str = None, almacen: str = None) -> tu
         return None, None
 
     try:
-        with get_db_connection("sap_data") as conn:
+        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
             cur = conn.cursor()
 
             where_sql = "WHERE material LIKE ?"

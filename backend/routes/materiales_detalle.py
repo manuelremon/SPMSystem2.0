@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, jsonify, request
 
-from backend.core.db import get_db_connection
+from backend.core.db import get_db_connection, is_using_postgresql
 
 bp_detalle = Blueprint("materiales_detalle", __name__, url_prefix="/api/materiales")
 
@@ -32,7 +32,7 @@ def _get_stock_filtrado(
     Evita cargar los 150,000 registros en memoria.
     """
     try:
-        with get_db_connection("sap_data") as conn:
+        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
             cur = conn.cursor()
 
             params = [f"%{_normalize_code(codigo)}%"]
@@ -64,7 +64,7 @@ def _get_consumo_filtrado(codigo: str, centro: str = None, almacen: str = None) 
     Retorna totales y registros recientes sin cargar todo en memoria.
     """
     try:
-        with get_db_connection("sap_data") as conn:
+        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
             cur = conn.cursor()
 
             params = [f"%{_normalize_code(codigo)}%"]
@@ -144,7 +144,7 @@ def _get_consumo_por_ubicacion(codigo: str) -> List[Dict[str, Any]]:
     Retorna lista de ubicaciones con sus consumos.
     """
     try:
-        with get_db_connection("sap_data") as conn:
+        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
             cur = conn.cursor()
 
             # Query agrupada por centro, almacen con promedio anual
@@ -201,7 +201,7 @@ def _load_stock() -> List[Dict[str, Any]]:
         return _STOCK_CACHE
 
     try:
-        with get_db_connection("sap_data") as conn:
+        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
             cur = conn.cursor()
             cur.execute(
                 """
@@ -225,7 +225,7 @@ def _load_pedidos() -> List[Dict[str, Any]]:
         return _PEDIDOS_CACHE
 
     try:
-        with get_db_connection("sap_data") as conn:
+        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
             cur = conn.cursor()
             cur.execute(
                 """
@@ -249,7 +249,7 @@ def _load_mrp() -> List[Dict[str, Any]]:
         return _MRP_CACHE
 
     try:
-        with get_db_connection("sap_data") as conn:
+        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
             cur = conn.cursor()
             cur.execute(
                 """
@@ -279,7 +279,7 @@ def _load_consumo() -> List[Dict[str, Any]]:
         return _CONSUMO_CACHE
 
     try:
-        with get_db_connection("sap_data") as conn:
+        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
             cur = conn.cursor()
             cur.execute(
                 """

@@ -6,7 +6,7 @@ Provides stock data with filters, inmovilizado and MRP indicators.
 from flask import Blueprint, jsonify, request, g
 from datetime import datetime, timedelta
 
-from backend.core.db import get_db_connection
+from backend.core.db import get_db_connection, is_using_postgresql
 from backend.core.roles import require_auth
 
 bp = Blueprint("stock", __name__, url_prefix="/api/stock")
@@ -51,7 +51,7 @@ def get_stock():
     offset = int(request.args.get("offset", 0))
 
     try:
-        with get_db_connection("sap_data") as conn:
+        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
             cur = conn.cursor()
 
             # Build WHERE clauses
@@ -225,7 +225,7 @@ def get_stock_resumen():
     almacen = request.args.get("almacen", "").strip()
 
     try:
-        with get_db_connection("sap_data") as conn:
+        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
             cur = conn.cursor()
 
             where_clauses = ["stock > 0"]
@@ -311,3 +311,130 @@ def get_stock_resumen():
         import logging
         logging.error(f"Error in get_stock_resumen: {e}")
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.route('/health', methods=['GET'])
+@require_auth
+def get_inventory_health():
+    """
+    Feature 4.3: Dashboard de salud de inventario - semáforo por material.
+
+    Query params:
+        - centro: Filtrar por centro
+        - categoria: Filtrar por categoría ABC (A, B, C)
+
+    Returns:
+        Resumen y materiales con semáforo de estado
+    """
+    try:
+        centro = request.args.get('centro')
+        categoria = request.args.get('categoria')
+
+        conditions = []
+        params = []
+
+        if centro:
+            conditions.append("m.centro = ?")
+            params.append(centro)
+        if categoria:
+            conditions.append("UPPER(m.categoria_abc) = ?")
+            params.append(categoria.upper())
+
+        where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+
+        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
+            cur = conn.cursor()
+
+            cur.execute(f"""
+                SELECT
+                    m.codigo_material,
+                    m.descripcion,
+                    m.centro,
+                    m.stock_actual,
+                    m.stock_seguridad,
+                    m.punto_pedido,
+                    m.stock_maximo,
+                    m.consumo_promedio_mensual,
+                    m.lead_time_dias,
+                    m.categoria_abc,
+                    m.critico
+                FROM materiales_mrp m
+                {where_clause}
+                ORDER BY
+                    CASE
+                        WHEN m.stock_actual <= 0 THEN 0
+                        WHEN m.stock_actual < COALESCE(m.stock_seguridad, 0) THEN 1
+                        WHEN m.stock_actual < COALESCE(m.punto_pedido, 0) THEN 2
+                        WHEN m.stock_actual > COALESCE(m.stock_maximo, 99999999) THEN 3
+                        ELSE 4
+                    END,
+                    m.codigo_material
+                LIMIT 500
+            """, params)
+            rows = cur.fetchall()
+
+        materiales = []
+        resumen = {"quiebre": 0, "critico": 0, "bajo_rop": 0, "exceso": 0, "normal": 0, "total": 0}
+
+        for row in rows:
+            r = dict(row) if hasattr(row, 'keys') else {
+                'codigo_material': row[0], 'descripcion': row[1], 'centro': row[2],
+                'stock_actual': row[3], 'stock_seguridad': row[4], 'punto_pedido': row[5],
+                'stock_maximo': row[6], 'consumo_promedio_mensual': row[7],
+                'lead_time_dias': row[8], 'categoria_abc': row[9], 'critico': row[10]
+            }
+            stock = r.get('stock_actual') or 0
+            ss = r.get('stock_seguridad') or 0
+            pp = r.get('punto_pedido') or 0
+            smax = r.get('stock_maximo') or 999999999
+            consumo = r.get('consumo_promedio_mensual') or 0
+            consumo_diario = consumo / 30 if consumo > 0 else 0
+            cobertura = round(stock / consumo_diario, 1) if consumo_diario > 0 else None
+
+            if stock <= 0:
+                semaforo = "rojo"
+                estado = "quiebre"
+                resumen["quiebre"] += 1
+            elif stock < ss:
+                semaforo = "rojo"
+                estado = "critico"
+                resumen["critico"] += 1
+            elif stock < pp:
+                semaforo = "amarillo"
+                estado = "bajo_rop"
+                resumen["bajo_rop"] += 1
+            elif stock > smax:
+                semaforo = "naranja"
+                estado = "exceso"
+                resumen["exceso"] += 1
+            else:
+                semaforo = "verde"
+                estado = "normal"
+                resumen["normal"] += 1
+
+            resumen["total"] += 1
+
+            materiales.append({
+                "codigo": r.get('codigo_material'),
+                "descripcion": r.get('descripcion'),
+                "centro": r.get('centro'),
+                "stock_actual": stock,
+                "stock_seguridad": ss,
+                "punto_pedido": pp,
+                "stock_maximo": smax if smax < 999999999 else None,
+                "cobertura_dias": cobertura,
+                "categoria_abc": r.get('categoria_abc'),
+                "critico": bool(r.get('critico')),
+                "semaforo": semaforo,
+                "estado": estado
+            })
+
+        return jsonify({
+            "resumen": resumen,
+            "materiales": materiales
+        })
+
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error en inventory health: {e}")
+        return jsonify({"error": "Error al obtener salud del inventario"}), 500

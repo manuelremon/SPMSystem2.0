@@ -325,13 +325,13 @@ def obtener_recomendaciones_material(
         Dict con recomendación
     """
     try:
-        from backend.core.db import get_db_connection
+        from backend.core.db import get_db_connection, is_using_postgresql
         import pandas as pd
 
         engine = RecommendationEngine()
 
         # Obtener datos del material
-        with get_db_connection("sap_data") as conn:
+        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
             # Stock actual
             cursor = conn.cursor()
             cursor.execute(

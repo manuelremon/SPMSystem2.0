@@ -48,7 +48,7 @@ ALLOWED_TABLES = {
         "planificador_asignaciones", "solicitud_pedido_sap", "orden_compra", "solicitud_traslado",
         # Presupuestos
         "presupuestos", "presupuesto_ledger", "presupuesto_incorporaciones",
-        "presupuesto_solicitud_cambio", "budget_history",
+        "budget_update_requests", "budget_history",
         # Proveedores
         "proveedores", "proveedores_externos", "proveedores_internos",
         "proveedor_ext_contactos", "proveedor_ext_emails", "proveedor_ext_telefonos",

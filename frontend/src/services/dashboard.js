@@ -75,6 +75,14 @@ export const dashboardService = {
     );
     return response.data;
   },
+
+  /**
+   * Obtiene resumen ejecutivo consolidado
+   */
+  getResumenEjecutivo: async () => {
+    const response = await api.get('/dashboards/resumen-ejecutivo');
+    return response.data;
+  },
 };
 
 /**

@@ -100,9 +100,9 @@ def ejecutar_acciones_post_tratamiento(solicitud_id):
             fuentes = DecisionAbastecimientoRepository.get_fuentes(decision["id"])
 
             for fuente in fuentes:
-                tipo_fuente = fuente.get("tipo_fuente", "")
-                centro_origen = fuente.get("centro_origen", "")
-                almacen_origen = fuente.get("almacen_origen", "")
+                tipo_fuente = fuente.get("tipo_fuente") or ""
+                centro_origen = fuente.get("centro_origen") or ""
+                almacen_origen = fuente.get("almacen_origen") or ""
                 cantidad = fuente.get("cantidad_asignada", 0)
 
                 accion = {

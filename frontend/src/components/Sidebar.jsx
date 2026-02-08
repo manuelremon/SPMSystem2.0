@@ -129,6 +129,7 @@ const plannerNavItems = [
         children: [
           { trKey: "nav_procurement_dashboard", label: "Panel General", to: "/procurement", icon: Boxes, iconName: "Boxes" },
           { trKey: "nav_procurement_analytics", label: "Analitica", to: "/procurement/analytics", icon: BarChart2, iconName: "BarChart2" },
+          { trKey: "nav_procurement_scorecard", label: "Scorecard", to: "/procurement/scorecard", icon: TrendingUp, iconName: "TrendingUp" },
         ],
       },
       { trKey: "nav_ai", label: "IA Analytics", to: "/planificador/ai", icon: Activity, iconName: "Activity" },
@@ -145,6 +146,17 @@ const plannerNavItems = [
       { trKey: "nav_mrp_parametrizar", label: "Parametrizar", to: "/mrp/parametrizar", icon: BarChart2, iconName: "BarChart2" },
       { trKey: "nav_mrp_alertas", label: "Alertas", to: "/planificador/mrp/alertas", icon: AlertTriangle, iconName: "AlertTriangle" },
       { trKey: "nav_mrp_kpis", label: "KPIs", to: "/planificador/mrp/kpis", icon: TrendingUp, iconName: "TrendingUp" },
+    ],
+  },
+  {
+    key: "ia-avanzada",
+    trKey: "nav_ia_avanzada",
+    label: "IA Avanzada",
+    icon: Activity,
+    iconName: "Activity",
+    children: [
+      { trKey: "nav_anomalias", label: "Anomalias", to: "/planificador/anomalias", icon: AlertTriangle, iconName: "AlertTriangle" },
+      { trKey: "nav_clusters", label: "Clustering", to: "/planificador/clusters", icon: Boxes, iconName: "Boxes" },
     ],
   },
   {

@@ -459,6 +459,24 @@ export default function Planner({ filterMode }) {
         },
       },
       {
+        field: "ai_priority",
+        headerName: "IA",
+        flex: 0.4,
+        minWidth: 60,
+        cellRenderer: (params) => {
+          const priority = params.value;
+          const score = params.data?.ai_score;
+          if (!priority) return null;
+          const colors = { 'Critica': '#ef4444', 'Alta': '#f59e0b', 'Media': '#3b82f6', 'Baja': '#6b7280' };
+          return (
+            <Typography variant="body2" fontWeight={700} title={`Score: ${score ? (score * 100).toFixed(0) + '%' : '-'}`}
+              sx={{ color: colors[priority] || 'var(--fg-muted)', fontSize: '0.75rem' }}>
+              {priority}
+            </Typography>
+          );
+        },
+      },
+      {
         field: "justificacion",
         headerName: "Asunto",
         flex: 1,

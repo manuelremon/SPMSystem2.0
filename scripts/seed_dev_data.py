@@ -135,7 +135,7 @@ def get_usuarios(conn_spm: sqlite3.Connection) -> list:
     """Obtiene usuarios del sistema."""
     cursor = conn_spm.execute("""
         SELECT id_spm, nombre, apellido, rol, centros
-        FROM usuarios
+        FROM usuario
         WHERE estado_registro = 'Activo'
     """)
     return cursor.fetchall()

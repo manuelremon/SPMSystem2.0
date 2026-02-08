@@ -145,50 +145,107 @@ def export_inventario():
 @rate_limit(requests=10, window_seconds=60)
 def export_alertas_mrp():
     """
-    Exporta alertas MRP.
+    Exporta alertas MRP usando calculo dinamico (mismo que tablero).
 
     Query params:
         - formato: xlsx, csv, pdf (default: xlsx)
         - centro: Filtrar por centro
-        - severidad: Filtrar por severidad (critical, warning, info)
-        - estado: Filtrar por estado (activa, resuelta)
+        - severidad: Filtrar por severidad (CRITICAL, HIGH, MEDIUM, LOW, INFO)
+        - estado: Filtrar por estado de material (quiebre, bajo punto, etc.)
 
     Returns:
         Archivo descargable
     """
-    from backend.core.db import get_db_connection
+    from backend.core.db import get_db_connection, is_using_postgresql
+    from backend.routes.mrp import calcular_estado_material
 
     formato = request.args.get("formato", "xlsx")
     centro = request.args.get("centro")
     severidad = request.args.get("severidad")
-    estado = request.args.get("estado", "activa")
+    estado = request.args.get("estado")
 
     try:
-        with get_db_connection() as conn:
+        db_name = "spm" if is_using_postgresql() else "sap_data"
+        with get_db_connection(db_name) as conn:
             cursor = conn.cursor()
 
             query = """
-                SELECT id, material_codigo, tipo, severidad, mensaje,
-                       estado, created_at
-                FROM alertas_mrp
+                SELECT
+                    m.codigo_material as codigo,
+                    m.descripcion,
+                    m.centro,
+                    m.almacen,
+                    m.sector,
+                    m.stock_de_seguridad,
+                    m.punto_de_pedido,
+                    m.stock_maximo,
+                    COALESCE(m.Demanda_estimada_anual, 0) as demanda_estimada_anual,
+                    COALESCE(m.consumo_promedio_anual, 0) as consumo_promedio_anual,
+                    COALESCE(s.stock_actual, 0) as stock_actual,
+                    COALESCE(s.unidad, 'UNI') as unidad,
+                    COALESCE(s.precio_unitario, 0) as precio_unitario
+                FROM materiales_bbdd m
+                LEFT JOIN (
+                    SELECT
+                        material, centro, almacen,
+                        SUM(stock) as stock_actual,
+                        um as unidad,
+                        AVG(precio) as precio_unitario
+                    FROM stock
+                    GROUP BY material, centro, almacen, um
+                ) s ON m.codigo_material = s.material
+                    AND m.centro = s.centro
+                    AND m.almacen = s.almacen
                 WHERE 1=1
             """
             params = []
 
             if centro:
-                query += " AND centro = ?"
+                query += " AND m.centro = ?"
                 params.append(centro)
-            if severidad:
-                query += " AND severidad = ?"
-                params.append(severidad)
-            if estado:
-                query += " AND estado = ?"
-                params.append(estado)
 
-            query += " ORDER BY created_at DESC"
-
+            query += " ORDER BY m.codigo_material"
             cursor.execute(query, params)
-            alertas = [dict(row) for row in cursor.fetchall()]
+            materiales = [dict(row) for row in cursor.fetchall()]
+
+        alertas = []
+        for mat in materiales:
+            stock_actual = float(mat["stock_actual"] or 0)
+            stock_seguridad = float(mat["stock_de_seguridad"] or 0)
+            punto_pedido = float(mat["punto_de_pedido"] or 0)
+            stock_maximo = float(mat["stock_maximo"] or 0)
+            consumo_anual = float(mat["consumo_promedio_anual"] or 0)
+
+            estado_info = calcular_estado_material(
+                stock_actual=stock_actual,
+                stock_seguridad=stock_seguridad,
+                punto_pedido=punto_pedido,
+                stock_maximo=stock_maximo,
+                consumo_promedio=consumo_anual / 12 if consumo_anual > 0 else 0,
+                pedidos_en_curso=0,
+            )
+
+            if severidad and estado_info["severidad"].lower() != severidad.lower():
+                continue
+            if estado and estado.lower() not in estado_info["estado"].lower():
+                continue
+
+            alertas.append({
+                "codigo": mat["codigo"],
+                "descripcion": mat["descripcion"] or mat["codigo"],
+                "centro": mat["centro"],
+                "almacen": mat["almacen"] or "",
+                "sector": mat["sector"] or "",
+                "unidad": mat["unidad"] or "UNI",
+                "stock_actual": round(stock_actual, 0),
+                "stock_seguridad": round(stock_seguridad, 0),
+                "punto_pedido": round(punto_pedido, 0),
+                "stock_maximo": round(stock_maximo, 0),
+                "consumo_promedio_anual": round(consumo_anual, 2),
+                "estado": estado_info["estado"],
+                "severidad": estado_info["severidad"],
+                "sugerencia": estado_info["sugerencia"],
+            })
 
         service = get_reporting_service()
         result = service.export_alertas_mrp(alertas=alertas, formato=formato)
@@ -428,6 +485,119 @@ def export_custom():
 
     except Exception as e:
         logger.error(f"Error generando reporte custom: {e}")
+        return jsonify({"ok": False, "error": {"code": "export_error", "message": str(e)}}), 500
+
+
+@bp.route("/recomendaciones", methods=["GET"])
+@require_auth
+@require_role(["admin", "planner"])
+@rate_limit(requests=10, window_seconds=60)
+def export_recomendaciones():
+    """
+    Exporta recomendaciones de compra a Excel.
+
+    Query params:
+        - formato: xlsx, csv (default: xlsx)
+        - centro: Centro de distribución (requerido)
+        - limit: Máximo de recomendaciones (default: 50)
+
+    Returns:
+        Archivo descargable
+    """
+    from backend.core.db import get_db_connection, is_using_postgresql
+    from backend.services.recommendation_engine import RecommendationEngine
+    import numpy as np
+
+    formato = request.args.get("formato", "xlsx")
+    centro = request.args.get("centro")
+    limit = min(int(request.args.get("limit", 50)), 100)
+
+    if not centro:
+        return jsonify({
+            "ok": False,
+            "error": {"code": "bad_request", "message": "centro es requerido"}
+        }), 400
+
+    try:
+        engine = RecommendationEngine()
+        db_name = "spm" if is_using_postgresql() else "sap_data"
+
+        with get_db_connection(db_name) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT
+                    m.codigo_material as codigo,
+                    m.descripcion,
+                    COALESCE(m.consumo_promedio_anual, 0) as consumo_anual,
+                    COALESCE(m.punto_de_pedido, 0) as punto_pedido,
+                    COALESCE(s.stock_actual, 0) as stock_actual,
+                    COALESCE(s.precio_unitario, 0) as precio_unitario
+                FROM materiales_bbdd m
+                LEFT JOIN (
+                    SELECT material, centro,
+                        SUM(stock) as stock_actual,
+                        AVG(precio) as precio_unitario
+                    FROM stock
+                    GROUP BY material, centro
+                ) s ON m.codigo_material = s.material AND m.centro = s.centro
+                WHERE m.centro = ?
+                ORDER BY m.consumo_promedio_anual DESC
+                LIMIT ?
+            """, (centro, limit * 3))
+            materiales_raw = [dict(row) for row in cursor.fetchall()]
+
+        materiales_para_engine = []
+        for mat in materiales_raw:
+            consumo_anual = float(mat.get("consumo_anual") or 0)
+            demanda_diaria = consumo_anual / 365 if consumo_anual > 0 else 0.1
+            stock_actual = float(mat.get("stock_actual") or 0)
+            punto_pedido = float(mat.get("punto_pedido") or 0)
+
+            if consumo_anual > 0 or stock_actual > 0:
+                materiales_para_engine.append({
+                    'codigo': mat['codigo'],
+                    'descripcion': mat.get('descripcion', ''),
+                    'stock_actual': stock_actual,
+                    'rop': punto_pedido if punto_pedido > 0 else demanda_diaria * 14,
+                    'consumo_historico': [demanda_diaria] * 30,
+                    'demanda_promedio': demanda_diaria,
+                    'demanda_std': demanda_diaria * 0.3,
+                    'abc_clase': 'A' if consumo_anual > 10000 else 'B' if consumo_anual > 1000 else 'C',
+                    'lead_time_dias': 14,
+                    'precio_unitario': float(mat.get("precio_unitario") or 0),
+                    'cantidad_eoq': 0
+                })
+
+        recomendaciones = engine.generar_top_recomendaciones(materiales_para_engine, limit=limit)
+
+        # Formatear para export
+        datos_export = []
+        for rec in recomendaciones:
+            datos_export.append({
+                "Material": rec['material'],
+                "Score": round(rec['score_total'], 2),
+                "Urgencia": rec['urgencia_texto'],
+                "Clase ABC": rec['abc_clase'],
+                "Stock Actual": rec['stock_actual'],
+                "ROP": rec['rop'],
+                "Días Cobertura": round(rec['dias_cobertura'], 1),
+                "Cantidad Sugerida": rec['cantidad_sugerida'],
+                "Precio Estimado USD": round(rec['precio_estimado'], 2),
+                "Justificación": "; ".join(rec['justificacion']),
+            })
+
+        service = get_reporting_service()
+        result = service.generate_custom_report(
+            titulo=f"Recomendaciones de Compra - Centro {centro}",
+            datos=datos_export,
+            columnas=list(datos_export[0].keys()) if datos_export else [],
+            formato=formato
+        )
+
+        return _make_download_response(result)
+
+    except Exception as e:
+        logger.error(f"Error exportando recomendaciones: {e}")
         return jsonify({"ok": False, "error": {"code": "export_error", "message": str(e)}}), 500
 
 

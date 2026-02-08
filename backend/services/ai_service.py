@@ -260,11 +260,11 @@ class AIService:
         try:
             # Usar nuevo módulo de forecast
             from backend.agent.pipelines.forecast import DemandPredictor
-            from backend.core.db import get_db_connection
+            from backend.core.db import get_db_connection, is_using_postgresql
             import pandas as pd
 
             # Obtener datos históricos de consumo con filtros opcionales de centro y almacen
-            with get_db_connection("sap_data") as conn:
+            with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
                 # Construir query con filtros opcionales
                 params = [material_codigo]
                 conditions = ["material = ?"]
@@ -809,7 +809,8 @@ class AIService:
         else:
             # Intentar buscar en consumo_historico directamente
             try:
-                with get_db_connection("sap_data") as conn:
+                from backend.core.db import get_db_connection as _db_conn, is_using_postgresql as _is_pg
+                with _db_conn("spm" if _is_pg() else "sap_data") as conn:
                     cursor = conn.cursor()
                     cursor.execute(
                         "SELECT fecha, SUM(cantidad) as cantidad FROM consumo_historico WHERE material = ? GROUP BY fecha ORDER BY fecha",

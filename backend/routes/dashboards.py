@@ -24,9 +24,13 @@ Endpoints:
 - POST   /api/dashboard-grupos              - Crear grupo
 """
 
+import logging
+
 from flask import Blueprint, g, jsonify, request, send_file
 import io
 import json
+
+logger = logging.getLogger(__name__)
 
 from backend.core.dashboard_schemas import (
     CreateDashboardRequest,
@@ -623,3 +627,132 @@ def revoke_permiso(uuid, usuario_id):
         return jsonify({"success": True, "message": "Permiso revocado"})
 
     return jsonify({"success": False, "error": "No se pudo revocar el permiso"}), 400
+
+
+# ============================================================================
+# Resumen Ejecutivo
+# ============================================================================
+
+
+@bp.route("/dashboards/resumen-ejecutivo", methods=["GET"])
+@require_auth
+def resumen_ejecutivo():
+    """
+    Endpoint consolidado que devuelve un resumen ejecutivo del estado del día.
+    Combina datos de solicitudes, presupuesto, alertas MRP y SLA en una sola llamada.
+
+    Returns:
+        {solicitudes_hoy, presupuesto_resumen, alertas_mrp_criticas, sla_breaches}
+    """
+    from datetime import datetime as _dt
+    from backend.core.db import get_db_connection, is_using_postgresql, sql_date_relative
+
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # 1. Solicitudes del día / pendientes
+            if is_using_postgresql():
+                cursor.execute("""
+                    SELECT
+                        COUNT(*) FILTER (WHERE DATE(created_at) = CURRENT_DATE) as hoy,
+                        COUNT(*) FILTER (WHERE status = 'submitted') as pendientes_aprobacion,
+                        COUNT(*) FILTER (WHERE status = 'approved') as pendientes_planificacion,
+                        COUNT(*) FILTER (WHERE status IN ('processing', 'dispatched')) as en_proceso,
+                        COUNT(*) as total
+                    FROM solicitud
+                """)
+            else:
+                cursor.execute("""
+                    SELECT
+                        SUM(CASE WHEN DATE(created_at) = DATE('now') THEN 1 ELSE 0 END) as hoy,
+                        SUM(CASE WHEN status = 'submitted' THEN 1 ELSE 0 END) as pendientes_aprobacion,
+                        SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as pendientes_planificacion,
+                        SUM(CASE WHEN status IN ('processing', 'dispatched') THEN 1 ELSE 0 END) as en_proceso,
+                        COUNT(*) as total
+                    FROM solicitud
+                """)
+            row = cursor.fetchone()
+            sol = dict(row) if row else {}
+
+            # 2. Presupuesto resumen
+            cursor.execute("""
+                SELECT
+                    COALESCE(SUM(monto_usd), 0) as total,
+                    COALESCE(SUM(saldo_usd), 0) as disponible,
+                    COALESCE(SUM(monto_usd) - SUM(saldo_usd), 0) as utilizado
+                FROM presupuesto
+                WHERE monto_usd > 0
+            """)
+            prow = cursor.fetchone()
+            presupuesto = dict(prow) if prow else {}
+            total_pres = float(presupuesto.get('total') or 0)
+            presupuesto['porcentaje_usado'] = round(
+                (float(presupuesto.get('utilizado') or 0) / total_pres * 100) if total_pres > 0 else 0, 1
+            )
+
+            # 3. Alertas MRP críticas (materiales con stock 0 o bajo punto de pedido)
+            alertas_mrp = {"criticas": 0, "altas": 0}
+            try:
+                db_name = "spm" if is_using_postgresql() else "sap_data"
+                with get_db_connection(db_name) as conn2:
+                    cur2 = conn2.cursor()
+                    cur2.execute("""
+                        SELECT
+                            SUM(CASE WHEN s.stock_actual <= 0 THEN 1 ELSE 0 END) as criticas,
+                            SUM(CASE WHEN s.stock_actual > 0 AND s.stock_actual < m.punto_de_pedido THEN 1 ELSE 0 END) as altas
+                        FROM materiales_bbdd m
+                        LEFT JOIN (
+                            SELECT material, centro, SUM(stock) as stock_actual
+                            FROM stock GROUP BY material, centro
+                        ) s ON m.codigo_material = s.material AND m.centro = s.centro
+                        WHERE m.punto_de_pedido > 0
+                    """)
+                    arow = cur2.fetchone()
+                    if arow:
+                        alertas_mrp = {
+                            "criticas": int(dict(arow).get("criticas") or 0),
+                            "altas": int(dict(arow).get("altas") or 0)
+                        }
+            except Exception as e:
+                logger.warning(f"Error obteniendo alertas MRP: {e}")
+
+            # 4. SLA breaches (solicitudes que exceden tiempo límite)
+            sla_breaches = 0
+            try:
+                cursor.execute(f"""
+                    SELECT COUNT(*) as total
+                    FROM solicitud
+                    WHERE status = 'submitted'
+                    AND created_at < {sql_date_relative(days=-3)}
+                """)
+                sla_row = cursor.fetchone()
+                sla_breaches = int((dict(sla_row) if sla_row else {}).get('total', 0))
+            except Exception as e:
+                logger.warning(f"Error obteniendo SLA breaches: {e}")
+
+        return jsonify({
+            "ok": True,
+            "data": {
+                "solicitudes": {
+                    "hoy": int(sol.get("hoy") or 0),
+                    "pendientes_aprobacion": int(sol.get("pendientes_aprobacion") or 0),
+                    "pendientes_planificacion": int(sol.get("pendientes_planificacion") or 0),
+                    "en_proceso": int(sol.get("en_proceso") or 0),
+                    "total": int(sol.get("total") or 0)
+                },
+                "presupuesto": {
+                    "total": float(presupuesto.get("total") or 0),
+                    "disponible": float(presupuesto.get("disponible") or 0),
+                    "utilizado": float(presupuesto.get("utilizado") or 0),
+                    "porcentaje_usado": presupuesto.get("porcentaje_usado", 0)
+                },
+                "alertas_mrp": alertas_mrp,
+                "sla_breaches": sla_breaches,
+                "generado_at": _dt.now().isoformat()
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error en resumen ejecutivo: {e}")
+        return jsonify({"ok": False, "error": {"code": "resumen_error", "message": str(e)}}), 500
