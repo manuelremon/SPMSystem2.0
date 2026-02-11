@@ -655,7 +655,7 @@ Responde como Vertex IA:"""
             # Si no hay contexto real, NO cachear (la respuesta podría ser "no encontré")
 
         except Exception as e:
-            logger.error(f"Error generando con Gemini: {e}")
+            logger.exception(f"Error generando con LLM ({type(client).__name__}): {e}")
             response_text = (
                 "Uh, tuve un problema conectandome. "
                 "Podes intentar de nuevo en unos segundos?"

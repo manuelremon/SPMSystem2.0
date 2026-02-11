@@ -36,6 +36,7 @@ class GeminiClient:
         """
         try:
             from google import genai
+            from google.genai import types as genai_types
         except ImportError:
             raise ImportError(
                 "google-genai no instalado. "
@@ -51,6 +52,7 @@ class GeminiClient:
 
         self._model_name = model
         self._genai = genai
+        self._types = genai_types
 
         # Crear cliente con API key
         self.client = genai.Client(api_key=self.api_key)
@@ -93,12 +95,12 @@ class GeminiClient:
             full_prompt = f"{system_prompt}\n\n---\n\n{prompt}"
 
         try:
-            # Configuracion de generacion
-            config = {
-                "temperature": temperature,
-                "max_output_tokens": max_tokens,
-                "top_p": 0.95,
-            }
+            # Configuracion de generacion (usar objeto tipado, no dict)
+            config = self._types.GenerateContentConfig(
+                temperature=temperature,
+                max_output_tokens=max_tokens,
+                top_p=0.95,
+            )
 
             response = self.client.models.generate_content(
                 model=self._model_name,
@@ -193,12 +195,12 @@ Basandote en el contexto anterior, responde la siguiente pregunta:
             if messages and messages[-1]["role"] == "user":
                 full_prompt += "\n\n---\n\n[Asistente]\n"
 
-            # Configuracion de generacion
-            config = {
-                "temperature": temperature,
-                "max_output_tokens": max_tokens,
-                "top_p": 0.95,
-            }
+            # Configuracion de generacion (usar objeto tipado, no dict)
+            config = self._types.GenerateContentConfig(
+                temperature=temperature,
+                max_output_tokens=max_tokens,
+                top_p=0.95,
+            )
 
             response = self.client.models.generate_content(
                 model=self._model_name,
