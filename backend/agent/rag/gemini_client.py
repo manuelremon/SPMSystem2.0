@@ -4,6 +4,11 @@ Cliente Gemini para Vertex IA.
 Usa Google GenAI SDK (google-genai) para generar respuestas.
 Soporta Gemini 2.0 Flash y otros modelos disponibles.
 
+Mejoras:
+- system_instruction nativo del SDK (no concatenado como texto)
+- generate_chat con contenido multi-turno real (Contents API)
+- Temperature dinamica segun tipo de query
+
 Configuracion via variables de entorno:
 - GOOGLE_AI_API_KEY: API key de Google AI Studio
 """
@@ -19,7 +24,8 @@ class GeminiClient:
     """
     Cliente para Google Gemini API.
 
-    Usa el nuevo SDK google-genai (reemplaza google.generativeai deprecado).
+    Usa el nuevo SDK google-genai con system_instruction nativo
+    y contenido multi-turno estructurado.
     """
 
     def __init__(
@@ -27,13 +33,6 @@ class GeminiClient:
         api_key: Optional[str] = None,
         model: str = "gemini-2.0-flash",
     ):
-        """
-        Inicializa cliente Gemini.
-
-        Args:
-            api_key: API key (o usa GOOGLE_AI_API_KEY)
-            model: Modelo a usar (gemini-2.0-flash, gemini-1.5-pro, etc.)
-        """
         try:
             from google import genai
             from google.genai import types as genai_types
@@ -61,12 +60,10 @@ class GeminiClient:
 
     @property
     def model_name(self) -> str:
-        """Nombre del modelo."""
         return self._model_name
 
     @property
     def provider(self) -> str:
-        """Nombre del proveedor."""
         return "gemini"
 
     def generate(
@@ -78,37 +75,34 @@ class GeminiClient:
         **kwargs,
     ) -> str:
         """
-        Genera una respuesta del LLM.
+        Genera una respuesta usando system_instruction nativo.
 
         Args:
             prompt: Prompt del usuario
-            system_prompt: Instrucciones del sistema
+            system_prompt: Instrucciones del sistema (usa system_instruction nativo)
             max_tokens: Maximo de tokens en respuesta
             temperature: Creatividad (0-1)
 
         Returns:
             Respuesta generada
         """
-        # Construir prompt completo con system prompt
-        full_prompt = prompt
-        if system_prompt:
-            full_prompt = f"{system_prompt}\n\n---\n\n{prompt}"
-
         try:
-            # Configuracion de generacion (usar objeto tipado, no dict)
             config = self._types.GenerateContentConfig(
                 temperature=temperature,
                 max_output_tokens=max_tokens,
                 top_p=0.95,
             )
 
+            # Usar system_instruction nativo si hay system_prompt
+            if system_prompt:
+                config.system_instruction = system_prompt
+
             response = self.client.models.generate_content(
                 model=self._model_name,
-                contents=full_prompt,
+                contents=prompt,
                 config=config,
             )
 
-            # Verificar respuesta
             if not response or not response.text:
                 logger.warning("Respuesta de Gemini vacia o bloqueada")
                 return "Lo siento, no puedo responder a esa consulta."
@@ -129,20 +123,9 @@ class GeminiClient:
     ) -> str:
         """
         Genera respuesta usando contexto de documentos.
-
-        Args:
-            query: Pregunta del usuario
-            context: Lista de documentos relevantes
-            system_prompt: Instrucciones del sistema
-            max_tokens: Maximo de tokens
-
-        Returns:
-            Respuesta generada
         """
-        # Formatear contexto
         context_text = self._format_context(context)
 
-        # Prompt con contexto
         full_prompt = f"""<contexto>
 {context_text}
 </contexto>
@@ -162,15 +145,18 @@ Basandote en el contexto anterior, responde la siguiente pregunta:
         self,
         messages: List[Dict[str, str]],
         system_prompt: Optional[str] = None,
-        max_tokens: int = 2048,
+        max_tokens: int = 4096,
         temperature: float = 0.7,
     ) -> str:
         """
-        Genera respuesta en modo chat con historial.
+        Genera respuesta en modo chat con historial multi-turno real.
+
+        Usa la Contents API de Gemini con roles 'user' y 'model'
+        en vez de concatenar todo como texto plano.
 
         Args:
             messages: Lista de mensajes [{"role": "user"|"assistant", "content": "..."}]
-            system_prompt: Instrucciones del sistema
+            system_prompt: Instrucciones del sistema (usa system_instruction nativo)
             max_tokens: Maximo de tokens
             temperature: Creatividad (0-1)
 
@@ -178,33 +164,40 @@ Basandote en el contexto anterior, responde la siguiente pregunta:
             Respuesta generada
         """
         try:
-            # Construir historial de conversacion como texto
-            conversation_parts = []
-
-            if system_prompt:
-                conversation_parts.append(f"[Sistema]\n{system_prompt}")
-
+            # Construir contenido multi-turno con objetos Content
+            contents = []
             for msg in messages:
-                role_label = "Usuario" if msg["role"] == "user" else "Asistente"
-                conversation_parts.append(f"[{role_label}]\n{msg['content']}")
+                # Gemini usa "model" en vez de "assistant"
+                role = "model" if msg["role"] == "assistant" else "user"
+                contents.append(
+                    self._types.Content(
+                        role=role,
+                        parts=[self._types.Part(text=msg["content"])],
+                    )
+                )
 
-            # El prompt completo es la conversacion
-            full_prompt = "\n\n---\n\n".join(conversation_parts)
+            # Asegurar que el ultimo mensaje sea del usuario
+            if contents and contents[-1].role != "user":
+                contents.append(
+                    self._types.Content(
+                        role="user",
+                        parts=[self._types.Part(text="Continua.")],
+                    )
+                )
 
-            # Agregar instruccion final para que responda
-            if messages and messages[-1]["role"] == "user":
-                full_prompt += "\n\n---\n\n[Asistente]\n"
-
-            # Configuracion de generacion (usar objeto tipado, no dict)
             config = self._types.GenerateContentConfig(
                 temperature=temperature,
                 max_output_tokens=max_tokens,
                 top_p=0.95,
             )
 
+            # system_instruction nativo - el modelo lo sigue mucho mejor
+            if system_prompt:
+                config.system_instruction = system_prompt
+
             response = self.client.models.generate_content(
                 model=self._model_name,
-                contents=full_prompt,
+                contents=contents,
                 config=config,
             )
 
@@ -238,7 +231,6 @@ Basandote en el contexto anterior, responde la siguiente pregunta:
         return "\n\n".join(parts)
 
     def get_status(self) -> Dict[str, Any]:
-        """Retorna estado del cliente."""
         return {
             "provider": self.provider,
             "model": self.model_name,

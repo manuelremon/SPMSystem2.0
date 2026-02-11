@@ -533,6 +533,8 @@ class VertexMemory:
     def get_context_summary(self) -> str:
         """
         Genera un resumen del contexto del usuario para el LLM.
+        Incluye historial real de conversaciones, materiales frecuentes,
+        temas de interes y datos del perfil.
 
         Returns:
             Texto con informacion relevante del usuario
@@ -544,21 +546,132 @@ class VertexMemory:
         parts = []
 
         if conv_count > 0:
-            parts.append(f"Has tenido {conv_count} conversaciones conmigo.")
+            if conv_count == 1:
+                parts.append("Es tu segunda conversacion conmigo.")
+            elif conv_count < 5:
+                parts.append(f"Has tenido {conv_count} conversaciones conmigo.")
+            else:
+                parts.append(f"Usuario recurrente ({conv_count} conversaciones).")
 
         if topics:
-            topics_text = ", ".join(topics[:3])
+            topics_text = ", ".join(t[:50] for t in topics[:3])
             parts.append(f"Temas recientes: {topics_text}")
 
+        # Materiales que consulta frecuentemente
         if facts.get("materiales_frecuentes"):
-            mats = facts["materiales_frecuentes"][:3]
-            mat_names = [m.get("descripcion", m.get("codigo", "?"))[:30] for m in mats]
-            parts.append(f"Materiales que pedis seguido: {', '.join(mat_names)}")
+            mats = facts["materiales_frecuentes"]
+            if len(mats) > 0:
+                # Mostrar los mas recientes
+                recent_mats = sorted(
+                    mats,
+                    key=lambda m: m.get("mentioned_at", ""),
+                    reverse=True,
+                )[:5]
+                mat_codes = [m.get("codigo", "?") for m in recent_mats]
+                parts.append(f"Materiales consultados recientemente: {', '.join(mat_codes)}")
 
+        # Temas de interes
+        if facts.get("recent_topics"):
+            interested = facts["recent_topics"]
+            if isinstance(interested, list) and interested:
+                parts.append(f"Temas de interes: {', '.join(interested[:5])}")
+
+        # Centro del usuario
         if facts.get("centro"):
-            parts.append(f"Tu centro es: {facts['centro']}")
+            parts.append(f"Centro: {facts['centro']}")
 
         return " ".join(parts) if parts else ""
+
+    def extract_entities(self, user_msg: str, response: str) -> Dict[str, Any]:
+        """
+        Extrae entidades mencionadas en la conversacion.
+
+        Args:
+            user_msg: Mensaje del usuario
+            response: Respuesta del asistente
+
+        Returns:
+            Dict con entidades extraidas (materiales, centros, acciones)
+        """
+        import re
+
+        entities = {
+            "materiales": [],
+            "solicitudes": [],
+            "acciones": [],
+        }
+
+        combined = user_msg + " " + response
+
+        # Extraer codigos SAP (formato XXXX-XXXXXXX)
+        sap_codes = re.findall(r'\b\d{4}-\d{7}\b', combined)
+        entities["materiales"] = list(set(sap_codes))
+
+        # Extraer IDs de solicitudes (#123 o solicitud 123)
+        sol_ids = re.findall(r'#(\d+)', combined)
+        sol_ids += re.findall(r'solicitud\s+(\d+)', combined, re.IGNORECASE)
+        entities["solicitudes"] = list(set(sol_ids))
+
+        # Detectar acciones mencionadas
+        action_patterns = {
+            "crear_solicitud": r'crear\s+(?:una\s+)?solicitud',
+            "buscar_material": r'busc(?:ar|o|ando)\s+material',
+            "consultar_stock": r'(?:consultar|ver|revisar)\s+stock',
+            "aprobar": r'apro(?:bar|bo)',
+            "presupuesto": r'(?:consultar|ver)\s+presupuesto',
+        }
+        for action, pattern in action_patterns.items():
+            if re.search(pattern, combined, re.IGNORECASE):
+                entities["acciones"].append(action)
+
+        return entities
+
+    def learn_from_conversation(self, user_msg: str, response: str):
+        """
+        Aprende de una interaccion: extrae entidades y actualiza facts.
+
+        Args:
+            user_msg: Mensaje del usuario
+            response: Respuesta del asistente
+        """
+        entities = self.extract_entities(user_msg, response)
+
+        # Guardar materiales mencionados
+        if entities["materiales"]:
+            freq_materials = self.recall_fact("materiales_frecuentes") or []
+            for code in entities["materiales"]:
+                if not any(m.get("codigo") == code for m in freq_materials):
+                    freq_materials.append({
+                        "codigo": code,
+                        "mentioned_at": datetime.now().isoformat(),
+                    })
+            # Mantener solo los ultimos 20
+            freq_materials = sorted(
+                freq_materials,
+                key=lambda m: m.get("mentioned_at", ""),
+                reverse=True,
+            )[:20]
+            self.remember_fact("materiales_frecuentes", freq_materials, expires_in_days=None)
+
+        # Guardar temas de interes
+        topic_keywords = {
+            "stock": ["stock", "inventario", "disponible", "cantidad"],
+            "solicitud": ["solicitud", "pedido", "orden"],
+            "presupuesto": ["presupuesto", "budget", "monto", "precio"],
+            "sla": ["sla", "tiempo", "urgente", "demora", "vencimiento"],
+            "equivalente": ["equivalente", "alternativa", "reemplazo", "similar"],
+            "mrp": ["mrp", "reposicion", "punto de pedido", "alerta"],
+        }
+        detected_topics = []
+        msg_lower = user_msg.lower()
+        for topic, keywords in topic_keywords.items():
+            if any(kw in msg_lower for kw in keywords):
+                detected_topics.append(topic)
+
+        if detected_topics:
+            existing_topics = self.recall_fact("recent_topics") or []
+            all_topics = list(set(existing_topics + detected_topics))[:10]
+            self.remember_fact("recent_topics", all_topics, expires_in_days=None)
 
     def clear_expired_facts(self):
         """Elimina hechos expirados de la memoria."""

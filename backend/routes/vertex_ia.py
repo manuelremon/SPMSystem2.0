@@ -613,49 +613,84 @@ NO ofrezcas ejemplos inventados. NO uses códigos ficticios como 1234-5678.
 - Respondé: "No encontré materiales con esos criterios. ¿Podés darme más detalles?"
 - NUNCA inventes códigos, precios ni descripciones."""
 
-        full_prompt = f"""{VERTEX_SYSTEM_PROMPT}{context_info}{rag_context}{material_restriction}
+        # =================================================================
+        # Construir system prompt con contexto (va como system_instruction)
+        # =================================================================
+        system_parts = [VERTEX_SYSTEM_PROMPT, context_info]
+        if rag_context:
+            system_parts.append(rag_context)
+        if material_restriction:
+            system_parts.append(material_restriction)
 
-HISTORIAL DE CONVERSACIÓN (léelo con atención):
-{_format_history(history)}
+        system_prompt = "\n".join(system_parts)
 
-MENSAJE ACTUAL DEL USUARIO: {user_message}
+        # =================================================================
+        # Construir mensajes multi-turno para Gemini
+        # =================================================================
+        chat_messages = []
 
-IMPORTANTE: Si el usuario dice "Dale", "Sí", "Ok", "Claro" o similar, es una CONFIRMACIÓN.
-Revisá tu último mensaje en el historial y respondé con la información que ofreciste.
-NO vuelvas a preguntar "¿En qué te puedo ayudar?".
+        # Historial de conversacion como mensajes reales
+        for msg in history:
+            chat_messages.append({
+                "role": msg["role"],
+                "content": msg["content"][:2000] if msg["content"] else "",
+            })
 
-Responde como Vertex IA:"""
+        # Si el ultimo mensaje del historial ya es el user_message actual,
+        # no duplicar (memory.add_message ya lo agrego)
+        if not chat_messages or chat_messages[-1]["content"] != user_message:
+            chat_messages.append({"role": "user", "content": user_message})
 
-        # Generar respuesta con Gemini
+        # Generar respuesta con Gemini (o fallback a otro LLM)
         try:
             client = get_llm_client(provider="auto")
 
-            # LOG DETALLADO para debugging
-            logger.info(f"=== VERTEX CHAT DEBUG ===")
-            logger.info(f"LLM Client: {type(client).__name__}")
-            logger.info(f"Has real context: {has_real_context}")
-            logger.info(f"RAG Context (primeros 500 chars): {rag_context[:500] if rag_context else 'VACÍO'}")
+            logger.info(f"=== VERTEX CHAT ===")
+            logger.info(f"LLM: {type(client).__name__}, msgs: {len(chat_messages)}, real_ctx: {has_real_context}")
 
-            # Temperatura baja para evitar alucinaciones
-            # 0.3 con contexto (algo de variación en el tono)
-            # 0.1 sin contexto (muy determinístico, solo decir "no encontré")
-            temperature = 0.3 if has_real_context else 0.1
-            logger.info(f"Temperature: {temperature}")
+            # Clasificar query para ajustar temperature
+            query_type = _classify_query(user_message)
+            # Datos: temperature baja. Conversacion: mas alta
+            if query_type in ("material", "stock", "mrp", "presupuesto", "solicitud", "sla"):
+                temperature = 0.3 if has_real_context else 0.1
+            else:
+                temperature = 0.7
 
-            response_text = client.generate(
-                prompt=full_prompt,
-                max_tokens=1024,
-                temperature=temperature,
-            )
-            logger.info(f"Response (primeros 300 chars): {response_text[:300]}")
+            # Usar generate_chat si es GeminiClient (multi-turno nativo)
+            from backend.agent.rag.gemini_client import GeminiClient
+            if isinstance(client, GeminiClient):
+                response_text = client.generate_chat(
+                    messages=chat_messages,
+                    system_prompt=system_prompt,
+                    max_tokens=4096,
+                    temperature=temperature,
+                )
+            else:
+                # Fallback para otros LLMs: concatenar como antes
+                history_text = _format_history(history)
+                full_prompt = f"""Contexto:\n{context_info}{rag_context}{material_restriction}
 
-            # Solo cachear respuestas con contexto real para evitar propagar inventos
+HISTORIAL:
+{history_text}
+
+MENSAJE ACTUAL: {user_message}
+
+Responde como Vertex IA:"""
+                response_text = client.generate(
+                    prompt=full_prompt,
+                    system_prompt=VERTEX_SYSTEM_PROMPT,
+                    max_tokens=4096,
+                    temperature=temperature,
+                )
+
+            logger.info(f"Response ({len(response_text)} chars): {response_text[:200]}")
+
+            # Solo cachear respuestas con contexto real
             if has_real_context and not _is_user_specific_query(user_message):
                 _set_cached_response(cache_key, response_text)
-            # Si no hay contexto real, NO cachear (la respuesta podría ser "no encontré")
 
         except Exception as e:
-            logger.exception(f"Error generando con LLM ({type(client).__name__}): {e}")
+            logger.exception(f"Error generando con LLM: {e}")
             response_text = (
                 "Uh, tuve un problema conectandome. "
                 "Podes intentar de nuevo en unos segundos?"
@@ -690,15 +725,19 @@ Responde como Vertex IA:"""
 
 
 def _format_history(history: List[Dict[str, str]]) -> str:
-    """Formatea historial para el prompt."""
+    """Formatea historial para el prompt. Preserva mensajes completos recientes."""
     if not history:
         return "(Sin historial previo)"
 
     lines = []
-    for msg in history[-10:]:  # Últimos 10 mensajes para mejor contexto
+    msgs = history[-10:]
+    for i, msg in enumerate(msgs):
         role = "Usuario" if msg["role"] == "user" else "Vertex"
-        # No truncar para mantener preguntas completas
-        content = msg["content"][:800]
+        # Mensajes recientes (ultimos 4) sin truncar, anteriores a 2000 chars
+        if i >= len(msgs) - 4:
+            content = msg["content"]
+        else:
+            content = msg["content"][:2000]
         lines.append(f"{role}: {content}")
 
     return "\n".join(lines)
@@ -708,16 +747,37 @@ def _format_history(history: List[Dict[str, str]]) -> str:
 # Funciones de Inteligencia (RAG, Contexto, Aprendizaje)
 # =============================================================================
 
-# Keywords para detectar queries de materiales
-MATERIAL_KEYWORDS = [
-    "material", "bomba", "repuesto", "stock", "necesito", "busco",
-    "precio", "disponible", "inventario", "codigo", "sap",
-    "valvula", "motor", "filtro", "sensor", "cable", "tornillo",
-    "pieza", "componente", "herramienta", "equipo",
-    "junta", "empaquetadura", "gasket", "brida", "codo", "tubo",
-    "acero", "inoxidable", "hierro", "cobre", "aluminio",
-    "pulgadas", "serie", "espiralada", "espiral", "comprar", "quiero",
-]
+# Keywords por tipo de consulta para clasificacion
+QUERY_KEYWORDS = {
+    "material": [
+        "material", "bomba", "repuesto", "busco", "necesito",
+        "valvula", "motor", "filtro", "sensor", "cable", "tornillo",
+        "pieza", "componente", "herramienta", "equipo",
+        "junta", "empaquetadura", "gasket", "brida", "codo", "tubo",
+        "acero", "inoxidable", "hierro", "cobre", "aluminio",
+        "pulgadas", "serie", "espiralada", "espiral", "comprar", "quiero",
+    ],
+    "stock": [
+        "stock", "disponible", "inventario", "cantidad", "cuanto hay",
+        "deposito", "almacen", "existencia", "disponibilidad",
+    ],
+    "solicitud": [
+        "solicitud", "pedido", "orden", "estado de mi", "seguimiento",
+        "aprobada", "rechazada", "pendiente",
+    ],
+    "presupuesto": [
+        "presupuesto", "budget", "plata", "dinero", "monto",
+        "cuanto queda", "disponible presupuesto",
+    ],
+    "mrp": [
+        "mrp", "reposicion", "punto de pedido", "stock critico",
+        "alerta", "reorden", "eoq", "stock seguridad",
+    ],
+    "sla": [
+        "sla", "tiempo", "urgente", "demora", "vence", "vencimiento",
+        "plazo", "limite",
+    ],
+}
 
 # Keywords que indican query especifica del usuario (no cachear)
 USER_SPECIFIC_KEYWORDS = [
@@ -726,11 +786,50 @@ USER_SPECIFIC_KEYWORDS = [
     "pendiente", "estado de", "seguimiento",
 ]
 
+# Regex para codigos SAP reales: XXXX-XXXXXXX (ej: 0915-0000632)
+SAP_CODE_REGEX = re.compile(r'\b\d{4}-\d{7}\b')
+# Formato alternativo: 7-10 digitos seguidos
+SAP_CODE_ALT_REGEX = re.compile(r'\b\d{7,10}\b')
+
+
+def _classify_query(message: str) -> str:
+    """
+    Clasifica el tipo de query para ajustar comportamiento.
+
+    Returns:
+        Tipo: 'material', 'stock', 'solicitud', 'presupuesto', 'mrp', 'sla', 'general'
+    """
+    msg_lower = message.lower()
+
+    # Detectar codigo SAP directo -> material
+    if SAP_CODE_REGEX.search(message) or SAP_CODE_ALT_REGEX.search(message):
+        return "material"
+
+    # Clasificar por keywords con scoring
+    scores = {}
+    for query_type, keywords in QUERY_KEYWORDS.items():
+        score = sum(1 for kw in keywords if kw in msg_lower)
+        if score > 0:
+            scores[query_type] = score
+
+    if scores:
+        return max(scores, key=scores.get)
+
+    return "general"
+
 
 def _is_material_query(message: str) -> bool:
-    """Detecta si el mensaje es una consulta sobre materiales."""
+    """Detecta si el mensaje es una consulta sobre materiales o stock."""
+    query_type = _classify_query(message)
+    # Material y stock queries necesitan busqueda en BD
+    if query_type in ("material", "stock"):
+        return True
+    # Tambien si contiene un codigo SAP directo
+    if SAP_CODE_REGEX.search(message):
+        return True
+    # Verificar keywords de precio/codigo que siempre son de materiales
     msg_lower = message.lower()
-    return any(kw in msg_lower for kw in MATERIAL_KEYWORDS)
+    return any(kw in msg_lower for kw in ["precio", "codigo", "sap"])
 
 
 def _is_user_specific_query(message: str) -> bool:
@@ -744,22 +843,32 @@ def _get_rag_context(message: str) -> str:
     Busca materiales relevantes en la BD y formatea para el prompt.
     Usa búsqueda directa en SQLite como fallback si RAG no está disponible.
     """
-    # Primero intentar búsqueda directa en BD (más confiable)
+    # Primero intentar busqueda directa en BD (mas confiable, con stock y equivalencias)
     try:
         results = _search_materials_direct(message)
         if results:
             context = "\n\n" + "="*60 + "\n"
-            context += "📋 MATERIALES ENCONTRADOS EN EL CATÁLOGO SAP\n"
+            context += "MATERIALES ENCONTRADOS EN EL CATALOGO SAP\n"
             context += "="*60 + "\n"
-            context += "CÓDIGOS VÁLIDOS (solo podés usar estos):\n\n"
+            context += "CODIGOS VALIDOS (solo podes usar estos):\n\n"
             for i, r in enumerate(results, 1):
                 precio = r.get('precio', 0)
                 precio_fmt = f"${precio:,.2f}" if precio else "Sin precio"
-                context += f"{i}. {r['codigo']} - {r['descripcion'][:80]} - {precio_fmt}\n"
+                stock = r.get('stock_total', 'Sin datos')
+                stock_fmt = f"{stock} unidades" if isinstance(stock, (int, float)) else stock
+                context += f"{i}. {r['codigo']} - {r['descripcion'][:80]}\n"
+                context += f"   Precio: {precio_fmt} | Stock: {stock_fmt}\n"
+
+                # Agregar equivalencias si existen
+                equivs = r.get('equivalencias', [])
+                if equivs:
+                    equiv_strs = [f"{e['codigo']} ({e['tipo']})" for e in equivs[:2]]
+                    context += f"   Equivalencias: {', '.join(equiv_strs)}\n"
+
             context += "\n" + "="*60 + "\n"
-            context += "⚠️ ATENCIÓN: Si el usuario pide algo que NO está en esta lista,\n"
-            context += "decí que no lo encontraste y ofrecé las opciones disponibles.\n"
-            context += "NUNCA inventes códigos que no estén arriba.\n"
+            context += "ATENCION: Si el usuario pide algo que NO esta en esta lista,\n"
+            context += "deci que no lo encontraste y ofrece las opciones disponibles.\n"
+            context += "NUNCA inventes codigos que no esten arriba.\n"
             context += "="*60
             return context
     except Exception as e:
@@ -789,13 +898,10 @@ def _get_rag_context(message: str) -> str:
 
 def _search_materials_direct(query: str) -> list:
     """
-    Búsqueda directa en SQLite con ranking de relevancia.
-
-    Usa OR para encontrar más resultados y ordena por cantidad de matches.
-    Más flexible que la versión anterior que usaba AND.
+    Busqueda directa en SQLite con ranking de relevancia.
+    Incluye datos de stock y equivalencias cuando estan disponibles.
     """
     import sqlite3
-    import re
 
     # Extraer palabras clave significativas
     words = re.findall(r'\w+', query.lower())
@@ -807,24 +913,26 @@ def _search_materials_direct(query: str) -> list:
     }
     keywords = [w for w in words if len(w) > 2 and w not in stopwords]
 
-    if not keywords:
+    # Tambien buscar por codigo SAP directo
+    sap_codes = SAP_CODE_REGEX.findall(query)
+    sap_codes_alt = SAP_CODE_ALT_REGEX.findall(query)
+
+    if not keywords and not sap_codes and not sap_codes_alt:
         return []
 
     try:
         from backend.core.db import get_master_materiales_db_path
         from pathlib import Path
 
-        # Buscar la BD que contenga la tabla 'materiales'
         db_path = str(get_master_materiales_db_path())
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
 
-        # Verificar si la tabla existe en esta BD
+        # Verificar si la tabla existe
         cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='materiales'")
         if not cur.fetchone():
             conn.close()
-            # Fallback: buscar en catalogo_materiales.db directamente
             fallback_path = Path(db_path).parent / "catalogo_materiales.db"
             if fallback_path.exists():
                 conn = sqlite3.connect(str(fallback_path))
@@ -833,65 +941,153 @@ def _search_materials_direct(query: str) -> list:
             else:
                 return []
 
-        # Limitar a 5 keywords más relevantes
-        keywords = keywords[:5]
+        results = []
 
-        # Construir condiciones OR (no AND) para mayor flexibilidad
-        # Ranking y filtrado usan parámetros para evitar SQL injection
-        conditions = []
-        ranking_parts = []
-        params = []
-        for kw in keywords:
-            kw_pattern = f'%{kw}%'
-            conditions.append("(UPPER(descripcion) LIKE UPPER(?) OR UPPER(descripcion_larga) LIKE UPPER(?))")
-            params.extend([kw_pattern, kw_pattern])
-            # Ranking: descripcion vale 2 puntos, descripcion_larga vale 1
-            ranking_parts.append("(CASE WHEN UPPER(descripcion) LIKE UPPER(?) THEN 2 ELSE 0 END)")
-            ranking_parts.append("(CASE WHEN UPPER(descripcion_larga) LIKE UPPER(?) THEN 1 ELSE 0 END)")
+        # 1. Busqueda por codigo SAP exacto (maxima prioridad)
+        for code in sap_codes + sap_codes_alt:
+            cur.execute(
+                """SELECT codigo, descripcion, COALESCE(precio_usd, 0) as precio
+                   FROM materiales WHERE codigo = ? AND activo = 1""",
+                (code,),
+            )
+            for row in cur.fetchall():
+                results.append({**dict(row), "relevance": 100})
 
-        ranking_expr = " + ".join(ranking_parts) if ranking_parts else "0"
+        # 2. Busqueda por keywords (si no encontramos por codigo)
+        if not results and keywords:
+            keywords = keywords[:5]
 
-        # Parámetros para ranking (mismos patterns)
-        ranking_params = []
-        for kw in keywords:
-            kw_pattern = f'%{kw}%'
-            ranking_params.extend([kw_pattern, kw_pattern])
+            conditions = []
+            ranking_parts = []
+            params = []
+            for kw in keywords:
+                kw_pattern = f'%{kw}%'
+                conditions.append("(UPPER(descripcion) LIKE UPPER(?) OR UPPER(descripcion_larga) LIKE UPPER(?))")
+                params.extend([kw_pattern, kw_pattern])
+                ranking_parts.append("(CASE WHEN UPPER(descripcion) LIKE UPPER(?) THEN 2 ELSE 0 END)")
+                ranking_parts.append("(CASE WHEN UPPER(descripcion_larga) LIKE UPPER(?) THEN 1 ELSE 0 END)")
 
-        # Query con OR y ordenamiento por relevancia
-        sql = f"""
-            SELECT
-                codigo,
-                descripcion,
-                COALESCE(precio_usd, 0) as precio,
-                ({ranking_expr}) as relevance
-            FROM materiales
-            WHERE ({' OR '.join(conditions)})
-            AND activo = 1
-            ORDER BY relevance DESC, precio DESC
-            LIMIT 10
-        """
+            ranking_expr = " + ".join(ranking_parts) if ranking_parts else "0"
 
-        # ranking_params primero (para SELECT), luego filter params (para WHERE)
-        cur.execute(sql, ranking_params + params)
-        results = [dict(row) for row in cur.fetchall()]
+            ranking_params = []
+            for kw in keywords:
+                kw_pattern = f'%{kw}%'
+                ranking_params.extend([kw_pattern, kw_pattern])
+
+            sql = f"""
+                SELECT
+                    codigo,
+                    descripcion,
+                    COALESCE(precio_usd, 0) as precio,
+                    ({ranking_expr}) as relevance
+                FROM materiales
+                WHERE ({' OR '.join(conditions)})
+                AND activo = 1
+                ORDER BY relevance DESC, precio DESC
+                LIMIT 10
+            """
+            cur.execute(sql, ranking_params + params)
+            results = [dict(row) for row in cur.fetchall()]
+            results = [r for r in results if r.get('relevance', 0) > 0]
+
         conn.close()
 
-        # Filtrar resultados con relevancia mínima (al menos 1 match)
-        results = [r for r in results if r.get('relevance', 0) > 0]
+        # 3. Enriquecer con datos de stock (sap_data.db)
+        if results:
+            results = _enrich_with_stock(results)
+            results = _enrich_with_equivalencias(results)
 
-        logger.debug(f"Búsqueda directa BD: {len(results)} resultados para keywords {keywords}")
+        logger.debug(f"Busqueda directa BD: {len(results)} resultados")
         return results
 
     except Exception as e:
-        logger.warning(f"Error búsqueda directa BD: {e}")
+        logger.warning(f"Error busqueda directa BD: {e}")
         return []
+
+
+def _enrich_with_stock(materials: list) -> list:
+    """Agrega datos de stock a los resultados de materiales."""
+    import sqlite3
+    try:
+        from backend.core.db import get_sap_data_db_path
+        db_path = str(get_sap_data_db_path())
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+
+        for mat in materials:
+            codigo = mat.get("codigo", "")
+            cur.execute(
+                """SELECT SUM(stock) as stock_total, centro, almacen
+                   FROM stock WHERE material = ?
+                   GROUP BY material LIMIT 1""",
+                (codigo,),
+            )
+            row = cur.fetchone()
+            if row:
+                mat["stock_total"] = row["stock_total"] or 0
+                mat["centro"] = row["centro"]
+                mat["almacen"] = row["almacen"]
+            else:
+                mat["stock_total"] = "Sin datos"
+
+        conn.close()
+    except Exception as e:
+        logger.debug(f"No se pudo enriquecer con stock: {e}")
+
+    return materials
+
+
+def _enrich_with_equivalencias(materials: list) -> list:
+    """Agrega equivalencias disponibles a los resultados."""
+    import sqlite3
+    try:
+        from backend.core.db import get_master_materiales_db_path
+        db_path = str(get_master_materiales_db_path())
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+
+        # Verificar si existe la tabla de equivalencias
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='materiales_equivalencias'")
+        if not cur.fetchone():
+            conn.close()
+            return materials
+
+        for mat in materials:
+            codigo = mat.get("codigo", "")
+            cur.execute(
+                """SELECT material_equivalente, texto_breve_equivalente, tipo_equiv
+                   FROM materiales_equivalencias
+                   WHERE material_base = ?
+                   LIMIT 3""",
+                (codigo,),
+            )
+            equiv_rows = cur.fetchall()
+            if equiv_rows:
+                mat["equivalencias"] = [
+                    {
+                        "codigo": r["material_equivalente"],
+                        "descripcion": r["texto_breve_equivalente"],
+                        "tipo": r["tipo_equiv"],
+                    }
+                    for r in equiv_rows
+                ]
+
+        conn.close()
+    except Exception as e:
+        logger.debug(f"No se pudo enriquecer con equivalencias: {e}")
+
+    return materials
 
 
 def _get_user_data_context(user_id: str, message: str) -> str:
     """
     Obtiene datos relevantes del usuario para enriquecer el contexto.
+    Incluye solicitudes, presupuesto, alertas MRP y SLA.
     """
     context_parts = []
+    query_type = _classify_query(message)
 
     try:
         from backend.core.db import get_db_connection, sql_extract_year
@@ -899,11 +1095,25 @@ def _get_user_data_context(user_id: str, message: str) -> str:
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
-            # Si pregunta por solicitudes, obtener las activas
-            if any(kw in message.lower() for kw in ["solicitud", "pedido", "estado"]):
+            # Obtener info basica del usuario (centro, rol)
+            cursor.execute(
+                "SELECT centros, roles, nombre FROM usuario WHERE id_spm = ?",
+                (user_id,),
+            )
+            user_row = cursor.fetchone()
+            user_centro = None
+            if user_row:
+                centros_val = user_row[0] if isinstance(user_row, (list, tuple)) else user_row.get("centros")
+                if centros_val:
+                    user_centro = centros_val.split(",")[0].strip() if "," in str(centros_val) else centros_val
+
+            # === SOLICITUDES (si pregunta por solicitudes o general) ===
+            if query_type in ("solicitud", "general") or any(
+                kw in message.lower() for kw in ["solicitud", "pedido", "estado"]
+            ):
                 cursor.execute(
                     """
-                    SELECT id, status, total_monto, created_at
+                    SELECT id, status, total_monto, created_at, criticidad
                     FROM solicitud
                     WHERE id_usuario = ?
                     AND status NOT IN ('closed', 'rejected', 'cancelled')
@@ -920,37 +1130,103 @@ def _get_user_data_context(user_id: str, message: str) -> str:
                         sol_id = sol[0] if isinstance(sol, (list, tuple)) else sol["id"]
                         status = sol[1] if isinstance(sol, (list, tuple)) else sol["status"]
                         monto = sol[2] if isinstance(sol, (list, tuple)) else sol["total_monto"]
-                        context_parts.append(f"  - #{sol_id} ({status}): ${monto:,.0f}" if monto else f"  - #{sol_id} ({status})")
+                        criticidad = sol[4] if isinstance(sol, (list, tuple)) else sol.get("criticidad", "")
+                        line = f"  - #{sol_id} ({status})"
+                        if monto:
+                            line += f": ${monto:,.0f}"
+                        if criticidad:
+                            line += f" [{criticidad}]"
+                        context_parts.append(line)
 
-            # Si pregunta por presupuesto, obtener info del centro
-            if any(kw in message.lower() for kw in ["presupuesto", "budget", "plata", "dinero"]):
-                cursor.execute(
-                    "SELECT centros FROM usuario WHERE id_spm = ?",
-                    (user_id,),
-                )
-                user_row = cursor.fetchone()
-                if user_row:
-                    centros = user_row[0] if isinstance(user_row, (list, tuple)) else user_row.get("centros")
-                    if centros:
-                        centro = centros.split(",")[0].strip() if "," in str(centros) else centros
-                        year_expr = sql_extract_year()
-                        cursor.execute(
-                            f"""
-                            SELECT monto_total, monto_usado, monto_reservado
-                            FROM presupuesto
-                            WHERE centro = ? AND anio = {year_expr}
-                            """,
-                            (centro,),
-                        )
-                        budget = cursor.fetchone()
-                        if budget:
-                            total = budget[0] if isinstance(budget, (list, tuple)) else budget["monto_total"]
-                            usado = budget[1] if isinstance(budget, (list, tuple)) else budget["monto_usado"]
-                            disponible = total - (usado or 0) if total else 0
-                            context_parts.append(f"Presupuesto del centro {centro}:")
-                            context_parts.append(f"  - Total: ${total:,.0f}" if total else "  - Total: N/A")
-                            context_parts.append(f"  - Usado: ${usado:,.0f}" if usado else "  - Usado: $0")
-                            context_parts.append(f"  - Disponible: ${disponible:,.0f}")
+            # === PRESUPUESTO ===
+            if query_type == "presupuesto" or any(
+                kw in message.lower() for kw in ["presupuesto", "budget", "plata", "dinero"]
+            ):
+                if user_centro:
+                    year_expr = sql_extract_year()
+                    cursor.execute(
+                        f"""
+                        SELECT monto_total, monto_usado, monto_reservado
+                        FROM presupuesto
+                        WHERE centro = ? AND anio = {year_expr}
+                        """,
+                        (user_centro,),
+                    )
+                    budget = cursor.fetchone()
+                    if budget:
+                        total = budget[0] if isinstance(budget, (list, tuple)) else budget["monto_total"]
+                        usado = budget[1] if isinstance(budget, (list, tuple)) else budget["monto_usado"]
+                        reservado = budget[2] if isinstance(budget, (list, tuple)) else budget.get("monto_reservado", 0)
+                        disponible = (total or 0) - (usado or 0) - (reservado or 0)
+                        pct_usado = ((usado or 0) / total * 100) if total else 0
+                        context_parts.append(f"Presupuesto del centro {user_centro}:")
+                        context_parts.append(f"  - Total: ${total:,.0f}" if total else "  - Total: N/A")
+                        context_parts.append(f"  - Usado: ${(usado or 0):,.0f} ({pct_usado:.0f}%)")
+                        context_parts.append(f"  - Disponible: ${disponible:,.0f}")
+                        if pct_usado > 80:
+                            context_parts.append("  - ALERTA: Mas del 80% del presupuesto ya fue utilizado")
+
+            # === ALERTAS MRP (si pregunta por MRP, stock critico o alertas) ===
+            if query_type in ("mrp", "stock") or any(
+                kw in message.lower() for kw in ["alerta", "critico", "reposicion", "mrp"]
+            ):
+                try:
+                    cursor.execute(
+                        """
+                        SELECT material_codigo, tipo, severidad, mensaje
+                        FROM alertas_mrp
+                        WHERE estado = 'activa'
+                        AND (centro = ? OR ? IS NULL)
+                        ORDER BY
+                            CASE severidad WHEN 'danger' THEN 1 WHEN 'warning' THEN 2 ELSE 3 END
+                        LIMIT 5
+                        """,
+                        (user_centro, user_centro),
+                    )
+                    alertas = cursor.fetchall()
+                    if alertas:
+                        context_parts.append("Alertas MRP activas:")
+                        for al in alertas:
+                            codigo = al[0] if isinstance(al, (list, tuple)) else al["material_codigo"]
+                            tipo = al[1] if isinstance(al, (list, tuple)) else al["tipo"]
+                            sev = al[2] if isinstance(al, (list, tuple)) else al["severidad"]
+                            msg = al[3] if isinstance(al, (list, tuple)) else al["mensaje"]
+                            context_parts.append(f"  - [{sev.upper()}] {codigo}: {tipo} - {msg[:80]}")
+                except Exception:
+                    pass  # Tabla puede no existir en dev
+
+            # === SLA (si pregunta por tiempos, urgencias, vencimientos) ===
+            if query_type == "sla" or any(
+                kw in message.lower() for kw in ["sla", "vence", "urgente", "demora", "plazo"]
+            ):
+                try:
+                    cursor.execute(
+                        """
+                        SELECT sa.solicitud_id, sa.tipo, sa.fecha_vencimiento,
+                               sa.tiempo_transcurrido_horas, sa.tiempo_objetivo_horas
+                        FROM sla_alertas sa
+                        JOIN solicitud s ON s.id = sa.solicitud_id
+                        WHERE s.id_usuario = ? AND sa.estado = 'activa'
+                        ORDER BY sa.fecha_vencimiento ASC
+                        LIMIT 5
+                        """,
+                        (user_id,),
+                    )
+                    sla_alertas = cursor.fetchall()
+                    if sla_alertas:
+                        context_parts.append("Alertas SLA del usuario:")
+                        for sa in sla_alertas:
+                            sol_id = sa[0] if isinstance(sa, (list, tuple)) else sa["solicitud_id"]
+                            tipo = sa[1] if isinstance(sa, (list, tuple)) else sa["tipo"]
+                            venc = sa[2] if isinstance(sa, (list, tuple)) else sa["fecha_vencimiento"]
+                            transcurrido = sa[3] if isinstance(sa, (list, tuple)) else sa["tiempo_transcurrido_horas"]
+                            objetivo = sa[4] if isinstance(sa, (list, tuple)) else sa["tiempo_objetivo_horas"]
+                            context_parts.append(
+                                f"  - Solicitud #{sol_id}: {tipo} - "
+                                f"Vence: {venc}, {transcurrido:.0f}h/{objetivo}h"
+                            )
+                except Exception:
+                    pass  # Tabla puede no existir en dev
 
     except Exception as e:
         logger.warning(f"Error obteniendo contexto del usuario: {e}")
@@ -961,47 +1237,10 @@ def _get_user_data_context(user_id: str, message: str) -> str:
 def _learn_from_message(memory: VertexMemory, user_msg: str, response: str):
     """
     Extrae y guarda informacion util de la conversacion.
-    Aprende codigos de materiales consultados para personalizar futuras respuestas.
+    Delega al metodo learn_from_conversation de VertexMemory.
     """
     try:
-        # 1. Extraer codigos de material (formato: 6-10 digitos)
-        material_codes = re.findall(r'\b\d{6,10}\b', user_msg + " " + response)
-
-        if material_codes:
-            # Obtener materiales frecuentes existentes
-            freq_materials = memory.recall_fact("materiales_frecuentes") or []
-
-            # Agregar nuevos codigos (sin duplicados)
-            for code in material_codes:
-                if not any(m.get("codigo") == code for m in freq_materials):
-                    freq_materials.append({
-                        "codigo": code,
-                        "mentioned_at": datetime.now().isoformat(),
-                    })
-
-            # Memoria ilimitada y permanente
-            memory.remember_fact("materiales_frecuentes", freq_materials, expires_in_days=None)
-
-        # 2. Detectar temas de interes
-        topics = []
-        topic_keywords = {
-            "stock": ["stock", "inventario", "disponible", "cantidad"],
-            "solicitud": ["solicitud", "pedido", "orden"],
-            "presupuesto": ["presupuesto", "budget", "monto", "precio"],
-            "sla": ["sla", "tiempo", "urgente", "demora", "vencimiento"],
-            "equivalente": ["equivalente", "alternativa", "reemplazo", "similar"],
-        }
-
-        for topic, keywords in topic_keywords.items():
-            if any(kw in user_msg.lower() for kw in keywords):
-                topics.append(topic)
-
-        if topics:
-            # Memoria permanente de temas
-            existing_topics = memory.recall_fact("recent_topics") or []
-            all_topics = list(set(existing_topics + topics))
-            memory.remember_fact("recent_topics", all_topics, expires_in_days=None)
-
+        memory.learn_from_conversation(user_msg, response)
     except Exception as e:
         logger.warning(f"Error en aprendizaje de mensaje: {e}")
 
@@ -1009,6 +1248,44 @@ def _learn_from_message(memory: VertexMemory, user_msg: str, response: str):
 # =============================================================================
 # Sugerencias Contextuales
 # =============================================================================
+
+
+def _get_greeting_context(user_id: str) -> Optional[dict]:
+    """Obtiene datos del usuario para personalizar el saludo."""
+    try:
+        from backend.core.db import get_db_connection
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Solicitudes pendientes
+            cursor.execute(
+                """SELECT COUNT(*) FROM solicitud
+                   WHERE id_usuario = ? AND status NOT IN ('closed', 'rejected', 'cancelled')""",
+                (user_id,),
+            )
+            row = cursor.fetchone()
+            pending = row[0] if isinstance(row, (list, tuple)) else (row.get("count", 0) if row else 0)
+
+            # Alertas MRP activas
+            alertas = 0
+            try:
+                cursor.execute(
+                    "SELECT COUNT(*) FROM alertas_mrp WHERE estado = 'activa'"
+                )
+                al_row = cursor.fetchone()
+                alertas = al_row[0] if isinstance(al_row, (list, tuple)) else (al_row.get("count", 0) if al_row else 0)
+            except Exception:
+                pass
+
+            if pending or alertas:
+                return {
+                    "pending_solicitudes": pending,
+                    "alertas_count": alertas,
+                }
+    except Exception as e:
+        logger.debug(f"Error obteniendo contexto para greeting: {e}")
+
+    return None
 
 
 @bp.route("/suggestions", methods=["GET"])
@@ -1046,12 +1323,17 @@ def get_suggestions():
         # Intentar obtener info del usuario si esta autenticado
         user_name = ""
         user_id = None
+        greeting_context = None
         if hasattr(g, "user") and g.user:
             user_name = g.user.get("nombre", "")
             user_id = g.user.get("id_spm")
 
-        # Generar saludo
-        greeting = get_greeting(hour, user_name)
+            # Obtener contexto para greeting personalizado
+            if user_id:
+                greeting_context = _get_greeting_context(user_id)
+
+        # Generar saludo contextual
+        greeting = get_greeting(hour, user_name, user_context=greeting_context)
 
         # Obtener sugerencias para la pagina
         suggestions = get_page_suggestions(page)
