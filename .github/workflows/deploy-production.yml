@@ -63,7 +63,7 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: frontend
-        run: npm ci --omit=optional || npm install --no-optional
+        run: npm install --ignore-scripts=false --force
 
       - name: Build frontend
         working-directory: frontend
