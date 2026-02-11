@@ -59,6 +59,7 @@ def init_security_headers(app: Flask):
 
             # Content Security Policy para PRODUCCION
             # Permite Google Fonts y conexiones al propio dominio
+            # media-src blob: requerido para TTS (Edge TTS genera audio como blob)
             csp = (
                 "default-src 'self'; "
                 "script-src 'self' 'unsafe-inline'; "
@@ -66,6 +67,7 @@ def init_security_headers(app: Flask):
                 "img-src 'self' data: https:; "
                 "font-src 'self' https://fonts.gstatic.com; "
                 "connect-src 'self'; "
+                "media-src 'self' blob:; "
                 "frame-ancestors 'none'; "
                 "form-action 'self'; "
                 "base-uri 'self';"
@@ -83,6 +85,7 @@ def init_security_headers(app: Flask):
                 "style-src 'self' 'unsafe-inline' localhost:* 127.0.0.1:* https://fonts.googleapis.com; "
                 "img-src 'self' data: blob: localhost:* 127.0.0.1:*; "
                 "font-src 'self' data: localhost:* 127.0.0.1:* https://fonts.gstatic.com; "
+                "media-src 'self' blob: localhost:* 127.0.0.1:*; "
                 "connect-src 'self' ws: wss: localhost:* 127.0.0.1:*;"
             )
             response.headers["Content-Security-Policy"] = csp_dev

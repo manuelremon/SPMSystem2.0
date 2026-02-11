@@ -321,19 +321,18 @@ export default function ChatAssistant() {
         audioRef.current = null
       }
 
-      audio.onerror = (e) => {
-        console.warn('Audio playback error:', e)
-        setIsSpeaking(false)
+      audio.onerror = () => {
+        // CSP puede bloquear blob: URLs - usar fallback Web Speech API
         URL.revokeObjectURL(audioUrl)
         audioRef.current = null
+        fallbackSpeak(cleanText)
       }
 
       await audio.play()
 
-    } catch (err) {
-      // Si falla Edge TTS, no usar fallback robotico - simplemente silenciar
-      console.warn('Edge TTS error:', err.message || err)
-      setIsSpeaking(false)
+    } catch {
+      // Si falla Edge TTS, usar fallback Web Speech API del navegador
+      fallbackSpeak(cleanText)
     }
   }, [voiceEnabled])
 

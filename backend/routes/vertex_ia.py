@@ -837,18 +837,25 @@ def _search_materials_direct(query: str) -> list:
         keywords = keywords[:5]
 
         # Construir condiciones OR (no AND) para mayor flexibilidad
+        # Ranking y filtrado usan parámetros para evitar SQL injection
         conditions = []
+        ranking_parts = []
         params = []
         for kw in keywords:
+            kw_pattern = f'%{kw}%'
             conditions.append("(UPPER(descripcion) LIKE UPPER(?) OR UPPER(descripcion_larga) LIKE UPPER(?))")
-            params.extend([f'%{kw}%', f'%{kw}%'])
+            params.extend([kw_pattern, kw_pattern])
+            # Ranking: descripcion vale 2 puntos, descripcion_larga vale 1
+            ranking_parts.append("(CASE WHEN UPPER(descripcion) LIKE UPPER(?) THEN 2 ELSE 0 END)")
+            ranking_parts.append("(CASE WHEN UPPER(descripcion_larga) LIKE UPPER(?) THEN 1 ELSE 0 END)")
 
-        # Construir expresión de ranking: cuenta cuántos keywords coinciden
-        ranking_parts = []
-        for kw in keywords:
-            ranking_parts.append(f"(CASE WHEN UPPER(descripcion) LIKE UPPER('%{kw}%') THEN 2 ELSE 0 END)")
-            ranking_parts.append(f"(CASE WHEN UPPER(descripcion_larga) LIKE UPPER('%{kw}%') THEN 1 ELSE 0 END)")
         ranking_expr = " + ".join(ranking_parts) if ranking_parts else "0"
+
+        # Parámetros para ranking (mismos patterns)
+        ranking_params = []
+        for kw in keywords:
+            kw_pattern = f'%{kw}%'
+            ranking_params.extend([kw_pattern, kw_pattern])
 
         # Query con OR y ordenamiento por relevancia
         sql = f"""
@@ -864,7 +871,8 @@ def _search_materials_direct(query: str) -> list:
             LIMIT 10
         """
 
-        cur.execute(sql, params)
+        # ranking_params primero (para SELECT), luego filter params (para WHERE)
+        cur.execute(sql, ranking_params + params)
         results = [dict(row) for row in cur.fetchall()]
         conn.close()
 
@@ -1127,16 +1135,6 @@ def get_alerts():
                 "count": 0,
                 "tables_exist": False,
             }), 200
-
-        # =================================================================
-        # MEJORA: Generar alertas proactivas con AlertEngine
-        # =================================================================
-        try:
-            from backend.agent.proactive.alert_engine import AlertEngine
-            engine = AlertEngine(user_id)
-            engine.check_all_alerts()  # Genera nuevas alertas si corresponde
-        except Exception as e:
-            logger.warning(f"Error generando alertas proactivas: {e}")
 
         # Obtener alertas pendientes (no mostradas)
         with get_db_connection() as conn:
