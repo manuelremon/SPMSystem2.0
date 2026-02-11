@@ -276,6 +276,48 @@ def status():
     }), 200
 
 
+@bp.route("/diagnose", methods=["GET"])
+def diagnose():
+    """
+    Diagnóstico: prueba real de conexión a Gemini.
+    Solo disponible temporalmente para debugging.
+    """
+    import traceback
+    result = {
+        "vertex_available": VERTEX_AVAILABLE,
+        "llm_client_module": bool(llm_client_module),
+    }
+
+    if not VERTEX_AVAILABLE or not llm_client_module:
+        result["error"] = "Vertex not available"
+        return jsonify(result), 503
+
+    try:
+        client = get_llm_client(provider="auto")
+        result["client_type"] = type(client).__name__
+        result["client_provider"] = client.provider
+        result["client_model"] = client.model_name
+    except Exception as e:
+        result["client_error"] = str(e)
+        result["client_traceback"] = traceback.format_exc()
+        return jsonify(result), 500
+
+    try:
+        response = client.generate(
+            prompt="Respondé solo con la palabra 'OK'.",
+            max_tokens=10,
+            temperature=0.0,
+        )
+        result["generate_ok"] = True
+        result["response"] = response[:100]
+    except Exception as e:
+        result["generate_ok"] = False
+        result["generate_error"] = str(e)
+        result["generate_traceback"] = traceback.format_exc()
+
+    return jsonify(result), 200
+
+
 # =============================================================================
 # Text-to-Speech (Google Cloud TTS Neural)
 # =============================================================================
