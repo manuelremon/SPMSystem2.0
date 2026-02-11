@@ -53,8 +53,11 @@ class GeminiClient:
         self._genai = genai
         self._types = genai_types
 
-        # Crear cliente con API key
-        self.client = genai.Client(api_key=self.api_key)
+        # Crear cliente con API key y timeout de 25 segundos
+        self.client = genai.Client(
+            api_key=self.api_key,
+            http_options={"timeout": 25_000},
+        )
 
         logger.info(f"Cliente Gemini inicializado: {model}")
 

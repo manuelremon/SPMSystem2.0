@@ -645,9 +645,6 @@ NO ofrezcas ejemplos inventados. NO uses códigos ficticios como 1234-5678.
         try:
             client = get_llm_client(provider="auto")
 
-            logger.info(f"=== VERTEX CHAT ===")
-            logger.info(f"LLM: {type(client).__name__}, msgs: {len(chat_messages)}, real_ctx: {has_real_context}")
-
             # Clasificar query para ajustar temperature
             query_type = _classify_query(user_message)
             # Datos: temperature baja. Conversacion: mas alta
@@ -656,13 +653,22 @@ NO ofrezcas ejemplos inventados. NO uses códigos ficticios como 1234-5678.
             else:
                 temperature = 0.7
 
+            # Limitar max_tokens segun complejidad (evitar timeouts)
+            max_tokens = 2048 if query_type in ("mrp", "sla") else 4096
+
+            logger.info(
+                f"=== VERTEX CHAT === LLM: {type(client).__name__}, "
+                f"msgs: {len(chat_messages)}, type: {query_type}, "
+                f"sys_len: {len(system_prompt)}, temp: {temperature}"
+            )
+
             # Usar generate_chat si es GeminiClient (multi-turno nativo)
             from backend.agent.rag.gemini_client import GeminiClient
             if isinstance(client, GeminiClient):
                 response_text = client.generate_chat(
                     messages=chat_messages,
                     system_prompt=system_prompt,
-                    max_tokens=4096,
+                    max_tokens=max_tokens,
                     temperature=temperature,
                 )
             else:
@@ -679,7 +685,7 @@ Responde como Vertex IA:"""
                 response_text = client.generate(
                     prompt=full_prompt,
                     system_prompt=VERTEX_SYSTEM_PROMPT,
-                    max_tokens=4096,
+                    max_tokens=max_tokens,
                     temperature=temperature,
                 )
 
@@ -819,9 +825,13 @@ def _classify_query(message: str) -> str:
 
 
 def _is_material_query(message: str) -> bool:
-    """Detecta si el mensaje es una consulta sobre materiales o stock."""
+    """Detecta si el mensaje es una consulta sobre materiales (no MRP/SLA/solicitud)."""
     query_type = _classify_query(message)
-    # Material y stock queries necesitan busqueda en BD
+    # MRP, SLA, solicitud y presupuesto NO son queries de materiales
+    # (no necesitan busqueda en catalogo, solo datos de BD transaccional)
+    if query_type in ("mrp", "sla", "solicitud", "presupuesto"):
+        return False
+    # Material y stock queries necesitan busqueda en catalogo
     if query_type in ("material", "stock"):
         return True
     # Tambien si contiene un codigo SAP directo
@@ -1171,18 +1181,30 @@ def _get_user_data_context(user_id: str, message: str) -> str:
                 kw in message.lower() for kw in ["alerta", "critico", "reposicion", "mrp"]
             ):
                 try:
-                    cursor.execute(
-                        """
-                        SELECT material_codigo, tipo, severidad, mensaje
-                        FROM alertas_mrp
-                        WHERE estado = 'activa'
-                        AND (centro = ? OR ? IS NULL)
-                        ORDER BY
-                            CASE severidad WHEN 'danger' THEN 1 WHEN 'warning' THEN 2 ELSE 3 END
-                        LIMIT 5
-                        """,
-                        (user_centro, user_centro),
-                    )
+                    # Usar query simple sin OR condicional (problematico en PostgreSQL)
+                    if user_centro:
+                        cursor.execute(
+                            """
+                            SELECT material_codigo, tipo, severidad, mensaje
+                            FROM alertas_mrp
+                            WHERE estado = 'activa' AND centro = ?
+                            ORDER BY
+                                CASE severidad WHEN 'danger' THEN 1 WHEN 'warning' THEN 2 ELSE 3 END
+                            LIMIT 5
+                            """,
+                            (user_centro,),
+                        )
+                    else:
+                        cursor.execute(
+                            """
+                            SELECT material_codigo, tipo, severidad, mensaje
+                            FROM alertas_mrp
+                            WHERE estado = 'activa'
+                            ORDER BY
+                                CASE severidad WHEN 'danger' THEN 1 WHEN 'warning' THEN 2 ELSE 3 END
+                            LIMIT 5
+                            """,
+                        )
                     alertas = cursor.fetchall()
                     if alertas:
                         context_parts.append("Alertas MRP activas:")
@@ -1191,9 +1213,11 @@ def _get_user_data_context(user_id: str, message: str) -> str:
                             tipo = al[1] if isinstance(al, (list, tuple)) else al["tipo"]
                             sev = al[2] if isinstance(al, (list, tuple)) else al["severidad"]
                             msg = al[3] if isinstance(al, (list, tuple)) else al["mensaje"]
-                            context_parts.append(f"  - [{sev.upper()}] {codigo}: {tipo} - {msg[:80]}")
-                except Exception:
-                    pass  # Tabla puede no existir en dev
+                            context_parts.append(f"  - [{sev.upper()}] {codigo}: {tipo} - {(msg or '')[:80]}")
+                    else:
+                        context_parts.append("No hay alertas MRP activas en este momento.")
+                except Exception as e:
+                    logger.debug(f"Error consultando alertas MRP: {e}")
 
             # === SLA (si pregunta por tiempos, urgencias, vencimientos) ===
             if query_type == "sla" or any(
@@ -1225,8 +1249,10 @@ def _get_user_data_context(user_id: str, message: str) -> str:
                                 f"  - Solicitud #{sol_id}: {tipo} - "
                                 f"Vence: {venc}, {transcurrido:.0f}h/{objetivo}h"
                             )
-                except Exception:
-                    pass  # Tabla puede no existir en dev
+                    else:
+                        context_parts.append("No hay alertas SLA activas.")
+                except Exception as e:
+                    logger.debug(f"Error consultando alertas SLA: {e}")
 
     except Exception as e:
         logger.warning(f"Error obteniendo contexto del usuario: {e}")
