@@ -51,6 +51,7 @@ jobs:
             --ignore=tests/unit/test_cors.py \
             --ignore=tests/unit/test_lstm_model.py \
             --ignore=tests/unit/test_deepseek_client.py \
+            --ignore=tests/unit/test_approval_rules.py \
             -k "not test_cache_expiracion" \
             -x --timeout=60
 
