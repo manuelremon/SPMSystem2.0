@@ -23,7 +23,6 @@
     "@mui/material": "^7.3.7",
     "@mui/x-charts": "^8.26.0",
     "@mui/x-data-grid": "^8.26.0",
-    "@rollup/rollup-win32-x64-msvc": "^4.57.1",
     "@sentry/react": "^10.32.1",
     "@tanstack/react-table": "^8.21.3",
     "ag-grid-community": "^35.0.1",
