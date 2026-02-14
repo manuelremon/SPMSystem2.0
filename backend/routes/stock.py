@@ -233,18 +233,21 @@ def get_stock_resumen():
         with get_db_connection("sap_data") as conn:
             cur = conn.cursor()
 
-            where_clauses = ["stock > 0"]
+            # Build WHERE clauses with explicit aliases for reuse
+            base_clauses = ["s.stock > 0"]
             params = []
 
             if centro:
-                where_clauses.append("centro = ?")
+                base_clauses.append("s.centro = ?")
                 params.append(centro)
 
             if almacen:
-                where_clauses.append("almacen = ?")
+                base_clauses.append("s.almacen = ?")
                 params.append(almacen)
 
-            where_sql = " AND ".join(where_clauses)
+            where_sql = " AND ".join(base_clauses)
+            # Non-aliased version for simple queries
+            where_sql_no_alias = where_sql.replace("s.", "")
             fecha_limite = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
 
             # Total stock
@@ -254,7 +257,7 @@ def get_stock_resumen():
                     COALESCE(SUM(stock), 0) as stock_total,
                     COALESCE(SUM(stock_valorizado), 0) as valor_total
                 FROM stock
-                WHERE {where_sql}
+                WHERE {where_sql_no_alias}
             """, params)
             totals = dict(cur.fetchone())
 
@@ -264,7 +267,7 @@ def get_stock_resumen():
                     COUNT(DISTINCT material || '-' || centro || '-' || almacen) as items,
                     COALESCE(SUM(stock_valorizado), 0) as valor
                 FROM stock
-                WHERE {where_sql}
+                WHERE {where_sql_no_alias}
                 AND inmovilizado = 'INMOVILIZADO'
             """, params)
             inmovilizado = dict(cur.fetchone())
@@ -273,7 +276,7 @@ def get_stock_resumen():
             cur.execute(f"""
                 SELECT COUNT(DISTINCT s.material || '-' || s.centro || '-' || s.almacen) as items
                 FROM stock s
-                WHERE {where_sql.replace('stock', 's.stock').replace('centro', 's.centro').replace('almacen', 's.almacen')}
+                WHERE {where_sql}
                 AND NOT EXISTS (
                     SELECT 1 FROM consumo_historico ch
                     WHERE ch.material = s.material
@@ -288,7 +291,7 @@ def get_stock_resumen():
             cur.execute(f"""
                 SELECT COUNT(DISTINCT s.material || '-' || s.centro || '-' || s.almacen) as items
                 FROM stock s
-                WHERE {where_sql.replace('stock', 's.stock').replace('centro', 's.centro').replace('almacen', 's.almacen')}
+                WHERE {where_sql}
                 AND EXISTS (
                     SELECT 1 FROM materiales_bbdd m
                     WHERE m.codigo_material = s.material

@@ -201,7 +201,7 @@ class STLDecompositionStrategy(ForecastStrategy):
                     robust=True
                 )
                 resultado = stl.fit()
-            except:
+            except Exception:
                 return self._prediccion_modelo_simple(df_historico.reset_index(), periodos)
 
             # Obtener componentes

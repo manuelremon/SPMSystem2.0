@@ -11,6 +11,7 @@ from flask import Blueprint, g, jsonify, request
 
 from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id, is_using_postgresql
 from backend.core.helpers import safe_json as _safe_json
+from backend.core.rate_limit import rate_limit
 from backend.core.roles import is_admin, require_auth
 
 
@@ -203,6 +204,7 @@ def get_posts():
 
 @bp.route("/foro/posts", methods=["POST"])
 @require_auth
+@rate_limit(requests=10, window_seconds=60)
 def create_post():
     """
     Create a new forum post
@@ -224,8 +226,8 @@ def create_post():
             400,
         )
 
-    titulo = data.get("titulo", "").strip()
-    contenido = data.get("contenido", "").strip()
+    titulo = data.get("titulo", "").strip()[:200]
+    contenido = data.get("contenido", "").strip()[:50000]
     categoria = data.get("categoria", "general")
 
     if not titulo or not contenido:
@@ -273,6 +275,7 @@ def create_post():
 
 @bp.route("/foro/posts/<int:post_id>/like", methods=["POST"])
 @require_auth
+@rate_limit(requests=30, window_seconds=60)
 def toggle_like(post_id):
     """
     Toggle like on a post
@@ -324,6 +327,7 @@ def toggle_like(post_id):
 
 @bp.route("/foro/posts/<int:post_id>/respuestas", methods=["POST"])
 @require_auth
+@rate_limit(requests=20, window_seconds=60)
 def create_reply(post_id):
     """
     Add a reply to a post

@@ -29,6 +29,7 @@ import HeaderNav from "./HeaderNav";
 import ToastContainer from "./ui/ToastContainer";
 import SkipLink from "./ui/SkipLink";
 import { useI18n } from "../context/i18n";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 
 export default function Layout({ children }) {
   const { user, logout } = useAuthStore();
@@ -47,6 +48,21 @@ export default function Layout({ children }) {
   const { isConnected, connectionError } = useRealtime({
     enabled: !!user
   });
+
+  // Global keyboard shortcuts
+  useKeyboardShortcuts(
+    {
+      "g+d": () => navigate("/dashboard"),
+      "g+n": () => navigate("/solicitudes/nueva"),
+      "g+m": () => navigate("/mis-solicitudes"),
+      "g+p": () => navigate("/planificador"),
+      "ctrl+k": () => {
+        const searchInput = document.querySelector('[data-tour="search-input"]');
+        if (searchInput) searchInput.focus();
+      },
+    },
+    { enabled: !!user }
+  );
 
   // Close user menu on route change
   useEffect(() => {
@@ -290,6 +306,7 @@ export default function Layout({ children }) {
             <Box
               component={NavLink}
               to="/centro-interaccion"
+              data-tour="notifications-bell"
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -400,6 +417,7 @@ export default function Layout({ children }) {
       {/* Floating Chat Button - Vertex IA */}
       <IconButton
         onClick={toggleChat}
+        data-tour="vertex-chat"
         sx={{
           position: 'fixed',
           zIndex: 50,

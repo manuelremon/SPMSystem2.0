@@ -459,6 +459,15 @@ def cambiar_estado(
             # SLA es informativo, no debe bloquear el flujo principal
             logger.warning(f"[FSM] Error auto-resolviendo alertas SLA: {e}")
 
+    # 7. Emitir evento WebSocket para tiempo real
+    _emitir_evento_ws(
+        solicitud_id=solicitud_id,
+        estado_anterior=estado_actual,
+        estado_nuevo=nuevo_estado_str,
+        actor_id=actor_id,
+        solicitud_data=dict(solicitud) if solicitud else {},
+    )
+
     return {
         "success": True,
         "estado_anterior": estado_actual,
@@ -520,6 +529,65 @@ def obtener_estado_actual(solicitud_id: int) -> Optional[str]:
         return None
 
     return normalizar_estado(row["status"])
+
+
+# =============================================================================
+# WebSocket Events (Tiempo Real)
+# =============================================================================
+
+
+def _emitir_evento_ws(
+    solicitud_id: int,
+    estado_anterior: str,
+    estado_nuevo: str,
+    actor_id: str,
+    solicitud_data: Dict[str, Any],
+) -> None:
+    """
+    Emite eventos WebSocket para actualizaciones en tiempo real.
+
+    Los eventos se emiten de forma no-bloqueante. Si WebSocket no esta
+    disponible, se ignora silenciosamente.
+    """
+    try:
+        from backend.core.websocket import get_ws_manager
+
+        manager = get_ws_manager()
+        if manager is None:
+            return
+
+        event_data = {
+            "solicitud_id": solicitud_id,
+            "estado_anterior": estado_anterior,
+            "estado_nuevo": estado_nuevo,
+            "actor_id": actor_id,
+        }
+
+        # Publicar al EventBus para que los handlers registrados lo procesen
+        event_map = {
+            "submitted": "solicitud_created",
+            "approved": "solicitud_approved",
+            "rejected": "solicitud_rejected",
+        }
+
+        event_name = event_map.get(estado_nuevo, "solicitud_updated")
+        manager.event_bus.publish(event_name, event_data)
+
+        # Notificar al dueño de la solicitud
+        user_id = solicitud_data.get("id_usuario")
+        if user_id and str(user_id) != str(actor_id):
+            manager.send_to_user(
+                int(user_id),
+                "solicitud_estado_cambio",
+                event_data,
+            )
+
+        logger.debug(
+            f"[FSM] Evento WS emitido: {event_name} para solicitud {solicitud_id}"
+        )
+
+    except Exception as e:
+        logger.debug(f"[FSM] WebSocket no disponible, evento no emitido: {e}")
 
 
 # =============================================================================

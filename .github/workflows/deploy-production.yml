@@ -103,18 +103,34 @@ jobs:
 
             mkdir -p $BACKUP_DIR
 
-            # Backup database
+            # Backup SQLite database
             if [ -f data/spm.db ]; then
               cp data/spm.db $BACKUP_DIR/spm_$TIMESTAMP.db
-              echo "Database backed up to $BACKUP_DIR/spm_$TIMESTAMP.db"
+              echo "SQLite backed up to $BACKUP_DIR/spm_$TIMESTAMP.db"
+            fi
+
+            # Backup PostgreSQL database
+            echo "=== Backing up PostgreSQL ==="
+            if docker exec spm-postgres pg_isready -U spm -d spm_production > /dev/null 2>&1; then
+              docker exec spm-postgres pg_dump -U spm -d spm_production \
+                --format=custom --compress=6 \
+                -f /tmp/spm_pg_backup.dump 2>/dev/null && \
+              docker cp spm-postgres:/tmp/spm_pg_backup.dump \
+                $BACKUP_DIR/spm_pg_$TIMESTAMP.dump && \
+              docker exec spm-postgres rm -f /tmp/spm_pg_backup.dump && \
+              echo "PostgreSQL backed up to $BACKUP_DIR/spm_pg_$TIMESTAMP.dump" || \
+              echo "Warning: PostgreSQL backup failed (non-blocking)"
+            else
+              echo "PostgreSQL container not running, skipping PG backup"
             fi
 
             # Save current commit for rollback
             git rev-parse HEAD > $BACKUP_DIR/last_good_commit_$TIMESTAMP.txt
             echo "Current commit saved for rollback"
 
-            # Keep only last 5 backups
+            # Keep only last 5 backups of each type
             ls -t $BACKUP_DIR/spm_*.db 2>/dev/null | tail -n +6 | xargs -r rm
+            ls -t $BACKUP_DIR/spm_pg_*.dump 2>/dev/null | tail -n +6 | xargs -r rm
             ls -t $BACKUP_DIR/last_good_commit_*.txt 2>/dev/null | tail -n +6 | xargs -r rm
 
             echo "=== Backup completed ==="
@@ -296,11 +312,22 @@ jobs:
               echo "Rolling back to commit: $COMMIT_HASH"
               git reset --hard $COMMIT_HASH
 
-              # Restore database backup
+              # Restore SQLite backup
               LAST_DB=$(ls -t $BACKUP_DIR/spm_*.db 2>/dev/null | head -1)
               if [ -f "$LAST_DB" ]; then
                 cp "$LAST_DB" data/spm.db
-                echo "Database restored from $LAST_DB"
+                echo "SQLite restored from $LAST_DB"
+              fi
+
+              # Restore PostgreSQL backup
+              LAST_PG=$(ls -t $BACKUP_DIR/spm_pg_*.dump 2>/dev/null | head -1)
+              if [ -f "$LAST_PG" ]; then
+                docker cp "$LAST_PG" spm-postgres:/tmp/restore.dump && \
+                docker exec spm-postgres pg_restore -U spm -d spm_production \
+                  --clean --if-exists --no-owner /tmp/restore.dump 2>/dev/null && \
+                docker exec spm-postgres rm -f /tmp/restore.dump && \
+                echo "PostgreSQL restored from $LAST_PG" || \
+                echo "Warning: PostgreSQL restore failed"
               fi
 
               # Rebuild and restart

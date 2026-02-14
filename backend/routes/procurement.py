@@ -1304,3 +1304,210 @@ def get_price_history(material_codigo):
     except Exception as e:
         logger.error(f"Error obteniendo historial de precios: {e}")
         return jsonify({"error": "Error al obtener historial de precios"}), 500
+
+
+# ============================================================================
+# Ranking de Proveedores
+# ============================================================================
+
+
+@procurement_bp.route('/ranking', methods=['GET'])
+@require_auth
+def get_provider_ranking():
+    """
+    Ranking de proveedores por score OTIF consolidado.
+
+    Query params:
+        - limit: Máximo de proveedores (default: 20, max: 100)
+        - periodo: 'mes', 'trimestre', 'anio' (default: 'anio')
+        - centro: Filtrar por centro (opcional)
+
+    Returns:
+        Lista de proveedores ordenados por score general descendente
+    """
+    try:
+        limit = min(request.args.get('limit', 20, type=int), 100)
+        periodo = request.args.get('periodo', 'anio')
+        centro = request.args.get('centro')
+
+        fecha_filtro = {
+            'mes': "NOW() - INTERVAL '30 days'",
+            'trimestre': "NOW() - INTERVAL '90 days'",
+            'anio': "NOW() - INTERVAL '365 days'"
+        }.get(periodo, "NOW() - INTERVAL '365 days'")
+
+        centro_clause = ""
+        params = []
+        if centro:
+            centro_clause = "AND s.centro = ?"
+            params.append(centro)
+
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+
+            cur.execute(f"""
+                SELECT
+                    p.proveedor_cuit,
+                    p.proveedor_nombre,
+                    COUNT(DISTINCT p.pedido_id) as total_pedidos,
+                    COUNT(DISTINCT s.material_codigo) as materiales_unicos,
+                    SUM(p.valor_pedido) as valor_total,
+                    SUM(CASE WHEN p.fecha_recepcion IS NOT NULL THEN 1 ELSE 0 END) as entregas_realizadas,
+                    SUM(CASE
+                        WHEN p.fecha_recepcion IS NOT NULL
+                         AND p.fecha_recepcion <= s.fecha_entrega_solicitada
+                        THEN 1 ELSE 0
+                    END) as entregas_a_tiempo,
+                    SUM(CASE
+                        WHEN p.fecha_recepcion IS NOT NULL
+                         AND p.cantidad_recepcionada >= p.cantidad_pedida
+                        THEN 1 ELSE 0
+                    END) as entregas_completas,
+                    SUM(CASE
+                        WHEN p.fecha_recepcion IS NOT NULL
+                         AND p.fecha_recepcion <= s.fecha_entrega_solicitada
+                         AND p.cantidad_recepcionada >= p.cantidad_pedida
+                        THEN 1 ELSE 0
+                    END) as entregas_otif,
+                    {_round_avg_sql(_date_diff_sql('p.fecha_recepcion', 'p.fecha_pedido'))} as lead_time_promedio
+                FROM sap_purchase_orders p
+                INNER JOIN sap_solpeds s
+                    ON p.solped_id = s.solped_id AND p.solped_posicion = s.posicion
+                WHERE s.fecha_creacion >= {fecha_filtro}
+                  {centro_clause}
+                GROUP BY p.proveedor_cuit, p.proveedor_nombre
+                HAVING COUNT(DISTINCT p.pedido_id) >= 3
+                ORDER BY total_pedidos DESC
+                LIMIT ?
+            """, params + [limit])
+
+            rows = cur.fetchall()
+
+        ranking = []
+        for row in rows:
+            r = _row_to_dict(row)
+            entregas = max(r.get('entregas_realizadas', 0) or 0, 1)
+            pct_a_tiempo = round(100 * (r.get('entregas_a_tiempo', 0) or 0) / entregas, 1)
+            pct_completas = round(100 * (r.get('entregas_completas', 0) or 0) / entregas, 1)
+            pct_otif = round(100 * (r.get('entregas_otif', 0) or 0) / entregas, 1)
+            score = round(pct_otif * 0.5 + pct_a_tiempo * 0.3 + pct_completas * 0.2, 1)
+
+            ranking.append({
+                'proveedor_cuit': r.get('proveedor_cuit'),
+                'proveedor_nombre': r.get('proveedor_nombre'),
+                'score_general': score,
+                'pct_otif': pct_otif,
+                'pct_a_tiempo': pct_a_tiempo,
+                'pct_completas': pct_completas,
+                'total_pedidos': r.get('total_pedidos', 0),
+                'materiales_unicos': r.get('materiales_unicos', 0),
+                'valor_total': float(r.get('valor_total') or 0),
+                'lead_time_promedio': float(r.get('lead_time_promedio') or 0),
+            })
+
+        ranking.sort(key=lambda x: x['score_general'], reverse=True)
+
+        for idx, prov in enumerate(ranking, 1):
+            prov['posicion'] = idx
+
+        return jsonify({
+            "ok": True,
+            "data": {
+                "ranking": ranking,
+                "total": len(ranking),
+                "periodo": periodo,
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error obteniendo ranking de proveedores: {e}")
+        return jsonify({"error": "Error al obtener ranking de proveedores"}), 500
+
+
+@procurement_bp.route('/comparar', methods=['GET'])
+@require_auth
+def comparar_proveedores():
+    """
+    Compara proveedores para un material específico.
+
+    Query params:
+        - material: Código del material (requerido)
+        - centro: Centro (opcional)
+
+    Returns:
+        Proveedores que suministran el material con sus métricas comparadas
+    """
+    material_codigo = request.args.get('material')
+    if not material_codigo:
+        return jsonify({"error": "Parámetro 'material' es requerido"}), 400
+
+    centro = request.args.get('centro')
+
+    try:
+        centro_clause = ""
+        params = [material_codigo]
+        if centro:
+            centro_clause = "AND s.centro = ?"
+            params.append(centro)
+
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+
+            cur.execute(f"""
+                SELECT
+                    p.proveedor_cuit,
+                    p.proveedor_nombre,
+                    COUNT(*) as transacciones,
+                    AVG(s.precio_unitario) as precio_promedio,
+                    MIN(s.precio_unitario) as precio_min,
+                    MAX(s.precio_unitario) as precio_max,
+                    SUM(s.cantidad) as cantidad_total,
+                    {_round_avg_sql(_date_diff_sql('p.fecha_recepcion', 'p.fecha_pedido'))} as lead_time_promedio,
+                    SUM(CASE
+                        WHEN p.fecha_recepcion <= s.fecha_entrega_solicitada
+                        THEN 1 ELSE 0
+                    END) as a_tiempo,
+                    MAX(s.fecha_creacion) as ultima_compra
+                FROM sap_solpeds s
+                INNER JOIN sap_purchase_orders p
+                    ON s.solped_id = p.solped_id AND s.posicion = p.solped_posicion
+                WHERE s.material_codigo = ?
+                  {centro_clause}
+                  AND p.proveedor_nombre IS NOT NULL
+                GROUP BY p.proveedor_cuit, p.proveedor_nombre
+                ORDER BY precio_promedio ASC
+            """, params)
+
+            rows = cur.fetchall()
+
+        proveedores = []
+        for row in rows:
+            r = _row_to_dict(row)
+            total = max(r.get('transacciones', 0) or 0, 1)
+            pct_a_tiempo = round(100 * (r.get('a_tiempo', 0) or 0) / total, 1)
+
+            proveedores.append({
+                'proveedor_cuit': r.get('proveedor_cuit'),
+                'proveedor_nombre': r.get('proveedor_nombre'),
+                'precio_promedio': round(float(r.get('precio_promedio') or 0), 2),
+                'precio_min': round(float(r.get('precio_min') or 0), 2),
+                'precio_max': round(float(r.get('precio_max') or 0), 2),
+                'transacciones': r.get('transacciones', 0),
+                'cantidad_total': float(r.get('cantidad_total') or 0),
+                'lead_time_promedio': float(r.get('lead_time_promedio') or 0),
+                'pct_a_tiempo': pct_a_tiempo,
+                'ultima_compra': str(r.get('ultima_compra', '')),
+            })
+
+        return jsonify({
+            "ok": True,
+            "data": {
+                "material": material_codigo,
+                "proveedores": proveedores,
+                "total": len(proveedores),
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error comparando proveedores: {e}")
+        return jsonify({"error": "Error al comparar proveedores"}), 500

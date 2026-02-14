@@ -563,9 +563,36 @@ def _register_system_events(manager: WebSocketManager) -> None:
 
     manager.event_bus.subscribe("solicitud_approved", on_solicitud_approved)
 
+    # Evento: solicitud rechazada
+    def on_solicitud_rejected(event: str, data: Any):
+        user_id = data.get("user_id")
+        if user_id:
+            manager.send_to_user(user_id, "solicitud_rechazada", data)
+
+    manager.event_bus.subscribe("solicitud_rejected", on_solicitud_rejected)
+
+    # Evento: solicitud actualizada (generico)
+    def on_solicitud_updated(event: str, data: Any):
+        manager.send_to_room("planificadores", "solicitud_actualizada", data)
+
+    manager.event_bus.subscribe("solicitud_updated", on_solicitud_updated)
+
     # Evento: alerta MRP
     def on_mrp_alert(event: str, data: Any):
         manager.send_to_room("planificadores", "mrp_alert", data)
         manager.send_to_room("admins", "mrp_alert", data)
 
     manager.event_bus.subscribe("mrp_alert", on_mrp_alert)
+
+    # Evento: alerta de stock bajo
+    def on_stock_alert(event: str, data: Any):
+        manager.send_to_room("planificadores", "stock_alert", data)
+        manager.send_to_room("admins", "stock_alert", data)
+
+    manager.event_bus.subscribe("stock_alert", on_stock_alert)
+
+    # Evento: recomendacion de compra urgente
+    def on_recommendation_alert(event: str, data: Any):
+        manager.send_to_room("planificadores", "recommendation_alert", data)
+
+    manager.event_bus.subscribe("recommendation_alert", on_recommendation_alert)

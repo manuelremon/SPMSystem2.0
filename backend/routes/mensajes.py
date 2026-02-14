@@ -15,6 +15,7 @@ Endpoints:
 from flask import Blueprint, g, jsonify, request
 
 from backend.core.db import get_db_connection
+from backend.core.rate_limit import rate_limit
 from backend.core.roles import require_auth
 from backend.services.message_service import MessageService
 from backend.services.notification_service import NotificationService
@@ -118,6 +119,7 @@ def get_thread(message_id):
 
 @bp.route("", methods=["POST"])
 @require_auth
+@rate_limit(requests=20, window_seconds=60)
 def send_message():
     """
     Enviar un nuevo mensaje
@@ -148,6 +150,12 @@ def send_message():
 
     if not data.get("mensaje"):
         return jsonify({"ok": False, "error": "mensaje es requerido"}), 400
+
+    if len(data.get("mensaje", "")) > 10000:
+        return jsonify({"ok": False, "error": "El mensaje no puede superar 10,000 caracteres"}), 400
+
+    if len(data.get("asunto", "")) > 200:
+        return jsonify({"ok": False, "error": "El asunto no puede superar 200 caracteres"}), 400
 
     message_id = MessageService.send_message(
         remitente_id=user_id,
@@ -182,6 +190,7 @@ def send_message():
 
 @bp.route("/<int:message_id>/reply", methods=["POST"])
 @require_auth
+@rate_limit(requests=20, window_seconds=60)
 def reply_message(message_id):
     """
     Responder a un mensaje (crea mensaje en el thread)

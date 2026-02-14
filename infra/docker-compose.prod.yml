@@ -121,6 +121,28 @@ services:
     networks:
       - spm-network
 
+  # === Celery Beat (Periodic Task Scheduler) ===
+  celery-beat:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.prod
+    container_name: spm-celery-beat
+    restart: unless-stopped
+    command: celery -A backend.core.celery_app beat --loglevel=info
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgresql://${POSTGRES_USER:-spm}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-spm_production}
+      CELERY_ENABLED: "true"
+      SECRET_KEY: ${SECRET_KEY:?error}
+      FLASK_ENV: production
+    volumes:
+      - spm_logs:/app/logs
+    networks:
+      - spm-network
+
   # === Nginx Reverse Proxy ===
   nginx:
     image: nginx:alpine

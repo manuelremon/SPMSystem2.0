@@ -614,3 +614,118 @@ def get_formatos():
     return jsonify(
         {"ok": True, "data": {"formatos": service.get_supported_formats(), "default": "xlsx"}}
     )
+
+
+# ============================================================================
+# Reportes Programados
+# ============================================================================
+
+
+@bp.route("/programados", methods=["GET"])
+@require_auth
+@rate_limit(requests=30, window_seconds=60)
+def listar_reportes_programados():
+    """
+    Lista historial de reportes programados generados.
+
+    Query params:
+        - page: Página (default: 1)
+        - per_page: Registros por página (default: 20)
+        - tipo: Filtrar por tipo de reporte (opcional)
+
+    Returns:
+        Lista paginada de reportes generados
+    """
+    from backend.core.db import get_db_connection, is_using_postgresql
+
+    page = request.args.get("page", 1, type=int)
+    per_page = min(request.args.get("per_page", 20, type=int), 50)
+    tipo = request.args.get("tipo")
+
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            conditions = []
+            params = []
+            if tipo:
+                conditions.append("tipo_reporte = ?")
+                params.append(tipo)
+
+            where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+
+            cursor.execute(f"SELECT COUNT(*) as total FROM reporte_historial {where}", params)
+            total_row = cursor.fetchone()
+            total = total_row["total"] if isinstance(total_row, dict) else total_row[0]
+
+            offset = (page - 1) * per_page
+            cursor.execute(f"""
+                SELECT id, tipo_reporte, frecuencia, estado, archivo_path, created_at
+                FROM reporte_historial
+                {where}
+                ORDER BY created_at DESC
+                LIMIT ? OFFSET ?
+            """, params + [per_page, offset])
+
+            reportes = [dict(row) for row in cursor.fetchall()]
+
+        import math
+        return jsonify({
+            "ok": True,
+            "data": {
+                "reportes": reportes,
+                "total": total,
+                "page": page,
+                "per_page": per_page,
+                "pages": math.ceil(total / per_page) if per_page > 0 else 0,
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error listando reportes programados: {e}")
+        return jsonify({"ok": False, "error": {"code": "reportes_error", "message": str(e)}}), 500
+
+
+@bp.route("/programados/ejecutar", methods=["POST"])
+@require_role("admin")
+@rate_limit(requests=5, window_seconds=60)
+def ejecutar_reporte_programado():
+    """
+    Dispara la generación de un reporte programado de forma manual.
+
+    Body:
+        {
+            "tipo": "stock_health|solicitudes_resumen|kpis",
+            "params": {} (opcional)
+        }
+
+    Returns:
+        Confirmación de que el reporte fue encolado
+    """
+    data = request.get_json(silent=True) or {}
+    tipo = data.get("tipo")
+
+    tipos_validos = ["stock_health", "solicitudes_resumen", "kpis"]
+    if not tipo or tipo not in tipos_validos:
+        return jsonify({
+            "ok": False,
+            "error": {"code": "invalid_type", "message": f"Tipo debe ser uno de: {', '.join(tipos_validos)}"}
+        }), 400
+
+    try:
+        from backend.core.tasks import generate_scheduled_report
+
+        generate_scheduled_report.delay(
+            report_type=tipo,
+            frequency="manual",
+            params=data.get("params", {}),
+        )
+
+        return jsonify({
+            "ok": True,
+            "data": {"message": f"Reporte '{tipo}' encolado para generación", "tipo": tipo}
+        })
+
+    except Exception as e:
+        logger.error(f"Error encolando reporte programado: {e}")
+        return jsonify({"ok": False, "error": {"code": "queue_error", "message": str(e)}}), 500

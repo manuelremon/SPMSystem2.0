@@ -242,6 +242,321 @@ def process_mrp_alerts(self) -> Dict[str, Any]:
 
 
 # =============================================================================
+# SLA Tasks
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+def check_sla_deadlines(self) -> Dict[str, Any]:
+    """
+    Check SLA deadlines and generate alerts for solicitudes near expiration.
+
+    Returns:
+        Dict with number of alerts generated
+    """
+    logger.info("Checking SLA deadlines")
+
+    try:
+        from backend.core.db import get_db_connection, is_using_postgresql
+
+        alerts_generated = 0
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Find solicitudes near SLA expiration (in active states)
+            if is_using_postgresql():
+                cursor.execute("""
+                    SELECT s.id, s.id_usuario, s.status, s.created_at,
+                           EXTRACT(EPOCH FROM (NOW() - s.created_at)) / 3600 as hours_elapsed
+                    FROM solicitud s
+                    WHERE s.status IN ('submitted', 'approved', 'in_planning', 'in_treatment')
+                    AND s.created_at < NOW() - INTERVAL '48 hours'
+                """)
+            else:
+                cursor.execute("""
+                    SELECT s.id, s.id_usuario, s.status, s.created_at,
+                           (julianday('now') - julianday(s.created_at)) * 24 as hours_elapsed
+                    FROM solicitud s
+                    WHERE s.status IN ('submitted', 'approved', 'in_planning', 'in_treatment')
+                    AND s.created_at < datetime('now', '-48 hours')
+                """)
+
+            rows = cursor.fetchall()
+
+        for row in rows:
+            hours = row["hours_elapsed"] if isinstance(row, dict) else row[4]
+            sol_id = row["id"] if isinstance(row, dict) else row[0]
+            user_id = row["id_usuario"] if isinstance(row, dict) else row[1]
+
+            # Determine severity
+            if hours > 120:  # 5 days
+                severity = "critical"
+            elif hours > 72:  # 3 days
+                severity = "warning"
+            else:
+                severity = "info"
+
+            # Send notification
+            send_notification.delay(
+                user_id=int(user_id) if user_id else 1,
+                title="Alerta SLA",
+                message=f"Solicitud #{sol_id} lleva {int(hours)}h sin resolverse",
+                notification_type=severity,
+            )
+
+            # Emit WebSocket event
+            try:
+                from backend.core.websocket import get_ws_manager
+
+                manager = get_ws_manager()
+                if manager:
+                    manager.event_bus.publish("mrp_alert", {
+                        "type": "sla_warning",
+                        "solicitud_id": sol_id,
+                        "hours_elapsed": int(hours),
+                        "severity": severity,
+                    })
+            except Exception:
+                pass
+
+            alerts_generated += 1
+
+        logger.info(f"SLA check completed: {alerts_generated} alerts generated")
+        return {"alerts_generated": alerts_generated}
+
+    except Exception as e:
+        logger.error(f"Error checking SLA deadlines: {e}")
+        raise self.retry(exc=e)
+
+
+# =============================================================================
+# Stock Alert Tasks
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+def check_stock_alerts(self) -> Dict[str, Any]:
+    """
+    Check stock levels and generate alerts for materials below ROP.
+
+    Returns:
+        Dict with number of alerts generated
+    """
+    logger.info("Checking stock alerts")
+
+    try:
+        from backend.core.db import get_db_connection, is_using_postgresql
+
+        alerts = []
+
+        with get_db_connection("sap_data") as conn:
+            cursor = conn.cursor()
+
+            # Materials below reorder point
+            cursor.execute("""
+                SELECT s.material, s.centro, s.cantidad as stock_actual,
+                       m.punto_de_pedido as rop, m.descripcion
+                FROM stock s
+                JOIN materiales_bbdd m ON s.material = m.material AND s.centro = m.centro
+                WHERE m.punto_de_pedido > 0
+                AND s.cantidad < m.punto_de_pedido
+                AND s.cantidad > 0
+                LIMIT 50
+            """)
+            rows = cursor.fetchall()
+
+        for row in rows:
+            material = row["material"] if isinstance(row, dict) else row[0]
+            centro = row["centro"] if isinstance(row, dict) else row[1]
+            stock = row["stock_actual"] if isinstance(row, dict) else row[2]
+            rop = row["rop"] if isinstance(row, dict) else row[3]
+            desc = row["descripcion"] if isinstance(row, dict) else row[4]
+
+            alerts.append({
+                "material": material,
+                "centro": centro,
+                "stock_actual": float(stock),
+                "rop": float(rop),
+                "descripcion": desc,
+                "severity": "critical" if stock < rop * 0.3 else "warning",
+            })
+
+        # Emit WebSocket event with batch of alerts
+        if alerts:
+            try:
+                from backend.core.websocket import get_ws_manager
+
+                manager = get_ws_manager()
+                if manager:
+                    manager.event_bus.publish("stock_alert", {
+                        "type": "stock_below_rop",
+                        "count": len(alerts),
+                        "critical": sum(1 for a in alerts if a["severity"] == "critical"),
+                        "top_alerts": alerts[:10],
+                    })
+            except Exception:
+                pass
+
+        logger.info(f"Stock alert check completed: {len(alerts)} materials below ROP")
+        return {"alerts_generated": len(alerts), "critical": sum(1 for a in alerts if a["severity"] == "critical")}
+
+    except Exception as e:
+        logger.error(f"Error checking stock alerts: {e}")
+        raise self.retry(exc=e)
+
+
+# =============================================================================
+# Scheduled Reports Tasks
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=120)
+def generate_scheduled_report(
+    self,
+    report_type: str,
+    frequency: str,
+    params: Dict[str, Any] = None,
+) -> Dict[str, Any]:
+    """
+    Generate a scheduled report and save to history.
+
+    Args:
+        report_type: Type (stock_health, solicitudes_resumen, mrp_alertas, kpis)
+        frequency: Frequency label (diario, semanal, mensual)
+        params: Additional params for the report
+
+    Returns:
+        Dict with report result
+    """
+    logger.info(f"Generating scheduled report: {report_type} ({frequency})")
+
+    try:
+        from backend.core.db import get_db_transaction, is_using_postgresql
+        from backend.services.reporting_service import get_reporting_service
+        import json
+
+        service = get_reporting_service()
+        params = params or {}
+        result_path = None
+
+        if report_type == "stock_health":
+            result = service.generate_stock_report(formato="xlsx", **params)
+        elif report_type == "solicitudes_resumen":
+            result = service.generate_solicitudes_report(formato="xlsx", **params)
+        elif report_type == "kpis":
+            result = service.generate_kpis_report(formato="xlsx", **params)
+        else:
+            result = {"error": f"Unknown report type: {report_type}"}
+
+        if isinstance(result, dict) and result.get("path"):
+            result_path = result["path"]
+
+        # Save to report history
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+            if is_using_postgresql():
+                cur.execute("""
+                    INSERT INTO reporte_historial
+                    (tipo_reporte, frecuencia, parametros, resultado, archivo_path, estado)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (report_type, frequency, json.dumps(params),
+                      json.dumps(result) if isinstance(result, dict) else str(result),
+                      result_path, "completado"))
+            else:
+                cur.execute("""
+                    INSERT INTO reporte_historial
+                    (tipo_reporte, frecuencia, parametros, resultado, archivo_path, estado)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (report_type, frequency, json.dumps(params),
+                      json.dumps(result) if isinstance(result, dict) else str(result),
+                      result_path, "completado"))
+
+        logger.info(f"Scheduled report completed: {report_type}")
+        return {"success": True, "report_type": report_type, "frequency": frequency}
+
+    except Exception as e:
+        logger.error(f"Error generating scheduled report: {e}")
+        raise self.retry(exc=e)
+
+
+# =============================================================================
+# FMS Maintenance Tasks
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+def check_preventive_maintenance(self) -> Dict[str, Any]:
+    """
+    Check vehicles due for preventive maintenance and generate alerts.
+
+    Returns:
+        Dict with alerts generated
+    """
+    logger.info("Checking preventive maintenance schedules")
+
+    try:
+        from backend.core.db import get_db_connection, is_using_postgresql
+
+        alerts_generated = 0
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Find vehicles with overdue or upcoming maintenance
+            if is_using_postgresql():
+                cursor.execute("""
+                    SELECT v.id, v.placa, v.tipo, v.kilometraje_actual,
+                           mp.tipo_mantenimiento, mp.frecuencia_km, mp.frecuencia_dias,
+                           mp.ultimo_mantenimiento_km, mp.ultimo_mantenimiento_fecha
+                    FROM fms_vehiculo v
+                    JOIN fms_plan_mantenimiento mp ON v.id = mp.vehiculo_id
+                    WHERE v.estado = 'activo'
+                    AND (
+                        (mp.frecuencia_km > 0 AND v.kilometraje_actual - COALESCE(mp.ultimo_mantenimiento_km, 0) >= mp.frecuencia_km * 0.9)
+                        OR
+                        (mp.frecuencia_dias > 0 AND COALESCE(mp.ultimo_mantenimiento_fecha, v.created_at) + (mp.frecuencia_dias * INTERVAL '1 day') <= NOW() + INTERVAL '7 days')
+                    )
+                """)
+            else:
+                cursor.execute("""
+                    SELECT v.id, v.placa, v.tipo, v.kilometraje_actual,
+                           mp.tipo_mantenimiento, mp.frecuencia_km, mp.frecuencia_dias,
+                           mp.ultimo_mantenimiento_km, mp.ultimo_mantenimiento_fecha
+                    FROM fms_vehiculo v
+                    JOIN fms_plan_mantenimiento mp ON v.id = mp.vehiculo_id
+                    WHERE v.estado = 'activo'
+                    AND (
+                        (mp.frecuencia_km > 0 AND v.kilometraje_actual - COALESCE(mp.ultimo_mantenimiento_km, 0) >= mp.frecuencia_km * 0.9)
+                        OR
+                        (mp.frecuencia_dias > 0 AND julianday('now') - julianday(COALESCE(mp.ultimo_mantenimiento_fecha, v.created_at)) >= mp.frecuencia_dias - 7)
+                    )
+                """)
+
+            rows = cursor.fetchall()
+
+        for row in rows:
+            alerts_generated += 1
+            placa = row["placa"] if isinstance(row, dict) else row[1]
+            tipo_mant = row["tipo_mantenimiento"] if isinstance(row, dict) else row[4]
+
+            # Send in-app notification to admins
+            send_notification.delay(
+                user_id=1,  # Admin
+                title="Mantenimiento preventivo",
+                message=f"Vehículo {placa}: {tipo_mant} próximo o vencido",
+                notification_type="warning",
+            )
+
+        logger.info(f"Preventive maintenance check: {alerts_generated} alerts")
+        return {"alerts_generated": alerts_generated}
+
+    except Exception as e:
+        logger.error(f"Error checking preventive maintenance: {e}")
+        raise self.retry(exc=e)
+
+
+# =============================================================================
 # AI/ML Tasks
 # =============================================================================
 

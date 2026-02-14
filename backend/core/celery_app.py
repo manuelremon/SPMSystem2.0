@@ -75,6 +75,30 @@ def make_celery(app_name: str = "spm") -> Celery:
 
         # Default queue
         task_default_queue="default",
+
+        # Celery Beat - Periodic tasks schedule
+        beat_schedule={
+            "collect-metrics-every-5min": {
+                "task": "backend.core.tasks.collect_metrics_snapshot",
+                "schedule": 300.0,  # 5 minutes
+            },
+            "check-sla-deadlines-every-15min": {
+                "task": "backend.core.tasks.check_sla_deadlines",
+                "schedule": 900.0,  # 15 minutes
+            },
+            "process-mrp-alerts-every-30min": {
+                "task": "backend.core.tasks.process_mrp_alerts",
+                "schedule": 1800.0,  # 30 minutes
+            },
+            "check-stock-alerts-hourly": {
+                "task": "backend.core.tasks.check_stock_alerts",
+                "schedule": 3600.0,  # 1 hour
+            },
+            "daily-cleanup": {
+                "task": "backend.core.tasks.cleanup_old_data",
+                "schedule": 86400.0,  # 24 hours
+            },
+        },
     )
 
     return celery

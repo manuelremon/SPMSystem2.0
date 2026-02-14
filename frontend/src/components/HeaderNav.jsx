@@ -104,11 +104,12 @@ function HeaderNav() {
   };
 
   return (
-    <nav className="flex items-center h-[43px]">
+    <nav className="flex items-center h-[43px]" data-tour="main-navigation">
       {/* SOLICITUDES */}
       <div className="border-r border-[var(--header-border,#424242)]">
         <button
           type="button"
+          data-tour="nav-solicitudes"
           onClick={(e) => setSolicitudesAnchor(e.currentTarget)}
           className={clsx(
             "flex items-center gap-1 px-4 h-[43px] transition-all duration-200",
@@ -239,6 +240,7 @@ function HeaderNav() {
         <div className="border-r border-[var(--header-border,#424242)]">
           <button
             type="button"
+            data-tour="nav-planificador"
             onClick={(e) => setPlanificadorAnchor(e.currentTarget)}
             className={clsx(
               "flex items-center gap-1 px-4 h-[43px] transition-all duration-200",

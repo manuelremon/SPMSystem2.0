@@ -1389,6 +1389,105 @@ def get_recomendacion_material(material_codigo):
 
 
 # ============================================================================
+# Top Recomendaciones Globales (todos los centros)
+# ============================================================================
+
+
+@bp.route("/recomendaciones/top", methods=["GET"])
+@require_auth
+@rate_limit(requests=10, window_seconds=60)
+def get_top_recomendaciones():
+    """
+    Top recomendaciones de compra globales (todos los centros).
+
+    Query params:
+        - limit: Máximo de recomendaciones (default: 10, max: 50)
+
+    Returns:
+        Top N recomendaciones ordenadas por score
+    """
+    from backend.core.db import get_db_connection
+    from backend.services.recommendation_engine import RecommendationEngine
+    import numpy as np
+
+    limit = min(int(request.args.get("limit", 10)), 50)
+
+    try:
+        engine = RecommendationEngine()
+
+        with get_db_connection("sap_data") as conn:
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT
+                    m.codigo_material as codigo,
+                    m.descripcion,
+                    m.centro,
+                    COALESCE(m.punto_de_pedido, 0) as punto_pedido,
+                    COALESCE(m.consumo_promedio_anual, 0) as consumo_anual,
+                    COALESCE(s.stock_actual, 0) as stock_actual,
+                    COALESCE(s.precio_unitario, 0) as precio_unitario
+                FROM materiales_bbdd m
+                LEFT JOIN (
+                    SELECT material, centro,
+                        SUM(stock) as stock_actual,
+                        AVG(precio) as precio_unitario
+                    FROM stock
+                    GROUP BY material, centro
+                ) s ON m.codigo_material = s.material AND m.centro = s.centro
+                WHERE m.consumo_promedio_anual > 0
+                ORDER BY m.consumo_promedio_anual DESC
+                LIMIT 500
+            """)
+            materiales_raw = [dict(row) for row in cursor.fetchall()]
+
+        materiales_para_engine = []
+        for mat in materiales_raw:
+            consumo_anual = float(mat.get("consumo_anual") or 0)
+            demanda_diaria = consumo_anual / 365 if consumo_anual > 0 else 0.1
+            stock_actual = float(mat.get("stock_actual") or 0)
+            punto_pedido = float(mat.get("punto_pedido") or 0)
+
+            if consumo_anual > 0 or stock_actual > 0:
+                materiales_para_engine.append({
+                    'codigo': mat['codigo'],
+                    'descripcion': mat.get('descripcion', ''),
+                    'centro': mat.get('centro', ''),
+                    'stock_actual': stock_actual,
+                    'rop': punto_pedido if punto_pedido > 0 else demanda_diaria * 14,
+                    'consumo_historico': [demanda_diaria] * 30,
+                    'demanda_promedio': demanda_diaria,
+                    'demanda_std': demanda_diaria * 0.3,
+                    'abc_clase': 'A' if consumo_anual > 10000 else 'B' if consumo_anual > 1000 else 'C',
+                    'lead_time_dias': 14,
+                    'precio_unitario': float(mat.get("precio_unitario") or 0),
+                    'cantidad_eoq': 0,
+                })
+
+        recomendaciones = engine.generar_top_recomendaciones(materiales_para_engine, limit=limit)
+
+        # Enrich with description and centro
+        mat_map = {m['codigo']: m for m in materiales_para_engine}
+        for rec in recomendaciones:
+            info = mat_map.get(rec['material'], {})
+            rec['descripcion'] = info.get('descripcion', '')
+            rec['centro'] = info.get('centro', '')
+
+        return jsonify({
+            "ok": True,
+            "data": {
+                "recomendaciones": recomendaciones,
+                "total": len(recomendaciones),
+                "materiales_evaluados": len(materiales_para_engine),
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error en top recomendaciones: {e}")
+        return jsonify({"ok": False, "error": {"code": "recomendaciones_error", "message": str(e)}}), 500
+
+
+# ============================================================================
 # Detección de Anomalías
 # ============================================================================
 
