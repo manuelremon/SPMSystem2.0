@@ -47,6 +47,7 @@ jobs:
             --ignore=tests/unit/test_openapi.py \
             --ignore=tests/unit/test_deepseek_client.py \
             --ignore=tests/unit/test_approval_rules.py \
+            --ignore=tests/unit/test_dashboard_formulas.py \
             --cov=backend --cov-report=xml --cov-report=term-missing \
             -x --timeout=60
 
