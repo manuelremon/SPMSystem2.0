@@ -280,22 +280,25 @@ def detectar_anomalias_material(
         Dict con anomalías detectadas y análisis
     """
     try:
-        from backend.core.db import get_db_connection
+        from backend.core.db import get_db_connection, sql_date_relative
         import pandas as pd
 
         # Obtener datos
         with get_db_connection("sap_data") as conn:
-            query = """
-                SELECT fecha_doc as fecha, cantidad
+            date_filter = sql_date_relative(days=-dias)
+            query = f"""
+                SELECT fecha, cantidad
                 FROM consumo_historico
                 WHERE material = ? AND centro = ?
-                AND fecha_doc > date('now', ?)
-                ORDER BY fecha_doc
+                AND fecha > {date_filter}
+                ORDER BY fecha
             """
+            # pd.read_sql_query necesita la conexión raw para PostgreSQL
+            raw_conn = conn._conn if hasattr(conn, '_conn') else conn
             df = pd.read_sql_query(
-                query,
-                conn,
-                params=[material_codigo, centro, f'-{dias} days']
+                query.replace("?", "%s") if hasattr(conn, '_conn') else query,
+                raw_conn,
+                params=[material_codigo, centro]
             )
 
         if len(df) < 5:

@@ -48,7 +48,7 @@ def get_mrp_portfolio():
     offset = int(request.args.get("offset", 0))
 
     try:
-        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
+        with get_db_connection("sap_data") as conn:
             cur = conn.cursor()
 
             # Build WHERE clauses - only include materials with MRP params

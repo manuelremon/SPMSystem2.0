@@ -76,10 +76,7 @@ services:
       - spm_uploads:/app/uploads
       - spm_logs:/app/logs
       - spm_vapid:/app/data/vapid
-      # SQLite databases (read-only) - Datos SAP
-      - ../data/sap_data.db:/app/data/sap_data.db:ro
-      - ../data/equivalentes.db:/app/data/equivalentes.db:ro
-      - ../data/catalogo_materiales.db:/app/data/catalogo_materiales.db:ro
+      # Datos SAP ahora viven en PostgreSQL (migración 033)
     networks:
       - spm-network
     expose:
@@ -120,10 +117,7 @@ services:
       GOOGLE_AI_API_KEY: ${GOOGLE_AI_API_KEY:-}
     volumes:
       - spm_logs:/app/logs
-      # SQLite databases (read-only) - Datos SAP
-      - ../data/sap_data.db:/app/data/sap_data.db:ro
-      - ../data/equivalentes.db:/app/data/equivalentes.db:ro
-      - ../data/catalogo_materiales.db:/app/data/catalogo_materiales.db:ro
+      # Datos SAP ahora viven en PostgreSQL (migración 033)
     networks:
       - spm-network
 

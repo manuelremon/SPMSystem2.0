@@ -7,9 +7,9 @@ Provee:
 - Inicialización automática de schema
 - Soporte dual: PostgreSQL (produccion) + SQLite (desarrollo local)
 
-Nota: En producción TODAS las conexiones usan PostgreSQL.
-Las BDs SQLite secundarias (catalogo_materiales, sap_data, equivalentes)
-solo se usan en desarrollo local.
+Nota: En producción TODAS las conexiones usan PostgreSQL (incluidas SAP).
+Las BDs SQLite secundarias (catalogo_materiales, sap_data, equivalentes,
+master_materiales) solo se usan en desarrollo local.
 """
 
 import sqlite3
@@ -433,19 +433,14 @@ def get_db_connection(db_name: str = "spm") -> Generator:
         # conn se cierra automáticamente aquí
     """
     conn = None
-    # Bases de datos auxiliares que siempre usan SQLite (datos SAP importados)
-    sqlite_only_dbs = {"equivalentes", "sap_data", "catalogo_materiales"}
-
     try:
-        # PostgreSQL solo para BD principal (spm)
-        if is_using_postgresql() and db_name not in sqlite_only_dbs:
+        # En producción, TODAS las BDs (incluidas SAP) usan PostgreSQL
+        if is_using_postgresql():
             conn = _get_postgres_connection()
-        # SQLite: Desarrollo local O bases de datos auxiliares
         else:
             db_path = get_db_path(db_name)
             conn = sqlite3.connect(db_path)
             conn.row_factory = sqlite3.Row
-            # Activar foreign keys en SQLite (desactivadas por defecto)
             conn.execute("PRAGMA foreign_keys = ON")
         yield conn
     finally:
@@ -474,19 +469,14 @@ def get_db_transaction(db_name: str = "spm") -> Generator:
         # commit automático si no hay error
     """
     conn = None
-    # Bases de datos auxiliares que siempre usan SQLite (datos SAP importados)
-    sqlite_only_dbs = {"equivalentes", "sap_data", "catalogo_materiales"}
-
     try:
-        # PostgreSQL solo para BD principal (spm)
-        if is_using_postgresql() and db_name not in sqlite_only_dbs:
+        # En producción, TODAS las BDs (incluidas SAP) usan PostgreSQL
+        if is_using_postgresql():
             conn = _get_postgres_connection()
-        # SQLite: Desarrollo local O bases de datos auxiliares
         else:
             db_path = get_db_path(db_name)
             conn = sqlite3.connect(db_path)
             conn.row_factory = sqlite3.Row
-            # Activar foreign keys en SQLite (desactivadas por defecto)
             conn.execute("PRAGMA foreign_keys = ON")
         yield conn
         conn.commit()
@@ -614,9 +604,12 @@ def _sync_materiales_bbdd():
     Esta función se ejecuta en cada startup de la aplicación para asegurar
     que stock.py tiene acceso a los parámetros MRP necesarios.
 
-    En producción, consideraría migrar stock.py para leer directamente
-    desde master_materiales.db.
+    En producción (PostgreSQL), los datos SAP ya están en PostgreSQL
+    (importados via migración 033), así que no necesitamos sincronizar.
     """
+    if is_using_postgresql():
+        return  # PostgreSQL ya tiene los datos via migración 033
+
     try:
         # Obtener datos desde master_materiales (materiales_mrp)
         with get_db_connection("master_materiales") as conn_src:

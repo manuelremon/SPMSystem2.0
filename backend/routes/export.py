@@ -165,7 +165,7 @@ def export_alertas_mrp():
     estado = request.args.get("estado")
 
     try:
-        db_name = "spm" if is_using_postgresql() else "sap_data"
+        db_name = "sap_data"
         with get_db_connection(db_name) as conn:
             cursor = conn.cursor()
 
@@ -520,7 +520,7 @@ def export_recomendaciones():
 
     try:
         engine = RecommendationEngine()
-        db_name = "spm" if is_using_postgresql() else "sap_data"
+        db_name = "sap_data"
 
         with get_db_connection(db_name) as conn:
             cursor = conn.cursor()

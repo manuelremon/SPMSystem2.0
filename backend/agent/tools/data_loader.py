@@ -2,13 +2,11 @@
 Herramienta para cargar datos del sistema SPM.
 
 Carga solicitudes, materiales, stock, presupuestos desde BD.
-- Solicitudes/Presupuestos/Catalogs: PostgreSQL (producción)
-- Stock/Consumo histórico/Materiales: SQLite (datos SAP)
+- En producción: todo desde PostgreSQL
+- En desarrollo: spm desde SQLite, datos SAP desde SQLite separados
 """
 
 import logging
-import sqlite3
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .base import BaseTool, ToolError, ToolMetadata
@@ -16,17 +14,11 @@ from backend.core.search_utils import build_description_search
 
 logger = logging.getLogger(__name__)
 
-# Rutas a bases de datos (SQLite)
-SAP_DATA_DB = Path("data/sap_data.db")
-MASTER_MATERIALES_DB = Path("data/master_materiales.db")
-# Alias para compatibilidad
-CATALOGO_MATERIALES_DB = MASTER_MATERIALES_DB
 
-
-def _get_db_connection():
-    """Obtiene conexión a PostgreSQL."""
+def _get_db_connection(db_name: str = "spm"):
+    """Obtiene conexión a la BD especificada."""
     from backend.core.db import get_db_connection
-    return get_db_connection()
+    return get_db_connection(db_name)
 
 
 class DataLoader(BaseTool):
@@ -134,51 +126,39 @@ class DataLoader(BaseTool):
             }
 
     def _load_materiales(self, filters: Dict[str, Any], limit: int) -> Dict[str, Any]:
-        """Carga materiales desde master_materiales.db - tabla catalogo_materiales."""
-        if not MASTER_MATERIALES_DB.exists():
-            logger.warning(f"BD master_materiales no encontrada: {MASTER_MATERIALES_DB}")
-            return {
-                "data_type": "materiales",
-                "count": 0,
-                "data": [],
-                "error": f"BD master_materiales no encontrada: {MASTER_MATERIALES_DB}",
-            }
-
+        """Carga materiales desde catalogo_materiales (vista compatible en PG y SQLite)."""
         try:
-            conn = sqlite3.connect(MASTER_MATERIALES_DB)
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
+            with _get_db_connection("catalogo_materiales") as conn:
+                cursor = conn.cursor()
 
-            query = "SELECT codigo, descripcion, descripcion_larga, unidad_medida, precio_usd FROM catalogo_materiales WHERE 1=1"
-            params = []
+                query = "SELECT codigo, descripcion, descripcion_larga, unidad_medida, precio_usd FROM catalogo_materiales WHERE 1=1"
+                params = []
 
-            # Búsqueda por descripción
-            if "search" in filters:
-                search = build_description_search(filters["search"], ["descripcion", "descripcion_larga"])
-                if search:
-                    query += f" AND {search.where_clause}"
-                    params.extend(search.params)
+                # Búsqueda por descripción
+                if "search" in filters:
+                    search = build_description_search(filters["search"], ["descripcion", "descripcion_larga"])
+                    if search:
+                        query += f" AND {search.where_clause}"
+                        params.extend(search.params)
 
-            # Filtro por código
-            if "codigo" in filters:
-                query += " AND codigo = ?"
-                params.append(filters["codigo"])
+                # Filtro por código
+                if "codigo" in filters:
+                    query += " AND codigo = ?"
+                    params.append(filters["codigo"])
 
-            query += f" LIMIT {limit}"
+                query += f" LIMIT {limit}"
 
-            cursor.execute(query, params)
-            rows = cursor.fetchall()
-            conn.close()
+                cursor.execute(query, params)
+                rows = cursor.fetchall()
 
-            materiales = [dict(row) for row in rows]
+                materiales = [dict(row) for row in rows]
 
-            return {
-                "data_type": "materiales",
-                "count": len(materiales),
-                "data": materiales,
-                "filters_applied": filters,
-                "source": "master_materiales.db",
-            }
+                return {
+                    "data_type": "materiales",
+                    "count": len(materiales),
+                    "data": materiales,
+                    "filters_applied": filters,
+                }
 
         except Exception as e:
             logger.error(f"Error cargando materiales: {e}")
@@ -191,94 +171,73 @@ class DataLoader(BaseTool):
 
     def _load_stock(self, filters: Dict[str, Any], limit: int) -> Dict[str, Any]:
         """
-        Carga datos de stock desde sap_data.db.
+        Carga datos de stock (vista compatible en PG y SQLite).
 
         Filtros soportados:
             - material: código de material (exacto o parcial con %)
             - centro: código de centro
             - almacen: código de almacén
             - min_stock: stock mínimo (para filtrar items sin stock)
-
-        Returns:
-            Dict con datos de stock incluyendo:
-            - material, descripcion, stock, precio, centro, almacen
         """
-        if not SAP_DATA_DB.exists():
-            logger.warning(f"BD SAP no encontrada: {SAP_DATA_DB}")
-            return {
-                "data_type": "stock",
-                "count": 0,
-                "data": [],
-                "error": f"BD SAP no encontrada: {SAP_DATA_DB}",
-            }
-
         try:
-            conn = sqlite3.connect(SAP_DATA_DB)
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
+            with _get_db_connection("sap_data") as conn:
+                cursor = conn.cursor()
 
-            query = """
-                SELECT
-                    material,
-                    material_descripcion as descripcion,
-                    stock,
-                    precio,
-                    stock_valorizado,
-                    um as unidad_medida,
-                    centro,
-                    centro_descripcion,
-                    almacen,
-                    regional,
-                    critico,
-                    dia as fecha_actualizacion
-                FROM stock
-                WHERE 1=1
-            """
-            params: List[Any] = []
+                query = """
+                    SELECT
+                        material,
+                        material_descripcion as descripcion,
+                        stock,
+                        precio,
+                        stock_valorizado,
+                        um as unidad_medida,
+                        centro,
+                        centro_descripcion,
+                        almacen,
+                        regional,
+                        critico,
+                        dia as fecha_actualizacion
+                    FROM stock
+                    WHERE 1=1
+                """
+                params: List[Any] = []
 
-            # Filtro por material (exacto o parcial)
-            if "material" in filters:
-                material = filters["material"]
-                if "%" in material:
-                    query += " AND material LIKE ?"
-                else:
-                    query += " AND material = ?"
-                params.append(material)
+                if "material" in filters:
+                    material = filters["material"]
+                    if "%" in material:
+                        query += " AND material LIKE ?"
+                    else:
+                        query += " AND material = ?"
+                    params.append(material)
 
-            # Filtro por centro
-            if "centro" in filters:
-                query += " AND centro = ?"
-                params.append(filters["centro"])
+                if "centro" in filters:
+                    query += " AND centro = ?"
+                    params.append(filters["centro"])
 
-            # Filtro por almacén
-            if "almacen" in filters:
-                query += " AND almacen = ?"
-                params.append(filters["almacen"])
+                if "almacen" in filters:
+                    query += " AND almacen = ?"
+                    params.append(filters["almacen"])
 
-            # Filtro por stock mínimo
-            if "min_stock" in filters:
-                query += " AND stock >= ?"
-                params.append(filters["min_stock"])
+                if "min_stock" in filters:
+                    query += " AND stock >= ?"
+                    params.append(filters["min_stock"])
 
-            # Solo items con stock > 0 por defecto
-            if filters.get("include_zero_stock", False) is False:
-                query += " AND stock > 0"
+                if filters.get("include_zero_stock", False) is False:
+                    query += " AND stock > 0"
 
-            query += f" ORDER BY stock DESC LIMIT {limit}"
+                query += f" ORDER BY stock DESC LIMIT {limit}"
 
-            cursor.execute(query, params)
-            rows = cursor.fetchall()
-            conn.close()
+                cursor.execute(query, params)
+                rows = cursor.fetchall()
 
-            stock_data = [dict(row) for row in rows]
+                stock_data = [dict(row) for row in rows]
 
-            return {
-                "data_type": "stock",
-                "count": len(stock_data),
-                "data": stock_data,
-                "filters_applied": filters,
-                "source": "sap_data.db",
-            }
+                return {
+                    "data_type": "stock",
+                    "count": len(stock_data),
+                    "data": stock_data,
+                    "filters_applied": filters,
+                }
 
         except Exception as e:
             logger.error(f"Error cargando stock: {e}")
@@ -293,75 +252,60 @@ class DataLoader(BaseTool):
         self, filters: Dict[str, Any], limit: int
     ) -> Dict[str, Any]:
         """
-        Carga historial de consumo desde sap_data.db.
+        Carga historial de consumo (vista compatible en PG y SQLite).
 
         Filtros soportados:
             - material: código de material
             - centro: código de centro
             - fecha_desde: fecha mínima (YYYY-MM-DD)
             - fecha_hasta: fecha máxima (YYYY-MM-DD)
-
-        Returns:
-            Dict con datos de consumo histórico
         """
-        if not SAP_DATA_DB.exists():
-            logger.warning(f"BD SAP no encontrada: {SAP_DATA_DB}")
-            return {
-                "data_type": "consumo_historico",
-                "count": 0,
-                "data": [],
-                "error": f"BD SAP no encontrada: {SAP_DATA_DB}",
-            }
-
         try:
-            conn = sqlite3.connect(SAP_DATA_DB)
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
+            with _get_db_connection("sap_data") as conn:
+                cursor = conn.cursor()
 
-            query = """
-                SELECT
-                    fecha,
-                    material,
-                    descripcion,
-                    cantidad,
-                    centro,
-                    almacen
-                FROM consumo_historico
-                WHERE 1=1
-            """
-            params: List[Any] = []
+                query = """
+                    SELECT
+                        fecha,
+                        material,
+                        descripcion,
+                        cantidad,
+                        centro,
+                        almacen
+                    FROM consumo_historico
+                    WHERE 1=1
+                """
+                params: List[Any] = []
 
-            if "material" in filters:
-                query += " AND material = ?"
-                params.append(filters["material"])
+                if "material" in filters:
+                    query += " AND material = ?"
+                    params.append(filters["material"])
 
-            if "centro" in filters:
-                query += " AND centro = ?"
-                params.append(filters["centro"])
+                if "centro" in filters:
+                    query += " AND centro = ?"
+                    params.append(filters["centro"])
 
-            if "fecha_desde" in filters:
-                query += " AND fecha >= ?"
-                params.append(filters["fecha_desde"])
+                if "fecha_desde" in filters:
+                    query += " AND fecha >= ?"
+                    params.append(filters["fecha_desde"])
 
-            if "fecha_hasta" in filters:
-                query += " AND fecha <= ?"
-                params.append(filters["fecha_hasta"])
+                if "fecha_hasta" in filters:
+                    query += " AND fecha <= ?"
+                    params.append(filters["fecha_hasta"])
 
-            query += f" ORDER BY fecha DESC LIMIT {limit}"
+                query += f" ORDER BY fecha DESC LIMIT {limit}"
 
-            cursor.execute(query, params)
-            rows = cursor.fetchall()
-            conn.close()
+                cursor.execute(query, params)
+                rows = cursor.fetchall()
 
-            consumo_data = [dict(row) for row in rows]
+                consumo_data = [dict(row) for row in rows]
 
-            return {
-                "data_type": "consumo_historico",
-                "count": len(consumo_data),
-                "data": consumo_data,
-                "filters_applied": filters,
-                "source": "sap_data.db",
-            }
+                return {
+                    "data_type": "consumo_historico",
+                    "count": len(consumo_data),
+                    "data": consumo_data,
+                    "filters_applied": filters,
+                }
 
         except Exception as e:
             logger.error(f"Error cargando consumo histórico: {e}")

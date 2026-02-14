@@ -686,7 +686,7 @@ def resumen_ejecutivo():
             # 3. Alertas MRP críticas (materiales con stock 0 o bajo punto de pedido)
             alertas_mrp = {"criticas": 0, "altas": 0}
             try:
-                db_name = "spm" if is_using_postgresql() else "sap_data"
+                db_name = "sap_data"
                 with get_db_connection(db_name) as conn2:
                     cur2 = conn2.cursor()
                     cur2.execute("""

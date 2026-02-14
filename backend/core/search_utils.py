@@ -160,11 +160,10 @@ def expand_codes_from_catalog(
     )
 
     try:
-        from backend.core.db import get_db_connection, is_using_postgresql
+        from backend.core.db import get_db_connection
 
-        pg = is_using_postgresql()
-        db = "spm" if pg else "master_materiales"
-        tabla = "cat_materiales" if pg else "catalogo_materiales"
+        db = "master_materiales"
+        tabla = "catalogo_materiales"
         col_id = "codigo"
 
         # Find codes where descripcion_larga matches but descripcion does NOT

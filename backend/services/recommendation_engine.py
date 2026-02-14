@@ -331,7 +331,7 @@ def obtener_recomendaciones_material(
         engine = RecommendationEngine()
 
         # Obtener datos del material
-        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
+        with get_db_connection("sap_data") as conn:
             # Stock actual
             cursor = conn.cursor()
             cursor.execute(

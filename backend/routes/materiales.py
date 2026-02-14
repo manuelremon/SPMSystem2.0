@@ -9,16 +9,15 @@ Busca en master_materiales.db que contiene:
 
 from flask import Blueprint, jsonify, request
 
-from backend.core.db import get_db_connection, is_using_postgresql
+from backend.core.db import get_db_connection
 from backend.core.roles import require_auth
 from backend.core.search_utils import build_description_search
 
 bp = Blueprint("materiales", __name__, url_prefix="/api/materiales")
 
-# Tabla y conexión según entorno
-_PG = is_using_postgresql()
-_TABLA = "cat_materiales" if _PG else "catalogo_materiales"
-_DB = "spm" if _PG else "master_materiales"
+# Tabla y conexión - en producción PG usa vistas de compatibilidad
+_TABLA = "catalogo_materiales"
+_DB = "master_materiales"
 # Columnas
 _COL_ID = "codigo"
 _COL_GRUPO = "grupo_articulos"

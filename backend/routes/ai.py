@@ -270,7 +270,7 @@ def buscar_materiales_consumo():
         if len(c_parts) > 1:
             c_where = f"({c_where})"
 
-        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
+        with get_db_connection("sap_data") as conn:
             cur = conn.cursor()
             # Search in both consumo_historico and materiales_bbdd,
             # prioritizing materials that have consumption data
@@ -769,7 +769,7 @@ def run_backtest():
         import pandas as pd
 
         # Obtener datos históricos
-        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
+        with get_db_connection("sap_data") as conn:
             query, params = _build_consumo_query(material_codigo, centro)
             df = pd.read_sql_query(query, conn, params=params)
 
@@ -824,7 +824,7 @@ def compare_models():
     try:
         import pandas as pd
 
-        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
+        with get_db_connection("sap_data") as conn:
             query, params = _build_consumo_query(material_codigo, centro)
             df = pd.read_sql_query(query, conn, params=params)
 
@@ -892,7 +892,7 @@ def auto_select_model():
         import pandas as pd
         import numpy as np
 
-        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
+        with get_db_connection("sap_data") as conn:
             query, params = _build_consumo_query(material_codigo, centro)
             df = pd.read_sql_query(query, conn, params=params)
 
@@ -965,7 +965,7 @@ def tune_hyperparameters():
     try:
         import pandas as pd
 
-        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
+        with get_db_connection("sap_data") as conn:
             query, params = _build_consumo_query(material_codigo, centro)
             df = pd.read_sql_query(query, conn, params=params)
 
@@ -1036,7 +1036,7 @@ def compare_models_parallel():
             }), 400
 
         # Obtener datos históricos
-        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
+        with get_db_connection("sap_data") as conn:
             query, params = _build_consumo_query(material_codigo, centro, limit=365)
             df = pd.read_sql_query(query, conn, params=params)
 
@@ -1137,7 +1137,7 @@ def get_stl_decomposition():
             }), 400
 
         # Obtener datos históricos
-        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
+        with get_db_connection("sap_data") as conn:
             query, params = _build_consumo_query(material_codigo, centro, limit=365)
             df = pd.read_sql_query(query, conn, params=params)
 
@@ -1213,7 +1213,7 @@ def get_recomendaciones(centro):
 
     try:
         engine = RecommendationEngine()
-        db_name = "spm" if is_using_postgresql() else "sap_data"
+        db_name = "sap_data"
 
         with get_db_connection(db_name) as conn:
             cursor = conn.cursor()
@@ -1305,7 +1305,7 @@ def get_recomendacion_material(material_codigo):
 
     try:
         engine = RecommendationEngine()
-        db_name = "spm" if is_using_postgresql() else "sap_data"
+        db_name = "sap_data"
 
         with get_db_connection(db_name) as conn:
             cursor = conn.cursor()
@@ -1423,7 +1423,7 @@ def detectar_anomalias(material_codigo):
     try:
         from backend.agent.pipelines.anomaly_detection import AnomalyDetector
 
-        db_name = "spm" if is_using_postgresql() else "sap_data"
+        db_name = "sap_data"
 
         with get_db_connection(db_name) as conn:
             query = "SELECT fecha, SUM(cantidad) as cantidad FROM consumo_historico WHERE material = ?"
@@ -1515,7 +1515,7 @@ def clustering_materiales():
         from sklearn.cluster import KMeans
         from sklearn.preprocessing import StandardScaler
 
-        db_name = "spm" if is_using_postgresql() else "sap_data"
+        db_name = "sap_data"
 
         with get_db_connection(db_name) as conn:
             cursor = conn.cursor()
@@ -1652,7 +1652,7 @@ def get_plan_compras(centro):
 
         limite = min(int(request.args.get('limit', 50)), 200)
 
-        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
+        with get_db_connection("sap_data") as conn:
             cur = conn.cursor()
 
             # Get A/B materials needing reorder

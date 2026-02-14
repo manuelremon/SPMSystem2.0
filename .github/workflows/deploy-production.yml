@@ -232,6 +232,9 @@ jobs:
             echo "=== Running database migrations ==="
             cd /opt/spm
 
+            # Run SAP catalog tables migration (idempotent - creates tables + views if not exist)
+            docker exec spm-backend python backend/migrations/020_catalogs_to_postgresql.py || echo "Migration 020 skipped or already applied"
+
             # Run Vertex IA tables migration (idempotent - uses CREATE TABLE IF NOT EXISTS)
             docker exec spm-backend python backend/migrations/022_vertex_ia_tables.py || echo "Migration 022 skipped or already applied"
 

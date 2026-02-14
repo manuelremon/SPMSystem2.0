@@ -11,12 +11,12 @@ from backend.core.search_utils import build_description_search
 
 bp = Blueprint("equivalencias", __name__, url_prefix="/api/equivalencias")
 
-# Configuración según entorno (PostgreSQL prod vs SQLite dev)
+# Configuración de BDs - en producción PG usa vistas de compatibilidad
 _PG = is_using_postgresql()
-_DB_EQUIV = "spm" if _PG else "equivalentes"
-_TABLA_EQUIV = "cat_equivalencias" if _PG else "materiales_equivalencias"
-_DB_CATALOGO = "spm" if _PG else "catalogo_materiales"
-_TABLA_CATALOGO = "cat_materiales" if _PG else "catalogo_materiales"
+_DB_EQUIV = "equivalentes"
+_TABLA_EQUIV = "materiales_equivalencias"
+_DB_CATALOGO = "catalogo_materiales"
+_TABLA_CATALOGO = "catalogo_materiales"
 _COL_MAT_ID = "codigo"
 
 

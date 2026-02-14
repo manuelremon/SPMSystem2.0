@@ -78,7 +78,7 @@ def get_stock_inmovilizado():
         limit = int(request.args.get("limit", 50))
         limit = min(max(limit, 1), 100)  # Entre 1 y 100
 
-        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
+        with get_db_connection("sap_data") as conn:
             cursor = conn.cursor()
 
             # Totales globales (sin filtros de centro)

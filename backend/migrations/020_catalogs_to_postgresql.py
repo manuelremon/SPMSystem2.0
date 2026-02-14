@@ -220,6 +220,12 @@ DDL_STATEMENTS = [
 
     # Vista: consumo_historico (tabla original de sap_data.db)
     "CREATE OR REPLACE VIEW consumo_historico AS SELECT * FROM sap_consumo_historico",
+
+    # Vista: catalogo_materiales (tabla original de catalogo_materiales.db / master_materiales.db)
+    "CREATE OR REPLACE VIEW catalogo_materiales AS SELECT * FROM cat_materiales",
+
+    # Vista: materiales_equivalencias (tabla original de master_materiales.db)
+    "CREATE OR REPLACE VIEW materiales_equivalencias AS SELECT * FROM cat_equivalencias",
 ]
 
 
@@ -268,6 +274,8 @@ def rollback_migration():
         "pedidos_sap",
         "materiales_bbdd",
         "consumo_historico",
+        "catalogo_materiales",
+        "materiales_equivalencias",
     ]
 
     tables = [

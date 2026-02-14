@@ -52,7 +52,7 @@ def get_stock():
     offset = int(request.args.get("offset", 0))
 
     try:
-        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
+        with get_db_connection("sap_data") as conn:
             cur = conn.cursor()
 
             # Build WHERE clauses
@@ -230,7 +230,7 @@ def get_stock_resumen():
     almacen = request.args.get("almacen", "").strip()
 
     try:
-        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
+        with get_db_connection("sap_data") as conn:
             cur = conn.cursor()
 
             where_clauses = ["stock > 0"]
@@ -347,7 +347,7 @@ def get_inventory_health():
 
         where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
-        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
+        with get_db_connection("sap_data") as conn:
             cur = conn.cursor()
 
             cur.execute(f"""

@@ -486,7 +486,7 @@ def get_alertas():
         return _get_alertas_from_temp_data(user_id, centro, almacen, sector, estado_filtro, limit, offset)
 
     try:
-        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
+        with get_db_connection("sap_data") as conn:
             cursor = conn.cursor()
 
             # Query principal desde materiales_bbdd (7,309 registros)
@@ -855,7 +855,7 @@ def get_kpis():
     try:
         # Conectar a sap_data para estadisticas reales
         # En produccion usa PostgreSQL, en desarrollo SQLite
-        with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn_sap:
+        with get_db_connection("sap_data") as conn_sap:
             cursor_sap = conn_sap.cursor()
 
             # Total de materiales unicos en stock
