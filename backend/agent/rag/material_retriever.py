@@ -202,7 +202,7 @@ class MaterialRetriever:
             # Query optimizada para catálogo de materiales (master_materiales.db)
             cur.execute("""
                 SELECT
-                    id_material as codigo,
+                    codigo,
                     descripcion,
                     descripcion_larga,
                     precio_usd,
@@ -210,7 +210,7 @@ class MaterialRetriever:
                     unidad_medida
                 FROM catalogo_materiales
                 WHERE activo = 1
-                AND id_material IS NOT NULL
+                AND codigo IS NOT NULL
                 AND descripcion IS NOT NULL
             """)
 
@@ -415,11 +415,11 @@ class MaterialRetriever:
             db_path = CATALOGO_DB
             query = """
                 SELECT DISTINCT
-                    id_material as codigo,
+                    codigo,
                     descripcion,
                     unidad_medida
                 FROM catalogo_materiales
-                WHERE id_material IS NOT NULL
+                WHERE codigo IS NOT NULL
                 AND descripcion IS NOT NULL
             """
         else:

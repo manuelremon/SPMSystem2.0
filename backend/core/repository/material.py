@@ -20,9 +20,8 @@ class MaterialRepository:
         conn = _connect_catalogo()
         try:
             cur = conn.cursor()
-            # Tabla catalogo_materiales en master_materiales.db
             cur.execute(
-                "SELECT descripcion, precio_usd FROM catalogo_materiales WHERE id_material = ?", (codigo,)
+                "SELECT descripcion, precio_usd FROM catalogo_materiales WHERE codigo = ?", (codigo,)
             )
             row = cur.fetchone()
             return dict(row) if row else None

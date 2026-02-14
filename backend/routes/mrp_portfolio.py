@@ -7,6 +7,7 @@ from flask import Blueprint, jsonify, request, g
 
 from backend.core.db import get_db_connection, is_using_postgresql
 from backend.core.roles import require_auth
+from backend.core.search_utils import build_description_search_with_catalog
 
 bp = Blueprint("mrp_portfolio", __name__, url_prefix="/api/mrp")
 
@@ -71,8 +72,12 @@ def get_mrp_portfolio():
                 params.append(f"%{material}%")
 
             if descripcion:
-                where_clauses.append("descripcion LIKE ?")
-                params.append(f"%{descripcion}%")
+                search = build_description_search_with_catalog(
+                    descripcion, ["descripcion"], "codigo_material"
+                )
+                if search:
+                    where_clauses.append(search.where_clause)
+                    params.extend(search.params)
 
             where_sql = " AND ".join(where_clauses)
 

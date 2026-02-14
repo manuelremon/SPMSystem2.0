@@ -29,7 +29,7 @@ from backend.core.dashboard_schemas import (
     get_default_sheet_data,
 )
 from backend.core.db import get_db_connection, is_using_postgresql
-from backend.core.roles import is_admin
+from backend.core.query_builder import QueryBuilder
 
 
 class _ConnectionWrapper:
@@ -192,45 +192,30 @@ class DashboardService:
         grupo_id: int = None,
         include_shared: bool = True,
     ) -> List[Dashboard]:
-        """Lista dashboards accesibles por el usuario"""
+        """Lista dashboards accesibles por el usuario usando QueryBuilder"""
         conn = _connect()
         try:
             cur = conn.cursor()
 
-            # Base query - propios
-            sql = """
-                SELECT d.*, g.nombre as grupo_nombre
-                FROM dashboard d
-                LEFT JOIN dashboard_grupo g ON d.grupo_id = g.id
-                WHERE d.owner_id = ?
-            """
-            params = [owner_id]
+            # Build query using SQLAlchemy Core via QueryBuilder
+            query = QueryBuilder.get_dashboard_list_query(owner_id, grupo_id, include_shared)
+            
+            # Compile query to string and params
+            # We use the postgresql dialect for string rendering if on postgres, else default (sqlite)
+            # Actually, _execute handles ? vs %s, but SQLAlchemy generates :param
+            # We need to bridge SQLAlchemy params to the driver params.
+            
+            from sqlalchemy.dialects import postgresql as pg_dialect, sqlite as sqlite_dialect
 
-            # Filtrar por grupo si se especifica
-            if grupo_id is not None:
-                sql += " AND d.grupo_id = ?"
-                params.append(grupo_id)
+            if is_using_postgresql():
+                compiled = query.compile(dialect=pg_dialect.dialect())
+            else:
+                compiled = query.compile(dialect=sqlite_dialect.dialect())
 
-            # Incluir publicos y compartidos
-            if include_shared:
-                sql += """
-                    UNION
-                    SELECT d.*, g.nombre as grupo_nombre
-                    FROM dashboard d
-                    LEFT JOIN dashboard_grupo g ON d.grupo_id = g.id
-                    WHERE d.es_publico = 1
-                    UNION
-                    SELECT d.*, g.nombre as grupo_nombre
-                    FROM dashboard d
-                    LEFT JOIN dashboard_grupo g ON d.grupo_id = g.id
-                    INNER JOIN dashboard_permiso p ON d.id = p.dashboard_id
-                    WHERE p.usuario_id = ?
-                """
-                params.append(owner_id)
-
-            sql += " ORDER BY updated_at DESC"
-
-            _execute(cur, sql, tuple(params))
+            sql_str = str(compiled)
+            params = compiled.params
+            cur.execute(sql_str, params)
+            
             rows = _fetchall(cur)
 
             dashboards = []

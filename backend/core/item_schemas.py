@@ -82,10 +82,10 @@ def _verificar_material_existe(material_id: str) -> bool:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT 1 FROM materiales_mrp
-                WHERE codigo_material = ?
-                   OR REPLACE(codigo_material, '-', '') = ?
-                   OR LTRIM(REPLACE(codigo_material, '-', ''), '0') = ?
+                SELECT 1 FROM catalogo_materiales
+                WHERE codigo = ?
+                   OR REPLACE(codigo, '-', '') = ?
+                   OR LTRIM(REPLACE(codigo, '-', ''), '0') = ?
                 LIMIT 1
                 """,
                 (material_id, material_id.replace("-", ""), codigo_norm),
@@ -101,14 +101,12 @@ def _verificar_material_existe(material_id: str) -> bool:
                 cursor.execute(
                     """
                     SELECT 1 FROM catalogo_materiales
-                    WHERE codigo_original = ?
-                       OR REPLACE(codigo_original, '-', '') = ?
-                       OR id_material = ?
-                       OR id_material = ?
-                       OR id_material = ?
+                    WHERE codigo = ?
+                       OR REPLACE(codigo, '-', '') = ?
+                       OR codigo = ?
                     LIMIT 1
                     """,
-                    (material_id, material_id.replace("-", ""), material_id, codigo_norm, sufijo),
+                    (material_id, material_id.replace("-", ""), sufijo),
                 )
                 existe = cursor.fetchone() is not None
 

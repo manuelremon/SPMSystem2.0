@@ -25,12 +25,14 @@ import {
 } from '../components/forecast';
 import { TempDataBanner } from '../components/ui/TempDataBanner';
 import api from '../services/api';
+import { FONT_SIZES } from '../components/ui/SPMChartJS';
 
 // MUI Components
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Alert from '@mui/material/Alert';
@@ -51,6 +53,7 @@ import Modal from '@mui/material/Modal';
 import LinearProgress from '@mui/material/LinearProgress';
 import Backdrop from '@mui/material/Backdrop';
 import Fade from '@mui/material/Fade';
+import Divider from '@mui/material/Divider';
 
 // Descripciones de modelos para tooltips
 const MODELO_TOOLTIPS = {
@@ -73,6 +76,11 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import AutoGraphIcon from '@mui/icons-material/AutoGraph';
+
+// Shared select styles
+const selectSx = { fontSize: FONT_SIZES.md, '& .MuiSelect-select': { py: '8px' } };
+const labelSx = { fontSize: FONT_SIZES.md };
+const menuProps = { PaperProps: { style: { maxHeight: 300 } } };
 
 const ForecastIndividual = () => {
   const { t } = useI18n();
@@ -221,10 +229,10 @@ const ForecastIndividual = () => {
   }, [generateSyntheticData]);
 
   const tabItems = [
-    { label: t('forecast_tab_forecast', 'Forecast'), icon: <TrendingUpIcon fontSize="small" /> },
-    { label: t('forecast_tab_metricas', 'Métricas'), icon: <BarChartIcon fontSize="small" /> },
-    { label: t('forecast_tab_tabla', 'Tabla'), icon: <TableChartIcon fontSize="small" /> },
-    { label: t('forecast_tab_patrones', 'Patrones'), icon: <AutoGraphIcon fontSize="small" /> }
+    { label: t('forecast_tab_forecast', 'Forecast'), icon: <TrendingUpIcon sx={{ fontSize: 18 }} /> },
+    { label: t('forecast_tab_metricas', 'Métricas'), icon: <BarChartIcon sx={{ fontSize: 18 }} /> },
+    { label: t('forecast_tab_tabla', 'Tabla'), icon: <TableChartIcon sx={{ fontSize: 18 }} /> },
+    { label: t('forecast_tab_patrones', 'Patrones'), icon: <AutoGraphIcon sx={{ fontSize: 18 }} /> }
   ];
 
   // Detectar si los parámetros actuales difieren del último análisis
@@ -235,225 +243,316 @@ const ForecastIndividual = () => {
   );
 
   return (
-    <Container maxWidth={false} sx={{ py: 2, px: "75px" }}>
+    <Container maxWidth={false} sx={{ py: 2, px: { xs: 2, md: "75px" } }}>
       {/* Header */}
-      <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
-        <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "var(--fg-muted)" }}>
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          {t('forecast_titulo', 'FORECAST DE DEMANDA')}
-        </Typography>
-      </Box>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+        <Stack direction="row" alignItems="center" gap={1.5}>
+          <IconButton
+            onClick={() => navigate(-1)}
+            size="small"
+            sx={{
+              color: "var(--fg-muted)",
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1.5,
+              width: 32,
+              height: 32,
+              '&:hover': { borderColor: 'var(--primary)', color: 'var(--primary)' },
+            }}
+          >
+            <ArrowBackIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+          <Box>
+            <Typography
+              variant="h6"
+              component="h1"
+              sx={{
+                fontWeight: 700,
+                color: 'var(--fg-strong)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                fontSize: FONT_SIZES.h4,
+                lineHeight: 1.2,
+              }}
+            >
+              {t('forecast_titulo', 'Forecast de Demanda')}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'var(--fg-muted)', fontSize: FONT_SIZES.sm }}>
+              Predicción de consumo basada en modelos ML
+            </Typography>
+          </Box>
+        </Stack>
+        {forecastData && (
+          <Button
+            onClick={limpiar}
+            variant="outlined"
+            size="small"
+            startIcon={<DeleteOutlineIcon sx={{ fontSize: 16 }} />}
+            sx={{
+              fontSize: FONT_SIZES.md,
+              fontWeight: 500,
+              color: "var(--fg-muted)",
+              borderColor: "var(--border)",
+              borderRadius: 1.5,
+              px: 2,
+              "&:hover": { color: "var(--danger, #dc2626)", borderColor: "var(--danger, #dc2626)", bgcolor: 'rgba(220,38,38,0.04)' },
+            }}
+          >
+            Limpiar
+          </Button>
+        )}
+      </Stack>
 
       {/* Banner de Modo Temporal */}
       <TempDataBanner />
 
-      {/* Filtros - estilo Dashboard */}
-      <Paper elevation={0} sx={{ mb: 3, border: "1px solid var(--border)", borderRadius: 2, overflow: "hidden" }}>
+      {/* Panel de control - Filtros */}
+      <Paper
+        elevation={0}
+        sx={{
+          mb: 2.5,
+          border: "1px solid",
+          borderColor: 'divider',
+          borderRadius: 2,
+          overflow: "hidden",
+          transition: 'box-shadow 0.2s ease-in-out',
+          '&:hover': { boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)' },
+        }}
+      >
         <form onSubmit={handleSearch}>
-          <Box sx={{ py: 1.5, px: 3, height: "73px" }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 3, height: "100%" }}>
-            {/* Búsqueda de material */}
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 0, minWidth: 280 }}>
-              <Typography component="label" sx={{ fontSize: "0.75rem", fontWeight: 500, color: "var(--fg-muted)", mb: 0.5 }}>
-                {t('forecast_buscar_material', 'Buscar Material')}
-              </Typography>
-              <MaterialSearchInput
-                value={materialCodigo}
-                onChange={setMaterialCodigo}
-                onSelect={handleMaterialSelect}
-                selectedMaterial={selectedMaterial}
-                placeholder={t('forecast_placeholder_buscar', 'Código o descripción...')}
-                disabled={loading}
-                showSelectedInfo={false}
-                searchFn={searchConsumoMaterials}
-              />
-            </Box>
-
-            {/* Separador */}
-            <Box sx={{ height: 48, width: 1, bgcolor: "var(--border)" }} />
-
-            {/* Centro - Multiselect */}
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel sx={{ fontSize: "0.75rem" }}>Centro</InputLabel>
-              <Select
-                multiple
-                value={Array.isArray(centro) ? centro : (centro ? [centro] : [])}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value.includes("__todos__")) {
-                    const allIds = centrosDisponibles.map(c => c.id);
-                    const current = Array.isArray(centro) ? centro : [];
-                    setCentro(current.length === allIds.length ? [] : allIds);
-                  } else {
-                    setCentro(typeof value === "string" ? value.split(",") : value);
-                  }
-                }}
-                disabled={loading || loadingCatalogos}
-                input={<OutlinedInput label="Centro" />}
-                renderValue={(selected) => selected.length > 1 ? `${selected.length} selec.` : selected.join(", ")}
-                MenuProps={{ PaperProps: { style: { maxHeight: 300 } } }}
-                sx={{ fontSize: "0.75rem" }}
-              >
-                <MenuItem value="__todos__">
-                  <Checkbox checked={Array.isArray(centro) && centro.length === centrosDisponibles.length && centrosDisponibles.length > 0} size="small" />
-                  <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: "0.75rem", fontWeight: 600 }} />
-                </MenuItem>
-                {centrosDisponibles.map((c) => (
-                  <MenuItem key={c.id} value={c.id}>
-                    <Checkbox checked={Array.isArray(centro) && centro.includes(c.id)} size="small" />
-                    <ListItemText primary={c.nombre ? `${c.id} - ${c.nombre}` : c.id} primaryTypographyProps={{ fontSize: "0.75rem" }} />
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* Almacén - Multiselect */}
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel sx={{ fontSize: "0.75rem" }}>Almacén</InputLabel>
-              <Select
-                multiple
-                value={Array.isArray(almacen) ? almacen : (almacen ? [almacen] : [])}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value.includes("__todos__")) {
-                    const allIds = almacenesDisponibles.map(a => a.id);
-                    const current = Array.isArray(almacen) ? almacen : [];
-                    setAlmacen(current.length === allIds.length ? [] : allIds);
-                  } else {
-                    setAlmacen(typeof value === "string" ? value.split(",") : value);
-                  }
-                }}
-                disabled={loading || loadingCatalogos}
-                input={<OutlinedInput label="Almacén" />}
-                renderValue={(selected) => selected.length > 1 ? `${selected.length} selec.` : selected.join(", ")}
-                MenuProps={{ PaperProps: { style: { maxHeight: 300 } } }}
-                sx={{ fontSize: "0.75rem" }}
-              >
-                <MenuItem value="__todos__">
-                  <Checkbox checked={Array.isArray(almacen) && almacen.length === almacenesDisponibles.length && almacenesDisponibles.length > 0} size="small" />
-                  <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: "0.75rem", fontWeight: 600 }} />
-                </MenuItem>
-                {almacenesDisponibles.map((a) => (
-                  <MenuItem key={a.id} value={a.id}>
-                    <Checkbox checked={Array.isArray(almacen) && almacen.includes(a.id)} size="small" />
-                    <ListItemText primary={a.nombre ? `${a.id} - ${a.nombre}` : a.id} primaryTypographyProps={{ fontSize: "0.75rem" }} />
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* Histórico a usar */}
-            <Tooltip
-              title="Cantidad de meses de consumo histórico que se usará para entrenar el modelo. Más datos puede mejorar la precisión pero también incluir patrones obsoletos."
-              placement="top"
-              arrow
-              slotProps={{ tooltip: { sx: { fontSize: "0.7rem", maxWidth: 280 } } }}
-            >
-              <FormControl size="small" sx={{ minWidth: 130 }}>
-                <InputLabel sx={{ fontSize: "0.75rem" }}>Histórico</InputLabel>
-                <Select
-                  value={mesesHistorico}
-                  onChange={(e) => setMesesHistorico(Number(e.target.value))}
-                  label="Histórico"
-                  sx={{ fontSize: "0.75rem" }}
+          {/* Fila 1: Búsqueda + Ubicación */}
+          <Box sx={{ px: 3, pt: 2, pb: 1.5 }}>
+            <Stack direction="row" alignItems="flex-end" gap={2.5} flexWrap="wrap">
+              {/* Búsqueda de material */}
+              <Box sx={{ flex: '1 1 320px', minWidth: 280, maxWidth: 420 }}>
+                <Typography
+                  component="label"
+                  sx={{
+                    fontSize: FONT_SIZES.sm,
+                    fontWeight: 600,
+                    color: "var(--fg-muted)",
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    display: 'block',
+                    mb: 0.75,
+                  }}
                 >
-                  <MenuItem value={0}>Todo</MenuItem>
-                  <MenuItem value={1}>1 mes</MenuItem>
-                  <MenuItem value={3}>3 meses</MenuItem>
-                  <MenuItem value={6}>6 meses</MenuItem>
-                  <MenuItem value={12}>12 meses</MenuItem>
-                  <MenuItem value={18}>18 meses</MenuItem>
-                  <MenuItem value={24}>24 meses</MenuItem>
+                  {t('forecast_buscar_material', 'Material')}
+                </Typography>
+                <MaterialSearchInput
+                  value={materialCodigo}
+                  onChange={setMaterialCodigo}
+                  onSelect={handleMaterialSelect}
+                  selectedMaterial={selectedMaterial}
+                  placeholder={t('forecast_placeholder_buscar', 'Código o descripción...')}
+                  disabled={loading}
+                  showSelectedInfo={false}
+                  searchFn={searchConsumoMaterials}
+                />
+              </Box>
+
+              {/* Centro */}
+              <FormControl size="small" sx={{ minWidth: 150, flex: '0 1 170px' }}>
+                <InputLabel sx={labelSx}>Centro</InputLabel>
+                <Select
+                  multiple
+                  value={Array.isArray(centro) ? centro : (centro ? [centro] : [])}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value.includes("__todos__")) {
+                      const allIds = centrosDisponibles.map(c => c.id);
+                      const current = Array.isArray(centro) ? centro : [];
+                      setCentro(current.length === allIds.length ? [] : allIds);
+                    } else {
+                      setCentro(typeof value === "string" ? value.split(",") : value);
+                    }
+                  }}
+                  disabled={loading || loadingCatalogos}
+                  input={<OutlinedInput label="Centro" />}
+                  renderValue={(selected) => selected.length > 1 ? `${selected.length} selec.` : selected.join(", ")}
+                  MenuProps={menuProps}
+                  sx={selectSx}
+                >
+                  <MenuItem value="__todos__">
+                    <Checkbox checked={Array.isArray(centro) && centro.length === centrosDisponibles.length && centrosDisponibles.length > 0} size="small" />
+                    <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
+                  </MenuItem>
+                  {centrosDisponibles.map((c) => (
+                    <MenuItem key={c.id} value={c.id}>
+                      <Checkbox checked={Array.isArray(centro) && centro.includes(c.id)} size="small" />
+                      <ListItemText primary={c.nombre ? `${c.id} - ${c.nombre}` : c.id} primaryTypographyProps={{ fontSize: FONT_SIZES.md }} />
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
-            </Tooltip>
 
-            {/* Horizonte */}
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel sx={{ fontSize: "0.75rem" }}>Horizonte</InputLabel>
-              <Select
-                value={diasPrediccion}
-                onChange={(e) => setDiasPrediccion(Number(e.target.value))}
-                label="Horizonte"
-                sx={{ fontSize: "0.75rem" }}
+              {/* Almacén */}
+              <FormControl size="small" sx={{ minWidth: 150, flex: '0 1 170px' }}>
+                <InputLabel sx={labelSx}>Almacén</InputLabel>
+                <Select
+                  multiple
+                  value={Array.isArray(almacen) ? almacen : (almacen ? [almacen] : [])}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value.includes("__todos__")) {
+                      const allIds = almacenesDisponibles.map(a => a.id);
+                      const current = Array.isArray(almacen) ? almacen : [];
+                      setAlmacen(current.length === allIds.length ? [] : allIds);
+                    } else {
+                      setAlmacen(typeof value === "string" ? value.split(",") : value);
+                    }
+                  }}
+                  disabled={loading || loadingCatalogos}
+                  input={<OutlinedInput label="Almacén" />}
+                  renderValue={(selected) => selected.length > 1 ? `${selected.length} selec.` : selected.join(", ")}
+                  MenuProps={menuProps}
+                  sx={selectSx}
+                >
+                  <MenuItem value="__todos__">
+                    <Checkbox checked={Array.isArray(almacen) && almacen.length === almacenesDisponibles.length && almacenesDisponibles.length > 0} size="small" />
+                    <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
+                  </MenuItem>
+                  {almacenesDisponibles.map((a) => (
+                    <MenuItem key={a.id} value={a.id}>
+                      <Checkbox checked={Array.isArray(almacen) && almacen.includes(a.id)} size="small" />
+                      <ListItemText primary={a.nombre ? `${a.id} - ${a.nombre}` : a.id} primaryTypographyProps={{ fontSize: FONT_SIZES.md }} />
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Botón de acción */}
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={loading || !materialCodigo.trim()}
+                startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <SearchIcon sx={{ fontSize: 18 }} />}
+                sx={{
+                  height: 40,
+                  minWidth: 130,
+                  borderRadius: 1.5,
+                  fontWeight: 600,
+                  fontSize: FONT_SIZES.md,
+                  textTransform: 'none',
+                  boxShadow: 'none',
+                  '&:hover': { boxShadow: '0 2px 8px rgba(0, 112, 243, 0.3)' },
+                }}
               >
-                <MenuItem value={30}>1 mes</MenuItem>
-                <MenuItem value={90}>3 meses</MenuItem>
-                <MenuItem value={180}>6 meses</MenuItem>
-                <MenuItem value={240}>8 meses</MenuItem>
-                <MenuItem value={300}>10 meses</MenuItem>
-                <MenuItem value={365}>12 meses</MenuItem>
-              </Select>
-            </FormControl>
-
-            {/* Modelo */}
-            <FormControl size="small" sx={{ minWidth: 160 }}>
-              <InputLabel sx={{ fontSize: "0.75rem" }}>Modelo</InputLabel>
-              <Select
-                value={modelosDisponibles.length > 0 ? modeloSeleccionado : ''}
-                onChange={(e) => setModeloSeleccionado(e.target.value)}
-                disabled={loading || loadingCatalogos || modelosDisponibles.length === 0}
-                label="Modelo"
-                sx={{ fontSize: "0.75rem" }}
-              >
-                {modelosDisponibles.map((modelo) => (
-                  <Tooltip
-                    key={modelo.id}
-                    title={MODELO_TOOLTIPS[modelo.id] || "Modelo de predicción de demanda"}
-                    placement="right"
-                    arrow
-                    slotProps={{
-                      tooltip: { sx: { fontSize: "0.7rem", maxWidth: 280 } }
-                    }}
-                  >
-                    <MenuItem value={modelo.id}>{modelo.nombre}</MenuItem>
-                  </Tooltip>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* Botón de búsqueda */}
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={loading || !materialCodigo.trim()}
-              startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <SearchIcon />}
-              sx={{ height: 40, minWidth: 120 }}
-            >
-              {loading ? 'Analizando...' : 'Analizar'}
-            </Button>
-
-            {/* Limpiar */}
-            <Button
-              type="button"
-              onClick={limpiar}
-              variant="outlined"
-              size="small"
-              sx={{
-                px: 1.5,
-                py: 0.75,
-                fontSize: "0.75rem",
-                fontWeight: 500,
-                color: "var(--fg-muted)",
-                borderColor: "var(--border)",
-                "&:hover": {
-                  color: "var(--primary)",
-                  borderColor: "var(--primary)"
-                }
-              }}
-            >
-              Limpiar
-            </Button>
+                {loading ? 'Analizando...' : 'Analizar'}
+              </Button>
+            </Stack>
           </Box>
-        </Box>
+
+          {/* Divider */}
+          <Divider sx={{ mx: 3 }} />
+
+          {/* Fila 2: Parámetros del modelo */}
+          <Box sx={{ px: 3, py: 1.25 }}>
+            <Stack direction="row" alignItems="center" gap={2.5} flexWrap="wrap">
+              <Typography
+                variant="caption"
+                sx={{
+                  fontSize: FONT_SIZES.sm,
+                  fontWeight: 600,
+                  color: 'var(--fg-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  mr: 0.5,
+                }}
+              >
+                Modelo
+              </Typography>
+
+              {/* Histórico */}
+              <Tooltip
+                title="Meses de consumo histórico para entrenar el modelo. Más datos puede mejorar la precisión pero también incluir patrones obsoletos."
+                placement="top"
+                arrow
+                slotProps={{ tooltip: { sx: { fontSize: FONT_SIZES.sm, maxWidth: 280 } } }}
+              >
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                  <InputLabel sx={labelSx}>Histórico</InputLabel>
+                  <Select
+                    value={mesesHistorico}
+                    onChange={(e) => setMesesHistorico(Number(e.target.value))}
+                    label="Histórico"
+                    sx={selectSx}
+                  >
+                    <MenuItem value={0}>Todo</MenuItem>
+                    <MenuItem value={1}>1 mes</MenuItem>
+                    <MenuItem value={3}>3 meses</MenuItem>
+                    <MenuItem value={6}>6 meses</MenuItem>
+                    <MenuItem value={12}>12 meses</MenuItem>
+                    <MenuItem value={18}>18 meses</MenuItem>
+                    <MenuItem value={24}>24 meses</MenuItem>
+                  </Select>
+                </FormControl>
+              </Tooltip>
+
+              {/* Horizonte */}
+              <FormControl size="small" sx={{ minWidth: 115 }}>
+                <InputLabel sx={labelSx}>Horizonte</InputLabel>
+                <Select
+                  value={diasPrediccion}
+                  onChange={(e) => setDiasPrediccion(Number(e.target.value))}
+                  label="Horizonte"
+                  sx={selectSx}
+                >
+                  <MenuItem value={30}>1 mes</MenuItem>
+                  <MenuItem value={90}>3 meses</MenuItem>
+                  <MenuItem value={180}>6 meses</MenuItem>
+                  <MenuItem value={240}>8 meses</MenuItem>
+                  <MenuItem value={300}>10 meses</MenuItem>
+                  <MenuItem value={365}>12 meses</MenuItem>
+                </Select>
+              </FormControl>
+
+              {/* Modelo ML */}
+              <FormControl size="small" sx={{ minWidth: 170 }}>
+                <InputLabel sx={labelSx}>Algoritmo</InputLabel>
+                <Select
+                  value={modelosDisponibles.length > 0 ? modeloSeleccionado : ''}
+                  onChange={(e) => setModeloSeleccionado(e.target.value)}
+                  disabled={loading || loadingCatalogos || modelosDisponibles.length === 0}
+                  label="Algoritmo"
+                  sx={selectSx}
+                >
+                  {modelosDisponibles.map((modelo) => (
+                    <Tooltip
+                      key={modelo.id}
+                      title={MODELO_TOOLTIPS[modelo.id] || "Modelo de predicción de demanda"}
+                      placement="right"
+                      arrow
+                      slotProps={{ tooltip: { sx: { fontSize: FONT_SIZES.sm, maxWidth: 280 } } }}
+                    >
+                      <MenuItem value={modelo.id}>{modelo.nombre}</MenuItem>
+                    </Tooltip>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Indicador de parámetros modificados */}
+              {parametrosModificados && (
+                <Chip
+                  label="Parámetros modificados"
+                  size="small"
+                  sx={{
+                    fontSize: FONT_SIZES.xs,
+                    height: 24,
+                    bgcolor: 'rgba(217, 119, 6, 0.08)',
+                    color: 'var(--warning, #d97706)',
+                    border: '1px solid rgba(217, 119, 6, 0.2)',
+                    fontWeight: 600,
+                  }}
+                />
+              )}
+            </Stack>
+          </Box>
         </form>
       </Paper>
 
       {/* Detectar Cold Start - mostrar panel de simulación cuando no hay datos históricos */}
       {(() => {
-        // Detectar si es un caso de cold start (sin datos históricos)
         const isColdStart = !loading && !forecastData && error && (
           error.toLowerCase().includes('sin datos') ||
           error.toLowerCase().includes('no hay datos') ||
@@ -478,17 +577,27 @@ const ForecastIndividual = () => {
           );
         }
 
-        // Mostrar error normal si no es cold start
         if (error) {
           return (
-            <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+            <Alert
+              severity="error"
+              sx={{
+                mb: 2,
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'error.light',
+                '& .MuiAlert-message': { fontSize: FONT_SIZES.md },
+              }}
+            >
+              {error}
+            </Alert>
           );
         }
 
         return null;
       })()}
 
-      {/* ForecastPlaceholder - Mostrar cuando el forecast funciono pero con historico insuficiente (< 3 registros) */}
+      {/* ForecastPlaceholder */}
       {!loading && !error && forecastData && !simulationMode && historicoParaGrafico && historicoParaGrafico.length < 3 && materialCodigo && (
         <Suspense fallback={<Skeleton variant="rectangular" height={300} sx={{ borderRadius: 2, mb: 2 }} />}>
           <Box sx={{ mb: 3 }}>
@@ -502,76 +611,228 @@ const ForecastIndividual = () => {
         </Suspense>
       )}
 
-
       {/* Resultados */}
       {forecastData && (
         <>
-          {/* Info del material */}
-          <Paper elevation={0} sx={{ p: 2, mb: 3, border: "1px solid var(--border)", borderRadius: 2 }}>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Box>
-                <Typography variant="h6" fontWeight={600} color="var(--fg-strong)">
-                  {forecastData.material?.codigo || selectedMaterial?.codigo || materialCodigo}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {forecastData.material?.descripcion || selectedMaterial?.descripcion || t('forecast_material', 'Material')}
-                </Typography>
-              </Box>
-              <Box sx={{ display: "flex", gap: 1 }}>
-                <Chip
-                  label={simulationMode
-                    ? t('forecast_modo_simulacion', 'Simulación')
-                    : (forecastData?.nombre_modelo || getNombreModelo(modeloSeleccionado))
-                  }
-                  size="small"
-                  color={simulationMode ? "warning" : "primary"}
-                  variant="outlined"
-                />
-                <Chip label={`${forecastData?.dias || diasPrediccion} días`} size="small" variant="outlined" />
-              </Box>
-            </Box>
-          </Paper>
+          {/* Info del material + Tabs + Acciones */}
+          <Paper
+            elevation={0}
+            sx={{
+              mb: 2,
+              border: "1px solid",
+              borderColor: 'divider',
+              borderRadius: 2,
+              overflow: 'hidden',
+              transition: 'box-shadow 0.2s ease-in-out',
+              '&:hover': { boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)' },
+            }}
+          >
+            {/* Material header */}
+            <Box sx={{ px: 3, pt: 2, pb: 1.5 }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                <Stack direction="row" alignItems="center" gap={2}>
+                  {/* Material icon badge */}
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 1.5,
+                      bgcolor: simulationMode ? 'rgba(217, 119, 6, 0.08)' : 'rgba(0, 112, 243, 0.08)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <AutoGraphIcon sx={{ fontSize: 22, color: simulationMode ? 'var(--warning, #d97706)' : 'var(--primary)' }} />
+                  </Box>
+                  <Box>
+                    <Stack direction="row" alignItems="baseline" gap={1}>
+                      <Typography
+                        sx={{
+                          fontWeight: 700,
+                          color: 'var(--fg-strong)',
+                          fontSize: FONT_SIZES.h5,
+                          fontFamily: 'var(--font-mono, monospace)',
+                          letterSpacing: '-0.01em',
+                        }}
+                      >
+                        {forecastData.material?.codigo || selectedMaterial?.codigo || materialCodigo}
+                      </Typography>
+                      <Typography
+                        sx={{
+                          color: 'var(--fg-muted)',
+                          fontSize: FONT_SIZES.md,
+                          maxWidth: 400,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {forecastData.material?.descripcion || selectedMaterial?.descripcion || ''}
+                      </Typography>
+                    </Stack>
+                    <Stack direction="row" gap={1} sx={{ mt: 0.5 }}>
+                      <Chip
+                        label={simulationMode
+                          ? t('forecast_modo_simulacion', 'Simulación')
+                          : (forecastData?.nombre_modelo || getNombreModelo(modeloSeleccionado))
+                        }
+                        size="small"
+                        sx={{
+                          height: 22,
+                          fontSize: FONT_SIZES.xs,
+                          fontWeight: 600,
+                          bgcolor: simulationMode ? 'rgba(217, 119, 6, 0.08)' : 'rgba(0, 112, 243, 0.08)',
+                          color: simulationMode ? 'var(--warning, #d97706)' : 'var(--primary)',
+                          border: '1px solid',
+                          borderColor: simulationMode ? 'rgba(217, 119, 6, 0.2)' : 'rgba(0, 112, 243, 0.2)',
+                          '& .MuiChip-label': { px: 1 },
+                        }}
+                      />
+                      <Chip
+                        label={`${forecastData?.dias || diasPrediccion}d horizonte`}
+                        size="small"
+                        sx={{
+                          height: 22,
+                          fontSize: FONT_SIZES.xs,
+                          fontWeight: 500,
+                          bgcolor: 'var(--bg-soft)',
+                          color: 'var(--fg-muted)',
+                          border: '1px solid var(--border)',
+                          '& .MuiChip-label': { px: 1 },
+                        }}
+                      />
+                      {historicoInfo?.total_registros && (
+                        <Chip
+                          label={`${historicoInfo.total_registros} registros`}
+                          size="small"
+                          sx={{
+                            height: 22,
+                            fontSize: FONT_SIZES.xs,
+                            fontWeight: 500,
+                            bgcolor: 'var(--bg-soft)',
+                            color: 'var(--fg-muted)',
+                            border: '1px solid var(--border)',
+                            '& .MuiChip-label': { px: 1 },
+                          }}
+                        />
+                      )}
+                    </Stack>
+                  </Box>
+                </Stack>
 
-          {/* Tabs */}
-          <Box sx={{ mb: 2 }}>
+                {/* Action buttons */}
+                <Stack direction="row" gap={1} sx={{ flexShrink: 0 }}>
+                  {!simulationMode && (
+                    <>
+                      <Tooltip title="Validación temporal del modelo con datos históricos" placement="top" arrow>
+                        <span>
+                          <Button
+                            onClick={handleBacktest}
+                            disabled={loadingBacktest}
+                            size="small"
+                            startIcon={loadingBacktest ? <CircularProgress size={14} /> : <ScienceIcon sx={{ fontSize: 16 }} />}
+                            sx={{
+                              fontSize: FONT_SIZES.md,
+                              fontWeight: 500,
+                              color: 'var(--fg-muted)',
+                              borderRadius: 1.5,
+                              textTransform: 'none',
+                              px: 1.5,
+                              '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' },
+                            }}
+                          >
+                            {loadingBacktest ? 'Ejecutando...' : 'Backtesting'}
+                          </Button>
+                        </span>
+                      </Tooltip>
+                      <Tooltip title="Comparar rendimiento entre modelos ML" placement="top" arrow>
+                        <span>
+                          <Button
+                            onClick={handleCompararModelos}
+                            disabled={loadingComparacion}
+                            size="small"
+                            startIcon={loadingComparacion ? <CircularProgress size={14} /> : <CompareArrowsIcon sx={{ fontSize: 16 }} />}
+                            sx={{
+                              fontSize: FONT_SIZES.md,
+                              fontWeight: 500,
+                              color: 'var(--fg-muted)',
+                              borderRadius: 1.5,
+                              textTransform: 'none',
+                              px: 1.5,
+                              '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' },
+                            }}
+                          >
+                            {loadingComparacion ? 'Comparando...' : 'Comparar'}
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    </>
+                  )}
+                  {simulationMode && (
+                    <Button
+                      onClick={exitSimulationMode}
+                      size="small"
+                      sx={{
+                        fontSize: FONT_SIZES.md,
+                        fontWeight: 500,
+                        color: 'var(--warning, #d97706)',
+                        borderRadius: 1.5,
+                        textTransform: 'none',
+                        px: 1.5,
+                        '&:hover': { bgcolor: 'rgba(217, 119, 6, 0.04)' },
+                      }}
+                    >
+                      {t('forecast_salir_simulacion', 'Salir de Simulación')}
+                    </Button>
+                  )}
+                </Stack>
+              </Stack>
+            </Box>
+
+            {/* Tabs - inline en el mismo Paper */}
             <Tabs
               value={activeTab}
               onChange={(e, v) => setActiveTab(v)}
               sx={{
-                minHeight: 44,
-                bgcolor: "var(--surface)",
-                borderRadius: "8px 8px 0 0",
-                borderBottom: "2px solid var(--border)",
+                minHeight: 40,
+                px: 3,
+                borderTop: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'var(--bg-soft)',
                 "& .MuiTab-root": {
-                  minHeight: 44,
+                  minHeight: 40,
                   textTransform: "none",
                   fontWeight: 600,
-                  fontSize: "0.875rem",
+                  fontSize: FONT_SIZES.md,
                   color: "var(--fg-muted)",
+                  px: 2,
+                  gap: 0.75,
                   "&.Mui-selected": { color: "var(--primary)" },
-                  "&:hover": { color: "var(--primary)", bgcolor: "rgba(25, 118, 210, 0.04)" },
+                  "&:hover": { color: "var(--primary)" },
                 },
-                "& .MuiTabs-indicator": { bgcolor: "var(--primary)", height: 3 },
+                "& .MuiTabs-indicator": { bgcolor: "var(--primary)", height: 2, borderRadius: '2px 2px 0 0' },
               }}
             >
               {tabItems.map((tab, idx) => (
                 <Tab key={idx} label={tab.label} icon={tab.icon} iconPosition="start" disableRipple />
               ))}
             </Tabs>
-          </Box>
+          </Paper>
 
           {/* Contenido de tabs */}
           <Box>
             {activeTab === 0 && (
-              <>
+              <Stack gap={2}>
                 {/* KPIs */}
-                <Suspense fallback={<Skeleton variant="rectangular" height={80} sx={{ borderRadius: 2, mb: 2 }} />}>
+                <Suspense fallback={<Skeleton variant="rectangular" height={80} sx={{ borderRadius: 2 }} />}>
                   <ForecastKPIs metricas={metricas} />
                 </Suspense>
 
                 {/* Gráfico principal */}
-                <Suspense fallback={<Skeleton variant="rectangular" height={400} sx={{ borderRadius: 2, mb: 2 }} />}>
-                  <Paper elevation={0} sx={{ p: 2, mb: 2, border: "1px solid var(--border)", borderRadius: 2 }}>
+                <Suspense fallback={<Skeleton variant="rectangular" height={400} sx={{ borderRadius: 2 }} />}>
+                  <Paper elevation={0} sx={{ p: 2, border: "1px solid", borderColor: 'divider', borderRadius: 2 }}>
                     <ForecastChart
                       historico={historicoParaGrafico}
                       predicciones={prediccionesParaGrafico}
@@ -585,95 +846,68 @@ const ForecastIndividual = () => {
                     />
                   </Paper>
                 </Suspense>
-
-                {/* Acciones avanzadas */}
-                <Box sx={{ display: "flex", gap: 2 }}>
-                  {/* Backtesting y Comparar solo disponibles con datos reales, no en simulación */}
-                  {!simulationMode && (
-                    <>
-                      <Button
-                        onClick={handleBacktest}
-                        disabled={loadingBacktest}
-                        variant="outlined"
-                        color="secondary"
-                        startIcon={loadingBacktest ? <CircularProgress size={16} /> : <ScienceIcon />}
-                        size="small"
-                      >
-                        {loadingBacktest ? 'Ejecutando...' : 'Backtesting'}
-                      </Button>
-                      <Button
-                        onClick={handleCompararModelos}
-                        disabled={loadingComparacion}
-                        variant="outlined"
-                        color="success"
-                        startIcon={loadingComparacion ? <CircularProgress size={16} /> : <CompareArrowsIcon />}
-                        size="small"
-                      >
-                        {loadingComparacion ? 'Comparando...' : 'Comparar Modelos'}
-                      </Button>
-                    </>
-                  )}
-                  {/* En simulación, mostrar botón para volver a intentar con datos reales */}
-                  {simulationMode && (
-                    <Button
-                      onClick={exitSimulationMode}
-                      variant="outlined"
-                      color="warning"
-                      size="small"
-                    >
-                      {t('forecast_salir_simulacion', 'Salir de Simulación')}
-                    </Button>
-                  )}
-                  <Button
-                    onClick={limpiar}
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<DeleteOutlineIcon />}
-                    size="small"
-                  >
-                    Limpiar
-                  </Button>
-                </Box>
-              </>
+              </Stack>
             )}
 
             {activeTab === 1 && (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Stack gap={2}>
                 <Suspense fallback={<Skeleton variant="rectangular" height={80} sx={{ borderRadius: 2 }} />}>
                   <ForecastKPIs metricas={metricas} />
                 </Suspense>
 
-                <Paper elevation={0} sx={{ p: 3, border: "1px solid var(--border)", borderRadius: 2 }}>
-                  <Typography variant="subtitle1" fontWeight={600} color="var(--fg-strong)" gutterBottom>
+                <Paper elevation={0} sx={{ p: 3, border: "1px solid", borderColor: 'divider', borderRadius: 2 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontWeight: 600,
+                      color: 'var(--fg-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      fontSize: FONT_SIZES.sm,
+                      display: 'block',
+                      mb: 2,
+                    }}
+                  >
                     {t('forecast_detalles_modelo', 'Detalles del Modelo')}
                   </Typography>
-                  <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 3, mt: 2 }}>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">Modelo:</Typography>
-                      <Typography variant="body2" fontWeight={500}>{forecastData?.nombre_modelo || getNombreModelo(modeloSeleccionado)}</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">Datos históricos:</Typography>
-                      <Typography variant="body2" fontWeight={500}>
-                        {historicoInfo ? `${historicoInfo.total_registros} registros` : `${historicoParaGrafico.length} días`}
-                      </Typography>
-                      {historicoInfo?.fecha_inicio && (
-                        <Typography variant="caption" color="text.secondary">
-                          {historicoInfo.fecha_inicio} a {historicoInfo.fecha_fin}
+                  <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 2.5 }}>
+                    {[
+                      {
+                        label: 'Modelo',
+                        value: forecastData?.nombre_modelo || getNombreModelo(modeloSeleccionado),
+                      },
+                      {
+                        label: 'Datos históricos',
+                        value: historicoInfo ? `${historicoInfo.total_registros} registros` : `${historicoParaGrafico.length} días`,
+                        sub: historicoInfo?.fecha_inicio ? `${historicoInfo.fecha_inicio} → ${historicoInfo.fecha_fin}` : null,
+                      },
+                      {
+                        label: 'Predicciones',
+                        value: `${prediccionesParaGrafico.length} días`,
+                      },
+                      {
+                        label: 'Generado',
+                        value: new Date().toLocaleDateString(),
+                        sub: new Date().toLocaleTimeString(),
+                      },
+                    ].map((item) => (
+                      <Box key={item.label}>
+                        <Typography variant="caption" sx={{ color: 'var(--fg-muted)', fontSize: FONT_SIZES.sm, display: 'block', mb: 0.25 }}>
+                          {item.label}
                         </Typography>
-                      )}
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">Predicciones:</Typography>
-                      <Typography variant="body2" fontWeight={500}>{prediccionesParaGrafico.length} días</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">Generado:</Typography>
-                      <Typography variant="body2" fontWeight={500}>{new Date().toLocaleString()}</Typography>
-                    </Box>
+                        <Typography sx={{ fontWeight: 600, fontSize: FONT_SIZES.lg, color: 'var(--fg-strong)' }}>
+                          {item.value}
+                        </Typography>
+                        {item.sub && (
+                          <Typography variant="caption" sx={{ color: 'var(--fg-muted)', fontSize: FONT_SIZES.xs }}>
+                            {item.sub}
+                          </Typography>
+                        )}
+                      </Box>
+                    ))}
                   </Box>
                 </Paper>
-              </Box>
+              </Stack>
             )}
 
             {activeTab === 2 && (
@@ -695,8 +929,8 @@ const ForecastIndividual = () => {
 
           {/* Panel de Backtesting */}
           {showBacktest && (
-            <Suspense fallback={<Skeleton variant="rectangular" height={400} sx={{ borderRadius: 2, mt: 3 }} />}>
-              <Box sx={{ mt: 3 }}>
+            <Suspense fallback={<Skeleton variant="rectangular" height={400} sx={{ borderRadius: 2, mt: 2.5 }} />}>
+              <Box sx={{ mt: 2.5 }}>
                 <BacktestResults data={backtestData} loading={loadingBacktest} />
               </Box>
             </Suspense>
@@ -704,8 +938,8 @@ const ForecastIndividual = () => {
 
           {/* Panel de Comparación */}
           {showComparacion && (
-            <Suspense fallback={<Skeleton variant="rectangular" height={400} sx={{ borderRadius: 2, mt: 3 }} />}>
-              <Box sx={{ mt: 3 }}>
+            <Suspense fallback={<Skeleton variant="rectangular" height={400} sx={{ borderRadius: 2, mt: 2.5 }} />}>
+              <Box sx={{ mt: 2.5 }}>
                 <ModelComparison data={comparacionData} loading={loadingComparacion} onSelectModel={handleSelectModelFromComparison} />
               </Box>
             </Suspense>
@@ -714,15 +948,76 @@ const ForecastIndividual = () => {
       )}
 
       {/* Estado vacío */}
-      {!forecastData && !loading && (
-        <Paper elevation={0} sx={{ p: 8, border: "1px solid var(--border)", borderRadius: 2, textAlign: "center" }}>
-          <BarChartIcon sx={{ fontSize: 64, color: "var(--border)", mb: 2 }} />
-          <Typography variant="h6" fontWeight={600} color="var(--fg-strong)" gutterBottom>
-            {t('forecast_empty_titulo', 'Analiza la demanda de un material')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 400, mx: "auto" }}>
-            {t('forecast_empty_descripcion', 'Ingresa el código de un material para obtener predicciones de demanda basadas en histórico de consumo.')}
-          </Typography>
+      {!forecastData && !loading && !error && (
+        <Paper
+          elevation={0}
+          sx={{
+            border: "1px solid",
+            borderColor: 'divider',
+            borderRadius: 2,
+            overflow: 'hidden',
+          }}
+        >
+          <Box
+            sx={{
+              py: 8,
+              px: 4,
+              textAlign: "center",
+              background: 'linear-gradient(180deg, var(--bg-soft) 0%, var(--surface) 100%)',
+            }}
+          >
+            {/* Decorative icon */}
+            <Box
+              sx={{
+                width: 72,
+                height: 72,
+                borderRadius: 3,
+                bgcolor: 'rgba(0, 112, 243, 0.06)',
+                border: '1px solid rgba(0, 112, 243, 0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mx: 'auto',
+                mb: 3,
+              }}
+            >
+              <TrendingUpIcon sx={{ fontSize: 36, color: 'var(--primary)', opacity: 0.7 }} />
+            </Box>
+            <Typography
+              sx={{
+                fontWeight: 700,
+                color: 'var(--fg-strong)',
+                fontSize: FONT_SIZES.h4,
+                mb: 1,
+              }}
+            >
+              {t('forecast_empty_titulo', 'Analiza la demanda de un material')}
+            </Typography>
+            <Typography
+              sx={{
+                color: 'var(--fg-muted)',
+                fontSize: FONT_SIZES.lg,
+                maxWidth: 480,
+                mx: "auto",
+                lineHeight: 1.6,
+                mb: 3,
+              }}
+            >
+              {t('forecast_empty_descripcion', 'Ingresa el código de un material para obtener predicciones de demanda basadas en histórico de consumo.')}
+            </Typography>
+            <Stack direction="row" justifyContent="center" gap={3} sx={{ opacity: 0.5 }}>
+              {[
+                { icon: <BarChartIcon sx={{ fontSize: 20 }} />, text: 'Series temporales' },
+                { icon: <ScienceIcon sx={{ fontSize: 20 }} />, text: 'Backtesting' },
+                { icon: <CompareArrowsIcon sx={{ fontSize: 20 }} />, text: 'Comparación' },
+              ].map((feat) => (
+                <Stack key={feat.text} direction="row" alignItems="center" gap={0.75} sx={{ color: 'var(--fg-muted)' }}>
+                  {feat.icon}
+                  <Typography sx={{ fontSize: FONT_SIZES.sm, fontWeight: 500 }}>{feat.text}</Typography>
+                </Stack>
+              ))}
+            </Stack>
+          </Box>
         </Paper>
       )}
 
@@ -733,7 +1028,10 @@ const ForecastIndividual = () => {
         slots={{ backdrop: Backdrop }}
         slotProps={{
           backdrop: {
-            sx: { backgroundColor: 'rgba(0, 0, 0, 0.3)', backdropFilter: 'blur(4px)' }
+            sx: {
+              backgroundColor: 'rgba(248, 250, 252, 0.8)',
+              backdropFilter: 'blur(8px)',
+            }
           }
         }}
       >
@@ -744,65 +1042,139 @@ const ForecastIndividual = () => {
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: 360,
-              bgcolor: 'background.paper',
+              width: 380,
+              bgcolor: 'var(--surface)',
               borderRadius: 3,
-              boxShadow: 24,
+              border: '1px solid',
+              borderColor: 'divider',
+              boxShadow: '0 24px 48px -12px rgba(0, 0, 0, 0.18)',
               p: 4,
-              outline: 'none'
+              outline: 'none',
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+            {/* Header */}
+            <Stack direction="row" alignItems="center" gap={2} sx={{ mb: 3 }}>
               <Box
                 sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: '12px',
-                  bgcolor: 'primary.main',
+                  width: 44,
+                  height: 44,
+                  borderRadius: 2,
+                  bgcolor: 'rgba(0, 112, 243, 0.08)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  position: 'relative',
                 }}
               >
-                <AutoGraphIcon sx={{ color: 'white', fontSize: 28 }} />
+                <AutoGraphIcon sx={{ color: 'var(--primary)', fontSize: 24 }} />
+                {/* Pulse indicator */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: -2,
+                    right: -2,
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    bgcolor: 'var(--primary)',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                    '@keyframes pulse': {
+                      '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+                      '50%': { opacity: 0.5, transform: 'scale(0.8)' },
+                    },
+                  }}
+                />
               </Box>
-              <Box>
-                <Typography variant="h6" fontWeight={600} color="var(--fg-strong)">
+              <Box sx={{ flex: 1 }}>
+                <Typography sx={{ fontWeight: 700, color: 'var(--fg-strong)', fontSize: FONT_SIZES.h5 }}>
                   Analizando
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography
+                  sx={{
+                    color: 'var(--fg-muted)',
+                    fontSize: FONT_SIZES.md,
+                    fontFamily: 'var(--font-mono, monospace)',
+                  }}
+                >
                   {materialCodigo || 'Material'}
                 </Typography>
               </Box>
-            </Box>
+              <Typography
+                sx={{
+                  fontWeight: 700,
+                  color: 'var(--primary)',
+                  fontSize: FONT_SIZES.h4,
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {loadingProgress}%
+              </Typography>
+            </Stack>
 
-            <Box sx={{ mb: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                  {loadingMessage}
-                </Typography>
-                <Typography variant="body2" fontWeight={600} color="primary.main">
-                  {loadingProgress}%
-                </Typography>
-              </Box>
+            {/* Progress */}
+            <Box sx={{ mb: 2.5 }}>
               <LinearProgress
                 variant="determinate"
                 value={loadingProgress}
                 sx={{
-                  height: 8,
-                  borderRadius: 4,
+                  height: 6,
+                  borderRadius: 3,
                   bgcolor: 'var(--bg-soft)',
                   '& .MuiLinearProgress-bar': {
-                    borderRadius: 4,
-                    background: 'linear-gradient(90deg, var(--primary) 0%, var(--info) 100%)'
-                  }
+                    borderRadius: 3,
+                    bgcolor: 'var(--primary)',
+                    transition: 'transform 0.4s ease',
+                  },
                 }}
               />
+              <Typography
+                sx={{
+                  mt: 1,
+                  fontSize: FONT_SIZES.sm,
+                  color: 'var(--fg-muted)',
+                  fontWeight: 500,
+                }}
+              >
+                {loadingMessage}
+              </Typography>
             </Box>
 
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center' }}>
-              Modelo: {getNombreModelo(modeloSeleccionado)} • {diasPrediccion} días
-            </Typography>
+            {/* Footer info */}
+            <Stack
+              direction="row"
+              justifyContent="center"
+              gap={1}
+              sx={{
+                pt: 2,
+                borderTop: '1px solid',
+                borderColor: 'divider',
+              }}
+            >
+              <Chip
+                label={getNombreModelo(modeloSeleccionado)}
+                size="small"
+                sx={{
+                  height: 22,
+                  fontSize: FONT_SIZES.xs,
+                  fontWeight: 500,
+                  bgcolor: 'var(--bg-soft)',
+                  color: 'var(--fg-muted)',
+                  '& .MuiChip-label': { px: 1 },
+                }}
+              />
+              <Chip
+                label={`${diasPrediccion}d`}
+                size="small"
+                sx={{
+                  height: 22,
+                  fontSize: FONT_SIZES.xs,
+                  fontWeight: 500,
+                  bgcolor: 'var(--bg-soft)',
+                  color: 'var(--fg-muted)',
+                  '& .MuiChip-label': { px: 1 },
+                }}
+              />
+            </Stack>
           </Box>
         </Fade>
       </Modal>

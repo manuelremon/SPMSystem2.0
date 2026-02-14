@@ -28,7 +28,6 @@ import logging
 
 from flask import Blueprint, g, jsonify, request, send_file
 import io
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +37,7 @@ from backend.core.dashboard_schemas import (
     UpdateDashboardRequest,
     SPM_FORMULAS_CATALOG,
 )
-from backend.core.roles import is_admin, require_auth
+from backend.core.roles import require_auth
 from backend.services.dashboard_service import (
     DashboardDataSourceService,
     DashboardGrupoService,
@@ -411,18 +410,10 @@ def execute_formula():
     if not formula:
         return jsonify({"success": False, "error": "Formula es requerida"}), 400
 
-    # Importar servicio de formulas (creado en siguiente fase)
-    try:
-        from backend.services.dashboard_formulas import FormulaExecutor
-        result = FormulaExecutor.execute(formula, params, user_id, _get_user_roles())
-        return jsonify(result.to_dict())
-    except ImportError:
-        # Placeholder si el servicio aun no existe
-        return jsonify({
-            "success": False,
-            "error": "Servicio de formulas no disponible",
-            "error_code": "NOT_IMPLEMENTED",
-        }), 501
+    from backend.services.dashboard_formulas import FormulaExecutor
+
+    result = FormulaExecutor.execute(formula, params, user_id, _get_user_roles())
+    return jsonify(result.to_dict())
 
 
 # ============================================================================
@@ -495,9 +486,10 @@ def export_dashboard(uuid):
             "error": "openpyxl no instalado",
         }), 500
     except Exception as e:
+        logger.error(f"Error exportando dashboard: {e}")
         return jsonify({
             "success": False,
-            "error": str(e),
+            "error": "Error al exportar dashboard",
         }), 500
 
 
@@ -755,4 +747,4 @@ def resumen_ejecutivo():
 
     except Exception as e:
         logger.error(f"Error en resumen ejecutivo: {e}")
-        return jsonify({"ok": False, "error": {"code": "resumen_error", "message": str(e)}}), 500
+        return jsonify({"ok": False, "error": {"code": "resumen_error", "message": "Error al generar resumen ejecutivo"}}), 500

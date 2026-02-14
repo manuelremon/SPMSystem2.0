@@ -102,7 +102,7 @@ def list_solicitudes():
     """Listar solicitudes (permite filtrar por usuario y estado)"""
     # Validación de paginación con límites seguros
     page = max(1, request.args.get("page", 1, type=int))
-    page_size = min(max(1, request.args.get("page_size", 10, type=int)), 500)  # Máximo 500
+    page_size = min(max(1, request.args.get("page_size", 10, type=int)), 2000)  # Máximo 2000
     user_id = request.args.get("user_id")
     estado = request.args.get("estado")
 

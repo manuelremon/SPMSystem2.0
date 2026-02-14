@@ -225,8 +225,10 @@ def get_pool(db_name: str = "spm") -> SQLiteConnectionPool:
 
             db_files = {
                 "spm": "spm.db",
-                "equivalentes": "equivalentes.db",
                 "sap_data": "sap_data.db",
+                "master_materiales": "master_materiales.db",
+                "equivalentes": "master_materiales.db",
+                "catalogo_materiales": "master_materiales.db",
             }
 
             filename = db_files.get(db_name, f"{db_name}.db")

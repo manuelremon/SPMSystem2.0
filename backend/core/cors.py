@@ -56,25 +56,11 @@ def init_cors(app: Flask) -> None:
     def add_cors_headers(response):
         """Add CORS headers dynamically based on the origin."""
         origin = request.headers.get("Origin")
-        if origin and is_origin_allowed(origin):
-            response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Allow-Headers"] = (
-                "Content-Type, Authorization, X-CSRF-Token, bypass-tunnel-reminder"
-            )
-            response.headers["Access-Control-Allow-Methods"] = (
-                "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-            )
-            response.headers["Access-Control-Max-Age"] = "86400"
-        return response
-
-    @app.before_request
-    def handle_preflight():
-        """Respond to preflight OPTIONS requests."""
-        if request.method == "OPTIONS":
-            origin = request.headers.get("Origin")
-            if origin and is_origin_allowed(origin):
-                response = make_response()
+        if origin:
+            is_allowed = is_origin_allowed(origin)
+            app.logger.info(f"CORS DEBUG (After): Origin={origin} Allowed={is_allowed}")
+            
+            if is_allowed:
                 response.headers["Access-Control-Allow-Origin"] = origin
                 response.headers["Access-Control-Allow-Credentials"] = "true"
                 response.headers["Access-Control-Allow-Headers"] = (
@@ -84,4 +70,25 @@ def init_cors(app: Flask) -> None:
                     "GET, POST, PUT, PATCH, DELETE, OPTIONS"
                 )
                 response.headers["Access-Control-Max-Age"] = "86400"
-                return response
+        return response
+
+    @app.before_request
+    def handle_preflight():
+        """Respond to preflight OPTIONS requests."""
+        if request.method == "OPTIONS":
+            origin = request.headers.get("Origin")
+            if origin:
+                is_allowed = is_origin_allowed(origin)
+                app.logger.info(f"CORS DEBUG (Preflight): Origin={origin} Allowed={is_allowed}")
+                if is_allowed:
+                    response = make_response()
+                    response.headers["Access-Control-Allow-Origin"] = origin
+                    response.headers["Access-Control-Allow-Credentials"] = "true"
+                    response.headers["Access-Control-Allow-Headers"] = (
+                        "Content-Type, Authorization, X-CSRF-Token, bypass-tunnel-reminder"
+                    )
+                    response.headers["Access-Control-Allow-Methods"] = (
+                        "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+                    )
+                    response.headers["Access-Control-Max-Age"] = "86400"
+                    return response

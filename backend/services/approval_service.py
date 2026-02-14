@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
+from backend.core.approval_strategies import ApprovalContext
 
 
 # =============================================================================
@@ -156,11 +157,13 @@ def obtener_regla_aprobacion(
     criticidad: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """
-    Obtiene la regla de aprobacion aplicable segun los parametros.
+    Obtiene la regla de aprobacion aplicable segun los parametros usando el patron Strategy.
 
-    Prioridad de busqueda:
-    1. Reglas especificas por centro/sector/criticidad
-    2. Reglas generales por monto
+    Prioridad de busqueda (definida en ApprovalContext):
+    1. Reglas especificas por criticidad
+    2. Reglas especificas por centro
+    3. Reglas generales por monto (excluyendo admin generico)
+    4. Regla Admin (fallback)
 
     Args:
         monto_usd: Monto de la solicitud
@@ -173,82 +176,8 @@ def obtener_regla_aprobacion(
     """
     validar_monto(monto_usd)
 
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-
-        # Buscar regla especifica por criticidad primero
-        if criticidad:
-            cursor.execute(
-                """
-                SELECT * FROM reglas_aprobacion
-                WHERE activo = 1
-                    AND criticidad = ?
-                    AND (monto_minimo_usd <= ? OR monto_minimo_usd IS NULL)
-                    AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)
-                ORDER BY nivel DESC
-                LIMIT 1
-            """,
-                (criticidad, monto_usd, monto_usd),
-            )
-            row = cursor.fetchone()
-            if row:
-                return dict(row)
-
-        # Buscar regla por centro
-        if centro:
-            cursor.execute(
-                """
-                SELECT * FROM reglas_aprobacion
-                WHERE activo = 1
-                    AND centro = ?
-                    AND (monto_minimo_usd <= ? OR monto_minimo_usd IS NULL)
-                    AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)
-                ORDER BY nivel DESC
-                LIMIT 1
-            """,
-                (centro, monto_usd, monto_usd),
-            )
-            row = cursor.fetchone()
-            if row:
-                return dict(row)
-
-        # Buscar regla general por monto
-        # Prioriza reglas con monto_minimo mas alto (mas especificas)
-        # Excluye la regla Admin (que cubre todo el rango) a menos que sea la unica
-        cursor.execute(
-            """
-            SELECT * FROM reglas_aprobacion
-            WHERE activo = 1
-                AND centro IS NULL
-                AND sector IS NULL
-                AND criticidad IS NULL
-                AND monto_minimo_usd <= ?
-                AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)
-                AND LOWER(posicion_requerida) != 'admin'
-            ORDER BY monto_minimo_usd DESC
-            LIMIT 1
-        """,
-            (monto_usd, monto_usd),
-        )
-
-        row = cursor.fetchone()
-
-        # Si no se encontro regla, buscar la regla Admin (fallback)
-        if not row:
-            cursor.execute(
-                """
-                SELECT * FROM reglas_aprobacion
-                WHERE activo = 1
-                    AND LOWER(posicion_requerida) = 'admin'
-                    AND monto_minimo_usd <= ?
-                    AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)
-                LIMIT 1
-            """,
-                (monto_usd, monto_usd),
-            )
-            row = cursor.fetchone()
-
-        return dict(row) if row else None
+    context = ApprovalContext()
+    return context.get_approval_rule(monto_usd, centro, sector, criticidad)
 
 
 def posicion_tiene_nivel(posicion_usuario: str, posicion_requerida: str) -> bool:
@@ -788,14 +717,14 @@ def listar_reglas(solo_activas: bool = True) -> List[Dict[str, Any]]:
                 """
                 SELECT * FROM reglas_aprobacion
                 WHERE activo = 1
-                ORDER BY nivel, monto_minimo_usd
+                ORDER BY nivel_aprobacion, monto_minimo_usd
             """
             )
         else:
             cursor.execute(
                 """
                 SELECT * FROM reglas_aprobacion
-                ORDER BY nivel, monto_minimo_usd
+                ORDER BY nivel_aprobacion, monto_minimo_usd
             """
             )
 

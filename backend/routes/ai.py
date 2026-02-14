@@ -22,6 +22,7 @@ from flask import Blueprint, jsonify, request
 from backend.core.helpers import _get_user_id
 from backend.core.rate_limit import rate_limit
 from backend.core.roles import require_auth, require_role
+from backend.core.search_utils import build_description_search, expand_codes_from_catalog
 from backend.services.ai_service import AIService, get_ai_service
 from backend.services.temp_data_service import temp_data_service
 
@@ -216,15 +217,69 @@ def buscar_materiales_consumo():
         return jsonify({"ok": True, "data": []})
 
     try:
+        # Build search for consumo_historico columns
+        search_ch = build_description_search(q, ["material", "descripcion"], require_all_words=False)
+        # Expand search via catalogo_materiales.descripcion_larga
+        catalog_codes = expand_codes_from_catalog(q)
+
+        if not search_ch and not catalog_codes:
+            return jsonify({"ok": True, "data": []})
+
+        # Build WHERE for consumo_historico
+        ch_parts = []
+        ch_params = []
+        if search_ch:
+            ch_parts.append(search_ch.where_clause)
+            ch_params.extend(search_ch.params)
+        if catalog_codes:
+            placeholders = ", ".join("?" for _ in catalog_codes)
+            ch_parts.append(f"material IN ({placeholders})")
+            ch_params.extend(catalog_codes)
+        ch_where = " OR ".join(ch_parts)
+        if len(ch_parts) > 1:
+            ch_where = f"({ch_where})"
+
+        # Build search for materiales_bbdd columns (with table alias)
+        search_m = build_description_search(q, ["m.codigo_material", "m.descripcion"], require_all_words=False)
+        # Build WHERE for materiales_bbdd
+        m_parts = []
+        m_params = []
+        if search_m:
+            m_parts.append(search_m.where_clause)
+            m_params.extend(search_m.params)
+        if catalog_codes:
+            placeholders = ", ".join("?" for _ in catalog_codes)
+            m_parts.append(f"m.codigo_material IN ({placeholders})")
+            m_params.extend(catalog_codes)
+        m_where = " OR ".join(m_parts)
+        if len(m_parts) > 1:
+            m_where = f"({m_where})"
+
+        # Build search for LEFT JOIN condition (consumo_historico alias c)
+        search_c = build_description_search(q, ["c.material", "c.descripcion"], require_all_words=False)
+        c_parts = []
+        c_params = []
+        if search_c:
+            c_parts.append(search_c.where_clause)
+            c_params.extend(search_c.params)
+        if catalog_codes:
+            placeholders = ", ".join("?" for _ in catalog_codes)
+            c_parts.append(f"c.material IN ({placeholders})")
+            c_params.extend(catalog_codes)
+        c_where = " OR ".join(c_parts)
+        if len(c_parts) > 1:
+            c_where = f"({c_where})"
+
         with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
             cur = conn.cursor()
             # Search in both consumo_historico and materiales_bbdd,
             # prioritizing materials that have consumption data
-            cur.execute("""
+            all_params = ch_params + c_params + m_params + [limit]
+            cur.execute(f"""
                 SELECT codigo, descripcion, has_consumo FROM (
                     SELECT DISTINCT material AS codigo, descripcion, 1 AS has_consumo
                     FROM consumo_historico
-                    WHERE UPPER(material) LIKE UPPER(?) OR UPPER(descripcion) LIKE UPPER(?)
+                    WHERE {ch_where}
 
                     UNION ALL
 
@@ -232,13 +287,13 @@ def buscar_materiales_consumo():
                     FROM materiales_bbdd m
                     LEFT JOIN consumo_historico c
                         ON m.codigo_material = c.material
-                        AND (UPPER(c.material) LIKE UPPER(?) OR UPPER(c.descripcion) LIKE UPPER(?))
-                    WHERE (UPPER(m.codigo_material) LIKE UPPER(?) OR UPPER(m.descripcion) LIKE UPPER(?))
+                        AND ({c_where})
+                    WHERE ({m_where})
                     AND c.material IS NULL
                 )
                 ORDER BY has_consumo DESC, codigo
                 LIMIT ?
-            """, (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%", limit))
+            """, all_params)
             rows = cur.fetchall()
             data = [{"codigo": r[0], "descripcion": r[1], "has_consumo": bool(r[2])} for r in rows]
 

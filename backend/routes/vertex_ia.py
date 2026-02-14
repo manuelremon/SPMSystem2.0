@@ -136,6 +136,7 @@ def _check_vertex_tables() -> bool:
 
 from backend.core.roles import require_auth
 from backend.core.rate_limit import rate_limit
+from backend.core.search_utils import build_description_search
 
 # Servicio TTS (Text-to-Speech)
 TTS_AVAILABLE = False
@@ -248,6 +249,8 @@ def status():
     import os
 
     gemini_key = os.getenv("GOOGLE_AI_API_KEY")
+    groq_key = os.getenv("GROQ_API_KEY")
+    llm_configured = bool(groq_key) or bool(gemini_key)
 
     tables_exist = _check_vertex_tables()
 
@@ -256,11 +259,13 @@ def status():
         "service": "vertex_ia",
         "available": VERTEX_AVAILABLE,
         "gemini_configured": bool(gemini_key),
+        "groq_configured": bool(groq_key),
+        "llm_provider": "groq" if groq_key else ("gemini" if gemini_key else "none"),
         "tables_exist": tables_exist,
         "tts_available": TTS_AVAILABLE,
         "tts_voice": tts_service._voice_type if tts_service else None,
         "features": {
-            "chat": VERTEX_AVAILABLE and bool(gemini_key),
+            "chat": VERTEX_AVAILABLE and llm_configured,
             "memory": bool(vertex_memory_module),
             "prompts": bool(vertex_prompts_module),
             "llm_client": bool(llm_client_module),
@@ -662,9 +667,8 @@ NO ofrezcas ejemplos inventados. NO uses códigos ficticios como 1234-5678.
                 f"sys_len: {len(system_prompt)}, temp: {temperature}"
             )
 
-            # Usar generate_chat si es GeminiClient (multi-turno nativo)
-            from backend.agent.rag.gemini_client import GeminiClient
-            if isinstance(client, GeminiClient):
+            # Usar generate_chat si el cliente lo soporta (Gemini, Groq)
+            if hasattr(client, 'generate_chat'):
                 response_text = client.generate_chat(
                     messages=chat_messages,
                     system_prompt=system_prompt,
@@ -697,10 +701,27 @@ Responde como Vertex IA:"""
 
         except Exception as e:
             logger.exception(f"Error generando con LLM: {e}")
-            response_text = (
-                "Uh, tuve un problema conectandome. "
-                "Podes intentar de nuevo en unos segundos?"
-            )
+            err_str = str(e).lower()
+            if "resource_exhausted" in err_str or "429" in err_str or "quota" in err_str:
+                response_text = (
+                    "El servicio de IA alcanzo su limite de uso temporalmente. "
+                    "Intenta de nuevo en unos minutos."
+                )
+            elif "api_key" in err_str or "401" in err_str or "403" in err_str or "invalid" in err_str:
+                response_text = (
+                    "Hay un problema con la configuracion del servicio de IA. "
+                    "Contacta al administrador."
+                )
+            elif "timeout" in err_str or "deadline" in err_str:
+                response_text = (
+                    "La consulta tardo demasiado. "
+                    "Intenta con una pregunta mas corta o especifica."
+                )
+            else:
+                response_text = (
+                    "Uh, tuve un problema conectandome. "
+                    "Podes intentar de nuevo en unos segundos?"
+                )
 
         # Guardar respuesta
         memory.add_message("assistant", response_text)
@@ -940,16 +961,10 @@ def _search_materials_direct(query: str) -> list:
         cur = conn.cursor()
 
         # Verificar si la tabla existe
-        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='materiales'")
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='catalogo_materiales'")
         if not cur.fetchone():
             conn.close()
-            fallback_path = Path(db_path).parent / "catalogo_materiales.db"
-            if fallback_path.exists():
-                conn = sqlite3.connect(str(fallback_path))
-                conn.row_factory = sqlite3.Row
-                cur = conn.cursor()
-            else:
-                return []
+            return []
 
         results = []
 
@@ -957,7 +972,7 @@ def _search_materials_direct(query: str) -> list:
         for code in sap_codes + sap_codes_alt:
             cur.execute(
                 """SELECT codigo, descripcion, COALESCE(precio_usd, 0) as precio
-                   FROM materiales WHERE codigo = ? AND activo = 1""",
+                   FROM catalogo_materiales WHERE codigo = ? AND activo = 1""",
                 (code,),
             )
             for row in cur.fetchall():
@@ -965,40 +980,30 @@ def _search_materials_direct(query: str) -> list:
 
         # 2. Busqueda por keywords (si no encontramos por codigo)
         if not results and keywords:
-            keywords = keywords[:5]
+            search = build_description_search(
+                " ".join(keywords[:5]),
+                ["descripcion", "descripcion_larga"],
+                include_ranking=True,
+            )
+            if search:
+                ranking_expr = search.order_expr or "0"
+                all_params = (search.order_params or []) + search.params
 
-            conditions = []
-            ranking_parts = []
-            params = []
-            for kw in keywords:
-                kw_pattern = f'%{kw}%'
-                conditions.append("(UPPER(descripcion) LIKE UPPER(?) OR UPPER(descripcion_larga) LIKE UPPER(?))")
-                params.extend([kw_pattern, kw_pattern])
-                ranking_parts.append("(CASE WHEN UPPER(descripcion) LIKE UPPER(?) THEN 2 ELSE 0 END)")
-                ranking_parts.append("(CASE WHEN UPPER(descripcion_larga) LIKE UPPER(?) THEN 1 ELSE 0 END)")
-
-            ranking_expr = " + ".join(ranking_parts) if ranking_parts else "0"
-
-            ranking_params = []
-            for kw in keywords:
-                kw_pattern = f'%{kw}%'
-                ranking_params.extend([kw_pattern, kw_pattern])
-
-            sql = f"""
-                SELECT
-                    codigo,
-                    descripcion,
-                    COALESCE(precio_usd, 0) as precio,
-                    ({ranking_expr}) as relevance
-                FROM materiales
-                WHERE ({' OR '.join(conditions)})
-                AND activo = 1
-                ORDER BY relevance DESC, precio DESC
-                LIMIT 10
-            """
-            cur.execute(sql, ranking_params + params)
-            results = [dict(row) for row in cur.fetchall()]
-            results = [r for r in results if r.get('relevance', 0) > 0]
+                sql = f"""
+                    SELECT
+                        codigo,
+                        descripcion,
+                        COALESCE(precio_usd, 0) as precio,
+                        ({ranking_expr}) as relevance
+                    FROM catalogo_materiales
+                    WHERE ({search.where_clause})
+                    AND activo = 1
+                    ORDER BY relevance DESC, precio DESC
+                    LIMIT 10
+                """
+                cur.execute(sql, all_params)
+                results = [dict(row) for row in cur.fetchall()]
+                results = [r for r in results if r.get('relevance', 0) > 0]
 
         conn.close()
 

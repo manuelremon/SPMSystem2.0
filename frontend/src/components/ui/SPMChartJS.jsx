@@ -4,7 +4,7 @@
  * Wrappers optimizados con estilo corporativo SPM
  */
 
-import React, { useMemo, useRef, useEffect } from 'react';
+import { useMemo } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -435,7 +435,7 @@ export function SPMGauge({
 }) {
   // Compatibilidad: valueMax es alias de max
   const maxValue = max ?? valueMax ?? 100;
-  const percentage = Math.min(100, Math.max(0, (value / maxValue) * 100));
+  const percentage = maxValue > 0 ? Math.min(100, Math.max(0, (value / maxValue) * 100)) : 0;
 
   const getColor = () => {
     if (!thresholds) return color;

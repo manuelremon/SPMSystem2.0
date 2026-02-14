@@ -397,7 +397,7 @@ class SolicitudesFormulas:
             params = []
 
             if estado:
-                sql += " AND estado = ?"
+                sql += " AND status = ?"
                 params.append(estado)
             if centro:
                 sql += " AND centro = ?"
@@ -433,7 +433,7 @@ class SolicitudesFormulas:
         start = time.time()
 
         # Campos validos para sumar (whitelist por seguridad)
-        campos_validos = ["monto_total", "cantidad_items"]
+        campos_validos = ["total_monto", "cantidad_items"]
 
         if campo not in campos_validos:
             return FormulaResult(
@@ -452,7 +452,7 @@ class SolicitudesFormulas:
 
             if filtros:
                 if filtros.get("estado"):
-                    sql += " AND estado = ?"
+                    sql += " AND status = ?"
                     params.append(filtros["estado"])
                 if filtros.get("centro"):
                     sql += " AND centro = ?"
@@ -490,13 +490,13 @@ class ForecastFormulas:
             return FormulaResult(success=True, value=cached, cached=True, execution_time_ms=(time.time() - start) * 1000)
 
         try:
-            # Intentar usar el servicio de AI
-            from backend.services.ai_service import AIService
+            from backend.services.ai_service import get_ai_service
 
-            result = AIService.get_demand_forecast(material, dias, modelo)
+            ai = get_ai_service()
+            result = ai.proyectar_demanda(material, dias=dias, modelo_tipo=modelo)
 
-            if result and "prediction" in result:
-                value = result["prediction"]
+            if result and "predicciones" in result:
+                value = result["predicciones"]
                 _set_cache(cache_key, value)
                 return FormulaResult(
                     success=True,
@@ -536,14 +536,15 @@ class ForecastFormulas:
         start = time.time()
 
         try:
-            from backend.services.ai_service import AIService
+            from backend.services.ai_service import get_ai_service
 
-            result = AIService.get_model_accuracy(material, modelo)
+            ai = get_ai_service()
+            result = ai.proyectar_demanda(material, modelo_tipo=modelo)
 
-            if result:
+            if result and "metricas" in result:
                 return FormulaResult(
                     success=True,
-                    value=result,
+                    value=result["metricas"],
                     execution_time_ms=(time.time() - start) * 1000,
                 )
 

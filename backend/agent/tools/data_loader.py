@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .base import BaseTool, ToolError, ToolMetadata
+from backend.core.search_utils import build_description_search
 
 logger = logging.getLogger(__name__)
 
@@ -148,19 +149,19 @@ class DataLoader(BaseTool):
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
-            # Tabla catalogo_materiales con columna id_material (antes codigo)
-            query = "SELECT id_material as codigo, descripcion, descripcion_larga, unidad_medida, precio_usd FROM catalogo_materiales WHERE 1=1"
+            query = "SELECT codigo, descripcion, descripcion_larga, unidad_medida, precio_usd FROM catalogo_materiales WHERE 1=1"
             params = []
 
             # Búsqueda por descripción
             if "search" in filters:
-                query += " AND (descripcion LIKE ? OR descripcion_larga LIKE ?)"
-                search_term = f"%{filters['search']}%"
-                params.extend([search_term, search_term])
+                search = build_description_search(filters["search"], ["descripcion", "descripcion_larga"])
+                if search:
+                    query += f" AND {search.where_clause}"
+                    params.extend(search.params)
 
             # Filtro por código
             if "codigo" in filters:
-                query += " AND id_material = ?"
+                query += " AND codigo = ?"
                 params.append(filters["codigo"])
 
             query += f" LIMIT {limit}"

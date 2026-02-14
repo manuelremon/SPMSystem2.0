@@ -8,7 +8,7 @@ from collections import Counter, defaultdict
 
 from flask import Blueprint, jsonify
 
-from backend.core.cache import cached, kpi_cache, invalidate_kpi_cache
+from backend.core.cache import cached, kpi_cache
 from backend.core.db import (
     get_db_connection,
     is_using_postgresql,
@@ -22,7 +22,7 @@ from backend.core.roles import require_auth
 logger = logging.getLogger(__name__)
 
 
-def _rows_to_dicts(rows, cursor):
+def _rows_to_dicts(rows, cursor=None):
     """Convierte múltiples filas a diccionarios"""
     return [row if isinstance(row, dict) else dict(row) for row in rows]
 
@@ -36,31 +36,30 @@ def get_stock_inmovilizado():
     """
     Obtiene materiales inmovilizados con información de centro.
 
-    Stock inmovilizado se identifica por lotes especiales:
-    - G-INSPE: En inspección
-    - G-REZAG: Rezago/obsoleto
-    - G-REPAR: En reparación
-    - G-AREPA: A reparar
-    - G-SOBRA: Sobrantes
+    Stock inmovilizado se identifica por la columna 'inmovilizado' = 'INMOVILIZADO'
+    en la tabla stock de sap_data.db. Solo se incluyen filas con stock > 0.
+
+    Lotes típicos de stock inmovilizado:
+    - GAINSP-100: En inspección
+    - GREZAG-100: Rezago/obsoleto
+    - GREPAR-100: En reparación
+    - GAREPA-100: A reparar
+    - GSOBRA-100: Sobrantes
 
     Query params:
         - centros: lista de centros (códigos, ej: AA101,AA102)
         - centro: un solo centro (alternativa a centros)
         - almacen: filtrar por almacén específico
-        - periodo_anos: años sin consumo (1, 2, 3) - actualmente no implementado
         - limit: límite de resultados (default 50)
 
     Returns:
-        - items: lista de materiales inmovilizados con codigo, descripcion, centro y almacen
+        - items: lista de materiales inmovilizados con codigo, descripcion, lote y valor
         - total: cantidad total de materiales inmovilizados
         - valorTotal: valor total del stock inmovilizado
         - globalTotal: total global (sin filtros)
         - globalValorTotal: valor total global (sin filtros)
     """
     from flask import request
-
-    # Lotes que indican stock inmovilizado/no disponible
-    LOTES_INMOVILIZADOS = ('G-INSPE', 'G-REZAG', 'G-REPAR', 'G-AREPA', 'G-SOBRA')
 
     try:
         # Obtener filtros de query params
@@ -82,16 +81,16 @@ def get_stock_inmovilizado():
         with get_db_connection("spm" if is_using_postgresql() else "sap_data") as conn:
             cursor = conn.cursor()
 
-            # Primero obtener totales globales (sin filtros de centro)
+            # Totales globales (sin filtros de centro)
             cursor.execute(
                 """
                 SELECT
                     COUNT(DISTINCT material) as total,
-                    SUM(stock_valorizado) as valor_total
+                    COALESCE(SUM(stock_valorizado), 0) as valor_total
                 FROM stock
-                WHERE lote IN (?, ?, ?, ?, ?)
+                WHERE inmovilizado = ? AND stock > 0
             """,
-                LOTES_INMOVILIZADOS,
+                ("INMOVILIZADO",),
             )
             global_row = cursor.fetchone()
             if isinstance(global_row, dict):
@@ -102,34 +101,31 @@ def get_stock_inmovilizado():
                 global_valor = float(global_row[1]) if global_row and global_row[1] else 0
 
             # Construir query con filtros
-            where_clauses = ["lote IN (?, ?, ?, ?, ?)"]
-            params = list(LOTES_INMOVILIZADOS)
+            where_clauses = ["inmovilizado = ?", "stock > 0"]
+            params = ["INMOVILIZADO"]
 
             if centros:
-                # Filtrar por centro (campo 'centro' en la tabla stock)
                 placeholders = ",".join(["?" for _ in centros])
                 where_clauses.append(f"centro IN ({placeholders})")
                 params.extend(centros)
 
             if almacen_param:
-                # Filtrar por almacén
                 where_clauses.append("almacen = ?")
                 params.append(almacen_param)
 
             where_sql = " AND ".join(where_clauses)
 
-            # Query filtrada para items
-            # IMPORTANTE: Agrupar SOLO por material para obtener valor TOTAL consolidado
-            # (suma de todos los centros, almacenes y lotes)
+            # Query filtrada para items (agrupado por material)
             query = f"""
                 SELECT
                     material as codigo,
                     material_descripcion as descripcion,
+                    lote,
                     SUM(stock) as stock_total,
                     SUM(stock_valorizado) as valor_total
                 FROM stock
                 WHERE {where_sql}
-                GROUP BY material, material_descripcion
+                GROUP BY material, material_descripcion, lote
                 ORDER BY valor_total DESC
                 LIMIT {limit}
             """
@@ -141,15 +137,16 @@ def get_stock_inmovilizado():
                 row_dict = dict(row) if hasattr(row, "keys") else {
                     "codigo": row[0],
                     "descripcion": row[1],
-                    "stock_total": row[2],
-                    "valor_total": row[3],
+                    "lote": row[2],
+                    "stock_total": row[3],
+                    "valor_total": row[4],
                 }
-                # Descripcion corta (max 40 chars)
                 desc = row_dict.get("descripcion") or row_dict.get("codigo") or ""
                 desc_corta = desc[:40] + "..." if len(desc) > 40 else desc
                 items.append({
                     "codigo": row_dict.get("codigo", ""),
                     "descripcion": desc_corta,
+                    "lote": row_dict.get("lote", ""),
                     "stock": float(row_dict.get("stock_total") or 0),
                     "valor": float(row_dict.get("valor_total") or 0),
                 })
@@ -158,7 +155,7 @@ def get_stock_inmovilizado():
             count_query = f"""
                 SELECT
                     COUNT(DISTINCT material) as total,
-                    SUM(stock_valorizado) as valor_total
+                    COALESCE(SUM(stock_valorizado), 0) as valor_total
                 FROM stock
                 WHERE {where_sql}
             """
@@ -183,14 +180,14 @@ def get_stock_inmovilizado():
     except Exception as e:
         logger.error(f"Error obteniendo stock inmovilizado: {e}")
         return jsonify({
-            "ok": True,
+            "ok": False,
+            "error": "Error al obtener stock inmovilizado",
             "items": [],
             "total": 0,
             "valorTotal": 0,
             "globalTotal": 0,
             "globalValorTotal": 0,
-            "_error": str(e),
-        })
+        }), 500
 
 
 @bp.route("/compras-evitadas-detalle", methods=["GET"])
@@ -261,12 +258,12 @@ def get_compras_evitadas_detalle():
     except Exception as e:
         logger.error(f"Error obteniendo compras evitadas detalle: {e}")
         return jsonify({
-            "ok": True,
+            "ok": False,
+            "error": "Error al obtener compras evitadas",
             "items": [],
             "total": 0,
             "valorTotal": 0,
-            "_error": str(e),
-        })
+        }), 500
 
 
 @bp.route("", methods=["GET"])
@@ -688,9 +685,7 @@ def get_kpis():
             )
 
     except Exception as e:
-        import logging
-
-        logging.getLogger(__name__).error(f"Error obteniendo KPIs: {e}")
+        logger.error(f"Error obteniendo KPIs: {e}")
         return (
             jsonify(
                 {

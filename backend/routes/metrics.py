@@ -295,11 +295,8 @@ def get_db_stats():
         "sap_data": get_table_counts(
             "sap_data", ["stock", "consumo_historico", "materiales_bbdd", "pedidos", "reservas"]
         ),
-        "equivalentes": get_table_counts(
-            "equivalentes", ["equivalencias", "materiales_equivalentes"]
-        ),
-        "catalogo_materiales": get_table_counts(
-            "catalogo_materiales", ["materiales", "grupos", "categorias"]
+        "master_materiales": get_table_counts(
+            "master_materiales", ["catalogo_materiales", "materiales_equivalencias", "materiales_mrp"]
         ),
     }
 

@@ -335,7 +335,7 @@ class TestSolicitudesFormulas:
             mock_conn.cursor.return_value = mock_cursor
             mock.return_value = mock_conn
 
-            result = SolicitudesFormulas.sum("monto_total", {"estado": "approved"})
+            result = SolicitudesFormulas.sum("total_monto", {"estado": "approved"})
 
             assert result.success is True
             assert result.value == 50000

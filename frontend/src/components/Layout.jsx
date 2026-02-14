@@ -189,14 +189,14 @@ export default function Layout({ children }) {
                   fontWeight: 600,
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
-                  backgroundColor: userMenuAnchor || isPathActive("/mi-cuenta") || isPathActive("/ajustes")
+                  backgroundColor: userMenuAnchor || isPathActive("/mi-cuenta") || isPathActive("/mi-cuenta")
                     ? 'var(--primary)'
                     : 'transparent',
                   color: 'white',
                   border: 'none',
                   cursor: 'pointer',
                   '&:hover': {
-                    backgroundColor: userMenuAnchor || isPathActive("/mi-cuenta") || isPathActive("/ajustes")
+                    backgroundColor: userMenuAnchor || isPathActive("/mi-cuenta") || isPathActive("/mi-cuenta")
                       ? 'var(--primary)'
                       : 'var(--header-border, #424242)',
                   },
@@ -258,13 +258,13 @@ export default function Layout({ children }) {
                 </MenuItem>
                 <MenuItem
                   component={NavLink}
-                  to="/ajustes"
+                  to="/mi-cuenta"
                   onClick={() => setUserMenuAnchor(null)}
                   sx={{
                     ...menuItemSx,
-                    backgroundColor: isPathActive("/ajustes") ? 'var(--primary)' : 'transparent',
+                    backgroundColor: isPathActive("/mi-cuenta") ? 'var(--primary)' : 'transparent',
                     '&:hover': {
-                      backgroundColor: isPathActive("/ajustes") ? 'var(--primary-dark)' : 'var(--header-border, #424242)',
+                      backgroundColor: isPathActive("/mi-cuenta") ? 'var(--primary-dark)' : 'var(--header-border, #424242)',
                     },
                   }}
                 >

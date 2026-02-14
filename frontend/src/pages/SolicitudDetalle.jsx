@@ -196,12 +196,10 @@ function DetailRow({ icon: Icon, label, value }) {
       </Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography
-          variant="caption"
+          variant="overline"
           sx={{
-            fontWeight: 500,
             color: "text.secondary",
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
+            lineHeight: 1.5
           }}
         >
           {label}
@@ -449,7 +447,7 @@ export default function SolicitudDetalle() {
                 <WarningAmberIcon sx={{ fontSize: 18, color: isAltaCriticidad ? "error.main" : "text.secondary" }} />
               </Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="caption" sx={{ fontWeight: 500, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <Typography variant="overline" sx={{ color: "text.secondary", lineHeight: 1.5 }}>
                   {t("detalle_criticidad", "Criticidad")}
                 </Typography>
                 <Box sx={{ mt: 0.5 }}>
@@ -477,7 +475,7 @@ export default function SolicitudDetalle() {
                 <AttachMoneyIcon sx={{ fontSize: 18, color: "primary.main" }} />
               </Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="caption" sx={{ fontWeight: 500, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <Typography variant="overline" sx={{ color: "text.secondary", lineHeight: 1.5 }}>
                   {t("detalle_monto_total", "Monto Total")}
                 </Typography>
                 <Typography variant="h6" sx={{ color: "primary.main", fontWeight: 700, mt: 0.5 }}>

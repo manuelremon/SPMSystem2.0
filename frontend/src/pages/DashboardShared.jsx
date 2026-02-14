@@ -1,4 +1,3 @@
-import React from "react";
 import { Typography, Box } from "@mui/material";
 import StatusBadge from "../components/ui/StatusBadge";
 import { formatCurrency, formatAlmacen, formatDate } from "../utils/formatters";

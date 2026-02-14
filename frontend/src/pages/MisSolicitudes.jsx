@@ -195,10 +195,9 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull, t }) {
             {/* Informacion General */}
             <Paper variant="outlined" sx={{ p: 2 }}>
               <Typography
-                variant="caption"
-                fontWeight={700}
+                variant="overline"
                 color="text.secondary"
-                sx={{ textTransform: "uppercase", letterSpacing: "0.05em", mb: 1.5, display: "block" }}
+                sx={{ mb: 1.5, display: "block" }}
               >
                 Informacion General
               </Typography>
@@ -227,10 +226,9 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull, t }) {
             {/* Ubicacion */}
             <Paper variant="outlined" sx={{ p: 2 }}>
               <Typography
-                variant="caption"
-                fontWeight={700}
+                variant="overline"
                 color="text.secondary"
-                sx={{ textTransform: "uppercase", letterSpacing: "0.05em", mb: 1.5, display: "block" }}
+                sx={{ mb: 1.5, display: "block" }}
               >
                 Ubicacion
               </Typography>
@@ -268,10 +266,9 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull, t }) {
               }}
             >
               <Typography
-                variant="caption"
-                fontWeight={700}
+                variant="overline"
                 color="text.secondary"
-                sx={{ textTransform: "uppercase", letterSpacing: "0.05em", mb: 1, display: "block" }}
+                sx={{ mb: 1, display: "block" }}
               >
                 Justificacion
               </Typography>
@@ -285,10 +282,9 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull, t }) {
           {solicitud.items && solicitud.items.length > 0 && (
             <Box>
               <Typography
-                variant="caption"
-                fontWeight={700}
+                variant="overline"
                 color="text.secondary"
-                sx={{ textTransform: "uppercase", letterSpacing: "0.05em", mb: 1.5, display: "block" }}
+                sx={{ mb: 1.5, display: "block" }}
               >
                 Materiales ({solicitud.items.length})
               </Typography>
@@ -718,135 +714,135 @@ export default function MisSolicitudes() {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-        {/* Header */}
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <IconButton
-              onClick={() => navigate(-1)}
-              sx={{
-                color: "text.disabled",
-                "&:hover": {
-                  color: "text.secondary",
-                  bgcolor: "background.paper",
-                  border: 1,
-                  borderColor: "divider",
-                },
-              }}
-            >
-              <ArrowBackIcon />
-            </IconButton>
-            <Box>
-              <Typography
-                variant="h5"
-                component="h1"
-                sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}
-              >
-                {t("mis_page_title", "Mis Solicitudes")}
-              </Typography>
-            </Box>
-          </Box>
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<AddIcon />}
-            onClick={() => navigate("/solicitudes/nueva")}
-            sx={{ textTransform: "none" }}
+      {/* Header */}
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <IconButton
+            onClick={() => navigate(-1)}
+            sx={{
+              color: "text.disabled",
+              "&:hover": {
+                color: "text.secondary",
+                bgcolor: "background.paper",
+                border: 1,
+                borderColor: "divider",
+              },
+            }}
           >
-            {t("btn_crear_solicitud", "Crear Solicitud")}
-          </Button>
+            <ArrowBackIcon />
+          </IconButton>
+          <Box>
+            <Typography
+              variant="h5"
+              component="h1"
+              sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}
+            >
+              {t("mis_page_title", "Mis Solicitudes")}
+            </Typography>
+          </Box>
+        </Box>
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<AddIcon />}
+          onClick={() => navigate("/solicitudes/nueva")}
+          sx={{ textTransform: "none" }}
+        >
+          {t("btn_crear_solicitud", "Crear Solicitud")}
+        </Button>
+      </Box>
+
+      {/* Alertas */}
+      {error && (
+        <Alert severity="error" onClose={() => setError("")}>
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert severity="success" onClose={() => setSuccess("")}>
+          {success}
+        </Alert>
+      )}
+
+      {/* Main Card */}
+      <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+        {/* Tabs */}
+        <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "grey.50" }}>
+          <Tabs
+            value={activeTab}
+            onChange={(e, newValue) => setActiveTab(newValue)}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              minHeight: 48,
+              "& .MuiTab-root": {
+                minHeight: 48,
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: "0.875rem",
+              },
+            }}
+          >
+            {tabFilters.map((tab, idx) => (
+              <Tab
+                key={tab.key}
+                label={
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    {tab.label}
+                    <Chip
+                      label={stats[idx]}
+                      size="small"
+                      sx={{
+                        height: 20,
+                        fontSize: "0.625rem",
+                        fontWeight: 700,
+                        bgcolor: activeTab === idx ? "primary.light" : "grey.200",
+                        color: activeTab === idx ? "primary.dark" : "text.secondary",
+                      }}
+                    />
+                  </Box>
+                }
+              />
+            ))}
+          </Tabs>
         </Box>
 
-        {/* Alertas */}
-        {error && (
-          <Alert severity="error" onClose={() => setError("")}>
-            {error}
-          </Alert>
-        )}
-        {success && (
-          <Alert severity="success" onClose={() => setSuccess("")}>
-            {success}
-          </Alert>
-        )}
-
-        {/* Main Card */}
-        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
-          {/* Tabs */}
-          <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "grey.50" }}>
-            <Tabs
-              value={activeTab}
-              onChange={(e, newValue) => setActiveTab(newValue)}
-              variant="scrollable"
-              scrollButtons="auto"
-              sx={{
-                minHeight: 48,
-                "& .MuiTab-root": {
-                  minHeight: 48,
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: "0.875rem",
-                },
-              }}
-            >
-              {tabFilters.map((tab, idx) => (
-                <Tab
-                  key={tab.key}
-                  label={
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      {tab.label}
-                      <Chip
-                        label={stats[idx]}
-                        size="small"
-                        sx={{
-                          height: 20,
-                          fontSize: "0.625rem",
-                          fontWeight: 700,
-                          bgcolor: activeTab === idx ? "primary.light" : "grey.200",
-                          color: activeTab === idx ? "primary.dark" : "text.secondary",
-                        }}
-                      />
-                    </Box>
-                  }
-                />
-              ))}
-            </Tabs>
-          </Box>
-
-          {/* AG Grid */}
-          <SPMAgGrid
-            rowData={rows}
-            columnDefs={columnDefs}
-            loading={loading}
-            height={600}
-            paginationPageSize={25}
-            paginationPageSizeSelector={[10, 25, 50, 100]}
-            enableQuickFilter={true}
-            onRowDoubleClick={(data) => setDetalleModal({ open: true, solicitud: data })}
-            exportFileName="mis_solicitudes"
-            emptyMessage={t("mis_empty_title", "No tienes solicitudes")}
-          />
-        </Paper>
-
-        {/* Modal de confirmacion para eliminar */}
-        <DeleteModal
-          open={deleteModal.open}
-          onClose={() => setDeleteModal({ open: false, solicitudId: null })}
-          onConfirm={handleEliminar}
-          deleting={deleting}
-          t={t}
+        {/* AG Grid */}
+        <SPMAgGrid
+          rowData={rows}
+          columnDefs={columnDefs}
+          loading={loading}
+          height={600}
+          paginationPageSize={25}
+          paginationPageSizeSelector={[10, 25, 50, 100]}
+          enableQuickFilter={true}
+          onRowDoubleClick={(data) => setDetalleModal({ open: true, solicitud: data })}
+          exportFileName="mis_solicitudes"
+          emptyMessage={t("mis_empty_title", "No tienes solicitudes")}
         />
+      </Paper>
 
-        {/* Modal de detalle */}
-        <DetalleModal
-          open={detalleModal.open}
-          solicitud={detalleModal.solicitud}
-          sectores={sectores}
-          onClose={() => setDetalleModal({ open: false, solicitud: null })}
-          onViewFull={() => {
-            setDetalleModal({ open: false, solicitud: null });
-            navigate(`/solicitudes/${detalleModal.solicitud?.id}`);
-          }}
-          t={t}
-        />
+      {/* Modal de confirmacion para eliminar */}
+      <DeleteModal
+        open={deleteModal.open}
+        onClose={() => setDeleteModal({ open: false, solicitudId: null })}
+        onConfirm={handleEliminar}
+        deleting={deleting}
+        t={t}
+      />
+
+      {/* Modal de detalle */}
+      <DetalleModal
+        open={detalleModal.open}
+        solicitud={detalleModal.solicitud}
+        sectores={sectores}
+        onClose={() => setDetalleModal({ open: false, solicitud: null })}
+        onViewFull={() => {
+          setDetalleModal({ open: false, solicitud: null });
+          navigate(`/solicitudes/${detalleModal.solicitud?.id}`);
+        }}
+        t={t}
+      />
     </Box>
   );
 }

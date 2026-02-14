@@ -274,8 +274,7 @@ def health_check_detailed():
         checks["database"] = {
             "spm": _check_database("spm"),
             "sap_data": _check_database("sap_data"),
-            "equivalentes": _check_database("equivalentes"),
-            "catalogo_materiales": _check_database("catalogo_materiales"),
+            "master_materiales": _check_database("master_materiales"),
         }
 
         # Verificar si alguna BD esta unhealthy
@@ -385,8 +384,7 @@ def check_dependencies():
         "databases": {
             "spm": _check_database("spm"),
             "sap_data": _check_database("sap_data"),
-            "equivalentes": _check_database("equivalentes"),
-            "catalogo_materiales": _check_database("catalogo_materiales"),
+            "master_materiales": _check_database("master_materiales"),
         },
         "cache": _check_cache(),
         "metrics": _check_metrics(),

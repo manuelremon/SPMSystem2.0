@@ -8,17 +8,16 @@
  * - Tooltip detallado
  */
 
-import React, { forwardRef, useMemo } from 'react'
+import { forwardRef, useMemo } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
-import { SPMLine, SPMArea, TREND_COLORS, SPM_COLORS, TOOLTIP_CONFIG, ANIMATION_CONFIG, LEGEND_CONFIG } from '../ui/SPMChartJS'
+import { SPMLine, SPMArea, TREND_COLORS, TOOLTIP_CONFIG, ANIMATION_CONFIG, LEGEND_CONFIG } from '../ui/SPMChartJS'
 
 // Colores por serie - usando colores unificados
 const SERIES_COLORS = {
   aprobadas: TREND_COLORS.aprobadas,
   rechazadas: TREND_COLORS.rechazadas,
   pendientes: TREND_COLORS.pendientes,
-  total: SPM_COLORS.primary,
 }
 
 /**

@@ -1253,7 +1253,7 @@ def admin_reglas_aprobacion_mod(regla_id):
     if request.method == "GET":
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT id, nivel, monto_minimo, monto_maximo, centro, sector, criticidad, rol_aprobador, descripcion, activo, created_at FROM reglas_aprobacion WHERE id = ?", (regla_id,))
+            cur.execute("SELECT id, nivel_aprobacion, monto_minimo_usd, monto_maximo_usd, centro, sector, criticidad, rol_requerido, descripcion, activo, created_at FROM reglas_aprobacion WHERE id = ?", (regla_id,))
             row = cur.fetchone()
             if not row:
                 return jsonify({"ok": False, "error": "Regla no encontrada"}), 404

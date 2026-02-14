@@ -60,9 +60,9 @@ def paso_3_guardar_tratamiento(
         except Exception as e:
             errores.append({"item_idx": item_idx, "error": str(e)})
 
-    # Actualizar estado
+    # Mantener en in_treatment (la transición a treated/completed la hace /finalizar)
     hay_errores = len(errores) > 0
-    nuevo_estado = "Tratado" if guardadas == len(decisiones) and not hay_errores else "En tratamiento"
+    nuevo_estado = "in_treatment"
     SolicitudRepository.update_status(solicitud_id, nuevo_estado)
 
     TratamientoRepository.log_evento(

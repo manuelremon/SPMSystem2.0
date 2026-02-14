@@ -465,9 +465,8 @@ def _detalle_db(codigo: str) -> dict:
     try:
         with get_db_connection("catalogo_materiales") as conn:
             cur = conn.cursor()
-            # En PostgreSQL usa cat_materiales, en SQLite usa materiales
-            from core.db import is_using_postgresql
-            tabla = "cat_materiales" if is_using_postgresql() else "materiales"
+            from backend.core.db import is_using_postgresql
+            tabla = "cat_materiales" if is_using_postgresql() else "catalogo_materiales"
             cur.execute(
                 f"SELECT codigo, descripcion, descripcion_larga, unidad_medida, precio_usd FROM {tabla} WHERE codigo=?",
                 (codigo,),

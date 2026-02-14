@@ -15,6 +15,7 @@ import Loading from './components/Loading'
 // Lazy-loaded pages for code splitting (large/complex pages)
 const Login = lazy(() => import('./pages/Login'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
+
 const CreateSolicitud = lazy(() => import('./pages/CreateSolicitud'))
 const Materials = lazy(() => import('./pages/Materials'))
 const MisSolicitudes = lazy(() => import('./pages/MisSolicitudes'))

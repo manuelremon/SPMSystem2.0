@@ -26,6 +26,7 @@ from flask import Blueprint, jsonify, request
 from backend.core.db import get_db_connection
 from backend.core.helpers import _get_user_id
 from backend.core.roles import require_auth, require_role
+from backend.core.search_utils import build_description_search_with_catalog
 from backend.routes.database import is_postgres
 
 logger = logging.getLogger(__name__)
@@ -224,8 +225,12 @@ def get_solpeds():
             conditions.append("fecha_creacion <= ?")
             params.append(fecha_hasta)
         if search:
-            conditions.append("(material_descripcion LIKE ? OR material_codigo LIKE ?)")
-            params.extend([f"%{search}%", f"%{search}%"])
+            s = build_description_search_with_catalog(
+                search, ["material_descripcion", "material_codigo"], "material_codigo"
+            )
+            if s:
+                conditions.append(s.where_clause)
+                params.extend(s.params)
 
         where_clause = " AND ".join(conditions) if conditions else "1=1"
 
@@ -705,8 +710,12 @@ def get_costs():
         params = []
 
         if material:
-            conditions.append("(material_codigo LIKE ? OR material_descripcion LIKE ?)")
-            params.extend([f"%{material}%", f"%{material}%"])
+            s = build_description_search_with_catalog(
+                material, ["material_codigo", "material_descripcion"], "material_codigo"
+            )
+            if s:
+                conditions.append(s.where_clause)
+                params.extend(s.params)
         if moneda:
             conditions.append("moneda = ?")
             params.append(moneda)

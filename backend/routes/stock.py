@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 
 from backend.core.db import get_db_connection, is_using_postgresql
 from backend.core.roles import require_auth
+from backend.core.search_utils import build_description_search_with_catalog
 
 bp = Blueprint("stock", __name__, url_prefix="/api/stock")
 
@@ -71,8 +72,12 @@ def get_stock():
                 params.append(f"%{material}%")
 
             if descripcion:
-                where_clauses.append("s.material_descripcion LIKE ?")
-                params.append(f"%{descripcion}%")
+                search = build_description_search_with_catalog(
+                    descripcion, ["s.material_descripcion"], "s.material"
+                )
+                if search:
+                    where_clauses.append(search.where_clause)
+                    params.extend(search.params)
 
             where_sql = " AND ".join(where_clauses)
 
@@ -91,9 +96,9 @@ def get_stock():
                     s.um,
                     s.precio,
                     SUM(s.stock_valorizado) as stock_valorizado,
-                    -- Inmovilizado: lote especial o sin consumo en ultimo año
+                    -- Inmovilizado: columna SAP o sin consumo en último año
                     CASE
-                        WHEN s.lote IN ('G-INSPE', 'G-REZAG', 'G-REPAR', 'G-AREPA', 'G-SOBRA') THEN 1
+                        WHEN s.inmovilizado = 'INMOVILIZADO' THEN 1
                         WHEN NOT EXISTS (
                             SELECT 1 FROM consumo_historico ch
                             WHERE ch.material = s.material
@@ -253,14 +258,14 @@ def get_stock_resumen():
             """, params)
             totals = dict(cur.fetchone())
 
-            # Inmovilizado (lotes especiales)
+            # Inmovilizado (columna SAP)
             cur.execute(f"""
                 SELECT
                     COUNT(DISTINCT material || '-' || centro || '-' || almacen) as items,
                     COALESCE(SUM(stock_valorizado), 0) as valor
                 FROM stock
                 WHERE {where_sql}
-                AND lote IN ('G-INSPE', 'G-REZAG', 'G-REPAR', 'G-AREPA', 'G-SOBRA')
+                AND inmovilizado = 'INMOVILIZADO'
             """, params)
             inmovilizado = dict(cur.fetchone())
 

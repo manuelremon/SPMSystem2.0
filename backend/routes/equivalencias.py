@@ -7,6 +7,7 @@ from flask import Blueprint, jsonify, request
 
 from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id, is_using_postgresql
 from backend.core.roles import require_auth, require_role
+from backend.core.search_utils import build_description_search
 
 bp = Blueprint("equivalencias", __name__, url_prefix="/api/equivalencias")
 
@@ -16,7 +17,7 @@ _DB_EQUIV = "spm" if _PG else "equivalentes"
 _TABLA_EQUIV = "cat_equivalencias" if _PG else "materiales_equivalencias"
 _DB_CATALOGO = "spm" if _PG else "catalogo_materiales"
 _TABLA_CATALOGO = "cat_materiales" if _PG else "catalogo_materiales"
-_COL_MAT_ID = "codigo" if _PG else "id_material"
+_COL_MAT_ID = "codigo"
 
 
 @bp.route("", methods=["GET"])
@@ -51,16 +52,15 @@ def listar_equivalencias():
 
             # Legacy search (q parameter)
             if q:
-                where_clauses.append("""
-                    (
-                        CAST(material_base AS TEXT) LIKE ? OR
-                        CAST(material_equivalente AS TEXT) LIKE ? OR
-                        texto_breve_base LIKE ? OR
-                        texto_breve_equivalente LIKE ?
-                    )
-                """)
-                search_term = f"%{q}%"
-                params.extend([search_term, search_term, search_term, search_term])
+                search = build_description_search(
+                    q,
+                    ["CAST(material_base AS TEXT)", "CAST(material_equivalente AS TEXT)",
+                     "texto_breve_base", "texto_breve_equivalente"],
+                    require_all_words=False,
+                )
+                if search:
+                    where_clauses.append(search.where_clause)
+                    params.extend(search.params)
 
             # Filtro por código
             if q_codigo:
@@ -75,14 +75,10 @@ def listar_equivalencias():
 
             # Filtro por descripción
             if q_descripcion:
-                where_clauses.append("""
-                    (
-                        UPPER(texto_breve_base) LIKE UPPER(?) OR
-                        UPPER(texto_breve_equivalente) LIKE UPPER(?)
-                    )
-                """)
-                desc_term = f"%{q_descripcion}%"
-                params.extend([desc_term, desc_term])
+                search = build_description_search(q_descripcion, ["texto_breve_base", "texto_breve_equivalente"])
+                if search:
+                    where_clauses.append(search.where_clause)
+                    params.extend(search.params)
 
             # Filtro por tipo de equivalencia
             if q_tipo:
@@ -103,9 +99,10 @@ def listar_equivalencias():
             total = count_row["total"] if isinstance(count_row, dict) else count_row[0]
 
             # Query para obtener resultados con paginación
+            _col_id = "id" if _PG else "ROWID"
             select_query = f"""
                 SELECT
-                    id,
+                    {_col_id} AS id,
                     material_base,
                     texto_breve_base,
                     material_equivalente,

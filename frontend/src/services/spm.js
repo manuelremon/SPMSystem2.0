@@ -94,7 +94,7 @@ export const system = {
 }
 
 // Feature 4.2: What-If simulation
-export const simularCompra = (data) => api.post('/planner/simular', data)
+export const simularCompra = (data) => api.post('/planificador/simular', data)
 
 // Feature 4.4: Plan de compras
 export const getPlanCompras = (centro, params = {}) =>

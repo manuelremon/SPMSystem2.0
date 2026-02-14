@@ -34,7 +34,7 @@ from backend.core.roles import require_auth
 bp = Blueprint("database", __name__, url_prefix="/api/admin/database")
 
 # Whitelist de bases de datos permitidas
-ALLOWED_DATABASES = {"spm", "sap_data", "equivalentes", "catalogo_materiales"}
+ALLOWED_DATABASES = {"spm", "sap_data", "master_materiales"}
 
 # Whitelist de tablas por BD (para prevenir SQL injection)
 # Actualizado 2026-01-09 con TODAS las tablas de PostgreSQL produccion
@@ -79,8 +79,7 @@ ALLOWED_TABLES = {
         "audit_trail", "schema_migrations",
     ],
     "sap_data": ["stock", "consumo_historico", "pedidos_sap", "materiales_bbdd"],
-    "equivalentes": ["equivalencias"],
-    "catalogo_materiales": ["materiales"],
+    "master_materiales": ["catalogo_materiales", "materiales_equivalencias", "materiales_mrp", "equivalencias", "materiales"],
 }
 
 # Tablas protegidas (solo lectura - no se pueden modificar via CRUD)
@@ -118,7 +117,15 @@ def require_admin(f):
 def get_sqlite_path(db_name: str) -> str:
     """Obtiene la ruta del archivo SQLite"""
     base_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
-    return os.path.join(base_path, f"{db_name}.db")
+    db_files = {
+        "spm": "spm.db",
+        "sap_data": "sap_data.db",
+        "master_materiales": "master_materiales.db",
+        "equivalentes": "master_materiales.db",
+        "catalogo_materiales": "master_materiales.db",
+    }
+    filename = db_files.get(db_name, f"{db_name}.db")
+    return os.path.join(base_path, filename)
 
 
 def is_postgres() -> bool:

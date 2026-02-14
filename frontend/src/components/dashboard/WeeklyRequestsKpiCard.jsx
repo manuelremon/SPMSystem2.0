@@ -8,14 +8,14 @@
  * - Tooltip interactivo
  */
 
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import { Line } from 'react-chartjs-2';
 import { TrendingUp, TrendingDown } from '../ui/Icons';
-import { FONT_SIZES, SPM_COLORS, TOOLTIP_CONFIG, ANIMATION_CONFIG } from '../ui/SPMChartJS';
+import { FONT_SIZES, TOOLTIP_CONFIG } from '../ui/SPMChartJS';
 
 /**
  * Colores para el chart profesional

@@ -360,7 +360,7 @@ def get_llm_client(
     Factory para obtener cliente LLM.
 
     Args:
-        provider: 'gemini', 'openai', 'anthropic', 'deepseek', 'mock', o 'auto'
+        provider: 'gemini', 'groq', 'openai', 'anthropic', 'deepseek', 'mock', o 'auto'
         model: Modelo específico (opcional)
         api_key: API key (opcional, usa env vars)
 
@@ -369,8 +369,10 @@ def get_llm_client(
     """
     if provider == "auto":
         # Detectar automaticamente basado en API keys / servicios disponibles
-        # Prioridad: Gemini > Anthropic > OpenAI > Deepseek (local) > Mock
-        if os.getenv("GOOGLE_AI_API_KEY"):
+        # Prioridad: Groq > Gemini > Anthropic > OpenAI > Deepseek (local) > Mock
+        if os.getenv("GROQ_API_KEY"):
+            provider = "groq"
+        elif os.getenv("GOOGLE_AI_API_KEY"):
             provider = "gemini"
         elif os.getenv("ANTHROPIC_API_KEY") or api_key:
             provider = "anthropic"
@@ -382,7 +384,10 @@ def get_llm_client(
             logger.warning("No se encontraron API keys, usando cliente mock")
             provider = "mock"
 
-    if provider == "gemini":
+    if provider == "groq":
+        from backend.agent.rag.groq_client import GroqClient
+        return GroqClient(api_key=api_key, model=model or "llama-3.3-70b-versatile")
+    elif provider == "gemini":
         from backend.agent.rag.gemini_client import GeminiClient
         return GeminiClient(api_key=api_key, model=model or "gemini-2.0-flash")
     elif provider == "openai":

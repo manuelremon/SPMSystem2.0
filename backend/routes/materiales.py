@@ -11,6 +11,7 @@ from flask import Blueprint, jsonify, request
 
 from backend.core.db import get_db_connection, is_using_postgresql
 from backend.core.roles import require_auth
+from backend.core.search_utils import build_description_search
 
 bp = Blueprint("materiales", __name__, url_prefix="/api/materiales")
 
@@ -18,9 +19,9 @@ bp = Blueprint("materiales", __name__, url_prefix="/api/materiales")
 _PG = is_using_postgresql()
 _TABLA = "cat_materiales" if _PG else "catalogo_materiales"
 _DB = "spm" if _PG else "master_materiales"
-# Mapeo de columnas: SQLite usa id_material, PG usa codigo
-_COL_ID = "codigo" if _PG else "id_material"
-_COL_GRUPO = "grupo_articulos" if _PG else "grupo_articulo"
+# Columnas
+_COL_ID = "codigo"
+_COL_GRUPO = "grupo_articulos"
 
 
 def _fetch_catalogo(query: str, params: tuple) -> list[dict]:
@@ -65,8 +66,10 @@ def search_materiales():
         search_conditions.append(f"UPPER({_COL_ID}) LIKE UPPER(?)")
         params.append(f"%{q_codigo}%")
     if q_desc:
-        search_conditions.append("UPPER(descripcion) LIKE UPPER(?)")
-        params.append(f"%{q_desc}%")
+        search = build_description_search(q_desc, ["descripcion", "descripcion_larga"])
+        if search:
+            search_conditions.append(search.where_clause)
+            params.extend(search.params)
 
     if search_conditions:
         filters.append("(" + " OR ".join(search_conditions) + ")")

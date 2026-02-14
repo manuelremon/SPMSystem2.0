@@ -36,13 +36,13 @@ def run_migration_sqlite():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS vertex_conversations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
+                user_id TEXT NOT NULL,
                 session_id TEXT DEFAULT (lower(hex(randomblob(16)))),
                 started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 ended_at TIMESTAMP,
                 context TEXT DEFAULT '{}',
                 summary TEXT,
-                FOREIGN KEY (user_id) REFERENCES usuarios(id_spm) ON DELETE CASCADE
+                FOREIGN KEY (user_id) REFERENCES usuario(id_spm) ON DELETE CASCADE
             );
         """)
         print("  Tabla vertex_conversations creada")
@@ -86,13 +86,13 @@ def run_migration_sqlite():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS vertex_user_memory (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
+                user_id TEXT NOT NULL,
                 fact_key TEXT NOT NULL,
                 fact_value TEXT NOT NULL,
                 learned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 confidence REAL DEFAULT 1.0,
                 expires_at TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES usuarios(id_spm) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES usuario(id_spm) ON DELETE CASCADE,
                 UNIQUE(user_id, fact_key)
             );
         """)
@@ -109,7 +109,7 @@ def run_migration_sqlite():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS vertex_proactive_alerts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
+                user_id TEXT NOT NULL,
                 alert_type TEXT NOT NULL,
                 priority INTEGER DEFAULT 5 CHECK (priority >= 1 AND priority <= 10),
                 title TEXT NOT NULL,
@@ -119,7 +119,7 @@ def run_migration_sqlite():
                 shown_at TIMESTAMP,
                 dismissed_at TIMESTAMP,
                 actioned_at TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES usuarios(id_spm) ON DELETE CASCADE
+                FOREIGN KEY (user_id) REFERENCES usuario(id_spm) ON DELETE CASCADE
             );
         """)
         print("  Tabla vertex_proactive_alerts creada")
@@ -190,7 +190,7 @@ def run_migration_postgresql():
                 context JSONB DEFAULT '{}',
                 summary TEXT,
                 CONSTRAINT fk_vertex_conv_user
-                    FOREIGN KEY (user_id) REFERENCES usuarios(id_spm) ON DELETE CASCADE
+                    FOREIGN KEY (user_id) REFERENCES usuario(id_spm) ON DELETE CASCADE
             );
         """)
         print("  Tabla vertex_conversations creada")
@@ -250,7 +250,7 @@ def run_migration_postgresql():
                 confidence FLOAT DEFAULT 1.0,
                 expires_at TIMESTAMP,
                 CONSTRAINT fk_vertex_memory_user
-                    FOREIGN KEY (user_id) REFERENCES usuarios(id_spm) ON DELETE CASCADE,
+                    FOREIGN KEY (user_id) REFERENCES usuario(id_spm) ON DELETE CASCADE,
                 CONSTRAINT uq_vertex_memory_user_key
                     UNIQUE(user_id, fact_key)
             );
@@ -280,7 +280,7 @@ def run_migration_postgresql():
                 dismissed_at TIMESTAMP,
                 actioned_at TIMESTAMP,
                 CONSTRAINT fk_vertex_alerts_user
-                    FOREIGN KEY (user_id) REFERENCES usuarios(id_spm) ON DELETE CASCADE
+                    FOREIGN KEY (user_id) REFERENCES usuario(id_spm) ON DELETE CASCADE
             );
         """)
         print("  Tabla vertex_proactive_alerts creada")

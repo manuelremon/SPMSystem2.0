@@ -225,9 +225,9 @@ export default function Paso2DecisionAbastecimiento({
     };
   }, [itemActual?.detalle_stock, dataOpciones, centroSolicitud, almacenSolicitud]);
 
-  // Filtrar opciones NO-stock (proveedor, equivalencia)
+  // Filtrar opciones NO-stock y NO-equivalencia (solo proveedores y otros)
   const opcionesNoStock = useMemo(() => {
-    return opcionesFiltradas.filter((op) => op.tipo !== "stock" && op.tipo !== "transferencia");
+    return opcionesFiltradas.filter((op) => op.tipo !== "stock" && op.tipo !== "transferencia" && op.tipo !== "equivalencia");
   }, [opcionesFiltradas]);
 
   // Filtrar opciones de stock del backend (para mostrar como fallback)
@@ -316,13 +316,18 @@ export default function Paso2DecisionAbastecimiento({
     });
   }, [cantidadSolicitada, comentario, currentIdx, onSelectDecision]);
 
-  // Actualizar cantidad de una fuente especifica (sin limite estricto)
+  // Actualizar cantidad de una fuente especifica (limitada por stock disponible)
   const actualizarCantidad = useCallback((opcionId, nuevaCantidad) => {
     setFuentesSeleccionadas(prev => {
-      const cantidadValidada = Math.max(0, Number(nuevaCantidad) || 0);
+      let cantidadValidada = Math.max(0, Number(nuevaCantidad) || 0);
 
       const nuevaLista = prev.map(f => {
         if (f.opcion?.opcion_id === opcionId) {
+          // Limitar al stock disponible para fuentes de stock/equivalencia con ubicacion
+          const disponible = f.opcion?.cantidad_disponible;
+          if (disponible != null && disponible > 0) {
+            cantidadValidada = Math.min(cantidadValidada, disponible);
+          }
           return { ...f, cantidad_asignada: cantidadValidada };
         }
         return f;
@@ -719,7 +724,7 @@ export default function Paso2DecisionAbastecimiento({
               )}
 
               {/* Separador visual */}
-              <Box sx={{ width: 1, height: 24, bgcolor: 'divider', mx: 0.5 }} />
+              <Box sx={{ width: '1px', height: 24, bgcolor: 'divider', mx: 0.5 }} />
 
               {/* Boton Aceptar Sugerido - Destacado al final */}
               <Button
@@ -856,6 +861,12 @@ export default function Paso2DecisionAbastecimiento({
                     isSelected={isSelected}
                     onToggle={toggleFuente}
                     selectedCount={fuentesSeleccionadas.filter(f => f.opcion?.tipo === "equivalencia").length}
+                    fuentesSeleccionadas={fuentesSeleccionadas}
+                    cantidadSolicitada={cantidadSolicitada}
+                    comentario={comentario}
+                    currentIdx={currentIdx}
+                    onSelectDecision={onSelectDecision}
+                    setFuentesSeleccionadas={setFuentesSeleccionadas}
                   />
                 )}
               </Box>
@@ -914,7 +925,7 @@ export default function Paso2DecisionAbastecimiento({
             )}
 
             {/* Sin opciones */}
-            {!hayStockCategorizado && opcionesStock.length === 0 && opcionesNoStock.length === 0 && (
+            {!hayStockCategorizado && opcionesStock.length === 0 && opcionesNoStock.length === 0 && opcionesEquivalencias.length === 0 && (
               <Paper
                 sx={{
                   p: 4,
@@ -1158,9 +1169,71 @@ function StockCategoriaCard({
 // Componente: Equivalencias Card (similar a StockCategoriaCard)
 // =============================================================================
 
-function EquivalenciasCard({ equivalencias, isSelected, onToggle, selectedCount }) {
+function EquivalenciasCard({
+  equivalencias, isSelected, onToggle, selectedCount,
+  fuentesSeleccionadas, cantidadSolicitada, comentario, currentIdx, onSelectDecision, setFuentesSeleccionadas,
+}) {
   const [expanded, setExpanded] = useState(false);
+  const [expandedStock, setExpandedStock] = useState(null);
   const hasSelection = selectedCount > 0;
+
+  // Genera un opcion_id unico para una ubicacion de stock de un equivalente
+  const getEqStockId = useCallback((eqOpcionId, ubicacion) => {
+    return `eqstock_${eqOpcionId}_${ubicacion.centro}_${String(ubicacion.almacen || "").padStart(4, "0")}`;
+  }, []);
+
+  // Verificar si una ubicacion de stock de equivalente esta seleccionada
+  const isEqStockSelected = useCallback((eqOpcionId, ubicacion) => {
+    const opcionId = getEqStockId(eqOpcionId, ubicacion);
+    return fuentesSeleccionadas.some(f => f.opcion?.opcion_id === opcionId);
+  }, [fuentesSeleccionadas, getEqStockId]);
+
+  // Toggle seleccion de una ubicacion de stock de un equivalente
+  const toggleEqStock = useCallback((eq, ubicacion) => {
+    const opcionId = getEqStockId(eq.opcion_id, ubicacion);
+    const cantidadDisponible = Number(ubicacion.cantidad || 0);
+    const almacen = String(ubicacion.almacen || "").padStart(4, "0");
+
+    setFuentesSeleccionadas(prev => {
+      const existe = prev.find(f => f.opcion?.opcion_id === opcionId);
+      let nuevaLista;
+
+      if (existe) {
+        nuevaLista = prev.filter(f => f.opcion?.opcion_id !== opcionId);
+      } else {
+        const cantidadActual = prev.reduce((sum, f) => sum + Number(f.cantidad_asignada || 0), 0);
+        const cantidadFaltante = Math.max(0, cantidadSolicitada - cantidadActual);
+        const cantidadInicial = Math.min(cantidadFaltante, cantidadDisponible) || Math.min(cantidadSolicitada, cantidadDisponible);
+
+        nuevaLista = [...prev, {
+          opcion: {
+            opcion_id: opcionId,
+            tipo: "equivalencia",
+            nombre: `${eq.nombre} - ${ubicacion.centro}/${almacen}`,
+            cantidad_disponible: cantidadDisponible,
+            centro: ubicacion.centro,
+            almacen: ubicacion.almacen,
+            nombre_almacen: ubicacion.nombre_almacen,
+            precio_unitario: eq.precio_unitario,
+            compatibilidad_pct: eq.compatibilidad_pct,
+            material_equivalente: eq.nombre,
+            codigo_equivalente: eq.codigo || eq.material_sap,
+          },
+          cantidad_asignada: cantidadInicial > 0 ? cantidadInicial : 1,
+          notas: "",
+        }];
+      }
+
+      const decisionMultiFuente = {
+        fuentes: nuevaLista,
+        comentario,
+        cantidad_solicitada: cantidadSolicitada,
+      };
+      onSelectDecision?.(currentIdx, decisionMultiFuente);
+
+      return nuevaLista;
+    });
+  }, [getEqStockId, cantidadSolicitada, comentario, currentIdx, onSelectDecision, setFuentesSeleccionadas]);
 
   return (
     <Paper
@@ -1220,43 +1293,169 @@ function EquivalenciasCard({ equivalencias, isSelected, onToggle, selectedCount 
 
       {/* Lista expandida */}
       <Collapse in={expanded}>
-        <Box sx={{ borderTop: 1, borderColor: 'divider', bgcolor: 'background.paper', maxHeight: 192, overflowY: 'auto' }}>
+        <Box sx={{ borderTop: 1, borderColor: 'divider', bgcolor: 'background.paper', maxHeight: 400, overflowY: 'auto' }}>
           {equivalencias.map((eq) => {
             const selected = isSelected(eq.opcion_id);
+            const detalleStock = Array.isArray(eq.detalle_stock) ? eq.detalle_stock : [];
+            const stockTotal = detalleStock.reduce((sum, d) => sum + Number(d.cantidad || 0), 0);
+            const stockExpanded = expandedStock === eq.opcion_id;
+            const ubicacionesSeleccionadas = detalleStock.filter(d => isEqStockSelected(eq.opcion_id, d)).length;
+
             return (
-              <Box
-                key={eq.opcion_id}
-                component="button"
-                onClick={() => onToggle(eq)}
-                sx={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  px: 2,
-                  py: 1.5,
-                  textAlign: 'left',
-                  bgcolor: selected ? 'primary.lighter' : 'transparent',
-                  border: 'none',
-                  borderBottom: 1,
-                  borderColor: 'divider',
-                  cursor: 'pointer',
-                  '&:hover': { bgcolor: selected ? 'primary.light' : 'grey.100' },
-                  '&:last-child': { borderBottom: 0 },
-                }}
-              >
-                <Stack direction="row" alignItems="center" spacing={1.5}>
-                  <Checkbox checked={selected} size="small" sx={{ p: 0 }} />
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="body2" fontWeight="medium" noWrap>{eq.nombre}</Typography>
-                    {eq.compatibilidad_pct != null && (
-                      <Typography variant="caption" color="text.secondary">{eq.compatibilidad_pct}% compatible</Typography>
-                    )}
+              <Box key={eq.opcion_id}>
+                <Box
+                  component="button"
+                  onClick={() => onToggle(eq)}
+                  sx={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    px: 2,
+                    py: 1.5,
+                    textAlign: 'left',
+                    bgcolor: selected ? 'primary.lighter' : 'transparent',
+                    border: 'none',
+                    borderBottom: 1,
+                    borderColor: 'divider',
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: selected ? 'primary.light' : 'grey.100' },
+                  }}
+                >
+                  <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <Checkbox checked={selected} size="small" sx={{ p: 0 }} />
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography variant="body2" fontWeight="medium" noWrap>{eq.nombre}</Typography>
+                      {eq.compatibilidad_pct != null && (
+                        <Typography variant="caption" color="text.secondary">{eq.compatibilidad_pct}% compatible</Typography>
+                      )}
+                    </Box>
+                  </Stack>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Typography variant="body2" fontWeight="bold" sx={{ flexShrink: 0 }}>
+                      {formatMonto(eq.precio_unitario || 0)}
+                    </Typography>
+                    {/* Boton de stock */}
+                    <Tooltip title={detalleStock.length > 0 ? `Ver stock (${stockTotal} un.)` : "Sin stock disponible"}>
+                      <Box
+                        component="span"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (detalleStock.length > 0) {
+                            setExpandedStock(stockExpanded ? null : eq.opcion_id);
+                          }
+                        }}
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 0.5,
+                          px: 0.75,
+                          py: 0.25,
+                          borderRadius: 1,
+                          cursor: detalleStock.length > 0 ? 'pointer' : 'default',
+                          bgcolor: stockExpanded ? 'primary.lighter' : 'transparent',
+                          '&:hover': detalleStock.length > 0 ? { bgcolor: 'grey.200' } : {},
+                        }}
+                      >
+                        <Warehouse sx={{ width: 16, height: 16, color: stockTotal > 0 ? 'success.main' : 'text.disabled' }} />
+                        <Typography
+                          variant="caption"
+                          fontWeight="bold"
+                          color={stockTotal > 0 ? 'success.main' : 'text.disabled'}
+                        >
+                          {stockTotal}
+                        </Typography>
+                        {ubicacionesSeleccionadas > 0 && (
+                          <Chip
+                            size="small"
+                            label={`${ubicacionesSeleccionadas} sel.`}
+                            sx={{ height: 18, fontSize: '0.6rem', fontWeight: 'bold', bgcolor: 'primary.light', color: 'primary.dark' }}
+                          />
+                        )}
+                      </Box>
+                    </Tooltip>
+                  </Stack>
+                </Box>
+
+                {/* Submenu de stock expandible con ubicaciones seleccionables */}
+                <Collapse in={stockExpanded}>
+                  <Box
+                    sx={{
+                      mx: 2,
+                      mb: 1,
+                      borderRadius: 2,
+                      border: 1,
+                      borderColor: 'divider',
+                      bgcolor: 'grey.50',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {detalleStock.map((d, idx) => {
+                      const almacen = String(d.almacen || "").padStart(4, "0");
+                      const esLibre = ["0100", "9999"].includes(almacen) || d.libre_disponibilidad;
+                      const ubicacionSelected = isEqStockSelected(eq.opcion_id, d);
+                      return (
+                        <Box
+                          key={idx}
+                          component="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleEqStock(eq, d);
+                          }}
+                          sx={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            px: 1.5,
+                            py: 1,
+                            textAlign: 'left',
+                            bgcolor: ubicacionSelected ? 'primary.lighter' : 'transparent',
+                            border: 'none',
+                            borderBottom: idx < detalleStock.length - 1 ? 1 : 0,
+                            borderColor: 'divider',
+                            cursor: 'pointer',
+                            '&:hover': { bgcolor: ubicacionSelected ? 'primary.light' : 'grey.100' },
+                          }}
+                        >
+                          <Stack direction="row" alignItems="center" spacing={1}>
+                            <Checkbox checked={ubicacionSelected} size="small" sx={{ p: 0 }} />
+                            <Box
+                              sx={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: '50%',
+                                bgcolor: esLibre ? 'success.main' : 'warning.main',
+                                flexShrink: 0,
+                              }}
+                            />
+                            <Typography variant="caption" fontWeight="bold">
+                              {d.centro}/{almacen}
+                            </Typography>
+                            {d.nombre_almacen && (
+                              <Typography variant="caption" color="text.secondary" noWrap>
+                                {d.nombre_almacen}
+                              </Typography>
+                            )}
+                          </Stack>
+                          <Typography variant="caption" fontWeight="bold">
+                            {Number(d.cantidad || 0)} un.
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                    {/* Total */}
+                    <Stack
+                      direction="row"
+                      justifyContent="flex-end"
+                      sx={{ px: 1.5, py: 0.5, bgcolor: 'grey.100', borderTop: 1, borderColor: 'divider' }}
+                    >
+                      <Typography variant="caption" fontWeight="bold" color="text.secondary">
+                        Total: {stockTotal} un.
+                      </Typography>
+                    </Stack>
                   </Box>
-                </Stack>
-                <Typography variant="body2" fontWeight="bold" sx={{ flexShrink: 0 }}>
-                  {formatMonto(eq.precio_unitario || 0)}
-                </Typography>
+                </Collapse>
               </Box>
             );
           })}

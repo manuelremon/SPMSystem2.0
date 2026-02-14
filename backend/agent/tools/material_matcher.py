@@ -33,6 +33,7 @@ except ImportError:
 
 # Importar get_db_connection del core
 from backend.core.db import get_db_connection
+from backend.core.search_utils import build_description_search
 
 
 # BD de catálogo de materiales
@@ -117,17 +118,19 @@ class MaterialMatcher(BaseTool):
                         continue
 
                     # Buscar en descripción y descripción_larga
-                    pattern = f"%{query}%"
-                    sql = """
+                    search = build_description_search(query, ["descripcion", "descripcion_larga"])
+                    if not search:
+                        continue
+                    sql = f"""
                         SELECT codigo, descripcion, descripcion_larga,
                                grupo_articulos, unidad_medida, precio_usd
-                        FROM materiales
+                        FROM catalogo_materiales
                         WHERE activo = 1
-                          AND (descripcion LIKE ? OR descripcion_larga LIKE ?)
+                          AND {search.where_clause}
                         ORDER BY codigo ASC
                         LIMIT 15
                     """
-                    cur.execute(sql, (pattern, pattern))
+                    cur.execute(sql, search.params)
                     rows = cur.fetchall()
 
                     for row in rows:

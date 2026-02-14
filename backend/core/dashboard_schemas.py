@@ -8,7 +8,7 @@ Define estructuras de datos para:
 - Operaciones y resultados
 """
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -415,22 +415,6 @@ class DashboardPermiso:
 
 
 @dataclass
-class FormulaRequest:
-    """Solicitud de ejecucion de formula SPM"""
-    formula: str
-    params: List[Any] = field(default_factory=list)
-    context: Optional[Dict[str, Any]] = None
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "FormulaRequest":
-        return cls(
-            formula=data.get("formula", ""),
-            params=data.get("params", []),
-            context=data.get("context"),
-        )
-
-
-@dataclass
 class FormulaResult:
     """Resultado de ejecucion de formula SPM"""
     success: bool
@@ -612,7 +596,7 @@ SPM_FORMULAS_CATALOG = {
         "descripcion": "Cuenta alertas MRP por centro y severidad",
         "sintaxis": "=SPM.MRP.ALERTAS(centro, severidad)",
         "params": ["centro", "severidad"],
-        "ejemplo": '=SPM.MRP.ALERTAS("1000", "alta")',
+        "ejemplo": '=SPM.MRP.ALERTAS("1000", "danger")',
     },
     # Presupuestos
     "SPM.BUDGET": {
@@ -635,14 +619,14 @@ SPM_FORMULAS_CATALOG = {
         "descripcion": "Cuenta solicitudes por criterios",
         "sintaxis": "=SPM.SOLICITUDES.COUNT(estado, centro, desde, hasta)",
         "params": ["estado", "centro", "desde", "hasta"],
-        "ejemplo": '=SPM.SOLICITUDES.COUNT("aprobada", "1000", "2026-01-01", "2026-12-31")',
+        "ejemplo": '=SPM.SOLICITUDES.COUNT("approved", "1000", "2026-01-01", "2026-12-31")',
     },
     "SPM.SOLICITUDES.SUM": {
         "categoria": FormulaCategoria.SOLICITUDES,
         "descripcion": "Suma campo de solicitudes filtradas",
         "sintaxis": "=SPM.SOLICITUDES.SUM(campo, filtros)",
         "params": ["campo", "filtros"],
-        "ejemplo": '=SPM.SOLICITUDES.SUM("monto_total", {"estado": "aprobada"})',
+        "ejemplo": '=SPM.SOLICITUDES.SUM("total_monto", {"estado": "approved"})',
     },
     # Forecast
     "SPM.FORECAST": {

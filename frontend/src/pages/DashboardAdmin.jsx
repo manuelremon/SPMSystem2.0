@@ -1,15 +1,13 @@
-import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { SPMAgGrid } from "../components/ui/SPMAgGrid";
 import { TableSkeleton } from "../components/ui/Skeleton";
 import { KPIGridSkeleton } from "../components/dashboard/DashboardSkeleton";
 import { ScrollReveal } from "../components/ui/ScrollReveal";
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/Tabs";
-import { planner, solicitudes } from "../services/spm";
+import { solicitudes } from "../services/spm";
 import api from "../services/api";
 import { cachedGet } from "../services/cachedApi";
-import { formatCurrency } from "../utils/formatters";
 import { useI18n } from "../context/i18n";
-import { toNumber } from "../utils/formatters";
 import { useAuthStore } from "../store/authStore";
 import { useNavigate } from "react-router-dom";
 import { getTableColumnsAgGrid } from "./DashboardShared";
@@ -19,7 +17,6 @@ import { WeeklyRequestsKpiCard } from "../components/dashboard/WeeklyRequestsKpi
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
-import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputLabel from '@mui/material/InputLabel';
@@ -32,12 +29,9 @@ import Slider from '@mui/material/Slider';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Divider from '@mui/material/Divider';
-import Chip from '@mui/material/Chip';
-import CircularProgress from '@mui/material/CircularProgress';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
 import Tooltip from '@mui/material/Tooltip';
 import CloseIcon from '@mui/icons-material/Close';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
@@ -49,8 +43,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { StatusDistributionChart } from '../components/dashboard/StatusDistributionChart';
 import { TrendChart, useTrendData } from '../components/dashboard/TrendChart';
 import { ChartExportButton } from '../components/dashboard/ChartExportButton';
-import { ChartLegend } from '../components/dashboard/ChartLegend';
-import { SPMGauge, SPMBar, SPMPolarArea, SPM_COLORS, STATUS_COLORS, PHASE_COLORS, BUDGET_COLORS, FONT_SIZES, TOOLTIP_CONFIG, ANIMATION_CONFIG } from '../components/ui/SPMChartJS';
+import { SPMGauge, SPMPolarArea, SPM_COLORS, STATUS_COLORS, PHASE_COLORS, BUDGET_COLORS, FONT_SIZES, TOOLTIP_CONFIG, ANIMATION_CONFIG } from '../components/ui/SPMChartJS';
 
 // MenuProps para los multiselect
 const ITEM_HEIGHT = 32;
@@ -206,11 +199,11 @@ export default function DashboardAdmin() {
 
         // Fetch ALL solicitudes for "Todas" tab (no estado filter)
         const [todasRes, pendientesRes, enProcesoRes, completadasRes, rechazadasRes] = await Promise.all([
-          solicitudes.listar({ page_size: 500, signal: abortController.signal }).catch(() => null),
-          solicitudes.listar({ estado: "submitted", page_size: 500, signal: abortController.signal }).catch(() => null),
-          solicitudes.listar({ estado: "processing", page_size: 500, signal: abortController.signal }).catch(() => null),
-          solicitudes.listar({ estado: "approved", page_size: 500, signal: abortController.signal }).catch(() => null),
-          solicitudes.listar({ estado: "rejected", page_size: 500, signal: abortController.signal }).catch(() => null),
+          solicitudes.listar({ page_size: 2000, signal: abortController.signal }).catch(() => null),
+          solicitudes.listar({ estado: "submitted", page_size: 2000, signal: abortController.signal }).catch(() => null),
+          solicitudes.listar({ estado: "processing", page_size: 2000, signal: abortController.signal }).catch(() => null),
+          solicitudes.listar({ estado: "approved", page_size: 2000, signal: abortController.signal }).catch(() => null),
+          solicitudes.listar({ estado: "rejected", page_size: 2000, signal: abortController.signal }).catch(() => null),
         ]);
 
         // Verificar que el componente siga montado antes de updatear state
@@ -224,11 +217,11 @@ export default function DashboardAdmin() {
         const rechazadasLista = rechazadasRes?.data?.solicitudes || rechazadasRes?.data?.items || [];
 
         setStats({
-          todas: todasLista.length,
-          pendientes: pendientesLista.length,
-          en_proceso: enProcesoLista.length,
-          completadas: completadasLista.length,
-          rechazadas: rechazadasLista.length,
+          todas: todasRes?.data?.total || todasLista.length,
+          pendientes: pendientesRes?.data?.total || pendientesLista.length,
+          en_proceso: enProcesoRes?.data?.total || enProcesoLista.length,
+          completadas: completadasRes?.data?.total || completadasLista.length,
+          rechazadas: rechazadasRes?.data?.total || rechazadasLista.length,
         });
 
         setAllData({
@@ -390,50 +383,11 @@ export default function DashboardAdmin() {
     };
   }, []);
 
-  // Refetch stock inmovilizado cuando cambian los filtros de Centro - con AbortController
-  // Solo Centro aplica a esta card (no Sector, Solicitante ni Almacén de solicitudes)
-  useEffect(() => {
-    // Si no hay filtros inicializados, no hacer nada
-    if (!filtrosInicializados) return;
-
-    const abortController = new AbortController();
-    let isMounted = true;
-
-    const fetchStockFiltrado = async () => {
-      try {
-        // Construir params - solo centros aplican
-        const params = new URLSearchParams();
-        if (centrosSeleccionados.length > 0) {
-          params.set("centros", centrosSeleccionados.join(","));
-        }
-
-        const url = params.toString() ? `/kpis/stock-inmovilizado?${params}` : "/kpis/stock-inmovilizado";
-        const response = await api.get(url, { signal: abortController.signal });
-
-        if (!isMounted) return;
-
-        if (response.data?.ok) {
-          setStockInmovilizado(prev => ({
-            items: response.data.items || [],
-            total: response.data.total || 0,
-            valorTotal: response.data.valorTotal || 0,
-            globalTotal: prev.globalTotal || response.data.globalTotal || 0,
-            globalValorTotal: prev.globalValorTotal || response.data.globalValorTotal || 0,
-          }));
-        }
-      } catch (err) {
-        if (!isMounted || err?.name === 'AbortError') return;
-        console.error("Error fetching stock inmovilizado filtrado:", err.message);
-      }
-    };
-
-    fetchStockFiltrado();
-
-    return () => {
-      isMounted = false;
-      abortController.abort();
-    };
-  }, [centrosSeleccionados, filtrosInicializados]);
+  // NOTA: Stock inmovilizado Global NO se filtra por centros de solicitudes
+  // porque los centros de solicitudes (AA101, AA102...) no coinciden con
+  // los centros de stock SAP (1000, 1001...). El fetch inicial ya trae
+  // los datos globales correctos. La card "Stock Inmovilizado" con filtros
+  // locales tiene sus propios selectores de centro/almacén de stock.
 
   // Fetch stock inmovilizado con filtros locales (nueva card)
   useEffect(() => {
@@ -1308,7 +1262,6 @@ export default function DashboardAdmin() {
                 };
 
                 const tiempos = calcularTiempos();
-                const total = tiempos.total || 1; // Evitar división por 0
 
                 // Colores para cada segmento - usando colores unificados
                 const colores = PHASE_COLORS;
@@ -1469,7 +1422,7 @@ export default function DashboardAdmin() {
                   }
                   if (centrosSeleccionados.length > 0 && !centrosSeleccionados.includes(item.centro)) return false;
                   if (sectoresSeleccionados.length > 0 && !sectoresSeleccionados.includes(item.sector)) return false;
-                  return centrosSeleccionados.length > 0 && sectoresSeleccionados.length > 0;
+                  return true;
                 });
 
                 // Valor de stock interno (compras evitadas)

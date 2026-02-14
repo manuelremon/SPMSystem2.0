@@ -43,7 +43,11 @@ class Message:
             "role": self.role,
             "content": self.content,
             "metadata": self.metadata,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": (
+                self.created_at.isoformat()
+                if hasattr(self.created_at, "isoformat")
+                else self.created_at
+            ) if self.created_at else None,
         }
 
 

@@ -32,7 +32,7 @@ class MessageService:
         if hasattr(settings, "DATABASE_URL") and settings.DATABASE_URL:
             if settings.DATABASE_URL.startswith("sqlite:///"):
                 return Path(settings.DATABASE_URL.split("sqlite:///", 1)[1])
-        return Path("backend/spm.db")
+        return Path("data/spm.db")
 
     @staticmethod
     def _connect():
