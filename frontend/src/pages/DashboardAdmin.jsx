@@ -1,27 +1,13 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { SPMAgGrid } from "../components/ui/SPMAgGrid";
 import { TableSkeleton } from "../components/ui/Skeleton";
+import { KPIGridSkeleton } from "../components/dashboard/DashboardSkeleton";
 import { ScrollReveal } from "../components/ui/ScrollReveal";
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/Tabs";
 import { planner, solicitudes } from "../services/spm";
 import api from "../services/api";
-import { cachedGet, invalidateCache } from "../services/cachedApi";
+import { cachedGet } from "../services/cachedApi";
 import { formatCurrency } from "../utils/formatters";
-import {
-  Plus,
-  CheckCircle,
-  TrendingUp,
-  TrendingDown,
-  FileText,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  DollarSign,
-  Package,
-  Loader2,
-  ChevronDown,
-  ChevronRight,
-} from "../components/ui/Icons";
 import { useI18n } from "../context/i18n";
 import { toNumber } from "../utils/formatters";
 import { useAuthStore } from "../store/authStore";
@@ -120,11 +106,6 @@ export default function DashboardAdmin() {
   const navigate = useNavigate();
   const { t } = useI18n();
 
-  // Refs para exportar graficos
-  const distributionChartRef = useRef(null);
-  const trendChartRef = useRef(null);
-  const budgetChartRef = useRef(null);
-
   // Refs para ampliar cards en modal
   const solicitudesCredasRef = useRef(null);
   const tiemposGestionRef = useRef(null);
@@ -132,9 +113,6 @@ export default function DashboardAdmin() {
   const presupuestoGlobalRef = useRef(null);
   const tendenciaRef = useRef(null);
   const distribucionRef = useRef(null);
-
-  // Drill-down state
-  const [drillDownFilter, setDrillDownFilter] = useState(null);
 
   // Modal expand state
   const [expandedCard, setExpandedCard] = useState(null);
@@ -194,9 +172,9 @@ export default function DashboardAdmin() {
   // KPI state
   const [kpiLoading, setKpiLoading] = useState(true);
   const [kpiData, setKpiData] = useState({
-    solicitudes: { total: 0, aprobadas: 0, rechazadas: 0, pendientes: 0, trend: [0,0,0,0,0,0,0], trendPercentage: 0 },
+    solicitudes: { total: 0, aprobadas: 0, rechazadas: 0, pendientes: 0, trend: [0, 0, 0, 0, 0, 0, 0], trendPercentage: 0 },
     presupuesto: { total: 0, utilizado: 0, disponible: 0, percentage: 0, porCentro: [] },
-    tiempoAprobacion: { promedio: 0, meta: 3.0, trend: [0,0,0,0,0,0,0] },
+    tiempoAprobacion: { promedio: 0, meta: 3.0, trend: [0, 0, 0, 0, 0, 0, 0] },
     materialesMasSolicitados: [],
     gruposArticulosMasSolicitados: [],
   });
@@ -588,9 +566,9 @@ export default function DashboardAdmin() {
   const datosFiltrados = useMemo(() => {
     // Si no hay ningún filtro seleccionado, no mostrar datos
     const hayFiltrosSeleccionados = centrosSeleccionados.length > 0 ||
-                                     almacenesSeleccionados.length > 0 ||
-                                     sectoresSeleccionados.length > 0 ||
-                                     solicitantesSeleccionados.length > 0;
+      almacenesSeleccionados.length > 0 ||
+      sectoresSeleccionados.length > 0 ||
+      solicitantesSeleccionados.length > 0;
 
     if (!hayFiltrosSeleccionados) {
       return [];
@@ -680,7 +658,6 @@ export default function DashboardAdmin() {
 
   // Handler para drill-down desde graficos
   const handleDrillDown = useCallback((statusId, item) => {
-    setDrillDownFilter(statusId);
     // Mapear el ID del estado al tab correspondiente
     const tabMapping = {
       aprobadas: 'completadas',
@@ -1066,9 +1043,7 @@ export default function DashboardAdmin() {
       {/* ================================================================== */}
 
       {kpiLoading ? (
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 6 }}>
-          <CircularProgress size={32} />
-        </Box>
+        <KPIGridSkeleton />
       ) : (
         <>
           {/* Grid principal - Layout unificado */}
@@ -1275,10 +1250,10 @@ export default function DashboardAdmin() {
                   const solicitudesProcesadas = datosFiltrados.filter(s => {
                     const estado = (s.estado || s.status || '').toLowerCase();
                     return estado.includes('aprobada') || estado === 'approved' ||
-                           estado.includes('proceso') || estado === 'processing' ||
-                           estado.includes('despach') || estado === 'dispatched' ||
-                           estado.includes('complet') || estado === 'completed' ||
-                           estado.includes('cerrada') || estado === 'closed';
+                      estado.includes('proceso') || estado === 'processing' ||
+                      estado.includes('despach') || estado === 'dispatched' ||
+                      estado.includes('complet') || estado === 'completed' ||
+                      estado.includes('cerrada') || estado === 'closed';
                   });
 
                   if (solicitudesProcesadas.length === 0) {

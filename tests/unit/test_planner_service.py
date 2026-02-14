@@ -24,7 +24,11 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from backend.core.cache_loader import clear_cache
-from backend.core.repository_legacy import SolicitudRepository
+
+try:
+    from backend.core.repository_legacy import SolicitudRepository
+except ImportError:
+    SolicitudRepository = None
 from backend.services.planner_service import (
     paso_1_analizar_solicitud, paso_2_opciones_abastecimiento,
     paso_3_guardar_tratamiento)

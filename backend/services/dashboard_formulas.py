@@ -120,18 +120,23 @@ def _set_cache(key: str, value: Any):
 class StockFormulas:
     """Formulas de inventario/stock"""
 
+    # Campos que vienen de la tabla stock (agregados)
+    _STOCK_FIELDS = {"stock_actual", "stock_valorizado"}
+    # Campos que vienen de materiales_bbdd
+    _MATERIAL_FIELDS = {"punto_reorden", "stock_seguridad", "stock_maximo", "consumo_promedio"}
+
     @staticmethod
     def stock(material: str, centro: str, campo: str) -> FormulaResult:
         """
         =SPM.STOCK(material, centro, campo)
 
         Campos disponibles:
-        - stock_actual: Stock disponible
-        - stock_transito: Stock en transito
-        - stock_reservado: Stock reservado
-        - punto_reorden: Punto de reorden
-        - eoq: Cantidad economica de pedido
-        - consumo_promedio: Consumo mensual promedio
+        - stock_actual: Stock disponible (suma de stock en todos los almacenes)
+        - stock_valorizado: Valor total del stock
+        - punto_reorden: Punto de pedido (de materiales_bbdd)
+        - stock_seguridad: Stock de seguridad (de materiales_bbdd)
+        - stock_maximo: Stock maximo (de materiales_bbdd)
+        - consumo_promedio: Consumo promedio anual (de materiales_bbdd)
         """
         start = time.time()
         cache_key = _get_cache_key("SPM.STOCK", [material, centro, campo])
@@ -139,35 +144,41 @@ class StockFormulas:
         if cached is not None:
             return FormulaResult(success=True, value=cached, cached=True, execution_time_ms=(time.time() - start) * 1000)
 
-        conn = _connect()
+        all_fields = StockFormulas._STOCK_FIELDS | StockFormulas._MATERIAL_FIELDS
+        if campo not in all_fields:
+            return FormulaResult(
+                success=False,
+                error_code="INVALID_FIELD",
+                error_message=f"Campo '{campo}' no valido. Opciones: {sorted(all_fields)}",
+                execution_time_ms=(time.time() - start) * 1000,
+            )
+
+        conn = _ConnectionWrapper(get_db_connection("sap_data"))
+        conn.__enter__()
         try:
             cur = conn.cursor()
 
-            # Mapeo de campos a columnas de BD
-            campo_map = {
-                "stock_actual": "stock_libre",
-                "stock_transito": "stock_transito",
-                "stock_reservado": "stock_reservado",
-                "punto_reorden": "punto_reorden",
-                "eoq": "eoq",
-                "consumo_promedio": "consumo_mensual_promedio",
-            }
-
-            if campo not in campo_map:
-                return FormulaResult(
-                    success=False,
-                    error_code="INVALID_FIELD",
-                    error_message=f"Campo '{campo}' no valido. Opciones: {list(campo_map.keys())}",
-                    execution_time_ms=(time.time() - start) * 1000,
+            if campo in StockFormulas._STOCK_FIELDS:
+                col = "stock" if campo == "stock_actual" else "stock_valorizado"
+                _execute(
+                    cur,
+                    f"SELECT COALESCE(SUM({col}), 0) as valor FROM stock WHERE material = ? AND centro = ?",
+                    (material, centro),
+                )
+            else:
+                col_map = {
+                    "punto_reorden": "punto_de_pedido",
+                    "stock_seguridad": "stock_de_seguridad",
+                    "stock_maximo": "stock_maximo",
+                    "consumo_promedio": "consumo_promedio_anual",
+                }
+                col = col_map[campo]
+                _execute(
+                    cur,
+                    f"SELECT COALESCE({col}, 0) as valor FROM materiales_bbdd WHERE codigo_material = ? AND centro = ?",
+                    (material, centro),
                 )
 
-            columna = campo_map[campo]
-
-            _execute(
-                cur,
-                f"SELECT {columna} FROM stock_consulta WHERE numero_material = ? AND centro = ?",
-                (material, centro),
-            )
             row = _fetchone(cur)
 
             if not row:
@@ -178,7 +189,7 @@ class StockFormulas:
                     execution_time_ms=(time.time() - start) * 1000,
                 )
 
-            value = row.get(columna, 0)
+            value = row.get("valor", 0) or 0
             _set_cache(cache_key, value)
 
             return FormulaResult(
@@ -199,7 +210,7 @@ class MRPFormulas:
         =SPM.MRP.ALERTAS(centro, severidad)
 
         Cuenta alertas MRP por centro y opcionalmente severidad.
-        Severidades: alta, media, baja
+        Severidades: danger, warning, info
         """
         start = time.time()
         cache_key = _get_cache_key("SPM.MRP.ALERTAS", [centro, severidad or "all"])
@@ -214,13 +225,13 @@ class MRPFormulas:
             if severidad:
                 _execute(
                     cur,
-                    "SELECT COUNT(*) as cnt FROM mrp_alertas WHERE centro = ? AND severidad = ? AND resuelta = 0",
+                    "SELECT COUNT(*) as cnt FROM alertas_mrp WHERE centro = ? AND severidad = ? AND estado = 'activa'",
                     (centro, severidad),
                 )
             else:
                 _execute(
                     cur,
-                    "SELECT COUNT(*) as cnt FROM mrp_alertas WHERE centro = ? AND resuelta = 0",
+                    "SELECT COUNT(*) as cnt FROM alertas_mrp WHERE centro = ? AND estado = 'activa'",
                     (centro,),
                 )
 
@@ -234,10 +245,11 @@ class MRPFormulas:
                 execution_time_ms=(time.time() - start) * 1000,
             )
         except Exception as e:
-            # Tabla puede no existir
             return FormulaResult(
-                success=True,
+                success=False,
                 value=0,
+                error_code="QUERY_ERROR",
+                error_message=f"Error consultando alertas MRP: {e}",
                 execution_time_ms=(time.time() - start) * 1000,
             )
         finally:
@@ -381,7 +393,7 @@ class SolicitudesFormulas:
         try:
             cur = conn.cursor()
 
-            sql = "SELECT COUNT(*) as cnt FROM solicitudes WHERE 1=1"
+            sql = "SELECT COUNT(*) as cnt FROM solicitud WHERE 1=1"
             params = []
 
             if estado:
@@ -435,7 +447,7 @@ class SolicitudesFormulas:
         try:
             cur = conn.cursor()
 
-            sql = f"SELECT COALESCE(SUM({campo}), 0) as total FROM solicitudes WHERE 1=1"
+            sql = f"SELECT COALESCE(SUM({campo}), 0) as total FROM solicitud WHERE 1=1"
             params = []
 
             if filtros:

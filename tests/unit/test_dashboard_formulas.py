@@ -238,12 +238,15 @@ class TestStockFormulas:
         """Stock formula debe aceptar campos validos"""
         from backend.services.dashboard_formulas import StockFormulas
 
-        with patch("backend.services.dashboard_formulas._connect") as mock:
+        with patch("backend.services.dashboard_formulas.get_db_connection") as mock_gdb:
             mock_conn = MagicMock()
             mock_cursor = MagicMock()
-            mock_cursor.fetchone.return_value = {"stock_libre": 100}
+            mock_cursor.fetchone.return_value = {"valor": 100}
             mock_conn.cursor.return_value = mock_cursor
-            mock.return_value = mock_conn
+            mock_ctx = MagicMock()
+            mock_ctx.__enter__ = MagicMock(return_value=mock_conn)
+            mock_ctx.__exit__ = MagicMock(return_value=False)
+            mock_gdb.return_value = mock_ctx
 
             result = StockFormulas.stock("MAT001", "1000", "stock_actual")
 
