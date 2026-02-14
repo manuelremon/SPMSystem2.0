@@ -2,16 +2,16 @@
 
 Guia para Claude Code (claude.ai/code) cuando trabaja con este repositorio.
 
-> **Ultima actualizacion**: 2026-02-06 (Produccion estabilizada, TMS/FMS integrado)
+> **Ultima actualizacion**: 2026-02-14 (Sprints 27-34: refactoring estructural, PWA, Sentry, CI strict)
 
 ## Resumen del Proyecto
 
 | Metrica | Valor |
 |---------|-------|
-| **Backend** | 192 archivos Python, ~70,000 lineas |
-| **Frontend** | 98 paginas, 118 componentes, 18 hooks |
-| **Endpoints API** | 250+ endpoints en 33 modulos |
-| **Tests** | 1,220+ tests (97 archivos) |
+| **Backend** | 210+ archivos Python, ~65,000 lineas (post-split) |
+| **Frontend** | 98 paginas, 126 componentes, 22 hooks |
+| **Endpoints API** | 250+ endpoints en 36 modulos (3 packages) |
+| **Tests** | 1,330+ tests (101 archivos) |
 | **Base de Datos** | 3 SQLite + PostgreSQL (produccion) |
 
 ## Comandos de Desarrollo
@@ -53,39 +53,44 @@ http://localhost:5173       http://localhost:5000     SQLite (data/)
 
 ```
 SPMv3.0/
-├── backend/                    # API Flask (192 archivos, ~70K lineas)
-│   ├── routes/                 # 33 modulos, 250+ endpoints
+├── backend/                    # API Flask (210+ archivos, ~65K lineas)
+│   ├── routes/                 # 36 modulos (3 packages: ai/, planner/, solicitudes/)
 │   ├── services/               # 18 servicios de negocio
 │   ├── core/                   # 39 modulos de infraestructura
 │   ├── agent/                  # 46 archivos ML/IA (forecast/, rag/, proactive/)
-│   └── migrations/             # 22 migraciones de BD
+│   └── migrations/             # 35 migraciones de BD
 ├── frontend/src/
-│   ├── pages/                  # 98 paginas (incluye admin, TMS, FMS)
-│   ├── components/             # 118 componentes
-│   ├── hooks/                  # 18 custom hooks
+│   ├── pages/                  # 98 paginas + DashboardAdmin/ sub-componentes
+│   ├── components/             # 126 componentes (incl. OfflineBanner)
+│   ├── hooks/                  # 22 custom hooks (incl. useMaterial*, useToast)
 │   ├── services/               # 18 servicios API
 │   ├── store/                  # 8 stores Zustand
 │   └── context/                # i18n provider (200+ keys)
 ├── data/                       # Bases de datos SQLite
-├── tests/                      # 97 archivos de test
+├── tests/                      # 101 archivos de test
 ├── scripts/                    # Scripts de utilidad
 └── docs/                       # Documentacion
 ```
 
 ## Backend - Inventario Completo
 
-### Routes (33 modulos, 250+ endpoints)
+### Routes (36 modulos, 250+ endpoints)
+
+**Nota:** 3 routes gigantes fueron divididos en packages modulares (Sprint 31):
+- `ai.py` (1902 ln) -> `routes/ai/` (5 modulos: core, forecast, materiales, recomendaciones, plan_compras)
+- `planner.py` (2049 ln) -> `routes/planner/` (7 modulos: core, solicitudes, decisiones, proveedores, acciones, consultas, helpers)
+- `solicitudes.py` (2044 ln) -> `routes/solicitudes/` (4 modulos: crud, estados, interaccion, helpers)
 
 | Modulo | Endpoints | Proposito |
 |--------|-----------|-----------|
 | `admin.py` | 31 | CRUD usuarios, roles, materiales, proveedores |
 | `admin_import.py` | 5 | Importacion masiva de datos |
-| `planner.py` | 21 | Planificacion de solicitudes, decisiones |
+| `planner/` | 21 | Planificacion de solicitudes, decisiones (package) |
 | `mi_cuenta.py` | 14 | Perfil, password, preferencias |
-| `ai.py` | 14 | Recomendaciones IA, analisis, forecast |
+| `ai/` | 14 | Recomendaciones IA, analisis, forecast (package) |
 | `vertex_ia.py` | 10 | Vertex AI chat, TTS, RAG, status |
-| `solicitudes.py` | 11 | CRUD solicitudes, estados, archivos |
-| `metrics.py` | 11 | Metricas de rendimiento |
+| `solicitudes/` | 11 | CRUD solicitudes, estados, archivos (package) |
+| `metrics.py` | 11 | Metricas de rendimiento + Prometheus |
 | `budget.py` | 8 | Presupuestos, ledger, BUR |
 | `mensajes.py` | 8 | Sistema de mensajeria |
 | `mrp.py` | 8 | Alertas MRP, KPIs, catalogo |
@@ -94,15 +99,16 @@ SPMv3.0/
 | `dashboards.py` | 7 | Dashboard unificado, KPIs por rol |
 | `tms.py` | 8 | Transportation Management System |
 | `fms.py` | 8 | Fleet Management System |
+| `ordenes_compra.py` | 8 | Ordenes de compra |
 | `stock.py` | 5 | Consulta y gestion de stock |
 | `mrp_portfolio.py` | 5 | Analisis de portfolio MRP |
 | `docs.py` | 6 | Swagger UI, OpenAPI |
-| `export.py` | 6 | Exportar solicitudes, inventario |
-| `notificaciones.py` | 6 | CRUD notificaciones |
+| `export.py` | 6 | Exportar solicitudes, inventario, reportes programados |
+| `notificaciones.py` | 6 | CRUD notificaciones (SSE non-blocking) |
 | `push.py` | 6 | Push notifications |
 | `health.py` | 6 | Health checks, probes, diagnostics |
 | `database.py` | 5 | Admin de base de datos |
-| `procurement.py` | 5 | Gestion de compras |
+| `procurement.py` | 5 | Gestion de compras, ranking proveedores |
 | `catalogos.py` | 5 | Centros, sectores, puestos (requiere auth) |
 | `equivalencias.py` | 5 | Equivalencias de materiales |
 | `foro.py` | 5 | Posts, replies, likes |
@@ -112,7 +118,7 @@ SPMv3.0/
 | `kpis.py` | 1 | Dashboard KPIs |
 | `materiales_detalle.py` | 0 | Helpers de detalle materiales |
 
-### Services (18 servicios)
+### Services (19 servicios)
 
 | Servicio | Proposito |
 |----------|-----------|
@@ -124,7 +130,7 @@ SPMv3.0/
 | `audit_service.py` | Trail de auditoria |
 | `budget_service.py` | Presupuestos, BUR |
 | `push_service.py` | Web Push notifications |
-| `notification_service.py` | Notificaciones in-app |
+| `notification_service.py` | Notificaciones in-app + WebSocket emit |
 | `message_service.py` | Sistema de mensajes |
 | `planner_service.py` | Logica de planificacion |
 | `dashboard_service.py` | Dashboard unificado, metricas por rol |
@@ -132,6 +138,7 @@ SPMv3.0/
 | `tms_service.py` | Gestion de transporte y envios |
 | `fms_service.py` | Gestion de flota vehicular |
 | `tts_service.py` | Text-to-Speech (Edge TTS, voces AR/MX) |
+| `oc_service.py` | Ordenes de compra |
 | `recommendation_engine.py` | Motor de recomendaciones |
 | `temp_data_service.py` | Datos temporales y cache |
 
@@ -147,7 +154,7 @@ SPMv3.0/
 | **CORS** | `cors.py` (manejo manual con regex/wildcards) |
 | **SPA** | `spa.py` (servir frontend React) |
 | **Blueprints** | `blueprints.py` (registro centralizado de 33 blueprints) |
-| **Cache** | `cache.py`, `cache_advanced.py`, `cache_loader.py` |
+| **Cache** | `cache.py` (L1 memory + L2 Redis), `cache_advanced.py`, `cache_loader.py` |
 | **State** | `fsm.py` (maquina de estados solicitudes) |
 | **Errors** | `errors.py` (excepciones custom) |
 | **Monitoring** | `metrics.py`, `observability.py` |
@@ -244,32 +251,37 @@ agent/
 | **Gamificacion** | Trivias |
 | **Admin** | AdminUsuarios, AdminRoles, AdminCentros, AdminSectores, AdminMateriales, AdminProveedores, AdminPresupuestos, AdminEstado, AdminPlanificadores, AdminPuestos, AdminAlmacenes, AdminSolicitudesPerfil |
 
-### Components (118 totales)
+### Components (126 totales)
 
 | Carpeta | Componentes | Proposito |
 |---------|-------------|-----------|
-| `ui/` | 48 | Primitivos (Button, Input, Card, Modal, Badge, etc.) |
+| `ui/` | 49 | Primitivos (Button, Input, Card, Modal, Badge, OfflineBanner, etc.) |
 | `features/DataTable/` | 1 | ModernDataTable con TanStack Table |
 | `materials/` | 3 | MaterialDetailModal, MaterialsTable, SearchDropdown |
 | `Planner/` | 7 | Wizard de 4 pasos + StockDetalleModal |
-| `forecast/` | 10 | BacktestResults, ForecastChart, ForecastKPIs, LazyPlot, etc. |
+| `forecast/` | 10 | BacktestResults, ForecastChart, ForecastKPIs, etc. |
 | `Dashboard/` | 6 | Componentes de dashboard unificado |
 | `Canvas/Charts` | 6 | Visualizaciones y graficos |
 | `Tour/` | 3 | Guia interactiva de usuario |
 | `Analytics/` | 2 | Componentes de analisis |
 | `Admin/` | 3 | Templates CRUD admin |
 | `export/` | 1 | ExportButton |
+| `DashboardAdmin/` | 7 | KPIRow1-3, FiltersBar, SolicitudesSection, ExpandCardButton, ExpandedCardDialog |
 | **Core** | 11 | Layout, Sidebar, ErrorBoundary, ProtectedRoute, Loading, AdminCrudTemplate, AssistantModal, ChatAssistant, MensajeThreadModal, HeaderNav |
 
-### Hooks (18 totales)
+### Hooks (22 totales)
 
 | Hook | Proposito |
 |------|-----------|
-| `useMaterials.js` | Estado completo de Materials.jsx |
+| `useMaterials.js` | Orquestador de Materials.jsx (compone 3 sub-hooks) |
+| `useMaterialSearch.js` | Busqueda y filtrado de materiales |
+| `useMaterialCart.js` | Carrito y seleccion de materiales |
+| `useMaterialForm.js` | Estado de formulario de materiales |
+| `useToast.js` | API unificada de notificaciones toast |
 | `usePushNotifications.js` | Registro y gestion push |
 | `useDebounced.js` | Debounce de valores |
 | `useDebouncedValue.js` | Debounce alternativo |
-| `useNotifications.js` | Notificaciones SSE |
+| `useNotifications.js` | Notificaciones WebSocket (fallback SSE/polling) |
 | `useScrollReveal.js` | Animaciones scroll |
 | `useForecast.js` | Estado y logica de pronosticos |
 | `usePlanner.js` | Estado del wizard de planificacion |
@@ -328,7 +340,7 @@ agent/
 | `data/sap_data.db` | Stock, consumo historico, pedidos | 178,338 |
 | `data/catalogo_materiales.db` | Catalogo completo de materiales SAP | ~28,000 |
 
-**Produccion:** PostgreSQL con 22 migraciones aplicadas (tablas renombradas a espanol).
+**Produccion:** PostgreSQL con 35 migraciones aplicadas (tablas renombradas a espanol).
 
 **Reimportacion de datos SAP:**
 ```bash
@@ -341,12 +353,12 @@ python scripts/migrate_excel_to_db.py
 
 | Categoria | Archivos | Tests | Cobertura |
 |-----------|----------|-------|-----------|
-| Backend Unit | 55 | 900+ | Excelente (core, pipelines) |
+| Backend Unit | 55 | 1,000+ | Excelente (core, pipelines) |
 | Backend Integration | 17 | 200+ | Buena (33+ rutas) |
 | Backend E2E | 2 | 30+ | Buena (health, auth, flujos) |
-| Frontend | 21 | 80+ | Mejorando |
+| Frontend | 25 | 190+ | Mejorando (4 nuevos archivos Sprint 30) |
 
-**Total: 1,220+ tests en 97 archivos**
+**Total: 1,330+ tests en 101 archivos**
 
 ### Estructura
 
@@ -358,13 +370,16 @@ tests/
 └── e2e/                 # 2 archivos - Tests end-to-end
 ```
 
-### CI/CD - Tests Excluidos
+### CI/CD - Tests Excluidos (backend)
 
-Los siguientes tests se excluyen del pipeline de deploy (fallan pre-existente):
+Los siguientes tests se excluyen del CI (fallan pre-existente):
 - `test_budget_service.py`, `test_fsm.py`, `test_mrp_parametros.py`
 - `test_planner_service.py`, `test_forecast_parallel.py`, `test_stl_decomposition.py`
 - `test_cors.py`, `test_lstm_model.py` (requiere TensorFlow)
+- `test_openapi.py`, `test_deepseek_client.py`, `test_approval_rules.py`, `test_dashboard_formulas.py`
 - `test_cache_expiracion` (flaky)
+
+**Frontend tests**: 17 archivos pre-existentes fallan en CI (`continue-on-error: true`), 8 archivos pasan
 
 ### Backend - Tests por Modulo
 
@@ -384,7 +399,8 @@ Los siguientes tests se excluyen del pipeline de deploy (fallan pre-existente):
 
 ```
 frontend/src/
-├── pages/__tests__/          # 14 archivos
+├── pages/__tests__/          # 15 archivos
+│   ├── DashboardAdmin.test.jsx  # 49 tests (Sprint 30)
 │   ├── Materials.test.jsx       # 52 tests
 │   ├── MiCuenta.test.jsx        # 45 tests
 │   ├── CreateSolicitud.test.jsx # 15 tests
@@ -396,8 +412,11 @@ frontend/src/
 │   ├── Paso2DecisionAbastecimiento.test.jsx
 │   ├── Paso3RevisionFinal.test.jsx
 │   └── TratarSolicitudModal.test.jsx
-├── hooks/__tests__/
-│   └── useDebounced.test.js     # 12 tests
+├── hooks/__tests__/          # 4 archivos
+│   ├── useDebounced.test.js     # 12 tests
+│   ├── usePlanner.test.js       # 23 tests (Sprint 30)
+│   ├── useMaterials.test.js     # 20 tests (Sprint 30)
+│   └── useForecast.test.js      # 20 tests (Sprint 30)
 └── utils/__tests__/
     └── formatters.test.js       # 22 tests
 ```
@@ -417,8 +436,7 @@ frontend/src/
 | Issue | Ubicacion | Impacto |
 |-------|-----------|---------|
 | TODO/FIXME pendientes | 6 archivos backend | Deuda tecnica |
-| Imports no usados | Varios routes | Limpieza |
-| `useMaterials` muy grande | 590 lineas | Podria dividirse |
+| Frontend tests pre-existentes fallando | 17 archivos en CI | Cobertura |
 
 ### Bugs Conocidos (no bloqueantes)
 
@@ -463,19 +481,23 @@ frontend/src/
 - Validacion de ownership en endpoints criticos
 - Matriz de aprobacion con permisos por monto
 - Endpoints sensibles protegidos con auth/admin
-- CI/CD sin `continue-on-error`, rollback habilitado
+- CI/CD bloqueante (backend tests/lint, frontend build/lint), rollback habilitado
+- Sentry error tracking en produccion (backend via `SENTRY_DSN`, frontend via `@sentry/react`)
 
 ## Convenciones de Codigo
 
 ### Python (backend)
 - snake_case para variables/funciones
 - Validacion con Pydantic en `core/schemas.py`
-- Blueprints por dominio en `routes/`
+- Blueprints por dominio en `routes/` (archivos grandes divididos en packages)
+- Linting: Ruff (config en `pyproject.toml`, ignores E402/E721)
 
 ### JavaScript/React (frontend)
 - camelCase para variables, PascalCase para componentes
 - Componentes UI en `components/ui/`
 - Usar sistema i18n para TODOS los textos visibles
+- Linting: ESLint (config en `frontend/.eslintrc.cjs`)
+- Sub-componentes grandes extraidos con React.memo()
 
 ### Sistema i18n
 - Ubicacion: `frontend/src/context/i18n.jsx`
@@ -519,7 +541,7 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 | Archivo | Proposito |
 |---------|-----------|
 | `wsgi.py` | Entry point servidor |
-| `backend/app.py` | Factory Flask (auto-crea tablas Vertex) |
+| `backend/app.py` | Factory Flask (auto-crea tablas Vertex, Sentry, Redis cache) |
 | `backend/core/config.py` | Configuracion |
 
 ### Core Modules
@@ -573,7 +595,8 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 
 ### Dashboard Unificado
 - **Backend:** `routes/dashboards.py`, `services/dashboard_service.py`, `services/dashboard_formulas.py`
-- **Frontend:** `Dashboard.jsx` (redirige a DashboardAdmin para todos los roles)
+- **Frontend:** `Dashboard.jsx` (redirige a DashboardAdmin), `DashboardAdmin.jsx` (719 ln, orquestador)
+- **Sub-componentes:** `pages/DashboardAdmin/` (KPIRow1-3, FiltersBar, SolicitudesSection, ExpandCardButton, ExpandedCardDialog)
 - **Store:** `dashboardStore.js`
 - **Migracion:** `026_dashboard_tables.py`
 
@@ -594,12 +617,15 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 3. Paso3RevisionFinal - Confirmacion
 4. Paso4AccionesPendientes - Registro
 
-### Push Notifications
+### Push Notifications & PWA
 - **Backend:** `routes/push.py`, `services/push_service.py`, `core/push_config.py`
-- **Frontend:** `hooks/usePushNotifications.js`, `public/sw.js`
+- **Frontend:** `hooks/usePushNotifications.js`, `public/push-sw.js` (push handlers)
+- **PWA:** Workbox via `vite-plugin-pwa`, runtime caching (catalogos, materiales, dashboards)
+- **Offline:** `OfflineBanner.jsx` muestra banner cuando no hay conexion
+- **Config:** `vite.config.js` (VitePWA plugin), `manifest.json` existente
 
 ### Asistente IA
-- **Backend:** `routes/assistant.py`, `routes/ai.py`, `services/ai_service.py`
+- **Backend:** `routes/assistant.py`, `routes/ai/` (package), `services/ai_service.py`
 - **Frontend:** `AssistantModal.jsx`, `ChatAssistant.jsx`
 
 ### WebSockets
@@ -607,11 +633,12 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 - **Features:** Event Bus, Rooms, Broadcast, Direct messages
 
 ### Observability
-- **Backend:** `core/observability.py`
-- **Features:** Structured logging (JSON), Request tracing (Spans)
+- **Backend:** `core/observability.py`, `routes/metrics.py` (Prometheus endpoint)
+- **Features:** Structured logging (JSON), Request tracing (Spans), Sentry (prod)
+- **Sentry:** Backend (`SENTRY_DSN` env var), Frontend (`@sentry/react`)
 
 ### Forecast (Pronosticos de Demanda)
-- **Backend:** `agent/pipelines/forecast/`, `routes/ai.py`
+- **Backend:** `agent/pipelines/forecast/`, `routes/ai/forecast.py`
 - **Frontend:** `ForecastIndividual.jsx`, `ForecastMasivo.jsx`, `components/forecast/`
 - **Modelos:** ARIMA, Prophet, XGBoost, Sklearn, STL
 - **Features:** Backtesting, tuning automatico, comparacion de modelos
@@ -631,12 +658,12 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
   - L2: hasta $1,000,000 USD
   - ADMIN: mas de $1,000,000 USD
 
-## Migraciones de BD (22 totales)
+## Migraciones de BD (35 totales)
 
 | Migracion | Proposito |
 |-----------|-----------|
 | `003` - `013` | Core: budget, config, planner, fsm, approval, sla, mrp, notifications, indexes, stock, profiles |
-| `020` | Catalogos a PostgreSQL |
+| `020` | Catalogos y datos SAP a PostgreSQL (vistas de compatibilidad) |
 | `021` | Renombrar centros |
 | `022` | Tablas Vertex IA (auto-ejecuta en startup) |
 | `023` | Historial de presupuestos |
@@ -645,15 +672,29 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 | `026` | Tablas Dashboard |
 | `027` | Tablas TMS |
 | `028` | Tablas FMS |
+| `029` | Indices de rendimiento adicionales |
+| `033` | Importar datos SAP SQLite→PG (script manual, ejecutar 1 vez) |
+| `034` | Tablas Ordenes de Compra (5 tablas) |
+| `035` | Tabla reporte_historial (reportes programados) |
 
 ## CI/CD
 
-### GitHub Actions (`.github/workflows/deploy-production.yml`)
+### GitHub Actions
+
+**CI Pipeline** (`.github/workflows/ci.yml`):
+- Backend tests (con exclusiones de tests pre-existentes)
+- Backend lint (Ruff, 0 errores)
+- Frontend build (Vite + PWA)
+- Frontend lint (ESLint, `.eslintrc.cjs`, max 100 warnings)
+- Frontend tests (non-blocking por 17 archivos pre-existentes que fallan)
+- Security audit (pip-audit + npm audit, non-blocking)
+
+**Deploy to Production** (`.github/workflows/deploy-production.yml`):
 - Deploy via rsync al VPS
-- Tests automaticos (con exclusiones de tests pre-existentes que fallan)
+- Backup pre-deploy (pg_dump)
 - Build frontend con `VITE_API_URL`
-- Backup pre-deploy con timestamp
 - Rollback automatico en caso de fallo
+- Health check con retry
 - Inicializacion automatica de tablas Vertex
 
 ## Historial de Sprints
@@ -669,6 +710,14 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 | 23-24 | Limpieza y Refactoring | 2026-01-19 |
 | 25 | Deploy Produccion + TMS/FMS/Dashboards | 2026-02-01 |
 | 26 | Hardening seguridad + Vertex IA prod | 2026-02-06 |
+| 27 | Backend quick wins: SSE non-blocking, Redis L2 cache, SELECT * fix, Sentry | 2026-02-14 |
+| 28 | Frontend: useToast, alert() eliminados, ARIA labels en 4 paginas | 2026-02-14 |
+| 29 | Notificaciones WebSocket-first (fallback SSE/polling) | 2026-02-14 |
+| 30 | Tests frontend: DashboardAdmin (49), hooks (63 tests) | 2026-02-14 |
+| 31 | Split backend: ai.py, planner.py, solicitudes.py -> packages | 2026-02-14 |
+| 32 | Split frontend: DashboardAdmin (7 sub-comp), useMaterials (3 hooks) | 2026-02-14 |
+| 33 | PWA Offline: Workbox, OfflineBanner, push-sw.js | 2026-02-14 |
+| 34 | Monitoring: Sentry backend/frontend, Prometheus metrics | 2026-02-14 |
 
 ---
 
