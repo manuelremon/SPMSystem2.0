@@ -5,7 +5,12 @@ CRUD completo con permisos para Admin y Planificador
 
 from flask import Blueprint, jsonify, request
 
-from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id, is_using_postgresql
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    insert_returning_id,
+    is_using_postgresql,
+)
 from backend.core.roles import require_auth, require_role
 from backend.core.search_utils import build_description_search
 

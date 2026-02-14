@@ -7,11 +7,10 @@ Maneja: envios, consolidacion LTL, tracking, costos, tarifas, cierres financiero
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List, Optional
 
 from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
 from backend.core.tms_schemas import (
-    SHIPMENT_TRANSITIONS,
     validar_transicion_shipment,
 )
 
@@ -293,7 +292,7 @@ def asignar_vehiculo_conductor(shipment_id: int, vehicle_id: int, driver_id: int
             raise ValueError(f"Envio {shipment_id} no encontrado")
 
         if row["estado"] not in ["confirmed", "draft"]:
-            raise ValueError(f"Envio debe estar en estado confirmed o draft")
+            raise ValueError("Envio debe estar en estado confirmed o draft")
 
         # Validate vehicle availability and capacity
         cursor.execute("SELECT * FROM fms_vehicles WHERE id = ? AND estado = ?", (vehicle_id, "disponible"))
@@ -302,10 +301,10 @@ def asignar_vehiculo_conductor(shipment_id: int, vehicle_id: int, driver_id: int
             raise ValueError(f"Vehiculo {vehicle_id} no disponible")
 
         if row["peso_total_kg"] > vehicle["capacidad_peso_kg"]:
-            raise ValueError(f"Peso excede capacidad del vehiculo")
+            raise ValueError("Peso excede capacidad del vehiculo")
 
         if row["volumen_total_m3"] > vehicle["capacidad_vol_m3"]:
-            raise ValueError(f"Volumen excede capacidad del vehiculo")
+            raise ValueError("Volumen excede capacidad del vehiculo")
 
         # Validate driver
         cursor.execute("SELECT * FROM fms_drivers WHERE id = ? AND estado = ?", (driver_id, "activo"))
@@ -341,7 +340,7 @@ def confirmar_entrega(shipment_id: int, data: dict, user_id: str) -> dict:
             raise ValueError(f"Envio {shipment_id} no encontrado")
 
         if row["estado"] != "in_transit":
-            raise ValueError(f"Envio debe estar en transito para confirmar entrega")
+            raise ValueError("Envio debe estar en transito para confirmar entrega")
 
         # Update shipment
         cursor.execute("""

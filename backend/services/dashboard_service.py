@@ -205,7 +205,8 @@ class DashboardService:
             # Actually, _execute handles ? vs %s, but SQLAlchemy generates :param
             # We need to bridge SQLAlchemy params to the driver params.
             
-            from sqlalchemy.dialects import postgresql as pg_dialect, sqlite as sqlite_dialect
+            from sqlalchemy.dialects import postgresql as pg_dialect
+            from sqlalchemy.dialects import sqlite as sqlite_dialect
 
             if is_using_postgresql():
                 compiled = query.compile(dialect=pg_dialect.dialect())

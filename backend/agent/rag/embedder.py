@@ -9,6 +9,7 @@ Wrapper sobre SentenceTransformers con soporte para:
 
 import logging
 from typing import List, Optional, Union
+
 import numpy as np
 
 logger = logging.getLogger(__name__)

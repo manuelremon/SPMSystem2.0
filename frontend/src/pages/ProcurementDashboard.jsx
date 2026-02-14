@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useI18n } from '../context/i18n';
+import useToast from '../hooks/useToast';
 import { procurementService } from '../services/procurement';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 
@@ -394,6 +395,7 @@ function ImportHistoryTable({ data }) {
 // Componente principal
 export default function ProcurementDashboard() {
   const { t } = useI18n();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [periodo, setPeriodo] = useState('mes');
@@ -438,12 +440,12 @@ export default function ProcurementDashboard() {
     setImporting(true);
     try {
       const res = await procurementService.importFile(file);
-      alert(`Importación completada:\n- Insertados: ${res.data.stats?.solpeds_inserted || 0} SOLPEDs\n- Actualizados: ${res.data.stats?.solpeds_updated || 0}`);
+      toast.success(`Importación completada: ${res.data.stats?.solpeds_inserted || 0} insertados, ${res.data.stats?.solpeds_updated || 0} actualizados`);
       setShowImportModal(false);
       fetchData();
     } catch (err) {
       console.error('Error importing:', err);
-      alert('Error durante la importación: ' + (err.response?.data?.error || err.message));
+      toast.error('Error durante la importación: ' + (err.response?.data?.error || err.message));
     } finally {
       setImporting(false);
     }

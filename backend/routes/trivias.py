@@ -17,7 +17,6 @@ from backend.core.db import get_db_connection, get_db_transaction
 from backend.core.helpers import safe_json as _safe_json
 from backend.core.roles import require_auth
 
-
 bp = Blueprint("trivias", __name__)
 logger = logging.getLogger(__name__)
 

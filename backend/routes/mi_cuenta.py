@@ -14,7 +14,7 @@ from flask import Blueprint, g, jsonify, request
 
 from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
 from backend.core.rate_limit import rate_limit
-from backend.core.roles import is_admin, normalize_roles, require_auth, require_admin
+from backend.core.roles import normalize_roles, require_admin, require_auth
 from backend.services.notification_service import NotificationService
 
 bp = Blueprint("mi_cuenta", __name__)
@@ -25,7 +25,13 @@ def _get_user_data(user_id: str) -> dict | None:
     """Obtiene datos completos del usuario desde la BD"""
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM usuario WHERE id_spm=?", (str(user_id),))
+        cur.execute(
+            """SELECT id_spm, nombre, apellido, rol, contrasena, mail,
+                    posicion, sector, centros, jefe, gerente1, gerente2,
+                    telefono, estado_registro, id_ypf, mail_respaldo, almacenes
+             FROM usuario WHERE id_spm=?""",
+            (str(user_id),),
+        )
         row = cur.fetchone()
         return dict(row) if row else None
 
@@ -867,7 +873,7 @@ def admin_aprobar_profile_request(request_id: int):
                 (usuario_id, request_id, mensaje, "profile_approved", now),
             )
 
-        logger.info(f"Solicitud de perfil {request_id} aprobada por {user_id}")
+        logger.info(f"Solicitud de perfil {request_id} aprobada por {g.user.get('user_id')}")
 
         return (
             jsonify(
@@ -940,7 +946,7 @@ def admin_rechazar_profile_request(request_id: int):
                 (usuario_id, request_id, mensaje, "profile_rejected", now),
             )
 
-        logger.info(f"Solicitud de perfil {request_id} rechazada por {user_id}: {motivo}")
+        logger.info(f"Solicitud de perfil {request_id} rechazada por {g.user.get('user_id')}: {motivo}")
 
         return jsonify({"ok": True, "message": "Solicitud rechazada"}), 200
 

@@ -14,8 +14,8 @@ Uso:
 """
 
 import asyncio
-import logging
 import io
+import logging
 import re
 from typing import Optional
 
@@ -158,7 +158,6 @@ class TTSService:
         Returns:
             bytes: Audio en formato MP3
         """
-        import threading
         import concurrent.futures
 
         # Ejecutar en un thread separado con su propio event loop

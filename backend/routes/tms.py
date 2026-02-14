@@ -11,8 +11,7 @@ Endpoints principales:
 """
 
 import logging
-from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 from flask import Blueprint, g, jsonify, request
 

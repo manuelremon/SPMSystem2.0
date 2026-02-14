@@ -346,7 +346,7 @@ def check_stock_alerts(self) -> Dict[str, Any]:
     logger.info("Checking stock alerts")
 
     try:
-        from backend.core.db import get_db_connection, is_using_postgresql
+        from backend.core.db import get_db_connection
 
         alerts = []
 
@@ -432,9 +432,10 @@ def generate_scheduled_report(
     logger.info(f"Generating scheduled report: {report_type} ({frequency})")
 
     try:
+        import json
+
         from backend.core.db import get_db_transaction, is_using_postgresql
         from backend.services.reporting_service import get_reporting_service
-        import json
 
         service = get_reporting_service()
         params = params or {}
@@ -576,7 +577,7 @@ def update_ai_models(self) -> Dict[str, Any]:
     try:
         from backend.services.ai_service import AIService
 
-        service = AIService()
+        AIService()
         # Retrain models with recent data
         # This would be expanded based on actual AI implementation
         return {"updated": True, "timestamp": "now"}

@@ -13,9 +13,8 @@ Sprint 2.3 - Implementacion basada en TDD
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
 from backend.core.approval_strategies import ApprovalContext
-
+from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
 
 # =============================================================================
 # Excepciones

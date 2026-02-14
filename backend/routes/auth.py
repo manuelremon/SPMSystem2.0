@@ -106,7 +106,10 @@ def _get_user(username: str):
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT * FROM usuario WHERE id_spm=? OR mail=?",
+            """SELECT id_spm, nombre, apellido, rol, contrasena, mail,
+                    posicion, sector, centros, jefe, gerente1, gerente2,
+                    telefono, estado_registro, id_ypf, mail_respaldo, almacenes
+             FROM usuario WHERE id_spm=? OR mail=?""",
             (username, username),
         )
         row = cur.fetchone()
@@ -130,7 +133,13 @@ def _get_user_by_id(user_id: str):
     user = None
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM usuario WHERE id_spm=?", (str(user_id),))
+        cur.execute(
+            """SELECT id_spm, nombre, apellido, rol, contrasena, mail,
+                    posicion, sector, centros, jefe, gerente1, gerente2,
+                    telefono, estado_registro, id_ypf, mail_respaldo, almacenes
+             FROM usuario WHERE id_spm=?""",
+            (str(user_id),),
+        )
         row = cur.fetchone()
         if row:
             # El wrapper ya retorna dict para PostgreSQL, SQLite retorna Row

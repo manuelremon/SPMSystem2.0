@@ -90,7 +90,7 @@ export default function Materials() {
             {t("materials_title", "Agregar Materiales")}
           </Typography>
         </Box>
-        <Paper variant="outlined" sx={{ borderRadius: 2 }}>
+        <Paper variant="outlined" sx={{ borderRadius: 2 }} aria-busy="true" aria-label={t("materials_loading", "Cargando materiales")}>
           <Box sx={{ pt: 3 }}>
             <TableSkeleton />
           </Box>
@@ -107,7 +107,7 @@ export default function Materials() {
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
       {/* Header */}
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Typography variant="h5" fontWeight={600} color="text.primary">
+        <Typography variant="h5" component="h1" fontWeight={600} color="text.primary">
           {t("materials_title", "Agregar Materiales")}
         </Typography>
         <Button
@@ -123,16 +123,18 @@ export default function Materials() {
       </Box>
 
       {/* Messages */}
-      {m.error && (
-        <Alert severity="error" onClose={() => m.setError("")}>
-          {m.error}
-        </Alert>
-      )}
-      {m.actionMsg && (
-        <Alert severity="success" onClose={() => m.setActionMsg("")}>
-          {m.actionMsg}
-        </Alert>
-      )}
+      <Box aria-live="polite">
+        {m.error && (
+          <Alert severity="error" onClose={() => m.setError("")}>
+            {m.error}
+          </Alert>
+        )}
+        {m.actionMsg && (
+          <Alert severity="success" onClose={() => m.setActionMsg("")}>
+            {m.actionMsg}
+          </Alert>
+        )}
+      </Box>
 
       {/* Search and Context Section */}
       <Paper variant="outlined" sx={{ borderRadius: 2, p: 3 }}>
@@ -168,7 +170,7 @@ export default function Materials() {
             borderColor: "divider",
           }}
         >
-          <Typography variant="subtitle1" fontWeight={600} color="text.primary">
+          <Typography variant="subtitle1" component="h2" fontWeight={600} color="text.primary">
             {t("materials_resumen", "Resumen de Materiales")}
           </Typography>
           {m.items.length > 0 && (
@@ -415,15 +417,17 @@ function SearchSection({ m, t }) {
       </Box>
 
       {/* Results indicator */}
-      {(m.searchCodigo || m.searchDesc) && !m.loadingSearch && m.results.length > 0 && (
-        <Typography variant="caption" color="text.secondary">
-          {m.results.length} {m.results.length === 1 ? t("common_resultado", "resultado") : t("common_resultados", "resultados")}
-          <Box component="span" sx={{ opacity: 0.6 }}>
-            {" "}
-            — {t("materials_selecciona_uno", "selecciona uno")}
-          </Box>
-        </Typography>
-      )}
+      <Box aria-live="polite" role="status">
+        {(m.searchCodigo || m.searchDesc) && !m.loadingSearch && m.results.length > 0 && (
+          <Typography variant="caption" color="text.secondary">
+            {m.results.length} {m.results.length === 1 ? t("common_resultado", "resultado") : t("common_resultados", "resultados")}
+            <Box component="span" sx={{ opacity: 0.6 }}>
+              {" "}
+              — {t("materials_selecciona_uno", "selecciona uno")}
+            </Box>
+          </Typography>
+        )}
+      </Box>
     </Box>
   );
 }
@@ -515,6 +519,7 @@ function SelectedMaterialSection({ m, t }) {
               startIcon={m.loadingDetail ? <CircularProgress size={14} /> : <VisibilityIcon sx={{ fontSize: 16 }} />}
               onClick={m.openDetailModal}
               disabled={m.loadingDetail}
+              aria-label={`${t("materials_mas_detalles", "Ver detalles")} ${m.selectedMaterial?.codigo || ''}`}
               sx={{ flex: 1, textTransform: "none" }}
             >
               {t("materials_mas_detalles", "Ver detalles")}
@@ -525,6 +530,7 @@ function SelectedMaterialSection({ m, t }) {
               startIcon={<AddIcon />}
               onClick={m.handleAdd}
               disabled={!m.detailViewed}
+              aria-label={`${t("materials_agregar", "Agregar")} ${m.selectedMaterial?.codigo || ''}`}
               sx={{ flex: 1, textTransform: "none" }}
             >
               {t("materials_agregar", "Agregar")}
@@ -721,7 +727,7 @@ function CommentDialog({ open, onClose, codigo, comment, onCommentChange, onSave
         <Typography variant="subtitle1" component="span" fontWeight={600} color="text.primary">
           {t("materials_nota_titulo", "Nota para el material")}
         </Typography>
-        <IconButton size="small" onClick={onClose}>
+        <IconButton size="small" onClick={onClose} aria-label={t("common_cerrar", "Cerrar")}>
           <CloseIcon fontSize="small" />
         </IconButton>
       </DialogTitle>

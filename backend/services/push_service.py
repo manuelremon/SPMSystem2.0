@@ -17,7 +17,6 @@ from backend.core.db import get_db_connection, get_db_transaction, sql_now_minus
 from backend.core.push_config import (
     VAPID_PRIVATE_KEY_PATH,
     get_vapid_claims,
-    get_vapid_private_key,
     get_vapid_public_key_base64,
 )
 

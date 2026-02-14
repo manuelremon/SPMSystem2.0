@@ -20,7 +20,6 @@ from backend.core.rate_limit import rate_limit
 from backend.core.roles import require_auth, require_role
 from backend.services.reporting_service import get_reporting_service
 
-
 logger = logging.getLogger(__name__)
 
 bp = Blueprint("export", __name__, url_prefix="/api/export")
@@ -127,7 +126,7 @@ def export_inventario():
     """
     formato = request.args.get("formato", "xlsx")
     centro = request.args.get("centro")
-    incluir_alertas = request.args.get("incluir_alertas", "true").lower() == "true"
+    request.args.get("incluir_alertas", "true").lower() == "true"
 
     try:
         service = get_reporting_service()
@@ -156,7 +155,7 @@ def export_alertas_mrp():
     Returns:
         Archivo descargable
     """
-    from backend.core.db import get_db_connection, is_using_postgresql
+    from backend.core.db import get_db_connection
     from backend.routes.mrp import calcular_estado_material
 
     formato = request.args.get("formato", "xlsx")
@@ -504,9 +503,9 @@ def export_recomendaciones():
     Returns:
         Archivo descargable
     """
-    from backend.core.db import get_db_connection, is_using_postgresql
+
+    from backend.core.db import get_db_connection
     from backend.services.recommendation_engine import RecommendationEngine
-    import numpy as np
 
     formato = request.args.get("formato", "xlsx")
     centro = request.args.get("centro")
@@ -636,7 +635,7 @@ def listar_reportes_programados():
     Returns:
         Lista paginada de reportes generados
     """
-    from backend.core.db import get_db_connection, is_using_postgresql
+    from backend.core.db import get_db_connection
 
     page = request.args.get("page", 1, type=int)
     per_page = min(request.args.get("per_page", 20, type=int), 50)

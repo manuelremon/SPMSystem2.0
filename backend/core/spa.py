@@ -11,7 +11,6 @@ Maneja el servicio del frontend React desde Flask:
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
 from flask import Flask, jsonify, send_from_directory
 

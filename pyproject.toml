@@ -9,6 +9,13 @@ exclude = ["build", "dist", ".venv", "venv"]
 
 [tool.ruff.lint]
 extend-select = ["I"]
+ignore = ["E402", "E721"]
+
+[tool.ruff.lint.per-file-ignores]
+"backend/routes/*.py" = ["E402"]
+"backend/services/*.py" = ["E402"]
+"backend/core/*.py" = ["E402"]
+"backend/agent/**/*.py" = ["E402"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

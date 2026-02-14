@@ -11,7 +11,6 @@ from flask import Blueprint, jsonify
 from backend.core.cache import cached, kpi_cache
 from backend.core.db import (
     get_db_connection,
-    is_using_postgresql,
     sql_date_diff_days,
     sql_date_relative,
     sql_format_date,

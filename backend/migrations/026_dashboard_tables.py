@@ -12,7 +12,6 @@ Crea las tablas:
 
 import os
 import sqlite3
-from datetime import datetime
 
 
 def get_db_path():

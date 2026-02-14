@@ -13,13 +13,12 @@ Endpoints:
 
 from flask import Blueprint, g, jsonify, request
 
-from backend.core.budget_schemas import EstadoBUR, NivelAprobacion
+from backend.core.budget_schemas import NivelAprobacion
 from backend.core.db import get_db_connection
-from backend.core.roles import is_admin, normalize_roles, require_auth
+from backend.core.roles import normalize_roles, require_auth
 from backend.core.user_helpers import get_user_by_id
 from backend.services.budget_service import BURService, PresupuestoService
 from backend.services.notification_service import NotificationService
-
 
 bp = Blueprint("budget", __name__, url_prefix="/api")
 

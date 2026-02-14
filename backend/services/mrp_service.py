@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 # Intentar importar el pipeline de forecast
 from backend.agent.pipelines.demand_forecast import DemandForecastPipeline
 
-
 # =============================================================================
 # Calculo de Requerimientos Netos
 # =============================================================================
@@ -623,7 +622,7 @@ def generar_recomendacion(
     Returns:
         Dict con accion recomendada y prioridad
     """
-    disponible = stock_actual + pedidos_en_curso
+    stock_actual + pedidos_en_curso
 
     # Quiebre o bajo seguridad
     if stock_actual < stock_seguridad:

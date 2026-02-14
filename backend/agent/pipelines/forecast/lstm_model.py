@@ -11,12 +11,13 @@ LSTM es ideal para:
 
 FASE 1 - SPM v3.0
 """
-from typing import Dict, Optional, Tuple
-import pandas as pd
-import numpy as np
-from datetime import timedelta
 import logging
 import warnings
+from datetime import timedelta
+from typing import Dict, Tuple
+
+import numpy as np
+import pandas as pd
 
 from .base import ForecastStrategy
 
@@ -25,12 +26,12 @@ logger = logging.getLogger(__name__)
 
 # Importaciones opcionales de TensorFlow
 try:
-    import tensorflow as tf
-    from tensorflow import keras
-    from tensorflow.keras.models import Sequential
-    from tensorflow.keras.layers import LSTM, Dense, Dropout
-    from tensorflow.keras.optimizers import Adam
+    import tensorflow as tf  # noqa: F401
     from sklearn.preprocessing import MinMaxScaler
+    from tensorflow import keras
+    from tensorflow.keras.layers import LSTM, Dense, Dropout
+    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.optimizers import Adam
     LSTM_AVAILABLE = True
 except ImportError:
     LSTM_AVAILABLE = False
@@ -137,7 +138,7 @@ class LSTMStrategy(ForecastStrategy):
                 restore_best_weights=True
             )
 
-            history = self.modelo.fit(
+            self.modelo.fit(
                 X_train, y_train,
                 epochs=self.epochs,
                 batch_size=self.batch_size,

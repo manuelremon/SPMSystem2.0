@@ -5,14 +5,12 @@ Maneja: vehiculos, conductores, ordenes de trabajo, mantenimiento preventivo,
 inspecciones pre/post viaje, documentos.
 """
 
-import json
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
 from backend.core.tms_schemas import (
-    WO_TRANSITIONS,
     INSPECTION_CHECKLIST,
     validar_transicion_wo,
 )

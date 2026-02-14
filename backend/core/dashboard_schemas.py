@@ -8,13 +8,12 @@ Define estructuras de datos para:
 - Operaciones y resultados
 """
 
+import json
+import uuid as uuid_lib
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
-import json
-import uuid as uuid_lib
-
 
 # ============================================================================
 # Enums

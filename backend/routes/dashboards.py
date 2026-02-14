@@ -24,18 +24,18 @@ Endpoints:
 - POST   /api/dashboard-grupos              - Crear grupo
 """
 
+import io
 import logging
 
 from flask import Blueprint, g, jsonify, request, send_file
-import io
 
 logger = logging.getLogger(__name__)
 
 from backend.core.dashboard_schemas import (
+    SPM_FORMULAS_CATALOG,
     CreateDashboardRequest,
     CreateShareRequest,
     UpdateDashboardRequest,
-    SPM_FORMULAS_CATALOG,
 )
 from backend.core.roles import require_auth
 from backend.services.dashboard_service import (
@@ -432,11 +432,11 @@ def export_dashboard(uuid):
     if not dashboard:
         return jsonify({"success": False, "error": "Dashboard no encontrado"}), 404
 
-    formato = data.get("formato", "xlsx")
+    data.get("formato", "xlsx")
 
     try:
         from openpyxl import Workbook
-        from openpyxl.styles import Font, PatternFill, Border, Side
+        from openpyxl.styles import Border, Font, PatternFill, Side  # noqa: F401
 
         wb = Workbook()
 
@@ -637,6 +637,7 @@ def resumen_ejecutivo():
         {solicitudes_hoy, presupuesto_resumen, alertas_mrp_criticas, sla_breaches}
     """
     from datetime import datetime as _dt
+
     from backend.core.db import get_db_connection, is_using_postgresql, sql_date_relative
 
     try:

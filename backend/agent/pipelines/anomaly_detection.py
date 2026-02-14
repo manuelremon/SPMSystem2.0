@@ -8,11 +8,11 @@ Utiliza Isolation Forest para detectar outliers sin supervisión.
 FASE 5 - SPM v3.0
 """
 import logging
-from typing import Dict, List, Optional, Tuple
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
 import warnings
+from typing import Dict, Optional, Tuple
+
+import numpy as np
+import pandas as pd
 
 warnings.filterwarnings('ignore')
 logger = logging.getLogger(__name__)
@@ -280,8 +280,9 @@ def detectar_anomalias_material(
         Dict con anomalías detectadas y análisis
     """
     try:
-        from backend.core.db import get_db_connection, sql_date_relative
         import pandas as pd
+
+        from backend.core.db import get_db_connection, sql_date_relative
 
         # Obtener datos
         with get_db_connection("sap_data") as conn:

@@ -19,7 +19,6 @@ from typing import Any, Dict, List, Optional
 from backend.core.db import (
     get_db_connection,
     get_db_transaction,
-    insert_returning_id,
     is_using_postgresql,
     sql_datetime_now,
     sql_now_minus,

@@ -3,10 +3,11 @@ Stock management endpoints.
 Provides stock data with filters, inmovilizado and MRP indicators.
 """
 
-from flask import Blueprint, jsonify, request, g
 from datetime import datetime, timedelta
 
-from backend.core.db import get_db_connection, is_using_postgresql
+from flask import Blueprint, jsonify, request
+
+from backend.core.db import get_db_connection
 from backend.core.roles import require_auth
 from backend.core.search_utils import build_description_search_with_catalog
 

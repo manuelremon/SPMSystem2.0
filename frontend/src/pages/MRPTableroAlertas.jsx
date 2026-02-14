@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "../context/i18n";
+import useToast from "../hooks/useToast";
 import api from "../services/api";
 import { exportToExcel } from "../utils/formatters";
 import { SPMAgGrid } from "../components/ui/SPMAgGrid";
@@ -272,6 +273,7 @@ function SummaryCard({ titulo, valor, color, pct, showChart, total }) {
 export default function MRPTableroAlertas() {
   const { t } = useI18n();
   const navigate = useNavigate();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [alertas, setAlertas] = useState([]);
@@ -426,7 +428,7 @@ export default function MRPTableroAlertas() {
 
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      alert("Por favor permite ventanas emergentes para exportar a PDF");
+      toast.warning("Por favor permite ventanas emergentes para exportar a PDF");
       setExporting(false);
       return;
     }

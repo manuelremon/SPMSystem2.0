@@ -17,9 +17,13 @@ from backend.agent.tools.nlp_processor import NLPProcessor
 # Importar RAG si está disponible
 try:
     from backend.agent.rag import (
-        is_available as rag_available,
-        is_llm_available,
         get_status as get_rag_status,
+    )
+    from backend.agent.rag import (
+        is_available as rag_available,
+    )
+    from backend.agent.rag import (
+        is_llm_available,
     )
     RAG_ENABLED = rag_available()
 except ImportError:

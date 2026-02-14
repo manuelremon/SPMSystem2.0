@@ -18,7 +18,7 @@ from typing import Any
 from flask import Blueprint, Response, g, jsonify, request
 
 from backend.core.rate_limit import rate_limit
-from backend.core.roles import require_auth, require_role
+from backend.core.roles import require_auth
 from backend.services.oc_service import OCService
 from backend.services.reporting_service import get_reporting_service
 

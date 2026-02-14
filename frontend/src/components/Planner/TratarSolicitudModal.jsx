@@ -5,6 +5,7 @@ import Paso3RevisionFinal from "./Paso3RevisionFinal";
 import Paso4AccionesPendientes from "./Paso4AccionesPendientes";
 import api from "../../services/api";
 import { ensureCsrfToken } from "../../services/csrf";
+import useToast from "../../hooks/useToast";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 import StatusBadge from "../ui/StatusBadge";
@@ -98,6 +99,7 @@ function CustomStepIcon(props) {
 const PasoLabels = ["Analisis", "Decision", "Resumen", "Acciones"];
 
 export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onComplete }) {
+  const toast = useToast();
   const [paso, setPaso] = useState(1);
   const [analisis, setAnalisis] = useState(null);
   const [opciones, setOpciones] = useState({});
@@ -582,7 +584,7 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
 
       setShowRequestInfoModal(false);
       setInfoRequest("");
-      alert("Solicitud de información enviada al solicitante. El solicitante recibirá el mensaje en su bandeja de entrada.");
+      toast.success("Solicitud de información enviada al solicitante");
     } catch (err) {
       const mensaje = err.response?.data?.error?.message || err.message || "Error al enviar solicitud";
       setError(`${mensaje}. Por favor, intente nuevamente.`);

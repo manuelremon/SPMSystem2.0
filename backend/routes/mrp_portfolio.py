@@ -3,9 +3,9 @@ MRP Portfolio endpoint.
 Returns materials planned by MRP with their planning parameters.
 """
 
-from flask import Blueprint, jsonify, request, g
+from flask import Blueprint, jsonify, request
 
-from backend.core.db import get_db_connection, is_using_postgresql
+from backend.core.db import get_db_connection
 from backend.core.roles import require_auth
 from backend.core.search_utils import build_description_search_with_catalog
 

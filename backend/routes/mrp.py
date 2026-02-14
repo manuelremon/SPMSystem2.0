@@ -7,12 +7,11 @@ Soporta modo temporal con datos importados desde Excel.
 
 import logging
 from datetime import datetime, timedelta
-from functools import lru_cache
 from typing import Any, Dict, Optional, Tuple
 
 from flask import Blueprint, g, jsonify, request
 
-from backend.core.helpers import _get_user_id, validate_almacen_access, error_response
+from backend.core.helpers import _get_user_id
 from backend.core.roles import require_auth, require_role
 from backend.services.temp_data_service import temp_data_service
 
@@ -53,7 +52,7 @@ def _set_cached_kpis(centro: str, periodo: str, data: Dict[str, Any]) -> None:
     _kpis_cache_time[key] = datetime.now()
     logger.debug(f"[MRP] KPIs cached for {key}")
 
-from backend.core.db import get_db_connection, sql_now_minus, is_using_postgresql
+from backend.core.db import get_db_connection, is_using_postgresql, sql_now_minus
 
 
 def _calcular_lead_time_promedio() -> Tuple[float, str]:
@@ -671,7 +670,7 @@ def _get_kpis_from_temp_data(user_id: str, centro: str, periodo: str):
         materiales = temp_data_service.get_stock(user_id, filters)
 
         total_materiales = len(set(m.get("material") for m in materiales))
-        valor_total_inventario = sum(
+        sum(
             float(m.get("stock", 0) or 0) * float(m.get("precio_usd", 0) or 0)
             for m in materiales
         )
@@ -696,7 +695,7 @@ def _get_kpis_from_temp_data(user_id: str, centro: str, periodo: str):
             # Obtener parámetros MRP
             params = temp_data_service.get_parametros_mrp(user_id, codigo)
             punto_pedido = params.get("punto_pedido", stock_actual * 0.3)
-            stock_maximo = params.get("stock_maximo", stock_actual * 1.5)
+            params.get("stock_maximo", stock_actual * 1.5)
 
             # Clasificar material
             if stock_actual < 20:
@@ -872,7 +871,7 @@ def get_kpis():
             if centro:
                 query_valor += " WHERE centro = ?"
             cursor_sap.execute(query_valor, params_mat)
-            valor_total_inventario = float(cursor_sap.fetchone()["total"] or 0)
+            float(cursor_sap.fetchone()["total"] or 0)
 
             # Materiales con stock bajo (stock < 10 unidades)
             query_bajo = (
@@ -881,7 +880,7 @@ def get_kpis():
             if centro:
                 query_bajo += " AND centro = ?"
             cursor_sap.execute(query_bajo, params_mat)
-            materiales_stock_bajo = cursor_sap.fetchone()["total"]
+            cursor_sap.fetchone()["total"]
 
             # Materiales criticos (columna puede no existir)
             try:
@@ -889,9 +888,9 @@ def get_kpis():
                 if centro:
                     query_criticos += " AND centro = ?"
                 cursor_sap.execute(query_criticos, params_mat)
-                materiales_criticos = cursor_sap.fetchone()["total"]
+                cursor_sap.fetchone()["total"]
             except Exception:
-                materiales_criticos = 0
+                pass
 
             # Materiales inmovilizados (columna puede no existir)
             try:
@@ -899,9 +898,9 @@ def get_kpis():
                 if centro:
                     query_inmov += " AND centro = ?"
                 cursor_sap.execute(query_inmov, params_mat)
-                materiales_inmovilizados = cursor_sap.fetchone()["total"]
+                cursor_sap.fetchone()["total"]
             except Exception:
-                materiales_inmovilizados = 0
+                pass
 
             # ----------------------------------------------------------------
             # KPIs REALES (reemplaza datos simulados con modulo)
@@ -1213,8 +1212,6 @@ def get_catalogos():
 from backend.services.mrp_service import (
     analizar_centro,
     analizar_material,
-    crear_alerta_mrp,
-    generar_recomendacion,
     obtener_alertas_mrp,
     obtener_demanda_proyectada,
     resolver_alerta_mrp,
@@ -1411,8 +1408,8 @@ def resolver_alerta_mrp_endpoint(alerta_id):
 
 from backend.services.mrp_service import (
     calcular_parametros_mrp_completo,
-    obtener_configuracion_global,
     guardar_parametros_mrp_bd,
+    obtener_configuracion_global,
 )
 
 

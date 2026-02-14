@@ -7,9 +7,9 @@ Añade:
 - Tabla sla_alertas para gestión de alertas SLA
 """
 
-import sqlite3
 import os
-from datetime import datetime
+import sqlite3
+
 
 def get_db_path():
     """Obtener path de la base de datos"""

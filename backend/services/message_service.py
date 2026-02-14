@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 # Importar configuración de BD
 from backend.core.config import settings
-from backend.core.db import is_using_postgresql, _get_postgres_connection
+from backend.core.db import _get_postgres_connection, is_using_postgresql
 
 
 class MessageService:

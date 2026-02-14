@@ -12,6 +12,7 @@ import Tooltip from '@mui/material/Tooltip'
 import CircularProgress from '@mui/material/CircularProgress'
 import DownloadIcon from '@mui/icons-material/Download'
 import html2canvas from 'html2canvas'
+import useToast from '../../hooks/useToast'
 
 /**
  * Exportar card como PNG
@@ -61,6 +62,7 @@ export function ChartExportButton({
   disabled = false,
 }) {
   const [exporting, setExporting] = useState(false)
+  const toast = useToast()
 
   const handleExport = useCallback(async () => {
     if (!chartRef?.current || exporting) return
@@ -71,11 +73,11 @@ export function ChartExportButton({
       await exportCard(chartRef.current, filename)
     } catch (error) {
       console.error('Error:', error)
-      alert(`Error al exportar: ${error.message}\n\nVerifica la consola para más detalles.`)
+      toast.error(`Error al exportar: ${error.message}`)
     } finally {
       setExporting(false)
     }
-  }, [chartRef, filename, exporting])
+  }, [chartRef, filename, exporting, toast])
 
   return (
     <Tooltip title={tooltip}>

@@ -19,13 +19,11 @@ from flask import Blueprint, g, jsonify, request, send_file
 
 logger = logging.getLogger(__name__)
 
-from backend.core.config import settings
 from backend.core.db import get_db_connection
 from backend.core.db_optimization import (
     analyze_tables,
     create_indexes,
     get_all_pool_stats,
-    get_db_stats,
     optimize_database,
 )
 from backend.core.rate_limit import rate_limit
@@ -312,7 +310,7 @@ def get_table_structure(table: str):
     db_name = request.args.get("db", "spm")
 
     if db_name not in ALLOWED_DATABASES:
-        return jsonify({"ok": False, "error": {"code": "invalid_db", "message": f"BD no permitida"}}), 400
+        return jsonify({"ok": False, "error": {"code": "invalid_db", "message": "BD no permitida"}}), 400
 
     # Validar tabla contra whitelist
     allowed = ALLOWED_TABLES.get(db_name, [])
@@ -405,7 +403,7 @@ def get_table_preview(table: str):
     offset = int(request.args.get("offset", 0))
 
     if db_name not in ALLOWED_DATABASES:
-        return jsonify({"ok": False, "error": {"code": "invalid_db", "message": f"BD no permitida"}}), 400
+        return jsonify({"ok": False, "error": {"code": "invalid_db", "message": "BD no permitida"}}), 400
 
     rows = []
     columns = []
@@ -480,7 +478,7 @@ def run_optimize():
     db_name = request.json.get("db", "spm") if request.json else "spm"
 
     if db_name not in ALLOWED_DATABASES:
-        return jsonify({"ok": False, "error": {"code": "invalid_db", "message": f"BD no permitida"}}), 400
+        return jsonify({"ok": False, "error": {"code": "invalid_db", "message": "BD no permitida"}}), 400
 
     try:
         if is_postgres() and db_name == "spm":
@@ -509,7 +507,7 @@ def run_vacuum():
     db_name = request.json.get("db", "spm") if request.json else "spm"
 
     if db_name not in ALLOWED_DATABASES:
-        return jsonify({"ok": False, "error": {"code": "invalid_db", "message": f"BD no permitida"}}), 400
+        return jsonify({"ok": False, "error": {"code": "invalid_db", "message": "BD no permitida"}}), 400
 
     try:
         if is_postgres() and db_name == "spm":
@@ -528,7 +526,7 @@ def run_vacuum():
             conn.close()
 
             new_size = os.path.getsize(db_path) / (1024 * 1024)
-            return jsonify({"ok": True, "message": f"VACUUM completado", "new_size_mb": round(new_size, 2)}), 200
+            return jsonify({"ok": True, "message": "VACUUM completado", "new_size_mb": round(new_size, 2)}), 200
     except Exception as e:
         return jsonify({"ok": False, "error": {"code": "vacuum_error", "message": str(e)}}), 500
 
@@ -542,7 +540,7 @@ def run_analyze():
     db_name = request.json.get("db", "spm") if request.json else "spm"
 
     if db_name not in ALLOWED_DATABASES:
-        return jsonify({"ok": False, "error": {"code": "invalid_db", "message": f"BD no permitida"}}), 400
+        return jsonify({"ok": False, "error": {"code": "invalid_db", "message": "BD no permitida"}}), 400
 
     try:
         if is_postgres() and db_name == "spm":
@@ -551,7 +549,7 @@ def run_analyze():
                 cur.execute("ANALYZE")
                 conn.commit()
         else:
-            result = analyze_tables(db_name)
+            analyze_tables(db_name)
 
         return jsonify({"ok": True, "message": f"ANALYZE completado para {db_name}"}), 200
     except Exception as e:
@@ -567,7 +565,7 @@ def run_integrity_check():
     db_name = request.json.get("db", "spm") if request.json else "spm"
 
     if db_name not in ALLOWED_DATABASES:
-        return jsonify({"ok": False, "error": {"code": "invalid_db", "message": f"BD no permitida"}}), 400
+        return jsonify({"ok": False, "error": {"code": "invalid_db", "message": "BD no permitida"}}), 400
 
     try:
         if is_postgres() and db_name == "spm":
@@ -643,7 +641,7 @@ def run_create_indexes():
     db_name = request.json.get("db", "spm") if request.json else "spm"
 
     if db_name not in ALLOWED_DATABASES:
-        return jsonify({"ok": False, "error": {"code": "invalid_db", "message": f"BD no permitida"}}), 400
+        return jsonify({"ok": False, "error": {"code": "invalid_db", "message": "BD no permitida"}}), 400
 
     if is_postgres() and db_name == "spm":
         return jsonify({"ok": False, "error": {"code": "not_supported", "message": "Crear indices no disponible para PostgreSQL desde aqui"}}), 400
@@ -673,7 +671,7 @@ def get_pool_stats():
 def export_database(db_name: str):
     """Descarga una copia de la BD SQLite"""
     if db_name not in ALLOWED_DATABASES:
-        return jsonify({"ok": False, "error": {"code": "invalid_db", "message": f"BD no permitida"}}), 400
+        return jsonify({"ok": False, "error": {"code": "invalid_db", "message": "BD no permitida"}}), 400
 
     if is_postgres() and db_name == "spm":
         return jsonify({"ok": False, "error": {"code": "not_supported", "message": "Export no disponible para PostgreSQL"}}), 400
@@ -681,7 +679,7 @@ def export_database(db_name: str):
     try:
         db_path = get_sqlite_path(db_name)
         if not os.path.exists(db_path):
-            return jsonify({"ok": False, "error": {"code": "not_found", "message": f"BD no encontrada"}}), 404
+            return jsonify({"ok": False, "error": {"code": "not_found", "message": "BD no encontrada"}}), 404
 
         return send_file(
             db_path,
@@ -701,7 +699,7 @@ def export_table_csv(table: str):
     db_name = request.args.get("db", "spm")
 
     if db_name not in ALLOWED_DATABASES:
-        return jsonify({"ok": False, "error": {"code": "invalid_db", "message": f"BD no permitida"}}), 400
+        return jsonify({"ok": False, "error": {"code": "invalid_db", "message": "BD no permitida"}}), 400
 
     try:
         output = io.StringIO()
@@ -1365,7 +1363,7 @@ def get_table_stats(table: str):
             row_count = cur.fetchone()[0]
 
             # Numero de indices
-            cur.execute(f"SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND tbl_name=?", (table,))
+            cur.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND tbl_name=?", (table,))
             index_count = cur.fetchone()[0]
 
             # Tamaño aproximado (paginas usadas)

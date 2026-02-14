@@ -9,11 +9,15 @@ from datetime import datetime
 
 from flask import Blueprint, g, jsonify, request
 
-from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id, is_using_postgresql
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    insert_returning_id,
+    is_using_postgresql,
+)
 from backend.core.helpers import safe_json as _safe_json
 from backend.core.rate_limit import rate_limit
 from backend.core.roles import is_admin, require_auth
-
 
 bp = Blueprint("foro", __name__)
 logger = logging.getLogger(__name__)

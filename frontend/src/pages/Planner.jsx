@@ -198,7 +198,7 @@ function RejectModal({ open, solicitud, motivo, onMotivoChange, onClose, onConfi
         <Typography variant="h6" fontWeight={700} color="text.primary">
           {t("planner_rechazar_solicitud", "Rechazar Solicitud")} #{solicitud?.id}
         </Typography>
-        <IconButton onClick={onClose} size="small" sx={{ color: "text.secondary" }}>
+        <IconButton onClick={onClose} size="small" sx={{ color: "text.secondary" }} aria-label={t("common_cerrar", "Cerrar")}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
@@ -231,6 +231,7 @@ function RejectModal({ open, solicitud, motivo, onMotivoChange, onClose, onConfi
           rows={3}
           fullWidth
           size="small"
+          aria-label={t("planner_rechazar_motivo_label", "Motivo del rechazo")}
           sx={{
             "& .MuiOutlinedInput-root": {
               fontSize: "0.875rem",
@@ -348,6 +349,7 @@ export default function Planner({ filterMode }) {
               size="small"
               variant="outlined"
               color="primary"
+              aria-label={`${t("planner_ver", "Ver")} ${t("common_solicitud", "solicitud")} #${params.data.id}`}
               onClick={(e) => {
                 e.stopPropagation();
                 setDetalleModal({ open: true, solicitud: params.data });
@@ -367,6 +369,7 @@ export default function Planner({ filterMode }) {
               size="small"
               variant="outlined"
               color="success"
+              aria-label={`${t("planner_tratar", "Tratar")} ${t("common_solicitud", "solicitud")} #${params.data.id}`}
               onClick={(e) => {
                 e.stopPropagation();
                 handleTratar(params.data);
@@ -575,6 +578,7 @@ export default function Planner({ filterMode }) {
         <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 3 }}>
           <IconButton
             onClick={() => navigate(-1)}
+            aria-label={t('common_volver', 'Volver')}
             sx={{
               color: "text.secondary",
               "&:hover": {
@@ -587,6 +591,7 @@ export default function Planner({ filterMode }) {
           </IconButton>
           <Typography
             variant="h5"
+            component="h1"
             fontWeight={700}
             textTransform="uppercase"
             letterSpacing="0.05em"
@@ -597,28 +602,32 @@ export default function Planner({ filterMode }) {
         </Stack>
 
         {/* Alerts */}
-        {success && (
-          <Alert
-            severity="success"
-            onClose={clearSuccess}
-            sx={{ mb: 2 }}
-          >
-            {success}
-          </Alert>
-        )}
-        {error && (
-          <Alert
-            severity="error"
-            onClose={clearError}
-            sx={{ mb: 2 }}
-          >
-            {error}
-          </Alert>
-        )}
+        <Box aria-live="polite">
+          {success && (
+            <Alert
+              severity="success"
+              onClose={clearSuccess}
+              sx={{ mb: 2 }}
+            >
+              {success}
+            </Alert>
+          )}
+          {error && (
+            <Alert
+              severity="error"
+              onClose={clearError}
+              sx={{ mb: 2 }}
+            >
+              {error}
+            </Alert>
+          )}
+        </Box>
 
         {/* Filters */}
         <Paper
           elevation={0}
+          role="search"
+          aria-label={t("planner_filtros", "Filtros de solicitudes")}
           sx={{
             border: 1,
             borderColor: "divider",
@@ -657,6 +666,8 @@ export default function Planner({ filterMode }) {
                 min={0}
                 max={365}
                 size="small"
+                getAriaLabel={() => t("planner_rango_fechas", "Rango de fechas")}
+                getAriaValueText={(value) => sliderAFecha(value)}
                 sx={{
                   mt: 1,
                   "& .MuiSlider-thumb": {
@@ -699,6 +710,7 @@ export default function Planner({ filterMode }) {
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="ID, asunto..."
                 size="small"
+                aria-label={t("planner_buscar", "Buscar solicitudes")}
                 sx={{
                   "& .MuiOutlinedInput-root": {
                     fontSize: "0.75rem",
@@ -771,6 +783,7 @@ export default function Planner({ filterMode }) {
               color="inherit"
               size="small"
               startIcon={<FilterAltOffIcon />}
+              aria-label={t("planner_limpiar_filtros", "Limpiar todos los filtros")}
               sx={{
                 fontWeight: 500,
                 fontSize: "0.75rem",

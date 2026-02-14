@@ -89,17 +89,17 @@ except ImportError as e:
 # Componentes de LLM
 # =============================================================================
 try:
+    from .deepseek_client import (
+        DeepseekClient,
+        OllamaConnectionError,
+        OllamaModelNotFoundError,
+    )
     from .llm_client import (
         AnthropicClient,
         BaseLLMClient,
         MockLLMClient,
         OpenAIClient,
         get_llm_client,
-    )
-    from .deepseek_client import (
-        DeepseekClient,
-        OllamaConnectionError,
-        OllamaModelNotFoundError,
     )
     from .pipeline import RAGPipeline, get_rag_pipeline
     from .prompts import (

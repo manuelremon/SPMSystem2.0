@@ -15,7 +15,7 @@ from backend.core.cache import get_cache_stats, invalidate_catalog_cache, invali
 from backend.core.config import settings
 from backend.core.db import get_db_connection, get_db_transaction, get_spm_db_path
 from backend.core.rate_limit import rate_limit
-from backend.core.roles import is_admin, normalize_roles, require_admin
+from backend.core.roles import normalize_roles, require_admin
 from backend.core.user_helpers import get_user_by_id
 
 bp = Blueprint("admin", __name__, url_prefix="/api/admin")
@@ -1186,7 +1186,6 @@ from backend.services.approval_service import (
     crear_regla,
     desactivar_regla,
     listar_reglas,
-    obtener_delegacion_activa,
 )
 
 

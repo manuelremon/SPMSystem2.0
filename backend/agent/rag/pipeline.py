@@ -46,8 +46,8 @@ class RAGPipeline:
             min_similarity: Similitud mínima para incluir documentos
         """
         # Lazy imports
-        from .material_retriever import get_material_retriever
         from .llm_client import get_llm_client
+        from .material_retriever import get_material_retriever
 
         self.retriever = retriever or get_material_retriever()
         self.llm = llm_client or get_llm_client(provider=llm_provider)

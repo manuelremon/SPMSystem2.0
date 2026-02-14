@@ -1,18 +1,20 @@
 """
 Planner - Decisiones de Abastecimiento
 
-Endpoints para Pasos 2-3 del wizard:
-- Opciones de abastecimiento por item
-- Guardar tratamiento completo
+Endpoints para Pasos 1-3 del wizard:
+- Paso 1: Analisis inicial de solicitud
+- Paso 2: Opciones de abastecimiento por item
+- Paso 3: Guardar tratamiento completo
 - Decision multi-fuente
 - Resumen de decisiones
 - Detalle MRP
+- Obtener decision por item
 """
 
 import json
 import logging
 
-from flask import Blueprint, jsonify, request
+from flask import jsonify, request
 
 from backend.core.db import get_db_connection
 from backend.core.errors import error_internal, error_not_found, error_validation
@@ -21,24 +23,82 @@ from backend.core.repository import (
     MrpRepository,
 )
 from backend.core.roles import require_auth
+from backend.routes.planner import bp
+from backend.routes.planner.helpers import _log_evento
 from backend.routes.planner_helpers import (
     _require_solicitud_access,
     _stock_disponible,
 )
-from backend.routes.planner.helpers import _log_evento
 from backend.services.planner_service import (
     guardar_decision_multifuente,
     obtener_resumen_decisiones,
+    paso_1_analizar_solicitud,
     paso_2_opciones_abastecimiento,
     paso_3_guardar_tratamiento,
 )
 
 logger = logging.getLogger(__name__)
 
-decisiones_bp = Blueprint("decisiones", __name__)
+
+@bp.route("/solicitudes/<int:solicitud_id>/analizar", methods=["POST"])
+@require_auth
+def analizar_solicitud(solicitud_id):
+    """
+    PASO 1: Analisis integral de solicitud para tratamiento
+
+    Delega a paso_1_analizar_solicitud() en el servicio.
+    Retorna objeto de analisis con metricas presupuesto, conflictos, avisos y recomendaciones.
+    """
+    guard, user = _require_solicitud_access(solicitud_id)
+    if guard:
+        return guard
+
+    try:
+        resultado = paso_1_analizar_solicitud(solicitud_id)
+        return jsonify({"ok": True, "data": resultado}), 200
+    except ValueError as e:
+        logger.warning(f"Validacion paso1 solicitud {solicitud_id}: {e}")
+        return error_validation("solicitud_id", "Solicitud no valida o no encontrada")
+    except Exception as e:
+        logger.error(f"Error en paso1_analisis solicitud {solicitud_id}: {e}")
+        return error_internal("Error al analizar solicitud")
 
 
-@decisiones_bp.route(
+def _generar_recomendaciones(conflictos: list, avisos: list) -> list:
+    """Genera recomendaciones basadas en conflictos y avisos"""
+    recomendaciones = []
+
+    for conflicto in conflictos:
+        if conflicto["tipo"] == "stock_insuficiente":
+            recomendaciones.append(
+                {
+                    "prioridad": "alta",
+                    "accion": "Buscar proveedores externos",
+                    "razon": f"Stock insuficiente para item {conflicto['item_idx']}",
+                }
+            )
+        elif conflicto["tipo"] == "presupuesto_insuficiente":
+            recomendaciones.append(
+                {
+                    "prioridad": "muy_alta",
+                    "accion": "Solicitar ampliacion de presupuesto",
+                    "razon": f"Item {conflicto['item_idx']} requiere ${conflicto['costo_item']}",
+                }
+            )
+
+    if len(avisos) > 0:
+        recomendaciones.append(
+            {
+                "prioridad": "media",
+                "accion": "Revisar avisos especiales antes de continuar",
+                "razon": f"Hay {len(avisos)} avisos que requieren atencion",
+            }
+        )
+
+    return recomendaciones
+
+
+@bp.route(
     "/solicitudes/<int:solicitud_id>/items/<int:item_idx>/opciones-abastecimiento", methods=["GET"]
 )
 @require_auth
@@ -64,7 +124,7 @@ def obtener_opciones_abastecimiento(solicitud_id, item_idx):
         return error_internal("Error al obtener opciones de abastecimiento")
 
 
-@decisiones_bp.route("/solicitudes/<int:solicitud_id>/guardar-tratamiento", methods=["POST"])
+@bp.route("/solicitudes/<int:solicitud_id>/guardar-tratamiento", methods=["POST"])
 @require_auth
 def guardar_tratamiento(solicitud_id):
     """
@@ -98,7 +158,12 @@ def guardar_tratamiento(solicitud_id):
         return error_internal("Error al guardar el tratamiento")
 
 
-@decisiones_bp.route(
+# =============================================================================
+# NUEVOS ENDPOINTS V2: Multi-Fuente
+# =============================================================================
+
+
+@bp.route(
     "/solicitudes/<int:solicitud_id>/items/<int:item_idx>/decision-multifuente",
     methods=["POST"],
 )
@@ -184,7 +249,7 @@ def guardar_decision_multifuente_endpoint(solicitud_id, item_idx):
         return error_internal("Error al guardar la decision")
 
 
-@decisiones_bp.route("/solicitudes/<int:solicitud_id>/decisiones-resumen", methods=["GET"])
+@bp.route("/solicitudes/<int:solicitud_id>/decisiones-resumen", methods=["GET"])
 @require_auth
 def obtener_resumen_decisiones_endpoint(solicitud_id):
     """
@@ -221,7 +286,12 @@ def obtener_resumen_decisiones_endpoint(solicitud_id):
         return error_internal("Error al obtener resumen de decisiones")
 
 
-@decisiones_bp.route(
+# =============================================================================
+# ENDPOINT: Decisiones por Item (lectura)
+# =============================================================================
+
+
+@bp.route(
     "/solicitudes/<int:solicitud_id>/items/<int:item_idx>/decision",
     methods=["GET"],
 )
@@ -261,7 +331,7 @@ def obtener_decision_item(solicitud_id, item_idx):
         return error_internal("Error al obtener decision del item")
 
 
-@decisiones_bp.route(
+@bp.route(
     "/solicitudes/<int:solicitud_id>/items/<int:item_idx>/mrp",
     methods=["GET"],
 )
@@ -303,7 +373,9 @@ def obtener_detalle_mrp(solicitud_id, item_idx):
                 return error_validation("item_idx", f"Item {item_idx} no existe en la solicitud")
 
             item = items[item_idx]
-            codigo_material = item.get("material") or item.get("codigo") or item.get("codigo_material", "")
+            codigo_material = (
+                item.get("material") or item.get("codigo") or item.get("codigo_material", "")
+            )
 
         # Obtener parametros MRP desde sap_data.db
         mrp_params = MrpRepository.get_parametros_mrp(codigo_material, centro)

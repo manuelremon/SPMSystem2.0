@@ -1,10 +1,11 @@
 /**
- * Hook para notificaciones en tiempo real via SSE
+ * Hook para notificaciones en tiempo real via WebSocket + SSE fallback
  *
  * Características:
- * - Conexión SSE al endpoint /api/notificaciones/stream
+ * - WebSocket como canal principal (entrega instantánea)
+ * - Fallback automático a SSE si WS no conecta
+ * - Fallback final a polling HTTP
  * - Reconexión automática con backoff exponencial
- * - Fallback a polling si SSE no está disponible
  * - Limpieza automática al desmontar
  */
 
@@ -14,10 +15,11 @@ import api from '../services/api'
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 // Configuración
-const SSE_RECONNECT_BASE_DELAY = 1000 // 1 segundo inicial
-const SSE_RECONNECT_MAX_DELAY = 30000 // 30 segundos máximo
-const POLLING_INTERVAL = 30000 // 30 segundos para fallback polling
-// FIX 3.8: Timeout para detectar conexiones estancadas (60s, server envía heartbeat cada 30s)
+const WS_RECONNECT_BASE_DELAY = 1000
+const WS_RECONNECT_MAX_DELAY = 30000
+const SSE_RECONNECT_BASE_DELAY = 1000
+const SSE_RECONNECT_MAX_DELAY = 30000
+const POLLING_INTERVAL = 30000
 const HEARTBEAT_TIMEOUT = 60000
 
 /**
@@ -36,14 +38,15 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
   const [isLoading, setIsLoading] = useState(false)
 
   // Refs para manejar reconexión y cleanup
+  const wsRef = useRef(null)
   const eventSourceRef = useRef(null)
   const reconnectTimeoutRef = useRef(null)
   const reconnectAttempts = useRef(0)
   const pollingIntervalRef = useRef(null)
   const isMountedRef = useRef(true)
-  // FIX 3.8: Ref para heartbeat timeout
   const heartbeatTimeoutRef = useRef(null)
   const lastHeartbeatRef = useRef(Date.now())
+  const transportRef = useRef('none') // 'ws', 'sse', 'polling'
 
   /**
    * Obtener notificaciones del servidor (polling/inicial)
@@ -65,7 +68,6 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
     } catch (err) {
       if (isMountedRef.current) {
         setError('Error al cargar notificaciones')
-        console.error('Error fetching notifications:', err)
       }
     } finally {
       if (isMountedRef.current) {
@@ -80,17 +82,14 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
   const markAsRead = useCallback(async (notificationId) => {
     try {
       await api.post(`/notificaciones/${notificationId}/marcar-leida`)
-
       setNotifications(prev =>
         prev.map(n =>
           n.id === notificationId ? { ...n, leido: true } : n
         )
       )
       setUnreadCount(prev => Math.max(0, prev - 1))
-
       return true
-    } catch (err) {
-      console.error('Error marking notification as read:', err)
+    } catch {
       return false
     }
   }, [])
@@ -101,13 +100,10 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
   const markAllAsRead = useCallback(async () => {
     try {
       await api.post('/notificaciones/marcar-todas-leidas')
-
       setNotifications(prev => prev.map(n => ({ ...n, leido: true })))
       setUnreadCount(0)
-
       return true
-    } catch (err) {
-      console.error('Error marking all as read:', err)
+    } catch {
       return false
     }
   }, [])
@@ -118,7 +114,6 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
   const deleteNotification = useCallback(async (notificationId) => {
     try {
       await api.delete(`/notificaciones/${notificationId}`)
-
       setNotifications(prev => {
         const notif = prev.find(n => n.id === notificationId)
         if (notif && !notif.leido) {
@@ -126,133 +121,207 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
         }
         return prev.filter(n => n.id !== notificationId)
       })
-
       return true
-    } catch (err) {
-      console.error('Error deleting notification:', err)
+    } catch {
       return false
     }
   }, [])
 
   /**
-   * Conectar a SSE stream
+   * Procesar notificación entrante (de cualquier canal)
    */
-  const connectSSE = useCallback(() => {
-    if (!enabled || eventSourceRef.current) return
+  const handleIncomingNotification = useCallback((notification) => {
+    if (!isMountedRef.current) return
+
+    setNotifications(prev => {
+      if (prev.some(n => n.id === notification.id)) return prev
+      return [notification, ...prev]
+    })
+
+    if (!notification.leido) {
+      setUnreadCount(c => c + 1)
+    }
+
+    if (onNotification) {
+      onNotification(notification)
+    }
+  }, [onNotification])
+
+  /**
+   * Conectar via WebSocket
+   */
+  const connectWS = useCallback(() => {
+    if (!enabled || wsRef.current) return false
 
     try {
-      // Construir URL del stream
-      const streamUrl = `${API_BASE_URL}/notificaciones/stream`
+      // Construir URL WS desde API URL
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      const wsHost = API_BASE_URL.startsWith('http')
+        ? new URL(API_BASE_URL).host
+        : window.location.host
+      const wsUrl = `${wsProtocol}//${wsHost}/ws/notifications`
 
-      // Crear EventSource
-      // Nota: EventSource no envía cookies por defecto en cross-origin
-      // Si el backend está en otro dominio, usar withCredentials polyfill
-      const eventSource = new EventSource(streamUrl, {
-        withCredentials: true
-      })
+      const ws = new WebSocket(wsUrl)
+      wsRef.current = ws
 
-      eventSourceRef.current = eventSource
-
-      eventSource.onopen = () => {
+      ws.onopen = () => {
         if (isMountedRef.current) {
+          transportRef.current = 'ws'
           setIsConnected(true)
           setError(null)
           reconnectAttempts.current = 0
           lastHeartbeatRef.current = Date.now()
-          // Detener polling si estaba activo
+
+          // Detener SSE y polling
+          if (eventSourceRef.current) {
+            eventSourceRef.current.close()
+            eventSourceRef.current = null
+          }
           if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current)
             pollingIntervalRef.current = null
           }
-          // FIX 3.8: Iniciar verificación de heartbeat
-          if (heartbeatTimeoutRef.current) {
-            clearInterval(heartbeatTimeoutRef.current)
-          }
-          heartbeatTimeoutRef.current = setInterval(() => {
-            const timeSinceLastHeartbeat = Date.now() - lastHeartbeatRef.current
-            if (timeSinceLastHeartbeat > HEARTBEAT_TIMEOUT) {
-              console.error('SSE heartbeat timeout - reconnecting')
-              eventSource.close()
-              eventSourceRef.current = null
-              clearInterval(heartbeatTimeoutRef.current)
-              heartbeatTimeoutRef.current = null
-              // Reconectar
-              if (isMountedRef.current && enabled) {
-                setTimeout(connectSSE, SSE_RECONNECT_BASE_DELAY)
-              }
-            }
-          }, 10000) // Verificar cada 10 segundos
+
+          // Iniciar heartbeat check
+          startHeartbeatCheck()
         }
       }
 
-      eventSource.onmessage = (event) => {
+      ws.onmessage = (event) => {
         if (!isMountedRef.current) return
-        // FIX 3.8: Actualizar timestamp de último mensaje recibido (incluye heartbeats)
         lastHeartbeatRef.current = Date.now()
 
         try {
           const data = JSON.parse(event.data)
 
-          if (data.type === 'connected') {
-            console.debug('SSE connected:', data.user_id)
-            return
+          if (data.type === 'pong' || data.event === 'pong') return
+
+          if (data.event === 'notification' && data.data) {
+            handleIncomingNotification(data.data)
           }
-
-          if (data.type === 'notification' || data.id) {
-            // Nueva notificación recibida
-            const notification = data.data || data
-
-            setNotifications(prev => {
-              // Evitar duplicados
-              if (prev.some(n => n.id === notification.id)) {
-                return prev
-              }
-              return [notification, ...prev]
-            })
-
-            if (!notification.leido) {
-              setUnreadCount(c => c + 1)
-            }
-
-            // Callback opcional
-            if (onNotification) {
-              onNotification(notification)
-            }
-          }
-        } catch (err) {
-          console.error('Error parsing SSE message:', err)
+        } catch {
+          // Ignorar mensajes no parseables
         }
       }
 
-      eventSource.onerror = (err) => {
-        console.error('SSE error:', err)
+      ws.onclose = () => {
+        wsRef.current = null
+        if (isMountedRef.current && enabled) {
+          setIsConnected(false)
+          clearHeartbeatCheck()
+          // Fallback a SSE
+          connectSSE()
+        }
+      }
 
+      ws.onerror = () => {
+        ws.close()
+      }
+
+      return true
+    } catch {
+      return false
+    }
+  }, [enabled, handleIncomingNotification])
+
+  /**
+   * Iniciar verificación de heartbeat
+   */
+  const startHeartbeatCheck = useCallback(() => {
+    clearHeartbeatCheck()
+    heartbeatTimeoutRef.current = setInterval(() => {
+      const timeSince = Date.now() - lastHeartbeatRef.current
+      if (timeSince > HEARTBEAT_TIMEOUT) {
+        // Conexión estancada
+        if (wsRef.current) {
+          wsRef.current.close()
+          wsRef.current = null
+        }
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close()
+          eventSourceRef.current = null
+        }
+        clearHeartbeatCheck()
+        if (isMountedRef.current && enabled) {
+          setTimeout(connectWS, WS_RECONNECT_BASE_DELAY)
+        }
+      } else if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        // Send ping to keep alive
+        try {
+          wsRef.current.send(JSON.stringify({ type: 'ping' }))
+        } catch {
+          // Ignore
+        }
+      }
+    }, 15000)
+  }, [enabled, connectWS])
+
+  const clearHeartbeatCheck = useCallback(() => {
+    if (heartbeatTimeoutRef.current) {
+      clearInterval(heartbeatTimeoutRef.current)
+      heartbeatTimeoutRef.current = null
+    }
+  }, [])
+
+  /**
+   * Conectar a SSE stream (fallback de WS)
+   */
+  const connectSSE = useCallback(() => {
+    if (!enabled || eventSourceRef.current || wsRef.current) return
+
+    try {
+      const streamUrl = `${API_BASE_URL}/notificaciones/stream`
+      const eventSource = new EventSource(streamUrl, { withCredentials: true })
+      eventSourceRef.current = eventSource
+
+      eventSource.onopen = () => {
+        if (isMountedRef.current) {
+          transportRef.current = 'sse'
+          setIsConnected(true)
+          setError(null)
+          reconnectAttempts.current = 0
+          lastHeartbeatRef.current = Date.now()
+
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current)
+            pollingIntervalRef.current = null
+          }
+          startHeartbeatCheck()
+        }
+      }
+
+      eventSource.onmessage = (event) => {
+        if (!isMountedRef.current) return
+        lastHeartbeatRef.current = Date.now()
+
+        try {
+          const data = JSON.parse(event.data)
+
+          if (data.type === 'connected') return
+
+          if (data.type === 'notification' || data.id) {
+            const notification = data.data || data
+            handleIncomingNotification(notification)
+          }
+        } catch {
+          // Ignorar
+        }
+      }
+
+      eventSource.onerror = () => {
         if (isMountedRef.current) {
           setIsConnected(false)
-
-          // Cerrar conexión actual
           eventSource.close()
           eventSourceRef.current = null
+          clearHeartbeatCheck()
 
-          // FIX 3.8: Limpiar heartbeat interval
-          if (heartbeatTimeoutRef.current) {
-            clearInterval(heartbeatTimeoutRef.current)
-            heartbeatTimeoutRef.current = null
-          }
-
-          // FIX 4.7: Reconectar con backoff exponencial + jitter
-          // El jitter evita "thundering herd" cuando múltiples clientes reconectan
           const baseDelay = Math.min(
             SSE_RECONNECT_BASE_DELAY * Math.pow(2, reconnectAttempts.current),
             SSE_RECONNECT_MAX_DELAY
           )
-          // Agregar jitter aleatorio de 0-1000ms para distribuir reconexiones
           const jitter = Math.floor(Math.random() * 1000)
-          const delay = baseDelay + jitter
-
           reconnectAttempts.current++
 
-          // Si muchos intentos fallidos, activar fallback a polling
           if (reconnectAttempts.current > 5) {
             setError('Conexión inestable, usando modo polling')
             startPolling()
@@ -263,83 +332,76 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
             if (isMountedRef.current && enabled) {
               connectSSE()
             }
-          }, delay)
+          }, baseDelay + jitter)
         }
       }
-    } catch (err) {
-      console.error('Error creating EventSource:', err)
+    } catch {
       setError('SSE no disponible')
       startPolling()
     }
-  }, [enabled, onNotification])
+  }, [enabled, handleIncomingNotification, startHeartbeatCheck, clearHeartbeatCheck])
 
   /**
    * Iniciar fallback polling
    */
   const startPolling = useCallback(() => {
     if (pollingIntervalRef.current) return
+    transportRef.current = 'polling'
 
-    // Fetch inicial y marcar como conectado si funciona
     fetchNotifications().then(() => {
-      if (isMountedRef.current) {
-        setIsConnected(true) // Polling funciona = conectado
-      }
+      if (isMountedRef.current) setIsConnected(true)
     })
 
-    // Polling periódico
     pollingIntervalRef.current = setInterval(() => {
-      if (isMountedRef.current) {
-        fetchNotifications()
-      }
+      if (isMountedRef.current) fetchNotifications()
     }, POLLING_INTERVAL)
   }, [fetchNotifications])
 
   /**
-   * Desconectar SSE
+   * Desconectar todo
    */
   const disconnect = useCallback(() => {
+    if (wsRef.current) {
+      wsRef.current.close()
+      wsRef.current = null
+    }
     if (eventSourceRef.current) {
       eventSourceRef.current.close()
       eventSourceRef.current = null
     }
-
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current)
       reconnectTimeoutRef.current = null
     }
-
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current)
       pollingIntervalRef.current = null
     }
-
-    // FIX 3.8: Limpiar heartbeat interval
-    if (heartbeatTimeoutRef.current) {
-      clearInterval(heartbeatTimeoutRef.current)
-      heartbeatTimeoutRef.current = null
-    }
-
+    clearHeartbeatCheck()
+    transportRef.current = 'none'
     setIsConnected(false)
-  }, [])
+  }, [clearHeartbeatCheck])
 
   // Efecto para conectar/desconectar
   useEffect(() => {
     isMountedRef.current = true
 
     if (enabled) {
-      // Cargar notificaciones iniciales
       fetchNotifications()
 
-      // Detectar si estamos en cross-origin (SSE no funciona sin cookies)
       const isCrossOrigin = API_BASE_URL.startsWith('http') &&
         !API_BASE_URL.includes(window.location.host)
 
-      // Intentar conectar SSE solo si no es cross-origin
-      // En cross-origin, EventSource no puede enviar tokens de auth
-      if (typeof EventSource !== 'undefined' && !isCrossOrigin) {
-        connectSSE()
+      if (!isCrossOrigin) {
+        // Intentar WS primero, si falla cae a SSE, luego polling
+        if (!connectWS()) {
+          if (typeof EventSource !== 'undefined') {
+            connectSSE()
+          } else {
+            startPolling()
+          }
+        }
       } else {
-        // Usar polling para cross-origin o si EventSource no está disponible
         startPolling()
       }
     }
@@ -348,24 +410,19 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
       isMountedRef.current = false
       disconnect()
     }
-  }, [enabled, fetchNotifications, connectSSE, startPolling, disconnect])
+  }, [enabled, fetchNotifications, connectWS, connectSSE, startPolling, disconnect])
 
   return {
-    // Estado
     notifications,
     unreadCount,
     isConnected,
     isLoading,
     error,
-
-    // Acciones
     markAsRead,
     markAllAsRead,
     deleteNotification,
     refresh: fetchNotifications,
-
-    // Control de conexión
-    connect: connectSSE,
+    connect: connectWS,
     disconnect
   }
 }

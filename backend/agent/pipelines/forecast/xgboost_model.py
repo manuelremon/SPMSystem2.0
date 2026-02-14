@@ -11,10 +11,9 @@ Ventajas sobre GradientBoosting de sklearn:
 
 Adaptado de ForecastDemandaMateriales para SPM v2.0
 """
-from typing import Dict
-import pandas as pd
-import numpy as np
 import logging
+
+import pandas as pd
 
 from .sklearn_models import SklearnBaseStrategy
 

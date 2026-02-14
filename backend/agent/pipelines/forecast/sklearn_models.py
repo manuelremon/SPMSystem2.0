@@ -5,13 +5,13 @@ Implementaciones de RandomForest, GradientBoosting y Ridge para forecasting.
 
 Adaptado de ForecastDemandaMateriales para SPM v2.0
 """
-from typing import Dict, List
-import pandas as pd
-import numpy as np
-from datetime import timedelta
 import logging
+from datetime import timedelta
+from typing import Dict, List
 
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import train_test_split
 

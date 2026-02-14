@@ -6,10 +6,9 @@ Compartidas por todos los repositorios.
 import logging
 import sqlite3
 from pathlib import Path
-from typing import Any
 
 from backend.core.config import settings
-from backend.core.db import is_using_postgresql, _get_postgres_connection
+from backend.core.db import _get_postgres_connection, is_using_postgresql
 
 logger = logging.getLogger(__name__)
 

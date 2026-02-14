@@ -13,14 +13,13 @@ Endpoints:
 - POST /api/metrics/reset    - Reiniciar metricas (admin)
 """
 
-from functools import wraps
 
 from flask import Blueprint, g, jsonify, request
 
-from backend.core.metrics import get_cache_metrics, get_db_pool_metrics, get_metrics_collector
 from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+from backend.core.metrics import get_cache_metrics, get_db_pool_metrics, get_metrics_collector
 from backend.core.rate_limit import rate_limit
-from backend.core.roles import require_auth, require_admin
+from backend.core.roles import require_admin, require_auth
 
 bp = Blueprint("metrics", __name__, url_prefix="/api/metrics")
 

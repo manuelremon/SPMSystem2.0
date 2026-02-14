@@ -10,6 +10,7 @@ Endpoints:
 """
 
 import json
+import threading
 import time
 
 from flask import Blueprint, Response, g, jsonify, request, stream_with_context
@@ -17,7 +18,6 @@ from flask import Blueprint, Response, g, jsonify, request, stream_with_context
 from backend.core.notification_schemas import NotificacionEvent
 from backend.core.roles import require_auth
 from backend.services.notification_service import NotificationService
-
 
 bp = Blueprint("notificaciones", __name__, url_prefix="/api/notificaciones")
 
@@ -144,7 +144,7 @@ def notification_stream():
         return jsonify({"ok": False, "error": "Unauthorized"}), 401
 
     # FIX 5.1: Importar Redis pub/sub
-    from backend.core.redis_pubsub import redis_pubsub, is_redis_available
+    from backend.core.redis_pubsub import is_redis_available, redis_pubsub
 
     use_redis = is_redis_available()
 
@@ -191,12 +191,15 @@ def notification_stream():
         Generador SSE usando polling de BD.
 
         Fallback cuando Redis no está disponible.
-        Polling cada 15 segundos para reducir carga.
+        Usa threading.Event.wait() en lugar de time.sleep() para no bloquear
+        el worker de gunicorn. El wait() es interrumpible y cede el control.
         """
+        stop_event = threading.Event()
+
         # Evento inicial
         yield f"data: {json.dumps({'type': 'connected', 'user_id': user_id, 'mode': 'polling'})}\n\n"
 
-        last_check = time.time()
+        last_heartbeat = time.time()
         last_notification_id = 0
 
         # Obtener el último ID de notificación
@@ -204,16 +207,18 @@ def notification_stream():
         if notifications:
             last_notification_id = notifications[0]["id"]
 
-        while True:
+        while not stop_event.is_set():
+            # Espera non-blocking de 15s (cede el worker, interrumpible)
+            stop_event.wait(timeout=15)
+            if stop_event.is_set():
+                break
+
             current_time = time.time()
 
             # Heartbeat cada 30 segundos
-            if current_time - last_check >= 30:
+            if current_time - last_heartbeat >= 30:
                 yield ": heartbeat\n\n"
-                last_check = current_time
-
-            # Polling cada 15 segundos (reducción 92% vs 2s)
-            time.sleep(15)
+                last_heartbeat = current_time
 
             new_notifications = NotificationService.get_user_notifications(user_id, limit=10)
 

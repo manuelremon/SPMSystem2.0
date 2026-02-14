@@ -9,8 +9,9 @@ Carga solicitudes, materiales, stock, presupuestos desde BD.
 import logging
 from typing import Any, Dict, List, Optional
 
-from .base import BaseTool, ToolError, ToolMetadata
 from backend.core.search_utils import build_description_search
+
+from .base import BaseTool, ToolError, ToolMetadata
 
 logger = logging.getLogger(__name__)
 

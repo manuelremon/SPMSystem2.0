@@ -12,10 +12,10 @@ Scoring multi-criterio:
 FASE 5 - SPM v3.0
 """
 import logging
-from typing import Dict, List, Optional, Tuple
-import pandas as pd
+from datetime import datetime
+from typing import Dict, List
+
 import numpy as np
-from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -325,8 +325,9 @@ def obtener_recomendaciones_material(
         Dict con recomendación
     """
     try:
-        from backend.core.db import get_db_connection, is_using_postgresql
         import pandas as pd
+
+        from backend.core.db import get_db_connection
 
         engine = RecommendationEngine()
 

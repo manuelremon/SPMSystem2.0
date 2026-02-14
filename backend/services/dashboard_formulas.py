@@ -11,7 +11,6 @@ Ejecuta formulas personalizadas que conectan con los datos de SPM:
 
 import threading
 import time
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from backend.core.dashboard_schemas import FormulaResult

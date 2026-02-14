@@ -9,13 +9,13 @@ Ejemplo:
     python -m backend.scripts.import_zm65 data/xlsx/ZM65.xlsx --verbose
 """
 
-import sys
+import argparse
 import hashlib
 import sqlite3
-import argparse
+import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 # Agregar el directorio raiz al path
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent

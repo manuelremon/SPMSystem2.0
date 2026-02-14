@@ -34,7 +34,7 @@ def column_exists(cursor, table_name: str, column_name: str) -> bool:
 
 def run_migration():
     """Ejecutar migración."""
-    print(f">> Migración 012: Columnas de Respuesta para Consultas de Stock")
+    print(">> Migración 012: Columnas de Respuesta para Consultas de Stock")
 
     try:
         db_path = get_db_path()

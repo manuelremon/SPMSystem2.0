@@ -11,18 +11,17 @@ Maneja la lógica de negocio para notificaciones:
 """
 
 import logging
-import threading
-from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from backend.core.config import settings
-from backend.core.db import get_db_connection, get_db_transaction, sql_now_minus, is_using_postgresql
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    is_using_postgresql,
+    sql_now_minus,
+)
 from backend.core.notification_schemas import (
     Notificacion,
-    NotificacionCreate,
-    NotificacionEvent,
-    NotificacionListResponse,
 )
 from backend.services.push_service import send_push_notification
 
@@ -395,29 +394,34 @@ class NotificationService:
                 logger.warning(f"Error sending push notification: {e}")
                 # No fallar si push falla, la notificación ya se creó
 
-        # FIX 5.1: Publicar a Redis para entrega en tiempo real vía SSE
+        # Publicar a Redis para SSE y a WebSocket para entrega en tiempo real
         if notif_id:
+            notif_payload = {
+                "id": notif_id,
+                "mensaje": mensaje,
+                "tipo": tipo,
+                "solicitud_id": solicitud_id,
+                "created_at": datetime.now().isoformat(),
+                "leido": False,
+            }
+
+            # Canal 1: Redis pub/sub (para SSE streams)
             try:
                 from backend.core.redis_pubsub import publish_user_notification
-            except ImportError:
-                publish_user_notification = None
+                publish_user_notification(destinatario_id, notif_payload)
+            except (ImportError, Exception) as e:
+                logger.debug(f"Redis pub/sub no disponible: {e}")
 
-            if publish_user_notification:
-                try:
-                    publish_user_notification(
-                        destinatario_id,
-                        {
-                            "id": notif_id,
-                            "mensaje": mensaje,
-                            "tipo": tipo,
-                            "solicitud_id": solicitud_id,
-                            "created_at": datetime.now().isoformat(),
-                            "leido": False,
-                        },
-                    )
-                except Exception as e:
-                    logger.debug(f"Redis pub/sub no disponible: {e}")
-                    # No fallar si Redis no está disponible, fallback a polling
+            # Canal 2: WebSocket (entrega directa, sin polling)
+            try:
+                from backend.core.websocket import send_to_user
+                send_to_user(
+                    int(destinatario_id) if str(destinatario_id).isdigit() else destinatario_id,
+                    "notification",
+                    notif_payload,
+                )
+            except (ImportError, Exception) as e:
+                logger.debug(f"WebSocket envío no disponible: {e}")
 
         return notif_id
 

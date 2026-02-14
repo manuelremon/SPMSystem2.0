@@ -12,7 +12,7 @@ Para habilitar búsqueda semántica:
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from .base import BaseTool, ToolMetadata
 
@@ -34,7 +34,6 @@ except ImportError:
 # Importar get_db_connection del core
 from backend.core.db import get_db_connection
 from backend.core.search_utils import build_description_search
-
 
 # BD de catálogo de materiales
 CATALOGO_DB = "catalogo_materiales"

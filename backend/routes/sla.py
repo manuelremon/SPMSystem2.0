@@ -17,7 +17,6 @@ from backend.services.sla_service import (
     resolver_alerta_sla,
 )
 
-
 bp = Blueprint("sla", __name__, url_prefix="/api/sla")
 
 

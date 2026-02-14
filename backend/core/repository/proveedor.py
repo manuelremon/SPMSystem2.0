@@ -175,7 +175,7 @@ class ProveedorInternoRepository:
             cur_sap = conn_sap.cursor()
 
             # Normalizar código de material (quitar ceros a la izquierda si es necesario)
-            codigo_norm = codigo_material.lstrip("0") if codigo_material else ""
+            codigo_material.lstrip("0") if codigo_material else ""
 
             # Buscar en tabla stock (la tabla principal de sap_data.db)
             cur_sap.execute(

@@ -1,17 +1,18 @@
 """
 Planner - Dashboard y Listados
 
-Endpoints para dashboard de planificador, listados de solicitudes
-y consultas de presupuesto.
+Endpoints para dashboard de planificador, listados de solicitudes,
+consultas de presupuesto y simulacion de compra.
 """
 
 import json
 import logging
 
-from flask import Blueprint, jsonify, request
+from flask import jsonify, request
 
 from backend.core.db import get_db_connection
 from backend.core.roles import require_auth
+from backend.routes.planner import bp
 from backend.routes.planner_helpers import (
     _current_user,
     _require_planner_role,
@@ -20,10 +21,8 @@ from backend.routes.planner_helpers import (
 
 logger = logging.getLogger(__name__)
 
-dashboard_bp = Blueprint("dashboard", __name__)
 
-
-@dashboard_bp.route("/dashboard", methods=["GET"])
+@bp.route("/dashboard", methods=["GET"])
 def dashboard_stats():
     """Estadisticas para el dashboard del planificador/admin"""
     stats = {
@@ -78,8 +77,11 @@ def dashboard_stats():
         )
 
 
-def _load_solicitudes(filters: dict):
-    """Carga solicitudes con filtros aplicados"""
+def _load_solicitudes(filters: dict, page: int = 1, page_size: int = 50):
+    """Carga solicitudes con filtros y paginacion aplicados."""
+    # Validate page_size
+    page_size = min(max(page_size, 1), 200)
+
     # FSM: Soportar tanto estados legacy como nuevos (normalizados)
     where = [
         """(
@@ -88,7 +90,9 @@ def _load_solicitudes(filters: dict):
         )"""
     ]
     params = []
-    if filters.get("planner_id"):
+    if filters.get("sin_asignar"):
+        where.append("(s.planner_id IS NULL OR s.planner_id = '')")
+    elif filters.get("planner_id"):
         where.append("s.planner_id = ?")
         params.append(filters["planner_id"])
     if filters.get("centro"):
@@ -101,11 +105,27 @@ def _load_solicitudes(filters: dict):
 
     with get_db_connection() as conn:
         cur = conn.cursor()
+
+        # Get total count using same WHERE clause
+        cur.execute(
+            f"""
+            SELECT COUNT(*) as total
+            FROM solicitud s
+            {where_sql}
+            """,
+            params,
+        )
+        count_row = cur.fetchone()
+        total_count = count_row["total"] if isinstance(count_row, dict) else count_row[0]
+
+        # Get paginated results
+        offset = (page - 1) * page_size
         cur.execute(
             f"""
             SELECT
                 s.id, s.id_usuario, s.centro, s.sector, s.justificacion, s.centro_costos, s.almacen_virtual,
                 s.criticidad, s.fecha_necesidad, s.status, s.total_monto, s.planner_id, s.created_at, s.updated_at, s.data_json, s.aprobador_id,
+                s.ai_score, s.ai_priority,
                 u.nombre AS solicitante_nombre, u.apellido AS solicitante_apellido,
                 ua.nombre AS aprobador_nombre, ua.apellido AS aprobador_apellido,
                 up.nombre AS planner_nombre, up.apellido AS planner_apellido
@@ -114,9 +134,10 @@ def _load_solicitudes(filters: dict):
             LEFT JOIN usuario ua ON s.aprobador_id = ua.id_spm
             LEFT JOIN usuario up ON s.planner_id = up.id_spm
             {where_sql}
-            ORDER BY s.updated_at DESC
+            ORDER BY COALESCE(s.ai_score, 0) DESC, s.updated_at DESC
+            LIMIT ? OFFSET ?
             """,
-            params,
+            params + [page_size, offset],
         )
         rows = cur.fetchall()
 
@@ -130,10 +151,16 @@ def _load_solicitudes(filters: dict):
             extra = {}
         d["items"] = extra.get("items", [])
         results.append(d)
-    return results
+
+    return {
+        "items": results,
+        "total": total_count,
+        "page": page,
+        "page_size": page_size,
+    }
 
 
-@dashboard_bp.route("/solicitudes", methods=["GET"])
+@bp.route("/solicitudes", methods=["GET"])
 @require_auth
 def listar_solicitudes_aprobadas():
     """Solicitudes aprobadas/asignadas para planificador"""
@@ -143,14 +170,35 @@ def listar_solicitudes_aprobadas():
     guard, is_admin = _require_planner_role(user)
     if guard:
         return guard
-    planner_id = user.get("id_spm") if not is_admin else request.args.get("planner_id")
+
+    # Parametros de filtro
     centro = request.args.get("centro")
     sector = request.args.get("sector")
-    data = _load_solicitudes({"planner_id": planner_id, "centro": centro, "sector": sector})
+    sin_asignar = request.args.get("sin_asignar", "").lower() in ("true", "1", "yes")
+
+    # Parametros de paginacion
+    page = int(request.args.get("page", 1))
+    page_size = int(request.args.get("page_size", 50))
+
+    filters = {"centro": centro, "sector": sector}
+
+    if sin_asignar:
+        # Mostrar solo solicitudes sin asignar
+        filters["sin_asignar"] = True
+    elif is_admin:
+        # Admin puede filtrar por planner_id especifico o ver todas
+        planner_id = request.args.get("planner_id")
+        if planner_id:
+            filters["planner_id"] = planner_id
+    else:
+        # Usuario normal solo ve las asignadas a el
+        filters["planner_id"] = user.get("id_spm")
+
+    data = _load_solicitudes(filters, page=page, page_size=page_size)
     return jsonify(data), 200
 
 
-@dashboard_bp.route("/presupuesto", methods=["GET"])
+@bp.route("/presupuesto", methods=["GET"])
 def obtener_presupuesto():
     """Retorna presupuesto y saldo por centro/sector para validaciones rapidas"""
     centro = request.args.get("centro")
@@ -172,7 +220,7 @@ def obtener_presupuesto():
     return jsonify(d), 200
 
 
-@dashboard_bp.route("/simular", methods=["POST"])
+@bp.route("/simular", methods=["POST"])
 @require_auth
 def simular_compra():
     """Feature 4.2: Simula el impacto de una compra propuesta.
@@ -238,7 +286,9 @@ def simular_compra():
             cobertura_actual = round(stock_actual / consumo_diario, 1) if consumo_diario > 0 else 0
 
             stock_simulado = stock_actual + cantidad
-            cobertura_simulada = round(stock_simulado / consumo_diario, 1) if consumo_diario > 0 else 0
+            cobertura_simulada = (
+                round(stock_simulado / consumo_diario, 1) if consumo_diario > 0 else 0
+            )
 
             costo_total = round(cantidad * precio_unitario, 2) if precio_unitario > 0 else 0
 
@@ -279,7 +329,9 @@ def simular_compra():
                         "saldo_actual_usd": round(saldo / 100, 2),
                         "costo_compra_usd": costo_total,
                         "saldo_post_compra_usd": round((saldo / 100) - costo_total, 2),
-                        "pct_presupuesto": round(costo_total / (saldo / 100) * 100, 1) if saldo > 0 else 0,
+                        "pct_presupuesto": (
+                            round(costo_total / (saldo / 100) * 100, 1) if saldo > 0 else 0
+                        ),
                     }
 
         return jsonify(

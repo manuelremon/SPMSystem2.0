@@ -47,14 +47,14 @@ class ReportingService:
         self._has_reportlab = False
 
         try:
-            import openpyxl
+            import openpyxl  # noqa: F401
 
             self._has_openpyxl = True
         except ImportError:
             logger.warning("openpyxl no disponible, Excel export limitado")
 
         try:
-            import reportlab
+            import reportlab  # noqa: F401
 
             self._has_reportlab = True
         except ImportError:

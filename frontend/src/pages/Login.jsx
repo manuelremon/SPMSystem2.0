@@ -514,7 +514,7 @@ export default function Login() {
             <Button
               fullWidth
               variant="outlined"
-              onClick={() => alert("Iniciar sesión con Google")}
+              onClick={() => { /* Google OAuth - pendiente de integración */ }}
               startIcon={<GoogleIcon />}
             >
               {t("login_google", "Iniciar sesión con Google")}

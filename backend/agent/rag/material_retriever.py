@@ -368,7 +368,7 @@ class MaterialRetriever:
                 raise ValueError(f"Material {material_codigo} no encontrado")
 
             embedding = result["embeddings"][0]
-            document = result["documents"][0] if result.get("documents") else ""
+            result["documents"][0] if result.get("documents") else ""
 
         except Exception as e:
             raise ValueError(f"Error obteniendo material {material_codigo}: {e}")

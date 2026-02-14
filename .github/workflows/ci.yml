@@ -90,8 +90,6 @@ jobs:
 
       - name: Run Ruff linter
         run: ruff check backend/ --output-format=github
-        # TODO: Remove continue-on-error after resolving lint issues
-        continue-on-error: true
 
   # ==================== Frontend Tests ====================
   frontend-tests:
@@ -118,8 +116,6 @@ jobs:
 
       - name: Run tests with coverage
         run: npm test -- --run --coverage
-        # TODO: Remove continue-on-error when frontend test coverage > 50%
-        continue-on-error: true
 
       - name: Upload frontend coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -189,8 +185,6 @@ jobs:
 
       - name: Run ESLint
         run: npx eslint src/ --max-warnings=0
-        # TODO: Remove continue-on-error after configuring ESLint and fixing warnings
-        continue-on-error: true
 
   # ==================== Security Check ====================
   security-check:
@@ -247,6 +241,18 @@ jobs:
           fi
           if [[ "${{ needs.frontend-build.result }}" == "failure" ]]; then
             echo "Frontend build failed!"
+            exit 1
+          fi
+          if [[ "${{ needs.frontend-tests.result }}" == "failure" ]]; then
+            echo "Frontend tests failed!"
+            exit 1
+          fi
+          if [[ "${{ needs.frontend-lint.result }}" == "failure" ]]; then
+            echo "Frontend linting failed!"
+            exit 1
+          fi
+          if [[ "${{ needs.backend-lint.result }}" == "failure" ]]; then
+            echo "Backend linting failed!"
             exit 1
           fi
 

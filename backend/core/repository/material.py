@@ -45,7 +45,7 @@ class MaterialRepository:
         almacenes_excluidos = {
             f"{c['centro']}_{c['almacen']}" for c in almacenes_config if c.get("excluido")
         }
-        lotes_excluidos_set = {l.upper() for l in lotes_excluidos}
+        lotes_excluidos_set = {x.upper() for x in lotes_excluidos}
 
         # Crear mapa de config por centro_almacen
         config_map = {f"{c['centro']}_{c['almacen']}": c for c in almacenes_config}

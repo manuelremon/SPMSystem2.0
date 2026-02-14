@@ -7,14 +7,15 @@ mediante simulación de predicciones históricas.
 Adaptado de ForecastDemandaMateriales para SPM v2.0
 """
 
-from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, Tuple
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
 import logging
 import warnings
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+
+import numpy as np
+import pandas as pd
 
 warnings.filterwarnings('ignore')
 

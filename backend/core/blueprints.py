@@ -113,6 +113,6 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(ordenes_compra_bp)  # OC at /api/ordenes-compra
 
     # Transport and Fleet Management
-    from backend.routes import tms, fms
+    from backend.routes import fms, tms
     app.register_blueprint(tms.bp)  # TMS (Transport Management) at /api/tms
     app.register_blueprint(fms.bp)  # FMS (Fleet Management) at /api/fms

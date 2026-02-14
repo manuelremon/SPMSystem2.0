@@ -26,7 +26,7 @@ import logging
 import os
 import threading
 import time
-from typing import Any, Callable, Dict, Generator, Optional
+from typing import Any, Dict, Generator, Optional
 
 logger = logging.getLogger(__name__)
 

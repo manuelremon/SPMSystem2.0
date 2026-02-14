@@ -31,7 +31,7 @@ import threading
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from flask import Blueprint, g, jsonify, request, Response
+from flask import Blueprint, Response, g, jsonify, request
 
 logger = logging.getLogger(__name__)
 
@@ -134,18 +134,18 @@ def _check_vertex_tables() -> bool:
             _vertex_tables_exist = False
             return False
 
-from backend.core.roles import require_auth
 from backend.core.rate_limit import rate_limit
+from backend.core.roles import require_auth
 from backend.core.search_utils import build_description_search
 
 # Servicio TTS (Text-to-Speech)
 TTS_AVAILABLE = False
 tts_service = None
 try:
-    from backend.services.tts_service import tts_service, TTS_AVAILABLE
+    from backend.services.tts_service import TTS_AVAILABLE, tts_service
 except ImportError:
     try:
-        from services.tts_service import tts_service, TTS_AVAILABLE
+        from services.tts_service import TTS_AVAILABLE, tts_service
     except ImportError as e:
         logger.warning(f"TTS service not available: {e}")
 
@@ -165,10 +165,10 @@ except ImportError as e:
 
 try:
     from backend.agent.rag.vertex_prompts import (
-        VERTEX_SYSTEM_PROMPT,
         VERTEX_SEARCH_PROMPT,
-        get_page_suggestions,
+        VERTEX_SYSTEM_PROMPT,
         get_greeting,
+        get_page_suggestions,
     )
     vertex_prompts_module = True
 except ImportError as e:
@@ -201,8 +201,8 @@ def ensure_vertex_tables():
     """
     global _vertex_tables_exist
     try:
-        import os
         import importlib.util
+        import os
 
         migration_path = os.path.join(
             os.path.dirname(__file__), "..", "migrations", "022_vertex_ia_tables.py"
@@ -540,7 +540,7 @@ def chat():
         history = memory.get_conversation_for_llm(limit=8)
 
         # Obtener hechos del usuario para personalizar
-        user_facts = memory.get_all_facts()
+        memory.get_all_facts()
         user_context = memory.get_context_summary()
 
         # Construir prompt con contexto
@@ -952,8 +952,8 @@ def _search_materials_direct(query: str) -> list:
         return []
 
     try:
+
         from backend.core.db import get_master_materiales_db_path
-        from pathlib import Path
 
         db_path = str(get_master_materiales_db_path())
         conn = sqlite3.connect(db_path)

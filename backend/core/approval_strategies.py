@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from backend.core.db import get_db_connection
+
 
 class ApprovalStrategy(ABC):
     """

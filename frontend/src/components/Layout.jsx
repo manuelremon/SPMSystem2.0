@@ -30,6 +30,7 @@ import ToastContainer from "./ui/ToastContainer";
 import SkipLink from "./ui/SkipLink";
 import { useI18n } from "../context/i18n";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
+import OfflineBanner from "./ui/OfflineBanner";
 
 export default function Layout({ children }) {
   const { user, logout } = useAuthStore();
@@ -482,6 +483,9 @@ export default function Layout({ children }) {
 
       {/* Toast Container for notifications */}
       <ToastContainer />
+
+      {/* Offline indicator */}
+      <OfflineBanner />
     </Box>
   );
 }

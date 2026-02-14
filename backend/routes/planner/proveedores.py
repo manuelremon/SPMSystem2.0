@@ -1,24 +1,26 @@
 """
-Planner - Precios Negociados
+Planner - Precios Negociados de Proveedores
 
-Endpoints para gestion de precios negociados con proveedores.
+Endpoints para gestion de precios negociados con proveedores:
+- Listar precios por proveedor
+- Crear/actualizar precio negociado
+- Mejores precios por material
 """
 
 import logging
 
-from flask import Blueprint, jsonify, request
+from flask import jsonify, request
 
 from backend.core.errors import error_internal, error_validation
 from backend.core.repository import ProveedorPreciosRepository
 from backend.core.roles import require_auth
+from backend.routes.planner import bp
 from backend.routes.planner_helpers import _current_user, _require_planner_role
 
 logger = logging.getLogger(__name__)
 
-precios_bp = Blueprint("precios", __name__)
 
-
-@precios_bp.route("/proveedores/<cuit>/precios", methods=["GET"])
+@bp.route("/proveedores/<cuit>/precios", methods=["GET"])
 @require_auth
 def listar_precios_proveedor(cuit):
     """
@@ -52,7 +54,7 @@ def listar_precios_proveedor(cuit):
         return error_internal("Error al obtener precios del proveedor")
 
 
-@precios_bp.route("/proveedores/<cuit>/precios", methods=["POST"])
+@bp.route("/proveedores/<cuit>/precios", methods=["POST"])
 @require_auth
 def crear_precio_negociado(cuit):
     """
@@ -119,7 +121,7 @@ def crear_precio_negociado(cuit):
         return error_internal("Error al crear precio negociado")
 
 
-@precios_bp.route("/materiales/<codigo>/mejores-precios", methods=["GET"])
+@bp.route("/materiales/<codigo>/mejores-precios", methods=["GET"])
 @require_auth
 def obtener_mejores_precios_material(codigo):
     """

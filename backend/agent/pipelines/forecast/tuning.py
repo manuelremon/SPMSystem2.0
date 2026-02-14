@@ -7,15 +7,16 @@ y selección automática del mejor modelo.
 Adaptado de ForecastDemandaMateriales para SPM v2.0
 """
 
+import logging
+import time
+import warnings
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
-import pandas as pd
-import numpy as np
 from datetime import datetime
-import logging
-import warnings
-import time
+from typing import Any, Dict, List, Optional
+
+import numpy as np
+import pandas as pd
 
 warnings.filterwarnings('ignore')
 
@@ -26,10 +27,10 @@ MAX_WORKERS = 4
 
 # Importaciones sklearn
 try:
+    from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
+    from sklearn.linear_model import Lasso, Ridge
     from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit, cross_val_score
-    from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-    from sklearn.linear_model import Ridge, Lasso
-    from sklearn.preprocessing import StandardScaler
+    from sklearn.preprocessing import StandardScaler  # noqa: F401
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False

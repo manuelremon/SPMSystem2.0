@@ -9,7 +9,6 @@ Este módulo proporciona funcionalidad para:
 
 import importlib.util
 import logging
-import os
 import re
 from datetime import datetime
 from pathlib import Path
@@ -195,7 +194,7 @@ def mark_as_applied(versions: Optional[List[str]] = None):
                 INSERT OR IGNORE INTO schema_migrations (version, description)
                 VALUES (?, ?)
                 """,
-                (version, f"Marcada como aplicada (existente)"),
+                (version, "Marcada como aplicada (existente)"),
             )
 
     logger.info(f"Marcadas {len(versions)} migraciones como aplicadas")

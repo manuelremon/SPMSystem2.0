@@ -7,7 +7,7 @@ compatible con SQLite y PostgreSQL.
 
 import logging
 import unicodedata
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 

@@ -11,11 +11,12 @@ STL es ideal para:
 
 FASE 1 - SPM v3.0
 """
-from typing import Dict, Tuple, Optional
-import pandas as pd
-import numpy as np
-from datetime import timedelta
 import logging
+from datetime import timedelta
+from typing import Dict, Optional
+
+import numpy as np
+import pandas as pd
 
 from .base import ForecastStrategy
 

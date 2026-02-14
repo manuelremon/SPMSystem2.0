@@ -259,9 +259,10 @@ class AIService:
         """
         try:
             # Usar nuevo módulo de forecast
-            from backend.agent.pipelines.forecast import DemandPredictor
-            from backend.core.db import get_db_connection, is_using_postgresql
             import pandas as pd
+
+            from backend.agent.pipelines.forecast import DemandPredictor
+            from backend.core.db import get_db_connection
 
             # Obtener datos históricos de consumo con filtros opcionales de centro y almacen
             with get_db_connection("sap_data") as conn:
@@ -809,7 +810,7 @@ class AIService:
         else:
             # Intentar buscar en consumo_historico directamente
             try:
-                from backend.core.db import get_db_connection as _db_conn, is_using_postgresql as _is_pg
+                from backend.core.db import get_db_connection as _db_conn
                 with _db_conn("sap_data") as conn:
                     cursor = conn.cursor()
                     cursor.execute(

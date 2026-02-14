@@ -8,7 +8,7 @@ Templates especializados para diferentes tareas:
 - Recomendaciones de compra
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 
 class PromptTemplate:

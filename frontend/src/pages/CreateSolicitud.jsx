@@ -239,7 +239,7 @@ export default function CreateSolicitud() {
   // Loading skeleton
   if (loadingCatalogos) {
     return (
-      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', p: 3 }}>
+      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', p: 3 }} aria-busy="true" aria-label={t('create_loading', 'Cargando formulario de solicitud')}>
         <Box sx={{ maxWidth: 1024, mx: 'auto' }}>
           <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
             <Skeleton variant="circular" width={40} height={40} />
@@ -279,6 +279,7 @@ export default function CreateSolicitud() {
         <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
           <IconButton
             onClick={() => navigate(-1)}
+            aria-label={t('common_volver', 'Volver')}
             sx={{
               color: 'text.secondary',
               '&:hover': {
@@ -300,23 +301,26 @@ export default function CreateSolicitud() {
         </Stack>
 
         {/* Error Alert */}
-        {error && (
-          <Alert
-            severity="error"
-            onClose={() => setError('')}
-            sx={{ mb: 3 }}
-          >
-            {error}
-          </Alert>
-        )}
+        <Box aria-live="polite">
+          {error && (
+            <Alert
+              severity="error"
+              onClose={() => setError('')}
+              sx={{ mb: 3 }}
+            >
+              {error}
+            </Alert>
+          )}
+        </Box>
 
         {/* Form Card */}
         <Paper elevation={0} sx={{ border: 1, borderColor: 'divider' }}>
-          <Box component="form" onSubmit={onSubmit}>
+          <Box component="form" onSubmit={onSubmit} aria-label={t('create_form_label', 'Formulario de nueva solicitud')}>
             {/* Section 1: Location */}
             <Box sx={{ px: 3, py: 2.5, borderBottom: 1, borderColor: 'divider' }}>
               <Typography
                 variant="overline"
+                component="h2"
                 color="text.secondary"
                 sx={{ display: 'block', mb: 2 }}
               >
@@ -386,6 +390,7 @@ export default function CreateSolicitud() {
             <Box sx={{ px: 3, py: 2.5, borderBottom: 1, borderColor: 'divider' }}>
               <Typography
                 variant="overline"
+                component="h2"
                 color="text.secondary"
                 sx={{ display: 'block', mb: 2 }}
               >
@@ -446,6 +451,7 @@ export default function CreateSolicitud() {
             <Box sx={{ px: 3, py: 2.5, borderBottom: 1, borderColor: 'divider' }}>
               <Typography
                 variant="overline"
+                component="h2"
                 color="text.secondary"
                 sx={{ display: 'block', mb: 2 }}
               >
@@ -500,6 +506,7 @@ export default function CreateSolicitud() {
                       hidden
                       accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
                       onChange={handleFileChange}
+                      aria-label={t('create_archivos', 'Archivos adjuntos')}
                     />
 
                     {form.archivos.length === 0 ? (

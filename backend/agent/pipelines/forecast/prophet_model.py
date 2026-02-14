@@ -11,11 +11,10 @@ Prophet es ideal para:
 
 Adaptado de ForecastDemandaMateriales para SPM v2.0
 """
-from typing import Dict
-import pandas as pd
-import numpy as np
-from datetime import timedelta
 import logging
+from typing import Dict
+
+import pandas as pd
 
 from .base import ForecastStrategy
 

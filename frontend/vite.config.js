@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import svgr from 'vite-plugin-svgr'
+import { VitePWA } from 'vite-plugin-pwa'
 
 // GitHub Pages deployment flag - set via GITHUB_PAGES=true environment variable
 const isGitHubPages = process.env.GITHUB_PAGES === 'true'
@@ -34,6 +35,52 @@ export default defineConfig({
           ],
         },
       },
+    }),
+    VitePWA({
+      registerType: 'autoUpdate',
+      // Include existing sw.js for push notifications
+      injectRegister: 'auto',
+      workbox: {
+        // Cache built assets (JS, CSS, fonts)
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Allow large chunks (fortune-sheet ~2.8MB)
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+        // Include push notification handlers from existing SW
+        importScripts: ['/push-sw.js'],
+        // Runtime caching for API endpoints
+        runtimeCaching: [
+          {
+            // Cache catalogs (rarely change)
+            urlPattern: /\/api\/catalogos\/.*/i,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'catalogos-cache',
+              expiration: { maxEntries: 50, maxAgeSeconds: 86400 }, // 24h
+            },
+          },
+          {
+            // Cache material search
+            urlPattern: /\/api\/materiales\/search.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'materiales-cache',
+              expiration: { maxEntries: 100, maxAgeSeconds: 3600 }, // 1h
+              networkTimeoutSeconds: 5,
+            },
+          },
+          {
+            // Cache dashboard data (short lived)
+            urlPattern: /\/api\/dashboards\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'dashboards-cache',
+              expiration: { maxEntries: 20, maxAgeSeconds: 300 }, // 5min
+              networkTimeoutSeconds: 10,
+            },
+          },
+        ],
+      },
+      manifest: false, // Use existing public/manifest.json
     }),
   ],
   // Base path para GitHub Pages (nombre del repo)

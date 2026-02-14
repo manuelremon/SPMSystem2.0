@@ -1,6 +1,6 @@
-from sqlalchemy import Table, MetaData, Column, Integer, String, Boolean, DateTime, Text, select, text, and_, or_, union
-from sqlalchemy.sql import selectable
-from typing import List, Any, Dict, Optional, Union
+from typing import Optional
+
+from sqlalchemy import Column, Integer, MetaData, String, Table, Text, select, union
 
 # Metadata container
 metadata = MetaData()

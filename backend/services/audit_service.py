@@ -11,7 +11,6 @@ from typing import Any, Dict, List, Optional
 
 from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
 
-
 # =============================================================================
 # Excepciones
 # =============================================================================
@@ -152,7 +151,7 @@ def registrar_accion(
     """
     validar_entrada_auditoria(entidad, entidad_id, accion, actor_id)
 
-    datos_json = serializar_datos(datos_adicionales)
+    serializar_datos(datos_adicionales)
 
     with get_db_transaction() as conn:
         cursor = conn.cursor()

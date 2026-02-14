@@ -18,7 +18,6 @@ from backend.core.cache import user_cache
 from backend.core.config import settings
 from backend.core.db import get_db_connection
 
-
 logger = logging.getLogger(__name__)
 
 

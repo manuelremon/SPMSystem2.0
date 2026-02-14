@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from backend.core.db import get_db_connection, is_using_postgresql
-from backend.routes.planner_helpers.helpers import _norm_codigo, _table_exists
+from backend.core.db import get_db_connection
+from backend.routes.planner_helpers.helpers import _norm_codigo
 
 logger = logging.getLogger(__name__)
 

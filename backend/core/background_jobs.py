@@ -660,8 +660,8 @@ def _register_default_tasks(queue: JobQueue) -> None:
         - SMTP_FROM=SPM <noreply@tudominio.com>
         """
         import smtplib
-        from email.mime.text import MIMEText
         from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
 
         from backend.core.config import settings
 
@@ -937,7 +937,7 @@ def _register_default_tasks(queue: JobQueue) -> None:
         try:
             from backend.core.ai_service import AIService
 
-            service = AIService()
+            AIService()
             # Reentrenar modelos con datos recientes
             return {"updated": True}
         except ImportError:
@@ -960,8 +960,9 @@ def _register_default_tasks(queue: JobQueue) -> None:
         - cache_hit: Tasa de hits de cache %
         """
         import psutil
-        from backend.core.metrics import get_metrics_collector, get_cache_metrics
+
         from backend.core.db import get_db_transaction, is_using_postgresql
+        from backend.core.metrics import get_cache_metrics, get_metrics_collector
 
         logger.info("Collecting metrics snapshot")
 
@@ -1001,7 +1002,7 @@ def _register_default_tasks(queue: JobQueue) -> None:
                 ("cache_hit", round(cache_hit, 2)),
             ]
 
-            now_sql = "NOW()" if is_using_postgresql() else "datetime('now')"
+            "NOW()" if is_using_postgresql() else "datetime('now')"
 
             with get_db_transaction() as conn:
                 cur = conn.cursor()

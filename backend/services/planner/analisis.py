@@ -104,7 +104,7 @@ def _detectar_conflictos_item(
     codigo = material_info["codigo"]
     cantidad = material_info["cantidad"]
     stock_disponible = material_info["stock_disponible"]
-    precio_unitario = material_info["precio_unitario"]
+    material_info["precio_unitario"]
     costo_item = material_info["costo_total"]
     consumo_promedio = material_info["consumo_promedio"]
     criticidad = material_info["criticidad"]

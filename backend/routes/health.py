@@ -476,7 +476,7 @@ def _get_docker_status() -> dict:
             try:
                 container = json.loads(line)
                 # Extraer uptime del status
-                status = container.get("status", "")
+                container.get("status", "")
                 container["running"] = container.get("state") == "running"
                 containers.append(container)
             except json.JSONDecodeError:
@@ -620,8 +620,8 @@ def _get_oci_metadata() -> dict:
     Returns:
         Dict con información de la instancia OCI
     """
-    import urllib.request
     import urllib.error
+    import urllib.request
 
     result = {"available": False, "error": None}
 
@@ -680,7 +680,7 @@ def _get_system_metrics() -> dict:
             if line.startswith("cpu "):
                 parts = line.split()[1:]
                 # user, nice, system, idle, iowait, irq, softirq
-                idle = int(parts[3]) + int(parts[4])  # idle + iowait
+                int(parts[3]) + int(parts[4])  # idle + iowait
                 total = sum(int(p) for p in parts[:7])
                 # Necesitamos dos muestras para calcular % real
                 # Por ahora retornamos los valores de carga

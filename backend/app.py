@@ -73,6 +73,24 @@ def create_app(config_override: dict | None = None) -> Flask:
 
     # ==================== INICIALIZACION ====================
 
+    # Sentry error tracking (production only)
+    sentry_dsn = os.environ.get("SENTRY_DSN")
+    if sentry_dsn and settings.ENV == "production":
+        try:
+            import sentry_sdk
+            from sentry_sdk.integrations.flask import FlaskIntegration
+
+            sentry_sdk.init(
+                dsn=sentry_dsn,
+                integrations=[FlaskIntegration()],
+                traces_sample_rate=0.1,
+                environment="production",
+                release=os.environ.get("SPM_VERSION", "unknown"),
+            )
+            app.logger.info("Sentry error tracking enabled")
+        except ImportError:
+            app.logger.warning("sentry-sdk not installed, Sentry disabled")
+
     # Logging y Observabilidad
     _configure_logging(app)
     init_observability(app)
@@ -100,6 +118,16 @@ def create_app(config_override: dict | None = None) -> Flask:
 
     # CORS (manejo manual para wildcards con credentials)
     init_cors(app)
+
+    # ==================== CACHE ====================
+
+    # Initialize Redis L2 cache if REDIS_URL is available (production)
+    import os as _os
+    redis_url = _os.environ.get("REDIS_URL")
+    if redis_url:
+        from backend.core.cache import init_redis_cache
+        if init_redis_cache(redis_url):
+            app.logger.info("Redis L2 cache enabled (shared across workers)")
 
     # ==================== DATABASE ====================
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import useToast from "../hooks/useToast";
 
 // MUI Components
 import Box from "@mui/material/Box";
@@ -39,6 +40,7 @@ import MensajeThreadModal from "../components/MensajeThreadModal";
 export default function Mensajes() {
   const { user } = useAuthStore();
   const { t } = useI18n();
+  const toast = useToast();
 
   const [activeTab, setActiveTab] = useState(0); // 0 = inbox, 1 = outbox
   const [inboxMessages, setInboxMessages] = useState([]);
@@ -131,10 +133,10 @@ export default function Mensajes() {
         // Refrescar contador
         fetchUnreadCount();
       } else {
-        alert(data.error || "Error al eliminar mensaje");
+        toast.error(data.error || "Error al eliminar mensaje");
       }
     } catch (err) {
-      alert("Error de conexion al eliminar mensaje");
+      toast.error("Error de conexión al eliminar mensaje");
       console.error(err);
     }
   };

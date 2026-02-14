@@ -8,7 +8,7 @@ Para SQLite usa BEGIN IMMEDIATE para obtener write-lock al inicio.
 
 import sqlite3
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any, Optional
 
 from backend.core.budget_schemas import (
     BudgetOperationResult,

@@ -12,34 +12,29 @@ Soporta múltiples modelos de forecasting:
 
 Adaptado de ForecastDemandaMateriales para SPM v2.0
 """
-import pandas as pd
-import numpy as np
 import hashlib
-import os
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
-from datetime import datetime, timedelta
-import threading
 import logging
+import threading
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import joblib
+import numpy as np
+import pandas as pd
+from scipy import stats
 
 # Scikit-learn imports
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.linear_model import Ridge
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split, TimeSeriesSplit
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from scipy import stats
-import joblib
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
 logger = logging.getLogger(__name__)
 
 # Importar sistema de estrategias
-from . import (
-    obtener_estrategia,
-    obtener_estrategias_disponibles,
-    obtener_nombres_modelos,
-    listar_estrategias
-)
+from . import obtener_estrategia, obtener_estrategias_disponibles, obtener_nombres_modelos
 
 # ============================================================================
 # Cache de Modelos ML con Persistencia en Disco y TTL

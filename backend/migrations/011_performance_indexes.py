@@ -166,7 +166,7 @@ def run_migration(db_path: Path = DB_PATH) -> bool:
             try:
                 cursor.execute(idx_sql)
                 success_count += 1
-                print(f"  OK")
+                print("  OK")
             except Exception as e:
                 # La tabla puede no existir o el indice ya existe
                 print(f"  Saltado: {e}")

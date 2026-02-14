@@ -13,15 +13,6 @@ para mantener compatibilidad mientras se migra el código gradualmente.
 """
 
 # Re-export helpers for external use
-from backend.routes.planner_helpers.helpers import (
-    _current_user,
-    _get_user,
-    _norm_codigo,
-    _require_planner_role,
-    _require_solicitud_access,
-    _table_exists,
-)
-
 # Re-export data loaders
 from backend.routes.planner_helpers.data_loaders import (
     _calcular_consumo_promedio,
@@ -34,6 +25,14 @@ from backend.routes.planner_helpers.data_loaders import (
     _rankear_proveedores,
     _stock_detalle,
     _stock_disponible,
+)
+from backend.routes.planner_helpers.helpers import (
+    _current_user,
+    _get_user,
+    _norm_codigo,
+    _require_planner_role,
+    _require_solicitud_access,
+    _table_exists,
 )
 
 __all__ = [

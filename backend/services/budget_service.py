@@ -7,16 +7,12 @@ Logica de negocio para:
 - Consultas de ledger
 """
 
-import sqlite3
 import uuid
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from backend.core.budget_schemas import (
-    UMBRAL_L1_CENTS,
     UMBRAL_L2_CENTS,
-    BudgetOperationResult,
     BudgetUpdateRequest,
     EstadoBUR,
     LedgerEntry,
@@ -27,10 +23,8 @@ from backend.core.budget_schemas import (
     determinar_nivel_aprobacion,
 )
 from backend.core.budget_transaction import AtomicBudgetTransaction
-from backend.core.config import settings
 from backend.core.db import get_db_connection, is_using_postgresql
-from backend.core.roles import is_admin, normalize_roles
-from backend.core.helpers import resolve_sector_name as _resolve_sector_name_helper, row_to_dict
+from backend.core.helpers import resolve_sector_name as _resolve_sector_name_helper
 
 
 class _ConnectionWrapper:
@@ -722,22 +716,18 @@ def verificar_umbrales_presupuesto() -> Dict[str, Any]:
             porcentaje_restante = (saldo / monto) * 100
 
             tipo_alerta = None
-            severidad = None
 
             if saldo <= 0:
                 tipo_alerta = "presupuesto_agotado"
-                severidad = "danger"
                 mensaje = f"Presupuesto AGOTADO para {centro}/{sector}. Saldo: $0"
             elif porcentaje_restante <= 10:
                 tipo_alerta = "presupuesto_critico"
-                severidad = "danger"
                 mensaje = (
                     f"Presupuesto CRITICO para {centro}/{sector}: "
                     f"solo queda {porcentaje_restante:.1f}% (${saldo/100:,.2f})"
                 )
             elif porcentaje_restante <= 20:
                 tipo_alerta = "presupuesto_bajo"
-                severidad = "warning"
                 mensaje = (
                     f"Presupuesto BAJO para {centro}/{sector}: "
                     f"queda {porcentaje_restante:.1f}% (${saldo/100:,.2f})"

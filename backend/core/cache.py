@@ -1,15 +1,17 @@
 """
-Simple in-memory cache with TTL support for improving performance.
+Cache system with TTL support - in-memory with optional Redis L2.
 
 This cache is designed for:
 - Frequently accessed catalog data (sectores, centros, almacenes)
 - User session data
 - Configuration that rarely changes
 
-No external dependencies required (Redis, Memcached, etc.)
+When Redis is available (production), acts as L1 (memory) + L2 (Redis)
+for sharing cache across multiple gunicorn workers.
 """
 
 import hashlib
+import json
 import logging
 import threading
 import time
@@ -18,10 +20,14 @@ from typing import Any, Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
+_redis_client = None
+_redis_available = False
+
 
 class TTLCache:
     """
     Thread-safe in-memory cache with Time-To-Live support.
+    When Redis is initialized, acts as L1 (memory) + L2 (Redis).
 
     Usage:
         cache = TTLCache(default_ttl=300)  # 5 minutes default
@@ -29,64 +35,95 @@ class TTLCache:
         value = cache.get("key")  # Returns "value" or None if expired
     """
 
-    def __init__(self, default_ttl: int = 300, max_size: int = 1000):
-        """
-        Initialize cache.
-
-        Args:
-            default_ttl: Default time-to-live in seconds (default: 5 minutes)
-            max_size: Maximum number of items to store (prevents memory bloat)
-        """
+    def __init__(self, default_ttl: int = 300, max_size: int = 1000, prefix: str = ""):
         self._cache: Dict[str, tuple] = {}  # {key: (value, expiry_time)}
         self._lock = threading.RLock()
         self._default_ttl = default_ttl
         self._max_size = max_size
+        self._prefix = prefix
         self._hits = 0
         self._misses = 0
 
+    def _redis_key(self, key: str) -> str:
+        return f"spm:{self._prefix}:{key}" if self._prefix else f"spm:{key}"
+
     def get(self, key: str) -> Optional[Any]:
-        """Get value from cache if not expired."""
+        """Get value from L1 (memory), then L2 (Redis) if available."""
         with self._lock:
-            if key not in self._cache:
-                self._misses += 1
-                return None
-
-            value, expiry = self._cache[key]
-            if time.time() > expiry:
-                # Expired
+            # L1: Memory
+            if key in self._cache:
+                value, expiry = self._cache[key]
+                if time.time() <= expiry:
+                    self._hits += 1
+                    return value
                 del self._cache[key]
-                self._misses += 1
-                return None
 
-            self._hits += 1
-            return value
+        # L2: Redis (outside lock to avoid holding it during I/O)
+        if _redis_available and _redis_client:
+            try:
+                raw = _redis_client.get(self._redis_key(key))
+                if raw is not None:
+                    value = json.loads(raw)
+                    # Populate L1
+                    ttl_remaining = _redis_client.ttl(self._redis_key(key))
+                    if ttl_remaining > 0:
+                        with self._lock:
+                            self._cache[key] = (value, time.time() + ttl_remaining)
+                            self._hits += 1
+                    return value
+            except Exception:
+                pass
+
+        with self._lock:
+            self._misses += 1
+        return None
 
     def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
-        """Set value in cache with optional custom TTL."""
+        """Set value in L1 (memory) and L2 (Redis) if available."""
+        if ttl is None:
+            ttl = self._default_ttl
+
         with self._lock:
-            # Cleanup if we're at max size
             if len(self._cache) >= self._max_size:
                 self._cleanup_expired()
-                # If still at max, remove oldest entries
                 if len(self._cache) >= self._max_size:
                     self._evict_oldest(self._max_size // 4)
+            self._cache[key] = (value, time.time() + ttl)
 
-            expiry = time.time() + (ttl if ttl is not None else self._default_ttl)
-            self._cache[key] = (value, expiry)
+        # L2: Redis
+        if _redis_available and _redis_client:
+            try:
+                _redis_client.setex(self._redis_key(key), ttl, json.dumps(value, default=str))
+            except Exception:
+                pass
 
     def delete(self, key: str) -> bool:
-        """Delete a specific key from cache."""
+        """Delete a specific key from L1 and L2."""
+        deleted = False
         with self._lock:
             if key in self._cache:
                 del self._cache[key]
-                return True
-            return False
+                deleted = True
+        if _redis_available and _redis_client:
+            try:
+                _redis_client.delete(self._redis_key(key))
+            except Exception:
+                pass
+        return deleted
 
     def clear(self) -> None:
-        """Clear all cache entries."""
+        """Clear all cache entries from L1 and matching L2 keys."""
         with self._lock:
             self._cache.clear()
-            logger.info("Cache cleared")
+        if _redis_available and _redis_client and self._prefix:
+            try:
+                pattern = f"spm:{self._prefix}:*"
+                keys = _redis_client.keys(pattern)
+                if keys:
+                    _redis_client.delete(*keys)
+            except Exception:
+                pass
+        logger.info("Cache cleared")
 
     def invalidate_pattern(self, pattern: str) -> int:
         """
@@ -141,20 +178,16 @@ class TTLCache:
 # =============================================================================
 
 # Catalog cache: Long TTL (30 minutes) - data rarely changes
-# P3-1: Increased from 600s to 1800s for better hit rate
-catalog_cache = TTLCache(default_ttl=1800, max_size=500)
+catalog_cache = TTLCache(default_ttl=1800, max_size=500, prefix="catalog")
 
 # User cache: Medium TTL (5 minutes) - balance freshness vs performance
-# P3-1: Increased from 120s to 300s
-user_cache = TTLCache(default_ttl=300, max_size=200)
+user_cache = TTLCache(default_ttl=300, max_size=200, prefix="user")
 
 # Query cache: Short TTL (60 seconds) - for expensive queries
-# P3-1: Increased from 30s to 60s
-query_cache = TTLCache(default_ttl=60, max_size=100)
+query_cache = TTLCache(default_ttl=60, max_size=100, prefix="query")
 
 # KPI cache: Medium TTL (300 seconds / 5 minutes) - for expensive KPI calculations
-# Heavy queries with aggregations, frequently accessed
-kpi_cache = TTLCache(default_ttl=300, max_size=50)
+kpi_cache = TTLCache(default_ttl=300, max_size=50, prefix="kpi")
 
 
 # =============================================================================
@@ -257,9 +290,51 @@ def invalidate_kpi_cache():
 
 def get_cache_stats() -> Dict[str, Any]:
     """Get statistics for all caches."""
-    return {
+    stats = {
         "catalog_cache": catalog_cache.stats(),
         "user_cache": user_cache.stats(),
         "query_cache": query_cache.stats(),
         "kpi_cache": kpi_cache.stats(),
+        "redis_available": _redis_available,
     }
+    if _redis_available and _redis_client:
+        try:
+            info = _redis_client.info("memory")
+            stats["redis_memory"] = info.get("used_memory_human", "unknown")
+        except Exception:
+            pass
+    return stats
+
+
+def init_redis_cache(redis_url: Optional[str] = None) -> bool:
+    """
+    Initialize Redis as L2 cache backend.
+    Call this from app.py after Redis is configured.
+
+    Returns True if Redis was successfully connected.
+    """
+    global _redis_client, _redis_available
+
+    if not redis_url:
+        import os
+        redis_url = os.environ.get("REDIS_URL")
+
+    if not redis_url:
+        logger.info("No REDIS_URL configured, using memory-only cache")
+        return False
+
+    try:
+        import redis
+        _redis_client = redis.from_url(redis_url, decode_responses=True)
+        _redis_client.ping()
+        _redis_available = True
+        logger.info(f"Redis L2 cache connected: {redis_url.split('@')[-1] if '@' in redis_url else redis_url}")
+        return True
+    except ImportError:
+        logger.info("redis package not installed, using memory-only cache")
+        return False
+    except Exception as e:
+        logger.warning(f"Redis connection failed ({e}), using memory-only cache")
+        _redis_client = None
+        _redis_available = False
+        return False
