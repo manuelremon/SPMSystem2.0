@@ -9,7 +9,7 @@
  *   const data = await cachedGet('/api/kpis');
  */
 
-import { logger } from '../utils/logger'
+import { logger } from '../utils/logger.js'
 import { globalRequestCache } from './requestCache'
 import api from './api'
 
