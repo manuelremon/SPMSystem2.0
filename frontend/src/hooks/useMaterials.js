@@ -26,6 +26,11 @@ export function useMaterials() {
   const [detailViewed, setDetailViewed] = useState(false)
   const [showStockFull, setShowStockFull] = useState(false)
 
+  // Scanner and favorites state
+  const [showScanner, setShowScanner] = useState(false)
+  const [favoritos, setFavoritos] = useState([])
+  const [loadingFavoritos, setLoadingFavoritos] = useState(false)
+
   // Ref bridge: form handlers read cart state lazily through this ref,
   // avoiding the TDZ issue of cart not yet being declared when form initializes.
   const cartRef = useRef({ items: [], total: 0, markAsSaved: () => {}, clearCart: () => {} })
@@ -126,6 +131,39 @@ export function useMaterials() {
     setShowDetailModal(false)
   }, [])
 
+  // Load favorites
+  const loadFavoritos = useCallback(async () => {
+    setLoadingFavoritos(true)
+    try {
+      const res = await materiales.getFavoritos()
+      const data = res.data?.data || []
+      setFavoritos(data)
+    } catch (err) {
+      console.error('Error loading favorites:', err)
+    } finally {
+      setLoadingFavoritos(false)
+    }
+  }, [])
+
+  // Toggle favorite
+  const toggleFavorito = useCallback(async (codigo) => {
+    const isFav = favoritos.some(f => f.codigo === codigo)
+    try {
+      if (isFav) {
+        await materiales.removeFavorito(codigo)
+        setFavoritos(prev => prev.filter(f => f.codigo !== codigo))
+        form.setActionMsg('Material eliminado de favoritos')
+      } else {
+        await materiales.addFavorito(codigo)
+        await loadFavoritos()
+        form.setActionMsg('Material agregado a favoritos')
+      }
+    } catch (err) {
+      console.error('Error toggling favorite:', err)
+      form.setError('Error al actualizar favoritos')
+    }
+  }, [favoritos, loadFavoritos, form.setActionMsg, form.setError])
+
   // Return identical API to the original monolithic hook
   return {
     id: form.id,
@@ -193,5 +231,11 @@ export function useMaterials() {
     closeDetailModal,
     closeCommentModal: cart.closeCommentModal,
     updateCommentText: cart.updateCommentText,
+    showScanner,
+    setShowScanner,
+    favoritos,
+    loadingFavoritos,
+    loadFavoritos,
+    toggleFavorito,
   }
 }

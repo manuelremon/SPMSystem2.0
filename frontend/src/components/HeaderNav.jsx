@@ -310,6 +310,15 @@ function HeaderNav() {
             >
               {t("nav_ai", "IA Analytics")}
             </MenuItem>
+            <Divider />
+            <MenuItem
+              component={NavLink}
+              to="/analytics/abc"
+              onClick={() => setPlanificadorAnchor(null)}
+              sx={isPathActive("/analytics/abc") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_abc_analysis", "ABC Analysis")}
+            </MenuItem>
           </Menu>
         </div>
       )}
@@ -370,6 +379,15 @@ function HeaderNav() {
               sx={isPathActive("/mrp/kpis") ? activeMenuItemSx : menuItemSx}
             >
               {t("nav_mrp_kpis", "KPIs")}
+            </MenuItem>
+            <Divider />
+            <MenuItem
+              component={NavLink}
+              to="/analytics/what-if"
+              onClick={() => setMrpAnchor(null)}
+              sx={isPathActive("/analytics/what-if") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_whatif", "What-If Inventario")}
             </MenuItem>
           </Menu>
         </div>
@@ -544,6 +562,22 @@ function HeaderNav() {
               sx={isPathActive("/admin/auto-aprobacion") ? activeMenuItemSx : menuItemSx}
             >
               {t("admin_auto_aprobacion", "Auto-Aprobación")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/admin/escalacion"
+              onClick={() => setAdminAnchor(null)}
+              sx={isPathActive("/admin/escalacion") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("admin_escalacion", "Escalado de Aprobaciones")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/admin/webhooks"
+              onClick={() => setAdminAnchor(null)}
+              sx={isPathActive("/admin/webhooks") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("admin_webhooks", "Webhooks")}
             </MenuItem>
             <Divider />
             {/* Sistema */}

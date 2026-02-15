@@ -8,6 +8,7 @@
  * - MaterialsTable: Table of added items
  * - SearchDropdown: Search results dropdown
  */
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useMaterials } from "../hooks/useMaterials";
 import { formatCurrency } from "../utils/formatters";
@@ -42,9 +43,12 @@ import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import CheckIcon from "@mui/icons-material/Check";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 
 // Material-specific components
-import { MaterialDetailModal, MaterialsTable, SearchDropdown } from "../components/materials";
+import { MaterialDetailModal, MaterialsTable, SearchDropdown, BarcodeScanner } from "../components/materials";
 import { AssistantModal } from "../components/AssistantModal";
 
 // Skeleton for loading state
@@ -76,6 +80,11 @@ export default function Materials() {
 
   // Get all state and handlers from custom hook
   const m = useMaterials();
+
+  // Load favorites on mount
+  useEffect(() => {
+    m.loadFavoritos();
+  }, []);
 
   // ═══════════════════════════════════════════════════════════════════
   // LOADING STATE
@@ -135,6 +144,38 @@ export default function Materials() {
           </Alert>
         )}
       </Box>
+
+      {/* Favorites Section */}
+      {m.favoritos && m.favoritos.length > 0 && (
+        <Paper variant="outlined" sx={{ borderRadius: 2, p: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
+            <StarIcon sx={{ color: "warning.main", fontSize: 20 }} />
+            <Typography variant="subtitle2" fontWeight={600} color="text.primary">
+              {t("favorites_section", "Acceso rápido")}
+            </Typography>
+            <Chip label={m.favoritos.length} size="small" sx={{ height: 20 }} />
+          </Box>
+          <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
+            {m.favoritos.slice(0, 10).map((fav) => (
+              <Chip
+                key={fav.codigo}
+                label={`${fav.codigo} - ${fav.descripcion.substring(0, 30)}...`}
+                onClick={() => {
+                  m.setSearchCodigo(fav.codigo);
+                  m.handleSelect(fav);
+                }}
+                onDelete={() => m.toggleFavorito(fav.codigo)}
+                deleteIcon={<StarIcon sx={{ color: "warning.main" }} />}
+                sx={{
+                  bgcolor: "warning.50",
+                  borderColor: "warning.light",
+                  "&:hover": { bgcolor: "warning.100" },
+                }}
+              />
+            ))}
+          </Stack>
+        </Paper>
+      )}
 
       {/* Search and Context Section */}
       <Paper variant="outlined" sx={{ borderRadius: 2, p: 3 }}>
@@ -294,6 +335,8 @@ export default function Materials() {
         onSelect={m.handleSelect}
         onClose={() => m.setDropdownOpen(false)}
         setHighlightedIndex={m.setHighlightedIndex}
+        favoritos={m.favoritos}
+        toggleFavorito={m.toggleFavorito}
       />
 
       {/* Assistant Modal for AI-powered material creation */}
@@ -302,6 +345,16 @@ export default function Materials() {
         onClose={() => m.setShowAssistant(false)}
         onUseSuggestions={(suggestions) => {
           m.handleAddSuggestedItems(suggestions.items);
+        }}
+      />
+
+      {/* Barcode Scanner */}
+      <BarcodeScanner
+        open={m.showScanner || false}
+        onClose={() => m.setShowScanner && m.setShowScanner(false)}
+        onScan={(code) => {
+          m.setSearchCodigo(code);
+          m.setShowScanner && m.setShowScanner(false);
         }}
       />
     </Box>
@@ -315,7 +368,7 @@ export default function Materials() {
 function SearchSection({ m, t }) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
         <Typography
           variant="caption"
           fontWeight={600}
@@ -324,6 +377,27 @@ function SearchSection({ m, t }) {
         >
           {t("materials_buscar", "Buscar material")}
         </Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<QrCodeScannerIcon sx={{ fontSize: 16 }} />}
+          onClick={() => m.setShowScanner && m.setShowScanner(true)}
+          sx={{
+            textTransform: "none",
+            fontSize: "0.75rem",
+            py: 0.5,
+            px: 1.5,
+            borderColor: "info.light",
+            color: "info.dark",
+            bgcolor: "info.50",
+            "&:hover": {
+              borderColor: "info.main",
+              bgcolor: "info.100",
+            },
+          }}
+        >
+          {t("scanner_scan", "Escanear")}
+        </Button>
         <Button
           size="small"
           variant="outlined"

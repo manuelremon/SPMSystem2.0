@@ -113,6 +113,10 @@ const MaterialClusters = lazy(() => import('./pages/MaterialClusters'))
 const ProveedorScorecard = lazy(() => import('./pages/ProveedorScorecard'))
 const ReportesProgramados = lazy(() => import('./pages/ReportesProgramados'))
 const AdminAutoAprobacion = lazy(() => import('./pages/AdminAutoAprobacion'))
+const AdminEscalacion = lazy(() => import('./pages/AdminEscalacion'))
+const AdminWebhooks = lazy(() => import('./pages/AdminWebhooks'))
+const ABCAnalysis = lazy(() => import('./pages/ABCAnalysis'))
+const WhatIfInventario = lazy(() => import('./pages/WhatIfInventario'))
 
 function App() {
   const { user, isLoading, getCurrentUser } = useAuthStore()
@@ -210,6 +214,8 @@ function App() {
             <Route path="/planificador/anomalias" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><AnomaliaDetection /></ProtectedRoute>} />
             <Route path="/planificador/clusters" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><MaterialClusters /></ProtectedRoute>} />
             <Route path="/procurement/scorecard" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ProveedorScorecard /></ProtectedRoute>} />
+            <Route path="/analytics/abc" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ABCAnalysis /></ProtectedRoute>} />
+            <Route path="/analytics/what-if" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><WhatIfInventario /></ProtectedRoute>} />
             {/* Admin Routes */}
             <Route path="/admin/centros" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminCentros /></ProtectedRoute>} />
             <Route path="/admin/almacenes" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminAlmacenes /></ProtectedRoute>} />
@@ -229,6 +235,8 @@ function App() {
             <Route path="/admin/analisis-puntual/mrp" element={<ProtectedRoute roles={['administrador', 'admin']}><AnalisisPuntualMRP /></ProtectedRoute>} />
             <Route path="/admin/analisis-puntual/forecast" element={<ProtectedRoute roles={['administrador', 'admin']}><AnalisisPuntualForecast /></ProtectedRoute>} />
             <Route path="/admin/auto-aprobacion" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminAutoAprobacion /></ProtectedRoute>} />
+            <Route path="/admin/escalacion" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminEscalacion /></ProtectedRoute>} />
+            <Route path="/admin/webhooks" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminWebhooks /></ProtectedRoute>} />
             <Route path="/reportes/programados" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ReportesProgramados /></ProtectedRoute>} />
             <Route path="/registro/completar" element={<ProtectedRoute><CompleteRegistration /></ProtectedRoute>} />
             <Route path="/" element={<Navigate to="/dashboard" />} />

@@ -9,9 +9,21 @@ import { useNavigate } from "react-router-dom";
 import { getTableColumnsAgGrid } from "./DashboardShared";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { useTrendData } from '../components/dashboard/TrendChart';
+import { useDashboardLayout } from "../hooks/useDashboardLayout";
 // MUI Components
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Stack from '@mui/material/Stack';
+import Chip from '@mui/material/Chip';
+import IconButton from '@mui/material/IconButton';
+import DashboardCustomizeIcon from '@mui/icons-material/DashboardCustomize';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import RestoreIcon from '@mui/icons-material/Restore';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 // Sub-components (extracted for maintainability)
 import { SolicitudesSection } from './DashboardAdmin/index';
 import { FiltersBar } from './DashboardAdmin/index';
@@ -29,6 +41,7 @@ export default function DashboardAdmin() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const { t } = useI18n();
+  const layout = useDashboardLayout();
 
   // Refs para ampliar cards en modal
   const solicitudesCredasRef = useRef(null);
@@ -632,53 +645,50 @@ export default function DashboardAdmin() {
   // RENDER
   // ============================================================================
 
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Typography variant="h5" component="h1" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'text.primary' }}>
-        {t('dash_title', 'Dashboard')}
-      </Typography>
-
-      {/* SOLICITUDES SECTION - Contenedor colapsable */}
-      <SolicitudesSection
-        t={t}
-        loading={loading || isTabLoading}
-        stats={{ ...stats, todas: statsFiltrados.todas }}
-        solicitudesCollapsed={solicitudesCollapsed}
-        setSolicitudesCollapsed={setSolicitudesCollapsed}
-        activeTab={activeTab}
-        handleTabChange={handleTabChange}
-        tabs={tabs}
-        currentData={currentData}
-        columnDefs={columnDefs}
-        navigate={navigate}
-        tableTitle={tableTitle}
-      />
-
-      {/* FILTROS SECTION */}
-      <FiltersBar
-        t={t}
-        rangoFechasLocal={rangoFechasLocal}
-        setRangoFechasLocal={setRangoFechasLocal}
-        sliderAFecha={sliderAFecha}
-        centrosSeleccionados={centrosSeleccionados}
-        setCentrosSeleccionados={setCentrosSeleccionados}
-        almacenesSeleccionados={almacenesSeleccionados}
-        setAlmacenesSeleccionados={setAlmacenesSeleccionados}
-        sectoresSeleccionados={sectoresSeleccionados}
-        setSectoresSeleccionados={setSectoresSeleccionados}
-        solicitantesSeleccionados={solicitantesSeleccionados}
-        setSolicitantesSeleccionados={setSolicitantesSeleccionados}
-        filtrosOpciones={filtrosOpciones}
-      />
-
-      {/* KPI SECTION */}
-      <Box aria-live="polite" aria-busy={kpiLoading} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {kpiLoading ? (
-        <KPIGridSkeleton />
-      ) : (
-        <>
-          {/* Fila 1: KPIs principales */}
+  // Map card IDs to their rendered components
+  const renderSection = useCallback((cardId) => {
+    switch (cardId) {
+      case 'solicitudes':
+        return (
+          <SolicitudesSection
+            key="solicitudes"
+            t={t}
+            loading={loading || isTabLoading}
+            stats={{ ...stats, todas: statsFiltrados.todas }}
+            solicitudesCollapsed={solicitudesCollapsed}
+            setSolicitudesCollapsed={setSolicitudesCollapsed}
+            activeTab={activeTab}
+            handleTabChange={handleTabChange}
+            tabs={tabs}
+            currentData={currentData}
+            columnDefs={columnDefs}
+            navigate={navigate}
+            tableTitle={tableTitle}
+          />
+        );
+      case 'filters':
+        return (
+          <FiltersBar
+            key="filters"
+            t={t}
+            rangoFechasLocal={rangoFechasLocal}
+            setRangoFechasLocal={setRangoFechasLocal}
+            sliderAFecha={sliderAFecha}
+            centrosSeleccionados={centrosSeleccionados}
+            setCentrosSeleccionados={setCentrosSeleccionados}
+            almacenesSeleccionados={almacenesSeleccionados}
+            setAlmacenesSeleccionados={setAlmacenesSeleccionados}
+            sectoresSeleccionados={sectoresSeleccionados}
+            setSectoresSeleccionados={setSectoresSeleccionados}
+            solicitantesSeleccionados={solicitantesSeleccionados}
+            setSolicitantesSeleccionados={setSolicitantesSeleccionados}
+            filtrosOpciones={filtrosOpciones}
+          />
+        );
+      case 'kpi_row1':
+        return (
           <KPIRow1
+            key="kpi_row1"
             solicitudesCredasRef={solicitudesCredasRef}
             tiemposGestionRef={tiemposGestionRef}
             fuenteAbastecimientoRef={fuenteAbastecimientoRef}
@@ -697,9 +707,11 @@ export default function DashboardAdmin() {
             setExpandedTitle={setExpandedTitle}
             onKpiDrillDown={handleKpiDrillDown}
           />
-
-          {/* Fila 2: Distribucion + Tendencia + Presupuesto */}
+        );
+      case 'kpi_row2':
+        return (
           <KPIRow2
+            key="kpi_row2"
             distribucionRef={distribucionRef}
             tendenciaRef={tendenciaRef}
             presupuestoGlobalRef={presupuestoGlobalRef}
@@ -714,9 +726,11 @@ export default function DashboardAdmin() {
             setExpandedTitle={setExpandedTitle}
             onKpiDrillDown={handleKpiDrillDown}
           />
-
-          {/* Fila 3: Materiales y Stock */}
+        );
+      case 'kpi_row3':
+        return (
           <KPIRow3
+            key="kpi_row3"
             datosFiltrados={datosFiltrados}
             stockInmovilizadoFiltrado={stockInmovilizadoFiltrado}
             kpiLoading={kpiLoading}
@@ -730,30 +744,133 @@ export default function DashboardAdmin() {
             filtrosOpciones={filtrosOpciones}
             onKpiDrillDown={handleKpiDrillDown}
           />
+        );
+      default:
+        return null;
+    }
+  }, [t, loading, isTabLoading, stats, statsFiltrados, solicitudesCollapsed, activeTab,
+      handleTabChange, tabs, currentData, columnDefs, navigate, tableTitle,
+      rangoFechasLocal, sliderAFecha, centrosSeleccionados, almacenesSeleccionados,
+      sectoresSeleccionados, solicitantesSeleccionados, filtrosOpciones,
+      datosFiltrados, kpiData, rangoFechas, sliderAFechaDate, comprasEvitadasDetalle,
+      cumplimientoProveedores, proveedoresSeleccionados, trendData, handleDrillDown,
+      handleKpiDrillDown, stockInmovilizadoFiltrado, kpiLoading, stockFiltradoLocal,
+      stockFiltrosCentro, stockFiltrosAlmacen, stockFiltrosPeriodo]);
 
-          {/* Drill-Down Modal */}
-          <DrillDownModal
-            open={drillDownOpen}
-            onClose={() => setDrillDownOpen(false)}
-            metrica={drillDownMetrica}
-            filtros={drillDownFiltros}
-          />
+  const orderedVisibleIds = layout.getOrderedVisibleIds();
+  const isKpiSection = (id) => id.startsWith('kpi_row');
 
-          {/* Modal para ampliar cards */}
-          <ExpandedCardDialog
-            t={t}
-            expandedCard={expandedCard}
-            expandedTitle={expandedTitle}
-            setExpandedCard={setExpandedCard}
-            datosFiltrados={datosFiltrados}
-            trendData={trendData}
-            kpiData={kpiData}
-            handleDrillDown={handleDrillDown}
-          />
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Header with customize button */}
+      <Stack direction="row" alignItems="center" justifyContent="space-between">
+        <Typography variant="h5" component="h1" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'text.primary' }}>
+          {t('dash_title', 'Dashboard')}
+        </Typography>
+        <Stack direction="row" spacing={1}>
+          {layout.editMode && (
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<RestoreIcon />}
+              onClick={layout.resetLayout}
+              aria-label={t('dash_layout_reset', 'Restablecer layout')}
+            >
+              {t('dash_layout_reset', 'Restablecer')}
+            </Button>
+          )}
+          <Button
+            size="small"
+            variant={layout.editMode ? 'contained' : 'outlined'}
+            startIcon={<DashboardCustomizeIcon />}
+            onClick={() => layout.setEditMode(!layout.editMode)}
+            aria-label={t('dash_layout_customize', 'Personalizar dashboard')}
+          >
+            {layout.editMode ? t('dash_layout_done', 'Listo') : t('dash_layout_customize', 'Personalizar')}
+          </Button>
+        </Stack>
+      </Stack>
 
-        </>
+      {/* Edit mode: card list with reorder and visibility controls */}
+      {layout.editMode && (
+        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+          {layout.cards.map((card, index) => (
+            <Chip
+              key={card.id}
+              icon={card.visible ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
+              label={
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <span>{card.label}</span>
+                  <IconButton
+                    size="small"
+                    disabled={index === 0}
+                    onClick={(e) => { e.stopPropagation(); layout.moveCard(index, index - 1); }}
+                    aria-label={t('dash_layout_move_up', 'Mover arriba')}
+                    sx={{ p: 0, ml: 0.5 }}
+                  >
+                    <ArrowUpwardIcon sx={{ fontSize: 14 }} />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    disabled={index === layout.cards.length - 1}
+                    onClick={(e) => { e.stopPropagation(); layout.moveCard(index, index + 1); }}
+                    aria-label={t('dash_layout_move_down', 'Mover abajo')}
+                    sx={{ p: 0 }}
+                  >
+                    <ArrowDownwardIcon sx={{ fontSize: 14 }} />
+                  </IconButton>
+                </Stack>
+              }
+              variant={card.visible ? 'filled' : 'outlined'}
+              color={card.visible ? 'primary' : 'default'}
+              onClick={() => layout.toggleCard(card.id)}
+              sx={{ cursor: 'pointer' }}
+            />
+          ))}
+        </Stack>
       )}
-      </Box>
+
+      {/* Render sections in layout order */}
+      {orderedVisibleIds.map(id => {
+        // Non-KPI sections render directly
+        if (!isKpiSection(id)) {
+          return renderSection(id);
+        }
+        return null;
+      })}
+
+      {/* KPI sections wrapped in their loading container */}
+      {orderedVisibleIds.some(isKpiSection) && (
+        <Box aria-live="polite" aria-busy={kpiLoading} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {kpiLoading ? (
+            <KPIGridSkeleton />
+          ) : (
+            <>
+              {orderedVisibleIds.filter(isKpiSection).map(id => renderSection(id))}
+
+              {/* Drill-Down Modal */}
+              <DrillDownModal
+                open={drillDownOpen}
+                onClose={() => setDrillDownOpen(false)}
+                metrica={drillDownMetrica}
+                filtros={drillDownFiltros}
+              />
+
+              {/* Modal para ampliar cards */}
+              <ExpandedCardDialog
+                t={t}
+                expandedCard={expandedCard}
+                expandedTitle={expandedTitle}
+                setExpandedCard={setExpandedCard}
+                datosFiltrados={datosFiltrados}
+                trendData={trendData}
+                kpiData={kpiData}
+                handleDrillDown={handleDrillDown}
+              />
+            </>
+          )}
+        </Box>
+      )}
     </Box>
   );
 }

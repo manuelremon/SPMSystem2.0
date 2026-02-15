@@ -1182,3 +1182,309 @@ def ejecutar_reporte_manual():
     except Exception as e:
         logger.error(f"Error encolando reporte programado: {e}")
         return jsonify({"ok": False, "error": {"code": "queue_error", "message": str(e)}}), 500
+
+
+# ============================================================================
+# Reportes Programados - Destinatarios (Email Distribution)
+# ============================================================================
+
+
+@bp.route("/programados/<int:reporte_id>/destinatarios", methods=["GET"])
+@require_auth
+@rate_limit(requests=30, window_seconds=60)
+def list_destinatarios(reporte_id: int):
+    """
+    Lista destinatarios de un reporte programado.
+
+    Returns:
+        Lista de destinatarios con email y nombre
+    """
+    from backend.core.db import get_db_connection, is_using_postgresql
+
+    user_id = g.user.get("id_spm")
+    is_admin = g.user.get("rol") == "admin"
+
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            placeholder = "%s" if is_using_postgresql() else "?"
+
+            # Validate ownership
+            cursor.execute(f"""
+                SELECT creado_por
+                FROM reporte_programado
+                WHERE id = {placeholder}
+            """, (reporte_id,))
+
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({
+                    "ok": False,
+                    "error": {"code": "not_found", "message": "Reporte no encontrado"}
+                }), 404
+
+            creado_por = row["creado_por"] if isinstance(row, dict) else row[0]
+            if creado_por != user_id and not is_admin:
+                return jsonify({
+                    "ok": False,
+                    "error": {"code": "forbidden", "message": "No autorizado"}
+                }), 403
+
+            # Get destinatarios
+            cursor.execute(f"""
+                SELECT id, email, nombre, created_at
+                FROM reporte_destinatario
+                WHERE reporte_id = {placeholder}
+                ORDER BY created_at DESC
+            """, (reporte_id,))
+
+            destinatarios = [dict(r) for r in cursor.fetchall()]
+
+        return jsonify({
+            "ok": True,
+            "data": {
+                "destinatarios": destinatarios,
+                "count": len(destinatarios)
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error listando destinatarios: {e}")
+        return jsonify({"ok": False, "error": {"code": "list_error", "message": str(e)}}), 500
+
+
+@bp.route("/programados/<int:reporte_id>/destinatarios", methods=["POST"])
+@require_auth
+@rate_limit(requests=10, window_seconds=60)
+def add_destinatario(reporte_id: int):
+    """
+    Agrega un destinatario a un reporte programado.
+
+    Body:
+        {
+            "email": "usuario@empresa.com",
+            "nombre": "Usuario" (opcional)
+        }
+
+    Returns:
+        Destinatario creado
+    """
+    import re
+
+    from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+
+    user_id = g.user.get("id_spm")
+    is_admin = g.user.get("rol") == "admin"
+    data = request.get_json() or {}
+
+    email = data.get("email", "").strip()
+    nombre = data.get("nombre", "").strip()
+
+    # Validate email
+    if not email:
+        return jsonify({
+            "ok": False,
+            "error": {"code": "validation_error", "message": "email es requerido"}
+        }), 400
+
+    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_regex, email):
+        return jsonify({
+            "ok": False,
+            "error": {"code": "invalid_email", "message": "email inválido"}
+        }), 400
+
+    try:
+        # Validate ownership
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            placeholder = "%s" if is_using_postgresql() else "?"
+
+            cursor.execute(f"""
+                SELECT creado_por
+                FROM reporte_programado
+                WHERE id = {placeholder}
+            """, (reporte_id,))
+
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({
+                    "ok": False,
+                    "error": {"code": "not_found", "message": "Reporte no encontrado"}
+                }), 404
+
+            creado_por = row["creado_por"] if isinstance(row, dict) else row[0]
+            if creado_por != user_id and not is_admin:
+                return jsonify({
+                    "ok": False,
+                    "error": {"code": "forbidden", "message": "No autorizado"}
+                }), 403
+
+        # Insert destinatario
+        with get_db_transaction() as conn:
+            cursor = conn.cursor()
+
+            if is_using_postgresql():
+                cursor.execute("""
+                    INSERT INTO reporte_destinatario (reporte_id, email, nombre)
+                    VALUES (%s, %s, %s)
+                    RETURNING id
+                """, (reporte_id, email, nombre or None))
+                destinatario_id = cursor.fetchone()[0]
+            else:
+                cursor.execute("""
+                    INSERT INTO reporte_destinatario (reporte_id, email, nombre)
+                    VALUES (?, ?, ?)
+                """, (reporte_id, email, nombre or None))
+                destinatario_id = cursor.lastrowid
+
+        return jsonify({
+            "ok": True,
+            "data": {
+                "id": destinatario_id,
+                "reporte_id": reporte_id,
+                "email": email,
+                "nombre": nombre
+            }
+        }), 201
+
+    except Exception as e:
+        logger.error(f"Error agregando destinatario: {e}")
+        return jsonify({"ok": False, "error": {"code": "create_error", "message": str(e)}}), 500
+
+
+@bp.route("/programados/<int:reporte_id>/destinatarios/<int:dest_id>", methods=["DELETE"])
+@require_auth
+@rate_limit(requests=10, window_seconds=60)
+def delete_destinatario(reporte_id: int, dest_id: int):
+    """
+    Elimina un destinatario de un reporte programado.
+
+    Returns:
+        Confirmación de eliminación
+    """
+    from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+
+    user_id = g.user.get("id_spm")
+    is_admin = g.user.get("rol") == "admin"
+
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            placeholder = "%s" if is_using_postgresql() else "?"
+
+            # Validate ownership
+            cursor.execute(f"""
+                SELECT creado_por
+                FROM reporte_programado
+                WHERE id = {placeholder}
+            """, (reporte_id,))
+
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({
+                    "ok": False,
+                    "error": {"code": "not_found", "message": "Reporte no encontrado"}
+                }), 404
+
+            creado_por = row["creado_por"] if isinstance(row, dict) else row[0]
+            if creado_por != user_id and not is_admin:
+                return jsonify({
+                    "ok": False,
+                    "error": {"code": "forbidden", "message": "No autorizado"}
+                }), 403
+
+        # Delete destinatario
+        with get_db_transaction() as conn:
+            cursor = conn.cursor()
+
+            if is_using_postgresql():
+                cursor.execute("""
+                    DELETE FROM reporte_destinatario
+                    WHERE id = %s AND reporte_id = %s
+                """, (dest_id, reporte_id))
+            else:
+                cursor.execute("""
+                    DELETE FROM reporte_destinatario
+                    WHERE id = ? AND reporte_id = ?
+                """, (dest_id, reporte_id))
+
+            if cursor.rowcount == 0:
+                return jsonify({
+                    "ok": False,
+                    "error": {"code": "not_found", "message": "Destinatario no encontrado"}
+                }), 404
+
+        return jsonify({
+            "ok": True,
+            "data": {"id": dest_id, "deleted": True}
+        })
+
+    except Exception as e:
+        logger.error(f"Error eliminando destinatario: {e}")
+        return jsonify({"ok": False, "error": {"code": "delete_error", "message": str(e)}}), 500
+
+
+@bp.route("/programados/<int:reporte_id>/enviar", methods=["POST"])
+@require_auth
+@rate_limit(requests=5, window_seconds=60)
+def enviar_reporte_por_email(reporte_id: int):
+    """
+    Envía un reporte programado por email a todos sus destinatarios.
+
+    Returns:
+        Resultado del envío (destinatarios, enviados, errores)
+    """
+    from backend.core.db import get_db_connection, is_using_postgresql
+    from backend.services.report_generator import ReportGenerator
+
+    user_id = g.user.get("id_spm")
+    is_admin = g.user.get("rol") == "admin"
+
+    try:
+        # Validate ownership
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            placeholder = "%s" if is_using_postgresql() else "?"
+
+            cursor.execute(f"""
+                SELECT creado_por
+                FROM reporte_programado
+                WHERE id = {placeholder}
+            """, (reporte_id,))
+
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({
+                    "ok": False,
+                    "error": {"code": "not_found", "message": "Reporte no encontrado"}
+                }), 404
+
+            creado_por = row["creado_por"] if isinstance(row, dict) else row[0]
+            if creado_por != user_id and not is_admin:
+                return jsonify({
+                    "ok": False,
+                    "error": {"code": "forbidden", "message": "No autorizado"}
+                }), 403
+
+        # Send report
+        result = ReportGenerator.enviar_por_email(reporte_id)
+
+        if not result.get('ok'):
+            return jsonify({
+                "ok": False,
+                "error": {"code": "send_error", "message": result.get('error', 'Error desconocido')}
+            }), 500
+
+        return jsonify({
+            "ok": True,
+            "data": {
+                "destinatarios_count": result.get('destinatarios_count', 0),
+                "enviados_count": result.get('enviados_count', 0),
+                "errores": result.get('errores', [])
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error enviando reporte por email: {e}")
+        return jsonify({"ok": False, "error": {"code": "send_error", "message": str(e)}}), 500

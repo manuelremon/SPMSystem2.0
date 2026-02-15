@@ -120,3 +120,7 @@ def register_blueprints(app: Flask) -> None:
     from backend.routes import fms, tms
     app.register_blueprint(tms.bp)  # TMS (Transport Management) at /api/tms
     app.register_blueprint(fms.bp)  # FMS (Fleet Management) at /api/fms
+
+    # Webhooks (outbound events)
+    from backend.routes import webhooks
+    app.register_blueprint(webhooks.bp)  # Webhooks at /api/webhooks

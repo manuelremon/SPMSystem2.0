@@ -7,9 +7,9 @@ Busca en master_materiales.db que contiene:
 - materiales_equivalencias: Equivalencias entre materiales
 """
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 
-from backend.core.db import get_db_connection
+from backend.core.db import get_db_connection, get_db_transaction
 from backend.core.roles import require_auth
 from backend.core.search_utils import build_description_search
 
@@ -213,5 +213,159 @@ def get_stats():
             stats["grupos_unicos"] = get_val(cur.fetchone(), 0)
 
         return jsonify({"ok": True, "data": stats}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": {"code": "error", "message": str(e)}}), 500
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# FAVORITOS
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+@bp.route("/favoritos", methods=["GET"])
+@require_auth
+def get_favoritos():
+    """
+    Obtiene la lista de materiales favoritos del usuario.
+
+    Returns:
+        Lista de favoritos con información del material desde catalogo_materiales
+    """
+    user_id = g.user.get("user_id")
+    if not user_id:
+        return jsonify({"ok": False, "error": {"code": "unauthorized", "message": "Usuario no autenticado"}}), 401
+
+    try:
+        # Get favorite material codes
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT material_codigo, created_at
+                FROM user_material_favorito
+                WHERE user_id = ?
+                ORDER BY created_at DESC
+                """,
+                (str(user_id),),
+            )
+            rows = cur.fetchall()
+
+        if not rows:
+            return jsonify({"ok": True, "data": []}), 200
+
+        # Get material details from catalog
+        codigos = [row[0] for row in rows]
+        placeholders = ",".join(["?"] * len(codigos))
+
+        query = f"""
+            SELECT {_COL_ID} AS codigo, descripcion, descripcion_larga,
+                   {_COL_GRUPO} AS grupo_articulos, unidad_medida, precio_usd
+            FROM {_TABLA}
+            WHERE {_COL_ID} IN ({placeholders})
+        """
+
+        material_data = _fetch_catalogo(query, tuple(codigos))
+        material_map = {m["codigo"]: m for m in material_data}
+
+        # Combine favorites with material info
+        favoritos = []
+        for row in rows:
+            codigo = row[0]
+            created_at = row[1]
+            material = material_map.get(codigo, {})
+            favoritos.append({
+                "codigo": codigo,
+                "created_at": created_at,
+                "descripcion": material.get("descripcion", ""),
+                "descripcion_larga": material.get("descripcion_larga", ""),
+                "grupo_articulos": material.get("grupo_articulos", ""),
+                "unidad_medida": material.get("unidad_medida", ""),
+                "precio_usd": material.get("precio_usd", 0),
+            })
+
+        return jsonify({"ok": True, "data": favoritos}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": {"code": "error", "message": str(e)}}), 500
+
+
+@bp.route("/favoritos", methods=["POST"])
+@require_auth
+def add_favorito():
+    """
+    Agrega un material a favoritos del usuario.
+
+    Body:
+        material_codigo: Código del material a agregar
+
+    Returns:
+        Confirmación de adición
+    """
+    user_id = g.user.get("user_id")
+    if not user_id:
+        return jsonify({"ok": False, "error": {"code": "unauthorized", "message": "Usuario no autenticado"}}), 401
+
+    data = request.get_json() or {}
+    material_codigo = (data.get("material_codigo") or "").strip()
+
+    if not material_codigo:
+        return jsonify({"ok": False, "error": {"code": "invalid_input", "message": "material_codigo es requerido"}}), 400
+
+    try:
+        # Verify material exists
+        query = f"SELECT {_COL_ID} FROM {_TABLA} WHERE {_COL_ID} = ?"
+        material_exists = _fetch_catalogo(query, (material_codigo,))
+
+        if not material_exists:
+            return jsonify({"ok": False, "error": {"code": "not_found", "message": "Material no encontrado"}}), 404
+
+        # Add to favorites
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                INSERT INTO user_material_favorito (user_id, material_codigo)
+                VALUES (?, ?)
+                ON CONFLICT (user_id, material_codigo) DO NOTHING
+                """,
+                (str(user_id), material_codigo),
+            )
+
+        return jsonify({"ok": True, "message": "Material agregado a favoritos"}), 201
+    except Exception as e:
+        return jsonify({"ok": False, "error": {"code": "error", "message": str(e)}}), 500
+
+
+@bp.route("/favoritos/<codigo>", methods=["DELETE"])
+@require_auth
+def remove_favorito(codigo: str):
+    """
+    Elimina un material de favoritos del usuario.
+
+    Args:
+        codigo: Código del material a eliminar
+
+    Returns:
+        Confirmación de eliminación
+    """
+    user_id = g.user.get("user_id")
+    if not user_id:
+        return jsonify({"ok": False, "error": {"code": "unauthorized", "message": "Usuario no autenticado"}}), 401
+
+    try:
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                DELETE FROM user_material_favorito
+                WHERE user_id = ? AND material_codigo = ?
+                """,
+                (str(user_id), codigo),
+            )
+            deleted = cur.rowcount > 0
+
+        if not deleted:
+            return jsonify({"ok": False, "error": {"code": "not_found", "message": "Favorito no encontrado"}}), 404
+
+        return jsonify({"ok": True, "message": "Material eliminado de favoritos"}), 200
     except Exception as e:
         return jsonify({"ok": False, "error": {"code": "error", "message": str(e)}}), 500

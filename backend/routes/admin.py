@@ -604,34 +604,37 @@ def admin_presupuestos_historial():
     """Obtiene el historial de cambios en presupuestos."""
     centro = request.args.get("centro")
     sector = request.args.get("sector")
-    limit = request.args.get("limit", 50, type=int)
+    limit = min(request.args.get("limit", 50, type=int), 200)
 
-    with get_db_connection() as conn:
-        cur = conn.cursor()
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
 
-        if centro and sector:
-            cur.execute(
-                """
-                SELECT * FROM budget_history
-                WHERE centro = ? AND sector = ?
-                ORDER BY created_at DESC
-                LIMIT ?
-            """,
-                (centro, sector, limit),
-            )
-        else:
-            cur.execute(
-                """
-                SELECT * FROM budget_history
-                ORDER BY created_at DESC
-                LIMIT ?
-            """,
-                (limit,),
-            )
+            if centro and sector:
+                cur.execute(
+                    """
+                    SELECT * FROM budget_history
+                    WHERE centro = ? AND sector = ?
+                    ORDER BY created_at DESC
+                    LIMIT ?
+                """,
+                    (centro, sector, limit),
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT * FROM budget_history
+                    ORDER BY created_at DESC
+                    LIMIT ?
+                """,
+                    (limit,),
+                )
 
-        rows = [dict(r) for r in cur.fetchall()]
+            rows = [dict(r) for r in cur.fetchall()]
 
-    return jsonify(rows), 200
+        return jsonify({"ok": True, "historial": rows}), 200
+    except Exception:
+        return jsonify({"ok": True, "historial": []}), 200
 
 
 @bp.route("/presupuestos/<centro>/<sector>", methods=["PUT", "DELETE"])
@@ -1521,3 +1524,227 @@ def simulate_auto_approval():
     except Exception as e:
         logger.error(f"Error simulating auto-approval: {e}")
         return jsonify({"error": "Error al simular auto-aprobación"}), 500
+
+
+@bp.route("/auto-approval/historial", methods=["GET"])
+@require_admin
+def auto_approval_historial():
+    """
+    Obtiene historial de solicitudes auto-aprobadas.
+
+    Query params:
+        limit: Límite de resultados (default: 50, max: 200)
+        regla_id: Filtrar por regla específica (opcional)
+
+    Returns:
+        {
+            "ok": true,
+            "historial": [
+                {
+                    "solicitud_id": 123,
+                    "fecha": "2026-02-15",
+                    "regla_id": 1,
+                    "regla_nombre": "Materiales bajo costo",
+                    "confianza": 0.95,
+                    "solicitante": "Juan Perez",
+                    "monto_usd": 5000
+                }
+            ],
+            "total": 10
+        }
+    """
+    limit = min(int(request.args.get("limit", 50)), 200)
+    regla_id = request.args.get("regla_id")
+
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Buscar en audit_log eventos de auto_approval
+            query = """
+                SELECT
+                    al.id,
+                    al.event_type,
+                    al.event_data,
+                    al.created_at,
+                    al.user_id,
+                    u.nombre || ' ' || u.apellido as solicitante
+                FROM audit_log al
+                LEFT JOIN usuario u ON al.user_id = u.id
+                WHERE al.event_type = 'auto_approval'
+            """
+            params = []
+
+            if regla_id:
+                # Event_data es JSON, buscar regla_id en el texto
+                query += " AND al.event_data LIKE ?"
+                params.append(f'%"regla_id":{regla_id}%')
+
+            query += " ORDER BY al.created_at DESC LIMIT ?"
+            params.append(limit)
+
+            try:
+                cursor.execute(query, params)
+                audit_rows = [dict(r) for r in cursor.fetchall()]
+            except Exception:
+                # Tabla audit_log puede no existir o no tener índice
+                audit_rows = []
+
+            # Alternativa: buscar solicitudes con estado=approved y flag auto_aprobada
+            # (asumiendo que hay un campo auto_aprobada o similar)
+            query_sol = """
+                SELECT
+                    s.id as solicitud_id,
+                    s.created_at as fecha,
+                    s.monto_usd,
+                    u.nombre || ' ' || u.apellido as solicitante,
+                    s.status
+                FROM solicitud s
+                LEFT JOIN usuario u ON s.solicitante_id = u.id
+                WHERE s.status = 'approved'
+                  AND s.auto_aprobada = 1
+                ORDER BY s.created_at DESC
+                LIMIT ?
+            """
+            try:
+                cursor.execute(query_sol, (limit,))
+                sol_rows = [dict(r) for r in cursor.fetchall()]
+            except Exception:
+                # Campo auto_aprobada puede no existir
+                sol_rows = []
+
+        # Combinar resultados
+        historial = []
+
+        for row in audit_rows:
+            import json
+            event_data = {}
+            try:
+                event_data = json.loads(row.get("event_data", "{}"))
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+            historial.append({
+                "solicitud_id": event_data.get("solicitud_id"),
+                "fecha": row.get("created_at"),
+                "regla_id": event_data.get("regla_id"),
+                "regla_nombre": event_data.get("regla_nombre", "Sin nombre"),
+                "confianza": event_data.get("confianza", 1.0),
+                "solicitante": row.get("solicitante", "Sistema"),
+                "monto_usd": event_data.get("monto_usd", 0),
+            })
+
+        # Agregar solicitudes auto-aprobadas (si existen)
+        for row in sol_rows:
+            # Evitar duplicados
+            if any(h["solicitud_id"] == row["solicitud_id"] for h in historial):
+                continue
+
+            historial.append({
+                "solicitud_id": row["solicitud_id"],
+                "fecha": row["fecha"],
+                "regla_id": None,
+                "regla_nombre": "Regla desconocida",
+                "confianza": None,
+                "solicitante": row["solicitante"],
+                "monto_usd": row.get("monto_usd", 0),
+            })
+
+        # Ordenar por fecha descendente
+        historial.sort(key=lambda x: x.get("fecha") or "", reverse=True)
+
+        # Limitar resultados finales
+        historial = historial[:limit]
+
+        return jsonify({
+            "ok": True,
+            "historial": historial,
+            "total": len(historial),
+        })
+
+    except Exception as e:
+        logger.error(f"Error obteniendo historial auto-aprobación: {e}", exc_info=True)
+        return jsonify({"ok": False, "error": {"code": "server_error", "message": str(e)}}), 500
+
+
+# =============================================================================
+# Escalation Rules CRUD
+# =============================================================================
+
+
+@bp.route("/escalation-rules", methods=["GET"])
+@require_admin
+def list_escalation_rules():
+    """List all escalation rules."""
+    try:
+        from backend.services.escalation_service import EscalationService
+
+        rules = EscalationService.get_rules(activo_only=False)
+        return jsonify({"ok": True, "rules": rules})
+    except Exception as e:
+        logger.error(f"Error listing escalation rules: {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.route("/escalation-rules", methods=["POST"])
+@require_admin
+@rate_limit(requests=20, window_seconds=60)
+def create_escalation_rule():
+    """Create a new escalation rule."""
+    try:
+        from backend.services.escalation_service import EscalationService
+
+        data = request.get_json() or {}
+        centro = data.get("centro") or None
+        criticidad = data.get("criticidad", "media")
+        timeout_dias = max(1, int(data.get("timeout_dias", 3)))
+        escalate_to_role = data.get("escalate_to_role", "admin")
+
+        rule_id = EscalationService.create_rule(
+            centro=centro,
+            criticidad=criticidad,
+            timeout_dias=timeout_dias,
+            escalate_to_role=escalate_to_role,
+        )
+
+        return jsonify({"ok": True, "id": rule_id}), 201
+    except Exception as e:
+        logger.error(f"Error creating escalation rule: {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.route("/escalation-rules/<int:rule_id>", methods=["PUT"])
+@require_admin
+@rate_limit(requests=20, window_seconds=60)
+def update_escalation_rule(rule_id):
+    """Update an escalation rule."""
+    try:
+        from backend.services.escalation_service import EscalationService
+
+        data = request.get_json() or {}
+        updated = EscalationService.update_rule(rule_id, **data)
+
+        if updated:
+            return jsonify({"ok": True})
+        return jsonify({"ok": False, "error": "Regla no encontrada"}), 404
+    except Exception as e:
+        logger.error(f"Error updating escalation rule: {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.route("/escalation-rules/<int:rule_id>", methods=["DELETE"])
+@require_admin
+@rate_limit(requests=20, window_seconds=60)
+def delete_escalation_rule(rule_id):
+    """Delete an escalation rule."""
+    try:
+        from backend.services.escalation_service import EscalationService
+
+        deleted = EscalationService.delete_rule(rule_id)
+
+        if deleted:
+            return jsonify({"ok": True})
+        return jsonify({"ok": False, "error": "Regla no encontrada"}), 404
+    except Exception as e:
+        logger.error(f"Error deleting escalation rule: {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500

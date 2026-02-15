@@ -31,6 +31,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import DescriptionIcon from '@mui/icons-material/Description';
+import EmailIcon from '@mui/icons-material/Email';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -56,13 +57,6 @@ const FORMATOS = [
   { value: 'csv', label: 'CSV (.csv)' },
 ];
 
-const FRECUENCIA_COLORS = {
-  manual: 'default',
-  diario: 'info',
-  semanal: 'primary',
-  mensual: 'secondary',
-};
-
 const INITIAL_FORM = {
   nombre: '',
   tipo: 'solicitudes',
@@ -84,6 +78,8 @@ export default function ReportesProgramados() {
   const [form, setForm] = useState(INITIAL_FORM);
   const [saving, setSaving] = useState(false);
   const [executing, setExecuting] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [sendingEmail, setSendingEmail] = useState(null);
 
   const fetchReportes = useCallback(async () => {
     try {
@@ -93,11 +89,11 @@ export default function ReportesProgramados() {
         setReportes(response.data.reportes || []);
       }
     } catch (err) {
-      toast.error('Error al cargar reportes programados');
+      toast.error(t('reportes_error_cargar', 'Error al cargar reportes programados'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t, toast]);
 
   useEffect(() => {
     fetchReportes();
@@ -132,7 +128,7 @@ export default function ReportesProgramados() {
 
   const handleSave = useCallback(async () => {
     if (!form.nombre.trim()) {
-      toast.warning('El nombre es requerido');
+      toast.warning(t('reportes_nombre_requerido', 'El nombre es requerido'));
       return;
     }
 
@@ -152,32 +148,36 @@ export default function ReportesProgramados() {
 
       if (editingId) {
         await api.put(`/export/programados/${editingId}`, payload);
-        toast.success('Reporte actualizado');
+        toast.success(t('reportes_actualizado', 'Reporte actualizado'));
       } else {
         await api.post('/export/programados', payload);
-        toast.success('Reporte creado');
+        toast.success(t('reportes_creado', 'Reporte creado'));
       }
 
       handleCloseDialog();
       fetchReportes();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Error al guardar');
+      toast.error(err.response?.data?.error || t('reportes_error_guardar', 'Error al guardar'));
     } finally {
       setSaving(false);
     }
-  }, [form, editingId, fetchReportes, handleCloseDialog]);
+  }, [form, editingId, fetchReportes, handleCloseDialog, t, toast]);
 
   const handleDelete = useCallback(async (id) => {
-    if (!window.confirm('¿Eliminar este reporte programado?')) return;
+    setConfirmDeleteId(id);
+  }, []);
 
+  const confirmDelete = useCallback(async () => {
+    const id = confirmDeleteId;
+    setConfirmDeleteId(null);
     try {
       await api.delete(`/export/programados/${id}`);
-      toast.success('Reporte eliminado');
+      toast.success(t('reportes_eliminado', 'Reporte eliminado'));
       fetchReportes();
     } catch (err) {
-      toast.error('Error al eliminar');
+      toast.error(t('reportes_error_eliminar', 'Error al eliminar'));
     }
-  }, [fetchReportes]);
+  }, [confirmDeleteId, fetchReportes, t, toast]);
 
   const handleExecute = useCallback(async (id) => {
     setExecuting(id);
@@ -199,24 +199,48 @@ export default function ReportesProgramados() {
       a.download = filename;
       a.click();
       window.URL.revokeObjectURL(url);
-      toast.success('Reporte generado y descargado');
+      toast.success(t('reportes_generado', 'Reporte generado y descargado'));
     } catch (err) {
-      toast.error('Error al ejecutar reporte');
+      toast.error(t('reportes_error_ejecutar', 'Error al ejecutar reporte'));
     } finally {
       setExecuting(null);
     }
-  }, []);
+  }, [t, toast]);
+
+  const handleSendEmail = useCallback(async (id) => {
+    setSendingEmail(id);
+    try {
+      const response = await api.post(`/export/programados/${id}/enviar`);
+      if (response.data?.ok) {
+        const { enviados_count, destinatarios_count, errores } = response.data.data;
+        if (errores && errores.length > 0) {
+          toast.warning(
+            t('reportes_email_parcial', `Enviado a ${enviados_count}/${destinatarios_count} destinatarios. ${errores.length} errores.`)
+          );
+        } else {
+          toast.success(
+            t('reportes_email_enviado', `Reporte enviado a ${enviados_count} destinatario(s)`)
+          );
+        }
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.error?.message || err.response?.data?.error || t('reportes_error_email', 'Error al enviar por email');
+      toast.error(errorMsg);
+    } finally {
+      setSendingEmail(null);
+    }
+  }, [t, toast]);
 
   const columnDefs = [
     {
       field: 'nombre',
-      headerName: 'Nombre',
+      headerName: t('reportes_nombre', 'Nombre'),
       flex: 2,
       minWidth: 200,
     },
     {
       field: 'tipo',
-      headerName: 'Tipo',
+      headerName: t('reportes_tipo', 'Tipo'),
       flex: 1,
       cellRenderer: (params) => {
         const tipo = TIPOS_REPORTE.find(t => t.value === params.value);
@@ -225,34 +249,34 @@ export default function ReportesProgramados() {
     },
     {
       field: 'frecuencia',
-      headerName: 'Frecuencia',
+      headerName: t('reportes_frecuencia', 'Frecuencia'),
       flex: 1,
       cellRenderer: (params) => params.value || 'manual',
     },
     {
       field: 'formato',
-      headerName: 'Formato',
+      headerName: t('reportes_formato', 'Formato'),
       width: 100,
       cellRenderer: (params) => (params.value || 'xlsx').toUpperCase(),
     },
     {
       field: 'activo',
-      headerName: 'Estado',
+      headerName: t('reportes_estado', 'Estado'),
       width: 100,
-      cellRenderer: (params) => params.value ? 'Activo' : 'Inactivo',
+      cellRenderer: (params) => params.value ? t('reportes_activo', 'Activo') : t('reportes_inactivo', 'Inactivo'),
     },
     {
       field: 'ultimo_envio',
-      headerName: 'Último Envío',
+      headerName: t('reportes_ultimo_envio', 'Último Envío'),
       flex: 1,
       valueFormatter: (params) => {
-        if (!params.value) return 'Nunca';
+        if (!params.value) return t('reportes_nunca', 'Nunca');
         return new Date(params.value).toLocaleString('es-AR');
       },
     },
     {
-      headerName: 'Acciones',
-      width: 160,
+      headerName: t('reportes_acciones', 'Acciones'),
+      width: 200,
       sortable: false,
       filter: false,
       cellRenderer: (params) => (
@@ -261,7 +285,8 @@ export default function ReportesProgramados() {
             size="small"
             onClick={() => handleExecute(params.data.id)}
             disabled={executing === params.data.id}
-            title="Ejecutar ahora"
+            title={t('reportes_ejecutar', 'Ejecutar ahora')}
+            aria-label={t('reportes_ejecutar', 'Ejecutar ahora')}
           >
             {executing === params.data.id ? (
               <CircularProgress size={16} />
@@ -271,15 +296,30 @@ export default function ReportesProgramados() {
           </IconButton>
           <IconButton
             size="small"
+            onClick={() => handleSendEmail(params.data.id)}
+            disabled={sendingEmail === params.data.id}
+            title={t('reportes_enviar_email', 'Enviar por Email')}
+            aria-label={t('reportes_enviar_email', 'Enviar por Email')}
+          >
+            {sendingEmail === params.data.id ? (
+              <CircularProgress size={16} />
+            ) : (
+              <EmailIcon fontSize="small" color="info" />
+            )}
+          </IconButton>
+          <IconButton
+            size="small"
             onClick={() => handleOpenDialog(params.data)}
-            title="Editar"
+            title={t('reportes_editar_btn', 'Editar')}
+            aria-label={t('reportes_editar_btn', 'Editar')}
           >
             <EditIcon fontSize="small" color="primary" />
           </IconButton>
           <IconButton
             size="small"
             onClick={() => handleDelete(params.data.id)}
-            title="Eliminar"
+            title={t('reportes_eliminar_btn', 'Eliminar')}
+            aria-label={t('reportes_eliminar_btn', 'Eliminar')}
           >
             <DeleteIcon fontSize="small" color="error" />
           </IconButton>
@@ -306,7 +346,7 @@ export default function ReportesProgramados() {
         </Button>
       </Stack>
 
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }} aria-label={t('reportes_title', 'Reportes Programados')}>
         <SPMAgGrid
           columnDefs={columnDefs}
           rowData={reportes}
@@ -324,14 +364,14 @@ export default function ReportesProgramados() {
           <Stack direction="row" alignItems="center" gap={1}>
             <DescriptionIcon color="primary" />
             <Typography variant="h6">
-              {editingId ? 'Editar Reporte' : 'Nuevo Reporte Programado'}
+              {editingId ? t('reportes_editar', 'Editar Reporte') : t('reportes_nuevo', 'Nuevo Reporte Programado')}
             </Typography>
           </Stack>
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2.5} sx={{ mt: 1 }}>
             <TextField
-              label="Nombre"
+              label={t('reportes_nombre', 'Nombre')}
               value={form.nombre}
               onChange={(e) => setForm(prev => ({ ...prev, nombre: e.target.value }))}
               fullWidth
@@ -339,11 +379,11 @@ export default function ReportesProgramados() {
               autoFocus
             />
             <FormControl fullWidth>
-              <InputLabel>Tipo de Reporte</InputLabel>
+              <InputLabel>{t('reportes_tipo_reporte', 'Tipo de Reporte')}</InputLabel>
               <Select
                 value={form.tipo}
                 onChange={(e) => setForm(prev => ({ ...prev, tipo: e.target.value }))}
-                label="Tipo de Reporte"
+                label={t('reportes_tipo_reporte', 'Tipo de Reporte')}
               >
                 {TIPOS_REPORTE.map(t => (
                   <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
@@ -351,11 +391,11 @@ export default function ReportesProgramados() {
               </Select>
             </FormControl>
             <FormControl fullWidth>
-              <InputLabel>Frecuencia</InputLabel>
+              <InputLabel>{t('reportes_frecuencia', 'Frecuencia')}</InputLabel>
               <Select
                 value={form.frecuencia}
                 onChange={(e) => setForm(prev => ({ ...prev, frecuencia: e.target.value }))}
-                label="Frecuencia"
+                label={t('reportes_frecuencia', 'Frecuencia')}
               >
                 {FRECUENCIAS.map(f => (
                   <MenuItem key={f.value} value={f.value}>{f.label}</MenuItem>
@@ -363,11 +403,11 @@ export default function ReportesProgramados() {
               </Select>
             </FormControl>
             <FormControl fullWidth>
-              <InputLabel>Formato</InputLabel>
+              <InputLabel>{t('reportes_formato', 'Formato')}</InputLabel>
               <Select
                 value={form.formato}
                 onChange={(e) => setForm(prev => ({ ...prev, formato: e.target.value }))}
-                label="Formato"
+                label={t('reportes_formato', 'Formato')}
               >
                 {FORMATOS.map(f => (
                   <MenuItem key={f.value} value={f.value}>{f.label}</MenuItem>
@@ -375,13 +415,33 @@ export default function ReportesProgramados() {
               </Select>
             </FormControl>
             <TextField
-              label="Destinatarios (emails separados por coma)"
+              label={t('reportes_destinatarios', 'Destinatarios (emails separados por coma)')}
               value={form.destinatarios}
               onChange={(e) => setForm(prev => ({ ...prev, destinatarios: e.target.value }))}
               fullWidth
-              helperText="Dejar vacío si solo se descarga manualmente"
+              multiline
+              rows={2}
+              helperText={t('reportes_destinatarios_hint', 'Dejar vacío si solo se descarga manualmente')}
               placeholder="usuario@empresa.com, otro@empresa.com"
             />
+            {form.destinatarios && form.destinatarios.trim() && (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: -1 }}>
+                {form.destinatarios.split(',').map((email, idx) => {
+                  const trimmed = email.trim();
+                  if (!trimmed) return null;
+                  return (
+                    <Chip
+                      key={idx}
+                      label={trimmed}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                      icon={<EmailIcon fontSize="small" />}
+                    />
+                  );
+                })}
+              </Box>
+            )}
             <FormControlLabel
               control={
                 <Switch
@@ -389,20 +449,34 @@ export default function ReportesProgramados() {
                   onChange={(e) => setForm(prev => ({ ...prev, activo: e.target.checked }))}
                 />
               }
-              label="Activo"
+              label={t('reportes_activo', 'Activo')}
             />
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={handleCloseDialog}>Cancelar</Button>
+          <Button onClick={handleCloseDialog}>{t('reportes_cancelar', 'Cancelar')}</Button>
           <Button
             variant="contained"
             onClick={handleSave}
             disabled={saving || !form.nombre.trim()}
             startIcon={saving && <CircularProgress size={16} />}
           >
-            {editingId ? 'Guardar' : 'Crear'}
+            {editingId ? t('reportes_guardar', 'Guardar') : t('reportes_crear', 'Crear')}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog Confirmar Eliminación */}
+      <Dialog open={!!confirmDeleteId} onClose={() => setConfirmDeleteId(null)} maxWidth="xs">
+        <DialogTitle>{t('reportes_confirm_delete', '¿Eliminar este reporte programado?')}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            {t('reportes_confirm_delete_desc', 'Esta acción no se puede deshacer.')}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDeleteId(null)}>{t('reportes_cancelar', 'Cancelar')}</Button>
+          <Button variant="contained" color="error" onClick={confirmDelete}>{t('common_eliminar', 'Eliminar')}</Button>
         </DialogActions>
       </Dialog>
     </Box>

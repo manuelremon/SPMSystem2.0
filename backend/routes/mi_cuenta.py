@@ -650,10 +650,13 @@ def admin_listar_profile_requests():
         for row in rows:
             row_dict = dict(row)
 
-            # Parse valor_nuevo as payload
+            # Parse valor_nuevo as JSON payload
             valor_nuevo = row_dict.get("valor_nuevo", "")
             tipo_cambio = row_dict.get("tipo_cambio", "")
-            payload = {tipo_cambio: valor_nuevo} if tipo_cambio else {}
+            try:
+                payload = json.loads(valor_nuevo) if valor_nuevo else {}
+            except (json.JSONDecodeError, TypeError):
+                payload = {tipo_cambio: valor_nuevo} if tipo_cambio else {}
 
             requests.append(
                 {
@@ -1058,7 +1061,7 @@ def get_notification_preferences():
             with get_db_transaction() as conn:
                 cur = conn.cursor()
                 cur.execute(
-                    "INSERT INTO usuario_preferencia_notificacion (user_id) VALUES (?) ON CONFLICT (user_id) DO NOTHING",
+                    "INSERT OR IGNORE INTO usuario_preferencia_notificacion (user_id) VALUES (?)",
                     (str(user_id),),
                 )
 

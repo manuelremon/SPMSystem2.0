@@ -364,22 +364,28 @@ def create_test_notification():
 
     Solo para desarrollo/testing.
     """
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
 
-    notification_id = NotificationService.create_notification(
-        destinatario_id=data.get("destinatario_id"),
-        mensaje=data.get("mensaje", "Test notification"),
-        tipo=data.get("tipo", "info"),
-        solicitud_id=data.get("solicitud_id"),
-    )
+    if not data.get("destinatario_id"):
+        return jsonify({"ok": False, "error": "destinatario_id es requerido"}), 400
 
-    if notification_id:
-        return jsonify(
-            {
-                "ok": True,
-                "notification_id": notification_id,
-                "message": "Notificación de prueba creada",
-            }
+    try:
+        notification_id = NotificationService.create_notification(
+            destinatario_id=data.get("destinatario_id"),
+            mensaje=data.get("mensaje", "Test notification"),
+            tipo=data.get("tipo", "info"),
+            solicitud_id=data.get("solicitud_id"),
         )
-    else:
+
+        if notification_id:
+            return jsonify(
+                {
+                    "ok": True,
+                    "notification_id": notification_id,
+                    "message": "Notificación de prueba creada",
+                }
+            )
+        else:
+            return jsonify({"ok": False, "error": "Error al crear notificación"}), 500
+    except Exception:
         return jsonify({"ok": False, "error": "Error al crear notificación"}), 500

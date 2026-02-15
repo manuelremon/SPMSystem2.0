@@ -717,6 +717,30 @@ def check_preventive_maintenance(self) -> Dict[str, Any]:
 
 
 # =============================================================================
+# Escalation Tasks
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+def check_escalation_timeouts(self) -> Dict[str, Any]:
+    """
+    Check solicitudes that exceed approval timeout and escalate them.
+    Should be scheduled to run every 30 minutes.
+    """
+    logger.info("Checking escalation timeouts")
+
+    try:
+        from backend.services.escalation_service import EscalationService
+
+        escalated = EscalationService.check_escalations()
+        return {"escalated_count": len(escalated), "details": escalated}
+
+    except Exception as e:
+        logger.error(f"Error checking escalation timeouts: {e}")
+        raise self.retry(exc=e)
+
+
+# =============================================================================
 # AI/ML Tasks
 # =============================================================================
 

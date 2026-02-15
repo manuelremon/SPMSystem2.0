@@ -400,3 +400,143 @@ def cantidad_optima():
     except Exception as e:
         logger.error(f"Error calculando cantidad optima: {e}")
         return jsonify({"ok": False, "error": {"code": "eoq_error", "message": str(e)}}), 500
+
+
+@bp.route("/abc-analysis", methods=["GET"])
+@require_auth
+def abc_analysis():
+    """
+    ABC Analysis of materials based on consumption value.
+
+    Query params:
+        - centro: Centro de costo (opcional)
+        - sector: Sector (opcional)
+        - periodo_meses: Meses a analizar (default: 12)
+
+    Returns:
+        {
+            "ok": True,
+            "data": [
+                {
+                    "material": "MAT001",
+                    "descripcion": "Material 1",
+                    "valor_total": 50000.00,
+                    "pct_acumulado": 35.5,
+                    "clase": "A"
+                },
+                ...
+            ],
+            "kpis": {
+                "total_valor": 140000.00,
+                "items_a": 15,
+                "items_b": 30,
+                "items_c": 105,
+                "pct_valor_a": 80.2
+            }
+        }
+    """
+    from backend.core.db import get_db_connection
+
+    centro = request.args.get("centro", "")
+    sector = request.args.get("sector", "")
+    periodo_meses = int(request.args.get("periodo_meses", 12))
+
+    try:
+        with get_db_connection("sap_data") as conn:
+            cur = conn.cursor()
+
+            # Build WHERE clause
+            where_parts = []
+            params = []
+
+            # Date filter
+            where_parts.append("fecha >= date('now', '-' || ? || ' months')")
+            params.append(periodo_meses)
+
+            if centro:
+                where_parts.append("centro = ?")
+                params.append(centro)
+
+            if sector:
+                where_parts.append("sector = ?")
+                params.append(sector)
+
+            where_clause = " AND ".join(where_parts)
+
+            # Query total value consumed per material
+            # Use cantidad as proxy for value (precio_unitario may not be available)
+            cur.execute(f"""
+                SELECT
+                    material,
+                    MAX(descripcion) as descripcion,
+                    SUM(cantidad) as valor_total
+                FROM consumo_historico
+                WHERE {where_clause}
+                GROUP BY material
+                HAVING valor_total > 0
+                ORDER BY valor_total DESC
+            """, params)
+
+            rows = cur.fetchall()
+
+            if not rows:
+                return jsonify({
+                    "ok": True,
+                    "data": [],
+                    "kpis": {
+                        "total_valor": 0.0,
+                        "items_a": 0,
+                        "items_b": 0,
+                        "items_c": 0,
+                        "pct_valor_a": 0.0
+                    }
+                })
+
+            # Calculate cumulative percentage and classify
+            total_valor = sum(r[2] for r in rows)
+            acumulado = 0.0
+            data = []
+            items_a = items_b = items_c = 0
+            valor_a = 0.0
+
+            for material, descripcion, valor in rows:
+                acumulado += valor
+                pct_acumulado = (acumulado / total_valor) * 100 if total_valor > 0 else 0
+
+                # Classify: A (top 80%), B (next 15%), C (remaining 5%)
+                if pct_acumulado <= 80:
+                    clase = "A"
+                    items_a += 1
+                    valor_a += valor
+                elif pct_acumulado <= 95:
+                    clase = "B"
+                    items_b += 1
+                else:
+                    clase = "C"
+                    items_c += 1
+
+                data.append({
+                    "material": material,
+                    "descripcion": descripcion or "",
+                    "valor_total": round(valor, 2),
+                    "pct_acumulado": round(pct_acumulado, 2),
+                    "clase": clase
+                })
+
+            pct_valor_a = (valor_a / total_valor * 100) if total_valor > 0 else 0.0
+
+            return jsonify({
+                "ok": True,
+                "data": data,
+                "kpis": {
+                    "total_valor": round(total_valor, 2),
+                    "items_a": items_a,
+                    "items_b": items_b,
+                    "items_c": items_c,
+                    "pct_valor_a": round(pct_valor_a, 2)
+                }
+            })
+
+    except Exception as e:
+        logger.error(f"Error en ABC analysis: {e}")
+        return jsonify({"ok": False, "error": {"code": "abc_error", "message": str(e)}}), 500

@@ -468,6 +468,15 @@ def cambiar_estado(
         solicitud_data=dict(solicitud) if solicitud else {},
     )
 
+    # 8. Disparar webhooks externos (no-bloqueante)
+    _disparar_webhooks_externos(
+        solicitud_id=solicitud_id,
+        estado_anterior=estado_actual,
+        estado_nuevo=nuevo_estado_str,
+        actor_id=actor_id,
+        solicitud_data=dict(solicitud) if solicitud else {},
+    )
+
     return {
         "success": True,
         "estado_anterior": estado_actual,
@@ -588,6 +597,65 @@ def _emitir_evento_ws(
 
     except Exception as e:
         logger.debug(f"[FSM] WebSocket no disponible, evento no emitido: {e}")
+
+
+def _disparar_webhooks_externos(
+    solicitud_id: int,
+    estado_anterior: str,
+    estado_nuevo: str,
+    actor_id: str,
+    solicitud_data: Dict[str, Any],
+) -> None:
+    """
+    Dispara webhooks externos para eventos de solicitud.
+
+    Los webhooks se disparan de forma no-bloqueante. Si webhook service
+    no esta disponible o falla, se ignora silenciosamente para no bloquear
+    la transicion de estado.
+
+    Args:
+        solicitud_id: ID de la solicitud
+        estado_anterior: Estado anterior
+        estado_nuevo: Estado nuevo
+        actor_id: ID del usuario que realizo el cambio
+        solicitud_data: Datos de la solicitud
+    """
+    try:
+        # Import lazily to avoid circular imports
+        from backend.services.webhook_service import WebhookService
+
+        # Map FSM states to webhook event names
+        event_map = {
+            "approved": "solicitud.aprobada",
+            "rejected": "solicitud.rechazada",
+        }
+
+        event_name = event_map.get(estado_nuevo)
+        if not event_name:
+            # Only dispatch webhooks for approved/rejected events
+            return
+
+        # Prepare payload
+        payload = {
+            "solicitud_id": solicitud_id,
+            "estado_anterior": estado_anterior,
+            "estado_nuevo": estado_nuevo,
+            "actor_id": actor_id,
+            "timestamp": solicitud_data.get("updated_at"),
+            "centro": solicitud_data.get("centro"),
+            "sector": solicitud_data.get("sector"),
+        }
+
+        # Dispatch webhook (non-blocking, logs failures)
+        WebhookService.disparar_webhook(event_name, payload)
+
+        logger.debug(
+            f"[FSM] Webhook disparado: {event_name} para solicitud {solicitud_id}"
+        )
+
+    except Exception as e:
+        # Never fail the state transition due to webhook errors
+        logger.warning(f"[FSM] Error disparando webhook: {e}")
 
 
 # =============================================================================

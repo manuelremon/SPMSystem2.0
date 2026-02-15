@@ -99,6 +99,10 @@ def make_celery(app_name: str = "spm") -> Celery:
                 "task": "backend.core.tasks.check_stock_alerts",
                 "schedule": 3600.0,  # 1 hour
             },
+            "check-escalation-timeouts-every-30min": {
+                "task": "backend.core.tasks.check_escalation_timeouts",
+                "schedule": 1800.0,  # 30 minutes
+            },
             "daily-cleanup": {
                 "task": "backend.core.tasks.cleanup_old_data",
                 "schedule": 86400.0,  # 24 hours

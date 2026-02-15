@@ -22,6 +22,9 @@ export const materiales = {
   detalle: (codigo, params = {}) => api.get(`/materiales/${codigo}/detalle`, { params }),
   solicitudes: (codigo, limit = 20) => api.get(`/materiales/${codigo}/solicitudes`, { params: { limit } }),
   grupos: (q = '', limit = 100) => api.get('/materiales/grupos', { params: { q, limit } }),
+  getFavoritos: () => api.get('/materiales/favoritos'),
+  addFavorito: (material_codigo) => api.post('/materiales/favoritos', { material_codigo }),
+  removeFavorito: (codigo) => api.delete(`/materiales/favoritos/${codigo}`),
 }
 
 export const equivalencias = {

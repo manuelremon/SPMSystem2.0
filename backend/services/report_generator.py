@@ -5,6 +5,11 @@ Reuses reporting_service.py for format generation.
 """
 
 import logging
+import os
+import smtplib
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
@@ -377,3 +382,234 @@ class ReportGenerator:
         except Exception as e:
             logger.error(f"Error generando reporte materiales: {e}")
             return {'success': False, 'error': str(e)}
+
+    @staticmethod
+    def enviar_por_email(reporte_id: int) -> Dict[str, Any]:
+        """
+        Send a scheduled report by email to all its recipients.
+
+        Args:
+            reporte_id: ID of the scheduled report
+
+        Returns:
+            Dict with ok, destinatarios_count, enviados_count, errores
+        """
+        import json
+
+        from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+
+        try:
+            # Get report configuration
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                placeholder = "%s" if is_using_postgresql() else "?"
+
+                cursor.execute(f"""
+                    SELECT nombre, tipo, filtros_json, formato
+                    FROM reporte_programado
+                    WHERE id = {placeholder}
+                """, (reporte_id,))
+
+                row = cursor.fetchone()
+                if not row:
+                    return {
+                        'ok': False,
+                        'error': 'Reporte no encontrado'
+                    }
+
+                row_dict = dict(row)
+                nombre = row_dict['nombre']
+                tipo = row_dict['tipo']
+                formato = row_dict['formato']
+                filtros_json = row_dict.get('filtros_json', '{}')
+                filtros = json.loads(filtros_json) if filtros_json else {}
+
+                # Get recipients
+                cursor.execute(f"""
+                    SELECT email, nombre
+                    FROM reporte_destinatario
+                    WHERE reporte_id = {placeholder}
+                """, (reporte_id,))
+                destinatarios = [dict(r) for r in cursor.fetchall()]
+
+            if not destinatarios:
+                return {
+                    'ok': False,
+                    'error': 'No hay destinatarios configurados para este reporte'
+                }
+
+            # Generate the report
+            result = ReportGenerator.generate(tipo=tipo, filtros=filtros, formato=formato)
+
+            if not result.get('success'):
+                # Log failure in historial
+                ReportGenerator._registrar_historial(
+                    reporte_id=reporte_id,
+                    tipo=tipo,
+                    resultado=f"Error: {result.get('error', 'Desconocido')}",
+                    estado='error'
+                )
+                return {
+                    'ok': False,
+                    'error': f"Error generando reporte: {result.get('error', 'Desconocido')}"
+                }
+
+            contenido = result['contenido']
+            filename = result['filename']
+
+            # Send emails
+            enviados_count = 0
+            errores = []
+
+            for dest in destinatarios:
+                email = dest['email']
+                nombre_dest = dest.get('nombre') or email
+                try:
+                    ReportGenerator._enviar_email_smtp(
+                        destinatario_email=email,
+                        destinatario_nombre=nombre_dest,
+                        asunto=f"Reporte programado: {nombre}",
+                        cuerpo=f"Se adjunta el reporte '{nombre}' en formato {formato.upper()}.",
+                        archivo_bytes=contenido,
+                        archivo_nombre=filename
+                    )
+                    enviados_count += 1
+                except Exception as e:
+                    logger.error(f"Error enviando email a {email}: {e}")
+                    errores.append({'email': email, 'error': str(e)})
+
+            # Log success in historial
+            resultado_texto = f"Enviado a {enviados_count}/{len(destinatarios)} destinatarios"
+            if errores:
+                resultado_texto += f" ({len(errores)} errores)"
+
+            ReportGenerator._registrar_historial(
+                reporte_id=reporte_id,
+                tipo=tipo,
+                resultado=resultado_texto,
+                estado='completado' if enviados_count > 0 else 'error'
+            )
+
+            # Update ultimo_envio timestamp
+            with get_db_transaction() as conn:
+                cursor = conn.cursor()
+                placeholder = "%s" if is_using_postgresql() else "?"
+                if is_using_postgresql():
+                    cursor.execute(f"""
+                        UPDATE reporte_programado
+                        SET ultimo_envio = NOW()
+                        WHERE id = {placeholder}
+                    """, (reporte_id,))
+                else:
+                    cursor.execute(f"""
+                        UPDATE reporte_programado
+                        SET ultimo_envio = datetime('now')
+                        WHERE id = {placeholder}
+                    """, (reporte_id,))
+
+            return {
+                'ok': True,
+                'destinatarios_count': len(destinatarios),
+                'enviados_count': enviados_count,
+                'errores': errores
+            }
+
+        except Exception as e:
+            logger.error(f"Error enviando reporte por email: {e}", exc_info=True)
+            return {
+                'ok': False,
+                'error': str(e)
+            }
+
+    @staticmethod
+    def _enviar_email_smtp(
+        destinatario_email: str,
+        destinatario_nombre: str,
+        asunto: str,
+        cuerpo: str,
+        archivo_bytes: bytes,
+        archivo_nombre: str
+    ):
+        """
+        Send email with attachment via SMTP.
+
+        Requires environment variables:
+        - SMTP_HOST
+        - SMTP_PORT
+        - SMTP_USER
+        - SMTP_PASSWORD
+        - SMTP_FROM
+        """
+        smtp_host = os.getenv('SMTP_HOST')
+        smtp_port = int(os.getenv('SMTP_PORT', 587))
+        smtp_user = os.getenv('SMTP_USER')
+        smtp_password = os.getenv('SMTP_PASSWORD')
+        smtp_from = os.getenv('SMTP_FROM', smtp_user)
+
+        if not smtp_host or not smtp_user or not smtp_password:
+            raise ValueError("SMTP credentials not configured (SMTP_HOST, SMTP_USER, SMTP_PASSWORD)")
+
+        # Create message
+        msg = MIMEMultipart()
+        msg['From'] = smtp_from
+        msg['To'] = destinatario_email
+        msg['Subject'] = asunto
+
+        # Add body
+        msg.attach(MIMEText(cuerpo, 'plain', 'utf-8'))
+
+        # Add attachment
+        attachment = MIMEApplication(archivo_bytes)
+        attachment.add_header('Content-Disposition', 'attachment', filename=archivo_nombre)
+        msg.attach(attachment)
+
+        # Send via SMTP
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_password)
+            server.send_message(msg)
+
+        logger.info(f"Email enviado a {destinatario_email} ({archivo_nombre})")
+
+    @staticmethod
+    def _registrar_historial(reporte_id: int, tipo: str, resultado: str, estado: str):
+        """
+        Register report execution in historial table.
+        """
+        from backend.core.db import get_db_transaction, is_using_postgresql
+
+        try:
+            with get_db_transaction() as conn:
+                cursor = conn.cursor()
+                placeholder = "%s" if is_using_postgresql() else "?"
+
+                # Get report details
+                cursor.execute(f"""
+                    SELECT tipo, frecuencia
+                    FROM reporte_programado
+                    WHERE id = {placeholder}
+                """, (reporte_id,))
+                row = cursor.fetchone()
+                if not row:
+                    return
+
+                row_dict = dict(row)
+                tipo_reporte = row_dict['tipo']
+                frecuencia = row_dict['frecuencia']
+
+                # Insert historial entry
+                if is_using_postgresql():
+                    cursor.execute("""
+                        INSERT INTO reporte_historial
+                        (tipo_reporte, frecuencia, resultado, estado)
+                        VALUES (%s, %s, %s, %s)
+                    """, (tipo_reporte, frecuencia, resultado, estado))
+                else:
+                    cursor.execute("""
+                        INSERT INTO reporte_historial
+                        (tipo_reporte, frecuencia, resultado, estado)
+                        VALUES (?, ?, ?, ?)
+                    """, (tipo_reporte, frecuencia, resultado, estado))
+
+        except Exception as e:
+            logger.error(f"Error registrando historial: {e}")

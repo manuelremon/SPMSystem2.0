@@ -1423,19 +1423,27 @@ def get_provider_ranking():
         return jsonify({"error": "Error al obtener ranking de proveedores"}), 500
 
 
-@procurement_bp.route('/comparar', methods=['GET'])
+@procurement_bp.route('/comparar', methods=['GET', 'POST'])
 @require_auth
 def comparar_proveedores():
     """
-    Compara proveedores para un material específico.
+    Compara proveedores.
 
-    Query params:
-        - material: Código del material (requerido)
-        - centro: Centro (opcional)
+    GET - Compara proveedores para un material específico:
+        Query params:
+            - material: Código del material (requerido)
+            - centro: Centro (opcional)
+
+    POST - Compara proveedores side-by-side por IDs:
+        JSON body:
+            - proveedor_ids: list[str] (2-5 IDs, requerido)
 
     Returns:
-        Proveedores que suministran el material con sus métricas comparadas
+        Proveedores con sus métricas comparadas
     """
+    if request.method == 'POST':
+        return _comparar_proveedores_side_by_side()
+
     material_codigo = request.args.get('material')
     if not material_codigo:
         return jsonify({"error": "Parámetro 'material' es requerido"}), 400
@@ -1510,6 +1518,155 @@ def comparar_proveedores():
     except Exception as e:
         logger.error(f"Error comparando proveedores: {e}")
         return jsonify({"error": "Error al comparar proveedores"}), 500
+
+
+def _comparar_proveedores_side_by_side():
+    """
+    Compara proveedores side-by-side por IDs.
+
+    JSON body:
+        - proveedor_ids: list[str] (2-5 IDs)
+
+    Returns:
+        Lista de proveedores con scorecard completo y historial 12 meses
+    """
+    data = request.get_json() or {}
+    proveedor_ids = data.get('proveedor_ids', [])
+
+    if not proveedor_ids or len(proveedor_ids) < 2:
+        return jsonify({"error": "Se requieren al menos 2 proveedores"}), 400
+    if len(proveedor_ids) > 5:
+        return jsonify({"error": "Máximo 5 proveedores para comparar"}), 400
+
+    try:
+        resultados = []
+
+        for prov_id in proveedor_ids:
+            prov_data = {
+                'proveedor_id': prov_id,
+                'nombre': prov_id,
+                'scorecard': None,
+                'historial_12m': [],
+            }
+
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+
+                # Try persistent scorecard first
+                cur.execute("""
+                    SELECT proveedor_nombre, calidad_score, entrega_score,
+                           precio_score, servicio_score, score_global, periodo
+                    FROM proveedor_evaluacion
+                    WHERE proveedor_id = ?
+                    ORDER BY created_at DESC LIMIT 1
+                """, (prov_id,))
+                eval_row = cur.fetchone()
+
+                if eval_row:
+                    d = dict(eval_row)
+                    prov_data['nombre'] = d.get('proveedor_nombre', prov_id)
+                    prov_data['scorecard'] = {
+                        'calidad_score': float(d.get('calidad_score') or 0),
+                        'entrega_score': float(d.get('entrega_score') or 0),
+                        'precio_score': float(d.get('precio_score') or 0),
+                        'servicio_score': float(d.get('servicio_score') or 0),
+                        'score_global': float(d.get('score_global') or 0),
+                        'periodo': d.get('periodo'),
+                    }
+                else:
+                    # Fallback: compute from SAP data
+                    lead_time_diff = _date_diff_sql(
+                        'p.fecha_recepcion', 'p.fecha_pedido'
+                    )
+                    cur.execute(f"""
+                        SELECT
+                            p.proveedor_nombre,
+                            COUNT(DISTINCT p.pedido_id) as total_pedidos,
+                            SUM(CASE
+                                WHEN p.fecha_recepcion IS NOT NULL
+                                 AND p.fecha_recepcion <= s.fecha_entrega_solicitada
+                                THEN 1 ELSE 0
+                            END) as entregas_a_tiempo,
+                            SUM(CASE
+                                WHEN p.fecha_recepcion IS NOT NULL
+                                 AND p.cantidad_recepcionada >= p.cantidad_pedida
+                                THEN 1 ELSE 0
+                            END) as entregas_completas,
+                            SUM(CASE
+                                WHEN p.fecha_recepcion IS NOT NULL
+                                THEN 1 ELSE 0
+                            END) as entregas_realizadas,
+                            {_round_avg_sql(lead_time_diff)} as lead_time_promedio
+                        FROM sap_purchase_orders p
+                        INNER JOIN sap_solpeds s
+                            ON p.solped_id = s.solped_id
+                            AND p.solped_posicion = s.posicion
+                        WHERE p.proveedor_cuit = ?
+                           OR p.proveedor_nombre = ?
+                        GROUP BY p.proveedor_nombre
+                    """, (prov_id, prov_id))
+                    sap_row = cur.fetchone()
+
+                    if sap_row:
+                        r = dict(sap_row)
+                        prov_data['nombre'] = r.get(
+                            'proveedor_nombre', prov_id
+                        )
+                        entregas = max(
+                            r.get('entregas_realizadas', 0) or 0, 1
+                        )
+                        pct_a_tiempo = round(
+                            100 * (r.get('entregas_a_tiempo', 0) or 0)
+                            / entregas, 1
+                        )
+                        pct_completas = round(
+                            100 * (r.get('entregas_completas', 0) or 0)
+                            / entregas, 1
+                        )
+                        prov_data['scorecard'] = {
+                            'entrega_score': pct_a_tiempo,
+                            'calidad_score': pct_completas,
+                            'precio_score': 0,
+                            'servicio_score': 0,
+                            'score_global': round(
+                                pct_a_tiempo * 0.5 + pct_completas * 0.3,
+                                1
+                            ),
+                            'lead_time_promedio': float(
+                                r.get('lead_time_promedio') or 0
+                            ),
+                            'total_pedidos': r.get('total_pedidos', 0),
+                        }
+
+                # Historial 12 meses
+                cur.execute("""
+                    SELECT periodo, calidad_score, entrega_score, precio_score,
+                           servicio_score, score_global
+                    FROM proveedor_evaluacion
+                    WHERE proveedor_id = ?
+                    ORDER BY periodo DESC
+                    LIMIT 12
+                """, (prov_id,))
+                hist_rows = cur.fetchall()
+                prov_data['historial_12m'] = [
+                    dict(row) for row in hist_rows
+                ]
+
+            resultados.append(prov_data)
+
+        return jsonify({
+            "ok": True,
+            "data": {
+                "proveedores": resultados,
+                "total": len(resultados),
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error comparando proveedores side-by-side: {e}")
+        return jsonify({
+            "error": "Error al comparar proveedores"
+        }), 500
 
 
 # ============================================================================

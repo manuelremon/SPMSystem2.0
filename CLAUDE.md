@@ -693,7 +693,7 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
   - L2: hasta $1,000,000 USD
   - ADMIN: mas de $1,000,000 USD
 
-## Migraciones de BD (35 totales)
+## Migraciones de BD (36 totales)
 
 | Migracion | Proposito |
 |-----------|-----------|
@@ -714,6 +714,7 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 | `036` | Tabla reporte_programado (CRUD reportes programados) |
 | `037` | Tablas proveedor_evaluacion, proveedor_meta (scorecard persistente) |
 | `038` | Tabla regla_auto_aprobacion (auto-aprobacion por reglas) |
+| `043` | Tabla user_material_favorito (materiales favoritos por usuario) |
 
 ## CI/CD
 
@@ -762,6 +763,7 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 | 38 | ML Ensemble Forecast (weighted averaging, parallel) | 2026-02-14 |
 | 39 | Proveedor Scorecard persistente, evaluaciones históricas | 2026-02-14 |
 | 40 | Auto-aprobación por reglas configurables, simulación | 2026-02-14 |
+| 49 | QR/Barcode Scanner + Materiales Favoritos | 2026-02-15 |
 
 ---
 

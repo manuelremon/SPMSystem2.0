@@ -1627,3 +1627,149 @@ def obtener_configuracion():
             "ok": False,
             "error": {"code": "config_error", "message": str(e)}
         }), 500
+
+
+# =============================================================================
+# WHAT-IF ANALYSIS - Sprint 48
+# =============================================================================
+
+
+@bp.route("/what-if", methods=["GET"])
+@require_auth
+def what_if_analysis():
+    """
+    What-if analysis de inventario: simula cambios en parámetros MRP.
+
+    Query params:
+        material: Código del material (requerido)
+        rop_delta: Cambio porcentual en ROP, ej: -20 = -20% (default: 0)
+        eoq_delta: Cambio porcentual en EOQ, ej: 30 = +30% (default: 0)
+
+    Returns:
+        {
+            "ok": true,
+            "material": "10000123",
+            "current": {"rop": 100, "eoq": 500, "stock": 250, "costo": 10},
+            "adjusted": {"rop": 80, "eoq": 650, "avg_stock": 405},
+            "impact": {
+                "capital_liberado": 5000,
+                "riesgo_stockout": "bajo|medio|alto",
+                "ahorro_mantener": 1000
+            }
+        }
+    """
+    material = request.args.get("material", "").strip()
+    rop_delta = float(request.args.get("rop_delta", 0))
+    eoq_delta = float(request.args.get("eoq_delta", 0))
+
+    if not material:
+        return (
+            jsonify({"ok": False, "error": {"code": "validation", "message": "Material es requerido"}}),
+            400,
+        )
+
+    try:
+        # Obtener parámetros MRP actuales desde materiales_bbdd
+        with get_db_connection("sap_data") as conn:
+            cursor = conn.cursor()
+
+            # Buscar material en materiales_bbdd (join con stock para precio/stock actual)
+            cursor.execute(
+                """
+                SELECT
+                    m.codigo_material,
+                    m.descripcion,
+                    m.stock_de_seguridad,
+                    m.punto_de_pedido,
+                    m.stock_maximo,
+                    COALESCE(s.stock_actual, 0) as stock_actual,
+                    COALESCE(s.precio_unitario, 0) as costo_unitario
+                FROM materiales_bbdd m
+                LEFT JOIN (
+                    SELECT material, SUM(stock) as stock_actual, AVG(precio) as precio_unitario
+                    FROM stock
+                    GROUP BY material
+                ) s ON m.codigo_material = s.material
+                WHERE m.codigo_material = ?
+                LIMIT 1
+            """,
+                (material,),
+            )
+
+            row = cursor.fetchone()
+            if not row:
+                return (
+                    jsonify({
+                        "ok": False,
+                        "error": {"code": "not_found", "message": f"Material {material} no encontrado"}
+                    }),
+                    404,
+                )
+
+            row_dict = dict(row)
+
+        # Parámetros actuales
+        rop_current = float(row_dict["punto_de_pedido"] or 0)
+        # EOQ = stock_maximo si está disponible, sino estimado como 2x ROP
+        eoq_current = float(row_dict["stock_maximo"] or 0) or (rop_current * 2)
+        stock_actual = float(row_dict["stock_actual"] or 0)
+        costo_unitario = float(row_dict["costo_unitario"] or 0)
+
+        # Si no hay datos suficientes, usar fallbacks conservadores
+        if rop_current == 0:
+            rop_current = stock_actual * 0.3 if stock_actual > 0 else 50
+        if eoq_current == 0:
+            eoq_current = stock_actual * 1.5 if stock_actual > 0 else 200
+
+        # Aplicar deltas
+        new_rop = rop_current * (1 + rop_delta / 100)
+        new_eoq = eoq_current * (1 + eoq_delta / 100)
+
+        # Calcular métricas de impacto
+        # Stock promedio = (EOQ/2) + ROP (asumiendo ciclo simple)
+        avg_stock_current = (eoq_current / 2) + rop_current
+        avg_stock_adjusted = (new_eoq / 2) + new_rop
+
+        capital_actual = stock_actual * costo_unitario
+        capital_nuevo = avg_stock_adjusted * costo_unitario
+        capital_liberado = capital_actual - capital_nuevo
+
+        # Riesgo de stockout: si ROP baja mucho, aumenta riesgo
+        if new_rop < rop_current * 0.7:
+            riesgo_stockout = "alto"
+        elif new_rop < rop_current * 0.9:
+            riesgo_stockout = "medio"
+        else:
+            riesgo_stockout = "bajo"
+
+        # Ahorro en mantener (tasa 20% anual típica)
+        tasa_mantenimiento = 0.20
+        ahorro_mantener = (avg_stock_current - avg_stock_adjusted) * costo_unitario * tasa_mantenimiento
+
+        return jsonify({
+            "ok": True,
+            "material": material,
+            "descripcion": row_dict.get("descripcion", material),
+            "current": {
+                "rop": round(rop_current, 0),
+                "eoq": round(eoq_current, 0),
+                "stock": round(stock_actual, 0),
+                "costo": round(costo_unitario, 2),
+                "avg_stock": round(avg_stock_current, 0),
+            },
+            "adjusted": {
+                "rop": round(new_rop, 0),
+                "eoq": round(new_eoq, 0),
+                "avg_stock": round(avg_stock_adjusted, 0),
+            },
+            "impact": {
+                "capital_liberado": round(capital_liberado, 2),
+                "capital_liberado_pct": round((capital_liberado / max(capital_actual, 1)) * 100, 1) if capital_actual > 0 else 0,
+                "riesgo_stockout": riesgo_stockout,
+                "ahorro_mantener": round(ahorro_mantener, 2),
+            },
+        })
+
+    except Exception as e:
+        logger.error(f"Error en what-if analysis: {e}", exc_info=True)
+        return jsonify({"ok": False, "error": {"code": "server_error", "message": str(e)}}), 500

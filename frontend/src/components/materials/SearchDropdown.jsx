@@ -25,6 +25,8 @@ import {
 import SearchIcon from '@mui/icons-material/Search'
 import CloseIcon from '@mui/icons-material/Close'
 import CheckIcon from '@mui/icons-material/Check'
+import StarIcon from '@mui/icons-material/Star'
+import StarBorderIcon from '@mui/icons-material/StarBorder'
 
 /**
  * Escape regex special characters for safe string matching
@@ -77,6 +79,8 @@ export function SearchDropdown({
   onSelect,
   onClose,
   setHighlightedIndex,
+  favoritos = [],
+  toggleFavorito,
 }) {
   const { t } = useI18n()
 
@@ -258,6 +262,27 @@ export function SearchDropdown({
                             '& .MuiChip-icon': { ml: 0.5 },
                           }}
                         />
+                      )}
+                      {toggleFavorito && (
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggleFavorito(m.codigo)
+                          }}
+                          aria-label={
+                            favoritos.some(f => f.codigo === m.codigo)
+                              ? t('favorites_remove', 'Quitar de favoritos')
+                              : t('favorites_add', 'Agregar a favoritos')
+                          }
+                          sx={{ p: 0.25 }}
+                        >
+                          {favoritos.some(f => f.codigo === m.codigo) ? (
+                            <StarIcon sx={{ fontSize: 16, color: 'warning.main' }} />
+                          ) : (
+                            <StarBorderIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                          )}
+                        </IconButton>
                       )}
                     </Stack>
                     {/* Descripcion en 2 lineas con line-clamp */}

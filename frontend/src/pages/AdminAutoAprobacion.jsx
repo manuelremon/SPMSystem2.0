@@ -24,11 +24,14 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import Divider from '@mui/material/Divider';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import HistoryIcon from '@mui/icons-material/History';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -59,16 +62,22 @@ export default function AdminAutoAprobacion() {
   const { t } = useI18n();
   const toast = useToast();
 
+  const [currentTab, setCurrentTab] = useState(0);
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(INITIAL_FORM);
   const [saving, setSaving] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   // Simulation state
   const [simulating, setSimulating] = useState(false);
   const [simulationResult, setSimulationResult] = useState(null);
+
+  // Historial state
+  const [historial, setHistorial] = useState([]);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
 
   const fetchRules = useCallback(async () => {
     try {
@@ -78,15 +87,37 @@ export default function AdminAutoAprobacion() {
         setRules(response.data.rules || []);
       }
     } catch (err) {
-      toast.error('Error al cargar reglas');
+      toast.error(t('auto_approval_error_cargar', 'Error al cargar reglas'));
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const fetchHistorial = useCallback(async () => {
+    try {
+      setLoadingHistorial(true);
+      const response = await api.get('/admin/auto-approval/historial', {
+        params: { limit: 100 },
+      });
+      if (response.data?.ok) {
+        setHistorial(response.data.historial || []);
+      }
+    } catch (err) {
+      toast.error(t('auto_approval_historial_error', 'Error al cargar historial'));
+    } finally {
+      setLoadingHistorial(false);
     }
   }, []);
 
   useEffect(() => {
     fetchRules();
   }, [fetchRules]);
+
+  useEffect(() => {
+    if (currentTab === 1) {
+      fetchHistorial();
+    }
+  }, [currentTab, fetchHistorial]);
 
   const handleOpenDialog = useCallback((rule = null) => {
     if (rule) {
@@ -124,7 +155,7 @@ export default function AdminAutoAprobacion() {
 
   const handleSave = useCallback(async () => {
     if (!form.nombre.trim()) {
-      toast.warning('El nombre es requerido');
+      toast.warning(t('auto_approval_nombre_requerido', 'El nombre es requerido'));
       return;
     }
 
@@ -141,32 +172,36 @@ export default function AdminAutoAprobacion() {
 
       if (editingId) {
         await api.put(`/admin/auto-approval-rules/${editingId}`, payload);
-        toast.success('Regla actualizada');
+        toast.success(t('auto_approval_actualizada', 'Regla actualizada'));
       } else {
         await api.post('/admin/auto-approval-rules', payload);
-        toast.success('Regla creada');
+        toast.success(t('auto_approval_creada', 'Regla creada'));
       }
 
       handleCloseDialog();
       fetchRules();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Error al guardar');
+      toast.error(err.response?.data?.error || t('auto_approval_error_guardar', 'Error al guardar'));
     } finally {
       setSaving(false);
     }
   }, [form, editingId, fetchRules, handleCloseDialog]);
 
   const handleDelete = useCallback(async (id) => {
-    if (!window.confirm('¿Eliminar esta regla de auto-aprobación?')) return;
+    setConfirmDeleteId(id);
+  }, []);
 
+  const confirmDelete = useCallback(async () => {
+    const id = confirmDeleteId;
+    setConfirmDeleteId(null);
     try {
       await api.delete(`/admin/auto-approval-rules/${id}`);
-      toast.success('Regla eliminada');
+      toast.success(t('auto_approval_eliminada', 'Regla eliminada'));
       fetchRules();
     } catch (err) {
-      toast.error('Error al eliminar');
+      toast.error(t('auto_approval_error_eliminar', 'Error al eliminar'));
     }
-  }, [fetchRules]);
+  }, [confirmDeleteId, fetchRules, t]);
 
   const handleSimulate = useCallback(async () => {
     setSimulating(true);
@@ -180,7 +215,7 @@ export default function AdminAutoAprobacion() {
         setSimulationResult(response.data);
       }
     } catch (err) {
-      toast.error('Error en simulación');
+      toast.error(t('auto_approval_error_simular', 'Error en simulación'));
     } finally {
       setSimulating(false);
     }
@@ -189,25 +224,25 @@ export default function AdminAutoAprobacion() {
   const columnDefs = [
     {
       field: 'nombre',
-      headerName: 'Nombre',
+      headerName: t('admin_nombre', 'Nombre'),
       flex: 2,
       minWidth: 200,
     },
     {
       field: 'prioridad',
-      headerName: 'Prioridad',
+      headerName: t('auto_approval_prioridad', 'Prioridad'),
       width: 100,
       type: 'numericColumn',
     },
     {
       field: 'centro_id',
-      headerName: 'Centro',
+      headerName: t('common_centro', 'Centro'),
       width: 120,
-      valueFormatter: (params) => params.value || 'Todos',
+      valueFormatter: (params) => params.value || t('auto_approval_todos', 'Todos'),
     },
     {
       field: 'condiciones_json',
-      headerName: 'Monto Máx.',
+      headerName: t('auto_approval_monto_col', 'Monto Máx.'),
       width: 130,
       valueGetter: (params) => {
         try {
@@ -221,13 +256,13 @@ export default function AdminAutoAprobacion() {
     },
     {
       field: 'activo',
-      headerName: 'Estado',
+      headerName: t('common_estado', 'Estado'),
       width: 100,
-      cellRenderer: (params) => params.value ? 'Activa' : 'Inactiva',
+      cellRenderer: (params) => params.value ? t('auto_approval_activa', 'Activa') : t('auto_approval_inactiva', 'Inactiva'),
     },
     {
       field: 'created_at',
-      headerName: 'Creada',
+      headerName: t('auto_approval_creada_col', 'Creada'),
       flex: 1,
       valueFormatter: (params) => {
         if (!params.value) return '';
@@ -235,7 +270,7 @@ export default function AdminAutoAprobacion() {
       },
     },
     {
-      headerName: 'Acciones',
+      headerName: t('common_acciones', 'Acciones'),
       width: 130,
       sortable: false,
       filter: false,
@@ -244,19 +279,68 @@ export default function AdminAutoAprobacion() {
           <IconButton
             size="small"
             onClick={() => handleOpenDialog(params.data)}
-            title="Editar"
+            title={t('admin_editar', 'Editar')}
+            aria-label={t('admin_editar', 'Editar')}
           >
             <EditIcon fontSize="small" color="primary" />
           </IconButton>
           <IconButton
             size="small"
             onClick={() => handleDelete(params.data.id)}
-            title="Eliminar"
+            title={t('admin_eliminar', 'Eliminar')}
+            aria-label={t('admin_eliminar', 'Eliminar')}
           >
             <DeleteIcon fontSize="small" color="error" />
           </IconButton>
         </Stack>
       ),
+    },
+  ];
+
+  const historialColumnDefs = [
+    {
+      field: 'solicitud_id',
+      headerName: t('auto_approval_historial_solicitud', 'Solicitud'),
+      width: 100,
+    },
+    {
+      field: 'fecha',
+      headerName: t('auto_approval_historial_fecha', 'Fecha'),
+      flex: 1,
+      valueFormatter: (params) => {
+        if (!params.value) return '';
+        return new Date(params.value).toLocaleString('es-AR');
+      },
+    },
+    {
+      field: 'regla_nombre',
+      headerName: t('auto_approval_historial_regla', 'Regla Aplicada'),
+      flex: 2,
+    },
+    {
+      field: 'confianza',
+      headerName: t('auto_approval_historial_confianza', 'Confianza'),
+      width: 100,
+      type: 'numericColumn',
+      valueFormatter: (params) => {
+        if (params.value == null) return 'N/A';
+        return `${(params.value * 100).toFixed(0)}%`;
+      },
+    },
+    {
+      field: 'solicitante',
+      headerName: t('auto_approval_historial_solicitante', 'Solicitante'),
+      flex: 2,
+    },
+    {
+      field: 'monto_usd',
+      headerName: t('auto_approval_historial_monto', 'Monto USD'),
+      flex: 1,
+      type: 'numericColumn',
+      valueFormatter: (params) => {
+        if (!params.value) return '-';
+        return `USD ${params.value.toLocaleString('es-AR')}`;
+      },
     },
   ];
 
@@ -269,32 +353,55 @@ export default function AdminAutoAprobacion() {
             {t('auto_approval_title', 'Reglas de Auto-Aprobación')}
           </Typography>
         </Stack>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          {t('auto_approval_create', 'Nueva Regla')}
-        </Button>
+        {currentTab === 0 && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+          >
+            {t('auto_approval_create', 'Nueva Regla')}
+          </Button>
+        )}
       </Stack>
 
       <Alert severity="info" sx={{ borderRadius: 2 }}>
-        Las reglas de auto-aprobación permiten aprobar automáticamente solicitudes
-        que cumplen todos los criterios configurados, sin intervención humana.
-        Se evalúan por orden de prioridad (menor número = mayor prioridad).
+        {currentTab === 0
+          ? t('auto_approval_info', 'Las reglas de auto-aprobación permiten aprobar automáticamente solicitudes que cumplen todos los criterios configurados, sin intervención humana. Se evalúan por orden de prioridad (menor número = mayor prioridad).')
+          : t('auto_approval_historial_info', 'Historial de solicitudes que fueron auto-aprobadas por reglas configuradas.')}
       </Alert>
 
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-        <SPMAgGrid
-          columnDefs={columnDefs}
-          rowData={rules}
-          loading={loading}
-          height={450}
-          enableQuickFilter={true}
-          exportFileName="reglas_auto_aprobacion"
-          emptyMessage="No hay reglas configuradas"
-        />
-      </Paper>
+      <Tabs value={currentTab} onChange={(_, val) => setCurrentTab(val)} aria-label="Auto-aprobación tabs">
+        <Tab label={t('auto_approval_tab_reglas', 'Reglas')} />
+        <Tab label={t('auto_approval_historial_tab', 'Historial')} icon={<HistoryIcon />} iconPosition="start" />
+      </Tabs>
+
+      {currentTab === 0 && (
+        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }} aria-label={t('auto_approval_title', 'Reglas de Auto-Aprobación')}>
+          <SPMAgGrid
+            columnDefs={columnDefs}
+            rowData={rules}
+            loading={loading}
+            height={450}
+            enableQuickFilter={true}
+            exportFileName="reglas_auto_aprobacion"
+            emptyMessage={t('auto_approval_empty', 'No hay reglas configuradas')}
+          />
+        </Paper>
+      )}
+
+      {currentTab === 1 && (
+        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }} aria-label={t('auto_approval_historial_tab', 'Historial')}>
+          <SPMAgGrid
+            columnDefs={historialColumnDefs}
+            rowData={historial}
+            loading={loadingHistorial}
+            height={450}
+            enableQuickFilter={true}
+            exportFileName="auto_aprobacion_historial"
+            emptyMessage={t('auto_approval_historial_empty', 'No hay solicitudes auto-aprobadas registradas')}
+          />
+        </Paper>
+      )}
 
       {/* Dialog Crear/Editar */}
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
@@ -302,24 +409,24 @@ export default function AdminAutoAprobacion() {
           <Stack direction="row" alignItems="center" gap={1}>
             <AutoFixHighIcon color="primary" />
             <Typography variant="h6">
-              {editingId ? 'Editar Regla' : 'Nueva Regla de Auto-Aprobación'}
+              {editingId ? t('auto_approval_edit', 'Editar Regla') : t('auto_approval_new', 'Nueva Regla de Auto-Aprobación')}
             </Typography>
           </Stack>
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2.5} sx={{ mt: 1 }}>
             <TextField
-              label="Nombre de la regla"
+              label={t('auto_approval_nombre', 'Nombre de la regla')}
               value={form.nombre}
               onChange={(e) => setForm(prev => ({ ...prev, nombre: e.target.value }))}
               fullWidth
               required
               autoFocus
-              placeholder="Ej: Materiales de bajo costo conocidos"
+              placeholder={t('auto_approval_nombre_placeholder', 'Ej: Materiales de bajo costo conocidos')}
             />
 
             <TextField
-              label="Descripción"
+              label={t('auto_approval_descripcion', 'Descripción')}
               value={form.descripcion}
               onChange={(e) => setForm(prev => ({ ...prev, descripcion: e.target.value }))}
               fullWidth
@@ -328,16 +435,16 @@ export default function AdminAutoAprobacion() {
             />
 
             <TextField
-              label="Centro (vacío = todos)"
+              label={t('auto_approval_centro', 'Centro (vacío = todos)')}
               value={form.centro_id}
               onChange={(e) => setForm(prev => ({ ...prev, centro_id: e.target.value }))}
               fullWidth
-              placeholder="Ej: AA101"
+              placeholder={t('auto_approval_centro_placeholder', 'Ej: AA101')}
             />
 
             <Box>
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
-                Prioridad: {form.prioridad} (menor = mayor prioridad)
+                {t('auto_approval_prioridad', 'Prioridad')}: {form.prioridad} ({t('auto_approval_prioridad_hint', 'menor = mayor prioridad')})
               </Typography>
               <Slider
                 value={form.prioridad}
@@ -345,6 +452,7 @@ export default function AdminAutoAprobacion() {
                 min={1}
                 max={200}
                 step={1}
+                aria-label={t('auto_approval_prioridad', 'Prioridad')}
                 marks={[
                   { value: 1, label: '1 (alta)' },
                   { value: 100, label: '100' },
@@ -354,12 +462,12 @@ export default function AdminAutoAprobacion() {
             </Box>
 
             <Divider>
-              <Chip label="Condiciones" size="small" />
+              <Chip label={t('auto_approval_condiciones', 'Condiciones')} size="small" />
             </Divider>
 
             <Box>
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
-                Monto máximo: USD {form.condiciones.monto_max.toLocaleString('es-AR')}
+                {t('auto_approval_monto_max', 'Monto máximo')}: USD {form.condiciones.monto_max.toLocaleString('es-AR')}
               </Typography>
               <Slider
                 value={form.condiciones.monto_max}
@@ -370,6 +478,7 @@ export default function AdminAutoAprobacion() {
                 min={1000}
                 max={500000}
                 step={1000}
+                aria-label={t('auto_approval_monto_max', 'Monto máximo')}
                 marks={[
                   { value: 1000, label: '1K' },
                   { value: 50000, label: '50K' },
@@ -381,7 +490,7 @@ export default function AdminAutoAprobacion() {
 
             <Box>
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
-                Historial mínimo del solicitante: {form.condiciones.historial_solicitante_min} solicitudes aprobadas
+                {t('auto_approval_historial_min', 'Historial mínimo del solicitante')}: {form.condiciones.historial_solicitante_min} {t('auto_approval_historial_suffix', 'solicitudes aprobadas')}
               </Typography>
               <Slider
                 value={form.condiciones.historial_solicitante_min}
@@ -392,6 +501,7 @@ export default function AdminAutoAprobacion() {
                 min={0}
                 max={50}
                 step={1}
+                aria-label={t('auto_approval_historial_min', 'Historial mínimo del solicitante')}
                 marks={[
                   { value: 0, label: '0' },
                   { value: 5, label: '5' },
@@ -403,7 +513,7 @@ export default function AdminAutoAprobacion() {
 
             <Box>
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
-                Criticidad máxima: {CRITICIDAD_OPTIONS.find(c => c.value === form.condiciones.criticidad_max)?.label}
+                {t('auto_approval_criticidad_max', 'Criticidad máxima')}: {CRITICIDAD_OPTIONS.find(c => c.value === form.condiciones.criticidad_max)?.label}
               </Typography>
               <Stack direction="row" spacing={1}>
                 {CRITICIDAD_OPTIONS.map(opt => (
@@ -431,7 +541,7 @@ export default function AdminAutoAprobacion() {
                   }))}
                 />
               }
-              label="Solo materiales previamente solicitados"
+              label={t('auto_approval_materiales_conocidos', 'Solo materiales previamente solicitados')}
             />
 
             <FormControlLabel
@@ -441,7 +551,7 @@ export default function AdminAutoAprobacion() {
                   onChange={(e) => setForm(prev => ({ ...prev, activo: e.target.checked }))}
                 />
               }
-              label="Regla activa"
+              label={t('auto_approval_regla_activa', 'Regla activa')}
             />
 
             <Divider />
@@ -454,7 +564,7 @@ export default function AdminAutoAprobacion() {
               disabled={simulating}
               fullWidth
             >
-              {simulating ? 'Simulando...' : 'Simular (últimos 30 días)'}
+              {simulating ? t('auto_approval_simulando', 'Simulando...') : t('auto_approval_simular', 'Simular (últimos 30 días)')}
             </Button>
 
             {simulationResult && (
@@ -463,26 +573,39 @@ export default function AdminAutoAprobacion() {
                 sx={{ borderRadius: 2 }}
               >
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  Resultado de simulación:
+                  {t('auto_approval_resultado', 'Resultado de simulación:')}
                 </Typography>
                 <Typography variant="body2">
-                  {simulationResult.auto_aprobables} de {simulationResult.total_solicitudes} solicitudes
-                  habrían sido auto-aprobadas ({simulationResult.porcentaje}%)
+                  {t('auto_approval_resultado_msg', `${simulationResult.auto_aprobables} de ${simulationResult.total_solicitudes} solicitudes habrían sido auto-aprobadas (${simulationResult.porcentaje}%)`, { auto: simulationResult.auto_aprobables, total: simulationResult.total_solicitudes, pct: simulationResult.porcentaje })}
                 </Typography>
               </Alert>
             )}
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={handleCloseDialog}>Cancelar</Button>
+          <Button onClick={handleCloseDialog}>{t('auto_approval_cancelar', 'Cancelar')}</Button>
           <Button
             variant="contained"
             onClick={handleSave}
             disabled={saving || !form.nombre.trim()}
             startIcon={saving && <CircularProgress size={16} />}
           >
-            {editingId ? 'Guardar' : 'Crear'}
+            {editingId ? t('auto_approval_guardar', 'Guardar') : t('auto_approval_crear_btn', 'Crear')}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Confirmation Dialog for Delete */}
+      <Dialog open={!!confirmDeleteId} onClose={() => setConfirmDeleteId(null)} maxWidth="xs">
+        <DialogTitle>{t('auto_approval_confirm_delete', '¿Eliminar esta regla de auto-aprobación?')}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            {t('auto_approval_confirm_delete_desc', 'Esta acción no se puede deshacer.')}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDeleteId(null)}>{t('auto_approval_cancelar', 'Cancelar')}</Button>
+          <Button variant="contained" color="error" onClick={confirmDelete}>{t('common_eliminar', 'Eliminar')}</Button>
         </DialogActions>
       </Dialog>
     </Box>
