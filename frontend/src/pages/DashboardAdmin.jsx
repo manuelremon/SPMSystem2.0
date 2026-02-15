@@ -19,7 +19,7 @@ import { KPIRow1 } from './DashboardAdmin/index';
 import { KPIRow2 } from './DashboardAdmin/index';
 import { KPIRow3 } from './DashboardAdmin/index';
 import { ExpandedCardDialog } from './DashboardAdmin/index';
-import DrillDownModal from '../components/Dashboard/DrillDownModal';
+import DrillDownModal from '../components/dashboard/DrillDownModal';
 
 // ============================================================================
 // DASHBOARD ADMIN COMPONENT
