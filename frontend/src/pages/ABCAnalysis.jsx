@@ -13,7 +13,8 @@ import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
 import Layout from '../components/Layout';
-import { Download, RefreshCw } from 'lucide-react';
+import DownloadIcon from '@mui/icons-material/Download';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 // Importar Chart.js components
 import {
@@ -312,11 +313,11 @@ const ABCAnalysis = () => {
             </div>
             <div className="flex gap-2">
               <Button onClick={handleApplyFilters} disabled={loading}>
-                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshIcon className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                 {t('abc_apply_filters', 'Aplicar')}
               </Button>
               <Button onClick={handleExport} variant="outline" disabled={!data.length}>
-                <Download className="w-4 h-4 mr-2" />
+                <DownloadIcon className="w-4 h-4 mr-2" />
                 {t('abc_export', 'Exportar')}
               </Button>
             </div>
