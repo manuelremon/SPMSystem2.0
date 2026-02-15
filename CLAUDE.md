@@ -2,15 +2,15 @@
 
 Guia para Claude Code (claude.ai/code) cuando trabaja con este repositorio.
 
-> **Ultima actualizacion**: 2026-02-14 (Sprints 35-40: paginacion, drill-down, reportes, ensemble, scorecard, auto-aprobacion)
+> **Ultima actualizacion**: 2026-02-15 (Sprints 61-70: matching, spend, risk, demand planning, returns, warehouse, compliance, inventory opt, audit, freight)
 
 ## Resumen del Proyecto
 
 | Metrica | Valor |
 |---------|-------|
-| **Backend** | 215+ archivos Python, ~68,000 lineas |
-| **Frontend** | 101 paginas, 129 componentes, 22 hooks |
-| **Endpoints API** | 270+ endpoints en 37 modulos (3 packages) |
+| **Backend** | 245+ archivos Python, ~85,000 lineas |
+| **Frontend** | 119 paginas, 143 componentes, 22 hooks |
+| **Endpoints API** | 350+ endpoints en 47 modulos (3 packages) |
 | **Tests** | 1,330+ tests (101 archivos backend, 25 frontend) |
 | **Base de Datos** | 3 SQLite + PostgreSQL (produccion) |
 
@@ -53,19 +53,19 @@ http://localhost:5173       http://localhost:5000     SQLite (data/)
 
 ```
 SPMv3.0/
-├── backend/                    # API Flask (210+ archivos, ~65K lineas)
-│   ├── routes/                 # 36 modulos (3 packages: ai/, planner/, solicitudes/)
-│   ├── services/               # 18 servicios de negocio
+├── backend/                    # API Flask (245+ archivos, ~85K lineas)
+│   ├── routes/                 # 47 modulos (3 packages: ai/, planner/, solicitudes/)
+│   ├── services/               # 29 servicios de negocio
 │   ├── core/                   # 39 modulos de infraestructura
 │   ├── agent/                  # 46 archivos ML/IA (forecast/, rag/, proactive/)
-│   └── migrations/             # 35 migraciones de BD
+│   └── migrations/             # 63 migraciones de BD
 ├── frontend/src/
-│   ├── pages/                  # 98 paginas + DashboardAdmin/ sub-componentes
-│   ├── components/             # 126 componentes (incl. OfflineBanner)
+│   ├── pages/                  # 119 paginas + DashboardAdmin/ sub-componentes
+│   ├── components/             # 143 componentes (incl. OfflineBanner)
 │   ├── hooks/                  # 22 custom hooks (incl. useMaterial*, useToast)
 │   ├── services/               # 18 servicios API
 │   ├── store/                  # 8 stores Zustand
-│   └── context/                # i18n provider (200+ keys)
+│   └── context/                # i18n provider (500+ keys)
 ├── data/                       # Bases de datos SQLite
 ├── tests/                      # 101 archivos de test
 ├── scripts/                    # Scripts de utilidad
@@ -74,7 +74,7 @@ SPMv3.0/
 
 ## Backend - Inventario Completo
 
-### Routes (36 modulos, 250+ endpoints)
+### Routes (47 modulos, 350+ endpoints)
 
 **Nota:** 3 routes gigantes fueron divididos en packages modulares (Sprint 31):
 - `ai.py` (1902 ln) -> `routes/ai/` (5 modulos: core, forecast, materiales, recomendaciones, plan_compras)
@@ -118,8 +118,18 @@ SPMv3.0/
 | `kpis.py` | 1 | Dashboard KPIs |
 | `dashboards_data.py` | 3 | Dashboard data paginada, drill-down analytics |
 | `materiales_detalle.py` | 0 | Helpers de detalle materiales |
+| `matching.py` | 7 | 3-Way Invoice Matching (PO vs Receipt vs Invoice) |
+| `spend.py` | 6 | Spend Analytics, Kraljic Matrix, TCO |
+| `supplier_risk.py` | 7 | Evaluacion riesgo proveedores, fuentes unicas |
+| `demand_planning.py` | 8 | Planificacion demanda colaborativa (S&OP) |
+| `returns.py` | 7 | Devoluciones y logistica inversa (RMA) |
+| `warehouse.py` | 8 | Recepcion warehouse, docks, putaway |
+| `compliance.py` | 8 | Compliance contratos, programas rebate |
+| `inventory_opt.py` | 9 | Optimizacion inventario multi-ubicacion |
+| `supplier_audit.py` | 10 | Auditorias y certificaciones proveedores |
+| `freight.py` | 10 | Auditoria facturas flete, tarifas |
 
-### Services (19 servicios)
+### Services (29 servicios)
 
 | Servicio | Proposito |
 |----------|-----------|
@@ -144,6 +154,16 @@ SPMv3.0/
 | `temp_data_service.py` | Datos temporales y cache |
 | `report_generator.py` | Generador de reportes (solicitudes, stock, KPIs, materiales) |
 | `auto_approval_service.py` | Evaluacion de reglas auto-aprobacion |
+| `matching_service.py` | 3-Way Matching (PO vs Receipt vs Invoice) |
+| `spend_service.py` | Spend analytics, Kraljic, maverick, TCO |
+| `supplier_risk_service.py` | Risk scoring compuesto (5 dimensiones) |
+| `demand_planning_service.py` | Ciclos S&OP, baseline ML, consenso |
+| `returns_service.py` | RMA con FSM, integracion NCR, creditos |
+| `warehouse_service.py` | Docks recepcion, tareas putaway |
+| `compliance_service.py` | Verificacion compliance OC, rebates |
+| `inventory_optimization_service.py` | Desbalances, transferencias, niveles servicio |
+| `supplier_audit_service.py` | Certificaciones, auditorias, hallazgos |
+| `freight_audit_service.py` | Auto-audit fletes vs tarifas |
 
 ### Core (39 modulos)
 
@@ -156,7 +176,7 @@ SPMv3.0/
 | **Security** | `csrf.py`, `security_headers.py`, `rate_limit.py` |
 | **CORS** | `cors.py` (manejo manual con regex/wildcards) |
 | **SPA** | `spa.py` (servir frontend React) |
-| **Blueprints** | `blueprints.py` (registro centralizado de 33 blueprints) |
+| **Blueprints** | `blueprints.py` (registro centralizado de 43 blueprints) |
 | **Cache** | `cache.py` (L1 memory + L2 Redis), `cache_advanced.py`, `cache_loader.py` |
 | **State** | `fsm.py` (maquina de estados solicitudes) |
 | **Errors** | `errors.py` (excepciones custom) |
@@ -231,7 +251,7 @@ agent/
 
 ## Frontend - Inventario Completo
 
-### Pages (98 paginas totales)
+### Pages (119 paginas totales)
 
 | Categoria | Paginas |
 |-----------|---------|
@@ -255,8 +275,18 @@ agent/
 | **Procurement** | ProveedorScorecard (radar chart + ranking + tendencias) |
 | **Reportes** | ReportesProgramados (CRUD con ejecucion manual) |
 | **Admin** | AdminUsuarios, AdminRoles, AdminCentros, AdminSectores, AdminMateriales, AdminProveedores, AdminPresupuestos, AdminEstado, AdminPlanificadores, AdminPuestos, AdminAlmacenes, AdminSolicitudesPerfil, AdminAutoAprobacion |
+| **Invoice Matching** | InvoiceList, InvoiceDetail |
+| **Spend Analytics** | SpendAnalytics |
+| **Supplier Risk** | SupplierRiskMap |
+| **Demand Planning** | DemandPlanning, DemandPlanDetail |
+| **Returns/RMA** | ReturnsList, ReturnDetail |
+| **Warehouse** | WarehouseReceiving, PutawayTasks |
+| **Compliance** | ContractCompliance, RebatePrograms |
+| **Inventory Opt** | InventoryOptimization, ServiceLevels |
+| **Supplier Audit** | SupplierCertifications, SupplierAudits |
+| **Freight** | FreightAudit, FreightTariffs |
 
-### Components (126 totales)
+### Components (143 totales)
 
 | Carpeta | Componentes | Proposito |
 |---------|-------------|-----------|
@@ -273,6 +303,7 @@ agent/
 | `export/` | 1 | ExportButton |
 | `DashboardAdmin/` | 7 | KPIRow1-3, FiltersBar, SolicitudesSection, ExpandCardButton, ExpandedCardDialog |
 | **Core** | 11 | Layout, Sidebar, ErrorBoundary, ProtectedRoute, Loading, AdminCrudTemplate, AssistantModal, ChatAssistant, MensajeThreadModal, HeaderNav |
+| `SCM/` | 7 | MatchComparisonTable, KraljicMatrix, RiskScoreBreakdown, ForecastComparisonChart, ImbalanceHeatmap, DockBoard, CertExpiryBadge |
 
 ### Hooks (22 totales)
 
@@ -345,7 +376,7 @@ agent/
 | `data/sap_data.db` | Stock, consumo historico, pedidos | 178,338 |
 | `data/catalogo_materiales.db` | Catalogo completo de materiales SAP | ~28,000 |
 
-**Produccion:** PostgreSQL con 35 migraciones aplicadas (tablas renombradas a espanol).
+**Produccion:** PostgreSQL con 63 migraciones aplicadas (tablas renombradas a espanol).
 
 **Reimportacion de datos SAP:**
 ```bash
@@ -507,7 +538,7 @@ frontend/src/
 ### Sistema i18n
 - Ubicacion: `frontend/src/context/i18n.jsx`
 - API: `const { t } = useI18n(); t('clave', 'fallback')`
-- Prefijos: `nav_`, `dash_`, `common_`, `materials_`, `admin_`, `planner_`
+- Prefijos: `nav_`, `dash_`, `common_`, `materials_`, `admin_`, `planner_`, `matching_`, `spend_`, `risk_`, `demand_`, `returns_`, `warehouse_`, `compliance_`, `rebate_`, `inv_opt_`, `cert_`, `supplier_audit_`, `freight_`
 
 ### Sistema de Estilos
 - **Tema:** Solo light mode (dark mode eliminado)
@@ -679,6 +710,69 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 - **Condiciones:** monto_max, materiales_conocidos_only, historial_solicitante_min, criticidad_max
 - **FSM Integración:** `solicitudes/helpers.py::_check_auto_approval()` evalúa reglas antes de lógica legacy
 
+### 3-Way Invoice Matching (Sprint 61)
+- **Backend:** `routes/matching.py` (7 endpoints), `services/matching_service.py`, migracion 054
+- **Frontend:** `InvoiceList.jsx`, `InvoiceDetail.jsx`, `MatchComparisonTable.jsx`
+- **Tablas:** `factura_proveedor`, `factura_item`, `matching_resultado`
+- **Features:** Registro facturas, matching automatico PO vs Receipt vs Invoice, resolucion discrepancias, KPIs
+
+### Spend Analytics & Kraljic (Sprint 62)
+- **Backend:** `routes/spend.py` (6 endpoints), `services/spend_service.py`, migracion 055
+- **Frontend:** `SpendAnalytics.jsx`, `KraljicMatrix.jsx`
+- **Tablas:** `spend_categoria`, `spend_snapshot`
+- **Features:** Gasto por categoria, maverick spend, matriz Kraljic 2x2, tendencia mensual, TCO
+- **Celery:** `snapshot_spend_monthly` (1ro mes, 4AM)
+
+### Supplier Risk Assessment (Sprint 63)
+- **Backend:** `routes/supplier_risk.py` (7 endpoints), `services/supplier_risk_service.py`, migracion 056
+- **Frontend:** `SupplierRiskMap.jsx`, `RiskScoreBreakdown.jsx`
+- **Tablas:** `proveedor_riesgo`, `proveedor_riesgo_historial`
+- **Features:** Risk scoring compuesto (entrega, calidad, dependencia, financiero, geografico), fuentes unicas, alertas
+- **Celery:** `recalculate_supplier_risk` (lunes, 5AM)
+
+### Demand Planning S&OP (Sprint 64)
+- **Backend:** `routes/demand_planning.py` (8 endpoints), `services/demand_planning_service.py`, migracion 057
+- **Frontend:** `DemandPlanning.jsx`, `DemandPlanDetail.jsx`, `ForecastComparisonChart.jsx`
+- **Tablas:** `plan_demanda`, `plan_demanda_entrada`, `plan_demanda_consenso`
+- **Features:** Ciclos S&OP con FSM (draft→collecting→review→consensus→approved→closed), baseline ML, consenso ponderado
+
+### Returns & RMA (Sprint 65)
+- **Backend:** `routes/returns.py` (7 endpoints), `services/returns_service.py`, migracion 058
+- **Frontend:** `ReturnsList.jsx`, `ReturnDetail.jsx`
+- **Tablas:** `devolucion`, `devolucion_item`, `devolucion_historial`
+- **Features:** RMA con FSM, creacion desde NCR, tracking creditos, tasa recuperacion
+
+### Warehouse Receiving & Putaway (Sprint 66)
+- **Backend:** `routes/warehouse.py` (8 endpoints), `services/warehouse_service.py`, migracion 059
+- **Frontend:** `WarehouseReceiving.jsx`, `PutawayTasks.jsx`, `DockBoard.jsx`
+- **Tablas:** `dock_recepcion`, `recepcion_dock`, `putaway_tarea`
+- **Features:** Grid visual docks, asignacion recepciones, tiempos descarga, auto-generacion tareas putaway
+
+### Contract Compliance & Rebates (Sprint 67)
+- **Backend:** `routes/compliance.py` (8 endpoints), `services/compliance_service.py`, migracion 060
+- **Frontend:** `ContractCompliance.jsx`, `RebatePrograms.jsx`
+- **Tablas:** `compliance_check`, `rebate_programa`, `rebate_calculo`
+- **Features:** Verificacion compliance OC vs contrato, programas rebate (volume/growth/flat), workflow claims
+
+### Inventory Optimization (Sprint 68)
+- **Backend:** `routes/inventory_opt.py` (9 endpoints), `services/inventory_optimization_service.py`, migracion 061
+- **Frontend:** `InventoryOptimization.jsx`, `ServiceLevels.jsx`, `ImbalanceHeatmap.jsx`
+- **Tablas:** `transferencia_inventario`, `nivel_servicio_objetivo`
+- **Features:** Deteccion desbalances, propuestas transferencias, calculo stock seguridad (Z*sigma*sqrt(L)), niveles servicio editables
+
+### Supplier Audit & Certifications (Sprint 69)
+- **Backend:** `routes/supplier_audit.py` (10 endpoints), `services/supplier_audit_service.py`, migracion 062
+- **Frontend:** `SupplierCertifications.jsx`, `SupplierAudits.jsx`, `CertExpiryBadge.jsx`
+- **Tablas:** `proveedor_certificacion`, `auditoria_proveedor`, `auditoria_hallazgo`
+- **Features:** Tracking certificaciones ISO, auditorias on-site/remote, hallazgos con severidad, alertas vencimiento
+- **Celery:** `check_certification_expiry` (diario, 7AM)
+
+### Freight Audit & Payment (Sprint 70)
+- **Backend:** `routes/freight.py` (10 endpoints), `services/freight_audit_service.py`, migracion 063
+- **Frontend:** `FreightAudit.jsx`, `FreightTariffs.jsx`
+- **Tablas:** `factura_flete`, `freight_tarifa`, `freight_audit_detalle`
+- **Features:** Auto-audit facturas flete vs tarifas contratadas, aprobacion/disputa, ranking transportistas
+
 ### SLA Dashboard
 - **Backend:** `routes/sla.py`, `services/sla_service.py`
 - **Frontend:** `SLADashboard.jsx`
@@ -693,7 +787,7 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
   - L2: hasta $1,000,000 USD
   - ADMIN: mas de $1,000,000 USD
 
-## Migraciones de BD (36 totales)
+## Migraciones de BD (63 totales)
 
 | Migracion | Proposito |
 |-----------|-----------|
@@ -714,7 +808,18 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 | `036` | Tabla reporte_programado (CRUD reportes programados) |
 | `037` | Tablas proveedor_evaluacion, proveedor_meta (scorecard persistente) |
 | `038` | Tabla regla_auto_aprobacion (auto-aprobacion por reglas) |
-| `043` | Tabla user_material_favorito (materiales favoritos por usuario) |
+| `039` - `043` | Escalacion, email destinatarios, webhooks, favoritos (Sprints 41-50) |
+| `044` - `053` | Audit log, savings, SLOB, contratos, RFQ, calidad, CAPA (Sprints 51-60) |
+| `054` | Tablas factura_proveedor, factura_item, matching_resultado (3-Way Matching) |
+| `055` | Tablas spend_categoria, spend_snapshot (Spend Analytics) |
+| `056` | Tablas proveedor_riesgo, proveedor_riesgo_historial (Supplier Risk) |
+| `057` | Tablas plan_demanda, plan_demanda_entrada, plan_demanda_consenso (S&OP) |
+| `058` | Tablas devolucion, devolucion_item, devolucion_historial (Returns/RMA) |
+| `059` | Tablas dock_recepcion, recepcion_dock, putaway_tarea (Warehouse) |
+| `060` | Tablas compliance_check, rebate_programa, rebate_calculo (Compliance) |
+| `061` | Tablas transferencia_inventario, nivel_servicio_objetivo (Inventory Opt) |
+| `062` | Tablas proveedor_certificacion, auditoria_proveedor, auditoria_hallazgo (Supplier Audit) |
+| `063` | Tablas factura_flete, freight_tarifa, freight_audit_detalle (Freight Audit) |
 
 ## CI/CD
 
@@ -763,7 +868,18 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 | 38 | ML Ensemble Forecast (weighted averaging, parallel) | 2026-02-14 |
 | 39 | Proveedor Scorecard persistente, evaluaciones históricas | 2026-02-14 |
 | 40 | Auto-aprobación por reglas configurables, simulación | 2026-02-14 |
-| 49 | QR/Barcode Scanner + Materiales Favoritos | 2026-02-15 |
+| 41-50 | Deuda tecnica, escalacion, email reportes, ABC, webhooks, what-if, QR, favoritos, dashboard personalizable | 2026-02-15 |
+| 51-60 | Audit Log UI, Cost Savings, SLOB, Contratos, RFQ, Quality/NCR, CAPA | 2026-02-15 |
+| 61 | 3-Way Invoice Matching (PO vs Receipt vs Invoice) | 2026-02-15 |
+| 62 | Spend Analytics & Kraljic Matrix | 2026-02-15 |
+| 63 | Supplier Risk Assessment (5 dimensiones) | 2026-02-15 |
+| 64 | Demand Planning colaborativo (S&OP) | 2026-02-15 |
+| 65 | Returns & Reverse Logistics (RMA) | 2026-02-15 |
+| 66 | Warehouse Receiving & Putaway | 2026-02-15 |
+| 67 | Contract Compliance & Rebates | 2026-02-15 |
+| 68 | Inventory Optimization multi-ubicacion | 2026-02-15 |
+| 69 | Supplier Audit & Certification Tracking | 2026-02-15 |
+| 70 | Freight Audit & Payment | 2026-02-15 |
 
 ---
 
