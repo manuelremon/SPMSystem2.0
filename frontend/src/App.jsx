@@ -155,6 +155,28 @@ const SupplierAudits = lazy(() => import('./pages/SupplierAudits'))
 const FreightAudit = lazy(() => import('./pages/FreightAudit'))
 const FreightTariffs = lazy(() => import('./pages/FreightTariffs'))
 
+// Sprint 71-80 pages (lazy-loaded)
+const ControlTower = lazy(() => import('./pages/ControlTower'))
+const Sustainability = lazy(() => import('./pages/Sustainability'))
+const VMI = lazy(() => import('./pages/VMI'))
+const VMIDetail = lazy(() => import('./pages/VMIDetail'))
+const LotTraceability = lazy(() => import('./pages/LotTraceability'))
+const LotDetail = lazy(() => import('./pages/LotDetail'))
+const Recalls = lazy(() => import('./pages/Recalls'))
+const RecallDetail = lazy(() => import('./pages/RecallDetail'))
+const CycleCounting = lazy(() => import('./pages/CycleCounting'))
+const CycleCountDetail = lazy(() => import('./pages/CycleCountDetail'))
+const CurrencyManagement = lazy(() => import('./pages/CurrencyManagement'))
+const ECOList = lazy(() => import('./pages/ECOList'))
+const ECODetail = lazy(() => import('./pages/ECODetail'))
+const KitBOMs = lazy(() => import('./pages/KitBOMs'))
+const KitBOMDetail = lazy(() => import('./pages/KitBOMDetail'))
+const KitOrders = lazy(() => import('./pages/KitOrders'))
+const KitOrderDetail = lazy(() => import('./pages/KitOrderDetail'))
+const SupplierPortalAdmin = lazy(() => import('./pages/SupplierPortalAdmin'))
+const SupplierPortalPreview = lazy(() => import('./pages/SupplierPortalPreview'))
+const ProcurementCopilot = lazy(() => import('./pages/ProcurementCopilot'))
+
 function App() {
   const { user, isLoading, getCurrentUser } = useAuthStore()
   const [appLoading, setAppLoading] = useState(true)
@@ -321,6 +343,36 @@ function App() {
             {/* Freight Audit - Sprint 70 */}
             <Route path="/tms/freight" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><FreightAudit /></ProtectedRoute>} />
             <Route path="/tms/tariffs" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><FreightTariffs /></ProtectedRoute>} />
+            {/* Control Tower - Sprint 71 */}
+            <Route path="/analytics/control-tower" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ControlTower /></ProtectedRoute>} />
+            {/* Sustainability - Sprint 72 */}
+            <Route path="/analytics/sustainability" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><Sustainability /></ProtectedRoute>} />
+            {/* VMI - Sprint 73 */}
+            <Route path="/operations/vmi" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><VMI /></ProtectedRoute>} />
+            <Route path="/operations/vmi/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><VMIDetail /></ProtectedRoute>} />
+            {/* Lot Traceability - Sprint 74 */}
+            <Route path="/operations/lots" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><LotTraceability /></ProtectedRoute>} />
+            <Route path="/operations/lots/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><LotDetail /></ProtectedRoute>} />
+            <Route path="/operations/recalls" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><Recalls /></ProtectedRoute>} />
+            <Route path="/operations/recalls/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><RecallDetail /></ProtectedRoute>} />
+            {/* Cycle Counting - Sprint 75 */}
+            <Route path="/operations/cycle-count" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><CycleCounting /></ProtectedRoute>} />
+            <Route path="/operations/cycle-count/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><CycleCountDetail /></ProtectedRoute>} />
+            {/* Multi-Currency - Sprint 76 */}
+            <Route path="/admin/currency" element={<ProtectedRoute roles={['administrador', 'admin']}><CurrencyManagement /></ProtectedRoute>} />
+            {/* ECO - Sprint 77 */}
+            <Route path="/engineering/eco" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ECOList /></ProtectedRoute>} />
+            <Route path="/engineering/eco/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ECODetail /></ProtectedRoute>} />
+            {/* Kitting - Sprint 78 */}
+            <Route path="/operations/kitting/boms" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><KitBOMs /></ProtectedRoute>} />
+            <Route path="/operations/kitting/boms/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><KitBOMDetail /></ProtectedRoute>} />
+            <Route path="/operations/kitting/orders" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><KitOrders /></ProtectedRoute>} />
+            <Route path="/operations/kitting/orders/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><KitOrderDetail /></ProtectedRoute>} />
+            {/* Supplier Portal - Sprint 79 */}
+            <Route path="/admin/supplier-portal" element={<ProtectedRoute roles={['administrador', 'admin']}><SupplierPortalAdmin /></ProtectedRoute>} />
+            <Route path="/admin/supplier-portal/preview" element={<ProtectedRoute roles={['administrador', 'admin']}><SupplierPortalPreview /></ProtectedRoute>} />
+            {/* AI Copilot - Sprint 80 */}
+            <Route path="/ai/copilot" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ProcurementCopilot /></ProtectedRoute>} />
             <Route path="/registro/completar" element={<ProtectedRoute><CompleteRegistration /></ProtectedRoute>} />
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="*" element={<Navigate to="/dashboard" />} />

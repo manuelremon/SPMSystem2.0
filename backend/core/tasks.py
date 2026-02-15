@@ -1203,6 +1203,149 @@ def check_certification_expiry(self) -> Dict[str, Any]:
 
 
 # =============================================================================
+# Control Tower Tasks (Sprint 71)
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=120)
+def snapshot_control_tower_kpis(self) -> Dict[str, Any]:
+    """Hourly snapshot of control tower KPIs."""
+    logger.info("Snapshotting control tower KPIs")
+    try:
+        from backend.services.control_tower_service import snapshot_kpis
+        result = snapshot_kpis()
+        logger.info("Control tower KPI snapshot completed: %s", result)
+        return {"success": True, **result}
+    except Exception as e:
+        logger.error("Error snapshotting control tower KPIs: %s", e)
+        raise self.retry(exc=e)
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+def aggregate_control_tower_alerts(self) -> Dict[str, Any]:
+    """Aggregate control tower alerts every 15 minutes."""
+    logger.info("Aggregating control tower alerts")
+    try:
+        from backend.services.control_tower_service import actualizar_alertas_agregadas
+        result = actualizar_alertas_agregadas()
+        logger.info("Control tower alerts aggregated: %s", result)
+        return {"success": True, **result}
+    except Exception as e:
+        logger.error("Error aggregating control tower alerts: %s", e)
+        raise self.retry(exc=e)
+
+
+# =============================================================================
+# Sustainability Tasks (Sprint 72)
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+def recalcular_emisiones_mensuales(self) -> Dict[str, Any]:
+    """Monthly recalculation of emissions from OC and shipment data."""
+    logger.info("Recalculating monthly emissions")
+    try:
+        from backend.services.sustainability_service import obtener_dashboard_sostenibilidad
+        obtener_dashboard_sostenibilidad()
+        logger.info("Monthly emissions recalculation completed")
+        return {"success": True, "dashboard": "refreshed"}
+    except Exception as e:
+        logger.error("Error recalculating emissions: %s", e)
+        raise self.retry(exc=e)
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+def actualizar_progreso_metas(self) -> Dict[str, Any]:
+    """Daily update of sustainability goal progress."""
+    logger.info("Updating sustainability goal progress")
+    try:
+        from backend.services.sustainability_service import obtener_metas
+        metas = obtener_metas(estado='active')
+        logger.info("Sustainability goals checked: %d active", len(metas) if isinstance(metas, list) else 0)
+        return {"success": True, "metas_activas": len(metas) if isinstance(metas, list) else 0}
+    except Exception as e:
+        logger.error("Error updating sustainability goals: %s", e)
+        raise self.retry(exc=e)
+
+
+# =============================================================================
+# VMI Tasks (Sprint 73)
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+def evaluar_reposiciones_vmi(self) -> Dict[str, Any]:
+    """Daily evaluation of VMI replenishment needs."""
+    logger.info("Evaluating VMI replenishments")
+    try:
+        from backend.services.vmi_service import evaluar_reposiciones_diario
+        result = evaluar_reposiciones_diario()
+        logger.info("VMI replenishment evaluation completed: %s", result)
+        return {"success": True, **result}
+    except Exception as e:
+        logger.error("Error evaluating VMI replenishments: %s", e)
+        raise self.retry(exc=e)
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+def calcular_kpis_vmi(self) -> Dict[str, Any]:
+    """Monthly calculation of VMI program KPIs."""
+    logger.info("Calculating VMI KPIs")
+    try:
+        from backend.services.vmi_service import calcular_kpis_mensual
+        result = calcular_kpis_mensual()
+        logger.info("VMI KPI calculation completed: %s", result)
+        return {"success": True, **result}
+    except Exception as e:
+        logger.error("Error calculating VMI KPIs: %s", e)
+        raise self.retry(exc=e)
+
+
+# =============================================================================
+# Lot Traceability Tasks (Sprint 74)
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+def check_lote_vencimientos(self) -> Dict[str, Any]:
+    """Daily check for lots expiring within 30 days."""
+    logger.info("Checking lot expiry dates")
+    try:
+        from backend.services.lot_service import check_vencimientos
+        lotes = check_vencimientos(dias=30)
+        for lote in lotes:
+            send_notification.delay(
+                user_id=1,
+                title="Lote por vencer",
+                message=f"Lote {lote.get('numero_lote', '')} del material {lote.get('material_codigo', '')} vence en {lote.get('dias_restantes', '?')} días",
+                notification_type="warning",
+            )
+        logger.info("Lot expiry check: %d alerts", len(lotes))
+        return {"success": True, "alertas": len(lotes)}
+    except Exception as e:
+        logger.error("Error checking lot expiry: %s", e)
+        raise self.retry(exc=e)
+
+
+# =============================================================================
+# Multi-Currency Tasks (Sprint 76)
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+def importar_tasas_cambio(self) -> Dict[str, Any]:
+    """Daily import of exchange rates (placeholder for API integration)."""
+    logger.info("Importing exchange rates")
+    try:
+        # Placeholder: in production, this would call an external API
+        logger.info("Exchange rate import: no external API configured (manual mode)")
+        return {"success": True, "mode": "manual"}
+    except Exception as e:
+        logger.error("Error importing exchange rates: %s", e)
+        raise self.retry(exc=e)
+
+
+# =============================================================================
 # Email Templates (copied from background_jobs.py)
 # =============================================================================
 

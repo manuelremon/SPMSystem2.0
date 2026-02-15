@@ -135,6 +135,43 @@ def make_celery(app_name: str = "spm") -> Celery:
                 "task": "backend.core.tasks.check_certification_expiry",
                 "schedule": crontab(hour=7, minute=0),
             },
+            # Sprint 71: Control Tower
+            "snapshot-control-tower-kpis-hourly": {
+                "task": "backend.core.tasks.snapshot_control_tower_kpis",
+                "schedule": 3600.0,  # 1 hour
+            },
+            "aggregate-control-tower-alerts-every-15min": {
+                "task": "backend.core.tasks.aggregate_control_tower_alerts",
+                "schedule": 900.0,  # 15 minutes
+            },
+            # Sprint 72: Sustainability
+            "recalcular-emisiones-mensuales": {
+                "task": "backend.core.tasks.recalcular_emisiones_mensuales",
+                "schedule": crontab(day_of_month=1, hour=5, minute=0),
+            },
+            "actualizar-progreso-metas-diario": {
+                "task": "backend.core.tasks.actualizar_progreso_metas",
+                "schedule": crontab(hour=6, minute=0),
+            },
+            # Sprint 73: VMI
+            "evaluar-reposiciones-vmi-diario": {
+                "task": "backend.core.tasks.evaluar_reposiciones_vmi",
+                "schedule": crontab(hour=6, minute=30),
+            },
+            "calcular-kpis-vmi-mensual": {
+                "task": "backend.core.tasks.calcular_kpis_vmi",
+                "schedule": crontab(day_of_month=1, hour=3, minute=30),
+            },
+            # Sprint 74: Lot Traceability
+            "check-lote-vencimientos-diario": {
+                "task": "backend.core.tasks.check_lote_vencimientos",
+                "schedule": crontab(hour=7, minute=30),
+            },
+            # Sprint 76: Multi-Currency
+            "importar-tasas-cambio-diario": {
+                "task": "backend.core.tasks.importar_tasas_cambio",
+                "schedule": crontab(hour=9, minute=0),
+            },
         },
     )
 

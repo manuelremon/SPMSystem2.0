@@ -2,15 +2,15 @@
 
 Guia para Claude Code (claude.ai/code) cuando trabaja con este repositorio.
 
-> **Ultima actualizacion**: 2026-02-15 (Sprints 61-70: matching, spend, risk, demand planning, returns, warehouse, compliance, inventory opt, audit, freight)
+> **Ultima actualizacion**: 2026-02-15 (Sprints 71-80: control tower, sustainability, VMI, lot traceability, cycle counting, multi-currency, ECO, kitting, supplier portal, AI copilot)
 
 ## Resumen del Proyecto
 
 | Metrica | Valor |
 |---------|-------|
-| **Backend** | 245+ archivos Python, ~85,000 lineas |
-| **Frontend** | 119 paginas, 143 componentes, 22 hooks |
-| **Endpoints API** | 350+ endpoints en 47 modulos (3 packages) |
+| **Backend** | 275+ archivos Python, ~100,000 lineas |
+| **Frontend** | 139 paginas, 145 componentes, 22 hooks |
+| **Endpoints API** | 450+ endpoints en 57 modulos (3 packages) |
 | **Tests** | 1,330+ tests (101 archivos backend, 25 frontend) |
 | **Base de Datos** | 3 SQLite + PostgreSQL (produccion) |
 
@@ -58,7 +58,7 @@ SPMv3.0/
 │   ├── services/               # 29 servicios de negocio
 │   ├── core/                   # 39 modulos de infraestructura
 │   ├── agent/                  # 46 archivos ML/IA (forecast/, rag/, proactive/)
-│   └── migrations/             # 63 migraciones de BD
+│   └── migrations/             # 73 migraciones de BD
 ├── frontend/src/
 │   ├── pages/                  # 119 paginas + DashboardAdmin/ sub-componentes
 │   ├── components/             # 143 componentes (incl. OfflineBanner)
@@ -128,8 +128,18 @@ SPMv3.0/
 | `inventory_opt.py` | 9 | Optimizacion inventario multi-ubicacion |
 | `supplier_audit.py` | 10 | Auditorias y certificaciones proveedores |
 | `freight.py` | 10 | Auditoria facturas flete, tarifas |
+| `control_tower.py` | 6 | Supply Chain Control Tower, eventos, alertas, KPIs |
+| `sustainability.py` | 11 | Sostenibilidad ESG, emisiones CO2, metas |
+| `vmi.py` | 9 | Vendor Managed Inventory, programas, reposiciones |
+| `lots.py` | 13 | Trazabilidad de lotes, recalls, genealogia |
+| `cycle_count.py` | 11 | Conteo ciclico, inventario fisico, ajustes |
+| `currency.py` | 7 | Multi-moneda, tasas de cambio, conversiones |
+| `eco.py` | 11 | Engineering Change Orders, aprobaciones |
+| `kitting.py` | 14 | Kitting y ensamblaje liviano, BOMs, ordenes |
+| `supplier_portal.py` | 12 | Portal proveedores, ASN, forecast compartido |
+| `copilot.py` | 10 | AI Procurement Copilot, sugerencias, chat |
 
-### Services (29 servicios)
+### Services (39 servicios)
 
 | Servicio | Proposito |
 |----------|-----------|
@@ -164,6 +174,16 @@ SPMv3.0/
 | `inventory_optimization_service.py` | Desbalances, transferencias, niveles servicio |
 | `supplier_audit_service.py` | Certificaciones, auditorias, hallazgos |
 | `freight_audit_service.py` | Auto-audit fletes vs tarifas |
+| `control_tower_service.py` | Eventos timeline, KPIs agregados, alertas |
+| `sustainability_service.py` | Emisiones CO2, ESG scores, metas sostenibilidad |
+| `vmi_service.py` | Programas VMI, inventario compartido, reposiciones |
+| `lot_service.py` | Lotes, movimientos, genealogia, recalls |
+| `cycle_count_service.py` | Conteo ciclico ABC/random/fisico, ajustes |
+| `currency_service.py` | Tasas de cambio, conversiones, exposicion cambiaria |
+| `eco_service.py` | ECOs, cambios, aprobaciones, implementacion |
+| `kitting_service.py` | BOMs, ordenes kitting, asignacion componentes |
+| `supplier_portal_service.py` | Usuarios portal, ASN, forecasts compartidos |
+| `copilot_service.py` | Conversaciones IA, sugerencias sourcing, insights |
 
 ### Core (39 modulos)
 
@@ -176,7 +196,7 @@ SPMv3.0/
 | **Security** | `csrf.py`, `security_headers.py`, `rate_limit.py` |
 | **CORS** | `cors.py` (manejo manual con regex/wildcards) |
 | **SPA** | `spa.py` (servir frontend React) |
-| **Blueprints** | `blueprints.py` (registro centralizado de 43 blueprints) |
+| **Blueprints** | `blueprints.py` (registro centralizado de 53 blueprints) |
 | **Cache** | `cache.py` (L1 memory + L2 Redis), `cache_advanced.py`, `cache_loader.py` |
 | **State** | `fsm.py` (maquina de estados solicitudes) |
 | **Errors** | `errors.py` (excepciones custom) |
@@ -251,7 +271,7 @@ agent/
 
 ## Frontend - Inventario Completo
 
-### Pages (119 paginas totales)
+### Pages (139 paginas totales)
 
 | Categoria | Paginas |
 |-----------|---------|
@@ -285,8 +305,18 @@ agent/
 | **Inventory Opt** | InventoryOptimization, ServiceLevels |
 | **Supplier Audit** | SupplierCertifications, SupplierAudits |
 | **Freight** | FreightAudit, FreightTariffs |
+| **Control Tower** | ControlTower |
+| **Sustainability** | Sustainability |
+| **VMI** | VMI, VMIDetail |
+| **Lot Traceability** | LotTraceability, LotDetail, Recalls, RecallDetail |
+| **Cycle Count** | CycleCounting, CycleCountDetail |
+| **Currency** | CurrencyManagement |
+| **ECO** | ECOList, ECODetail |
+| **Kitting** | KitBOMs, KitBOMDetail, KitOrders, KitOrderDetail |
+| **Supplier Portal** | SupplierPortalAdmin, SupplierPortalPreview |
+| **AI Copilot** | ProcurementCopilot |
 
-### Components (143 totales)
+### Components (145 totales)
 
 | Carpeta | Componentes | Proposito |
 |---------|-------------|-----------|
@@ -376,7 +406,7 @@ agent/
 | `data/sap_data.db` | Stock, consumo historico, pedidos | 178,338 |
 | `data/catalogo_materiales.db` | Catalogo completo de materiales SAP | ~28,000 |
 
-**Produccion:** PostgreSQL con 63 migraciones aplicadas (tablas renombradas a espanol).
+**Produccion:** PostgreSQL con 73 migraciones aplicadas (tablas renombradas a espanol).
 
 **Reimportacion de datos SAP:**
 ```bash
@@ -538,7 +568,7 @@ frontend/src/
 ### Sistema i18n
 - Ubicacion: `frontend/src/context/i18n.jsx`
 - API: `const { t } = useI18n(); t('clave', 'fallback')`
-- Prefijos: `nav_`, `dash_`, `common_`, `materials_`, `admin_`, `planner_`, `matching_`, `spend_`, `risk_`, `demand_`, `returns_`, `warehouse_`, `compliance_`, `rebate_`, `inv_opt_`, `cert_`, `supplier_audit_`, `freight_`
+- Prefijos: `nav_`, `dash_`, `common_`, `materials_`, `admin_`, `planner_`, `matching_`, `spend_`, `risk_`, `demand_`, `returns_`, `warehouse_`, `compliance_`, `rebate_`, `inv_opt_`, `cert_`, `supplier_audit_`, `freight_`, `ct_`, `sust_`, `vmi_`, `lot_`, `recall_`, `cc_`, `curr_`, `eco_`, `kit_`, `portal_`, `copilot_`
 
 ### Sistema de Estilos
 - **Tema:** Solo light mode (dark mode eliminado)
@@ -773,6 +803,71 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 - **Tablas:** `factura_flete`, `freight_tarifa`, `freight_audit_detalle`
 - **Features:** Auto-audit facturas flete vs tarifas contratadas, aprobacion/disputa, ranking transportistas
 
+### Supply Chain Control Tower (Sprint 71)
+- **Backend:** `routes/control_tower.py` (6 endpoints), `services/control_tower_service.py`, migracion 064
+- **Frontend:** `ControlTower.jsx`
+- **Tablas:** `control_tower_event`, `control_tower_kpi_snapshot`, `control_tower_alerta_agregada`
+- **Features:** Timeline eventos, KPIs agregados en tiempo real, alertas por tipo/prioridad, sparkline trends
+- **Celery:** `snapshot_control_tower_kpis` (cada hora), `aggregate_control_tower_alerts` (cada 15min)
+
+### Sustainability & ESG (Sprint 72)
+- **Backend:** `routes/sustainability.py` (11 endpoints), `services/sustainability_service.py`, migracion 065
+- **Frontend:** `Sustainability.jsx`
+- **Tablas:** `emision_carbono`, `proveedor_esg_score`, `meta_sostenibilidad`, `material_huella_carbono`
+- **Features:** Emisiones por scope/categoria, ESG scores proveedores, metas con progreso, huella carbono OC
+- **Celery:** `recalcular_emisiones_mensuales` (1ro mes 5AM), `actualizar_progreso_metas` (diario 6AM)
+
+### Vendor Managed Inventory (Sprint 73)
+- **Backend:** `routes/vmi.py` (9 endpoints), `services/vmi_service.py`, migracion 066
+- **Frontend:** `VMI.jsx`, `VMIDetail.jsx`
+- **Tablas:** `vmi_programa`, `vmi_inventario_compartido`, `vmi_reposicion`, `vmi_kpi_snapshot`
+- **Features:** Programas VMI min/max/EOQ/forecast, inventario compartido, reposiciones con aprobacion
+- **Celery:** `evaluar_reposiciones_vmi` (diario 6:30AM), `calcular_kpis_vmi` (1ro mes 3:30AM)
+
+### Lot Traceability & Recall (Sprint 74)
+- **Backend:** `routes/lots.py` (13 endpoints), `services/lot_service.py`, migracion 067
+- **Frontend:** `LotTraceability.jsx`, `LotDetail.jsx`, `Recalls.jsx`, `RecallDetail.jsx`
+- **Tablas:** `lote`, `lote_movimiento`, `lote_genealogia`, `recall`, `recall_lote`
+- **Features:** FIFO/FEFO consumo, traceability forward/backward, genealogia, recalls con recuperacion
+- **Celery:** `check_lote_vencimientos` (diario 7:30AM)
+
+### Cycle Counting (Sprint 75)
+- **Backend:** `routes/cycle_count.py` (11 endpoints), `services/cycle_count_service.py`, migracion 068
+- **Frontend:** `CycleCounting.jsx`, `CycleCountDetail.jsx`
+- **Tablas:** `cycle_count_programa`, `cycle_count`, `cycle_count_item`, `ajuste_inventario`
+- **Features:** Conteo ABC/random/fisico completo, varianza auto, ajustes con aprobacion, accuracy rate
+
+### Multi-Currency (Sprint 76)
+- **Backend:** `routes/currency.py` (7 endpoints), `services/currency_service.py`, migracion 069
+- **Frontend:** `CurrencyManagement.jsx`
+- **Tablas:** `tipo_cambio`, `conversion_log` + ALTER orden_compra/factura_proveedor/contrato
+- **Features:** Tasas manuales/API, conversiones con log, exposicion cambiaria, ganancia/perdida
+- **Celery:** `importar_tasas_cambio` (diario 9AM)
+
+### Engineering Change Orders (Sprint 77)
+- **Backend:** `routes/eco.py` (11 endpoints), `services/eco_service.py`, migracion 070
+- **Frontend:** `ECOList.jsx`, `ECODetail.jsx`
+- **Tablas:** `eco`, `eco_cambio`, `eco_aprobacion`, `eco_historial`
+- **Features:** ECOs con FSM, cambios material/spec/supplier/price, aprobaciones multi-nivel, impacto
+
+### Kitting & Light Assembly (Sprint 78)
+- **Backend:** `routes/kitting.py` (14 endpoints), `services/kitting_service.py`, migracion 071
+- **Frontend:** `KitBOMs.jsx`, `KitBOMDetail.jsx`, `KitOrders.jsx`, `KitOrderDetail.jsx`
+- **Tablas:** `kit_bom`, `kit_bom_componente`, `kit_orden`, `kit_componente_asignacion`
+- **Features:** BOMs con versiones, ordenes produccion, asignacion componentes, verificacion disponibilidad
+
+### Supplier Collaboration Portal (Sprint 79)
+- **Backend:** `routes/supplier_portal.py` (12 endpoints), `services/supplier_portal_service.py`, migracion 072
+- **Frontend:** `SupplierPortalAdmin.jsx`, `SupplierPortalPreview.jsx`
+- **Tablas:** `portal_proveedor_usuario`, `portal_acceso_log`, `asn`, `asn_item`, `forecast_compartido`
+- **Features:** Login portal separado, POs acknowledge, ASN creacion, forecasts compartidos, log actividad
+
+### AI Procurement Copilot (Sprint 80)
+- **Backend:** `routes/copilot.py` (10 endpoints), `services/copilot_service.py`, migracion 073
+- **Frontend:** `ProcurementCopilot.jsx`
+- **Tablas:** `copilot_conversacion`, `copilot_mensaje`, `copilot_sugerencia`, `copilot_learning`
+- **Features:** Chat IA procurement, sugerencias sourcing, auto-draft RFQ, patrones gasto, feedback learning
+
 ### SLA Dashboard
 - **Backend:** `routes/sla.py`, `services/sla_service.py`
 - **Frontend:** `SLADashboard.jsx`
@@ -787,7 +882,7 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
   - L2: hasta $1,000,000 USD
   - ADMIN: mas de $1,000,000 USD
 
-## Migraciones de BD (63 totales)
+## Migraciones de BD (73 totales)
 
 | Migracion | Proposito |
 |-----------|-----------|
@@ -820,6 +915,16 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 | `061` | Tablas transferencia_inventario, nivel_servicio_objetivo (Inventory Opt) |
 | `062` | Tablas proveedor_certificacion, auditoria_proveedor, auditoria_hallazgo (Supplier Audit) |
 | `063` | Tablas factura_flete, freight_tarifa, freight_audit_detalle (Freight Audit) |
+| `064` | Tablas control_tower_event, control_tower_kpi_snapshot, control_tower_alerta_agregada (Control Tower) |
+| `065` | Tablas emision_carbono, proveedor_esg_score, meta_sostenibilidad, material_huella_carbono (ESG) |
+| `066` | Tablas vmi_programa, vmi_inventario_compartido, vmi_reposicion, vmi_kpi_snapshot (VMI) |
+| `067` | Tablas lote, lote_movimiento, lote_genealogia, recall, recall_lote (Lot Traceability) |
+| `068` | Tablas cycle_count_programa, cycle_count, cycle_count_item, ajuste_inventario (Cycle Count) |
+| `069` | Tablas tipo_cambio, conversion_log + ALTER orden_compra/factura/contrato (Multi-Currency) |
+| `070` | Tablas eco, eco_cambio, eco_aprobacion, eco_historial (ECO) |
+| `071` | Tablas kit_bom, kit_bom_componente, kit_orden, kit_componente_asignacion (Kitting) |
+| `072` | Tablas portal_proveedor_usuario, portal_acceso_log, asn, asn_item, forecast_compartido (Supplier Portal) |
+| `073` | Tablas copilot_conversacion, copilot_mensaje, copilot_sugerencia, copilot_learning (AI Copilot) |
 
 ## CI/CD
 
@@ -880,6 +985,16 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 | 68 | Inventory Optimization multi-ubicacion | 2026-02-15 |
 | 69 | Supplier Audit & Certification Tracking | 2026-02-15 |
 | 70 | Freight Audit & Payment | 2026-02-15 |
+| 71 | Supply Chain Control Tower | 2026-02-15 |
+| 72 | Sustainability & ESG Tracking | 2026-02-15 |
+| 73 | Vendor Managed Inventory (VMI) | 2026-02-15 |
+| 74 | Lot Traceability & Recall Management | 2026-02-15 |
+| 75 | Cycle Counting & Physical Inventory | 2026-02-15 |
+| 76 | Multi-Currency & Exchange Rates | 2026-02-15 |
+| 77 | Engineering Change Orders (ECO) | 2026-02-15 |
+| 78 | Kitting & Light Assembly | 2026-02-15 |
+| 79 | Supplier Collaboration Portal | 2026-02-15 |
+| 80 | AI Procurement Copilot | 2026-02-15 |
 
 ---
 

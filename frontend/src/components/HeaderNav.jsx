@@ -621,6 +621,55 @@ function HeaderNav() {
             >
               {t("nav_freight_tariffs", "Tarifas Flete")}
             </MenuItem>
+            <Divider />
+            <MenuItem
+              component={NavLink}
+              to="/operations/vmi"
+              onClick={() => setOperationsAnchor(null)}
+              sx={isPathActive("/operations/vmi") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_vmi", "VMI")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/operations/lots"
+              onClick={() => setOperationsAnchor(null)}
+              sx={isPathActive("/operations/lots") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_lots", "Lotes")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/operations/recalls"
+              onClick={() => setOperationsAnchor(null)}
+              sx={isPathActive("/operations/recalls") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_recalls", "Recalls")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/operations/cycle-count"
+              onClick={() => setOperationsAnchor(null)}
+              sx={isPathActive("/operations/cycle-count") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_cycle_count", "Conteo Cíclico")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/operations/kitting/boms"
+              onClick={() => setOperationsAnchor(null)}
+              sx={isPathActive("/operations/kitting") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_kitting_boms", "BOMs de Kit")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/operations/kitting/orders"
+              onClick={() => setOperationsAnchor(null)}
+              sx={isPathActive("/operations/kitting/orders") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_kitting_orders", "Órdenes de Kit")}
+            </MenuItem>
           </Menu>
         </div>
       )}
@@ -856,8 +905,78 @@ function HeaderNav() {
             >
               {t("admin_ap_importar", "Análisis Puntual")}
             </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/admin/currency"
+              onClick={() => setAdminAnchor(null)}
+              sx={isPathActive("/admin/currency") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_currency", "Monedas")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/admin/supplier-portal"
+              onClick={() => setAdminAnchor(null)}
+              sx={isPathActive("/admin/supplier-portal") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_supplier_portal", "Portal Proveedores")}
+            </MenuItem>
           </Menu>
         </div>
+      )}
+
+      {/* ANALYTICS LINKS */}
+      {canSeePlanner && (
+        <>
+          <NavLink
+            to="/analytics/control-tower"
+            className={clsx(
+              "flex items-center px-3 h-[43px] transition-all duration-200 border-r border-[var(--header-border,#424242)]",
+              "text-[10px] font-semibold uppercase tracking-wide",
+              isPathActive("/analytics/control-tower")
+                ? "bg-[var(--primary)] text-white"
+                : "text-white hover:bg-[var(--header-border,#424242)]"
+            )}
+          >
+            {t("nav_control_tower", "Control Tower")}
+          </NavLink>
+          <NavLink
+            to="/analytics/sustainability"
+            className={clsx(
+              "flex items-center px-3 h-[43px] transition-all duration-200 border-r border-[var(--header-border,#424242)]",
+              "text-[10px] font-semibold uppercase tracking-wide",
+              isPathActive("/analytics/sustainability")
+                ? "bg-[var(--primary)] text-white"
+                : "text-white hover:bg-[var(--header-border,#424242)]"
+            )}
+          >
+            {t("nav_sustainability", "ESG")}
+          </NavLink>
+          <NavLink
+            to="/engineering/eco"
+            className={clsx(
+              "flex items-center px-3 h-[43px] transition-all duration-200 border-r border-[var(--header-border,#424242)]",
+              "text-[10px] font-semibold uppercase tracking-wide",
+              isPathActive("/engineering/eco")
+                ? "bg-[var(--primary)] text-white"
+                : "text-white hover:bg-[var(--header-border,#424242)]"
+            )}
+          >
+            {t("nav_eco", "ECO")}
+          </NavLink>
+          <NavLink
+            to="/ai/copilot"
+            className={clsx(
+              "flex items-center px-3 h-[43px] transition-all duration-200 border-r border-[var(--header-border,#424242)]",
+              "text-[10px] font-semibold uppercase tracking-wide",
+              isPathActive("/ai/copilot")
+                ? "bg-[var(--primary)] text-white"
+                : "text-white hover:bg-[var(--header-border,#424242)]"
+            )}
+          >
+            {t("nav_copilot", "Copiloto IA")}
+          </NavLink>
+        </>
       )}
 
     </nav>

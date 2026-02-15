@@ -1,0 +1,322 @@
+/**
+ * RecallDetail - Recall detail page
+ *
+ * Shows recall header info (numero, titulo, severidad, estado, tipo),
+ * stats (cantidad afectada, lotes count, recovered), AG-Grid of affected lotes
+ * with recover action, and plan de accion display.
+ * Sprint 71
+ */
+
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useI18n } from '../context/i18n';
+import { useToast } from '../hooks/useToast';
+import api from '../services/api';
+import { formatDate } from '../utils/formatters';
+
+import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Stack from '@mui/material/Stack';
+import Chip from '@mui/material/Chip';
+import Alert from '@mui/material/Alert';
+import Skeleton from '@mui/material/Skeleton';
+import CircularProgress from '@mui/material/CircularProgress';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ReportProblemIcon from '@mui/icons-material/ReportProblem';
+import InventoryIcon from '@mui/icons-material/Inventory';
+import RestoreIcon from '@mui/icons-material/Restore';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { SPMAgGrid } from '../components/ui/SPMAgGrid';
+
+const SEVERIDAD_COLORS = {
+  critical: 'error',
+  high: 'warning',
+  medium: 'default',
+  low: 'info',
+};
+
+const SEVERIDAD_LABELS = {
+  critical: 'Critica',
+  high: 'Alta',
+  medium: 'Media',
+  low: 'Baja',
+};
+
+const ESTADO_COLORS = {
+  active: 'error',
+  in_progress: 'warning',
+  completed: 'success',
+  cancelled: 'default',
+};
+
+const ESTADO_LABELS = {
+  active: 'Activo',
+  in_progress: 'En Progreso',
+  completed: 'Completado',
+  cancelled: 'Cancelado',
+};
+
+const RECUPERACION_COLORS = {
+  pending: 'warning',
+  recovered: 'success',
+  disposed: 'error',
+  not_required: 'default',
+};
+
+const RECUPERACION_LABELS = {
+  pending: 'Pendiente',
+  recovered: 'Recuperado',
+  disposed: 'Descartado',
+  not_required: 'No Requerido',
+};
+
+export default function RecallDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { t } = useI18n();
+  const toast = useToast();
+
+  const [recall, setRecall] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [recovering, setRecovering] = useState({});
+
+  const fetchRecall = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await api.get(`/lots/recalls/${id}`);
+      if (res.data?.ok) {
+        setRecall(res.data.recall || res.data);
+      }
+    } catch {
+      toast.error(t('recall_error_detail', 'Error al cargar recall'));
+    } finally {
+      setLoading(false);
+    }
+  }, [id, t, toast]);
+
+  useEffect(() => { fetchRecall(); }, [fetchRecall]);
+
+  const handleRecover = useCallback(async (loteId) => {
+    setRecovering((prev) => ({ ...prev, [loteId]: true }));
+    try {
+      const res = await api.put(`/lots/recalls/${id}/lotes/${loteId}/recover`);
+      if (res.data?.ok) {
+        toast.success(t('recall_lote_recovered', 'Lote marcado como recuperado'));
+        fetchRecall();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || t('recall_error_recover', 'Error al recuperar lote'));
+    } finally {
+      setRecovering((prev) => ({ ...prev, [loteId]: false }));
+    }
+  }, [id, fetchRecall, t, toast]);
+
+  const loteColumnDefs = useMemo(() => [
+    { field: 'numero_lote', headerName: t('recall_col_lote', 'Numero Lote'), flex: 1, minWidth: 140 },
+    {
+      field: 'cantidad_afectada',
+      headerName: t('recall_col_cantidad', 'Cantidad Afectada'),
+      width: 150,
+      type: 'numericColumn',
+    },
+    { field: 'ubicacion', headerName: t('recall_col_ubicacion', 'Ubicacion'), flex: 1, minWidth: 140 },
+    {
+      field: 'estado_recuperacion',
+      headerName: t('recall_col_recuperacion', 'Estado Recuperacion'),
+      width: 170,
+      cellRenderer: (p) => (
+        <Chip
+          size="small"
+          label={RECUPERACION_LABELS[p.value] || p.value || '-'}
+          color={RECUPERACION_COLORS[p.value] || 'default'}
+        />
+      ),
+    },
+    {
+      field: 'fecha_recuperacion',
+      headerName: t('recall_col_fecha_rec', 'Fecha Recuperacion'),
+      width: 150,
+      valueFormatter: (p) => formatDate(p.value),
+    },
+    {
+      headerName: t('recall_col_accion', 'Accion'),
+      width: 160,
+      sortable: false,
+      filter: false,
+      cellRenderer: (p) => {
+        const row = p.data;
+        if (!row || row.estado_recuperacion === 'recovered' || row.estado_recuperacion === 'disposed') return null;
+        const isRecovering = recovering[row.lote_id || row.id];
+        return (
+          <Button
+            size="small"
+            variant="outlined"
+            color="success"
+            startIcon={isRecovering ? <CircularProgress size={14} /> : <RestoreIcon />}
+            onClick={(e) => { e.stopPropagation(); handleRecover(row.lote_id || row.id); }}
+            disabled={isRecovering}
+          >
+            {t('recall_recuperar', 'Recuperar')}
+          </Button>
+        );
+      },
+    },
+  ], [t, recovering, handleRecover]);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
+        <Skeleton variant="rectangular" height={40} width={300} />
+        <Skeleton variant="rectangular" height={180} />
+        <Skeleton variant="rectangular" height={300} />
+      </Box>
+    );
+  }
+
+  if (!recall) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Alert severity="error">{t('recall_not_found', 'Recall no encontrado')}</Alert>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/operations/lots')} sx={{ mt: 2 }}>
+          {t('common_volver', 'Volver')}
+        </Button>
+      </Box>
+    );
+  }
+
+  const estado = recall.estado || 'active';
+  const severidad = recall.severidad || 'medium';
+  const lotesAfectados = recall.lotes_afectados || recall.lotes || [];
+  const cantidadTotal = recall.cantidad_total_afectada ?? lotesAfectados.reduce((sum, l) => sum + (l.cantidad_afectada || 0), 0);
+  const totalLotes = lotesAfectados.length;
+  const recoveredCount = recall.recovered_count ?? lotesAfectados.filter((l) => l.estado_recuperacion === 'recovered').length;
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Back */}
+      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/operations/lots')} color="inherit" sx={{ alignSelf: 'flex-start' }}>
+        {t('common_volver', 'Volver')}
+      </Button>
+
+      {/* Header */}
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} gap={2}>
+          <Box>
+            <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
+              <ReportProblemIcon sx={{ color: 'error.main' }} />
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                {recall.numero || `RECALL-${recall.id}`}
+              </Typography>
+              <Chip
+                size="small"
+                label={SEVERIDAD_LABELS[severidad] || severidad}
+                color={SEVERIDAD_COLORS[severidad] || 'default'}
+              />
+              <Chip
+                size="small"
+                label={ESTADO_LABELS[estado] || estado}
+                color={ESTADO_COLORS[estado] || 'default'}
+              />
+              {recall.tipo && (
+                <Chip size="small" label={recall.tipo} variant="outlined" />
+              )}
+            </Stack>
+            <Stack spacing={0.5} sx={{ color: 'text.secondary' }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '1rem', color: 'text.primary' }}>
+                {recall.titulo}
+              </Typography>
+              {recall.material_codigo && (
+                <Typography variant="body2">{t('recall_material', 'Material')}: <strong>{recall.material_codigo}</strong></Typography>
+              )}
+              <Typography variant="body2">{t('recall_fecha', 'Fecha')}: {formatDate(recall.created_at)}</Typography>
+              {recall.descripcion && (
+                <Typography variant="body2">{recall.descripcion}</Typography>
+              )}
+            </Stack>
+          </Box>
+        </Stack>
+      </Paper>
+
+      {/* Stats */}
+      <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} flexWrap="wrap">
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 160 }}>
+          <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 0.5 }}>
+            <WarningAmberIcon fontSize="small" sx={{ color: 'error.main' }} />
+            <Typography variant="caption" color="text.secondary">{t('recall_stat_cantidad', 'Cantidad Total Afectada')}</Typography>
+          </Stack>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: 'error.main' }}>
+            {cantidadTotal != null ? cantidadTotal.toLocaleString('es-ES') : '--'}
+          </Typography>
+        </Paper>
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 160 }}>
+          <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 0.5 }}>
+            <InventoryIcon fontSize="small" sx={{ color: 'warning.main' }} />
+            <Typography variant="caption" color="text.secondary">{t('recall_stat_lotes', 'Lotes Afectados')}</Typography>
+          </Stack>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: 'warning.main' }}>
+            {totalLotes}
+          </Typography>
+        </Paper>
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 160 }}>
+          <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 0.5 }}>
+            <CheckCircleIcon fontSize="small" sx={{ color: 'success.main' }} />
+            <Typography variant="caption" color="text.secondary">{t('recall_stat_recovered', 'Lotes Recuperados')}</Typography>
+          </Stack>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.main' }}>
+            {recoveredCount} / {totalLotes}
+          </Typography>
+        </Paper>
+      </Stack>
+
+      {/* Affected Lotes Table */}
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Stack direction="row" alignItems="center" gap={1}>
+            <InventoryIcon fontSize="small" color="primary" />
+            <Typography variant="subtitle2">{t('recall_lotes_title', 'Lotes Afectados')}</Typography>
+          </Stack>
+        </Box>
+        <SPMAgGrid
+          columnDefs={loteColumnDefs}
+          rowData={lotesAfectados}
+          loading={false}
+          height={380}
+          pagination={true}
+          paginationPageSize={20}
+          enableQuickFilter={true}
+          exportFileName="recall_lotes_afectados"
+          emptyMessage={t('recall_empty_lotes', 'No hay lotes afectados registrados')}
+          getRowId={(params) => String(params.data.lote_id || params.data.id)}
+        />
+      </Paper>
+
+      {/* Plan de Accion */}
+      {recall.plan_accion && (
+        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+          <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
+            <AssignmentIcon color="primary" />
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              {t('recall_plan_title', 'Plan de Accion')}
+            </Typography>
+          </Stack>
+          <Typography
+            variant="body2"
+            sx={{
+              whiteSpace: 'pre-wrap',
+              p: 2,
+              bgcolor: 'action.hover',
+              borderRadius: 1,
+              lineHeight: 1.7,
+            }}
+          >
+            {recall.plan_accion}
+          </Typography>
+        </Paper>
+      )}
+    </Box>
+  );
+}

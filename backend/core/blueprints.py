@@ -188,3 +188,43 @@ def register_blueprints(app: Flask) -> None:
     # Freight Audit & Payment (Sprint 70)
     from backend.routes.freight import freight_bp
     app.register_blueprint(freight_bp)  # Freight at /api/freight
+
+    # Supply Chain Control Tower (Sprint 71)
+    from backend.routes.control_tower import control_tower_bp
+    app.register_blueprint(control_tower_bp)  # Control Tower at /api/control-tower
+
+    # Sustainability & ESG (Sprint 72)
+    from backend.routes.sustainability import sustainability_bp
+    app.register_blueprint(sustainability_bp)  # Sustainability at /api/sustainability
+
+    # VMI - Vendor Managed Inventory (Sprint 73)
+    from backend.routes.vmi import vmi_bp
+    app.register_blueprint(vmi_bp)  # VMI at /api/vmi
+
+    # Lot Traceability & Recalls (Sprint 74)
+    from backend.routes.lots import lots_bp
+    app.register_blueprint(lots_bp)  # Lots at /api/lots
+
+    # Cycle Counting (Sprint 75)
+    from backend.routes.cycle_count import cycle_count_bp
+    app.register_blueprint(cycle_count_bp)  # Cycle Count at /api/cycle-count
+
+    # Multi-Currency (Sprint 76)
+    from backend.routes.currency import currency_bp
+    app.register_blueprint(currency_bp)  # Currency at /api/currency
+
+    # Engineering Change Orders (Sprint 77)
+    from backend.routes.eco import eco_bp
+    app.register_blueprint(eco_bp)  # ECO at /api/eco
+
+    # Kitting & Light Assembly (Sprint 78)
+    from backend.routes.kitting import kitting_bp
+    app.register_blueprint(kitting_bp)  # Kitting at /api/kitting
+
+    # Supplier Collaboration Portal (Sprint 79)
+    from backend.routes.supplier_portal import supplier_portal_bp
+    app.register_blueprint(supplier_portal_bp)  # Supplier Portal at /api/supplier-portal
+
+    # AI Procurement Copilot (Sprint 80)
+    from backend.routes.copilot import copilot_bp
+    app.register_blueprint(copilot_bp)  # Copilot at /api/copilot
