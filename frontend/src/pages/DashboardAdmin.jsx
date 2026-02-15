@@ -589,16 +589,17 @@ export default function DashboardAdmin() {
 
   const columnDefs = useMemo(() => getTableColumnsAgGrid(t), [t]);
 
-  // Tabs configuration
+  // Tabs configuration - "todas" usa conteo filtrado para consistencia con KPIs
   const tabs = useMemo(() => [
-    { key: "todas", label: t("dash_todas", "Todas"), count: stats.todas },
+    { key: "todas", label: t("dash_todas", "Todas"), count: statsFiltrados.todas },
     { key: "pendientes", label: t("dash_pendientes", "Pendientes"), count: stats.pendientes },
     { key: "en_proceso", label: t("dash_en_proceso", "En Proceso"), count: stats.en_proceso },
     { key: "completadas", label: t("dash_completadas", "Completadas"), count: stats.completadas },
     { key: "rechazadas", label: t("dash_rechazadas", "Rechazadas"), count: stats.rechazadas },
-  ], [t, stats]);
+  ], [t, stats, statsFiltrados]);
 
-  const currentData = allData[activeTab] || [];
+  // Cuando estamos en tab "todas", usar datos filtrados para consistencia con KPIs
+  const currentData = activeTab === 'todas' ? datosFiltrados : (allData[activeTab] || []);
   const isTabLoading = tabLoading[activeTab] || false;
 
   const handleTabChange = useCallback((value) => {
@@ -641,7 +642,7 @@ export default function DashboardAdmin() {
       <SolicitudesSection
         t={t}
         loading={loading || isTabLoading}
-        stats={stats}
+        stats={{ ...stats, todas: statsFiltrados.todas }}
         solicitudesCollapsed={solicitudesCollapsed}
         setSolicitudesCollapsed={setSolicitudesCollapsed}
         activeTab={activeTab}
@@ -671,7 +672,7 @@ export default function DashboardAdmin() {
       />
 
       {/* KPI SECTION */}
-      <Box aria-live="polite" aria-busy={kpiLoading}>
+      <Box aria-live="polite" aria-busy={kpiLoading} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {kpiLoading ? (
         <KPIGridSkeleton />
       ) : (

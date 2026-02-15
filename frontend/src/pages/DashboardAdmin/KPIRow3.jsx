@@ -259,18 +259,18 @@ function KPIRow3({
                       ))}
                     </Select>
                   </FormControl>
-                  <FormControl size="small" sx={{ minWidth: 140 }}>
-                    <InputLabel id="stock-periodo-label" sx={{ fontSize: '0.7rem' }}>Periodo</InputLabel>
+                  <FormControl size="small" sx={{ minWidth: 170 }}>
+                    <InputLabel id="stock-periodo-label" sx={{ fontSize: '0.75rem' }}>Sin consumo</InputLabel>
                     <Select
                       labelId="stock-periodo-label"
                       value={stockFiltrosPeriodo}
                       onChange={(e) => setStockFiltrosPeriodo(Number(e.target.value))}
-                      input={<OutlinedInput label="Periodo" />}
-                      sx={{ fontSize: '0.7rem' }}
+                      input={<OutlinedInput label="Sin consumo" />}
+                      sx={{ fontSize: '0.75rem' }}
                     >
-                      <MenuItem value={1} sx={{ fontSize: FONT_SIZES.md }}>1 a\u00f1o sin consumo</MenuItem>
-                      <MenuItem value={2} sx={{ fontSize: FONT_SIZES.md }}>2 a\u00f1os sin consumo</MenuItem>
-                      <MenuItem value={3} sx={{ fontSize: FONT_SIZES.md }}>3 a\u00f1os sin consumo</MenuItem>
+                      <MenuItem value={1} sx={{ fontSize: FONT_SIZES.md }}>{`> 1 a\u00f1o`}</MenuItem>
+                      <MenuItem value={2} sx={{ fontSize: FONT_SIZES.md }}>{`> 2 a\u00f1os`}</MenuItem>
+                      <MenuItem value={3} sx={{ fontSize: FONT_SIZES.md }}>{`> 3 a\u00f1os`}</MenuItem>
                     </Select>
                   </FormControl>
                 </Stack>
