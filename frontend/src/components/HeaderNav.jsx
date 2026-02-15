@@ -296,6 +296,14 @@ function HeaderNav() {
             </MenuItem>
             <MenuItem
               component={NavLink}
+              to="/procurement/scorecard"
+              onClick={() => setPlanificadorAnchor(null)}
+              sx={isPathActive("/procurement/scorecard") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_scorecard", "Scorecard Proveedores")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
               to="/planificador/ai"
               onClick={() => setPlanificadorAnchor(null)}
               sx={isPathActive("/planificador/ai") ? activeMenuItemSx : menuItemSx}
@@ -520,6 +528,22 @@ function HeaderNav() {
               sx={isPathActive("/admin/presupuestos") ? activeMenuItemSx : menuItemSx}
             >
               {t("admin_presupuestos", "Presupuestos")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/reportes/programados"
+              onClick={() => setAdminAnchor(null)}
+              sx={isPathActive("/reportes/programados") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("admin_reportes_programados", "Reportes Programados")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/admin/auto-aprobacion"
+              onClick={() => setAdminAnchor(null)}
+              sx={isPathActive("/admin/auto-aprobacion") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("admin_auto_aprobacion", "Auto-Aprobación")}
             </MenuItem>
             <Divider />
             {/* Sistema */}

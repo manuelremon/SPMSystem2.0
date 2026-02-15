@@ -86,6 +86,10 @@ def make_celery(app_name: str = "spm") -> Celery:
                 "task": "backend.core.tasks.check_sla_deadlines",
                 "schedule": 900.0,  # 15 minutes
             },
+            "process-scheduled-reports-every-15min": {
+                "task": "backend.core.tasks.generate_scheduled_reports",
+                "schedule": 900.0,  # 15 minutes
+            },
             "process-mrp-alerts-every-30min": {
                 "task": "backend.core.tasks.process_mrp_alerts",
                 "schedule": 1800.0,  # 30 minutes
@@ -97,6 +101,10 @@ def make_celery(app_name: str = "spm") -> Celery:
             "daily-cleanup": {
                 "task": "backend.core.tasks.cleanup_old_data",
                 "schedule": 86400.0,  # 24 hours
+            },
+            "snapshot-proveedor-scorecard-monthly": {
+                "task": "backend.core.tasks.snapshot_proveedor_scorecard",
+                "schedule": crontab(day_of_month=1, hour=2, minute=0),
             },
         },
     )

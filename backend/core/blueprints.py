@@ -108,6 +108,10 @@ def register_blueprints(app: Flask) -> None:
     # Dashboards editables
     app.register_blueprint(dashboards.bp)  # Editable spreadsheet dashboards at /api/dashboards
 
+    # Dashboard Data (server-side pagination & drill-down)
+    from backend.routes.dashboards_data import bp as dashboards_data_bp
+    app.register_blueprint(dashboards_data_bp)  # Dashboard data at /api/dashboard-data
+
     # Purchase Orders (Ordenes de Compra)
     from backend.routes.ordenes_compra import ordenes_compra_bp
     app.register_blueprint(ordenes_compra_bp)  # OC at /api/ordenes-compra

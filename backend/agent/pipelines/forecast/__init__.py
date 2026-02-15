@@ -187,6 +187,13 @@ try:
 except ImportError:
     logger.info("STL Decomposition no disponible. Requiere: pip install statsmodels")
 
+# Ensemble (Sprint 38)
+try:
+    from .ensemble import EnsembleStrategy
+    registrar_estrategia('ensemble', EnsembleStrategy)
+except ImportError:
+    logger.info("Ensemble no disponible")
+
 
 # =============================================================================
 # Imports principales
@@ -243,6 +250,7 @@ __all__ = [
     'RandomForestStrategy',
     'GradientBoostingStrategy',
     'RidgeStrategy',
+    'EnsembleStrategy',
 
     # Factory
     'obtener_estrategia',

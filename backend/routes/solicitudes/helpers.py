@@ -300,30 +300,75 @@ def _planificador_para(centro: str, sector: str) -> str:
 
 def _check_auto_approval(solicitud_id: int) -> bool:
     """
-    Feature 4.1: Verifica si la solicitud califica para auto-aprobacion con IA.
+    Feature 4.1: Verifica si la solicitud califica para auto-aprobacion.
 
-    Criterios:
-    - Material clase C
-    - Monto < $500 USD (50000 cents)
-    - Usuario con 95%+ tasa de aprobacion historica
+    Sprint 40: Primero evalúa reglas configurables (AutoApprovalService),
+    luego usa lógica legacy basada en IA como fallback.
 
     Returns:
         True si fue auto-aprobada, False si no
     """
     try:
+        # Sprint 40: Intentar con reglas configurables primero
+        try:
+            from backend.services.auto_approval_service import AutoApprovalService
+
+            result = AutoApprovalService.evaluar_solicitud(solicitud_id)
+            if result.get("auto_aprobable") and result.get("confianza", 0) >= 0.95:
+                motivo = result.get("motivo", "Auto-aprobada por regla configurada")
+                regla = result.get("regla_aplicada", "desconocida")
+                logger.info(f"[AUTO-APROBACION] Solicitud {solicitud_id} auto-aprobada por regla: {regla}")
+
+                solicitud = _get_raw(solicitud_id)
+                if not solicitud:
+                    return False
+                user_id = solicitud.get("id_usuario")
+
+                # Cambiar estado a approved
+                cambiar_estado(
+                    solicitud_id=solicitud_id,
+                    nuevo_estado=EstadoSolicitud.APPROVED,
+                    actor_id="system_rules",
+                    razon=motivo,
+                    metadata={
+                        "auto_aprobado": True,
+                        "regla_aplicada": regla,
+                        "confianza": result.get("confianza"),
+                    }
+                )
+
+                _update_solicitud(solicitud_id, {
+                    "auto_aprobado": 1,
+                    "auto_aprobado_motivo": motivo,
+                })
+
+                try:
+                    NotificationService.create_notification(
+                        destinatario_id=str(user_id),
+                        mensaje=f"Su solicitud #{solicitud_id} fue auto-aprobada ({regla})",
+                        tipo="solicitud_approved",
+                        solicitud_id=solicitud_id,
+                    )
+                except Exception:
+                    pass
+
+                return True
+        except ImportError:
+            pass
+        except Exception as e:
+            logger.warning(f"Error en auto-approval por reglas para {solicitud_id}: {e}")
+
+        # Fallback: Lógica legacy basada en IA
         solicitud = _get_raw(solicitud_id)
         if not solicitud:
             return False
 
-        # Obtener datos de la solicitud
         total_monto = solicitud.get("total_monto", 0) or 0
         user_id = solicitud.get("id_usuario")
 
-        # Criterio 1: Monto < $500 USD
-        if total_monto >= 50000:  # 50000 cents = $500 USD
+        if total_monto >= 50000:
             return False
 
-        # Criterio 2: Calcular tasa de aprobacion del usuario
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
@@ -344,20 +389,14 @@ def _check_auto_approval(solicitud_id: int) -> bool:
             total = row["total"] if isinstance(row, dict) else row[0]
             aprobadas = row["aprobadas"] if isinstance(row, dict) else row[1]
 
-            # Requerir al menos 10 solicitudes historicas para evitar falsos positivos
             if total < 10:
                 return False
 
             tasa_aprobacion = (aprobadas / total) if total > 0 else 0
 
-            # Criterio 3: Tasa de aprobacion >= 95%
             if tasa_aprobacion < 0.95:
                 return False
 
-        # Criterio 4: Verificar si los items son clase C (simplificado: si monto bajo, asumir clase C)
-        # En produccion, se deberia verificar la clase ABC de cada material
-
-        # Todos los criterios cumplidos - auto-aprobar
         motivo = (
             f"Auto-aprobado por IA: Usuario con {round(tasa_aprobacion * 100, 1)}% "
             f"tasa aprobacion ({aprobadas}/{total}), monto ${total_monto/100:.2f} USD"

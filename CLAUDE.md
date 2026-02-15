@@ -2,16 +2,16 @@
 
 Guia para Claude Code (claude.ai/code) cuando trabaja con este repositorio.
 
-> **Ultima actualizacion**: 2026-02-14 (Sprints 27-34: refactoring estructural, PWA, Sentry, CI strict)
+> **Ultima actualizacion**: 2026-02-14 (Sprints 35-40: paginacion, drill-down, reportes, ensemble, scorecard, auto-aprobacion)
 
 ## Resumen del Proyecto
 
 | Metrica | Valor |
 |---------|-------|
-| **Backend** | 210+ archivos Python, ~65,000 lineas (post-split) |
-| **Frontend** | 98 paginas, 126 componentes, 22 hooks |
-| **Endpoints API** | 250+ endpoints en 36 modulos (3 packages) |
-| **Tests** | 1,330+ tests (101 archivos) |
+| **Backend** | 215+ archivos Python, ~68,000 lineas |
+| **Frontend** | 101 paginas, 129 componentes, 22 hooks |
+| **Endpoints API** | 270+ endpoints en 37 modulos (3 packages) |
+| **Tests** | 1,330+ tests (101 archivos backend, 25 frontend) |
 | **Base de Datos** | 3 SQLite + PostgreSQL (produccion) |
 
 ## Comandos de Desarrollo
@@ -116,6 +116,7 @@ SPMv3.0/
 | `trivias.py` | 3 | Rankings, scores |
 | `assistant.py` | 2 | Sugerencias IA |
 | `kpis.py` | 1 | Dashboard KPIs |
+| `dashboards_data.py` | 3 | Dashboard data paginada, drill-down analytics |
 | `materiales_detalle.py` | 0 | Helpers de detalle materiales |
 
 ### Services (19 servicios)
@@ -141,6 +142,8 @@ SPMv3.0/
 | `oc_service.py` | Ordenes de compra |
 | `recommendation_engine.py` | Motor de recomendaciones |
 | `temp_data_service.py` | Datos temporales y cache |
+| `report_generator.py` | Generador de reportes (solicitudes, stock, KPIs, materiales) |
+| `auto_approval_service.py` | Evaluacion de reglas auto-aprobacion |
 
 ### Core (39 modulos)
 
@@ -249,7 +252,9 @@ agent/
 | **TMS** | 5 paginas de gestion de transporte |
 | **FMS** | 5 paginas de gestion de flota |
 | **Gamificacion** | Trivias |
-| **Admin** | AdminUsuarios, AdminRoles, AdminCentros, AdminSectores, AdminMateriales, AdminProveedores, AdminPresupuestos, AdminEstado, AdminPlanificadores, AdminPuestos, AdminAlmacenes, AdminSolicitudesPerfil |
+| **Procurement** | ProveedorScorecard (radar chart + ranking + tendencias) |
+| **Reportes** | ReportesProgramados (CRUD con ejecucion manual) |
+| **Admin** | AdminUsuarios, AdminRoles, AdminCentros, AdminSectores, AdminMateriales, AdminProveedores, AdminPresupuestos, AdminEstado, AdminPlanificadores, AdminPuestos, AdminAlmacenes, AdminSolicitudesPerfil, AdminAutoAprobacion |
 
 ### Components (126 totales)
 
@@ -259,8 +264,8 @@ agent/
 | `features/DataTable/` | 1 | ModernDataTable con TanStack Table |
 | `materials/` | 3 | MaterialDetailModal, MaterialsTable, SearchDropdown |
 | `Planner/` | 7 | Wizard de 4 pasos + StockDetalleModal |
-| `forecast/` | 10 | BacktestResults, ForecastChart, ForecastKPIs, etc. |
-| `Dashboard/` | 6 | Componentes de dashboard unificado |
+| `forecast/` | 11 | BacktestResults, ForecastChart, ForecastKPIs, EnsembleChart, etc. |
+| `Dashboard/` | 7 | Componentes de dashboard unificado, DrillDownModal |
 | `Canvas/Charts` | 6 | Visualizaciones y graficos |
 | `Tour/` | 3 | Guia interactiva de usuario |
 | `Analytics/` | 2 | Componentes de analisis |
@@ -640,9 +645,39 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 ### Forecast (Pronosticos de Demanda)
 - **Backend:** `agent/pipelines/forecast/`, `routes/ai/forecast.py`
 - **Frontend:** `ForecastIndividual.jsx`, `ForecastMasivo.jsx`, `components/forecast/`
-- **Modelos:** ARIMA, Prophet, XGBoost, Sklearn, STL
+- **Modelos:** ARIMA, Prophet, XGBoost, Sklearn, STL, Ensemble
+- **Ensemble (Sprint 38):** `forecast/ensemble.py` - Combina N modelos con weighted averaging (1/MAPE)
+- **Frontend Ensemble:** `components/forecast/EnsembleChart.jsx` - Gráfico multi-modelo con tabla de pesos
+- **Endpoint:** `GET /api/ai/forecast/ensemble/<material>` - Predicción combinada
 - **Features:** Backtesting, tuning automatico, comparacion de modelos
 - **Data:** Queries a `sap_data.db` (consumo_historico + materiales_bbdd)
+
+### Dashboard Data (Sprints 35-36)
+- **Backend:** `routes/dashboards_data.py` (blueprint `dashboards_data`)
+- **Endpoints:** `/api/dashboard-data/solicitudes` (paginado), `/api/dashboard-data/resumen`, `/api/dashboard-data/drill/<metrica>`
+- **Drill-Down Métricas:** solicitudes_diarias, solicitudes_por_estado, presupuesto_por_centro, materiales_top, tiempos_promedio, stock_critico, compras_evitadas
+- **Frontend:** `components/Dashboard/DrillDownModal.jsx` - Modal genérico con AG-Grid
+- **Features:** Paginación server-side, filtros por centro/sector/periodo, export XLSX
+
+### Reportes Programados (Sprint 37)
+- **Backend:** `routes/export.py` (CRUD), `services/report_generator.py`, migración 036
+- **Frontend:** `pages/ReportesProgramados.jsx` - CRUD con ejecución manual
+- **Tipos:** solicitudes, stock, presupuesto, kpis, materiales
+- **Frecuencias:** manual, diario, semanal, mensual
+- **Formatos:** xlsx, csv, pdf
+
+### Proveedor Scorecard (Sprint 39)
+- **Backend:** `routes/procurement.py` (endpoints scorecard/ranking, evaluar, historial), migración 037
+- **Frontend:** `pages/ProveedorScorecard.jsx` - Radar chart + ranking AG-Grid + tendencias
+- **Tablas:** `proveedor_evaluacion`, `proveedor_meta`
+- **Features:** Evaluación manual, ranking persistente, historial por periodo
+
+### Auto-Aprobación (Sprint 40)
+- **Backend:** `routes/admin.py` (CRUD reglas), `services/auto_approval_service.py`, migración 038
+- **Frontend:** `pages/AdminAutoAprobacion.jsx` - Gestión de reglas con simulación
+- **Tabla:** `regla_auto_aprobacion`
+- **Condiciones:** monto_max, materiales_conocidos_only, historial_solicitante_min, criticidad_max
+- **FSM Integración:** `solicitudes/helpers.py::_check_auto_approval()` evalúa reglas antes de lógica legacy
 
 ### SLA Dashboard
 - **Backend:** `routes/sla.py`, `services/sla_service.py`
@@ -676,6 +711,9 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 | `033` | Importar datos SAP SQLite→PG (script manual, ejecutar 1 vez) |
 | `034` | Tablas Ordenes de Compra (5 tablas) |
 | `035` | Tabla reporte_historial (reportes programados) |
+| `036` | Tabla reporte_programado (CRUD reportes programados) |
+| `037` | Tablas proveedor_evaluacion, proveedor_meta (scorecard persistente) |
+| `038` | Tabla regla_auto_aprobacion (auto-aprobacion por reglas) |
 
 ## CI/CD
 
@@ -718,6 +756,12 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 | 32 | Split frontend: DashboardAdmin (7 sub-comp), useMaterials (3 hooks) | 2026-02-14 |
 | 33 | PWA Offline: Workbox, OfflineBanner, push-sw.js | 2026-02-14 |
 | 34 | Monitoring: Sentry backend/frontend, Prometheus metrics | 2026-02-14 |
+| 35 | Paginacion server-side, dashboard data endpoints | 2026-02-14 |
+| 36 | Drill-down analytics, KPIs clickeables con modal | 2026-02-14 |
+| 37 | Reportes programados: CRUD, generador, Celery task | 2026-02-14 |
+| 38 | ML Ensemble Forecast (weighted averaging, parallel) | 2026-02-14 |
+| 39 | Proveedor Scorecard persistente, evaluaciones históricas | 2026-02-14 |
+| 40 | Auto-aprobación por reglas configurables, simulación | 2026-02-14 |
 
 ---
 

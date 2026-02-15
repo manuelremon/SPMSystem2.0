@@ -30,6 +30,8 @@ function KPIRow2({
   handleDrillDown,
   setExpandedCard,
   setExpandedTitle,
+  // Drill-down handler
+  onKpiDrillDown,
 }) {
   return (
     <ScrollReveal delay={200}>
@@ -78,6 +80,7 @@ function KPIRow2({
             <Paper
               ref={distribucionRef}
               elevation={0}
+              onClick={() => onKpiDrillDown?.('solicitudes_por_estado')}
               sx={{
                 flex: '0 0 280px',
                 height: 200,
@@ -85,6 +88,7 @@ function KPIRow2({
                 border: '1px solid',
                 borderColor: 'divider',
                 borderRadius: 2,
+                cursor: onKpiDrillDown ? 'pointer' : 'default',
                 transition: 'box-shadow 0.2s ease-in-out',
                 '&:hover': {
                   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
@@ -201,6 +205,7 @@ function KPIRow2({
             <Paper
               ref={presupuestoGlobalRef}
               elevation={0}
+              onClick={() => onKpiDrillDown?.('presupuesto_por_centro')}
               sx={{
                 flex: '1 1 auto',
                 minWidth: 480,
@@ -210,6 +215,7 @@ function KPIRow2({
                 border: '1px solid',
                 borderColor: 'divider',
                 borderRadius: 2,
+                cursor: onKpiDrillDown ? 'pointer' : 'default',
                 transition: 'box-shadow 0.2s ease-in-out',
                 '&:hover': {
                   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',

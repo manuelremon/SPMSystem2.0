@@ -616,14 +616,468 @@ def get_formatos():
 
 
 # ============================================================================
-# Reportes Programados
+# Reportes Programados - CRUD
 # ============================================================================
 
 
 @bp.route("/programados", methods=["GET"])
 @require_auth
 @rate_limit(requests=30, window_seconds=60)
-def listar_reportes_programados():
+def list_reportes_programados():
+    """
+    Lista reportes programados del usuario (o todos si es admin).
+
+    Query params:
+        - page: Página (default: 1)
+        - per_page: Registros por página (default: 20)
+        - tipo: Filtrar por tipo de reporte (opcional)
+
+    Returns:
+        Lista paginada de reportes programados
+    """
+    from backend.core.db import get_db_connection, is_using_postgresql
+
+    page = request.args.get("page", 1, type=int)
+    per_page = min(request.args.get("per_page", 20, type=int), 50)
+    tipo = request.args.get("tipo")
+    user_id = g.user.get("id_spm")
+
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            conditions = []
+            params = []
+
+            # Filter by user unless admin
+            if g.user.get("rol") != "admin":
+                if is_using_postgresql():
+                    conditions.append("creado_por = %s")
+                else:
+                    conditions.append("creado_por = ?")
+                params.append(user_id)
+
+            if tipo:
+                if is_using_postgresql():
+                    conditions.append("tipo = %s")
+                else:
+                    conditions.append("tipo = ?")
+                params.append(tipo)
+
+            where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+
+            # Get total count
+            cursor.execute(f"SELECT COUNT(*) as total FROM reporte_programado {where}", params)
+            total_row = cursor.fetchone()
+            total = total_row["total"] if isinstance(total_row, dict) else total_row[0]
+
+            # Get paginated results
+            offset = (page - 1) * per_page
+            if is_using_postgresql():
+                cursor.execute(f"""
+                    SELECT id, nombre, tipo, frecuencia, formato, activo,
+                           ultimo_envio, proximo_envio, created_at
+                    FROM reporte_programado
+                    {where}
+                    ORDER BY created_at DESC
+                    LIMIT %s OFFSET %s
+                """, params + [per_page, offset])
+            else:
+                cursor.execute(f"""
+                    SELECT id, nombre, tipo, frecuencia, formato, activo,
+                           ultimo_envio, proximo_envio, created_at
+                    FROM reporte_programado
+                    {where}
+                    ORDER BY created_at DESC
+                    LIMIT ? OFFSET ?
+                """, params + [per_page, offset])
+
+            reportes = [dict(row) for row in cursor.fetchall()]
+
+        import math
+        return jsonify({
+            "ok": True,
+            "data": {
+                "reportes": reportes,
+                "total": total,
+                "page": page,
+                "per_page": per_page,
+                "pages": math.ceil(total / per_page) if per_page > 0 else 0,
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error listando reportes programados: {e}")
+        return jsonify({"ok": False, "error": {"code": "list_error", "message": str(e)}}), 500
+
+
+@bp.route("/programados", methods=["POST"])
+@require_auth
+@rate_limit(requests=10, window_seconds=60)
+def create_reporte_programado():
+    """
+    Crea un reporte programado.
+
+    Body:
+        {
+            "nombre": "Mi Reporte Semanal",
+            "tipo": "solicitudes|stock|presupuesto|kpis|materiales",
+            "frecuencia": "diario|semanal|mensual|manual",
+            "filtros_json": {...},
+            "destinatarios_json": ["email1@example.com", "email2@example.com"],
+            "formato": "xlsx|csv|pdf",
+            "activo": 1
+        }
+
+    Returns:
+        Reporte programado creado
+    """
+    import json
+    from datetime import datetime, timedelta
+
+    from backend.core.db import get_db_transaction, is_using_postgresql
+
+    data = request.get_json() or {}
+    user_id = g.user.get("id_spm")
+
+    # Validate required fields
+    nombre = data.get("nombre")
+    tipo = data.get("tipo")
+    frecuencia = data.get("frecuencia", "manual")
+    formato = data.get("formato", "xlsx")
+
+    if not nombre or not tipo:
+        return jsonify({
+            "ok": False,
+            "error": {"code": "validation_error", "message": "nombre y tipo son requeridos"}
+        }), 400
+
+    # Validate tipo
+    tipos_validos = ["solicitudes", "stock", "presupuesto", "kpis", "materiales"]
+    if tipo not in tipos_validos:
+        return jsonify({
+            "ok": False,
+            "error": {"code": "invalid_tipo", "message": f"tipo debe ser uno de: {', '.join(tipos_validos)}"}
+        }), 400
+
+    # Validate frecuencia
+    frecuencias_validas = ["diario", "semanal", "mensual", "manual"]
+    if frecuencia not in frecuencias_validas:
+        return jsonify({
+            "ok": False,
+            "error": {"code": "invalid_frecuencia", "message": f"frecuencia debe ser uno de: {', '.join(frecuencias_validas)}"}
+        }), 400
+
+    # Validate formato
+    formatos_validos = ["xlsx", "csv", "pdf"]
+    if formato not in formatos_validos:
+        return jsonify({
+            "ok": False,
+            "error": {"code": "invalid_formato", "message": f"formato debe ser uno de: {', '.join(formatos_validos)}"}
+        }), 400
+
+    try:
+        filtros_json = json.dumps(data.get("filtros_json", {}))
+        destinatarios_json = json.dumps(data.get("destinatarios_json", []))
+        activo = 1 if data.get("activo", True) else 0
+
+        # Calculate proximo_envio based on frecuencia
+        proximo_envio = None
+        if frecuencia == "diario":
+            proximo_envio = datetime.now() + timedelta(days=1)
+        elif frecuencia == "semanal":
+            proximo_envio = datetime.now() + timedelta(weeks=1)
+        elif frecuencia == "mensual":
+            proximo_envio = datetime.now() + timedelta(days=30)
+
+        with get_db_transaction() as conn:
+            cursor = conn.cursor()
+
+            if is_using_postgresql():
+                cursor.execute("""
+                    INSERT INTO reporte_programado
+                    (nombre, tipo, frecuencia, filtros_json, destinatarios_json,
+                     formato, activo, creado_por, proximo_envio)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                """, (nombre, tipo, frecuencia, filtros_json, destinatarios_json,
+                      formato, activo, user_id, proximo_envio))
+                reporte_id = cursor.fetchone()[0]
+            else:
+                cursor.execute("""
+                    INSERT INTO reporte_programado
+                    (nombre, tipo, frecuencia, filtros_json, destinatarios_json,
+                     formato, activo, creado_por, proximo_envio)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (nombre, tipo, frecuencia, filtros_json, destinatarios_json,
+                      formato, activo, user_id,
+                      proximo_envio.isoformat() if proximo_envio else None))
+                reporte_id = cursor.lastrowid
+
+        return jsonify({
+            "ok": True,
+            "data": {
+                "id": reporte_id,
+                "nombre": nombre,
+                "tipo": tipo,
+                "frecuencia": frecuencia,
+                "formato": formato,
+                "activo": activo,
+                "proximo_envio": proximo_envio.isoformat() if proximo_envio else None
+            }
+        }), 201
+
+    except Exception as e:
+        logger.error(f"Error creando reporte programado: {e}")
+        return jsonify({"ok": False, "error": {"code": "create_error", "message": str(e)}}), 500
+
+
+@bp.route("/programados/<int:reporte_id>", methods=["PUT"])
+@require_auth
+@rate_limit(requests=10, window_seconds=60)
+def update_reporte_programado(reporte_id: int):
+    """
+    Actualiza un reporte programado.
+
+    Body: Same as create (all fields optional)
+
+    Returns:
+        Reporte programado actualizado
+    """
+    import json
+    from datetime import datetime, timedelta
+
+    from backend.core.db import get_db_transaction, is_using_postgresql
+
+    data = request.get_json() or {}
+    user_id = g.user.get("id_spm")
+    is_admin = g.user.get("rol") == "admin"
+
+    try:
+        # Validate ownership
+        with get_db_transaction() as conn:
+            cursor = conn.cursor()
+
+            if is_using_postgresql():
+                cursor.execute("SELECT creado_por FROM reporte_programado WHERE id = %s", (reporte_id,))
+            else:
+                cursor.execute("SELECT creado_por FROM reporte_programado WHERE id = ?", (reporte_id,))
+
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({
+                    "ok": False,
+                    "error": {"code": "not_found", "message": "Reporte no encontrado"}
+                }), 404
+
+            creado_por = row["creado_por"] if isinstance(row, dict) else row[0]
+            if creado_por != user_id and not is_admin:
+                return jsonify({
+                    "ok": False,
+                    "error": {"code": "forbidden", "message": "No autorizado para modificar este reporte"}
+                }), 403
+
+            # Build update query
+            updates = []
+            params = []
+
+            if "nombre" in data:
+                updates.append("nombre = %s" if is_using_postgresql() else "nombre = ?")
+                params.append(data["nombre"])
+            if "tipo" in data:
+                updates.append("tipo = %s" if is_using_postgresql() else "tipo = ?")
+                params.append(data["tipo"])
+            if "frecuencia" in data:
+                frecuencia = data["frecuencia"]
+                updates.append("frecuencia = %s" if is_using_postgresql() else "frecuencia = ?")
+                params.append(frecuencia)
+
+                # Recalculate proximo_envio if frecuencia changes
+                proximo_envio = None
+                if frecuencia == "diario":
+                    proximo_envio = datetime.now() + timedelta(days=1)
+                elif frecuencia == "semanal":
+                    proximo_envio = datetime.now() + timedelta(weeks=1)
+                elif frecuencia == "mensual":
+                    proximo_envio = datetime.now() + timedelta(days=30)
+
+                updates.append("proximo_envio = %s" if is_using_postgresql() else "proximo_envio = ?")
+                params.append(proximo_envio.isoformat() if proximo_envio else None)
+
+            if "filtros_json" in data:
+                updates.append("filtros_json = %s" if is_using_postgresql() else "filtros_json = ?")
+                params.append(json.dumps(data["filtros_json"]))
+            if "destinatarios_json" in data:
+                updates.append("destinatarios_json = %s" if is_using_postgresql() else "destinatarios_json = ?")
+                params.append(json.dumps(data["destinatarios_json"]))
+            if "formato" in data:
+                updates.append("formato = %s" if is_using_postgresql() else "formato = ?")
+                params.append(data["formato"])
+            if "activo" in data:
+                updates.append("activo = %s" if is_using_postgresql() else "activo = ?")
+                params.append(1 if data["activo"] else 0)
+
+            if not updates:
+                return jsonify({
+                    "ok": False,
+                    "error": {"code": "no_changes", "message": "No hay cambios para aplicar"}
+                }), 400
+
+            # Add updated_at
+            if is_using_postgresql():
+                updates.append("updated_at = NOW()")
+            else:
+                updates.append("updated_at = datetime('now')")
+
+            # Execute update
+            params.append(reporte_id)
+            update_query = f"""
+                UPDATE reporte_programado
+                SET {', '.join(updates)}
+                WHERE id = {'%s' if is_using_postgresql() else '?'}
+            """
+            cursor.execute(update_query, params)
+
+        return jsonify({"ok": True, "data": {"id": reporte_id, "updated": True}})
+
+    except Exception as e:
+        logger.error(f"Error actualizando reporte programado: {e}")
+        return jsonify({"ok": False, "error": {"code": "update_error", "message": str(e)}}), 500
+
+
+@bp.route("/programados/<int:reporte_id>", methods=["DELETE"])
+@require_auth
+@rate_limit(requests=10, window_seconds=60)
+def delete_reporte_programado(reporte_id: int):
+    """
+    Elimina un reporte programado.
+
+    Returns:
+        Confirmación de eliminación
+    """
+    from backend.core.db import get_db_transaction, is_using_postgresql
+
+    user_id = g.user.get("id_spm")
+    is_admin = g.user.get("rol") == "admin"
+
+    try:
+        with get_db_transaction() as conn:
+            cursor = conn.cursor()
+
+            # Validate ownership
+            if is_using_postgresql():
+                cursor.execute("SELECT creado_por FROM reporte_programado WHERE id = %s", (reporte_id,))
+            else:
+                cursor.execute("SELECT creado_por FROM reporte_programado WHERE id = ?", (reporte_id,))
+
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({
+                    "ok": False,
+                    "error": {"code": "not_found", "message": "Reporte no encontrado"}
+                }), 404
+
+            creado_por = row["creado_por"] if isinstance(row, dict) else row[0]
+            if creado_por != user_id and not is_admin:
+                return jsonify({
+                    "ok": False,
+                    "error": {"code": "forbidden", "message": "No autorizado para eliminar este reporte"}
+                }), 403
+
+            # Delete
+            if is_using_postgresql():
+                cursor.execute("DELETE FROM reporte_programado WHERE id = %s", (reporte_id,))
+            else:
+                cursor.execute("DELETE FROM reporte_programado WHERE id = ?", (reporte_id,))
+
+        return jsonify({"ok": True, "data": {"id": reporte_id, "deleted": True}})
+
+    except Exception as e:
+        logger.error(f"Error eliminando reporte programado: {e}")
+        return jsonify({"ok": False, "error": {"code": "delete_error", "message": str(e)}}), 500
+
+
+@bp.route("/programados/<int:reporte_id>/ejecutar", methods=["POST"])
+@require_auth
+@rate_limit(requests=5, window_seconds=60)
+def ejecutar_reporte_programado(reporte_id: int):
+    """
+    Ejecuta un reporte programado inmediatamente y retorna el archivo.
+
+    Returns:
+        Archivo descargable
+    """
+    import json
+
+    from backend.core.db import get_db_connection, is_using_postgresql
+    from backend.services.report_generator import ReportGenerator
+
+    user_id = g.user.get("id_spm")
+    is_admin = g.user.get("rol") == "admin"
+
+    try:
+        # Get report configuration
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            if is_using_postgresql():
+                cursor.execute("""
+                    SELECT nombre, tipo, filtros_json, formato, creado_por
+                    FROM reporte_programado
+                    WHERE id = %s
+                """, (reporte_id,))
+            else:
+                cursor.execute("""
+                    SELECT nombre, tipo, filtros_json, formato, creado_por
+                    FROM reporte_programado
+                    WHERE id = ?
+                """, (reporte_id,))
+
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({
+                    "ok": False,
+                    "error": {"code": "not_found", "message": "Reporte no encontrado"}
+                }), 404
+
+            row_dict = dict(row)
+            creado_por = row_dict["creado_por"]
+            if creado_por != user_id and not is_admin:
+                return jsonify({
+                    "ok": False,
+                    "error": {"code": "forbidden", "message": "No autorizado para ejecutar este reporte"}
+                }), 403
+
+            tipo = row_dict["tipo"]
+            formato = row_dict["formato"]
+            filtros_json = row_dict.get("filtros_json", "{}")
+            filtros = json.loads(filtros_json) if filtros_json else {}
+
+        # Generate report
+        result = ReportGenerator.generate(tipo=tipo, filtros=filtros, formato=formato)
+
+        if not result.get("success"):
+            return jsonify({
+                "ok": False,
+                "error": {"code": "generation_error", "message": result.get("error", "Error desconocido")}
+            }), 500
+
+        return _make_download_response(result)
+
+    except Exception as e:
+        logger.error(f"Error ejecutando reporte programado: {e}")
+        return jsonify({"ok": False, "error": {"code": "execution_error", "message": str(e)}}), 500
+
+
+# ============================================================================
+# Reportes Programados - Historial (Legacy - sin cambios)
+# ============================================================================
+
+
+@bp.route("/programados/historial", methods=["GET"])
+@require_auth
+@rate_limit(requests=30, window_seconds=60)
+def listar_historial_reportes():
     """
     Lista historial de reportes programados generados.
 
@@ -633,7 +1087,7 @@ def listar_reportes_programados():
         - tipo: Filtrar por tipo de reporte (opcional)
 
     Returns:
-        Lista paginada de reportes generados
+        Lista paginada de reportes generados (tabla reporte_historial)
     """
     from backend.core.db import get_db_connection
 
@@ -681,16 +1135,16 @@ def listar_reportes_programados():
         })
 
     except Exception as e:
-        logger.error(f"Error listando reportes programados: {e}")
+        logger.error(f"Error listando historial de reportes: {e}")
         return jsonify({"ok": False, "error": {"code": "reportes_error", "message": str(e)}}), 500
 
 
-@bp.route("/programados/ejecutar", methods=["POST"])
+@bp.route("/programados/ejecutar-manual", methods=["POST"])
 @require_role("admin")
 @rate_limit(requests=5, window_seconds=60)
-def ejecutar_reporte_programado():
+def ejecutar_reporte_manual():
     """
-    Dispara la generación de un reporte programado de forma manual.
+    Dispara la generación de un reporte programado de forma manual (legacy endpoint).
 
     Body:
         {

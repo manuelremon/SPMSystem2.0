@@ -419,7 +419,7 @@ def generate_scheduled_report(
     params: Dict[str, Any] = None,
 ) -> Dict[str, Any]:
     """
-    Generate a scheduled report and save to history.
+    Generate a scheduled report and save to history (legacy task).
 
     Args:
         report_type: Type (stock_health, solicitudes_resumen, mrp_alertas, kpis)
@@ -478,6 +478,165 @@ def generate_scheduled_report(
 
     except Exception as e:
         logger.error(f"Error generating scheduled report: {e}")
+        raise self.retry(exc=e)
+
+
+@celery_app.task(bind=True, max_retries=1, default_retry_delay=300)
+def generate_scheduled_reports(self) -> Dict[str, Any]:
+    """
+    Process all scheduled reports that are due.
+
+    Checks reporte_programado table for reports with proximo_envio <= NOW()
+    and activo = 1, generates them, updates timestamps, and optionally emails them.
+
+    Returns:
+        Dict with number of reports processed
+    """
+    logger.info("Processing scheduled reports")
+
+    try:
+        import json
+        from datetime import datetime, timedelta
+
+        from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+        from backend.services.report_generator import ReportGenerator
+
+        reports_processed = 0
+        reports_failed = 0
+
+        # Get due reports
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            if is_using_postgresql():
+                cursor.execute("""
+                    SELECT id, nombre, tipo, frecuencia, filtros_json,
+                           destinatarios_json, formato, creado_por
+                    FROM reporte_programado
+                    WHERE activo = 1
+                    AND (proximo_envio IS NULL OR proximo_envio <= NOW())
+                    ORDER BY proximo_envio
+                    LIMIT 50
+                """)
+            else:
+                cursor.execute("""
+                    SELECT id, nombre, tipo, frecuencia, filtros_json,
+                           destinatarios_json, formato, creado_por
+                    FROM reporte_programado
+                    WHERE activo = 1
+                    AND (proximo_envio IS NULL OR proximo_envio <= datetime('now'))
+                    ORDER BY proximo_envio
+                    LIMIT 50
+                """)
+
+            due_reports = [dict(row) for row in cursor.fetchall()]
+
+        logger.info(f"Found {len(due_reports)} scheduled reports to process")
+
+        # Process each report
+        for report in due_reports:
+            report_id = report["id"]
+            tipo = report["tipo"]
+            frecuencia = report["frecuencia"]
+            formato = report["formato"]
+            nombre = report["nombre"]
+
+            try:
+                # Parse filters
+                filtros_json = report.get("filtros_json", "{}")
+                filtros = json.loads(filtros_json) if filtros_json else {}
+
+                # Generate report
+                result = ReportGenerator.generate(tipo=tipo, filtros=filtros, formato=formato)
+
+                if result.get("success"):
+                    # Log to reporte_historial
+                    with get_db_transaction() as conn:
+                        cur = conn.cursor()
+                        if is_using_postgresql():
+                            cur.execute("""
+                                INSERT INTO reporte_historial
+                                (tipo_reporte, frecuencia, parametros, resultado, estado)
+                                VALUES (%s, %s, %s, %s, %s)
+                            """, (tipo, frecuencia, filtros_json,
+                                  json.dumps({"filename": result.get("filename")}), "completado"))
+                        else:
+                            cur.execute("""
+                                INSERT INTO reporte_historial
+                                (tipo_reporte, frecuencia, parametros, resultado, estado)
+                                VALUES (?, ?, ?, ?, ?)
+                            """, (tipo, frecuencia, filtros_json,
+                                  json.dumps({"filename": result.get("filename")}), "completado"))
+
+                    # Send email if destinatarios exist
+                    destinatarios_json = report.get("destinatarios_json", "[]")
+                    destinatarios = json.loads(destinatarios_json) if destinatarios_json else []
+
+                    if destinatarios and isinstance(destinatarios, list):
+                        for email in destinatarios:
+                            try:
+                                # Queue email task with report as attachment
+                                send_email.delay(
+                                    to=email,
+                                    subject=f"Reporte Programado: {nombre}",
+                                    body=f"Se adjunta el reporte '{nombre}' generado automáticamente.\n\nFrecuencia: {frecuencia}\nFormato: {formato}",
+                                    html=False
+                                )
+                            except Exception as email_error:
+                                logger.warning(f"Failed to queue email for {email}: {email_error}")
+
+                    # Calculate next execution time
+                    now = datetime.now()
+                    if frecuencia == "diario":
+                        proximo_envio = now + timedelta(days=1)
+                    elif frecuencia == "semanal":
+                        proximo_envio = now + timedelta(weeks=1)
+                    elif frecuencia == "mensual":
+                        proximo_envio = now + timedelta(days=30)
+                    else:  # manual
+                        proximo_envio = None
+
+                    # Update reporte_programado
+                    with get_db_transaction() as conn:
+                        cur = conn.cursor()
+                        if is_using_postgresql():
+                            cur.execute("""
+                                UPDATE reporte_programado
+                                SET ultimo_envio = NOW(),
+                                    proximo_envio = %s,
+                                    updated_at = NOW()
+                                WHERE id = %s
+                            """, (proximo_envio, report_id))
+                        else:
+                            cur.execute("""
+                                UPDATE reporte_programado
+                                SET ultimo_envio = datetime('now'),
+                                    proximo_envio = ?,
+                                    updated_at = datetime('now')
+                                WHERE id = ?
+                            """, (proximo_envio.isoformat() if proximo_envio else None, report_id))
+
+                    reports_processed += 1
+                    logger.info(f"Report {report_id} ({nombre}) processed successfully")
+
+                else:
+                    reports_failed += 1
+                    logger.error(f"Report {report_id} ({nombre}) failed: {result.get('error')}")
+
+            except Exception as report_error:
+                reports_failed += 1
+                logger.error(f"Error processing report {report_id}: {report_error}", exc_info=True)
+
+        logger.info(f"Scheduled reports processing complete: {reports_processed} success, {reports_failed} failed")
+
+        return {
+            "reports_processed": reports_processed,
+            "reports_failed": reports_failed,
+            "total": len(due_reports)
+        }
+
+    except Exception as e:
+        logger.error(f"Error in generate_scheduled_reports task: {e}", exc_info=True)
         raise self.retry(exc=e)
 
 
@@ -746,6 +905,136 @@ def cleanup_old_data() -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error during cleanup: {e}")
         return {"success": False, "error": str(e)}
+
+
+# =============================================================================
+# Procurement Scorecard Tasks (Sprint 39)
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=120)
+def snapshot_proveedor_scorecard(self) -> Dict[str, Any]:
+    """
+    Monthly snapshot of provider scorecards from SAP data.
+
+    Calculates scores from v_sap_cumplimiento view and saves to proveedor_evaluacion.
+    Only runs if no evaluation exists for current period (idempotent).
+
+    Returns:
+        Dict with snapshot stats
+    """
+    logger.info("Creating monthly provider scorecard snapshot")
+
+    try:
+        from datetime import datetime
+
+        from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+
+        periodo_actual = datetime.utcnow().strftime("%Y-%m")
+        evaluaciones_creadas = 0
+
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+
+            # Get all providers from SAP cumplimiento view
+            cur.execute("""
+                SELECT
+                    proveedor_cuit,
+                    proveedor_nombre,
+                    pct_a_tiempo,
+                    pct_completas,
+                    valor_total_pedido,
+                    valor_total_recibido
+                FROM v_sap_cumplimiento
+                WHERE total_pedidos >= 3
+            """)
+            proveedores = cur.fetchall()
+
+        for prov_row in proveedores:
+            prov = _row_to_dict(prov_row)
+            proveedor_id = prov.get("proveedor_cuit")
+            proveedor_nombre = prov.get("proveedor_nombre")
+
+            if not proveedor_id:
+                continue
+
+            # Check if evaluation already exists for this period
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT id FROM proveedor_evaluacion
+                    WHERE proveedor_id = ? AND periodo = ?
+                """, (proveedor_id, periodo_actual))
+                existing = cur.fetchone()
+
+            if existing:
+                continue  # Skip if already evaluated this month
+
+            # Calculate scores
+            entrega_score = float(prov.get("pct_a_tiempo") or 0)
+            calidad_score = float(prov.get("pct_completas") or 0)
+
+            # Precio score: 100 - abs(valor_desviacion_pct)
+            valor_pedido = float(prov.get("valor_total_pedido") or 0)
+            valor_recibido = float(prov.get("valor_total_recibido") or 0)
+            if valor_pedido > 0:
+                desviacion_pct = abs((valor_recibido - valor_pedido) / valor_pedido * 100)
+                precio_score = max(0, 100 - desviacion_pct)
+            else:
+                precio_score = 0
+
+            # Servicio score: avg(calidad, entrega) - proxy until manual evaluation
+            servicio_score = (calidad_score + entrega_score) / 2
+
+            # Global score: weighted average
+            # entrega 35%, calidad 30%, precio 20%, servicio 15%
+            score_global = round(
+                entrega_score * 0.35 +
+                calidad_score * 0.30 +
+                precio_score * 0.20 +
+                servicio_score * 0.15,
+                2
+            )
+
+            # Insert evaluation
+            with get_db_transaction() as conn:
+                cur = conn.cursor()
+
+                if is_using_postgresql():
+                    cur.execute("""
+                        INSERT INTO proveedor_evaluacion
+                        (proveedor_id, proveedor_nombre, periodo, calidad_score, entrega_score,
+                         precio_score, servicio_score, score_global, evaluado_por, notas)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NULL, %s)
+                    """, (
+                        proveedor_id, proveedor_nombre, periodo_actual,
+                        calidad_score, entrega_score, precio_score, servicio_score,
+                        score_global, "Snapshot automático mensual"
+                    ))
+                else:
+                    cur.execute("""
+                        INSERT INTO proveedor_evaluacion
+                        (proveedor_id, proveedor_nombre, periodo, calidad_score, entrega_score,
+                         precio_score, servicio_score, score_global, evaluado_por, notas)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
+                    """, (
+                        proveedor_id, proveedor_nombre, periodo_actual,
+                        calidad_score, entrega_score, precio_score, servicio_score,
+                        score_global, "Snapshot automático mensual"
+                    ))
+
+            evaluaciones_creadas += 1
+
+        logger.info(f"Provider scorecard snapshot completed: {evaluaciones_creadas} evaluations created")
+        return {
+            "success": True,
+            "periodo": periodo_actual,
+            "evaluaciones_creadas": evaluaciones_creadas
+        }
+
+    except Exception as e:
+        logger.error(f"Error creating provider scorecard snapshot: {e}")
+        raise self.retry(exc=e)
 
 
 # =============================================================================

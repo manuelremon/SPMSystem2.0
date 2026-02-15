@@ -1400,3 +1400,124 @@ def admin_delegaciones_aprobacion_mod(delegacion_id):
             return jsonify({"ok": False, "error": "Delegacion no encontrada"}), 404
 
     return jsonify({"ok": True}), 200
+
+
+# ============================================================================
+# Auto-Approval Rules (Sprint 40)
+# ============================================================================
+
+
+@bp.route("/auto-approval-rules", methods=["GET"])
+@require_admin
+def list_auto_approval_rules():
+    """List all auto-approval rules."""
+    import json
+
+    try:
+        from backend.services.auto_approval_service import AutoApprovalService
+
+        rules = AutoApprovalService.get_rules()
+
+        for rule in rules:
+            if "condiciones_json" in rule:
+                try:
+                    rule["condiciones"] = json.loads(rule["condiciones_json"])
+                except (json.JSONDecodeError, TypeError):
+                    rule["condiciones"] = {}
+
+        return jsonify({"ok": True, "rules": rules})
+
+    except Exception as e:
+        logger.error(f"Error listing auto-approval rules: {e}")
+        return jsonify({"error": "Error al listar reglas"}), 500
+
+
+@bp.route("/auto-approval-rules", methods=["POST"])
+@require_admin
+def create_auto_approval_rule():
+    """Create a new auto-approval rule."""
+    try:
+        from backend.core.helpers import _get_user_id
+        from backend.services.auto_approval_service import AutoApprovalService
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        user_id = _get_user_id()
+        rule = AutoApprovalService.create_rule(data, user_id)
+
+        if not rule:
+            return jsonify({"error": "Failed to create rule"}), 400
+
+        return jsonify({"ok": True, "rule": rule}), 201
+
+    except Exception as e:
+        logger.error(f"Error creating auto-approval rule: {e}")
+        return jsonify({"error": "Error al crear regla"}), 500
+
+
+@bp.route("/auto-approval-rules/<int:rule_id>", methods=["PUT"])
+@require_admin
+def update_auto_approval_rule(rule_id):
+    """Update an existing auto-approval rule."""
+    try:
+        from backend.core.helpers import _get_user_id
+        from backend.services.auto_approval_service import AutoApprovalService
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        user_id = _get_user_id()
+        rule = AutoApprovalService.update_rule(rule_id, data, user_id)
+
+        if not rule:
+            return jsonify({"error": "Rule not found or update failed"}), 404
+
+        return jsonify({"ok": True, "rule": rule})
+
+    except Exception as e:
+        logger.error(f"Error updating auto-approval rule {rule_id}: {e}")
+        return jsonify({"error": "Error al actualizar regla"}), 500
+
+
+@bp.route("/auto-approval-rules/<int:rule_id>", methods=["DELETE"])
+@require_admin
+def delete_auto_approval_rule(rule_id):
+    """Delete an auto-approval rule."""
+    try:
+        from backend.core.helpers import _get_user_id
+        from backend.services.auto_approval_service import AutoApprovalService
+
+        user_id = _get_user_id()
+        deleted = AutoApprovalService.delete_rule(rule_id, user_id)
+
+        if not deleted:
+            return jsonify({"error": "Rule not found"}), 404
+
+        return jsonify({"ok": True, "message": "Rule deleted successfully"})
+
+    except Exception as e:
+        logger.error(f"Error deleting auto-approval rule {rule_id}: {e}")
+        return jsonify({"error": "Error al eliminar regla"}), 500
+
+
+@bp.route("/auto-approval-rules/simulate", methods=["POST"])
+@require_admin
+def simulate_auto_approval():
+    """Simulate auto-approval on recent solicitudes."""
+    try:
+        from backend.services.auto_approval_service import AutoApprovalService
+
+        data = request.get_json() or {}
+        rule_id = data.get("rule_id")
+        dias = min(data.get("dias", 30), 90)
+
+        result = AutoApprovalService.simulate(rule_id=rule_id, dias=dias)
+
+        return jsonify({"ok": True, **result})
+
+    except Exception as e:
+        logger.error(f"Error simulating auto-approval: {e}")
+        return jsonify({"error": "Error al simular auto-aprobación"}), 500

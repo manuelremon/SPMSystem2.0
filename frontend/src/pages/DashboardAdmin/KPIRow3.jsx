@@ -29,6 +29,8 @@ function KPIRow3({
   stockFiltrosPeriodo,
   setStockFiltrosPeriodo,
   filtrosOpciones,
+  // Drill-down handler
+  onKpiDrillDown,
 }) {
   return (
     <ScrollReveal delay={300}>
@@ -71,12 +73,14 @@ function KPIRow3({
           return (
             <Paper
               elevation={0}
+              onClick={() => onKpiDrillDown?.('materiales_top')}
               sx={{
                 flex: 1,
                 bgcolor: 'var(--surface)',
                 border: '1px solid',
                 borderColor: 'divider',
                 borderRadius: 2,
+                cursor: onKpiDrillDown ? 'pointer' : 'default',
                 transition: 'box-shadow 0.2s ease-in-out',
                 '&:hover': {
                   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
@@ -137,12 +141,14 @@ function KPIRow3({
           return (
             <Paper
               elevation={0}
+              onClick={() => onKpiDrillDown?.('stock_critico')}
               sx={{
                 flex: 1,
                 bgcolor: 'var(--surface)',
                 border: '1px solid',
                 borderColor: 'divider',
                 borderRadius: 2,
+                cursor: onKpiDrillDown ? 'pointer' : 'default',
                 transition: 'box-shadow 0.2s ease-in-out',
                 '&:hover': {
                   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',

@@ -656,3 +656,125 @@ def get_stl_decomposition():
     except Exception as e:
         logger.error(f"Error en descomposicion STL: {e}")
         return jsonify({"ok": False, "error": {"code": "decomposition_error", "message": str(e)}}), 500
+
+
+@bp.route("/forecast/ensemble/<material>", methods=["GET"])
+@require_auth
+@rate_limit(requests=10, window_seconds=60)
+def forecast_ensemble(material):
+    """
+    Predicción ensemble para un material.
+    Combina los mejores modelos disponibles.
+
+    Query params:
+        - periodos: int (default 30)
+        - modelos: comma-separated list of models to include (default: all available)
+        - centro: string (centro para filtrar datos)
+
+    Returns:
+        - ensemble: {predicciones, metricas, pesos}
+        - individuales: [{modelo, predicciones, metricas}]
+    """
+    try:
+        import pandas as pd
+
+        from backend.agent.pipelines.forecast import (
+            EnsembleStrategy,
+            obtener_estrategia,
+            obtener_estrategias_disponibles,
+        )
+        from backend.core.db import get_db_connection
+
+        # Parsear query params
+        periodos = int(request.args.get('periodos', 30))
+        centro = request.args.get('centro', '')
+        modelos_param = request.args.get('modelos', '')
+
+        # Determinar qué modelos usar
+        if modelos_param:
+            modelos_list = [m.strip() for m in modelos_param.split(',') if m.strip()]
+        else:
+            # Por defecto: usar todos los modelos disponibles excepto ensemble
+            modelos_disponibles = obtener_estrategias_disponibles()
+            # Excluir ensemble, lstm, stl (muy lentos) para ensemble rápido
+            modelos_list = [m for m in modelos_disponibles if m not in ['ensemble', 'lstm', 'stl']]
+
+        if not modelos_list:
+            return jsonify({
+                "ok": False,
+                "error": {"code": "no_models", "message": "No hay modelos disponibles para ensemble"}
+            }), 400
+
+        logger.info(f"Ensemble forecast para {material} con modelos: {modelos_list}")
+
+        # Obtener datos históricos
+        with get_db_connection("sap_data") as conn:
+            query, params = _build_consumo_query(material, centro, limit=365)
+            df = pd.read_sql_query(query, conn, params=params)
+
+        if len(df) < 20:
+            return jsonify({
+                "ok": False,
+                "error": {"code": "insufficient_data", "message": f"Datos insuficientes: {len(df)} registros"}
+            }), 400
+
+        # Crear estrategias para cada modelo
+        estrategias = []
+        for modelo_id in modelos_list:
+            estrategia = obtener_estrategia(modelo_id)
+            if estrategia:
+                estrategias.append(estrategia)
+            else:
+                logger.warning(f"Modelo {modelo_id} no disponible, omitiendo")
+
+        if not estrategias:
+            return jsonify({
+                "ok": False,
+                "error": {"code": "no_strategies", "message": "No se pudieron crear estrategias"}
+            }), 500
+
+        # Crear ensemble
+        ensemble = EnsembleStrategy(strategies=estrategias)
+
+        # Entrenar
+        metricas_ensemble = ensemble.entrenar(df)
+
+        # Generar predicciones
+        predicciones_ensemble = ensemble.predecir(df, periodos=periodos)
+
+        # Obtener pesos
+        pesos = ensemble.get_weights()
+
+        # Obtener predicciones individuales
+        predicciones_individuales = ensemble.get_individual_predictions(df, periodos=periodos)
+
+        # Construir respuesta
+        individuales = []
+        for nombre, pred_df in predicciones_individuales.items():
+            metricas_modelo = ensemble._individual_metrics.get(nombre, {})
+            individuales.append({
+                'modelo': nombre,
+                'predicciones': pred_df.to_dict('records'),
+                'metricas': _sanitize_for_json(metricas_modelo),
+                'peso': pesos.get(nombre, 0)
+            })
+
+        return jsonify({
+            "ok": True,
+            "data": {
+                "ensemble": {
+                    "predicciones": predicciones_ensemble.to_dict('records'),
+                    "metricas": _sanitize_for_json(metricas_ensemble),
+                    "pesos": _sanitize_for_json(pesos),
+                    "n_modelos": len(estrategias)
+                },
+                "individuales": individuales,
+                "material": material,
+                "centro": centro,
+                "periodos": periodos
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error en ensemble forecast: {e}")
+        return jsonify({"ok": False, "error": {"code": "ensemble_error", "message": str(e)}}), 500

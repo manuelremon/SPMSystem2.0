@@ -19,6 +19,7 @@ import { KPIRow1 } from './DashboardAdmin/index';
 import { KPIRow2 } from './DashboardAdmin/index';
 import { KPIRow3 } from './DashboardAdmin/index';
 import { ExpandedCardDialog } from './DashboardAdmin/index';
+import DrillDownModal from '../components/Dashboard/DrillDownModal';
 
 // ============================================================================
 // DASHBOARD ADMIN COMPONENT
@@ -40,6 +41,11 @@ export default function DashboardAdmin() {
   // Modal expand state
   const [expandedCard, setExpandedCard] = useState(null);
   const [expandedTitle, setExpandedTitle] = useState('');
+
+  // Drill-down state
+  const [drillDownOpen, setDrillDownOpen] = useState(false);
+  const [drillDownMetrica, setDrillDownMetrica] = useState(null);
+  const [drillDownFiltros, setDrillDownFiltros] = useState({});
 
   // Solicitudes state
   const [solicitudesCollapsed, setSolicitudesCollapsed] = useState(true); // Por defecto colapsado
@@ -122,68 +128,75 @@ export default function DashboardAdmin() {
   // DATA FETCHING EFFECTS
   // ============================================================================
 
-  // Fetch solicitudes - con AbortController para cleanup
+  // Track which tabs have been loaded (lazy loading)
+  const [loadedTabs, setLoadedTabs] = useState({ todas: false, pendientes: false, en_proceso: false, completadas: false, rechazadas: false });
+  const [tabLoading, setTabLoading] = useState({});
+
+  // Fetch solicitudes - Solo "todas" en mount (para KPIs), otras tabs on-demand
   useEffect(() => {
     const abortController = new AbortController();
-    let isMounted = true; // Flag para tracking de unmount
+    let isMounted = true;
 
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // Fetch ALL solicitudes for "Todas" tab (no estado filter)
-        const [todasRes, pendientesRes, enProcesoRes, completadasRes, rechazadasRes] = await Promise.all([
-          solicitudes.listar({ page_size: 2000, signal: abortController.signal }).catch(() => null),
-          solicitudes.listar({ estado: "submitted", page_size: 2000, signal: abortController.signal }).catch(() => null),
-          solicitudes.listar({ estado: "processing", page_size: 2000, signal: abortController.signal }).catch(() => null),
-          solicitudes.listar({ estado: "approved", page_size: 2000, signal: abortController.signal }).catch(() => null),
-          solicitudes.listar({ estado: "rejected", page_size: 2000, signal: abortController.signal }).catch(() => null),
-        ]);
+        const todasRes = await solicitudes.listar({ page_size: 2000, signal: abortController.signal }).catch(() => null);
 
-        // Verificar que el componente siga montado antes de updatear state
         if (!isMounted) return;
 
         const todasLista = (todasRes?.data?.solicitudes || todasRes?.data?.items || [])
           .sort((a, b) => new Date(b.fecha_creacion || b.created_at || 0) - new Date(a.fecha_creacion || a.created_at || 0));
-        const pendientesLista = pendientesRes?.data?.solicitudes || pendientesRes?.data?.items || [];
-        const enProcesoLista = enProcesoRes?.data?.solicitudes || enProcesoRes?.data?.items || [];
-        const completadasLista = completadasRes?.data?.solicitudes || completadasRes?.data?.items || [];
-        const rechazadasLista = rechazadasRes?.data?.solicitudes || rechazadasRes?.data?.items || [];
 
-        setStats({
+        setStats(prev => ({
+          ...prev,
           todas: todasRes?.data?.total || todasLista.length,
-          pendientes: pendientesRes?.data?.total || pendientesLista.length,
-          en_proceso: enProcesoRes?.data?.total || enProcesoLista.length,
-          completadas: completadasRes?.data?.total || completadasLista.length,
-          rechazadas: rechazadasRes?.data?.total || rechazadasLista.length,
-        });
+        }));
 
-        setAllData({
-          todas: todasLista,
-          pendientes: pendientesLista,
-          en_proceso: enProcesoLista,
-          completadas: completadasLista,
-          rechazadas: rechazadasLista,
-        });
+        setAllData(prev => ({ ...prev, todas: todasLista }));
+        setLoadedTabs(prev => ({ ...prev, todas: true }));
       } catch (err) {
-        // Ignorar AbortError y errores si componente fue unmounted
         if (!isMounted || err?.name === 'AbortError') return;
         console.error("Error fetching solicitudes:", err);
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchData();
 
-    // Cleanup: abortar fetch y marcar como unmounted
     return () => {
       isMounted = false;
       abortController.abort();
     };
   }, [user]);
+
+  // Lazy fetch tab data when tab is selected
+  const fetchTabData = useCallback(async (tabKey) => {
+    if (loadedTabs[tabKey] || tabKey === 'todas') return;
+
+    const estadoMap = {
+      pendientes: 'submitted',
+      en_proceso: 'processing',
+      completadas: 'approved',
+      rechazadas: 'rejected',
+    };
+    const estado = estadoMap[tabKey];
+    if (!estado) return;
+
+    setTabLoading(prev => ({ ...prev, [tabKey]: true }));
+    try {
+      const res = await solicitudes.listar({ estado, page_size: 2000 }).catch(() => null);
+      const lista = res?.data?.solicitudes || res?.data?.items || [];
+      setAllData(prev => ({ ...prev, [tabKey]: lista }));
+      setStats(prev => ({ ...prev, [tabKey]: res?.data?.total || lista.length }));
+      setLoadedTabs(prev => ({ ...prev, [tabKey]: true }));
+    } catch (err) {
+      console.error(`Error fetching tab ${tabKey}:`, err);
+    } finally {
+      setTabLoading(prev => ({ ...prev, [tabKey]: false }));
+    }
+  }, [loadedTabs]);
 
   // Fetch KPIs - con AbortController
   useEffect(() => {
@@ -545,6 +558,18 @@ export default function DashboardAdmin() {
   // EVENT HANDLERS
   // ============================================================================
 
+  // Handler para drill-down KPI click (opens modal with granular data)
+  const handleKpiDrillDown = useCallback((metrica) => {
+    setDrillDownMetrica(metrica);
+    setDrillDownFiltros({
+      centro: centrosSeleccionados.length < filtrosOpciones.centros.length
+        ? centrosSeleccionados.join(',') : undefined,
+      sector: sectoresSeleccionados.length < filtrosOpciones.sectores.length
+        ? sectoresSeleccionados.join(',') : undefined,
+    });
+    setDrillDownOpen(true);
+  }, [centrosSeleccionados, sectoresSeleccionados, filtrosOpciones]);
+
   // Handler para drill-down desde graficos
   const handleDrillDown = useCallback((statusId, item) => {
     // Mapear el ID del estado al tab correspondiente
@@ -558,8 +583,9 @@ export default function DashboardAdmin() {
     };
     const targetTab = tabMapping[statusId] || 'todas';
     setActiveTab(targetTab);
+    fetchTabData(targetTab);
     setSolicitudesCollapsed(false); // Expandir la tabla
-  }, []);
+  }, [fetchTabData]);
 
   const columnDefs = useMemo(() => getTableColumnsAgGrid(t), [t]);
 
@@ -573,14 +599,16 @@ export default function DashboardAdmin() {
   ], [t, stats]);
 
   const currentData = allData[activeTab] || [];
+  const isTabLoading = tabLoading[activeTab] || false;
 
   const handleTabChange = useCallback((value) => {
     if (value === "crear") {
       navigate("/solicitudes/nueva");
     } else {
       setActiveTab(value);
+      fetchTabData(value);
     }
-  }, [navigate]);
+  }, [navigate, fetchTabData]);
 
   const tableTitle = useMemo(() => {
     switch (activeTab) {
@@ -612,7 +640,7 @@ export default function DashboardAdmin() {
       {/* SOLICITUDES SECTION - Contenedor colapsable */}
       <SolicitudesSection
         t={t}
-        loading={loading}
+        loading={loading || isTabLoading}
         stats={stats}
         solicitudesCollapsed={solicitudesCollapsed}
         setSolicitudesCollapsed={setSolicitudesCollapsed}
@@ -666,6 +694,7 @@ export default function DashboardAdmin() {
             setProveedoresSeleccionados={setProveedoresSeleccionados}
             setExpandedCard={setExpandedCard}
             setExpandedTitle={setExpandedTitle}
+            onKpiDrillDown={handleKpiDrillDown}
           />
 
           {/* Fila 2: Distribucion + Tendencia + Presupuesto */}
@@ -682,6 +711,7 @@ export default function DashboardAdmin() {
             handleDrillDown={handleDrillDown}
             setExpandedCard={setExpandedCard}
             setExpandedTitle={setExpandedTitle}
+            onKpiDrillDown={handleKpiDrillDown}
           />
 
           {/* Fila 3: Materiales y Stock */}
@@ -697,6 +727,15 @@ export default function DashboardAdmin() {
             stockFiltrosPeriodo={stockFiltrosPeriodo}
             setStockFiltrosPeriodo={setStockFiltrosPeriodo}
             filtrosOpciones={filtrosOpciones}
+            onKpiDrillDown={handleKpiDrillDown}
+          />
+
+          {/* Drill-Down Modal */}
+          <DrillDownModal
+            open={drillDownOpen}
+            onClose={() => setDrillDownOpen(false)}
+            metrica={drillDownMetrica}
+            filtros={drillDownFiltros}
           />
 
           {/* Modal para ampliar cards */}

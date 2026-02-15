@@ -111,6 +111,8 @@ const SpreadsheetShared = lazy(() => import('./pages/SpreadsheetShared'))
 const AnomaliaDetection = lazy(() => import('./pages/AnomaliaDetection'))
 const MaterialClusters = lazy(() => import('./pages/MaterialClusters'))
 const ProveedorScorecard = lazy(() => import('./pages/ProveedorScorecard'))
+const ReportesProgramados = lazy(() => import('./pages/ReportesProgramados'))
+const AdminAutoAprobacion = lazy(() => import('./pages/AdminAutoAprobacion'))
 
 function App() {
   const { user, isLoading, getCurrentUser } = useAuthStore()
@@ -226,6 +228,8 @@ function App() {
             <Route path="/admin/analisis-puntual" element={<ProtectedRoute roles={['administrador', 'admin']}><AnalisisPuntualHome /></ProtectedRoute>} />
             <Route path="/admin/analisis-puntual/mrp" element={<ProtectedRoute roles={['administrador', 'admin']}><AnalisisPuntualMRP /></ProtectedRoute>} />
             <Route path="/admin/analisis-puntual/forecast" element={<ProtectedRoute roles={['administrador', 'admin']}><AnalisisPuntualForecast /></ProtectedRoute>} />
+            <Route path="/admin/auto-aprobacion" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminAutoAprobacion /></ProtectedRoute>} />
+            <Route path="/reportes/programados" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ReportesProgramados /></ProtectedRoute>} />
             <Route path="/registro/completar" element={<ProtectedRoute><CompleteRegistration /></ProtectedRoute>} />
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="*" element={<Navigate to="/dashboard" />} />

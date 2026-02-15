@@ -54,6 +54,8 @@ function KPIRow1({
   // Expand handlers
   setExpandedCard,
   setExpandedTitle,
+  // Drill-down handler
+  onKpiDrillDown,
 }) {
   return (
     <ScrollReveal delay={100}>
@@ -98,7 +100,7 @@ function KPIRow1({
           }
 
           return (
-            <Box ref={solicitudesCredasRef} sx={{ flex: '1 1 340px', minWidth: 300, maxWidth: 420, height: 180, position: 'relative' }}>
+            <Box ref={solicitudesCredasRef} onClick={() => onKpiDrillDown?.('solicitudes_diarias')} sx={{ flex: '1 1 340px', minWidth: 300, maxWidth: 420, height: 180, position: 'relative', cursor: onKpiDrillDown ? 'pointer' : 'default' }}>
               <Box sx={{ position: 'absolute', top: 40, right: 8, zIndex: 10 }}>
                 <ExpandCardButton
                   onClick={() => {
@@ -319,6 +321,7 @@ function KPIRow1({
             <Paper
               ref={tiemposGestionRef}
               elevation={0}
+              onClick={() => onKpiDrillDown?.('tiempos_promedio')}
               sx={{
                 flex: '1 1 320px',
                 minWidth: 280,
@@ -329,6 +332,7 @@ function KPIRow1({
                 borderColor: 'divider',
                 borderRadius: 2,
                 overflow: 'visible',
+                cursor: onKpiDrillDown ? 'pointer' : 'default',
                 transition: 'box-shadow 0.2s ease-in-out',
                 '&:hover': {
                   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
@@ -478,6 +482,7 @@ function KPIRow1({
             <Paper
               ref={fuenteAbastecimientoRef}
               elevation={0}
+              onClick={() => onKpiDrillDown?.('compras_evitadas')}
               sx={{
                 flex: '1 1 320px',
                 minWidth: 280,
@@ -487,6 +492,7 @@ function KPIRow1({
                 border: '1px solid',
                 borderColor: 'divider',
                 borderRadius: 2,
+                cursor: onKpiDrillDown ? 'pointer' : 'default',
                 transition: 'box-shadow 0.2s ease-in-out',
                 '&:hover': {
                   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',

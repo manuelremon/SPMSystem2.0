@@ -1510,3 +1510,215 @@ def comparar_proveedores():
     except Exception as e:
         logger.error(f"Error comparando proveedores: {e}")
         return jsonify({"error": "Error al comparar proveedores"}), 500
+
+
+# ============================================================================
+# Scorecard Persistente (Sprint 39)
+# ============================================================================
+
+
+@procurement_bp.route('/scorecard/ranking', methods=['GET'])
+@require_auth
+def get_scorecard_ranking():
+    """
+    Ranking de proveedores con scorecard persistente (evaluaciones históricas).
+
+    Query params:
+        - limit: Máximo de proveedores (default: 50)
+        - periodo: Filtrar por periodo (formato YYYY-MM, opcional)
+
+    Returns:
+        {ok: true, ranking: [...]}
+    """
+    try:
+        limit = min(request.args.get('limit', 50, type=int), 200)
+        periodo = request.args.get('periodo')
+
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+
+            # Get latest evaluation per provider
+            if periodo:
+                cur.execute("""
+                    SELECT proveedor_id, proveedor_nombre,
+                           calidad_score, entrega_score, precio_score,
+                           servicio_score, score_global, periodo, created_at
+                    FROM proveedor_evaluacion
+                    WHERE periodo = ?
+                    ORDER BY score_global DESC
+                    LIMIT ?
+                """, (periodo, limit))
+            else:
+                cur.execute("""
+                    SELECT pe.proveedor_id, pe.proveedor_nombre,
+                           pe.calidad_score, pe.entrega_score, pe.precio_score,
+                           pe.servicio_score, pe.score_global, pe.periodo, pe.created_at
+                    FROM proveedor_evaluacion pe
+                    INNER JOIN (
+                        SELECT proveedor_id, MAX(created_at) as max_created
+                        FROM proveedor_evaluacion
+                        GROUP BY proveedor_id
+                    ) latest ON pe.proveedor_id = latest.proveedor_id
+                              AND pe.created_at = latest.max_created
+                    ORDER BY pe.score_global DESC
+                    LIMIT ?
+                """, (limit,))
+
+            rows = cur.fetchall()
+
+        ranking = []
+        for row in rows:
+            d = dict(row)
+            # Calculate tendencia (diff with previous period)
+            tendencia = None
+            try:
+                with get_db_connection() as conn:
+                    cur = conn.cursor()
+                    cur.execute("""
+                        SELECT score_global FROM proveedor_evaluacion
+                        WHERE proveedor_id = ? AND created_at < ?
+                        ORDER BY created_at DESC LIMIT 1
+                    """, (d['proveedor_id'], d['created_at']))
+                    prev = cur.fetchone()
+                    if prev:
+                        tendencia = round(float(d.get('score_global') or 0) - float(prev['score_global'] or 0), 1)
+            except Exception:
+                pass
+
+            ranking.append({
+                'proveedor_id': d.get('proveedor_id'),
+                'nombre': d.get('proveedor_nombre'),
+                'score_global': float(d.get('score_global') or 0),
+                'entrega_score': float(d.get('entrega_score') or 0),
+                'calidad_score': float(d.get('calidad_score') or 0),
+                'precio_score': float(d.get('precio_score') or 0),
+                'servicio_score': float(d.get('servicio_score') or 0),
+                'tendencia': tendencia,
+                'periodo': d.get('periodo'),
+            })
+
+        return jsonify({"ok": True, "ranking": ranking})
+
+    except Exception as e:
+        logger.error(f"Error obteniendo scorecard ranking: {e}")
+        return jsonify({"error": "Error al obtener ranking de scorecard"}), 500
+
+
+@procurement_bp.route('/scorecard/<proveedor_id>/evaluar', methods=['POST'])
+@require_auth
+@require_role(['admin', 'planner'])
+def evaluar_proveedor(proveedor_id):
+    """
+    Crear evaluación manual de un proveedor.
+
+    JSON body:
+        {
+            calidad_score: float (0-100),
+            entrega_score: float (0-100),
+            precio_score: float (0-100),
+            servicio_score: float (0-100),
+            periodo: str (YYYY-MM),
+            notas: str (optional)
+        }
+    """
+    import json
+    from datetime import datetime
+
+    from backend.core.db import get_db_transaction, is_using_postgresql
+
+    data = request.get_json() or {}
+    user_id = _get_user_id()
+
+    calidad = min(max(float(data.get('calidad_score', 0)), 0), 100)
+    entrega = min(max(float(data.get('entrega_score', 0)), 0), 100)
+    precio = min(max(float(data.get('precio_score', 0)), 0), 100)
+    servicio = min(max(float(data.get('servicio_score', 0)), 0), 100)
+    score_global = round(calidad * 0.25 + entrega * 0.30 + precio * 0.25 + servicio * 0.20, 1)
+    periodo = data.get('periodo', datetime.now().strftime('%Y-%m'))
+    notas = data.get('notas', '')
+    proveedor_nombre = data.get('nombre', proveedor_id)
+
+    try:
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+            if is_using_postgresql():
+                cur.execute("""
+                    INSERT INTO proveedor_evaluacion
+                    (proveedor_id, proveedor_nombre, periodo, calidad_score,
+                     entrega_score, precio_score, servicio_score, score_global,
+                     evaluado_por, notas)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                """, (proveedor_id, proveedor_nombre, periodo, calidad,
+                      entrega, precio, servicio, score_global, user_id, notas))
+                eval_id = cur.fetchone()[0]
+            else:
+                cur.execute("""
+                    INSERT INTO proveedor_evaluacion
+                    (proveedor_id, proveedor_nombre, periodo, calidad_score,
+                     entrega_score, precio_score, servicio_score, score_global,
+                     evaluado_por, notas)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (proveedor_id, proveedor_nombre, periodo, calidad,
+                      entrega, precio, servicio, score_global, user_id, notas))
+                eval_id = cur.lastrowid
+
+        return jsonify({
+            "ok": True,
+            "data": {
+                "id": eval_id,
+                "proveedor_id": proveedor_id,
+                "score_global": score_global,
+                "periodo": periodo,
+            }
+        }), 201
+
+    except Exception as e:
+        logger.error(f"Error evaluando proveedor: {e}")
+        return jsonify({"error": "Error al evaluar proveedor"}), 500
+
+
+@procurement_bp.route('/scorecard/<proveedor_id>/historial', methods=['GET'])
+@require_auth
+def get_scorecard_historial(proveedor_id):
+    """
+    Obtener historial de evaluaciones de un proveedor.
+
+    Query params:
+        - meses: Meses hacia atrás (default: 12)
+    """
+    meses = min(request.args.get('meses', 12, type=int), 36)
+
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+
+            # Current (latest)
+            cur.execute("""
+                SELECT * FROM proveedor_evaluacion
+                WHERE proveedor_id = ?
+                ORDER BY created_at DESC LIMIT 1
+            """, (proveedor_id,))
+            current_row = cur.fetchone()
+            current = dict(current_row) if current_row else None
+
+            # Historial
+            cur.execute("""
+                SELECT periodo, calidad_score, entrega_score, precio_score,
+                       servicio_score, score_global, evaluado_por, notas, created_at
+                FROM proveedor_evaluacion
+                WHERE proveedor_id = ?
+                ORDER BY periodo DESC
+                LIMIT ?
+            """, (proveedor_id, meses))
+            historial = [dict(row) for row in cur.fetchall()]
+
+        return jsonify({
+            "ok": True,
+            "current": current,
+            "historial": historial,
+        })
+
+    except Exception as e:
+        logger.error(f"Error obteniendo historial scorecard: {e}")
+        return jsonify({"error": "Error al obtener historial"}), 500
