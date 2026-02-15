@@ -118,6 +118,23 @@ const AdminWebhooks = lazy(() => import('./pages/AdminWebhooks'))
 const ABCAnalysis = lazy(() => import('./pages/ABCAnalysis'))
 const WhatIfInventario = lazy(() => import('./pages/WhatIfInventario'))
 
+// Sprint 51-60 pages (lazy-loaded)
+const AdminAuditLog = lazy(() => import('./pages/AdminAuditLog'))
+const CostSavings = lazy(() => import('./pages/CostSavings'))
+const InventoryAging = lazy(() => import('./pages/InventoryAging'))
+const Contracts = lazy(() => import('./pages/Contracts'))
+const ContractCreate = lazy(() => import('./pages/ContractCreate'))
+const ContractDetail = lazy(() => import('./pages/ContractDetail'))
+const RFQList = lazy(() => import('./pages/RFQList'))
+const RFQCreate = lazy(() => import('./pages/RFQCreate'))
+const RFQDetail = lazy(() => import('./pages/RFQDetail'))
+const QualityInspections = lazy(() => import('./pages/QualityInspections'))
+const InspectionDetail = lazy(() => import('./pages/InspectionDetail'))
+const NCRList = lazy(() => import('./pages/NCRList'))
+const NCRDetail = lazy(() => import('./pages/NCRDetail'))
+const CAPAList = lazy(() => import('./pages/CAPAList'))
+const CAPADetail = lazy(() => import('./pages/CAPADetail'))
+
 function App() {
   const { user, isLoading, getCurrentUser } = useAuthStore()
   const [appLoading, setAppLoading] = useState(true)
@@ -237,7 +254,25 @@ function App() {
             <Route path="/admin/auto-aprobacion" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminAutoAprobacion /></ProtectedRoute>} />
             <Route path="/admin/escalacion" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminEscalacion /></ProtectedRoute>} />
             <Route path="/admin/webhooks" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminWebhooks /></ProtectedRoute>} />
+            <Route path="/admin/audit-log" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminAuditLog /></ProtectedRoute>} />
             <Route path="/reportes/programados" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ReportesProgramados /></ProtectedRoute>} />
+            {/* Procurement - Sprints 52, 54-58 */}
+            <Route path="/procurement/savings" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><CostSavings /></ProtectedRoute>} />
+            <Route path="/procurement/contracts" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><Contracts /></ProtectedRoute>} />
+            <Route path="/procurement/contracts/new" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ContractCreate /></ProtectedRoute>} />
+            <Route path="/procurement/contracts/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ContractDetail /></ProtectedRoute>} />
+            <Route path="/procurement/rfq" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><RFQList /></ProtectedRoute>} />
+            <Route path="/procurement/rfq/new" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><RFQCreate /></ProtectedRoute>} />
+            <Route path="/procurement/rfq/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><RFQDetail /></ProtectedRoute>} />
+            {/* Operations - Sprint 53 */}
+            <Route path="/operations/slob" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><InventoryAging /></ProtectedRoute>} />
+            {/* Quality - Sprints 59-60 */}
+            <Route path="/quality/inspections" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><QualityInspections /></ProtectedRoute>} />
+            <Route path="/quality/inspections/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><InspectionDetail /></ProtectedRoute>} />
+            <Route path="/quality/ncr" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><NCRList /></ProtectedRoute>} />
+            <Route path="/quality/ncr/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><NCRDetail /></ProtectedRoute>} />
+            <Route path="/quality/capa" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><CAPAList /></ProtectedRoute>} />
+            <Route path="/quality/capa/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><CAPADetail /></ProtectedRoute>} />
             <Route path="/registro/completar" element={<ProtectedRoute><CompleteRegistration /></ProtectedRoute>} />
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="*" element={<Navigate to="/dashboard" />} />

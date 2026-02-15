@@ -945,6 +945,63 @@ def _row_to_dict(row) -> Dict[str, Any]:
     return {}
 
 
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+def refresh_inventory_aging(self) -> Dict[str, Any]:
+    """Daily refresh of inventory aging snapshot."""
+    logger.info("Refreshing inventory aging snapshot")
+    try:
+        from backend.services.slob_service import generar_snapshot_aging
+        result = generar_snapshot_aging()
+        logger.info("Inventory aging snapshot completed: %s", result)
+        return {"success": True, **result}
+    except Exception as e:
+        logger.error("Error refreshing inventory aging: %s", e)
+        raise self.retry(exc=e)
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+def check_contract_expiry(self) -> Dict[str, Any]:
+    """Daily check for contracts expiring in next 30 days."""
+    logger.info("Checking contract expiry dates")
+    try:
+        from backend.services.contract_service import verificar_contratos_proximos_vencer
+        contratos = verificar_contratos_proximos_vencer()
+        logger.info("Contract expiry check: %d contracts expiring soon", len(contratos))
+        return {"success": True, "contratos_alertados": len(contratos)}
+    except Exception as e:
+        logger.error("Error checking contract expiry: %s", e)
+        raise self.retry(exc=e)
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+def refresh_supplier_quality_scores(self) -> Dict[str, Any]:
+    """Monthly refresh of supplier quality scores from NCR data."""
+    logger.info("Refreshing supplier quality scores")
+    try:
+        from backend.core.db import get_db_connection
+        from backend.services.quality_service import calcular_score_calidad_proveedor
+
+        # Get all suppliers with NCRs
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT DISTINCT proveedor_cuit FROM ncr WHERE proveedor_cuit IS NOT NULL")
+            proveedores = [row["proveedor_cuit"] for row in cur.fetchall()]
+
+        updated = 0
+        for cuit in proveedores:
+            try:
+                calcular_score_calidad_proveedor(cuit, 12)
+                updated += 1
+            except Exception:
+                pass
+
+        logger.info("Supplier quality scores refreshed: %d suppliers", updated)
+        return {"success": True, "suppliers_updated": updated}
+    except Exception as e:
+        logger.error("Error refreshing supplier quality scores: %s", e)
+        raise self.retry(exc=e)
+
+
 @celery_app.task(bind=True, max_retries=2, default_retry_delay=120)
 def snapshot_proveedor_scorecard(self) -> Dict[str, Any]:
     """
@@ -1163,6 +1220,28 @@ def _get_email_template(template_type: str, **kwargs) -> str:
                         <li>Estado actual: {kwargs.get('estado', '')}</li>
                     </ul>
                     <a href="{kwargs.get('url', '#')}" class="button" style="background: #ffc107; color: #333;">Ver Solicitud</a>
+                </div>
+                <div class="footer"><p>SPM - Sistema de Planificacion de Materiales</p></div>
+            </div>
+        </body>
+        </html>
+        """
+
+    elif template_type == "contract_expiry":
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head>{base_style}</head>
+        <body>
+            <div class="container">
+                <div class="header" style="background: #ffc107; color: #333;"><h1>Contrato por Vencer</h1></div>
+                <div class="content">
+                    <p>Hola <strong>{kwargs.get('nombre', 'Usuario')}</strong>,</p>
+                    <div class="alert">
+                        <p>El contrato <strong>{kwargs.get('numero_contrato', '')}</strong>
+                        vence el <strong>{kwargs.get('fecha_vencimiento', '')}</strong>.</p>
+                    </div>
+                    <p>Proveedor: {kwargs.get('proveedor', '')}</p>
                 </div>
                 <div class="footer"><p>SPM - Sistema de Planificacion de Materiales</p></div>
             </div>

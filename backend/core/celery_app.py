@@ -111,6 +111,18 @@ def make_celery(app_name: str = "spm") -> Celery:
                 "task": "backend.core.tasks.snapshot_proveedor_scorecard",
                 "schedule": crontab(day_of_month=1, hour=2, minute=0),
             },
+            "refresh-inventory-aging-daily": {
+                "task": "backend.core.tasks.refresh_inventory_aging",
+                "schedule": crontab(hour=2, minute=30),
+            },
+            "check-contract-expiry-daily": {
+                "task": "backend.core.tasks.check_contract_expiry",
+                "schedule": crontab(hour=8, minute=0),
+            },
+            "refresh-supplier-quality-scores-monthly": {
+                "task": "backend.core.tasks.refresh_supplier_quality_scores",
+                "schedule": crontab(day_of_month=1, hour=3, minute=0),
+            },
         },
     )
 

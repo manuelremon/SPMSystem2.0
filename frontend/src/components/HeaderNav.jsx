@@ -27,6 +27,7 @@ function HeaderNav() {
   const [mrpAnchor, setMrpAnchor] = useState(null);
   const [forecastAnchor, setForecastAnchor] = useState(null);
   const [adminAnchor, setAdminAnchor] = useState(null);
+  const [qualityAnchor, setQualityAnchor] = useState(null);
 
   // Role helpers
   const getUserRoles = () => {
@@ -69,6 +70,7 @@ function HeaderNav() {
     setMrpAnchor(null);
     setForecastAnchor(null);
     setAdminAnchor(null);
+    setQualityAnchor(null);
   }, [location.pathname]);
 
   const menuItemSx = {
@@ -304,6 +306,30 @@ function HeaderNav() {
             </MenuItem>
             <MenuItem
               component={NavLink}
+              to="/procurement/contracts"
+              onClick={() => setPlanificadorAnchor(null)}
+              sx={isPathActive("/procurement/contracts") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_contracts", "Contratos")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/procurement/rfq"
+              onClick={() => setPlanificadorAnchor(null)}
+              sx={isPathActive("/procurement/rfq") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_rfq", "Licitaciones (RFQ)")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/procurement/savings"
+              onClick={() => setPlanificadorAnchor(null)}
+              sx={isPathActive("/procurement/savings") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_savings", "Cost Savings")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
               to="/planificador/ai"
               onClick={() => setPlanificadorAnchor(null)}
               sx={isPathActive("/planificador/ai") ? activeMenuItemSx : menuItemSx}
@@ -389,6 +415,14 @@ function HeaderNav() {
             >
               {t("nav_whatif", "What-If Inventario")}
             </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/operations/slob"
+              onClick={() => setMrpAnchor(null)}
+              sx={isPathActive("/operations/slob") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_slob", "Aging & SLOB")}
+            </MenuItem>
           </Menu>
         </div>
       )}
@@ -433,6 +467,59 @@ function HeaderNav() {
               sx={isPathActive("/forecast/masivo") ? activeMenuItemSx : menuItemSx}
             >
               {t("nav_forecast_masivo", "Masivo")}
+            </MenuItem>
+          </Menu>
+        </div>
+      )}
+
+      {/* QUALITY */}
+      {canSeePlanner && (
+        <div className="border-r border-[var(--header-border,#424242)]">
+          <button
+            type="button"
+            onClick={(e) => setQualityAnchor(e.currentTarget)}
+            className={clsx(
+              "flex items-center gap-1 px-4 h-[43px] transition-all duration-200",
+              "text-[10px] font-semibold uppercase tracking-wide",
+              qualityAnchor || isPathActive("/quality")
+                ? "bg-[var(--primary)] text-white"
+                : "text-white hover:bg-[var(--header-border,#424242)]"
+            )}
+          >
+            <span>{t("nav_quality", "Calidad")}</span>
+            <ChevronDown className={clsx("w-3 h-3 transition-transform", qualityAnchor && "rotate-180")} />
+          </button>
+          <Menu
+            anchorEl={qualityAnchor}
+            open={Boolean(qualityAnchor)}
+            disableScrollLock={true}
+            onClose={() => setQualityAnchor(null)}
+            MenuListProps={{ sx: { py: 0 } }}
+            PaperProps={{ sx: { minWidth: 160, ...menuPaperSx } }}
+          >
+            <MenuItem
+              component={NavLink}
+              to="/quality/inspections"
+              onClick={() => setQualityAnchor(null)}
+              sx={isPathActive("/quality/inspections") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_inspections", "Inspecciones")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/quality/ncr"
+              onClick={() => setQualityAnchor(null)}
+              sx={isPathActive("/quality/ncr") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_ncr", "NCR")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/quality/capa"
+              onClick={() => setQualityAnchor(null)}
+              sx={isPathActive("/quality/capa") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_capa", "CAPA")}
             </MenuItem>
           </Menu>
         </div>
@@ -578,6 +665,14 @@ function HeaderNav() {
               sx={isPathActive("/admin/webhooks") ? activeMenuItemSx : menuItemSx}
             >
               {t("admin_webhooks", "Webhooks")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/admin/audit-log"
+              onClick={() => setAdminAnchor(null)}
+              sx={isPathActive("/admin/audit-log") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("admin_audit_log", "Audit Log")}
             </MenuItem>
             <Divider />
             {/* Sistema */}

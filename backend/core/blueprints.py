@@ -124,3 +124,27 @@ def register_blueprints(app: Flask) -> None:
     # Webhooks (outbound events)
     from backend.routes import webhooks
     app.register_blueprint(webhooks.bp)  # Webhooks at /api/webhooks
+
+    # Audit Log (Sprint 51)
+    from backend.routes.audit import bp as audit_bp
+    app.register_blueprint(audit_bp)  # Audit at /api/audit
+
+    # Cost Savings (Sprint 52)
+    from backend.routes.savings import bp as savings_bp
+    app.register_blueprint(savings_bp)  # Savings at /api/savings
+
+    # Inventory Aging & SLOB (Sprint 53)
+    from backend.routes.slob import slob_bp
+    app.register_blueprint(slob_bp)  # SLOB at /api/slob
+
+    # Contract Management (Sprints 54-56)
+    from backend.routes.contracts import bp as contracts_bp
+    app.register_blueprint(contracts_bp)  # Contracts at /api/contracts
+
+    # RFQ (Sprints 57-58)
+    from backend.routes.rfq import rfq_bp
+    app.register_blueprint(rfq_bp)  # RFQ at /api/rfq
+
+    # Quality Management (Sprints 59-60)
+    from backend.routes.quality import quality_bp
+    app.register_blueprint(quality_bp)  # Quality at /api/quality
