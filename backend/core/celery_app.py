@@ -123,6 +123,18 @@ def make_celery(app_name: str = "spm") -> Celery:
                 "task": "backend.core.tasks.refresh_supplier_quality_scores",
                 "schedule": crontab(day_of_month=1, hour=3, minute=0),
             },
+            "snapshot-spend-monthly": {
+                "task": "backend.core.tasks.snapshot_spend_monthly",
+                "schedule": crontab(day_of_month=1, hour=4, minute=0),
+            },
+            "recalculate-supplier-risk-weekly": {
+                "task": "backend.core.tasks.recalculate_supplier_risk",
+                "schedule": crontab(day_of_week=1, hour=5, minute=0),
+            },
+            "check-certification-expiry-daily": {
+                "task": "backend.core.tasks.check_certification_expiry",
+                "schedule": crontab(hour=7, minute=0),
+            },
         },
     )
 

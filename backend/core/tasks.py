@@ -1132,6 +1132,81 @@ def snapshot_proveedor_scorecard(self) -> Dict[str, Any]:
 # =============================================================================
 
 
+# =============================================================================
+# Spend Analytics Tasks (Sprint 62)
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+def snapshot_spend_monthly(self) -> Dict[str, Any]:
+    """Monthly snapshot of spend analytics by category."""
+    logger.info("Creating monthly spend snapshot")
+    try:
+        from datetime import datetime
+
+        from backend.services.spend_service import tomar_snapshot_periodo
+
+        periodo = datetime.utcnow().strftime("%Y-%m")
+        result = tomar_snapshot_periodo(periodo)
+        logger.info("Spend snapshot completed for %s: %s", periodo, result)
+        return {"success": True, "periodo": periodo, **result}
+    except Exception as e:
+        logger.error("Error creating spend snapshot: %s", e)
+        raise self.retry(exc=e)
+
+
+# =============================================================================
+# Supplier Risk Tasks (Sprint 63)
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+def recalculate_supplier_risk(self) -> Dict[str, Any]:
+    """Weekly recalculation of all supplier risk scores."""
+    logger.info("Recalculating supplier risk scores")
+    try:
+        from backend.services.supplier_risk_service import recalcular_todos
+
+        result = recalcular_todos()
+        logger.info("Supplier risk recalculation completed: %s", result)
+        return {"success": True, **result}
+    except Exception as e:
+        logger.error("Error recalculating supplier risk: %s", e)
+        raise self.retry(exc=e)
+
+
+# =============================================================================
+# Certification Expiry Tasks (Sprint 69)
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+def check_certification_expiry(self) -> Dict[str, Any]:
+    """Daily check for supplier certifications expiring within 30 days."""
+    logger.info("Checking certification expiry dates")
+    try:
+        from backend.services.supplier_audit_service import alertas_vencimiento
+
+        alertas = alertas_vencimiento(dias=30)
+        for alerta in alertas:
+            send_notification.delay(
+                user_id=1,
+                title="Certificación por vencer",
+                message=f"Certificación {alerta.get('nombre', '')} del proveedor {alerta.get('proveedor_cuit', '')} vence en {alerta.get('dias_restantes', '?')} días",
+                notification_type="warning",
+            )
+        logger.info("Certification expiry check: %d alerts", len(alertas))
+        return {"success": True, "alertas": len(alertas)}
+    except Exception as e:
+        logger.error("Error checking certification expiry: %s", e)
+        raise self.retry(exc=e)
+
+
+# =============================================================================
+# Email Templates (copied from background_jobs.py)
+# =============================================================================
+
+
 def _get_email_template(template_type: str, **kwargs) -> str:
     """Generate HTML for notification emails."""
     base_style = """

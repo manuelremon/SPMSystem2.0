@@ -148,3 +148,43 @@ def register_blueprints(app: Flask) -> None:
     # Quality Management (Sprints 59-60)
     from backend.routes.quality import quality_bp
     app.register_blueprint(quality_bp)  # Quality at /api/quality
+
+    # 3-Way Matching (Sprint 61)
+    from backend.routes.matching import matching_bp
+    app.register_blueprint(matching_bp)  # Matching at /api/matching
+
+    # Spend Analytics (Sprint 62)
+    from backend.routes.spend import spend_bp
+    app.register_blueprint(spend_bp)  # Spend at /api/spend
+
+    # Supplier Risk (Sprint 63)
+    from backend.routes.supplier_risk import supplier_risk_bp
+    app.register_blueprint(supplier_risk_bp)  # Supplier Risk at /api/supplier-risk
+
+    # Demand Planning S&OP (Sprint 64)
+    from backend.routes.demand_planning import demand_bp
+    app.register_blueprint(demand_bp)  # Demand Planning at /api/demand-planning
+
+    # Returns & RMA (Sprint 65)
+    from backend.routes.returns import returns_bp
+    app.register_blueprint(returns_bp)  # Returns at /api/returns
+
+    # Warehouse Operations (Sprint 66)
+    from backend.routes.warehouse import warehouse_bp
+    app.register_blueprint(warehouse_bp)  # Warehouse at /api/warehouse
+
+    # Contract Compliance & Rebates (Sprint 67)
+    from backend.routes.compliance import compliance_bp
+    app.register_blueprint(compliance_bp)  # Compliance at /api/compliance
+
+    # Inventory Optimization (Sprint 68)
+    from backend.routes.inventory_opt import inv_opt_bp
+    app.register_blueprint(inv_opt_bp)  # Inventory Opt at /api/inventory-optimization
+
+    # Supplier Audit & Certifications (Sprint 69)
+    from backend.routes.supplier_audit import supplier_audit_bp
+    app.register_blueprint(supplier_audit_bp)  # Supplier Audit at /api/supplier-audit
+
+    # Freight Audit & Payment (Sprint 70)
+    from backend.routes.freight import freight_bp
+    app.register_blueprint(freight_bp)  # Freight at /api/freight

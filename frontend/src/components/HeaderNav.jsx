@@ -28,6 +28,7 @@ function HeaderNav() {
   const [forecastAnchor, setForecastAnchor] = useState(null);
   const [adminAnchor, setAdminAnchor] = useState(null);
   const [qualityAnchor, setQualityAnchor] = useState(null);
+  const [operationsAnchor, setOperationsAnchor] = useState(null);
 
   // Role helpers
   const getUserRoles = () => {
@@ -71,6 +72,7 @@ function HeaderNav() {
     setForecastAnchor(null);
     setAdminAnchor(null);
     setQualityAnchor(null);
+    setOperationsAnchor(null);
   }, [location.pathname]);
 
   const menuItemSx = {
@@ -345,6 +347,71 @@ function HeaderNav() {
             >
               {t("nav_abc_analysis", "ABC Analysis")}
             </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/analytics/spend"
+              onClick={() => setPlanificadorAnchor(null)}
+              sx={isPathActive("/analytics/spend") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_spend_analytics", "Spend Analytics")}
+            </MenuItem>
+            <Divider />
+            <MenuItem
+              component={NavLink}
+              to="/procurement/invoices"
+              onClick={() => setPlanificadorAnchor(null)}
+              sx={isPathActive("/procurement/invoices") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_invoices", "Facturas (3-Way)")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/procurement/compliance"
+              onClick={() => setPlanificadorAnchor(null)}
+              sx={isPathActive("/procurement/compliance") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_compliance", "Compliance")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/procurement/rebates"
+              onClick={() => setPlanificadorAnchor(null)}
+              sx={isPathActive("/procurement/rebates") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_rebates", "Rebates")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/procurement/supplier-risk"
+              onClick={() => setPlanificadorAnchor(null)}
+              sx={isPathActive("/procurement/supplier-risk") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_supplier_risk", "Riesgo Proveedores")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/procurement/certifications"
+              onClick={() => setPlanificadorAnchor(null)}
+              sx={isPathActive("/procurement/certifications") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_certifications", "Certificaciones")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/procurement/audits"
+              onClick={() => setPlanificadorAnchor(null)}
+              sx={isPathActive("/procurement/audits") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_supplier_audits", "Auditorías Prov.")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/planning/demand"
+              onClick={() => setPlanificadorAnchor(null)}
+              sx={isPathActive("/planning/demand") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_demand_planning", "Demanda (S&OP)")}
+            </MenuItem>
           </Menu>
         </div>
       )}
@@ -423,6 +490,22 @@ function HeaderNav() {
             >
               {t("nav_slob", "Aging & SLOB")}
             </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/operations/inventory-optimization"
+              onClick={() => setMrpAnchor(null)}
+              sx={isPathActive("/operations/inventory-optimization") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_inv_optimization", "Optimización Inv.")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/operations/service-levels"
+              onClick={() => setMrpAnchor(null)}
+              sx={isPathActive("/operations/service-levels") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_service_levels", "Niveles Servicio")}
+            </MenuItem>
           </Menu>
         </div>
       )}
@@ -467,6 +550,76 @@ function HeaderNav() {
               sx={isPathActive("/forecast/masivo") ? activeMenuItemSx : menuItemSx}
             >
               {t("nav_forecast_masivo", "Masivo")}
+            </MenuItem>
+          </Menu>
+        </div>
+      )}
+
+      {/* OPERATIONS */}
+      {canSeePlanner && (
+        <div className="border-r border-[var(--header-border,#424242)]">
+          <button
+            type="button"
+            onClick={(e) => setOperationsAnchor(e.currentTarget)}
+            className={clsx(
+              "flex items-center gap-1 px-4 h-[43px] transition-all duration-200",
+              "text-[10px] font-semibold uppercase tracking-wide",
+              operationsAnchor || isPathActive("/operations") || isPathActive("/tms/freight")
+                ? "bg-[var(--primary)] text-white"
+                : "text-white hover:bg-[var(--header-border,#424242)]"
+            )}
+          >
+            <span>{t("nav_operations", "Operaciones")}</span>
+            <ChevronDown className={clsx("w-3 h-3 transition-transform", operationsAnchor && "rotate-180")} />
+          </button>
+          <Menu
+            anchorEl={operationsAnchor}
+            open={Boolean(operationsAnchor)}
+            disableScrollLock={true}
+            onClose={() => setOperationsAnchor(null)}
+            MenuListProps={{ sx: { py: 0 } }}
+            PaperProps={{ sx: { minWidth: 170, ...menuPaperSx } }}
+          >
+            <MenuItem
+              component={NavLink}
+              to="/operations/warehouse"
+              onClick={() => setOperationsAnchor(null)}
+              sx={isPathActive("/operations/warehouse") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_warehouse", "Recepción")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/operations/putaway"
+              onClick={() => setOperationsAnchor(null)}
+              sx={isPathActive("/operations/putaway") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_putaway", "Putaway")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/operations/returns"
+              onClick={() => setOperationsAnchor(null)}
+              sx={isPathActive("/operations/returns") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_returns", "Devoluciones (RMA)")}
+            </MenuItem>
+            <Divider />
+            <MenuItem
+              component={NavLink}
+              to="/tms/freight"
+              onClick={() => setOperationsAnchor(null)}
+              sx={isPathActive("/tms/freight") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_freight_audit", "Auditoría Fletes")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/tms/tariffs"
+              onClick={() => setOperationsAnchor(null)}
+              sx={isPathActive("/tms/tariffs") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_freight_tariffs", "Tarifas Flete")}
             </MenuItem>
           </Menu>
         </div>
