@@ -5,7 +5,7 @@ When a solicitud stays in 'submitted' state beyond the configured timeout,
 it gets reassigned/escalated to a higher role.
 """
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from backend.core.db import get_db_connection, get_db_transaction
 

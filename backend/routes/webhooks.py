@@ -2,7 +2,6 @@
 Webhooks Routes
 Admin-only endpoints for managing outbound webhooks.
 """
-import json
 import logging
 
 from flask import Blueprint, g, jsonify, request
