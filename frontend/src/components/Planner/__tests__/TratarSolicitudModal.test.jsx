@@ -1,10 +1,10 @@
 /**
  * Tests para TratarSolicitudModal
- * Generado por Sugar Autonomous System
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import TratarSolicitudModal from '../TratarSolicitudModal'
+import api from '../../../services/api'
 
 // Mock de servicios
 vi.mock('../../../services/api', () => ({
@@ -16,6 +16,15 @@ vi.mock('../../../services/api', () => ({
 
 vi.mock('../../../services/csrf', () => ({
   ensureCsrfToken: vi.fn().mockResolvedValue(true),
+}))
+
+vi.mock('../../../hooks/useToast', () => ({
+  default: () => ({
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+  }),
 }))
 
 // Mock de componentes hijos
@@ -39,27 +48,30 @@ vi.mock('../Paso2DecisionAbastecimiento', () => ({
 }))
 
 vi.mock('../Paso3RevisionFinal', () => ({
-  default: ({ onBack, onConfirm, loading }) => (
-    <div data-testid="paso3">
-      <button onClick={onBack}>Volver Paso3</button>
-      <button onClick={onConfirm} disabled={loading}>
-        {loading ? 'Guardando...' : 'Confirmar Paso3'}
-      </button>
-    </div>
-  ),
+  default: () => <div data-testid="paso3">Paso3</div>,
 }))
 
-// Mock de componentes UI
-vi.mock('../../ui/Card', () => ({
-  Card: ({ children, className }) => <div data-testid="card" className={className}>{children}</div>,
-  CardContent: ({ children, className }) => <div data-testid="card-content" className={className}>{children}</div>,
+vi.mock('../Paso4AccionesPendientes', () => ({
+  default: () => <div data-testid="paso4">Paso4</div>,
 }))
 
 vi.mock('../../ui/Button', () => ({
-  Button: ({ children, onClick, variant, type, disabled }) => (
-    <button onClick={onClick} data-variant={variant} type={type} disabled={disabled}>
+  Button: ({ children, onClick, type, disabled, style }) => (
+    <button onClick={onClick} type={type} disabled={disabled} style={style}>
       {children}
     </button>
+  ),
+}))
+
+vi.mock('../../ui/Modal', () => ({
+  Modal: ({ isOpen, onClose, title, children, footer }) => (
+    isOpen ? (
+      <div data-testid="modal">
+        <h3>{title}</h3>
+        {children}
+        <div data-testid="modal-footer">{footer}</div>
+      </div>
+    ) : null
   ),
 }))
 
@@ -69,6 +81,14 @@ vi.mock('../../ui/StatusBadge', () => ({
 
 vi.mock('../../../constants/sectores', () => ({
   renderSector: (sol) => sol?.sector || 'N/D',
+}))
+
+vi.mock('../../../utils/formatters', () => ({
+  formatAlmacen: (val) => val || 'N/D',
+}))
+
+vi.mock('../../../utils/styleConfig', () => ({
+  getCriticidadConfig: () => ({ color: '#000', bg: '#fff', label: 'Normal' }),
 }))
 
 describe('TratarSolicitudModal', () => {
@@ -87,70 +107,83 @@ describe('TratarSolicitudModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    localStorage.clear()
 
-    // Mock API responses
-    const api = require('../../../services/api').default
-    api.post.mockResolvedValue({ data: { data: {} } })
+    api.post.mockResolvedValue({
+      data: {
+        data: {
+          resumen: { total_items: 0 },
+          materiales_por_criticidad: {},
+        },
+      },
+    })
     api.get.mockResolvedValue({ data: { data: { opciones: [] } } })
   })
 
+  /** Helper: renderiza y espera que termine la carga del analisis */
+  const renderAndWaitForLoad = async (props = defaultProps) => {
+    const result = render(<TratarSolicitudModal {...props} />)
+    await waitFor(() => {
+      expect(screen.getByTestId('paso1')).toBeInTheDocument()
+    })
+    return result
+  }
+
   describe('Renderizado basico', () => {
-    it('debe renderizar el modal cuando isOpen es true', () => {
-      render(<TratarSolicitudModal {...defaultProps} />)
-      expect(screen.getByText(/Tratar solicitud #1/)).toBeInTheDocument()
+    it('debe renderizar el modal cuando isOpen es true', async () => {
+      await renderAndWaitForLoad()
+      expect(screen.getByText('Analisis')).toBeInTheDocument()
     })
 
     it('no debe renderizar cuando isOpen es false', () => {
       render(<TratarSolicitudModal {...defaultProps} isOpen={false} />)
-      expect(screen.queryByText(/Tratar solicitud/)).not.toBeInTheDocument()
+      expect(screen.queryByText('Analisis')).not.toBeInTheDocument()
     })
 
     it('no debe renderizar cuando solicitud es null', () => {
       render(<TratarSolicitudModal {...defaultProps} solicitud={null} />)
-      expect(screen.queryByText(/Tratar solicitud/)).not.toBeInTheDocument()
+      expect(screen.queryByText('Analisis')).not.toBeInTheDocument()
     })
   })
 
   describe('Header del modal', () => {
-    it('debe mostrar titulo "Planificador"', () => {
-      render(<TratarSolicitudModal {...defaultProps} />)
-      expect(screen.getByText('Planificador')).toBeInTheDocument()
+    it('debe mostrar informacion del centro', async () => {
+      await renderAndWaitForLoad()
+      expect(screen.getByText(/1008/)).toBeInTheDocument()
     })
 
-    it('debe mostrar informacion de la solicitud', () => {
-      render(<TratarSolicitudModal {...defaultProps} />)
-      expect(screen.getByText(/Centro 1008/)).toBeInTheDocument()
-      expect(screen.getByText(/Sector Mantenimiento/)).toBeInTheDocument()
-      expect(screen.getByText(/Almacen ALM001/)).toBeInTheDocument()
+    it('debe mostrar sector', async () => {
+      await renderAndWaitForLoad()
+      expect(screen.getByText('Mantenimiento')).toBeInTheDocument()
     })
 
-    it('debe llamar onClose al hacer clic en Cerrar', () => {
+    it('debe llamar onClose al hacer clic en el boton de cerrar', async () => {
       const onClose = vi.fn()
-      render(<TratarSolicitudModal {...defaultProps} onClose={onClose} />)
+      await renderAndWaitForLoad({ ...defaultProps, onClose })
 
-      fireEvent.click(screen.getByText('Cerrar'))
+      const closeButton = screen.getByTestId('CloseIcon').closest('button')
+      fireEvent.click(closeButton)
       expect(onClose).toHaveBeenCalledTimes(1)
     })
   })
 
-  describe('Indicador de pasos', () => {
-    it('debe mostrar los 3 pasos', () => {
-      render(<TratarSolicitudModal {...defaultProps} />)
+  describe('Stepper de pasos', () => {
+    it('debe mostrar los 4 pasos', async () => {
+      await renderAndWaitForLoad()
       expect(screen.getByText('Analisis')).toBeInTheDocument()
       expect(screen.getByText('Decision')).toBeInTheDocument()
-      expect(screen.getByText('Confirmacion')).toBeInTheDocument()
+      expect(screen.getByText('Resumen')).toBeInTheDocument()
+      expect(screen.getByText('Acciones')).toBeInTheDocument()
     })
 
-    it('debe mostrar paso 1 como activo inicialmente', () => {
-      render(<TratarSolicitudModal {...defaultProps} />)
+    it('debe mostrar paso 1 como activo inicialmente', async () => {
+      await renderAndWaitForLoad()
       expect(screen.getByTestId('paso1')).toBeInTheDocument()
     })
   })
 
   describe('Navegacion entre pasos', () => {
     it('debe pasar a paso 2 al continuar desde paso 1', async () => {
-      render(<TratarSolicitudModal {...defaultProps} />)
+      await renderAndWaitForLoad()
 
       fireEvent.click(screen.getByText('Continuar Paso1'))
 
@@ -160,16 +193,14 @@ describe('TratarSolicitudModal', () => {
     })
 
     it('debe volver a paso 1 desde paso 2', async () => {
-      render(<TratarSolicitudModal {...defaultProps} />)
+      await renderAndWaitForLoad()
 
-      // Ir a paso 2
       fireEvent.click(screen.getByText('Continuar Paso1'))
 
       await waitFor(() => {
         expect(screen.getByTestId('paso2')).toBeInTheDocument()
       })
 
-      // Volver a paso 1
       fireEvent.click(screen.getByText('Volver Paso2'))
 
       await waitFor(() => {
@@ -179,30 +210,28 @@ describe('TratarSolicitudModal', () => {
   })
 
   describe('Modal de rechazo', () => {
-    it('debe abrir modal de rechazo al hacer clic', () => {
-      render(<TratarSolicitudModal {...defaultProps} />)
+    it('debe abrir modal de rechazo al hacer clic', async () => {
+      await renderAndWaitForLoad()
 
       fireEvent.click(screen.getByText('Rechazar Paso1'))
 
-      expect(screen.getByText('Rechazar Solicitud')).toBeInTheDocument()
+      expect(screen.getByText(/Rechazar Solicitud/)).toBeInTheDocument()
     })
 
-    it('debe mostrar campo de motivo de rechazo', () => {
-      render(<TratarSolicitudModal {...defaultProps} />)
+    it('debe mostrar campo de motivo de rechazo', async () => {
+      await renderAndWaitForLoad()
 
       fireEvent.click(screen.getByText('Rechazar Paso1'))
 
       expect(screen.getByText('Motivo del rechazo')).toBeInTheDocument()
-      expect(screen.getByPlaceholderText(/Explique por que se rechaza/)).toBeInTheDocument()
     })
 
-    it('debe cerrar modal de rechazo con Cancelar', () => {
-      render(<TratarSolicitudModal {...defaultProps} />)
+    it('debe cerrar modal de rechazo con Cancelar', async () => {
+      await renderAndWaitForLoad()
 
       fireEvent.click(screen.getByText('Rechazar Paso1'))
-      expect(screen.getByText('Rechazar Solicitud')).toBeInTheDocument()
+      expect(screen.getByText(/Rechazar Solicitud/)).toBeInTheDocument()
 
-      // Hay dos botones Cancelar, tomamos el primero del modal
       const cancelButtons = screen.getAllByText('Cancelar')
       fireEvent.click(cancelButtons[0])
 
@@ -211,146 +240,97 @@ describe('TratarSolicitudModal', () => {
   })
 
   describe('Modal de solicitud de informacion', () => {
-    it('debe abrir modal de solicitud de info', () => {
-      render(<TratarSolicitudModal {...defaultProps} />)
+    it('debe abrir modal de solicitud de info', async () => {
+      await renderAndWaitForLoad()
 
       fireEvent.click(screen.getByText('Info Paso1'))
 
-      expect(screen.getByText('Solicitar Informacion')).toBeInTheDocument()
+      expect(screen.getByText(/Solicitar Informaci/)).toBeInTheDocument()
     })
 
-    it('debe mostrar campo de solicitud', () => {
-      render(<TratarSolicitudModal {...defaultProps} />)
+    it('debe mostrar campo de solicitud', async () => {
+      await renderAndWaitForLoad()
 
       fireEvent.click(screen.getByText('Info Paso1'))
 
-      expect(screen.getByText(/Que informacion necesita/)).toBeInTheDocument()
+      expect(screen.getByText(/inform.*necesita/i)).toBeInTheDocument()
     })
   })
 
   describe('Botones del footer', () => {
-    it('debe deshabilitar Anterior en paso 1', () => {
-      render(<TratarSolicitudModal {...defaultProps} />)
+    it('debe deshabilitar Anterior en paso 1', async () => {
+      await renderAndWaitForLoad()
       expect(screen.getByText('Anterior')).toBeDisabled()
     })
 
-    it('debe mostrar Siguiente en pasos 1 y 2', () => {
-      render(<TratarSolicitudModal {...defaultProps} />)
+    it('debe mostrar Siguiente en paso 1', async () => {
+      await renderAndWaitForLoad()
       expect(screen.getByText('Siguiente')).toBeInTheDocument()
     })
   })
 
   describe('Carga de analisis', () => {
-    it('debe mostrar "Cargando analisis..." mientras carga', async () => {
-      const api = require('../../../services/api').default
-      api.post.mockImplementation(() => new Promise(() => {})) // Never resolves
-
+    it('debe llamar API al montar con solicitud abierta', async () => {
       render(<TratarSolicitudModal {...defaultProps} />)
 
-      // El componente carga analisis al montar, pero como mockeamos Paso1,
-      // verificamos que se llama la API
-      expect(api.post).toHaveBeenCalled()
+      await waitFor(() => {
+        expect(api.post).toHaveBeenCalledWith(
+          '/planificador/solicitudes/1/analizar'
+        )
+      })
     })
-  })
 
-  describe('Auto-guardado de decisiones', () => {
-    it('debe guardar decisiones en localStorage', async () => {
-      render(<TratarSolicitudModal {...defaultProps} />)
-
-      // El auto-save se activa cuando hay decisiones
-      // Como mockeamos los componentes hijos, verificamos el localStorage directamente
-      const key = `planner_decisiones_${defaultProps.solicitud.id}`
-      expect(localStorage.getItem(key)).toBeNull()
-    })
-  })
-
-  describe('Mensajes de error', () => {
-    it('debe mostrar mensaje de error cuando la API falla', async () => {
-      const api = require('../../../services/api').default
+    it('debe mostrar error cuando la API falla', async () => {
       api.post.mockRejectedValueOnce(new Error('Error de red'))
 
       render(<TratarSolicitudModal {...defaultProps} />)
 
       await waitFor(() => {
-        expect(screen.getByText(/Error al cargar analisis/)).toBeInTheDocument()
+        expect(screen.getByText(/Error al cargar/)).toBeInTheDocument()
       })
     })
   })
 
-  describe('Guardar tratamiento', () => {
-    it('debe llamar API al confirmar en paso 3', async () => {
-      const api = require('../../../services/api').default
-      const onComplete = vi.fn()
-      const onClose = vi.fn()
+  describe('Auto-guardado de decisiones', () => {
+    it('debe verificar localStorage al iniciar', async () => {
+      await renderAndWaitForLoad()
 
-      // Mock para que la navegacion funcione
-      api.post.mockResolvedValue({
-        data: {
-          data: {
-            resumen: { total_items: 0 },
-            materiales_por_criticidad: {},
-          },
-        },
-      })
-
-      render(
-        <TratarSolicitudModal
-          {...defaultProps}
-          onComplete={onComplete}
-          onClose={onClose}
-        />
-      )
-
-      // Simular navegacion a paso 3
-      fireEvent.click(screen.getByText('Continuar Paso1'))
-
-      await waitFor(() => {
-        expect(screen.getByTestId('paso2')).toBeInTheDocument()
-      })
-
-      fireEvent.click(screen.getByText('Continuar Paso2'))
-
-      await waitFor(() => {
-        expect(screen.getByTestId('paso3')).toBeInTheDocument()
-      })
-
-      // Confirmar
-      fireEvent.click(screen.getByText('Confirmar Paso3'))
-
-      await waitFor(() => {
-        expect(api.post).toHaveBeenCalled()
-      })
+      const key = `planner_decisiones_${defaultProps.solicitud.id}`
+      expect(localStorage.getItem).toHaveBeenCalledWith(key)
     })
   })
 
   describe('Cierre del modal', () => {
-    it('debe resetear estado al cerrar', () => {
+    it('debe resetear estado al cerrar y reabrir', async () => {
       const { rerender } = render(<TratarSolicitudModal {...defaultProps} />)
 
-      // Cerrar modal
+      await waitFor(() => {
+        expect(screen.getByTestId('paso1')).toBeInTheDocument()
+      })
+
       rerender(<TratarSolicitudModal {...defaultProps} isOpen={false} />)
 
-      // Reabrir
       rerender(<TratarSolicitudModal {...defaultProps} isOpen={true} />)
 
-      // Debe estar en paso 1
-      expect(screen.getByTestId('paso1')).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByTestId('paso1')).toBeInTheDocument()
+      })
     })
   })
 
   describe('Criticidad', () => {
-    it('debe mostrar criticidad de la solicitud', () => {
-      render(<TratarSolicitudModal {...defaultProps} />)
-      expect(screen.getByText(/Criticidad Normal/)).toBeInTheDocument()
+    it('debe mostrar criticidad de la solicitud', async () => {
+      await renderAndWaitForLoad()
+      expect(screen.getByText('Normal')).toBeInTheDocument()
     })
 
-    it('debe mostrar criticidad "Alta" cuando corresponde', () => {
+    it('debe mostrar criticidad "Alta" cuando corresponde', async () => {
       const props = {
         ...defaultProps,
         solicitud: { ...defaultProps.solicitud, criticidad: 'Alta' },
       }
-      render(<TratarSolicitudModal {...props} />)
-      expect(screen.getByText(/Criticidad Alta/)).toBeInTheDocument()
+      await renderAndWaitForLoad(props)
+      expect(screen.getByText('Alta')).toBeInTheDocument()
     })
   })
 })

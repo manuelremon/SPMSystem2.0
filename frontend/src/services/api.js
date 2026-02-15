@@ -25,7 +25,7 @@ const log = logger.withContext('API')
  * Detecta si estamos en modo cross-origin (frontend y API en dominios diferentes)
  */
 const isCrossOrigin = () => {
-  const apiUrl = import.meta.env.VITE_API_URL || ''
+  const apiUrl = import.meta?.env?.VITE_API_URL || ''
   if (!apiUrl) return false // No API URL = same origin
   try {
     const apiOrigin = new URL(apiUrl).origin
@@ -36,7 +36,7 @@ const isCrossOrigin = () => {
 }
 
 // En produccion usa URL relativa, en desarrollo usa localhost
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
+const API_BASE_URL = import.meta?.env?.VITE_API_URL || '/api'
 
 // URL de refresh usa la misma base que la API
 const REFRESH_URL = `${API_BASE_URL}/auth/refresh`
@@ -218,7 +218,7 @@ function redirectToLogin() {
   // Evitar redirección si ya estamos en login
   if (!window.location.pathname.includes('/login')) {
     // Usar BASE_URL para GitHub Pages
-    const baseUrl = import.meta.env.BASE_URL || '/'
+    const baseUrl = import.meta?.env?.BASE_URL || '/'
     window.location.href = `${baseUrl}login`
   }
 }
