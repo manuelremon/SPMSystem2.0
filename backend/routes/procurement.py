@@ -1621,7 +1621,6 @@ def evaluar_proveedor(proveedor_id):
             notas: str (optional)
         }
     """
-    import json
     from datetime import datetime
 
     from backend.core.db import get_db_transaction, is_using_postgresql

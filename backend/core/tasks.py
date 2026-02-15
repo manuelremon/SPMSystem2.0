@@ -912,6 +912,15 @@ def cleanup_old_data() -> Dict[str, Any]:
 # =============================================================================
 
 
+def _row_to_dict(row) -> Dict[str, Any]:
+    """Convierte una fila de BD a diccionario."""
+    if row is None:
+        return {}
+    if hasattr(row, "keys"):
+        return dict(row)
+    return {}
+
+
 @celery_app.task(bind=True, max_retries=2, default_retry_delay=120)
 def snapshot_proveedor_scorecard(self) -> Dict[str, Any]:
     """
