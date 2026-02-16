@@ -348,7 +348,6 @@ export default function Stock() {
         setResumen(resumenRes.data.data);
       }
     } catch (err) {
-      console.error("Error loading stock:", err);
       setError("Error de conexión");
     } finally {
       clearInterval(progressInterval);

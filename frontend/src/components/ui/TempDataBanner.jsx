@@ -61,7 +61,6 @@ export function TempDataBanner({ onStatusChange, variant = 'full' }) {
         onStatusChange(false)
       }
     } catch (err) {
-      console.error('Error clearing temp data:', err)
     } finally {
       setClearing(false)
     }

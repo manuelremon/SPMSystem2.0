@@ -348,7 +348,6 @@ export default function ProcurementAnalytics() {
       setAnalytics(res.data);
       setLastUpdated(new Date());
     } catch (err) {
-      console.error('Error fetching analytics:', err);
       setError('Error al cargar analytics de procurement');
     } finally {
       setLoading(false);

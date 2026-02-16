@@ -121,7 +121,6 @@ function NotificacionDetailModal({ notif, onClose, onMarcarLeida }) {
       await api.post(`/notificaciones/${notif.id}/marcar-leida`);
       onMarcarLeida(notif.id);
     } catch (err) {
-      console.error("Error marcando como leida:", err);
     } finally {
       setMarcando(false);
     }
@@ -276,7 +275,6 @@ export default function NotificacionesInline({ onUpdate }) {
         setError("Error al cargar notificaciones");
       }
     } catch (err) {
-      console.error("Error loading notificaciones:", err);
       setError("Error de conexion");
     } finally {
       setLoading(false);
@@ -301,7 +299,6 @@ export default function NotificacionesInline({ onUpdate }) {
       setNotificaciones((prev) => prev.map((n) => ({ ...n, leido: true })));
       if (onUpdate) onUpdate();
     } catch (err) {
-      console.error("Error marcando todas como leidas:", err);
     } finally {
       setMarcandoTodas(false);
     }

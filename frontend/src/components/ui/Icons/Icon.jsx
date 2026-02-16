@@ -85,7 +85,6 @@ export function Icon({
   ...props
 }) {
   if (!IconComponent) {
-    console.warn('Icon: No se proporcionó componente de icono');
     return null;
   }
 

@@ -62,7 +62,6 @@ function playNotificationSound() {
     oscillator.stop(audioContext.currentTime + 0.15)
   } catch (err) {
     // Ignorar errores de audio (puede fallar si no hay interaccion previa)
-    console.debug('Audio notification failed:', err)
   }
 }
 

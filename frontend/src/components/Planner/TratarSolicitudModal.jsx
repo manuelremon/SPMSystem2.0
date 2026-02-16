@@ -156,7 +156,6 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
         setDecisiones(parsed);
       }
     } catch (err) {
-      console.error("Error al recuperar decisiones guardadas:", err);
     }
   };
 
@@ -166,7 +165,6 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
       const key = `planner_decisiones_${solicitud.id}`;
       localStorage.removeItem(key);
     } catch (err) {
-      console.error("Error al limpiar decisiones guardadas:", err);
     }
   };
 
@@ -193,7 +191,6 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
     } catch (err) {
       const mensaje = err.response?.data?.error?.message || err.message || "Error desconocido";
       setError(`Error al cargar análisis: ${mensaje}`);
-      console.error("Error completo en cargarAnalisis:", err);
     } finally {
       setLoading(false);
     }
@@ -211,7 +208,6 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
     } catch (err) {
       const mensaje = err.response?.data?.error?.message || err.message || "Error desconocido";
       setError(`Error al cargar opciones de abastecimiento (Item ${itemIdx}): ${mensaje}`);
-      console.error("Error completo en cargarOpciones:", err);
     } finally {
       setLoadingOpciones(false);
     }
@@ -294,7 +290,6 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
     } catch (err) {
       const mensaje = err.response?.data?.error?.message || err.message || "Error al ejecutar acciones";
       setError(`${mensaje}. Por favor, intente nuevamente.`);
-      console.error("Error en ejecutarAcciones:", err);
       return null;
     } finally {
       setLoadingAcciones(false);
@@ -323,7 +318,6 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
     } catch (err) {
       const mensaje = err.response?.data?.error?.message || err.message || "Error al finalizar";
       setError(`${mensaje}. Por favor, intente nuevamente.`);
-      console.error("Error en handleFinalizar:", err);
     } finally {
       setFinalizando(false);
     }
@@ -415,7 +409,6 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
     } catch (err) {
       const mensaje = err.response?.data?.error?.message || err.message || "Error al guardar el tratamiento";
       setError(`${mensaje}. Por favor, intente nuevamente.`);
-      console.error("Error completo en handleGuardarYAvanzar:", err);
     } finally {
       setSaving(false);
     }
@@ -513,7 +506,6 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
     } catch (err) {
       const mensaje = err.response?.data?.error?.message || err.message || "Error al guardar el tratamiento";
       setError(`${mensaje}. Por favor, intente nuevamente.`);
-      console.error("Error completo en handleGuardar:", err);
     } finally {
       setSaving(false);
     }
@@ -543,7 +535,6 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
     } catch (err) {
       const mensaje = err.response?.data?.error?.message || err.message || "Error al rechazar";
       setError(`${mensaje}. Por favor, intente nuevamente.`);
-      console.error("Error en handleConfirmReject:", err);
     } finally {
       setSaving(false);
     }
@@ -588,7 +579,6 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
     } catch (err) {
       const mensaje = err.response?.data?.error?.message || err.message || "Error al enviar solicitud";
       setError(`${mensaje}. Por favor, intente nuevamente.`);
-      console.error("Error en handleConfirmRequestInfo:", err);
     } finally {
       setSaving(false);
     }

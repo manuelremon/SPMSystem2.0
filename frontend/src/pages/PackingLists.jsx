@@ -87,7 +87,6 @@ const PackingLists = () => {
       if (packingsRes.data.ok) setPackingLists(packingsRes.data.packing_lists);
       if (templatesRes.data.ok) setTemplates(templatesRes.data.templates);
     } catch (error) {
-      console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -108,7 +107,6 @@ const PackingLists = () => {
         navigate(`/packing-lists/${res.data.packing_list.id}`);
       }
     } catch (error) {
-      console.error('Error creating packing list:', error);
       alert('Error al crear packing list');
     }
   };
@@ -132,7 +130,6 @@ const PackingLists = () => {
         loadData();
       }
     } catch (error) {
-      console.error('Error creating template:', error);
       alert('Error al crear template');
     }
   };

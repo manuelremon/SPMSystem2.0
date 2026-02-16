@@ -188,7 +188,6 @@ export default function AIAnalytics() {
       setAlertasSLA(alertasSLAData)
       setError(null)
     } catch (err) {
-      console.error('Error loading data:', err)
       setError(t('ai_error_loading', 'Error al cargar datos'))
     } finally {
       setIsLoading(false)
@@ -211,7 +210,6 @@ export default function AIAnalytics() {
       await aiService.trainModels({ force: true })
       await fetchData(true)
     } catch (err) {
-      console.error('Error training models:', err)
       setError(t('ai_train_error', 'Error al entrenar modelos'))
     } finally {
       setIsTraining(false)
@@ -223,7 +221,6 @@ export default function AIAnalytics() {
       await slaService.resolverAlerta(alertaId)
       setAlertasSLA(prev => prev.filter(a => a.id !== alertaId))
     } catch (err) {
-      console.error('Error resolving alert:', err)
     }
   }
 

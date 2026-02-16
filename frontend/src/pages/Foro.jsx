@@ -69,7 +69,6 @@ export default function Foro() {
         setPosts(res.data.posts || []);
       }
     } catch (err) {
-      console.error("Error loading posts", err);
       setError("No se pudieron cargar las publicaciones");
     } finally {
       setLoading(false);
@@ -94,7 +93,6 @@ export default function Foro() {
         loadPosts();
       }
     } catch (err) {
-      console.error("Error creating post", err);
     } finally {
       setSubmitting(false);
     }
@@ -106,7 +104,6 @@ export default function Foro() {
       await api.post(`/foro/posts/${postId}/like`);
       loadPosts();
     } catch (err) {
-      console.error("Error liking post", err);
     }
   };
 
@@ -120,7 +117,6 @@ export default function Foro() {
       setReplyContent({ ...replyContent, [postId]: "" });
       loadPosts();
     } catch (err) {
-      console.error("Error replying to post", err);
     }
   };
 

@@ -55,7 +55,6 @@ const ExecutiveDashboard = () => {
       const res = await api.get('/api/executive/dashboard');
       setDashboard(res.data);
     } catch (error) {
-      console.error('Error fetching executive dashboard:', error);
     } finally {
       setLoading(false);
     }
@@ -66,7 +65,6 @@ const ExecutiveDashboard = () => {
       const res = await api.get('/api/executive/scorecards?limit=5');
       setScorecards(res.data.scorecards || []);
     } catch (error) {
-      console.error('Error fetching scorecards:', error);
     }
   }, []);
 
@@ -82,7 +80,6 @@ const ExecutiveDashboard = () => {
       const res = await api.get(`/api/executive/trends/${kpi.kpi_key}?meses=12`);
       setTrendsData(res.data.tendencias || []);
     } catch (error) {
-      console.error('Error fetching trends:', error);
       setTrendsData([]);
     } finally {
       setLoadingTrends(false);
@@ -96,7 +93,6 @@ const ExecutiveDashboard = () => {
       alert(t('exec_scorecard_generated', 'Scorecard generado exitosamente'));
       fetchScorecards();
     } catch (error) {
-      console.error('Error generating scorecard:', error);
       alert(t('exec_error_generating_scorecard', 'Error al generar scorecard'));
     } finally {
       setGeneratingScorecard(false);

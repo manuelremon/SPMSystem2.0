@@ -70,7 +70,6 @@ const WarrantyList = () => {
       const response = await api.get('/api/warranty/kpis');
       setKpis(response.data);
     } catch (error) {
-      console.error('Error fetching KPIs:', error);
     }
   }, []);
 
@@ -83,7 +82,6 @@ const WarrantyList = () => {
       });
       setGarantias(response.data.garantias || []);
     } catch (error) {
-      console.error('Error fetching garantías:', error);
     } finally {
       setLoadingGarantias(false);
     }
@@ -98,7 +96,6 @@ const WarrantyList = () => {
       });
       setReclamos(response.data.reclamos || []);
     } catch (error) {
-      console.error('Error fetching reclamos:', error);
     } finally {
       setLoadingReclamos(false);
     }
@@ -128,7 +125,6 @@ const WarrantyList = () => {
       fetchGarantias();
       fetchKpis();
     } catch (error) {
-      console.error('Error creating garantía:', error);
       alert(t('warranty_error_create', 'Error al crear garantía'));
     }
   };
@@ -153,7 +149,6 @@ const WarrantyList = () => {
       fetchReclamos();
       fetchKpis();
     } catch (error) {
-      console.error('Error creating reclamo:', error);
       alert(t('warranty_error_create_claim', 'Error al crear reclamo'));
     }
   };

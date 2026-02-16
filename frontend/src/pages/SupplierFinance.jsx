@@ -85,7 +85,6 @@ export default function SupplierFinance() {
         }
       }
     } catch (error) {
-      console.error('Error loading data:', error);
       addToast(error.response?.data?.error || 'Error al cargar datos', 'error');
     } finally {
       setLoading(false);
@@ -109,7 +108,6 @@ export default function SupplierFinance() {
         loadData();
       }
     } catch (error) {
-      console.error('Error creating program:', error);
       addToast(error.response?.data?.error || 'Error al crear programa', 'error');
     }
   };
@@ -127,7 +125,6 @@ export default function SupplierFinance() {
         loadData();
       }
     } catch (error) {
-      console.error('Error generating offers:', error);
       addToast(error.response?.data?.error || 'Error al generar ofertas', 'error');
     }
   };
@@ -140,7 +137,6 @@ export default function SupplierFinance() {
         loadData();
       }
     } catch (error) {
-      console.error('Error accepting offer:', error);
       addToast(error.response?.data?.error || 'Error al aceptar oferta', 'error');
     }
   };
@@ -153,7 +149,6 @@ export default function SupplierFinance() {
         loadData();
       }
     } catch (error) {
-      console.error('Error rejecting offer:', error);
       addToast(error.response?.data?.error || 'Error al rechazar oferta', 'error');
     }
   };
@@ -166,7 +161,6 @@ export default function SupplierFinance() {
         loadData();
       }
     } catch (error) {
-      console.error('Error marking paid:', error);
       addToast(error.response?.data?.error || 'Error al marcar como pagada', 'error');
     }
   };
@@ -181,7 +175,6 @@ export default function SupplierFinance() {
         loadData();
       }
     } catch (error) {
-      console.error('Error updating terms:', error);
       addToast(error.response?.data?.error || 'Error al actualizar términos', 'error');
     }
   };

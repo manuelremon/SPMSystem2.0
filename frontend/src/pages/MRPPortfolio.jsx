@@ -352,7 +352,6 @@ export default function MRPPortfolio() {
         setError("Error al cargar portfolio MRP");
       }
     } catch (err) {
-      console.error("Error loading MRP portfolio:", err);
       setError("Error de conexion");
     } finally {
       setLoading(false);

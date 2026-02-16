@@ -75,7 +75,6 @@ const HSCodeManagement = () => {
       });
       setHsCodes(response.data.codes || []);
     } catch (error) {
-      console.error('Error cargando códigos HS:', error);
     }
   };
 
@@ -84,7 +83,6 @@ const HSCodeManagement = () => {
       const response = await api.get('/api/customs/agreements');
       setAcuerdos(response.data || []);
     } catch (error) {
-      console.error('Error cargando acuerdos:', error);
     }
   };
 
@@ -112,7 +110,6 @@ const HSCodeManagement = () => {
       });
       cargarHsCodes();
     } catch (error) {
-      console.error('Error creando código HS:', error);
       alert(t('hs_error_create', 'Error al crear código HS'));
     }
   };
@@ -136,7 +133,6 @@ const HSCodeManagement = () => {
       });
       alert(t('hs_material_classified', 'Material clasificado exitosamente'));
     } catch (error) {
-      console.error('Error clasificando material:', error);
       alert(t('hs_error_classify', 'Error al clasificar material'));
     }
   };
@@ -153,7 +149,6 @@ const HSCodeManagement = () => {
 
       setCalculatorResult(response.data);
     } catch (error) {
-      console.error('Error calculando tributos:', error);
       alert(t('hs_error_calculate', 'Error al calcular tributos'));
     }
   };

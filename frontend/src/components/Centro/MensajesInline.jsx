@@ -77,7 +77,6 @@ export default function MensajesInline({ onUpdate }) {
         setError("Error al cargar mensajes");
       }
     } catch (err) {
-      console.error("Error loading mensajes:", err);
       setError("Error de conexion");
     } finally {
       setLoading(false);
@@ -97,7 +96,6 @@ export default function MensajesInline({ onUpdate }) {
         );
         if (onUpdate) onUpdate();
       } catch (err) {
-        console.error("Error marcando mensaje como leido:", err);
       }
     }
     setSelectedMensaje(mensaje);

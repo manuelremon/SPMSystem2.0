@@ -76,7 +76,6 @@ export default function Mensajes() {
       }
     } catch (err) {
       setError("Error de conexion al cargar mensajes");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -90,7 +89,6 @@ export default function Mensajes() {
         setUnreadCount(data.unread_count || 0);
       }
     } catch (err) {
-      console.error("Error fetching unread count:", err);
     }
   };
 
@@ -108,7 +106,6 @@ export default function Mensajes() {
         );
         setUnreadCount(prev => Math.max(0, prev - 1));
       } catch (err) {
-        console.error("Error marking as read:", err);
       }
     }
   };
@@ -137,7 +134,6 @@ export default function Mensajes() {
       }
     } catch (err) {
       toast.error("Error de conexión al eliminar mensaje");
-      console.error(err);
     }
   };
 

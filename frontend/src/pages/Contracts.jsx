@@ -55,12 +55,7 @@ const ESTADO_COLORS = {
   terminated: 'error',
 };
 
-const TIPO_LABELS = {
-  blanket_po: 'Orden Abierta',
-  fixed_price: 'Precio Fijo',
-  time_materials: 'T&M',
-  framework: 'Marco',
-};
+// Labels moved to i18n — use t() in column renderer
 
 export default function Contracts() {
   const { t } = useI18n();
@@ -108,7 +103,7 @@ export default function Contracts() {
     { field: 'proveedor_nombre', headerName: t('contracts_proveedor', 'Proveedor'), flex: 2, minWidth: 180 },
     {
       field: 'tipo', headerName: t('contracts_tipo', 'Tipo'), width: 130,
-      cellRenderer: (p) => <Chip size="small" label={TIPO_LABELS[p.value] || p.value} variant="outlined" />,
+      cellRenderer: (p) => <Chip size="small" label={t(`contract_tipo_${p.value}`, p.value)} variant="outlined" />,
     },
     {
       field: 'estado', headerName: t('contracts_estado', 'Estado'), width: 150,

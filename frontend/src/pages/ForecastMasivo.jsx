@@ -167,7 +167,6 @@ const ForecastMasivo = () => {
           setModelosDisponibles(response.modelos);
         }
       } catch (err) {
-        console.error('Error cargando modelos:', err);
       }
     };
     loadModelos();

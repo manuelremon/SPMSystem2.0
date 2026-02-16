@@ -74,7 +74,6 @@ export function useMaterials() {
         }
         return data
       } catch (err) {
-        console.error('detalle material', err)
         if (showModal) setDetail(null)
         return null
       } finally {
@@ -139,7 +138,6 @@ export function useMaterials() {
       const data = res.data?.data || []
       setFavoritos(data)
     } catch (err) {
-      console.error('Error loading favorites:', err)
     } finally {
       setLoadingFavoritos(false)
     }
@@ -159,7 +157,6 @@ export function useMaterials() {
         form.setActionMsg('Material agregado a favoritos')
       }
     } catch (err) {
-      console.error('Error toggling favorite:', err)
       form.setError('Error al actualizar favoritos')
     }
   }, [favoritos, loadFavoritos, form.setActionMsg, form.setError])

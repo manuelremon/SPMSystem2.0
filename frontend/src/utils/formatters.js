@@ -97,7 +97,6 @@ export function formatDateTime(val) {
  */
 export function exportToCSV(data, filename = "export.csv", headers = null) {
   if (!data || data.length === 0) {
-    console.warn("No data to export");
     return;
   }
 
@@ -134,7 +133,6 @@ export function exportToCSV(data, filename = "export.csv", headers = null) {
  */
 export function exportToExcel(data, filename = "export.xls") {
   if (!data || data.length === 0) {
-    console.warn("No data to export");
     return;
   }
 
@@ -192,7 +190,6 @@ export function exportToExcel(data, filename = "export.xls") {
  */
 export function exportToPDF(data, filename = "export.pdf", title = "Reporte", options = {}) {
   if (!data || data.length === 0) {
-    console.warn("No data to export");
     return;
   }
 

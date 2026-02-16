@@ -140,7 +140,6 @@ export default function KPI() {
           setKpiData(response.data.data);
         }
       } catch (err) {
-        console.error("Error fetching KPIs:", err);
         setError("Error al cargar los KPIs");
       } finally {
         setLoading(false);

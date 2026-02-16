@@ -65,7 +65,6 @@ export function useForecast() {
         setCentrosDisponibles(centrosRes || []);
         setAlmacenesDisponibles(almacenesRes || []);
       } catch (err) {
-        console.error('Error cargando catálogos:', err);
       }
 
       // Cargar modelos (requiere auth, puede fallar independiente)
@@ -98,7 +97,6 @@ export function useForecast() {
           setModeloSeleccionado(prev => prev || modelos[0].id);
         }
       } catch (err) {
-        console.error('Error cargando modelos:', err);
         // Fallback con objetos
         const fallbackModelos = [
           { id: 'random_forest', nombre: 'Random Forest' },

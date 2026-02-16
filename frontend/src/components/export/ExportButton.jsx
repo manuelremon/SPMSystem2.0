@@ -87,7 +87,6 @@ export function ExportButton({
     try {
       await onExport(formato)
     } catch (error) {
-      console.error('Error exporting:', error)
     } finally {
       setIsExporting(false)
       setExportingFormat(null)

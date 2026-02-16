@@ -59,7 +59,6 @@ export default function MensajeThreadModal({ message, isOpen, onClose }) {
       }
     } catch (err) {
       setError("Error de conexión al cargar conversación");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -86,7 +85,6 @@ export default function MensajeThreadModal({ message, isOpen, onClose }) {
       }
     } catch (err) {
       setError("Error de conexión al enviar respuesta");
-      console.error(err);
     } finally {
       setSending(false);
     }

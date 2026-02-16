@@ -35,7 +35,6 @@ export const ensureCsrfToken = async () => {
       return token
     }
   } catch (err) {
-    console.error('Error obteniendo CSRF token:', err)
     // Continuar sin token (algunos endpoints pueden no requerirlo)
   }
 
@@ -88,7 +87,6 @@ export const requestWithCsrf = async (method, url, data = null, retries = 1) => 
   } catch (error) {
     // Si 403 (forbidden por CSRF) y aún tenemos reintentos, renovar y volver a intentar
     if (error?.response?.status === 403 && retries > 0) {
-      console.warn('CSRF token expirado, renovando...')
       await refreshCsrfToken()
       return requestWithCsrf(method, url, data, retries - 1)
     }

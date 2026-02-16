@@ -485,7 +485,6 @@ export default function Aprobaciones() {
         const data = Array.isArray(res.data) ? res.data : [];
         setSectores(data);
       } catch (err) {
-        console.error("Error cargando sectores:", err);
       }
     };
     fetchSectores();

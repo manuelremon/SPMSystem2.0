@@ -121,7 +121,6 @@ export default function Dashboards() {
         navigate(`/dashboards/${response.dashboard.uuid}`);
       }
     } catch (err) {
-      console.error('Error creating dashboard:', err);
     }
     setIsCreateOpen(false);
     setNewDashboardName('');
@@ -132,7 +131,6 @@ export default function Dashboards() {
     try {
       await deleteDashboard(deleteConfirm);
     } catch (err) {
-      console.error('Error deleting dashboard:', err);
     }
     setDeleteConfirm(null);
   };

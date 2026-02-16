@@ -105,7 +105,6 @@ export const usePushNotifications = () => {
         }
 
       } catch (err) {
-        console.error('[Push] Error inicializando:', err);
         setError(err.message);
       } finally {
         setIsLoading(false);
@@ -131,7 +130,6 @@ export const usePushNotifications = () => {
       }
       throw new Error('No se pudo obtener la clave VAPID');
     } catch (err) {
-      console.error('[Push] Error obteniendo VAPID key:', err);
       throw err;
     }
   }, []);
@@ -149,7 +147,6 @@ export const usePushNotifications = () => {
       setPermission(result);
       return result;
     } catch (err) {
-      console.error('[Push] Error solicitando permiso:', err);
       setError(err.message);
       return PERMISSION_STATES.DENIED;
     }
@@ -215,7 +212,6 @@ export const usePushNotifications = () => {
       return true;
 
     } catch (err) {
-      console.error('[Push] Error suscribiendo:', err);
       setError(err.message);
       return false;
     } finally {
@@ -247,7 +243,6 @@ export const usePushNotifications = () => {
       }
       return false;
     } catch (err) {
-      console.error('[Push] Error cancelando suscripción:', err);
       setError(err.message);
       return false;
     } finally {
@@ -266,7 +261,6 @@ export const usePushNotifications = () => {
       });
       return response.data;
     } catch (err) {
-      console.error('[Push] Error enviando test:', err);
       setError(err.message);
       return null;
     }
@@ -280,7 +274,6 @@ export const usePushNotifications = () => {
       const response = await api.get('/push/status');
       return response.data;
     } catch (err) {
-      console.error('[Push] Error verificando estado:', err);
       return null;
     }
   }, []);

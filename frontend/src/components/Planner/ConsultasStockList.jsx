@@ -37,7 +37,6 @@ export default function ConsultasStockList({ onRespond }) {
         setError(res.data?.error || "Error al cargar consultas");
       }
     } catch (err) {
-      console.error("Error loading consultas:", err);
       setError("Error de conexion");
     } finally {
       setLoading(false);

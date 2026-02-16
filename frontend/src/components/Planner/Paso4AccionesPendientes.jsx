@@ -225,7 +225,6 @@ export default function Paso4AccionesPendientes({
       });
       setResultadoAcciones(resultado);
     } catch (error) {
-      console.error("Error ejecutando acciones:", error);
     } finally {
       setEjecutando(false);
     }

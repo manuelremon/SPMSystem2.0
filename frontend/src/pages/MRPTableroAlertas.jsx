@@ -322,7 +322,6 @@ export default function MRPTableroAlertas() {
           });
         }
       } catch (err) {
-        console.error("Error loading catalogos:", err);
       }
     };
     fetchCatalogos();

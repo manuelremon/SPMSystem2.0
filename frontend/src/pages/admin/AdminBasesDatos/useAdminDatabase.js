@@ -105,7 +105,6 @@ export function useAdminDatabase() {
         setIsReadOnly(res.data.read_only || false);
       }
     } catch (err) {
-      console.error("Error loading columns for CRUD:", err);
     }
   }, [selectedDb]);
 
@@ -135,7 +134,6 @@ export function useAdminDatabase() {
         setPoolStats(res.data.pools);
       }
     } catch (err) {
-      console.error("Error loading pool stats:", err);
     }
   }, []);
 

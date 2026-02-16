@@ -63,7 +63,6 @@ export function AssistantModal({ isOpen, onClose, onUseSuggestions }) {
         setError(res.data?.error?.message || "Error al analizar");
       }
     } catch (err) {
-      console.error("Error assistant:", err);
       setError(err.response?.data?.error?.message || err.message || "Error de conexión");
     } finally {
       setLoading(false);

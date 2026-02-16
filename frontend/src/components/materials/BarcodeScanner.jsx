@@ -44,7 +44,6 @@ export default function BarcodeScanner({ open, onClose, onScan }) {
           formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'qr_code', 'upc_a', 'upc_e']
         });
       } catch (err) {
-        console.error('Error initializing BarcodeDetector:', err);
         setHasBarcodeDetector(false);
       }
     }
@@ -70,7 +69,6 @@ export default function BarcodeScanner({ open, onClose, onScan }) {
         }
       }
     } catch (err) {
-      console.error('Camera error:', err);
       setError(t('scanner_no_camera', 'No se pudo acceder a la cámara. Usa el campo manual.'));
     }
   };
@@ -109,7 +107,6 @@ export default function BarcodeScanner({ open, onClose, onScan }) {
         handleCodeDetected(code);
       }
     } catch (err) {
-      console.error('Detection error:', err);
     }
   };
 

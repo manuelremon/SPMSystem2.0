@@ -86,7 +86,6 @@ const CustomsOperations = () => {
       setOperaciones(operacionesRes.data.operaciones || []);
       setAcuerdos(acuerdosRes.data || []);
     } catch (error) {
-      console.error('Error cargando datos de aduanas:', error);
     } finally {
       setLoading(false);
     }
@@ -115,7 +114,6 @@ const CustomsOperations = () => {
       });
       cargarDatos();
     } catch (error) {
-      console.error('Error creando operación:', error);
       alert(t('customs_error_create_operation', 'Error al crear operación'));
     }
   };
@@ -139,7 +137,6 @@ const CustomsOperations = () => {
       });
       cargarDatos();
     } catch (error) {
-      console.error('Error creando acuerdo:', error);
       alert(t('customs_error_create_agreement', 'Error al crear acuerdo'));
     }
   };
@@ -156,7 +153,6 @@ const CustomsOperations = () => {
 
       setCalculatorResult(response.data);
     } catch (error) {
-      console.error('Error calculando tributos:', error);
       alert(t('customs_error_calculate', 'Error al calcular tributos'));
     }
   };
@@ -168,7 +164,6 @@ const CustomsOperations = () => {
       });
       cargarDatos();
     } catch (error) {
-      console.error('Error actualizando estado:', error);
     }
   };
 

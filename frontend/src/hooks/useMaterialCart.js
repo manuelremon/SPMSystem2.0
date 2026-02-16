@@ -52,7 +52,6 @@ export function useMaterialCart({ initialItems, setActionMsg, setShowAssistant }
           })
         }
       } catch (err) {
-        console.error('Error parsing suggested_items:', err)
       } finally {
         sessionStorage.removeItem('suggested_items')
       }

@@ -266,7 +266,6 @@ export default function NuevoUsuario() {
         almacenes: almacenes.data || [],
       });
     } catch (err) {
-      console.error("Error loading catalogs:", err);
       setError(t("nuevo_usuario_error_catalogos", "Error al cargar catalogos"));
     } finally {
       setLoading(false);
@@ -289,7 +288,6 @@ export default function NuevoUsuario() {
       await account.requestProfileChange(form);
       setSubmitted(true);
     } catch (err) {
-      console.error("Error submitting request:", err);
       setError(err.response?.data?.error?.message || t("nuevo_usuario_error_envio", "Error al enviar solicitud"));
     } finally {
       setSubmitting(false);

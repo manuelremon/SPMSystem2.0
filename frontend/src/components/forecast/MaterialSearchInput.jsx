@@ -105,7 +105,6 @@ const MaterialSearchInput = ({
         setResults(Array.isArray(data) ? data : []);
         setHighlightedIndex(-1);
       } catch (error) {
-        console.error('Error searching materials:', error);
         setResults([]);
       } finally {
         setLoading(false);

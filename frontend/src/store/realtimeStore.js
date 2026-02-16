@@ -166,7 +166,6 @@ export const useRealtimeStore = create((set, get) => ({
       try {
         handler(data)
       } catch (err) {
-        console.error(`Error in event handler for ${eventType}:`, err)
       }
     })
   },

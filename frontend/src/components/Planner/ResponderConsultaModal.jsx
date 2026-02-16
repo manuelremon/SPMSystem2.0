@@ -158,7 +158,6 @@ export default function ResponderConsultaModal({ consulta, onClose, onSuccess })
         setError(res.data?.error || "Error al enviar respuesta");
       }
     } catch (err) {
-      console.error("Error respondiendo consulta:", err);
       setError(err.response?.data?.error || "Error de conexion");
     } finally {
       setLoading(false);

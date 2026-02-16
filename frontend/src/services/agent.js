@@ -21,7 +21,6 @@ export const agentService = {
       })
       return response.data.data || response.data
     } catch (error) {
-      console.error('Error ejecutando agente:', error)
       throw error
     }
   },
@@ -34,7 +33,6 @@ export const agentService = {
       const response = await api.get(`${AGENT_BASE}/health`)
       return response.data.data || response.data
     } catch (error) {
-      console.error('Error en health check:', error)
       throw error
     }
   },
@@ -51,7 +49,6 @@ export const agentService = {
       })
       return response.data.data || response.data
     } catch (error) {
-      console.error('Error cargando datos:', error)
       throw error
     }
   },
@@ -94,7 +91,6 @@ export const agentService = {
       })
       return response.data.data || response.data
     } catch (error) {
-      console.error('Error obteniendo memoria:', error)
       throw error
     }
   },
@@ -107,7 +103,6 @@ export const agentService = {
       const response = await api.delete(`${AGENT_BASE}/memory`)
       return response.data
     } catch (error) {
-      console.error('Error limpiando memoria:', error)
       throw error
     }
   },
@@ -120,7 +115,6 @@ export const agentService = {
       const response = await api.get(`${AGENT_BASE}/tools`)
       return response.data.data || response.data
     } catch (error) {
-      console.error('Error listando herramientas:', error)
       throw error
     }
   },
@@ -138,7 +132,6 @@ export const agentService = {
       })
       return response.data.data || response.data
     } catch (error) {
-      console.error('Error entrenando modelo:', error)
       throw error
     }
   },
@@ -156,7 +149,6 @@ export const agentService = {
       })
       return response.data.data || response.data
     } catch (error) {
-      console.error('Error evaluando modelo:', error)
       throw error
     }
   },
@@ -174,7 +166,6 @@ export const agentService = {
       })
       return response.data.data || response.data
     } catch (error) {
-      console.error('Error en predicción:', error)
       throw error
     }
   },
@@ -192,7 +183,6 @@ export const agentService = {
       })
       return response.data.data || response.data
     } catch (error) {
-      console.error('Error en pronóstico:', error)
       throw error
     }
   },
@@ -208,7 +198,6 @@ export const agentService = {
       })
       return response.data.data || response.data
     } catch (error) {
-      console.error('Error en scoring:', error)
       throw error
     }
   }

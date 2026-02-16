@@ -77,7 +77,6 @@ export function useMaterialSearch({ onSelect }) {
         setDropdownOpen(true)
       })
       .catch((err) => {
-        console.error('search materiales', err)
         setResults([])
         setDropdownOpen(false)
       })

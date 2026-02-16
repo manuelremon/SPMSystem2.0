@@ -211,7 +211,6 @@ function App() {
           await getCurrentUser()
         }
       } catch (err) {
-        console.error('App init error:', err)
       } finally {
         setAppLoading(false)
       }

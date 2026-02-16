@@ -81,7 +81,6 @@ const WarrantyClaimDetail = () => {
         const response = await api.get(`/api/warranty/claims/${id}`);
         setReclamo(response.data);
       } catch (error) {
-        console.error('Error fetching reclamo:', error);
         alert(t('warranty_error_fetch', 'Error al cargar reclamo'));
         navigate('/warranty');
       } finally {
@@ -99,7 +98,6 @@ const WarrantyClaimDetail = () => {
       const response = await api.get(`/api/warranty/claims/${id}`);
       setReclamo(response.data);
     } catch (error) {
-      console.error('Error submitting claim:', error);
       alert(t('warranty_error_submit', 'Error al enviar reclamo'));
     }
   };
@@ -112,7 +110,6 @@ const WarrantyClaimDetail = () => {
       const response = await api.get(`/api/warranty/claims/${id}`);
       setReclamo(response.data);
     } catch (error) {
-      console.error('Error reviewing claim:', error);
       alert(t('warranty_error_review', 'Error al revisar reclamo'));
     }
   };
@@ -125,7 +122,6 @@ const WarrantyClaimDetail = () => {
       const response = await api.get(`/api/warranty/claims/${id}`);
       setReclamo(response.data);
     } catch (error) {
-      console.error('Error approving claim:', error);
       alert(t('warranty_error_approve', 'Error al aprobar reclamo'));
     }
   };
@@ -138,7 +134,6 @@ const WarrantyClaimDetail = () => {
       const response = await api.get(`/api/warranty/claims/${id}`);
       setReclamo(response.data);
     } catch (error) {
-      console.error('Error rejecting claim:', error);
       alert(t('warranty_error_reject', 'Error al rechazar reclamo'));
     }
   };
@@ -155,7 +150,6 @@ const WarrantyClaimDetail = () => {
       const response = await api.get(`/api/warranty/claims/${id}`);
       setReclamo(response.data);
     } catch (error) {
-      console.error('Error resolving claim:', error);
       alert(t('warranty_error_resolve', 'Error al resolver reclamo'));
     }
   };
@@ -168,7 +162,6 @@ const WarrantyClaimDetail = () => {
       const response = await api.get(`/api/warranty/claims/${id}`);
       setReclamo(response.data);
     } catch (error) {
-      console.error('Error adding document:', error);
       alert(t('warranty_error_document', 'Error al agregar documento'));
     }
   };

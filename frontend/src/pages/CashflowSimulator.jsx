@@ -54,7 +54,6 @@ export default function CashflowSimulator() {
         addToast('Simulación completada', 'success');
       }
     } catch (error) {
-      console.error('Error simulating:', error);
       addToast(error.response?.data?.error || 'Error al simular', 'error');
     } finally {
       setLoading(false);

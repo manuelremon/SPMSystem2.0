@@ -123,7 +123,6 @@ export default function AnalisisPuntualForecast() {
           setMaterialesDisponibles(response.data.materiales || [])
         }
       } catch (err) {
-        console.error('Error cargando materiales:', err)
       } finally {
         setLoadingMateriales(false)
       }

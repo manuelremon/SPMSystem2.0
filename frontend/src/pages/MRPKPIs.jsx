@@ -396,7 +396,6 @@ export default function MRPKPIs() {
           });
         }
       } catch (err) {
-        console.error("Error cargando catálogos:", err);
       }
     };
     fetchCatalogos();

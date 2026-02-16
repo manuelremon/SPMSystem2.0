@@ -79,7 +79,6 @@ const ProductionPlanning = () => {
         setKpis(res.data.kpis);
       }
     } catch (error) {
-      console.error('Error loading KPIs:', error);
     }
   };
 
@@ -93,7 +92,6 @@ const ProductionPlanning = () => {
         setPlansPage(page);
       }
     } catch (error) {
-      console.error('Error loading plans:', error);
     } finally {
       setLoading(false);
     }
@@ -106,7 +104,6 @@ const ProductionPlanning = () => {
         setWorkCenters(res.data.work_centers);
       }
     } catch (error) {
-      console.error('Error loading work centers:', error);
     }
   };
 
@@ -127,7 +124,6 @@ const ProductionPlanning = () => {
         navigate(`/production/${res.data.id}`);
       }
     } catch (error) {
-      console.error('Error creating plan:', error);
       alert(t('common_error', 'Error: ') + (error.response?.data?.mensaje || error.message));
     }
   };
@@ -158,7 +154,6 @@ const ProductionPlanning = () => {
         loadKPIs();
       }
     } catch (error) {
-      console.error('Error creating work center:', error);
       alert(t('common_error', 'Error: ') + (error.response?.data?.mensaje || error.message));
     }
   };
@@ -185,7 +180,6 @@ const ProductionPlanning = () => {
         loadWorkCenters();
       }
     } catch (error) {
-      console.error('Error updating work center:', error);
       alert(t('common_error', 'Error: ') + (error.response?.data?.mensaje || error.message));
     }
   };

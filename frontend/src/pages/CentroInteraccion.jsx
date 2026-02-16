@@ -145,7 +145,6 @@ export default function CentroInteraccion() {
         setError("Error al cargar datos");
       }
     } catch (err) {
-      console.error("Error loading centro-interaccion:", err);
       setError("Error de conexion");
     } finally {
       setLoading(false);

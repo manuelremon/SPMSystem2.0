@@ -119,7 +119,6 @@ export default function CreateSolicitud() {
         almacenes: almacenesFiltrados,
       });
     } catch (err) {
-      console.error('Error catalogos:', err);
       setError('Error al cargar catalogos. Intenta recargar la pagina o reintenta en unos segundos.');
     } finally {
       setLoadingCatalogos(false);
@@ -143,7 +142,6 @@ export default function CreateSolicitud() {
         return next;
       });
     } catch (err) {
-      console.error('Error preload user:', err);
     }
   };
 

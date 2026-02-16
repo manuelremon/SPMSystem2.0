@@ -105,7 +105,6 @@ export default function AdminSolicitudesPerfil() {
       const res = await api.get(`/mi-cuenta/admin/profile-requests/${req.id}`);
       setDetailModal(prev => ({ ...prev, detail: res.data.request }));
     } catch (err) {
-      console.error("Error loading detail:", err);
     }
   }, []);
 

@@ -83,7 +83,6 @@ const ABCAnalysis = () => {
         showToast(t('abc_error', 'Error al cargar análisis ABC'), 'error');
       }
     } catch (error) {
-      console.error('Error fetching ABC analysis:', error);
       showToast(t('abc_error', 'Error al cargar análisis ABC'), 'error');
     } finally {
       setLoading(false);

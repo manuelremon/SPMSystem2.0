@@ -180,7 +180,6 @@ export async function sendVertexMessage(store, message) {
       )
     }
   } catch (error) {
-    console.error('Error en chat Vertex:', error)
     setError(error.message || 'Error de conexion')
     addAssistantMessage(
       'Parece que hay un problema de conexion. Podes intentar de nuevo en unos segundos?'
@@ -206,7 +205,6 @@ export async function loadVertexAlerts(store) {
       setAlerts(result.alerts || [])
     }
   } catch (error) {
-    console.error('Error cargando alertas Vertex:', error)
   } finally {
     setAlertsLoading(false)
   }
@@ -256,7 +254,6 @@ export async function initializeVertex(store, context = {}) {
 
     return { resumed: false, sessionId: null }
   } catch (error) {
-    console.error('Error inicializando Vertex:', error)
     return { resumed: false, sessionId: null, error }
   }
 }

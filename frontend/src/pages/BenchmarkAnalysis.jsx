@@ -51,7 +51,6 @@ const BenchmarkAnalysis = () => {
       const res = await api.get('/api/executive/benchmarks');
       setBenchmarks(res.data.benchmarks || []);
     } catch (error) {
-      console.error('Error fetching benchmarks:', error);
     } finally {
       setLoading(false);
     }
@@ -62,7 +61,6 @@ const BenchmarkAnalysis = () => {
       const res = await api.get('/api/executive/kpis');
       setKpis(res.data.kpis || []);
     } catch (error) {
-      console.error('Error fetching KPIs:', error);
     }
   }, []);
 
@@ -93,7 +91,6 @@ const BenchmarkAnalysis = () => {
       });
       fetchBenchmarks();
     } catch (error) {
-      console.error('Error creating benchmark:', error);
       alert(t('exec_error_creating_benchmark', 'Error al crear benchmark'));
     }
   };

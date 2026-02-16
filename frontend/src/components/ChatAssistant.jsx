@@ -204,7 +204,6 @@ export default function ChatAssistant() {
       recognition.onerror = (event) => {
         // Only log non-permission errors once
         if (event.error !== 'not-allowed' && event.error !== 'aborted') {
-          console.error('Speech recognition error:', event.error)
         }
         setIsListening(false)
         if (event.error === 'not-allowed') {
@@ -359,7 +358,6 @@ export default function ChatAssistant() {
       } catch (err) {
         // Recognition already started or other error
         if (err.name !== 'InvalidStateError') {
-          console.error('Failed to start recognition:', err)
         }
       }
     }
@@ -473,7 +471,6 @@ export default function ChatAssistant() {
       await vertexService.dismissAlert(alertId)
       store.dismissAlert(alertId)
     } catch (error) {
-      console.error('Error descartando alerta:', error)
     }
   }
 

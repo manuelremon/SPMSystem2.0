@@ -151,7 +151,7 @@ function getTableColumnsAgGrid(t) {
 // ============================================================================
 
 export default function DashboardAdmin() {
-  const { user } = useAuthStore();
+  const user = useAuthStore(s => s.user);
   const navigate = useNavigate();
   const { t } = useI18n();
   const layout = useDashboardLayout();
@@ -283,7 +283,6 @@ export default function DashboardAdmin() {
         setLoadedTabs(prev => ({ ...prev, todas: true }));
       } catch (err) {
         if (!isMounted || err?.name === 'AbortError') return;
-        console.error("Error fetching solicitudes:", err);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -318,7 +317,6 @@ export default function DashboardAdmin() {
       setStats(prev => ({ ...prev, [tabKey]: res?.data?.total || lista.length }));
       setLoadedTabs(prev => ({ ...prev, [tabKey]: true }));
     } catch (err) {
-      console.error(`Error fetching tab ${tabKey}:`, err);
     } finally {
       setTabLoading(prev => ({ ...prev, [tabKey]: false }));
     }
@@ -342,7 +340,6 @@ export default function DashboardAdmin() {
         }
       } catch (err) {
         if (!isMounted || err?.name === 'AbortError') return;
-        console.error("Error fetching KPIs:", err);
       } finally {
         if (isMounted) setKpiLoading(false);
       }
@@ -438,12 +435,9 @@ export default function DashboardAdmin() {
             globalTotal: response.data.globalTotal || response.data.total || 0,
             globalValorTotal: response.data.globalValorTotal || response.data.valorTotal || 0,
           });
-        } else {
-          console.error("Stock inmovilizado - respuesta no ok:", response.data);
         }
       } catch (err) {
         if (!isMounted || err?.name === 'AbortError') return;
-        console.error("Error fetching stock inmovilizado:", err.response?.status, err.message);
         setStockInmovilizado({ items: [], total: 0, valorTotal: 0, globalTotal: 0, globalValorTotal: 0 });
       }
     };
@@ -487,7 +481,6 @@ export default function DashboardAdmin() {
         }
       } catch (err) {
         if (!isMounted || err?.name === 'AbortError') return;
-        console.error("Error fetching stock inmovilizado filtrado local:", err.message);
         setStockFiltradoLocal({ items: [], total: 0, valorTotal: 0, loading: false });
       }
     };
@@ -517,7 +510,6 @@ export default function DashboardAdmin() {
         }
       } catch (err) {
         if (!isMounted || err?.name === 'AbortError') return;
-        console.error("Error fetching compras evitadas:", err.response?.status, err.message);
         setComprasEvitadasDetalle([]);
       }
     };

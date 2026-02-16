@@ -46,7 +46,6 @@ async function exportCard(element, filename) {
 
     return true
   } catch (error) {
-    console.error('Error al exportar:', error)
     throw error
   }
 }
@@ -72,7 +71,6 @@ export function ChartExportButton({
     try {
       await exportCard(chartRef.current, filename)
     } catch (error) {
-      console.error('Error:', error)
       toast.error(`Error al exportar: ${error.message}`)
     } finally {
       setExporting(false)

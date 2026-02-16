@@ -78,7 +78,6 @@ const PackingDetail = () => {
       if (packingRes.data.ok) setPacking(packingRes.data.packing_list);
       if (templatesRes.data.ok) setTemplates(templatesRes.data.templates);
     } catch (error) {
-      console.error('Error loading packing detail:', error);
     } finally {
       setLoading(false);
     }
@@ -104,7 +103,6 @@ const PackingDetail = () => {
         loadData();
       }
     } catch (error) {
-      console.error('Error adding item:', error);
       alert(error.response?.data?.error || 'Error al agregar item');
     }
   };
@@ -116,7 +114,6 @@ const PackingDetail = () => {
       await api.delete(`/api/packaging/packing-lists/${id}/items/${itemId}`);
       loadData();
     } catch (error) {
-      console.error('Error deleting item:', error);
       alert(error.response?.data?.error || 'Error al eliminar item');
     }
   };
@@ -135,7 +132,6 @@ const PackingDetail = () => {
         loadData();
       }
     } catch (error) {
-      console.error('Error optimizing:', error);
       alert('Error al optimizar');
     }
   };
@@ -149,7 +145,6 @@ const PackingDetail = () => {
         loadData();
       }
     } catch (error) {
-      console.error('Error packing:', error);
       alert(error.response?.data?.error || 'Error al empacar');
     }
   };
@@ -163,7 +158,6 @@ const PackingDetail = () => {
         loadData();
       }
     } catch (error) {
-      console.error('Error dispatching:', error);
       alert(error.response?.data?.error || 'Error al despachar');
     }
   };
@@ -178,7 +172,6 @@ const PackingDetail = () => {
         alert(t('pack_label_generated', 'Etiqueta generada exitosamente'));
       }
     } catch (error) {
-      console.error('Error generating label:', error);
       alert(error.response?.data?.error || 'Error al generar etiqueta');
     }
   };

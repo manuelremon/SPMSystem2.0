@@ -18,6 +18,7 @@ import TextField from '@mui/material/TextField';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
+import { formatDate } from '../utils/formatters';
 import InputLabel from '@mui/material/InputLabel';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -138,19 +139,13 @@ export default function RFQList() {
       field: 'fecha_creacion',
       headerName: t('rfq_fecha_creacion', 'Creada'),
       width: 130,
-      valueFormatter: (params) => {
-        if (!params.value) return '';
-        return new Date(params.value).toLocaleDateString('es-AR');
-      },
+      valueFormatter: (params) => formatDate(params.value) || '',
     },
     {
       field: 'fecha_cierre_ofertas',
       headerName: t('rfq_fecha_cierre', 'Cierre Ofertas'),
       width: 140,
-      valueFormatter: (params) => {
-        if (!params.value) return '-';
-        return new Date(params.value).toLocaleDateString('es-AR');
-      },
+      valueFormatter: (params) => formatDate(params.value) || '-',
     },
     {
       field: 'num_proveedores',

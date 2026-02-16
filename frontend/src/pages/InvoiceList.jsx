@@ -46,13 +46,7 @@ const ESTADO_COLORS = {
   paid: 'success',
 };
 
-const ESTADO_LABELS = {
-  pending: 'Pendiente',
-  matched: 'Matched',
-  disputed: 'Disputed',
-  approved: 'Aprobada',
-  paid: 'Pagada',
-};
+// Labels via i18n — use t() in column renderer
 
 export default function InvoiceList() {
   const { t } = useI18n();
@@ -124,7 +118,7 @@ export default function InvoiceList() {
       cellRenderer: (p) => (
         <Chip
           size="small"
-          label={ESTADO_LABELS[p.value] || p.value}
+          label={t(`invoice_estado_${p.value}`, p.value)}
           color={ESTADO_COLORS[p.value] || 'default'}
         />
       ),

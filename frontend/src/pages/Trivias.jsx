@@ -205,7 +205,6 @@ export default function Trivias() {
         setMyStats(res.data.my_stats || { total_score: 0, games_played: 0 });
       }
     } catch (err) {
-      console.error("Error loading rankings", err);
     } finally {
       setLoadingRankings(false);
     }
@@ -254,7 +253,6 @@ export default function Trivias() {
       });
       loadRankings();
     } catch (err) {
-      console.error("Error saving score", err);
     }
   };
 

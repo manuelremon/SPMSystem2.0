@@ -722,7 +722,6 @@ export default function AdminMonitorUsuarios() {
       const data = Array.isArray(res.data) ? res.data : [];
       setUsuarios(data);
     } catch (err) {
-      console.error("Error loading users:", err);
     } finally {
       setLoadingUsers(false);
     }
@@ -754,7 +753,6 @@ export default function AdminMonitorUsuarios() {
         setError("Error al cargar actividad");
       }
     } catch (err) {
-      console.error("Error loading activity:", err);
       setError("Error de conexión");
     } finally {
       setLoading(false);

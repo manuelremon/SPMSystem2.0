@@ -226,7 +226,6 @@ export default function StockIndividual() {
         setError("No se encontró stock para este material");
       }
     } catch (err) {
-      console.error("Error searching material:", err);
       setError("Error al buscar material");
     } finally {
       clearInterval(progressInterval);

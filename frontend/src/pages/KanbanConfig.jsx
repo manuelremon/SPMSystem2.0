@@ -60,7 +60,6 @@ const KanbanConfig = () => {
         setSelectedTablero(res.data[0].id);
       }
     } catch (error) {
-      console.error('Error fetching tableros:', error);
     }
   }, [selectedTablero]);
 
@@ -70,7 +69,6 @@ const KanbanConfig = () => {
       const res = await api.get(`/api/kanban/boards/${selectedTablero}`);
       setTarjetas(res.data.tarjetas || []);
     } catch (error) {
-      console.error('Error fetching tarjetas:', error);
     }
   }, [selectedTablero]);
 
@@ -91,7 +89,6 @@ const KanbanConfig = () => {
       setTableroForm({ nombre: '', almacen_id: '', centro_id: '', descripcion: '' });
       fetchTableros();
     } catch (error) {
-      console.error('Error creating tablero:', error);
       alert(t('kanban_error_create_board', 'Error al crear tablero'));
     }
   };
@@ -111,7 +108,6 @@ const KanbanConfig = () => {
       });
       fetchTarjetas();
     } catch (error) {
-      console.error('Error creating tarjeta:', error);
       alert(t('kanban_error_create_card', 'Error al crear tarjeta'));
     }
   };
@@ -139,7 +135,6 @@ const KanbanConfig = () => {
       });
       fetchTarjetas();
     } catch (error) {
-      console.error('Error updating tarjeta:', error);
       alert(t('kanban_error_update_card', 'Error al actualizar tarjeta'));
     }
   };

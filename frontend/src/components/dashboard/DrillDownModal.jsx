@@ -167,7 +167,6 @@ export default function DrillDownModal({
         XLSX.writeFile(wb, `drill_down_${metrica}_${new Date().toISOString().split('T')[0]}.xlsx`);
       }
     } catch (err) {
-      console.error('Error exporting drill-down:', err);
     }
   }, [metrica, filtros]);
 

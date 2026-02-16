@@ -67,7 +67,6 @@ const ProductionDetail = () => {
         setItems(res.data.plan.items || []);
       }
     } catch (error) {
-      console.error('Error loading plan:', error);
       alert(t('common_error', 'Error: ') + (error.response?.data?.mensaje || error.message));
     } finally {
       setLoading(false);
@@ -81,7 +80,6 @@ const ProductionDetail = () => {
         setWorkCenters(res.data.work_centers);
       }
     } catch (error) {
-      console.error('Error loading work centers:', error);
     }
   };
 
@@ -106,7 +104,6 @@ const ProductionDetail = () => {
         loadPlanDetail();
       }
     } catch (error) {
-      console.error('Error adding item:', error);
       alert(t('common_error', 'Error: ') + (error.response?.data?.mensaje || error.message));
     }
   };
@@ -135,7 +132,6 @@ const ProductionDetail = () => {
         loadPlanDetail();
       }
     } catch (error) {
-      console.error('Error reporting production:', error);
       alert(t('common_error', 'Error: ') + (error.response?.data?.mensaje || error.message));
     }
   };
@@ -147,7 +143,6 @@ const ProductionDetail = () => {
         setValidationResult(res.data);
       }
     } catch (error) {
-      console.error('Error validating capacity:', error);
       alert(t('common_error', 'Error: ') + (error.response?.data?.mensaje || error.message));
     }
   };
@@ -169,7 +164,6 @@ const ProductionDetail = () => {
         loadPlanDetail();
       }
     } catch (error) {
-      console.error('Error publishing plan:', error);
       alert(t('common_error', 'Error: ') + (error.response?.data?.mensaje || error.message));
     }
   };
@@ -185,7 +179,6 @@ const ProductionDetail = () => {
         loadPlanDetail();
       }
     } catch (error) {
-      console.error('Error completing plan:', error);
       alert(t('common_error', 'Error: ') + (error.response?.data?.mensaje || error.message));
     }
   };

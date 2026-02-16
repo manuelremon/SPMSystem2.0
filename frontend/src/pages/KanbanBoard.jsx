@@ -53,7 +53,6 @@ const KanbanBoard = () => {
         setSelectedTablero(res.data[0].id);
       }
     } catch (error) {
-      console.error('Error fetching tableros:', error);
     }
   }, [selectedTablero]);
 
@@ -64,7 +63,6 @@ const KanbanBoard = () => {
       const res = await api.get(`/api/kanban/boards/${selectedTablero}`);
       setTableroDetalle(res.data);
     } catch (error) {
-      console.error('Error fetching tablero detalle:', error);
     } finally {
       setLoading(false);
     }
@@ -75,7 +73,6 @@ const KanbanBoard = () => {
       const res = await api.get('/api/kanban/kpis');
       setKpis(res.data);
     } catch (error) {
-      console.error('Error fetching KPIs:', error);
     }
   }, []);
 
@@ -96,7 +93,6 @@ const KanbanBoard = () => {
       fetchTableroDetalle();
       fetchKpis();
     } catch (error) {
-      console.error('Error vaciando tarjeta:', error);
       alert(t('kanban_error_empty', 'Error al vaciar tarjeta'));
     }
   };
@@ -109,7 +105,6 @@ const KanbanBoard = () => {
       fetchTableroDetalle();
       fetchKpis();
     } catch (error) {
-      console.error('Error llenando tarjeta:', error);
       alert(t('kanban_error_fill', 'Error al llenar tarjeta'));
     }
   };

@@ -425,7 +425,6 @@ export default function ProcurementDashboard() {
       setPipeline(pipelineRes.data?.items || []);
       setImportHistory(historyRes.data?.items || []);
     } catch (err) {
-      console.error('Error fetching procurement data:', err);
       setError('Error al cargar datos de procurement');
     } finally {
       setLoading(false);
@@ -444,7 +443,6 @@ export default function ProcurementDashboard() {
       setShowImportModal(false);
       fetchData();
     } catch (err) {
-      console.error('Error importing:', err);
       toast.error('Error durante la importación: ' + (err.response?.data?.error || err.message));
     } finally {
       setImporting(false);
