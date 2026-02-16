@@ -3,11 +3,15 @@ Fleet Management System (FMS) Routes
 Gestión completa de flotas: vehículos, conductores, órdenes de trabajo, mantenimiento, inspecciones
 """
 
+import logging
+
 from flask import Blueprint, g, jsonify, request
 
 from backend.core.rate_limit import rate_limit
 from backend.core.roles import require_auth, require_role
 from backend.services import fms_service
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("fms", __name__, url_prefix="/api/fms")
 
@@ -31,10 +35,16 @@ def list_vehicles():
         vehicles = fms_service.list_vehicles(filters)
         return jsonify({"ok": True, "data": vehicles})
 
-    except Exception as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "list_vehicles_failed", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in list_vehicles: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "list_vehicles_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -57,15 +67,16 @@ def create_vehicle():
         vehicle = fms_service.create_vehicle(data, user_id)
         return jsonify({"ok": True, "data": vehicle}), 201
 
-    except ValueError as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "validation_error", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
         }), 400
     except Exception as e:
+        logger.error(f"Error in create_vehicle: {e}", exc_info=True)
         return jsonify({
             "ok": False,
-            "error": {"code": "create_vehicle_failed", "message": str(e)}
+            "error": {"code": "create_vehicle_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -85,10 +96,16 @@ def get_vehicle(vehicle_id):
 
         return jsonify({"ok": True, "data": vehicle})
 
-    except Exception as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "get_vehicle_failed", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in get_vehicle: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "get_vehicle_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -118,15 +135,16 @@ def update_vehicle(vehicle_id):
 
         return jsonify({"ok": True, "data": vehicle})
 
-    except ValueError as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "validation_error", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
         }), 400
     except Exception as e:
+        logger.error(f"Error in update_vehicle: {e}", exc_info=True)
         return jsonify({
             "ok": False,
-            "error": {"code": "update_vehicle_failed", "message": str(e)}
+            "error": {"code": "update_vehicle_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -156,15 +174,16 @@ def change_vehicle_status(vehicle_id):
 
         return jsonify({"ok": True, "data": vehicle})
 
-    except ValueError as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "validation_error", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
         }), 400
     except Exception as e:
+        logger.error(f"Error in change_vehicle_status: {e}", exc_info=True)
         return jsonify({
             "ok": False,
-            "error": {"code": "change_status_failed", "message": str(e)}
+            "error": {"code": "change_status_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -182,10 +201,16 @@ def get_available_vehicles():
         vehicles = fms_service.get_available_vehicles(filters)
         return jsonify({"ok": True, "data": vehicles})
 
-    except Exception as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "get_available_vehicles_failed", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in get_available_vehicles: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "get_available_vehicles_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -206,10 +231,16 @@ def list_drivers():
         drivers = fms_service.list_drivers(filters)
         return jsonify({"ok": True, "data": drivers})
 
-    except Exception as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "list_drivers_failed", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in list_drivers: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "list_drivers_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -232,15 +263,16 @@ def create_driver():
         driver = fms_service.create_driver(data, user_id)
         return jsonify({"ok": True, "data": driver}), 201
 
-    except ValueError as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "validation_error", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
         }), 400
     except Exception as e:
+        logger.error(f"Error in create_driver: {e}", exc_info=True)
         return jsonify({
             "ok": False,
-            "error": {"code": "create_driver_failed", "message": str(e)}
+            "error": {"code": "create_driver_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -260,10 +292,16 @@ def get_driver(driver_id):
 
         return jsonify({"ok": True, "data": driver})
 
-    except Exception as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "get_driver_failed", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in get_driver: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "get_driver_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -293,15 +331,16 @@ def update_driver(driver_id):
 
         return jsonify({"ok": True, "data": driver})
 
-    except ValueError as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "validation_error", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
         }), 400
     except Exception as e:
+        logger.error(f"Error in update_driver: {e}", exc_info=True)
         return jsonify({
             "ok": False,
-            "error": {"code": "update_driver_failed", "message": str(e)}
+            "error": {"code": "update_driver_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -314,10 +353,16 @@ def get_available_drivers():
         drivers = fms_service.get_available_drivers()
         return jsonify({"ok": True, "data": drivers})
 
-    except Exception as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "get_available_drivers_failed", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in get_available_drivers: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "get_available_drivers_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -343,10 +388,16 @@ def list_work_orders():
         result = fms_service.list_work_orders(filters)
         return jsonify({"ok": True, "data": result})
 
-    except Exception as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "list_work_orders_failed", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in list_work_orders: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "list_work_orders_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -369,15 +420,16 @@ def create_work_order():
         work_order = fms_service.create_work_order(data, user_id)
         return jsonify({"ok": True, "data": work_order}), 201
 
-    except ValueError as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "validation_error", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
         }), 400
     except Exception as e:
+        logger.error(f"Error in create_work_order: {e}", exc_info=True)
         return jsonify({
             "ok": False,
-            "error": {"code": "create_work_order_failed", "message": str(e)}
+            "error": {"code": "create_work_order_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -397,10 +449,16 @@ def get_work_order(order_id):
 
         return jsonify({"ok": True, "data": work_order})
 
-    except Exception as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "get_work_order_failed", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in get_work_order: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "get_work_order_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -430,15 +488,16 @@ def transition_work_order(order_id):
 
         return jsonify({"ok": True, "data": work_order})
 
-    except ValueError as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "validation_error", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
         }), 400
     except Exception as e:
+        logger.error(f"Error in transition_work_order: {e}", exc_info=True)
         return jsonify({
             "ok": False,
-            "error": {"code": "transition_failed", "message": str(e)}
+            "error": {"code": "transition_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -461,15 +520,16 @@ def add_part_to_work_order(order_id):
         part = fms_service.add_part_to_work_order(order_id, data, user_id)
         return jsonify({"ok": True, "data": part}), 201
 
-    except ValueError as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "validation_error", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
         }), 400
     except Exception as e:
+        logger.error(f"Error in add_part_to_work_order: {e}", exc_info=True)
         return jsonify({
             "ok": False,
-            "error": {"code": "add_part_failed", "message": str(e)}
+            "error": {"code": "add_part_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -492,15 +552,16 @@ def request_part_from_spm(order_id):
         result = fms_service.request_part_from_spm(order_id, data, user_id)
         return jsonify({"ok": True, "data": result}), 201
 
-    except ValueError as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "validation_error", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
         }), 400
     except Exception as e:
+        logger.error(f"Error in request_part_from_spm: {e}", exc_info=True)
         return jsonify({
             "ok": False,
-            "error": {"code": "request_part_failed", "message": str(e)}
+            "error": {"code": "request_part_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -517,10 +578,16 @@ def list_maintenance_plans(vehicle_id):
         plans = fms_service.list_maintenance_plans(vehicle_id)
         return jsonify({"ok": True, "data": plans})
 
-    except Exception as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "list_maintenance_plans_failed", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in list_maintenance_plans: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "list_maintenance_plans_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -543,15 +610,16 @@ def create_maintenance_plan(vehicle_id):
         plan = fms_service.create_maintenance_plan(vehicle_id, data, user_id)
         return jsonify({"ok": True, "data": plan}), 201
 
-    except ValueError as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "validation_error", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
         }), 400
     except Exception as e:
+        logger.error(f"Error in create_maintenance_plan: {e}", exc_info=True)
         return jsonify({
             "ok": False,
-            "error": {"code": "create_maintenance_plan_failed", "message": str(e)}
+            "error": {"code": "create_maintenance_plan_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -581,15 +649,16 @@ def update_maintenance_plan(plan_id):
 
         return jsonify({"ok": True, "data": plan})
 
-    except ValueError as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "validation_error", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
         }), 400
     except Exception as e:
+        logger.error(f"Error in update_maintenance_plan: {e}", exc_info=True)
         return jsonify({
             "ok": False,
-            "error": {"code": "update_maintenance_plan_failed", "message": str(e)}
+            "error": {"code": "update_maintenance_plan_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -604,10 +673,16 @@ def evaluate_preventive_maintenance():
         result = fms_service.evaluate_preventive_maintenance(user_id)
         return jsonify({"ok": True, "data": result})
 
-    except Exception as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "evaluate_maintenance_failed", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in evaluate_preventive_maintenance: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "evaluate_maintenance_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -630,10 +705,16 @@ def list_inspections():
         inspections = fms_service.list_inspections(filters)
         return jsonify({"ok": True, "data": inspections})
 
-    except Exception as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "list_inspections_failed", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in list_inspections: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "list_inspections_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -655,15 +736,16 @@ def create_inspection():
         inspection = fms_service.create_inspection(data, user_id)
         return jsonify({"ok": True, "data": inspection}), 201
 
-    except ValueError as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "validation_error", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
         }), 400
     except Exception as e:
+        logger.error(f"Error in create_inspection: {e}", exc_info=True)
         return jsonify({
             "ok": False,
-            "error": {"code": "create_inspection_failed", "message": str(e)}
+            "error": {"code": "create_inspection_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -683,10 +765,16 @@ def get_inspection(inspection_id):
 
         return jsonify({"ok": True, "data": inspection})
 
-    except Exception as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "get_inspection_failed", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in get_inspection: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "get_inspection_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -715,15 +803,16 @@ def complete_inspection(inspection_id):
 
         return jsonify({"ok": True, "data": inspection})
 
-    except ValueError as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "validation_error", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
         }), 400
     except Exception as e:
+        logger.error(f"Error in complete_inspection: {e}", exc_info=True)
         return jsonify({
             "ok": False,
-            "error": {"code": "complete_inspection_failed", "message": str(e)}
+            "error": {"code": "complete_inspection_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -740,10 +829,16 @@ def list_vehicle_documents(vehicle_id):
         documents = fms_service.list_vehicle_documents(vehicle_id)
         return jsonify({"ok": True, "data": documents})
 
-    except Exception as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "list_documents_failed", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in list_vehicle_documents: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "list_documents_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -766,15 +861,16 @@ def add_vehicle_document(vehicle_id):
         document = fms_service.add_vehicle_document(vehicle_id, data, user_id)
         return jsonify({"ok": True, "data": document}), 201
 
-    except ValueError as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "validation_error", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
         }), 400
     except Exception as e:
+        logger.error(f"Error in add_vehicle_document: {e}", exc_info=True)
         return jsonify({
             "ok": False,
-            "error": {"code": "add_document_failed", "message": str(e)}
+            "error": {"code": "add_document_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -788,10 +884,16 @@ def get_expiring_documents():
         documents = fms_service.get_expiring_documents(days)
         return jsonify({"ok": True, "data": documents})
 
-    except Exception as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "get_expiring_documents_failed", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in get_expiring_documents: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "get_expiring_documents_failed", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -808,8 +910,14 @@ def get_fms_kpis():
         kpis = fms_service.get_fms_kpis()
         return jsonify({"ok": True, "data": kpis})
 
-    except Exception as e:
+    except (KeyError, ValueError, TypeError) as e:
         return jsonify({
             "ok": False,
-            "error": {"code": "get_kpis_failed", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in get_fms_kpis: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "get_kpis_failed", "message": "Error interno del servidor"}
         }), 500

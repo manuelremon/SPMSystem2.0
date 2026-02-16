@@ -18,6 +18,7 @@ from backend.core.db import (
 from backend.core.helpers import safe_json as _safe_json
 from backend.core.rate_limit import rate_limit
 from backend.core.roles import is_admin, require_auth
+from backend.core.user_helpers import get_user_by_id
 
 bp = Blueprint("foro", __name__)
 logger = logging.getLogger(__name__)
@@ -118,18 +119,10 @@ def _ensure_foro_tables():
 
 
 def _get_user_info(user_id: str) -> dict | None:
-    """Get user name info from database"""
-    try:
-        with get_db_connection() as conn:
-            cur = conn.cursor()
-            cur.execute(
-                "SELECT id_spm, nombre, apellido FROM usuario WHERE id_spm=?", (str(user_id),)
-            )
-            row = cur.fetchone()
-            if row:
-                return {"id": row["id_spm"], "nombre": row["nombre"], "apellido": row["apellido"]}
-    except Exception:
-        pass
+    """Get user name info from database (uses centralized user_helpers)."""
+    user = get_user_by_id(user_id)
+    if user:
+        return {"id": user["id_spm"], "nombre": user.get("nombre", ""), "apellido": user.get("apellido", "")}
     return None
 
 

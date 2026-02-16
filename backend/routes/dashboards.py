@@ -37,7 +37,8 @@ from backend.core.dashboard_schemas import (
     CreateShareRequest,
     UpdateDashboardRequest,
 )
-from backend.core.roles import require_auth
+from backend.core.roles import normalize_roles, require_auth
+from backend.core.user_helpers import get_current_user_id
 from backend.services.dashboard_service import (
     DashboardDataSourceService,
     DashboardGrupoService,
@@ -52,15 +53,16 @@ bp = Blueprint("dashboards", __name__, url_prefix="/api")
 
 def _get_user_id():
     """Obtiene el ID del usuario autenticado"""
-    return getattr(g, "user_id", None) or getattr(g, "current_user_id", None)
+    return get_current_user_id()
 
 
 def _get_user_roles():
-    """Obtiene los roles del usuario autenticado"""
-    roles = getattr(g, "user_roles", None) or getattr(g, "roles", [])
-    if isinstance(roles, str):
-        return [r.strip().lower() for r in roles.split(",")]
-    return [r.lower() for r in roles] if roles else []
+    """Obtiene los roles del usuario autenticado desde g.user"""
+    user = getattr(g, "user", None)
+    if not user:
+        return []
+    rol = user.get("rol", "") if isinstance(user, dict) else ""
+    return [r.lower() for r in normalize_roles(rol)]
 
 
 # ============================================================================

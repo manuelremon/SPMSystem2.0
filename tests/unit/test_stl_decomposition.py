@@ -35,9 +35,13 @@ def datos_ejemplo():
 
 @pytest.fixture
 def datos_cortos():
-    """Genera datos más cortos para pruebas de series cortas"""
-    fechas = pd.date_range(start='2024-01-01', periods=30, freq='D')
-    cantidad = 50 + np.random.normal(0, 5, 30)
+    """Genera datos más cortos para pruebas de series cortas.
+
+    Uses only 10 data points which is fewer than seasonal*2 (7*2=14),
+    so STL will fall back to the simple model.
+    """
+    fechas = pd.date_range(start='2024-01-01', periods=10, freq='D')
+    cantidad = 50 + np.random.normal(0, 5, 10)
     return pd.DataFrame({
         'fecha': fechas,
         'cantidad': np.maximum(cantidad, 10)

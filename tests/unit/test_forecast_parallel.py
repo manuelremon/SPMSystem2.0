@@ -235,42 +235,38 @@ class TestComparacionReport:
 
     def test_crear_reporte_comparacion(self, datos_ejemplo):
         """Prueba creación de reporte de comparación"""
-        from backend.agent.pipelines.forecast import ModelComparator
+        from backend.agent.pipelines.forecast import DemandPredictor, ModelComparator
 
-        comparador = ModelComparator()
-        modelos_ids = ['random_forest', 'lstm']
+        comparador = ModelComparator(predictor_class=DemandPredictor)
+        resultado = comparador.comparar(
+            datos_ejemplo,
+            modelos=['random_forest'],
+            ventana_test=30,
+            n_pasos=2,
+            paralelo=False,
+        )
 
-        for modelo_id in modelos_ids:
-            modelo = obtener_estrategia(modelo_id)
-            if modelo:
-                metricas = modelo.entrenar(datos_ejemplo)
-                comparador.agregar_resultado(modelo_id, metricas, modelo)
-
-        reporte = comparador.generar_reporte()
-
-        assert reporte is not None
-        assert hasattr(reporte, 'modelos')
-        assert hasattr(reporte, 'metricas')
-        assert hasattr(reporte, 'mejor_por_metrica')
+        assert resultado is not None
+        assert 'resultados' in resultado
+        assert 'mejor_modelo' in resultado
+        assert 'ranking' in resultado
 
     def test_reporte_mejor_por_metrica(self, datos_ejemplo):
         """Prueba que reporte identifica mejor modelo por métrica"""
-        from backend.agent.pipelines.forecast import ModelComparator
+        from backend.agent.pipelines.forecast import DemandPredictor, ModelComparator
 
-        comparador = ModelComparator()
-        modelos_ids = ['random_forest', 'lstm']
+        comparador = ModelComparator(predictor_class=DemandPredictor)
+        resultado = comparador.comparar(
+            datos_ejemplo,
+            modelos=['random_forest'],
+            ventana_test=30,
+            n_pasos=2,
+            paralelo=False,
+        )
 
-        for modelo_id in modelos_ids:
-            modelo = obtener_estrategia(modelo_id)
-            if modelo:
-                metricas = modelo.entrenar(datos_ejemplo)
-                comparador.agregar_resultado(modelo_id, metricas, modelo)
-
-        reporte = comparador.generar_reporte()
-
-        # Verificar que hay mejor por cada métrica
-        assert 'mae' in reporte.mejor_por_metrica or len(reporte.mejor_por_metrica) == 0
-        assert 'rmse' in reporte.mejor_por_metrica or len(reporte.mejor_por_metrica) == 0
+        # Verificar que se identificó el mejor modelo
+        assert resultado['mejor_modelo'] is not None or resultado['resultados'] == {}
+        assert isinstance(resultado['ranking'], list)
 
 
 def test_integracion_pipeline_completa(datos_ejemplo):

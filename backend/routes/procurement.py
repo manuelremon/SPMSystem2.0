@@ -146,7 +146,7 @@ def ensure_procurement_views():
             conn.commit()
             logger.info("Procurement views created/verified successfully")
     except Exception as e:
-        logger.warning(f"Could not create procurement views: {e}")
+        logger.warning(f"Could not create procurement views: {e}", exc_info=True)
 
 
 def _row_to_dict(row) -> Dict[str, Any]:
@@ -260,9 +260,12 @@ def get_solpeds():
             "pages": (total + per_page - 1) // per_page
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in get_solpeds: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error obteniendo solpeds: {e}")
-        return jsonify({"error": "Error al obtener requisiciones"}), 500
+        logger.error(f"Error in get_solpeds: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 
 @procurement_bp.route('/solpeds/<int:solped_id>', methods=['GET'])
@@ -310,9 +313,12 @@ def get_solped_detail(solped_id: int):
             "items": items
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in get_solped_detail: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error obteniendo detalle SOLPED {solped_id}: {e}")
-        return jsonify({"error": "Error al obtener detalle"}), 500
+        logger.error(f"Error in get_solped_detail for solped_id={solped_id}: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 
 # =============================================================================
@@ -390,9 +396,12 @@ def get_orders():
             "pages": (total + per_page - 1) // per_page
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in get_orders: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error obteniendo orders: {e}")
-        return jsonify({"error": "Error al obtener ordenes de compra"}), 500
+        logger.error(f"Error in get_orders: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 
 @procurement_bp.route('/orders/<int:pedido_id>', methods=['GET'])
@@ -435,9 +444,12 @@ def get_order_detail(pedido_id: int):
             "items": items
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in get_order_detail: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error obteniendo detalle pedido {pedido_id}: {e}")
-        return jsonify({"error": "Error al obtener detalle"}), 500
+        logger.error(f"Error in get_order_detail for pedido_id={pedido_id}: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 
 # =============================================================================
@@ -573,9 +585,12 @@ def get_kpis():
             "top_proveedores": [_row_to_dict(r) for r in top_proveedores]
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in get_kpis: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error obteniendo KPIs: {e}")
-        return jsonify({"error": "Error al obtener KPIs"}), 500
+        logger.error(f"Error in get_kpis: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 
 @procurement_bp.route('/kpis/lead-times', methods=['GET'])
@@ -650,9 +665,12 @@ def get_lead_times():
             "items": [_row_to_dict(r) for r in rows]
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in get_lead_times: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error obteniendo lead times: {e}")
-        return jsonify({"error": "Error al obtener lead times"}), 500
+        logger.error(f"Error in get_lead_times: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 
 @procurement_bp.route('/kpis/compliance', methods=['GET'])
@@ -683,10 +701,13 @@ def get_compliance():
             "items": [_row_to_dict(r) for r in rows]
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in get_compliance: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error obteniendo compliance: {e}")
+        logger.error(f"Error in get_compliance: {e}", exc_info=True)
         # Retornar vacío en lugar de error 500 para no romper el frontend
-        return jsonify({"items": [], "error": str(e)})
+        return jsonify({"items": [], "error": "Error interno del servidor"})
 
 
 @procurement_bp.route('/kpis/costs', methods=['GET'])
@@ -735,9 +756,12 @@ def get_costs():
             "items": [_row_to_dict(r) for r in rows]
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in get_costs: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error obteniendo costos: {e}")
-        return jsonify({"error": "Error al obtener analisis de costos"}), 500
+        logger.error(f"Error in get_costs: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 
 # =============================================================================
@@ -789,9 +813,12 @@ def import_zm65():
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in import_zm65: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error en importacion: {e}")
-        return jsonify({"error": f"Error durante importacion: {str(e)}"}), 500
+        logger.error(f"Error in import_zm65: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 
 @procurement_bp.route('/import/history', methods=['GET'])
@@ -814,9 +841,12 @@ def get_import_history():
             "items": [_row_to_dict(r) for r in rows]
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in get_import_history: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error obteniendo historial: {e}")
-        return jsonify({"error": "Error al obtener historial"}), 500
+        logger.error(f"Error in get_import_history: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 
 # =============================================================================
@@ -837,9 +867,12 @@ def get_summary():
             "items": [_row_to_dict(r) for r in rows]
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in get_summary: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error obteniendo resumen: {e}")
-        return jsonify({"error": "Error al obtener resumen"}), 500
+        logger.error(f"Error in get_summary: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 
 @procurement_bp.route('/pipeline', methods=['GET'])
@@ -854,9 +887,12 @@ def get_pipeline():
 
         return jsonify([_row_to_dict(r) for r in rows])
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in get_pipeline: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error obteniendo pipeline: {e}")
-        return jsonify({"error": "Error al obtener pipeline"}), 500
+        logger.error(f"Error in get_pipeline: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 
 # =============================================================================
@@ -1004,9 +1040,12 @@ def get_procurement_analytics():
             }
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in get_procurement_analytics: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error obteniendo analytics: {e}")
-        return jsonify({"error": "Error al obtener analytics de procurement"}), 500
+        logger.error(f"Error in get_procurement_analytics: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 
 # =============================================================================
@@ -1157,9 +1196,12 @@ def get_provider_scorecard(proveedor):
             "periodo": periodo
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in get_provider_scorecard: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error obteniendo scorecard de proveedor: {e}")
-        return jsonify({"error": "Error al obtener scorecard del proveedor"}), 500
+        logger.error(f"Error in get_provider_scorecard for proveedor={proveedor}: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 
 @procurement_bp.route('/price-history/<material_codigo>', methods=['GET'])
@@ -1300,9 +1342,12 @@ def get_price_history(material_codigo):
             "precios_por_proveedor": por_proveedor
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in get_price_history: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error obteniendo historial de precios: {e}")
-        return jsonify({"error": "Error al obtener historial de precios"}), 500
+        logger.error(f"Error in get_price_history for material={material_codigo}: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 
 # ============================================================================
@@ -1418,9 +1463,12 @@ def get_provider_ranking():
             }
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in get_provider_ranking: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error obteniendo ranking de proveedores: {e}")
-        return jsonify({"error": "Error al obtener ranking de proveedores"}), 500
+        logger.error(f"Error in get_provider_ranking: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 
 @procurement_bp.route('/comparar', methods=['GET', 'POST'])
@@ -1515,9 +1563,12 @@ def comparar_proveedores():
             }
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in comparar_proveedores: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error comparando proveedores: {e}")
-        return jsonify({"error": "Error al comparar proveedores"}), 500
+        logger.error(f"Error in comparar_proveedores: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 
 def _comparar_proveedores_side_by_side():
@@ -1662,11 +1713,12 @@ def _comparar_proveedores_side_by_side():
             }
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in _comparar_proveedores_side_by_side: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error comparando proveedores side-by-side: {e}")
-        return jsonify({
-            "error": "Error al comparar proveedores"
-        }), 500
+        logger.error(f"Error in _comparar_proveedores_side_by_side: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 
 # ============================================================================
@@ -1756,9 +1808,12 @@ def get_scorecard_ranking():
 
         return jsonify({"ok": True, "ranking": ranking})
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in get_scorecard_ranking: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error obteniendo scorecard ranking: {e}")
-        return jsonify({"error": "Error al obtener ranking de scorecard"}), 500
+        logger.error(f"Error in get_scorecard_ranking: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 
 @procurement_bp.route('/scorecard/<proveedor_id>/evaluar', methods=['POST'])
@@ -1829,9 +1884,12 @@ def evaluar_proveedor(proveedor_id):
             }
         }), 201
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in evaluar_proveedor: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error evaluando proveedor: {e}")
-        return jsonify({"error": "Error al evaluar proveedor"}), 500
+        logger.error(f"Error in evaluar_proveedor for proveedor_id={proveedor_id}: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 
 @procurement_bp.route('/scorecard/<proveedor_id>/historial', methods=['GET'])
@@ -1875,6 +1933,9 @@ def get_scorecard_historial(proveedor_id):
             "historial": historial,
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Invalid input in get_scorecard_historial: {e}")
+        return jsonify({"error": "Datos de entrada inválidos"}), 400
     except Exception as e:
-        logger.error(f"Error obteniendo historial scorecard: {e}")
-        return jsonify({"error": "Error al obtener historial"}), 500
+        logger.error(f"Error in get_scorecard_historial for proveedor_id={proveedor_id}: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500

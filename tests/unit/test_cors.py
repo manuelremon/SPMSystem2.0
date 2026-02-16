@@ -36,12 +36,12 @@ class TestCORSValidation:
         )
         assert response.headers.get("Access-Control-Allow-Origin") == "http://localhost:5173"
 
-        # localhost:5000 es el backend
+        # localhost:3000 es otro puerto de desarrollo permitido
         response = client.get(
             "/api/health",
-            headers={"Origin": "http://localhost:5000"}
+            headers={"Origin": "http://localhost:3000"}
         )
-        assert response.headers.get("Access-Control-Allow-Origin") == "http://localhost:5000"
+        assert response.headers.get("Access-Control-Allow-Origin") == "http://localhost:3000"
 
     def test_cors_unknown_origin_rejected(self, client):
         """Origen desconocido no debe tener headers CORS."""

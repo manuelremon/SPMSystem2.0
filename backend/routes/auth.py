@@ -22,6 +22,7 @@ from backend.core.config import settings
 from backend.core.db import get_db_connection, sql_pattern_is_numeric
 from backend.core.helpers import safe_json as _safe_json
 from backend.core.roles import format_user_response, is_admin, normalize_roles
+from backend.core.user_helpers import get_user_by_id, get_user_by_id_or_email
 
 bp = Blueprint("auth", __name__)
 
@@ -101,54 +102,21 @@ _login_limiter = RateLimiter(max_attempts=10, window_seconds=300)
 _token_blacklist = TokenBlacklist()
 
 
-def _get_user(username: str):
-    """Busca por id_spm o mail"""
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            """SELECT id_spm, nombre, apellido, rol, contrasena, mail,
-                    posicion, sector, centros, jefe, gerente1, gerente2,
-                    telefono, estado_registro, id_ypf, mail_respaldo, almacenes
-             FROM usuario WHERE id_spm=? OR mail=?""",
-            (username, username),
-        )
-        row = cur.fetchone()
-        if row is None:
-            return None
-        # El wrapper ya retorna dict para PostgreSQL, SQLite retorna Row
-        if isinstance(row, dict):
-            return row
-        return dict(row)
+def _get_user_for_login(username: str):
+    """Busca usuario por id_spm o mail para login (usa user_helpers)."""
+    return get_user_by_id_or_email(username)
 
 
-def _get_user_by_id(user_id: str):
-    """Get user by ID with caching (for /me endpoint)"""
-    # Try cache first
+def _get_user_by_id_cached(user_id: str):
+    """Get user by ID with caching (for /me endpoint)."""
     cache_key = f"user:{user_id}"
     cached_user = user_cache.get(cache_key)
     if cached_user is not None:
         return cached_user
 
-    # Cache miss - fetch from DB
-    user = None
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            """SELECT id_spm, nombre, apellido, rol, contrasena, mail,
-                    posicion, sector, centros, jefe, gerente1, gerente2,
-                    telefono, estado_registro, id_ypf, mail_respaldo, almacenes
-             FROM usuario WHERE id_spm=?""",
-            (str(user_id),),
-        )
-        row = cur.fetchone()
-        if row:
-            # El wrapper ya retorna dict para PostgreSQL, SQLite retorna Row
-            user = row if isinstance(row, dict) else dict(row)
-
-    # Cache the result (including None to avoid repeated DB queries)
+    user = get_user_by_id(user_id)
     if user:
-        user_cache.set(cache_key, user, ttl=120)  # 2 min TTL
-
+        user_cache.set(cache_key, user, ttl=120)
     return user
 
 
@@ -290,7 +258,7 @@ def login():
     # Registrar intento antes de verificar credenciales
     _login_limiter.record_attempt(client_ip)
 
-    user = _get_user(username)
+    user = _get_user_for_login(username)
     if not user:
         logging.getLogger(__name__).warning(
             f"LOGIN DEBUG: User not found for username='{username}'"
@@ -426,7 +394,7 @@ def get_me():
     if isinstance(payload, tuple):
         return payload
 
-    user = _get_user_by_id(payload.get("user_id"))
+    user = _get_user_by_id_cached(payload.get("user_id"))
     if not user:
         return (
             jsonify({"ok": False, "error": {"code": "not_found", "message": "User not found"}}),
@@ -675,7 +643,7 @@ def mi_acceso():
         return payload
 
     user_id = payload.get("user_id")
-    user = _get_user_by_id(user_id)
+    user = _get_user_by_id_cached(user_id)
 
     if not user:
         return (

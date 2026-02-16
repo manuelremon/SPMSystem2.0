@@ -9,16 +9,10 @@ from datetime import datetime
 from flask import Blueprint, g, jsonify, request, send_file
 
 from backend.core.roles import require_admin, require_auth
+from backend.core.user_helpers import get_current_user_id
 from backend.services import savings_service
 
 bp = Blueprint('savings', __name__, url_prefix='/api/savings')
-
-
-def _get_user_id():
-    """Obtiene el ID del usuario actual desde g.user."""
-    if not g.user:
-        return None
-    return g.user.get('id') if isinstance(g.user, dict) else g.user.id
 
 
 @bp.route('/', methods=['POST'])
@@ -69,7 +63,7 @@ def registrar_ahorro():
             return jsonify({'error': 'Monto debe ser un número positivo'}), 400
 
         # Registrar ahorro
-        user_id = _get_user_id()
+        user_id = get_current_user_id()
         ahorro_id = savings_service.registrar_ahorro(data, user_id)
 
         return jsonify({
@@ -201,7 +195,7 @@ def crear_meta():
             return jsonify({'error': 'Meta monto debe ser un número positivo'}), 400
 
         # Crear meta
-        user_id = _get_user_id()
+        user_id = get_current_user_id()
         meta_id = savings_service.crear_meta(data, user_id)
 
         return jsonify({

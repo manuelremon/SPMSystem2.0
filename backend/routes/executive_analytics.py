@@ -4,7 +4,7 @@ Dashboard ejecutivo de procurement y benchmarking
 """
 from flask import Blueprint, g, jsonify, request
 
-from backend.core.auth_middleware import require_admin, require_auth
+from backend.core.roles import require_admin, require_auth
 from backend.core.request_validation import validate_json
 from backend.services import executive_analytics_service
 

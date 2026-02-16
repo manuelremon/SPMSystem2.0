@@ -14,25 +14,11 @@ Endpoints:
 
 from flask import Blueprint, g, jsonify, request
 
-from backend.core.db import get_db_connection
 from backend.core.rate_limit import rate_limit
 from backend.core.roles import require_auth
+from backend.core.user_helpers import get_user_name
 from backend.services.message_service import MessageService
 from backend.services.notification_service import NotificationService
-
-
-def _get_user_name(user_id: str) -> str:
-    """Obtiene el nombre completo de un usuario"""
-    try:
-        with get_db_connection() as conn:
-            cur = conn.cursor()
-            cur.execute("SELECT nombre, apellido FROM usuario WHERE id_spm=?", (user_id,))
-            row = cur.fetchone()
-            if row:
-                return f"{row['nombre']} {row['apellido']}".strip()
-    except Exception:
-        pass
-    return user_id
 
 
 bp = Blueprint("mensajes", __name__, url_prefix="/api/mensajes")
@@ -169,7 +155,7 @@ def send_message():
 
     if message_id:
         # Crear notificación para el destinatario
-        remitente_nombre = _get_user_name(user_id)
+        remitente_nombre = get_user_name(user_id)
         notif_mensaje = f"Nuevo mensaje de {remitente_nombre}: {data['asunto']}"
         NotificationService.create_notification(
             destinatario_id=data["destinatario_id"],
@@ -240,7 +226,7 @@ def reply_message(message_id):
 
     if reply_id:
         # Crear notificación para el destinatario
-        remitente_nombre = _get_user_name(user_id)
+        remitente_nombre = get_user_name(user_id)
         notif_mensaje = f"Nueva respuesta de {remitente_nombre}: Re: {original_message['asunto']}"
         NotificationService.create_notification(
             destinatario_id=destinatario_id,

@@ -227,32 +227,37 @@ class TestBuscarAprobadorDisponible:
             mock_conn.return_value.__exit__ = MagicMock(return_value=False)
             yield mock_conn, conn, cursor
 
-    def test_buscar_aprobador_por_monto(self, mock_db):
+    @patch("backend.services.approval_service.obtener_regla_aprobacion")
+    def test_buscar_aprobador_por_monto(self, mock_obtener_regla, mock_db):
         """Debe encontrar un aprobador con el rol requerido."""
         from backend.services.approval_service import buscar_aprobador
 
         _, conn, cursor = mock_db
 
-        # Secuencia de fetchone:
-        # 1. obtener_regla_aprobacion -> regla con rol requerido
-        # 2. buscar_aprobador -> usuario aprobador
-        cursor.fetchone.side_effect = [
-            # Regla aplicable (nivel 1)
-            {
-                "id": 1,
-                "nombre": "Nivel 1",
-                "monto_minimo_usd": 0,
-                "monto_maximo_usd": 4999.99,
-                "rol_requerido": "aprobador",
-                "nivel_aprobacion": 1,
-                "centro": None,
-                "sector": None,
-                "criticidad": None,
-                "activo": 1,
-            },
-            # Aprobador encontrado
-            {"id_spm": "aprobador_1", "nombre": "Juan", "apellido": "Perez", "rol": "aprobador"},
-        ]
+        # Mock obtener_regla_aprobacion to return the rule directly
+        mock_obtener_regla.return_value = {
+            "id": 1,
+            "nombre": "Nivel 1",
+            "monto_minimo_usd": 0,
+            "monto_maximo_usd": 4999.99,
+            "rol_requerido": "aprobador",
+            "nivel_aprobacion": 1,
+            "centro": None,
+            "sector": None,
+            "criticidad": None,
+            "activo": 1,
+        }
+
+        # Mock the user query inside buscar_aprobador
+        aprobador_row = MagicMock()
+        aprobador_row.__getitem__ = lambda self, key: {
+            "id_spm": "aprobador_1", "nombre": "Juan",
+            "apellido": "Perez", "rol": "aprobador",
+            "posicion": "jefe", "centros": "",
+        }[key]
+        aprobador_row.__iter__ = lambda self: iter(["id_spm", "nombre", "apellido", "rol", "posicion", "centros"])
+        aprobador_row.keys = lambda: ["id_spm", "nombre", "apellido", "rol", "posicion", "centros"]
+        cursor.fetchone.return_value = aprobador_row
 
         aprobador = buscar_aprobador(monto_usd=1000)
 
@@ -295,27 +300,29 @@ class TestBuscarAprobadorDisponible:
         assert aprobador is not None
         assert cursor.execute.called
 
-    def test_no_aprobador_disponible_retorna_none(self, mock_db):
+    @patch("backend.services.approval_service.obtener_regla_aprobacion")
+    def test_no_aprobador_disponible_retorna_none(self, mock_obtener_regla, mock_db):
         """Si no hay aprobador disponible, retorna None."""
         from backend.services.approval_service import buscar_aprobador
 
         _, conn, cursor = mock_db
-        # Regla existe pero no hay aprobadores
-        cursor.fetchone.side_effect = [
-            {
-                "id": 1,
-                "nombre": "Nivel 1",
-                "monto_minimo_usd": 0,
-                "monto_maximo_usd": 4999.99,
-                "rol_requerido": "aprobador",
-                "nivel_aprobacion": 1,
-                "centro": None,
-                "sector": None,
-                "criticidad": None,
-                "activo": 1,
-            },
-            None,  # No hay aprobador
-        ]
+
+        # Mock obtener_regla_aprobacion to return the rule directly
+        mock_obtener_regla.return_value = {
+            "id": 1,
+            "nombre": "Nivel 1",
+            "monto_minimo_usd": 0,
+            "monto_maximo_usd": 4999.99,
+            "rol_requerido": "aprobador",
+            "nivel_aprobacion": 1,
+            "centro": None,
+            "sector": None,
+            "criticidad": None,
+            "activo": 1,
+        }
+
+        # No approver found in the DB
+        cursor.fetchone.return_value = None
 
         aprobador = buscar_aprobador(monto_usd=1000)
 
@@ -405,14 +412,25 @@ class TestReglasEspecificas:
 
     @pytest.fixture
     def mock_db(self):
-        """Mock de conexion a base de datos."""
-        with patch("backend.services.approval_service.get_db_connection") as mock_conn:
+        """Mock de conexion a base de datos.
+
+        Patches get_db_connection in both the service module and the
+        strategies module so that ApprovalContext strategies use the
+        same mock connection.
+        """
+        with (
+            patch("backend.services.approval_service.get_db_connection") as mock_conn_svc,
+            patch("backend.core.approval_strategies.get_db_connection") as mock_conn_strat,
+        ):
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
-            mock_conn.return_value.__enter__ = MagicMock(return_value=conn)
-            mock_conn.return_value.__exit__ = MagicMock(return_value=False)
-            yield mock_conn, conn, cursor
+
+            for mc in (mock_conn_svc, mock_conn_strat):
+                mc.return_value.__enter__ = MagicMock(return_value=conn)
+                mc.return_value.__exit__ = MagicMock(return_value=False)
+
+            yield mock_conn_svc, conn, cursor
 
     def test_regla_especifica_por_centro(self, mock_db):
         """Reglas especificas por centro tienen prioridad."""
@@ -420,8 +438,12 @@ class TestReglasEspecificas:
 
         _, conn, cursor = mock_db
 
-        # Mock: regla especifica para centro 1008
-        cursor.fetchone.return_value = {
+        # CriticidadStrategy returns None (no criticidad param), then
+        # CentroStrategy finds the rule. Mock fetchone to return None
+        # first (criticidad miss - but CriticidadStrategy skips when
+        # criticidad is None, so it never queries), then the centro rule.
+        row = MagicMock()
+        row_data = {
             "id": 10,
             "nombre": "Centro 1008 Especial",
             "monto_minimo_usd": 0,
@@ -430,6 +452,12 @@ class TestReglasEspecificas:
             "nivel_aprobacion": 1,
             "centro": "1008",
         }
+        row.__getitem__ = lambda self, key: row_data[key]
+        row.__iter__ = lambda self: iter(row_data)
+        row.keys = lambda: row_data.keys()
+
+        # CentroStrategy calls cursor.fetchone() once
+        cursor.fetchone.return_value = row
 
         regla = obtener_regla_aprobacion(monto_usd=1000, centro="1008")
 

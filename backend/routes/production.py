@@ -3,7 +3,7 @@ Routes de Planificación de Producción (MPS)
 """
 from flask import Blueprint, g, jsonify, request
 
-from backend.core.auth_middleware import require_auth
+from backend.core.roles import require_auth
 from backend.services import production_planning_service as prod_service
 
 bp = Blueprint('production', __name__, url_prefix='/api/production')

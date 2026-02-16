@@ -1,0 +1,20 @@
+[run]
+source = backend
+omit =
+    */tests/*
+    */migrations/*
+    */__pycache__/*
+    */agent/pipelines/forecast/*
+
+[report]
+fail_under = 29
+show_missing = true
+precision = 2
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if TYPE_CHECKING
+    raise NotImplementedError
+    raise AssertionError
+    if __name__ == .__main__.:
+    @abstractmethod

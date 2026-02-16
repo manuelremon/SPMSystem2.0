@@ -363,11 +363,14 @@ class TestAIServiceCache:
 
     def test_cache_expiracion(self):
         """Cache expira despues de TTL."""
+        import time
+
         from backend.services.ai_service import AIService
 
         service = AIService()
-        service.cache_recommendation("MAT001", "test", {"value": 1}, ttl_seconds=0)
+        service.cache_recommendation("MAT001", "test", {"value": 1}, ttl_seconds=1)
 
-        # Deberia haber expirado inmediatamente
+        # Esperar a que expire
+        time.sleep(1.1)
         result = service.get_cached_recommendation("MAT001", "test")
         assert result is None

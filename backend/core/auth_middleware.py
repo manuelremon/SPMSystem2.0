@@ -16,53 +16,46 @@ from jwt import InvalidTokenError
 
 from backend.core.cache import user_cache
 from backend.core.config import settings
-from backend.core.db import get_db_connection
+from backend.core.user_helpers import get_user_by_id
 
 logger = logging.getLogger(__name__)
 
 
-def _get_user_by_id(user_id: str) -> dict | None:
-    """Fetch user from database with caching (PostgreSQL/SQLite compatible)"""
-    # Try cache first
+def _get_user_by_id_cached(user_id: str) -> dict | None:
+    """Fetch user from database with caching for auth middleware.
+
+    Uses a lightweight SELECT (8 columns) + cache for the hot path
+    that runs on every request. Falls back to get_user_by_id from
+    user_helpers for the actual DB query.
+    """
     cache_key = f"user:{user_id}"
     cached_user = user_cache.get(cache_key)
     if cached_user is not None:
         return cached_user
 
-    # Cache miss - fetch from DB (uses get_db_connection for PG/SQLite compatibility)
     try:
-        with get_db_connection() as conn:
-            cur = conn.cursor()
-            cur.execute(
-                "SELECT id_spm, nombre, apellido, rol, mail, centros, sector, posicion FROM usuario WHERE id_spm = ?",
-                (str(user_id),),
-            )
-            row = cur.fetchone()
-
-        if not row:
+        user = get_user_by_id(user_id)
+        if not user:
             return None
 
-        # Convert row to dict (compatible with both PostgreSQL dict and SQLite tuple)
-        if isinstance(row, dict):
-            user = row
-        else:
-            user = {
-                "id_spm": row[0],
-                "nombre": row[1],
-                "apellido": row[2],
-                "rol": row[3],
-                "mail": row[4],
-                "centros": row[5],
-                "sector": row[6],
-                "posicion": row[7],
-            }
+        # Build lightweight dict with only the fields needed for auth
+        auth_user = {
+            "id_spm": user.get("id_spm"),
+            "nombre": user.get("nombre"),
+            "apellido": user.get("apellido"),
+            "rol": user.get("rol"),
+            "mail": user.get("mail"),
+            "centros": user.get("centros"),
+            "sector": user.get("sector"),
+            "posicion": user.get("posicion"),
+        }
 
         # Add user_id alias for backward compatibility with routes using g.user.get("user_id")
-        user["user_id"] = user.get("id_spm")
+        auth_user["user_id"] = auth_user.get("id_spm")
 
         # Cache the result
-        user_cache.set(cache_key, user, ttl=120)  # 2 min TTL
-        return user
+        user_cache.set(cache_key, auth_user, ttl=120)  # 2 min TTL
+        return auth_user
 
     except Exception as e:
         logger.error(f"Error fetching user {user_id}: {e}")
@@ -135,7 +128,7 @@ class AuthMiddleware:
         if not user_id:
             return
 
-        user = _get_user_by_id(user_id)
+        user = _get_user_by_id_cached(user_id)
         if user:
             g.user = user
             logger.debug(f"Authenticated user: {user.get('id_spm')}")

@@ -103,8 +103,10 @@ def _calcular_lead_time_promedio() -> Tuple[float, str]:
             if row and row[0] and row[0] > 0:
                 return (round(row[0], 1), "proveedores_externos")
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Error de datos calculando lead time: {e}")
     except Exception as e:
-        logger.warning(f"Error calculando lead time: {e}")
+        logger.error(f"Error calculando lead time: {e}", exc_info=True)
 
     # Fallback
     return (15.0, "estimado")
@@ -168,8 +170,10 @@ def _calcular_velocidad_respuesta() -> Tuple[float, str]:
             if row and row[0] and row[0] > 0:
                 return (round(row[0], 1), "tiempo_aprobacion")
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Error de datos calculando velocidad respuesta: {e}")
     except Exception as e:
-        logger.warning(f"Error calculando velocidad respuesta: {e}")
+        logger.error(f"Error calculando velocidad respuesta: {e}", exc_info=True)
 
     # Fallback
     return (5.0, "estimado")
@@ -444,10 +448,12 @@ def _get_alertas_from_temp_data(
             "_temp_message": "Usando datos temporales importados desde Excel"
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Error de datos en alertas temp_data: {e}")
+        return jsonify({"ok": False, "error": {"code": "temp_data_error", "message": "Datos de entrada inválidos"}}), 400
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({"ok": False, "error": {"code": "temp_data_error", "message": str(e)}}), 500
+        logger.error(f"Error en alertas temp_data: {e}", exc_info=True)
+        return jsonify({"ok": False, "error": {"code": "temp_data_error", "message": "Error interno del servidor"}}), 500
 
 
 @bp.route("/alertas", methods=["GET"])
@@ -643,11 +649,12 @@ def get_alertas():
             }
         )
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Error de datos en get_alertas: {e}")
+        return jsonify({"ok": False, "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}}), 400
     except Exception as e:
-        import traceback
-
-        traceback.print_exc()
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        logger.error(f"Error en get_alertas: {e}", exc_info=True)
+        return jsonify({"ok": False, "error": {"code": "db_error", "message": "Error interno del servidor"}}), 500
 
 
 def _get_kpis_from_temp_data(user_id: str, centro: str, periodo: str):
@@ -810,10 +817,12 @@ def _get_kpis_from_temp_data(user_id: str, centro: str, periodo: str):
             "_temp_message": "KPIs calculados desde datos temporales importados"
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Error de datos en KPIs temp_data: {e}")
+        return jsonify({"ok": False, "error": {"code": "temp_data_error", "message": "Datos de entrada inválidos"}}), 400
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({"ok": False, "error": {"code": "temp_data_error", "message": str(e)}}), 500
+        logger.error(f"Error en KPIs temp_data: {e}", exc_info=True)
+        return jsonify({"ok": False, "error": {"code": "temp_data_error", "message": "Error interno del servidor"}}), 500
 
 
 @bp.route("/kpis", methods=["GET"])
@@ -1051,11 +1060,12 @@ def get_kpis():
             except Exception:
                 pedidos_vencidos = 0
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Error de datos en get_kpis: {e}")
+        return jsonify({"ok": False, "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}}), 400
     except Exception as e:
-        import traceback
-
-        traceback.print_exc()
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        logger.error(f"Error en get_kpis: {e}", exc_info=True)
+        return jsonify({"ok": False, "error": {"code": "db_error", "message": "Error interno del servidor"}}), 500
 
     # Calcular KPIs (fuera del with, datos ya recuperados)
     # Lead time: calculado desde datos reales
@@ -1201,8 +1211,12 @@ def get_catalogos():
             }
         )
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Error de datos en get_catalogos: {e}")
+        return jsonify({"ok": False, "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}}), 400
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        logger.error(f"Error en get_catalogos: {e}", exc_info=True)
+        return jsonify({"ok": False, "error": {"code": "db_error", "message": "Error interno del servidor"}}), 500
 
 
 # =============================================================================
@@ -1258,8 +1272,12 @@ def get_analisis_material(material_codigo):
 
         return jsonify({"ok": True, "data": resultado})
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Error de datos en get_analisis_material: {e}")
+        return jsonify({"ok": False, "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}}), 400
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "server_error", "message": str(e)}}), 500
+        logger.error(f"Error en get_analisis_material: {e}", exc_info=True)
+        return jsonify({"ok": False, "error": {"code": "server_error", "message": "Error interno del servidor"}}), 500
 
 
 @bp.route("/analisis/centro/<centro>", methods=["GET"])
@@ -1284,8 +1302,12 @@ def get_analisis_centro(centro):
 
         return jsonify({"ok": True, "data": resultado})
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Error de datos en get_analisis_centro: {e}")
+        return jsonify({"ok": False, "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}}), 400
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "server_error", "message": str(e)}}), 500
+        logger.error(f"Error en get_analisis_centro: {e}", exc_info=True)
+        return jsonify({"ok": False, "error": {"code": "server_error", "message": "Error interno del servidor"}}), 500
 
 
 @bp.route("/forecast/<material_codigo>", methods=["GET"])
@@ -1325,8 +1347,12 @@ def get_forecast_demanda(material_codigo):
 
         return jsonify({"ok": True, "data": resultado})
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Error de datos en get_forecast_demanda: {e}")
+        return jsonify({"ok": False, "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}}), 400
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "server_error", "message": str(e)}}), 500
+        logger.error(f"Error en get_forecast_demanda: {e}", exc_info=True)
+        return jsonify({"ok": False, "error": {"code": "server_error", "message": "Error interno del servidor"}}), 500
 
 
 @bp.route("/alertas-mrp", methods=["GET"])
@@ -1350,8 +1376,12 @@ def get_alertas_mrp_activas():
 
         return jsonify({"ok": True, "data": alertas, "total": len(alertas)})
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Error de datos en get_alertas_mrp_activas: {e}")
+        return jsonify({"ok": False, "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}}), 400
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "server_error", "message": str(e)}}), 500
+        logger.error(f"Error en get_alertas_mrp_activas: {e}", exc_info=True)
+        return jsonify({"ok": False, "error": {"code": "server_error", "message": "Error interno del servidor"}}), 500
 
 
 @bp.route("/alertas-mrp/<int:alerta_id>/resolver", methods=["PUT", "POST"])
@@ -1398,8 +1428,12 @@ def resolver_alerta_mrp_endpoint(alerta_id):
                 404,
             )
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Error de datos en resolver_alerta_mrp_endpoint: {e}")
+        return jsonify({"ok": False, "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}}), 400
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "server_error", "message": str(e)}}), 500
+        logger.error(f"Error en resolver_alerta_mrp_endpoint: {e}", exc_info=True)
+        return jsonify({"ok": False, "error": {"code": "server_error", "message": "Error interno del servidor"}}), 500
 
 
 # =============================================================================
@@ -1521,11 +1555,17 @@ def calcular_parametros_materiales():
             "total_errores": len(errores)
         }), 200
 
-    except Exception as e:
-        logger.error(f"Error calculando parámetros: {e}", exc_info=True)
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Error de datos en calcular_parametros_materiales: {e}")
         return jsonify({
             "ok": False,
-            "error": {"code": "calculation_error", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
+        }), 400
+    except Exception as e:
+        logger.error(f"Error en calcular_parametros_materiales: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "calculation_error", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -1588,11 +1628,17 @@ def guardar_parametros_materiales():
             "errores": errores
         }), 200
 
-    except Exception as e:
-        logger.error(f"Error guardando parámetros: {e}", exc_info=True)
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Error de datos en guardar_parametros_materiales: {e}")
         return jsonify({
             "ok": False,
-            "error": {"code": "save_error", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
+        }), 400
+    except Exception as e:
+        logger.error(f"Error en guardar_parametros_materiales: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "save_error", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -1621,11 +1667,17 @@ def obtener_configuracion():
             "configuracion": config
         }), 200
 
-    except Exception as e:
-        logger.error(f"Error obteniendo configuración: {e}", exc_info=True)
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Error de datos en obtener_configuracion: {e}")
         return jsonify({
             "ok": False,
-            "error": {"code": "config_error", "message": str(e)}
+            "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
+        }), 400
+    except Exception as e:
+        logger.error(f"Error en obtener_configuracion: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "config_error", "message": "Error interno del servidor"}
         }), 500
 
 
@@ -1770,6 +1822,9 @@ def what_if_analysis():
             },
         })
 
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Error de datos en what_if_analysis: {e}")
+        return jsonify({"ok": False, "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}}), 400
     except Exception as e:
-        logger.error(f"Error en what-if analysis: {e}", exc_info=True)
-        return jsonify({"ok": False, "error": {"code": "server_error", "message": str(e)}}), 500
+        logger.error(f"Error en what_if_analysis: {e}", exc_info=True)
+        return jsonify({"ok": False, "error": {"code": "server_error", "message": "Error interno del servidor"}}), 500

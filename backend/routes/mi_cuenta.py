@@ -15,25 +15,11 @@ from flask import Blueprint, g, jsonify, request
 from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
 from backend.core.rate_limit import rate_limit
 from backend.core.roles import normalize_roles, require_admin, require_auth
+from backend.core.user_helpers import get_user_by_id, get_user_name
 from backend.services.notification_service import NotificationService
 
 bp = Blueprint("mi_cuenta", __name__)
 logger = logging.getLogger(__name__)
-
-
-def _get_user_data(user_id: str) -> dict | None:
-    """Obtiene datos completos del usuario desde la BD"""
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            """SELECT id_spm, nombre, apellido, rol, contrasena, mail,
-                    posicion, sector, centros, jefe, gerente1, gerente2,
-                    telefono, estado_registro, id_ypf, mail_respaldo, almacenes
-             FROM usuario WHERE id_spm=?""",
-            (str(user_id),),
-        )
-        row = cur.fetchone()
-        return dict(row) if row else None
 
 
 def _parse_json_field(value: str | None) -> list:
@@ -66,7 +52,7 @@ def get_mi_cuenta():
     user_id = g.user.get("user_id")
 
     # Obtener datos del usuario
-    user = _get_user_data(user_id)
+    user = get_user_by_id(user_id)
     if not user:
         return jsonify({"ok": False, "error": {"message": "Usuario no encontrado"}}), 404
 
@@ -77,21 +63,16 @@ def get_mi_cuenta():
     # Sector ya está almacenado como nombre textual (ej: "Mantenimiento")
     sector_nombre = user.get("sector") or "-"
 
-    # Buscar nombres de jefe y gerentes
-    def get_user_name(user_id_ref):
+    # Buscar nombres de jefe y gerentes (usa get_user_name centralizado)
+    def _resolve_name(user_id_ref):
         if not user_id_ref:
             return "-"
-        with get_db_connection() as conn:
-            cur = conn.cursor()
-            cur.execute("SELECT nombre, apellido FROM usuario WHERE id_spm=?", (user_id_ref,))
-            row = cur.fetchone()
-            if row:
-                return f"{row['nombre']} {row['apellido']}".strip()
-        return user_id_ref
+        name = get_user_name(user_id_ref)
+        return name if name != str(user_id_ref) else user_id_ref
 
-    jefe_nombre = get_user_name(user.get("jefe"))
-    gerente1_nombre = get_user_name(user.get("gerente1"))
-    gerente2_nombre = get_user_name(user.get("gerente2"))
+    jefe_nombre = _resolve_name(user.get("jefe"))
+    gerente1_nombre = _resolve_name(user.get("gerente1"))
+    gerente2_nombre = _resolve_name(user.get("gerente2"))
 
     # Parse roles usando módulo centralizado
     roles_array = normalize_roles(user.get("rol", ""))

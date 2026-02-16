@@ -60,11 +60,11 @@ class TestBURServicePuedeCrearBur:
         assert puede is False
         assert "solo administradores" in msg.lower() or "admin" in msg.lower()
 
-    def test_coordinador_no_puede_crear_bur(self):
-        """Coordinador NO puede crear BUR (no es jefe ni admin)"""
+    def test_coordinador_puede_crear_bur(self):
+        """Coordinador puede crear BUR (included in ROLES_CREAR)"""
         roles = ["coordinador"]
         puede, msg = BURService.puede_crear_bur(roles, 100_000)  # monto bajo
-        assert puede is False
+        assert puede is True
 
     def test_usuario_no_puede_crear_bur(self):
         """Usuario normal NO puede crear BUR"""
@@ -215,12 +215,12 @@ class TestIntegracionRolesMontos:
             assert puede_crear is True, f"Admin debe poder crear BUR de ${monto / 100}"
             assert puede_aprobar is True, f"Admin debe poder aprobar nivel {nivel}"
 
-    def test_coordinador_solo_aprobar_l1(self):
-        """Coordinador solo puede aprobar L1, no crear ni aprobar L2/ADMIN"""
+    def test_coordinador_puede_crear_pero_solo_aprobar_l1(self):
+        """Coordinador can create BUR but can only approve L1, not L2/ADMIN"""
         roles = ["coordinador"]
 
         puede_crear, _ = BURService.puede_crear_bur(roles, 100_000)
-        assert puede_crear is False
+        assert puede_crear is True
 
         assert BURService.puede_aprobar_bur(roles, "L1") is True
         assert BURService.puede_aprobar_bur(roles, "L2") is False

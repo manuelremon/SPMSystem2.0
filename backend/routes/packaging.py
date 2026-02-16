@@ -4,7 +4,7 @@ API para gestión de empaque, packing lists y etiquetas de envío
 """
 from flask import Blueprint, g, jsonify, request
 
-from backend.core.auth_middleware import require_auth
+from backend.core.roles import require_auth
 from backend.services import packaging_service
 
 packaging_bp = Blueprint('packaging', __name__, url_prefix='/api/packaging')

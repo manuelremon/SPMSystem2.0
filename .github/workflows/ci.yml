@@ -44,19 +44,10 @@ jobs:
       - name: Run unit tests with coverage
         run: |
           python -m pytest tests/unit/ -v --tb=short \
-            --ignore=tests/unit/test_openapi.py \
-            --ignore=tests/unit/test_deepseek_client.py \
-            --ignore=tests/unit/test_approval_rules.py \
-            --ignore=tests/unit/test_dashboard_formulas.py \
-            --ignore=tests/unit/test_budget_service.py \
-            --ignore=tests/unit/test_cors.py \
-            --ignore=tests/unit/test_fsm.py \
-            --ignore=tests/unit/test_mrp_parametros.py \
-            --ignore=tests/unit/test_planner_service.py \
             --ignore=tests/unit/test_forecast_parallel.py \
-            --ignore=tests/unit/test_stl_decomposition.py \
             --ignore=tests/unit/test_lstm_model.py \
             --cov=backend --cov-report=xml --cov-report=term-missing \
+            --cov-fail-under=29 \
             -x --timeout=60
 
       - name: Run integration tests

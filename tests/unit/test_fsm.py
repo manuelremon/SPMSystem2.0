@@ -267,7 +267,7 @@ class TestCambiarEstado:
         insert_calls = [
             call
             for call in cursor.execute.call_args_list
-            if "solicitudes_historial_estados" in str(call)
+            if "solicitud_historial_estado" in str(call)
         ]
         assert len(insert_calls) > 0
 
@@ -437,7 +437,7 @@ class TestIntegracionFSMConNotificaciones:
         assert resultado["success"] is True
         # Verificar que se intento crear notificacion (via INSERT en cursor)
         insert_calls = [
-            call for call in cursor.execute.call_args_list if "notificaciones" in str(call)
+            call for call in cursor.execute.call_args_list if "notificacion" in str(call)
         ]
         assert len(insert_calls) > 0
 
@@ -464,7 +464,7 @@ class TestIntegracionFSMConNotificaciones:
         assert resultado["success"] is True
         # Verificar que se intento crear notificacion
         insert_calls = [
-            call for call in cursor.execute.call_args_list if "notificaciones" in str(call)
+            call for call in cursor.execute.call_args_list if "notificacion" in str(call)
         ]
         assert len(insert_calls) > 0
 

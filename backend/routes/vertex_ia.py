@@ -380,18 +380,28 @@ def text_to_speech():
             },
         }), 400
 
+    except (ConnectionError, TimeoutError, OSError) as e:
+        logger.warning(f"External service error in text_to_speech: {e}")
+        return jsonify({
+            "ok": False,
+            "error": {
+                "code": "tts_connection_error",
+                "message": "Error de conexión con servicio de audio",
+            },
+        }), 502
+
     except RuntimeError as e:
         logger.error(f"TTS runtime error: {e}")
         return jsonify({
             "ok": False,
             "error": {
                 "code": "tts_error",
-                "message": str(e),
+                "message": "Error generando audio",
             },
         }), 500
 
     except Exception as e:
-        logger.exception(f"Unexpected TTS error: {e}")
+        logger.error(f"Error in text_to_speech: {e}", exc_info=True)
         return jsonify({
             "ok": False,
             "error": {
@@ -443,13 +453,31 @@ def list_tts_voices():
             "options": tts_service.VOICE_OPTIONS,
         }), 200
 
-    except Exception as e:
-        logger.exception(f"Error listing TTS voices: {e}")
+    except (ConnectionError, TimeoutError, OSError) as e:
+        logger.warning(f"External service error in list_tts_voices: {e}")
+        return jsonify({
+            "ok": False,
+            "error": {
+                "code": "tts_connection_error",
+                "message": "Error de conexión con servicio de audio",
+            },
+        }), 502
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Data error in list_tts_voices: {e}")
         return jsonify({
             "ok": False,
             "error": {
                 "code": "list_error",
-                "message": str(e),
+                "message": "Datos de entrada inválidos",
+            },
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in list_tts_voices: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {
+                "code": "list_error",
+                "message": "Error interno del servidor",
             },
         }), 500
 
@@ -740,13 +768,31 @@ Responde como Vertex IA:"""
             "suggestions": suggestions,
         }), 200
 
+    except (ConnectionError, TimeoutError, OSError) as e:
+        logger.warning(f"External service error in chat: {e}")
+        return jsonify({
+            "ok": False,
+            "error": {
+                "code": "chat_connection_error",
+                "message": "Error de conexión con servicio externo",
+            },
+        }), 502
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Data error in chat: {e}")
+        return jsonify({
+            "ok": False,
+            "error": {
+                "code": "chat_input_error",
+                "message": "Datos de entrada inválidos",
+            },
+        }), 400
     except Exception as e:
-        logger.exception(f"Error en chat Vertex: {e}")
+        logger.error(f"Error in chat: {e}", exc_info=True)
         return jsonify({
             "ok": False,
             "error": {
                 "code": "chat_error",
-                "message": str(e),
+                "message": "Error interno del servidor",
             },
         }), 500
 
@@ -1386,11 +1432,17 @@ def get_suggestions():
             "suggestions": suggestions,
         }), 200
 
-    except Exception as e:
-        logger.exception(f"Error obteniendo sugerencias: {e}")
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Data error in get_suggestions: {e}")
         return jsonify({
             "ok": False,
-            "error": {"code": "suggestions_error", "message": str(e)},
+            "error": {"code": "suggestions_error", "message": "Datos de entrada inválidos"},
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in get_suggestions: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "suggestions_error", "message": "Error interno del servidor"},
         }), 500
 
 
@@ -1487,11 +1539,17 @@ def get_alerts():
             "count": len(alerts),
         }), 200
 
-    except Exception as e:
-        logger.exception(f"Error obteniendo alertas: {e}")
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Data error in get_alerts: {e}")
         return jsonify({
             "ok": False,
-            "error": {"code": "alerts_error", "message": str(e)},
+            "error": {"code": "alerts_error", "message": "Datos de entrada inválidos"},
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in get_alerts: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "alerts_error", "message": "Error interno del servidor"},
         }), 500
 
 
@@ -1535,11 +1593,17 @@ def dismiss_alert(alert_id: int):
             "alert_id": alert_id,
         }), 200
 
-    except Exception as e:
-        logger.exception(f"Error descartando alerta: {e}")
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Data error in dismiss_alert: {e}")
         return jsonify({
             "ok": False,
-            "error": {"code": "dismiss_error", "message": str(e)},
+            "error": {"code": "dismiss_error", "message": "Datos de entrada inválidos"},
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in dismiss_alert: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "dismiss_error", "message": "Error interno del servidor"},
         }), 500
 
 
@@ -1577,11 +1641,17 @@ def mark_alert_shown(alert_id: int):
             "alert_id": alert_id,
         }), 200
 
-    except Exception as e:
-        logger.exception(f"Error marcando alerta: {e}")
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Data error in mark_alert_shown: {e}")
         return jsonify({
             "ok": False,
-            "error": {"code": "mark_error", "message": str(e)},
+            "error": {"code": "mark_error", "message": "Datos de entrada inválidos"},
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in mark_alert_shown: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "mark_error", "message": "Error interno del servidor"},
         }), 500
 
 
@@ -1636,11 +1706,17 @@ def start_session():
             "greeting": greeting,
         }), 200
 
-    except Exception as e:
-        logger.exception(f"Error iniciando sesion: {e}")
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Data error in start_session: {e}")
         return jsonify({
             "ok": False,
-            "error": {"code": "session_error", "message": str(e)},
+            "error": {"code": "session_error", "message": "Datos de entrada inválidos"},
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in start_session: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "session_error", "message": "Error interno del servidor"},
         }), 500
 
 
@@ -1715,11 +1791,17 @@ def resume_session():
             "messages": [m.to_dict() for m in messages],
         }), 200
 
-    except Exception as e:
-        logger.exception(f"Error reanudando sesion: {e}")
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Data error in resume_session: {e}")
         return jsonify({
             "ok": False,
-            "error": {"code": "resume_error", "message": str(e)},
+            "error": {"code": "resume_error", "message": "Datos de entrada inválidos"},
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in resume_session: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "resume_error", "message": "Error interno del servidor"},
         }), 500
 
 
@@ -1809,9 +1891,15 @@ def get_history():
             "total": total,
         }), 200
 
-    except Exception as e:
-        logger.exception(f"Error obteniendo historial: {e}")
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning(f"Data error in get_history: {e}")
         return jsonify({
             "ok": False,
-            "error": {"code": "history_error", "message": str(e)},
+            "error": {"code": "history_error", "message": "Datos de entrada inválidos"},
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in get_history: {e}", exc_info=True)
+        return jsonify({
+            "ok": False,
+            "error": {"code": "history_error", "message": "Error interno del servidor"},
         }), 500
