@@ -85,7 +85,8 @@
       "Bash(set PYTHONPATH=*)",
       "WebFetch(domain:planifica-materiales.com)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:api.github.com)"
+      "WebFetch(domain:api.github.com)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []
