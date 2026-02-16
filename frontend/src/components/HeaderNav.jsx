@@ -1,37 +1,376 @@
 /**
  * HeaderNav Component - Navegación horizontal en el header
- * Reemplaza el sidebar con menús desplegables
- * Sin iconos en los botones del menú
+ * Estructura data-driven con 8 dropdowns organizados por dominio SCM/ERP
  */
 
-import React, { useState, useEffect, memo } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, memo, useCallback } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import clsx from "clsx";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import Divider from "@mui/material/Divider";
+import ListSubheader from "@mui/material/ListSubheader";
 import { ChevronDown } from "./ui/Icons";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
 
+/* ───────── Styles ───────── */
+
+const menuItemSx = {
+  fontSize: '0.75rem',
+  fontWeight: 500,
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  py: 1,
+  px: 2,
+  color: 'white',
+  borderBottom: '1px solid var(--header-border, #424242)',
+  '&:hover': { backgroundColor: 'var(--header-border, #424242)' },
+  '&:last-child': { borderBottom: 'none' },
+};
+
+const activeMenuItemSx = {
+  ...menuItemSx,
+  backgroundColor: 'var(--primary)',
+  color: 'white',
+  '&:hover': { backgroundColor: 'var(--primary-dark)', color: 'white' },
+};
+
+const menuPaperSx = {
+  backgroundColor: 'var(--header-bg, #212121)',
+  border: '1px solid var(--header-border, #424242)',
+};
+
+const subheaderSx = {
+  fontSize: '0.6rem',
+  fontWeight: 700,
+  color: 'var(--fg-subtle, #9e9e9e)',
+  lineHeight: 1,
+  py: 0.5,
+  px: 2,
+  backgroundColor: 'transparent',
+  textTransform: 'uppercase',
+  letterSpacing: '0.08em',
+};
+
+/* ───────── Menu Configuration ───────── */
+
+/**
+ * Each menu has: id, labelKey, labelFallback, visibility, activePrefixes, sections[]
+ * Each section has: header (optional i18n key), items[]
+ * Each item has: to, labelKey, labelFallback, visibility (optional)
+ */
+const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin }) => [
+  // 1. SOLICITUDES
+  {
+    id: 'solicitudes',
+    labelKey: 'nav_solicitudes',
+    labelFallback: 'Solicitudes',
+    visible: true,
+    dataTour: 'nav-solicitudes',
+    activePrefixes: ['/solicitudes', '/mis-solicitudes', '/aprobaciones', '/presupuestos'],
+    minWidth: 200,
+    sections: [
+      {
+        header: { key: 'nav_header_gestiones', fallback: 'GESTIONES' },
+        items: [
+          { to: '/solicitudes/nueva', labelKey: 'nav_nueva', labelFallback: 'Nueva Solicitud' },
+          { to: '/mis-solicitudes', labelKey: 'nav_mis', labelFallback: 'Mis Solicitudes' },
+          { to: '/solicitudes/todas', labelKey: 'nav_todas', labelFallback: 'Todas las Solicitudes' },
+        ],
+      },
+      {
+        header: { key: 'nav_header_aprobacion', fallback: 'APROBACION' },
+        visible: canApprove,
+        items: [
+          { to: '/aprobaciones', labelKey: 'nav_aprobaciones', labelFallback: 'Aprobaciones' },
+          { to: '/presupuestos', labelKey: 'nav_presupuesto', labelFallback: 'Presupuesto', visible: canSeeBudget },
+        ],
+      },
+    ],
+  },
+  // 2. COMPRAS
+  {
+    id: 'compras',
+    labelKey: 'nav_compras',
+    labelFallback: 'Compras',
+    visible: canSeePlanner,
+    activePrefixes: ['/procurement', '/finance/supplier-finance'],
+    minWidth: 200,
+    sections: [
+      {
+        header: { key: 'nav_header_sourcing', fallback: 'SOURCING' },
+        items: [
+          { to: '/procurement', labelKey: 'nav_procurement_dashboard', labelFallback: 'Compras SAP' },
+          { to: '/procurement/rfq', labelKey: 'nav_rfq', labelFallback: 'Licitaciones (RFQ)' },
+          { to: '/procurement/contracts', labelKey: 'nav_contracts', labelFallback: 'Contratos' },
+          { to: '/procurement/prices', labelKey: 'nav_prices', labelFallback: 'Precios' },
+        ],
+      },
+      {
+        header: { key: 'nav_header_proveedores', fallback: 'PROVEEDORES' },
+        items: [
+          { to: '/procurement/scorecard', labelKey: 'nav_scorecard', labelFallback: 'Scorecard' },
+          { to: '/procurement/supplier-risk', labelKey: 'nav_supplier_risk', labelFallback: 'Riesgo Proveedores' },
+          { to: '/procurement/certifications', labelKey: 'nav_certifications', labelFallback: 'Certificaciones' },
+          { to: '/procurement/audits', labelKey: 'nav_supplier_audits', labelFallback: 'Auditorias Prov.' },
+        ],
+      },
+      {
+        header: { key: 'nav_header_facturas', fallback: 'FACTURAS' },
+        items: [
+          { to: '/procurement/invoices', labelKey: 'nav_invoices', labelFallback: 'Facturas (3-Way)' },
+          { to: '/procurement/compliance', labelKey: 'nav_compliance', labelFallback: 'Compliance' },
+          { to: '/procurement/rebates', labelKey: 'nav_rebates', labelFallback: 'Rebates' },
+          { to: '/finance/supplier-finance', labelKey: 'nav_supplier_finance', labelFallback: 'Financiamiento' },
+        ],
+      },
+    ],
+  },
+  // 3. PLANIFICACION
+  {
+    id: 'planificacion',
+    labelKey: 'nav_planificacion',
+    labelFallback: 'Planificacion',
+    visible: canSeePlanner,
+    dataTour: 'nav-planificador',
+    activePrefixes: ['/planificador', '/mrp', '/forecast', '/planning/demand', '/operations/production', '/operations/kanban'],
+    minWidth: 200,
+    sections: [
+      {
+        header: { key: 'nav_header_panel', fallback: 'PANEL' },
+        items: [
+          { to: '/planificador', labelKey: 'nav_panel_tratamiento', labelFallback: 'Panel de Tratamiento' },
+          { to: '/planificador/asignadas', labelKey: 'nav_asignadas', labelFallback: 'Mis Asignadas' },
+          { to: '/planificador/no-asignadas', labelKey: 'nav_no_asignadas', labelFallback: 'No Asignadas' },
+        ],
+      },
+      {
+        header: { key: 'nav_header_mrp', fallback: 'MRP' },
+        items: [
+          { to: '/mrp/portfolio', labelKey: 'nav_mrp_portfolio', labelFallback: 'Portfolio MRP' },
+          { to: '/mrp/parametrizar', labelKey: 'nav_mrp_parametrizar', labelFallback: 'Parametrizar' },
+          { to: '/mrp/alertas', labelKey: 'nav_mrp_alertas', labelFallback: 'Alertas MRP' },
+          { to: '/mrp/kpis', labelKey: 'nav_mrp_kpis', labelFallback: 'KPIs MRP' },
+        ],
+      },
+      {
+        header: { key: 'nav_header_demanda', fallback: 'DEMANDA' },
+        items: [
+          { to: '/forecast/individual', labelKey: 'nav_forecast_individual', labelFallback: 'Forecast Individual' },
+          { to: '/forecast/masivo', labelKey: 'nav_forecast_masivo', labelFallback: 'Forecast Masivo' },
+          { to: '/planning/demand', labelKey: 'nav_demand_planning', labelFallback: 'Demanda (S&OP)' },
+          { to: '/operations/production', labelKey: 'nav_production', labelFallback: 'Produccion (MPS)' },
+          { to: '/operations/kanban', labelKey: 'nav_kanban', labelFallback: 'Kanban' },
+        ],
+      },
+    ],
+  },
+  // 4. INVENTARIO
+  {
+    id: 'inventario',
+    labelKey: 'nav_inventario',
+    labelFallback: 'Inventario',
+    visible: canSeePlanner,
+    activePrefixes: ['/materiales', '/operations/warehouse', '/operations/putaway', '/operations/cycle-count', '/operations/slob', '/operations/vmi', '/operations/consignment', '/operations/lots', '/operations/recalls', '/operations/inventory-optimization', '/operations/service-levels'],
+    minWidth: 210,
+    sections: [
+      {
+        header: { key: 'nav_header_almacen', fallback: 'ALMACEN' },
+        items: [
+          { to: '/operations/warehouse', labelKey: 'nav_warehouse', labelFallback: 'Recepcion' },
+          { to: '/operations/putaway', labelKey: 'nav_putaway', labelFallback: 'Putaway' },
+          { to: '/operations/cycle-count', labelKey: 'nav_cycle_count', labelFallback: 'Conteo Ciclico' },
+        ],
+      },
+      {
+        header: { key: 'nav_header_stock', fallback: 'STOCK' },
+        items: [
+          { to: '/materiales/catalogo', labelKey: 'nav_catalogo_materiales', labelFallback: 'Catalogo' },
+          { to: '/materiales/equivalencias', labelKey: 'nav_equivalencias', labelFallback: 'Alternativos' },
+          { to: '/materiales/stock', labelKey: 'nav_stock', labelFallback: 'Stock' },
+          { to: '/operations/slob', labelKey: 'nav_slob', labelFallback: 'Aging & SLOB' },
+        ],
+      },
+      {
+        header: { key: 'nav_header_gestion', fallback: 'GESTION' },
+        items: [
+          { to: '/operations/vmi', labelKey: 'nav_vmi', labelFallback: 'VMI' },
+          { to: '/operations/consignment', labelKey: 'nav_consignment', labelFallback: 'Consignacion' },
+          { to: '/operations/lots', labelKey: 'nav_lots', labelFallback: 'Lotes & Trazabilidad' },
+          { to: '/operations/recalls', labelKey: 'nav_recalls', labelFallback: 'Recalls' },
+          { to: '/operations/inventory-optimization', labelKey: 'nav_inv_optimization', labelFallback: 'Optimizacion Inv.' },
+        ],
+      },
+    ],
+  },
+  // 5. LOGISTICA
+  {
+    id: 'logistica',
+    labelKey: 'nav_logistica',
+    labelFallback: 'Logistica',
+    visible: canSeePlanner,
+    activePrefixes: ['/tms', '/fms', '/operations/customs', '/operations/packaging', '/operations/returns', '/operations/warranty'],
+    minWidth: 200,
+    sections: [
+      {
+        header: { key: 'nav_header_transporte', fallback: 'TRANSPORTE' },
+        items: [
+          { to: '/tms/shipments', labelKey: 'nav_shipments', labelFallback: 'Envios' },
+          { to: '/tms/consolidation', labelKey: 'nav_consolidation', labelFallback: 'Consolidacion LTL' },
+          { to: '/tms/routes', labelKey: 'nav_tms_routes', labelFallback: 'Rutas' },
+          { to: '/tms/kpis', labelKey: 'nav_tms_kpis', labelFallback: 'KPIs Transporte' },
+        ],
+      },
+      {
+        header: { key: 'nav_header_comercio', fallback: 'COMERCIO' },
+        items: [
+          { to: '/operations/customs', labelKey: 'nav_customs', labelFallback: 'Aduanas' },
+          { to: '/operations/packaging', labelKey: 'nav_packaging', labelFallback: 'Packaging' },
+          { to: '/operations/returns', labelKey: 'nav_returns', labelFallback: 'Devoluciones (RMA)' },
+          { to: '/operations/warranty', labelKey: 'nav_warranty', labelFallback: 'Garantias' },
+        ],
+      },
+      {
+        header: { key: 'nav_header_flete_flota', fallback: 'FLETE & FLOTA' },
+        items: [
+          { to: '/tms/freight', labelKey: 'nav_freight_audit', labelFallback: 'Auditoria Fletes' },
+          { to: '/tms/tariffs', labelKey: 'nav_freight_tariffs', labelFallback: 'Tarifas Flete' },
+          { to: '/fms/vehicles', labelKey: 'nav_vehicles', labelFallback: 'Vehiculos' },
+          { to: '/fms/work-orders', labelKey: 'nav_work_orders', labelFallback: 'Ordenes de Trabajo' },
+        ],
+      },
+    ],
+  },
+  // 6. CALIDAD
+  {
+    id: 'calidad',
+    labelKey: 'nav_quality',
+    labelFallback: 'Calidad',
+    visible: canSeePlanner,
+    activePrefixes: ['/quality', '/engineering/eco', '/operations/kitting'],
+    minWidth: 200,
+    sections: [
+      {
+        header: { key: 'nav_header_inspeccion', fallback: 'INSPECCION' },
+        items: [
+          { to: '/quality/inspections', labelKey: 'nav_inspections', labelFallback: 'Inspecciones' },
+          { to: '/quality/ncr', labelKey: 'nav_ncr', labelFallback: 'NCR' },
+          { to: '/quality/capa', labelKey: 'nav_capa', labelFallback: 'CAPA' },
+        ],
+      },
+      {
+        header: { key: 'nav_header_ingenieria', fallback: 'INGENIERIA' },
+        items: [
+          { to: '/engineering/eco', labelKey: 'nav_eco', labelFallback: 'Ordenes de Cambio (ECO)' },
+          { to: '/operations/kitting/boms', labelKey: 'nav_kitting_boms', labelFallback: 'BOMs de Kit' },
+          { to: '/operations/kitting/orders', labelKey: 'nav_kitting_orders', labelFallback: 'Ordenes de Kit' },
+        ],
+      },
+    ],
+  },
+  // 7. ANALYTICS
+  {
+    id: 'analytics',
+    labelKey: 'nav_analytics',
+    labelFallback: 'Analytics',
+    visible: canSeePlanner,
+    activePrefixes: ['/analytics', '/ai/copilot', '/planificador/ai', '/reportes/programados'],
+    minWidth: 200,
+    sections: [
+      {
+        header: { key: 'nav_header_dashboards', fallback: 'DASHBOARDS' },
+        items: [
+          { to: '/analytics/control-tower', labelKey: 'nav_control_tower', labelFallback: 'Control Tower' },
+          { to: '/analytics/executive', labelKey: 'nav_executive', labelFallback: 'Dashboard Ejecutivo' },
+          { to: '/analytics/sustainability', labelKey: 'nav_sustainability', labelFallback: 'Sostenibilidad (ESG)' },
+        ],
+      },
+      {
+        header: { key: 'nav_header_analisis', fallback: 'ANALISIS' },
+        items: [
+          { to: '/analytics/spend', labelKey: 'nav_spend_analytics', labelFallback: 'Spend Analytics' },
+          { to: '/analytics/abc', labelKey: 'nav_abc_analysis', labelFallback: 'ABC Analysis' },
+          { to: '/analytics/what-if', labelKey: 'nav_whatif', labelFallback: 'What-If Inventario' },
+          { to: '/procurement/savings', labelKey: 'nav_savings', labelFallback: 'Cost Savings' },
+        ],
+      },
+      {
+        header: { key: 'nav_header_inteligencia', fallback: 'INTELIGENCIA' },
+        items: [
+          { to: '/ai/copilot', labelKey: 'nav_copilot', labelFallback: 'Copiloto IA' },
+          { to: '/planificador/ai', labelKey: 'nav_ai', labelFallback: 'IA Analytics' },
+          { to: '/reportes/programados', labelKey: 'nav_reportes_programados', labelFallback: 'Reportes Programados' },
+        ],
+      },
+    ],
+  },
+  // 8. ADMIN
+  {
+    id: 'admin',
+    labelKey: 'nav_admin',
+    labelFallback: 'Admin',
+    visible: isAdmin,
+    activePrefixes: ['/admin'],
+    minWidth: 200,
+    maxHeight: 400,
+    sections: [
+      {
+        header: { key: 'nav_header_usuarios', fallback: 'USUARIOS' },
+        items: [
+          { to: '/admin/usuarios', labelKey: 'admin_usuarios', labelFallback: 'Usuarios' },
+          { to: '/admin/monitor-usuarios', labelKey: 'admin_monitor_usuarios', labelFallback: 'Monitor Usuarios' },
+          { to: '/admin/roles', labelKey: 'admin_roles', labelFallback: 'Roles' },
+          { to: '/admin/planificadores', labelKey: 'admin_planificadores', labelFallback: 'Planificadores' },
+        ],
+      },
+      {
+        header: { key: 'nav_header_organizacion', fallback: 'ORGANIZACION' },
+        items: [
+          { to: '/admin/centros', labelKey: 'admin_centros', labelFallback: 'Centros' },
+          { to: '/admin/sectores', labelKey: 'admin_sectores', labelFallback: 'Sectores' },
+          { to: '/admin/almacenes', labelKey: 'admin_almacenes', labelFallback: 'Almacenes' },
+          { to: '/admin/puestos', labelKey: 'admin_puestos', labelFallback: 'Puestos' },
+          { to: '/admin/proveedores', labelKey: 'admin_proveedores', labelFallback: 'Proveedores' },
+        ],
+      },
+      {
+        header: { key: 'nav_header_sistema', fallback: 'SISTEMA' },
+        items: [
+          { to: '/admin/estado', labelKey: 'admin_estado', labelFallback: 'Estado del Sistema' },
+          { to: '/admin/bases-datos', labelKey: 'admin_bases_datos', labelFallback: 'Bases de Datos' },
+          { to: '/admin/currency', labelKey: 'nav_currency', labelFallback: 'Monedas' },
+        ],
+      },
+      {
+        header: { key: 'nav_header_configuracion', fallback: 'CONFIGURACION' },
+        items: [
+          { to: '/admin/presupuestos', labelKey: 'admin_presupuestos', labelFallback: 'Presupuestos' },
+          { to: '/admin/auto-aprobacion', labelKey: 'admin_auto_aprobacion', labelFallback: 'Auto-Aprobacion' },
+          { to: '/admin/escalacion', labelKey: 'admin_escalacion', labelFallback: 'Escalado Aprobaciones' },
+          { to: '/admin/webhooks', labelKey: 'admin_webhooks', labelFallback: 'Webhooks' },
+          { to: '/admin/audit-log', labelKey: 'admin_audit_log', labelFallback: 'Audit Log' },
+          { to: '/admin/analisis-puntual', labelKey: 'admin_ap_importar', labelFallback: 'Analisis Puntual' },
+          { to: '/admin/supplier-portal', labelKey: 'nav_supplier_portal', labelFallback: 'Portal Proveedores' },
+          { to: '/admin/supplier-onboarding', labelKey: 'nav_supplier_onboarding', labelFallback: 'Onboarding Proveedores' },
+        ],
+      },
+    ],
+  },
+];
+
+/* ───────── Component ───────── */
+
 function HeaderNav() {
   const location = useLocation();
-  const navigate = useNavigate();
   const { t } = useI18n();
   const { user } = useAuthStore();
 
-  // Menu anchors
-  const [solicitudesAnchor, setSolicitudesAnchor] = useState(null);
-  const [materialesAnchor, setMaterialesAnchor] = useState(null);
-  const [planificadorAnchor, setPlanificadorAnchor] = useState(null);
-  const [mrpAnchor, setMrpAnchor] = useState(null);
-  const [forecastAnchor, setForecastAnchor] = useState(null);
-  const [adminAnchor, setAdminAnchor] = useState(null);
-  const [qualityAnchor, setQualityAnchor] = useState(null);
-  const [operationsAnchor, setOperationsAnchor] = useState(null);
+  // Single state for open menu
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
 
   // Role helpers
-  const getUserRoles = () => {
+  const getUserRoles = useCallback(() => {
     if (!user?.rol) return [];
     const rolStr = String(user.rol);
     if (rolStr.startsWith("[")) {
@@ -43,1026 +382,121 @@ function HeaderNav() {
       }
     }
     return [rolStr];
-  };
+  }, [user?.rol]);
 
-  const hasRole = (targetRole) => {
+  const hasRole = useCallback((targetRole) => {
     const roles = getUserRoles();
     return roles.some((r) => String(r).toLowerCase().includes(targetRole.toLowerCase()));
-  };
+  }, [getUserRoles]);
 
-  const isAdmin = () => hasRole("admin");
-  const isPlanner = () => hasRole("planificador");
-  const isJefe = () => hasRole("jefe");
-  const isCoordinador = () => hasRole("coordinador");
-  const isBudgetApprover = () => hasRole("aprobador presupuestos") || hasRole("aprobador_presupuestos") || hasRole("aprobador de presupuesto");
-  const isRequestApprover = () => hasRole("aprobador solicitudes") || hasRole("aprobador_solicitudes");
-  const canSeePlanner = isPlanner() || isAdmin();
-  const canSeeBudget = isAdmin() || isJefe() || isCoordinador() || isBudgetApprover();
-  const isGerente = () => hasRole("gerente");
-  const canApprove = isAdmin() || isJefe() || isCoordinador() || isRequestApprover() || isGerente();
+  const isAdminRole = hasRole("admin");
+  const isPlannerRole = hasRole("planificador");
+  const isJefeRole = hasRole("jefe");
+  const isCoordinadorRole = hasRole("coordinador");
+  const isBudgetApprover = hasRole("aprobador presupuestos") || hasRole("aprobador_presupuestos") || hasRole("aprobador de presupuesto");
+  const isRequestApprover = hasRole("aprobador solicitudes") || hasRole("aprobador_solicitudes");
+  const isGerenteRole = hasRole("gerente");
 
-  const isPathActive = (path) => location.pathname === path || location.pathname.startsWith(path + "/");
+  const canSeePlanner = isPlannerRole || isAdminRole;
+  const canSeeBudget = isAdminRole || isJefeRole || isCoordinadorRole || isBudgetApprover;
+  const canApprove = isAdminRole || isJefeRole || isCoordinadorRole || isRequestApprover || isGerenteRole;
+
+  const isPathActive = useCallback((path) =>
+    location.pathname === path || location.pathname.startsWith(path + "/"),
+  [location.pathname]);
+
+  const isMenuActive = useCallback((prefixes) =>
+    prefixes.some((p) => isPathActive(p)),
+  [isPathActive]);
 
   // Close menus on route change
   useEffect(() => {
-    setSolicitudesAnchor(null);
-    setMaterialesAnchor(null);
-    setPlanificadorAnchor(null);
-    setMrpAnchor(null);
-    setForecastAnchor(null);
-    setAdminAnchor(null);
-    setQualityAnchor(null);
-    setOperationsAnchor(null);
+    setOpenMenuId(null);
+    setAnchorEl(null);
   }, [location.pathname]);
 
-  const menuItemSx = {
-    fontSize: '0.75rem',
-    fontWeight: 500,
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-    py: 1,
-    px: 2,
-    color: 'white',
-    borderBottom: '1px solid var(--header-border, #424242)',
-    '&:hover': {
-      backgroundColor: 'var(--header-border, #424242)',
-    },
-    '&:last-child': {
-      borderBottom: 'none',
-    },
-  };
+  const handleOpen = useCallback((menuId, event) => {
+    setOpenMenuId(menuId);
+    setAnchorEl(event.currentTarget);
+  }, []);
 
-  const activeMenuItemSx = {
-    ...menuItemSx,
-    backgroundColor: 'var(--primary)',
-    color: 'white',
-    '&:hover': {
-      backgroundColor: 'var(--primary-dark)',
-      color: 'white',
-    },
-  };
+  const handleClose = useCallback(() => {
+    setOpenMenuId(null);
+    setAnchorEl(null);
+  }, []);
 
-  const menuPaperSx = {
-    backgroundColor: 'var(--header-bg, #212121)',
-    border: '1px solid var(--header-border, #424242)',
-  };
+  const menuConfig = getMenuConfig({ canApprove, canSeeBudget, canSeePlanner, isAdmin: isAdminRole });
 
   return (
     <nav className="flex items-center h-[43px]" data-tour="main-navigation">
-      {/* SOLICITUDES */}
-      <div className="border-r border-[var(--header-border,#424242)]">
-        <button
-          type="button"
-          data-tour="nav-solicitudes"
-          onClick={(e) => setSolicitudesAnchor(e.currentTarget)}
-          className={clsx(
-            "flex items-center gap-1 px-4 h-[43px] transition-all duration-200",
-            "text-[10px] font-semibold uppercase tracking-wide",
-            solicitudesAnchor || isPathActive("/solicitudes") || isPathActive("/mis-solicitudes") || isPathActive("/aprobaciones")
-              ? "bg-[var(--primary)] text-white"
-              : "text-white hover:bg-[var(--header-border,#424242)]"
-          )}
-        >
-          <span>{t("nav_solicitudes", "Solicitudes")}</span>
-          <ChevronDown className={clsx("w-3 h-3 transition-transform", solicitudesAnchor && "rotate-180")} />
-        </button>
-        <Menu
-          anchorEl={solicitudesAnchor}
-          open={Boolean(solicitudesAnchor)}
-          disableScrollLock={true}
-          onClose={() => setSolicitudesAnchor(null)}
-          MenuListProps={{ sx: { py: 0 } }}
-          PaperProps={{ sx: { minWidth: 180, ...menuPaperSx } }}
-        >
-          <MenuItem
-            component={NavLink}
-            to="/solicitudes/nueva"
-            onClick={() => setSolicitudesAnchor(null)}
-            sx={isPathActive("/solicitudes/nueva") ? activeMenuItemSx : menuItemSx}
-          >
-            {t("nav_nueva", "Nueva Solicitud")}
-          </MenuItem>
-          <Divider />
-          <MenuItem
-            component={NavLink}
-            to="/mis-solicitudes"
-            onClick={() => setSolicitudesAnchor(null)}
-            sx={isPathActive("/mis-solicitudes") ? activeMenuItemSx : menuItemSx}
-          >
-            {t("nav_mis", "Mis Solicitudes")}
-          </MenuItem>
-          <MenuItem
-            component={NavLink}
-            to="/solicitudes/todas"
-            onClick={() => setSolicitudesAnchor(null)}
-            sx={isPathActive("/solicitudes/todas") ? activeMenuItemSx : menuItemSx}
-          >
-            {t("nav_todas", "Todas las Solicitudes")}
-          </MenuItem>
-          {canApprove && (
-            <MenuItem
-              component={NavLink}
-              to="/aprobaciones"
-              onClick={() => setSolicitudesAnchor(null)}
-              sx={isPathActive("/aprobaciones") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_aprobaciones", "Aprobaciones")}
-            </MenuItem>
-          )}
-        </Menu>
-      </div>
+      {menuConfig.map((menu) => {
+        if (!menu.visible) return null;
 
-      {/* MATERIALES */}
-      <div className="border-r border-[var(--header-border,#424242)]">
-        <button
-          type="button"
-          onClick={(e) => setMaterialesAnchor(e.currentTarget)}
-          className={clsx(
-            "flex items-center gap-1 px-4 h-[43px] transition-all duration-200",
-            "text-[10px] font-semibold uppercase tracking-wide",
-            materialesAnchor || isPathActive("/materiales")
-              ? "bg-[var(--primary)] text-white"
-              : "text-white hover:bg-[var(--header-border,#424242)]"
-          )}
-        >
-          <span>{t("nav_materiales", "Materiales")}</span>
-          <ChevronDown className={clsx("w-3 h-3 transition-transform", materialesAnchor && "rotate-180")} />
-        </button>
-        <Menu
-          anchorEl={materialesAnchor}
-          open={Boolean(materialesAnchor)}
-          disableScrollLock={true}
-          onClose={() => setMaterialesAnchor(null)}
-          MenuListProps={{ sx: { py: 0 } }}
-          PaperProps={{ sx: { minWidth: 150, ...menuPaperSx } }}
-        >
-          <MenuItem
-            component={NavLink}
-            to="/materiales/catalogo"
-            onClick={() => setMaterialesAnchor(null)}
-            sx={isPathActive("/materiales/catalogo") ? activeMenuItemSx : menuItemSx}
-          >
-            {t("nav_catalogo_materiales", "Catálogo")}
-          </MenuItem>
-          <MenuItem
-            component={NavLink}
-            to="/materiales/equivalencias"
-            onClick={() => setMaterialesAnchor(null)}
-            sx={isPathActive("/materiales/equivalencias") ? activeMenuItemSx : menuItemSx}
-          >
-            {t("nav_equivalencias", "Alternativos")}
-          </MenuItem>
-          <MenuItem
-            component={NavLink}
-            to="/materiales/stock"
-            onClick={() => setMaterialesAnchor(null)}
-            sx={isPathActive("/materiales/stock") ? activeMenuItemSx : menuItemSx}
-          >
-            {t("nav_stock", "Stock")}
-          </MenuItem>
-        </Menu>
-      </div>
+        const isOpen = openMenuId === menu.id;
+        const isActive = isMenuActive(menu.activePrefixes);
 
-      {/* PRESUPUESTO */}
-      {canSeeBudget && (
-        <NavLink
-          to="/presupuestos"
-          className={clsx(
-            "flex items-center px-4 h-[43px] border-r border-[var(--header-border,#424242)] transition-all duration-200",
-            "text-[10px] font-semibold uppercase tracking-wide",
-            isPathActive("/presupuestos")
-              ? "bg-[var(--primary)] text-white"
-              : "text-white hover:bg-[var(--header-border,#424242)]"
-          )}
-        >
-          {t("nav_presupuesto", "Presupuesto")}
-        </NavLink>
-      )}
+        return (
+          <div key={menu.id} className="border-r border-[var(--header-border,#424242)]">
+            <button
+              type="button"
+              data-tour={menu.dataTour}
+              onClick={(e) => handleOpen(menu.id, e)}
+              className={clsx(
+                "flex items-center gap-1 px-4 h-[43px] transition-all duration-200",
+                "text-[10px] font-semibold uppercase tracking-wide",
+                isOpen || isActive
+                  ? "bg-[var(--primary)] text-white"
+                  : "text-white hover:bg-[var(--header-border,#424242)]"
+              )}
+            >
+              <span>{t(menu.labelKey, menu.labelFallback)}</span>
+              <ChevronDown className={clsx("w-3 h-3 transition-transform", isOpen && "rotate-180")} />
+            </button>
+            <Menu
+              anchorEl={isOpen ? anchorEl : null}
+              open={isOpen}
+              disableScrollLock={true}
+              onClose={handleClose}
+              MenuListProps={{ sx: { py: 0 } }}
+              PaperProps={{
+                sx: {
+                  minWidth: menu.minWidth || 180,
+                  ...(menu.maxHeight ? { maxHeight: menu.maxHeight } : {}),
+                  ...menuPaperSx,
+                },
+              }}
+            >
+              {menu.sections.map((section, sIdx) => {
+                if (section.visible === false) return null;
 
-      {/* PLANIFICADOR */}
-      {canSeePlanner && (
-        <div className="border-r border-[var(--header-border,#424242)]">
-          <button
-            type="button"
-            data-tour="nav-planificador"
-            onClick={(e) => setPlanificadorAnchor(e.currentTarget)}
-            className={clsx(
-              "flex items-center gap-1 px-4 h-[43px] transition-all duration-200",
-              "text-[10px] font-semibold uppercase tracking-wide",
-              planificadorAnchor || isPathActive("/planificador") || isPathActive("/procurement")
-                ? "bg-[var(--primary)] text-white"
-                : "text-white hover:bg-[var(--header-border,#424242)]"
-            )}
-          >
-            <span>{t("nav_planificador", "Planificador")}</span>
-            <ChevronDown className={clsx("w-3 h-3 transition-transform", planificadorAnchor && "rotate-180")} />
-          </button>
-          <Menu
-            anchorEl={planificadorAnchor}
-            open={Boolean(planificadorAnchor)}
-          disableScrollLock={true}
-            onClose={() => setPlanificadorAnchor(null)}
-            MenuListProps={{ sx: { py: 0 } }}
-            PaperProps={{ sx: { minWidth: 180, ...menuPaperSx } }}
-          >
-            <MenuItem
-              component={NavLink}
-              to="/planificador"
-              onClick={() => setPlanificadorAnchor(null)}
-              sx={isPathActive("/planificador") && !isPathActive("/planificador/") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_panel_tratamiento", "Panel")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/planificador/asignadas"
-              onClick={() => setPlanificadorAnchor(null)}
-              sx={isPathActive("/planificador/asignadas") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_asignadas", "Mis Asignadas")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/planificador/no-asignadas"
-              onClick={() => setPlanificadorAnchor(null)}
-              sx={isPathActive("/planificador/no-asignadas") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_no_asignadas", "No Asignadas")}
-            </MenuItem>
-            <Divider />
-            <MenuItem
-              component={NavLink}
-              to="/procurement"
-              onClick={() => setPlanificadorAnchor(null)}
-              sx={isPathActive("/procurement") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_procurement_dashboard", "Compras SAP")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/procurement/scorecard"
-              onClick={() => setPlanificadorAnchor(null)}
-              sx={isPathActive("/procurement/scorecard") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_scorecard", "Scorecard Proveedores")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/procurement/contracts"
-              onClick={() => setPlanificadorAnchor(null)}
-              sx={isPathActive("/procurement/contracts") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_contracts", "Contratos")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/procurement/rfq"
-              onClick={() => setPlanificadorAnchor(null)}
-              sx={isPathActive("/procurement/rfq") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_rfq", "Licitaciones (RFQ)")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/procurement/savings"
-              onClick={() => setPlanificadorAnchor(null)}
-              sx={isPathActive("/procurement/savings") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_savings", "Cost Savings")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/planificador/ai"
-              onClick={() => setPlanificadorAnchor(null)}
-              sx={isPathActive("/planificador/ai") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_ai", "IA Analytics")}
-            </MenuItem>
-            <Divider />
-            <MenuItem
-              component={NavLink}
-              to="/analytics/abc"
-              onClick={() => setPlanificadorAnchor(null)}
-              sx={isPathActive("/analytics/abc") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_abc_analysis", "ABC Analysis")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/analytics/spend"
-              onClick={() => setPlanificadorAnchor(null)}
-              sx={isPathActive("/analytics/spend") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_spend_analytics", "Spend Analytics")}
-            </MenuItem>
-            <Divider />
-            <MenuItem
-              component={NavLink}
-              to="/procurement/invoices"
-              onClick={() => setPlanificadorAnchor(null)}
-              sx={isPathActive("/procurement/invoices") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_invoices", "Facturas (3-Way)")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/procurement/compliance"
-              onClick={() => setPlanificadorAnchor(null)}
-              sx={isPathActive("/procurement/compliance") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_compliance", "Compliance")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/procurement/rebates"
-              onClick={() => setPlanificadorAnchor(null)}
-              sx={isPathActive("/procurement/rebates") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_rebates", "Rebates")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/procurement/supplier-risk"
-              onClick={() => setPlanificadorAnchor(null)}
-              sx={isPathActive("/procurement/supplier-risk") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_supplier_risk", "Riesgo Proveedores")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/procurement/certifications"
-              onClick={() => setPlanificadorAnchor(null)}
-              sx={isPathActive("/procurement/certifications") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_certifications", "Certificaciones")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/procurement/audits"
-              onClick={() => setPlanificadorAnchor(null)}
-              sx={isPathActive("/procurement/audits") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_supplier_audits", "Auditorías Prov.")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/planning/demand"
-              onClick={() => setPlanificadorAnchor(null)}
-              sx={isPathActive("/planning/demand") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_demand_planning", "Demanda (S&OP)")}
-            </MenuItem>
-          </Menu>
-        </div>
-      )}
+                const visibleItems = section.items.filter((item) => item.visible !== false);
+                if (visibleItems.length === 0) return null;
 
-      {/* MRP */}
-      {canSeePlanner && (
-        <div className="border-r border-[var(--header-border,#424242)]">
-          <button
-            type="button"
-            onClick={(e) => setMrpAnchor(e.currentTarget)}
-            className={clsx(
-              "flex items-center gap-1 px-4 h-[43px] transition-all duration-200",
-              "text-[10px] font-semibold uppercase tracking-wide",
-              mrpAnchor || isPathActive("/mrp")
-                ? "bg-[var(--primary)] text-white"
-                : "text-white hover:bg-[var(--header-border,#424242)]"
-            )}
-          >
-            <span>{t("nav_mrp", "MRP")}</span>
-            <ChevronDown className={clsx("w-3 h-3 transition-transform", mrpAnchor && "rotate-180")} />
-          </button>
-          <Menu
-            anchorEl={mrpAnchor}
-            open={Boolean(mrpAnchor)}
-            disableScrollLock={true}
-            onClose={() => setMrpAnchor(null)}
-            MenuListProps={{ sx: { py: 0 } }}
-            PaperProps={{ sx: { minWidth: 150, ...menuPaperSx } }}
-          >
-            <MenuItem
-              component={NavLink}
-              to="/mrp/portfolio"
-              onClick={() => setMrpAnchor(null)}
-              sx={isPathActive("/mrp/portfolio") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_mrp_portfolio", "Portfolio MRP")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/mrp/parametrizar"
-              onClick={() => setMrpAnchor(null)}
-              sx={isPathActive("/mrp/parametrizar") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_mrp_parametrizar", "Parametrizar")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/mrp/alertas"
-              onClick={() => setMrpAnchor(null)}
-              sx={isPathActive("/mrp/alertas") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_mrp_alertas", "Alertas")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/mrp/kpis"
-              onClick={() => setMrpAnchor(null)}
-              sx={isPathActive("/mrp/kpis") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_mrp_kpis", "KPIs")}
-            </MenuItem>
-            <Divider />
-            <MenuItem
-              component={NavLink}
-              to="/analytics/what-if"
-              onClick={() => setMrpAnchor(null)}
-              sx={isPathActive("/analytics/what-if") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_whatif", "What-If Inventario")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/operations/slob"
-              onClick={() => setMrpAnchor(null)}
-              sx={isPathActive("/operations/slob") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_slob", "Aging & SLOB")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/operations/inventory-optimization"
-              onClick={() => setMrpAnchor(null)}
-              sx={isPathActive("/operations/inventory-optimization") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_inv_optimization", "Optimización Inv.")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/operations/service-levels"
-              onClick={() => setMrpAnchor(null)}
-              sx={isPathActive("/operations/service-levels") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_service_levels", "Niveles Servicio")}
-            </MenuItem>
-          </Menu>
-        </div>
-      )}
-
-      {/* FORECAST */}
-      {canSeePlanner && (
-        <div className="border-r border-[var(--header-border,#424242)]">
-          <button
-            type="button"
-            onClick={(e) => setForecastAnchor(e.currentTarget)}
-            className={clsx(
-              "flex items-center gap-1 px-4 h-[43px] transition-all duration-200",
-              "text-[10px] font-semibold uppercase tracking-wide",
-              forecastAnchor || isPathActive("/forecast")
-                ? "bg-[var(--primary)] text-white"
-                : "text-white hover:bg-[var(--header-border,#424242)]"
-            )}
-          >
-            <span>{t("nav_forecast", "Forecast")}</span>
-            <ChevronDown className={clsx("w-3 h-3 transition-transform", forecastAnchor && "rotate-180")} />
-          </button>
-          <Menu
-            anchorEl={forecastAnchor}
-            open={Boolean(forecastAnchor)}
-            disableScrollLock={true}
-            onClose={() => setForecastAnchor(null)}
-            MenuListProps={{ sx: { py: 0 } }}
-            PaperProps={{ sx: { minWidth: 150, ...menuPaperSx } }}
-          >
-            <MenuItem
-              component={NavLink}
-              to="/forecast/individual"
-              onClick={() => setForecastAnchor(null)}
-              sx={isPathActive("/forecast/individual") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_forecast_individual", "Individual")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/forecast/masivo"
-              onClick={() => setForecastAnchor(null)}
-              sx={isPathActive("/forecast/masivo") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_forecast_masivo", "Masivo")}
-            </MenuItem>
-          </Menu>
-        </div>
-      )}
-
-      {/* OPERATIONS */}
-      {canSeePlanner && (
-        <div className="border-r border-[var(--header-border,#424242)]">
-          <button
-            type="button"
-            onClick={(e) => setOperationsAnchor(e.currentTarget)}
-            className={clsx(
-              "flex items-center gap-1 px-4 h-[43px] transition-all duration-200",
-              "text-[10px] font-semibold uppercase tracking-wide",
-              operationsAnchor || isPathActive("/operations") || isPathActive("/tms/freight")
-                ? "bg-[var(--primary)] text-white"
-                : "text-white hover:bg-[var(--header-border,#424242)]"
-            )}
-          >
-            <span>{t("nav_operations", "Operaciones")}</span>
-            <ChevronDown className={clsx("w-3 h-3 transition-transform", operationsAnchor && "rotate-180")} />
-          </button>
-          <Menu
-            anchorEl={operationsAnchor}
-            open={Boolean(operationsAnchor)}
-            disableScrollLock={true}
-            onClose={() => setOperationsAnchor(null)}
-            MenuListProps={{ sx: { py: 0 } }}
-            PaperProps={{ sx: { minWidth: 170, ...menuPaperSx } }}
-          >
-            <MenuItem
-              component={NavLink}
-              to="/operations/warehouse"
-              onClick={() => setOperationsAnchor(null)}
-              sx={isPathActive("/operations/warehouse") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_warehouse", "Recepción")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/operations/putaway"
-              onClick={() => setOperationsAnchor(null)}
-              sx={isPathActive("/operations/putaway") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_putaway", "Putaway")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/operations/returns"
-              onClick={() => setOperationsAnchor(null)}
-              sx={isPathActive("/operations/returns") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_returns", "Devoluciones (RMA)")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/operations/packaging"
-              onClick={() => setOperationsAnchor(null)}
-              sx={isPathActive("/operations/packaging") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_packaging", "Packaging")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/operations/consignment"
-              onClick={() => setOperationsAnchor(null)}
-              sx={isPathActive("/operations/consignment") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_consignment", "Consignación")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/operations/customs"
-              onClick={() => setOperationsAnchor(null)}
-              sx={isPathActive("/operations/customs") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_customs", "Aduanas")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/operations/kanban"
-              onClick={() => setOperationsAnchor(null)}
-              sx={isPathActive("/operations/kanban") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_kanban", "Kanban")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/operations/production"
-              onClick={() => setOperationsAnchor(null)}
-              sx={isPathActive("/operations/production") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_production", "Producción")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/operations/warranty"
-              onClick={() => setOperationsAnchor(null)}
-              sx={isPathActive("/operations/warranty") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_warranty", "Garantías")}
-            </MenuItem>
-            <Divider />
-            <MenuItem
-              component={NavLink}
-              to="/tms/freight"
-              onClick={() => setOperationsAnchor(null)}
-              sx={isPathActive("/tms/freight") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_freight_audit", "Auditoría Fletes")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/tms/tariffs"
-              onClick={() => setOperationsAnchor(null)}
-              sx={isPathActive("/tms/tariffs") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_freight_tariffs", "Tarifas Flete")}
-            </MenuItem>
-            <Divider />
-            <MenuItem
-              component={NavLink}
-              to="/operations/vmi"
-              onClick={() => setOperationsAnchor(null)}
-              sx={isPathActive("/operations/vmi") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_vmi", "VMI")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/operations/lots"
-              onClick={() => setOperationsAnchor(null)}
-              sx={isPathActive("/operations/lots") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_lots", "Lotes")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/operations/recalls"
-              onClick={() => setOperationsAnchor(null)}
-              sx={isPathActive("/operations/recalls") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_recalls", "Recalls")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/operations/cycle-count"
-              onClick={() => setOperationsAnchor(null)}
-              sx={isPathActive("/operations/cycle-count") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_cycle_count", "Conteo Cíclico")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/operations/kitting/boms"
-              onClick={() => setOperationsAnchor(null)}
-              sx={isPathActive("/operations/kitting") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_kitting_boms", "BOMs de Kit")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/operations/kitting/orders"
-              onClick={() => setOperationsAnchor(null)}
-              sx={isPathActive("/operations/kitting/orders") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_kitting_orders", "Órdenes de Kit")}
-            </MenuItem>
-          </Menu>
-        </div>
-      )}
-
-      {/* QUALITY */}
-      {canSeePlanner && (
-        <div className="border-r border-[var(--header-border,#424242)]">
-          <button
-            type="button"
-            onClick={(e) => setQualityAnchor(e.currentTarget)}
-            className={clsx(
-              "flex items-center gap-1 px-4 h-[43px] transition-all duration-200",
-              "text-[10px] font-semibold uppercase tracking-wide",
-              qualityAnchor || isPathActive("/quality")
-                ? "bg-[var(--primary)] text-white"
-                : "text-white hover:bg-[var(--header-border,#424242)]"
-            )}
-          >
-            <span>{t("nav_quality", "Calidad")}</span>
-            <ChevronDown className={clsx("w-3 h-3 transition-transform", qualityAnchor && "rotate-180")} />
-          </button>
-          <Menu
-            anchorEl={qualityAnchor}
-            open={Boolean(qualityAnchor)}
-            disableScrollLock={true}
-            onClose={() => setQualityAnchor(null)}
-            MenuListProps={{ sx: { py: 0 } }}
-            PaperProps={{ sx: { minWidth: 160, ...menuPaperSx } }}
-          >
-            <MenuItem
-              component={NavLink}
-              to="/quality/inspections"
-              onClick={() => setQualityAnchor(null)}
-              sx={isPathActive("/quality/inspections") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_inspections", "Inspecciones")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/quality/ncr"
-              onClick={() => setQualityAnchor(null)}
-              sx={isPathActive("/quality/ncr") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_ncr", "NCR")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/quality/capa"
-              onClick={() => setQualityAnchor(null)}
-              sx={isPathActive("/quality/capa") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_capa", "CAPA")}
-            </MenuItem>
-          </Menu>
-        </div>
-      )}
-
-      {/* ADMIN */}
-      {isAdmin() && (
-        <div className="border-r border-[var(--header-border,#424242)]">
-          <button
-            type="button"
-            onClick={(e) => setAdminAnchor(e.currentTarget)}
-            className={clsx(
-              "flex items-center gap-1 px-4 h-[43px] transition-all duration-200",
-              "text-[10px] font-semibold uppercase tracking-wide",
-              adminAnchor || isPathActive("/admin")
-                ? "bg-[var(--primary)] text-white"
-                : "text-white hover:bg-[var(--header-border,#424242)]"
-            )}
-          >
-            <span>{t("nav_admin", "Admin")}</span>
-            <ChevronDown className={clsx("w-3 h-3 transition-transform", adminAnchor && "rotate-180")} />
-          </button>
-          <Menu
-            anchorEl={adminAnchor}
-            open={Boolean(adminAnchor)}
-          disableScrollLock={true}
-            onClose={() => setAdminAnchor(null)}
-            MenuListProps={{ sx: { py: 0 } }}
-            PaperProps={{ sx: { minWidth: 180, maxHeight: 400, ...menuPaperSx } }}
-          >
-            {/* Registros */}
-            <MenuItem disabled sx={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--fg-subtle)', py: 0.5, px: 2 }}>
-              REGISTROS
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/admin/usuarios"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/admin/usuarios") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("admin_usuarios", "Usuarios")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/admin/monitor-usuarios"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/admin/monitor-usuarios") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("admin_monitor_usuarios", "Monitor Usuarios")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/admin/roles"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/admin/roles") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("admin_roles", "Roles")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/admin/planificadores"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/admin/planificadores") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("admin_planificadores", "Planificadores")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/admin/puestos"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/admin/puestos") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("admin_puestos", "Puestos")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/admin/centros"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/admin/centros") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("admin_centros", "Centros")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/admin/sectores"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/admin/sectores") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("admin_sectores", "Sectores")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/admin/almacenes"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/admin/almacenes") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("admin_almacenes", "Almacenes")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/admin/proveedores"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/admin/proveedores") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("admin_proveedores", "Proveedores")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/admin/presupuestos"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/admin/presupuestos") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("admin_presupuestos", "Presupuestos")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/reportes/programados"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/reportes/programados") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("admin_reportes_programados", "Reportes Programados")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/admin/auto-aprobacion"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/admin/auto-aprobacion") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("admin_auto_aprobacion", "Auto-Aprobación")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/admin/escalacion"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/admin/escalacion") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("admin_escalacion", "Escalado de Aprobaciones")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/admin/webhooks"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/admin/webhooks") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("admin_webhooks", "Webhooks")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/admin/audit-log"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/admin/audit-log") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("admin_audit_log", "Audit Log")}
-            </MenuItem>
-            <Divider />
-            {/* Sistema */}
-            <MenuItem disabled sx={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--fg-subtle)', py: 0.5, px: 2 }}>
-              SISTEMA
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/admin/bases-datos"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/admin/bases-datos") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("admin_bases_datos", "Bases de Datos")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/admin/estado"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/admin/estado") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("admin_estado", "Estado del Sistema")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/admin/analisis-puntual"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/admin/analisis-puntual") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("admin_ap_importar", "Análisis Puntual")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/admin/currency"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/admin/currency") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_currency", "Monedas")}
-            </MenuItem>
-            <MenuItem
-              component={NavLink}
-              to="/admin/supplier-portal"
-              onClick={() => setAdminAnchor(null)}
-              sx={isPathActive("/admin/supplier-portal") ? activeMenuItemSx : menuItemSx}
-            >
-              {t("nav_supplier_portal", "Portal Proveedores")}
-            </MenuItem>
-          </Menu>
-        </div>
-      )}
-
-      {/* ANALYTICS LINKS */}
-      {canSeePlanner && (
-        <>
-          <NavLink
-            to="/analytics/control-tower"
-            className={clsx(
-              "flex items-center px-3 h-[43px] transition-all duration-200 border-r border-[var(--header-border,#424242)]",
-              "text-[10px] font-semibold uppercase tracking-wide",
-              isPathActive("/analytics/control-tower")
-                ? "bg-[var(--primary)] text-white"
-                : "text-white hover:bg-[var(--header-border,#424242)]"
-            )}
-          >
-            {t("nav_control_tower", "Control Tower")}
-          </NavLink>
-          <NavLink
-            to="/analytics/sustainability"
-            className={clsx(
-              "flex items-center px-3 h-[43px] transition-all duration-200 border-r border-[var(--header-border,#424242)]",
-              "text-[10px] font-semibold uppercase tracking-wide",
-              isPathActive("/analytics/sustainability")
-                ? "bg-[var(--primary)] text-white"
-                : "text-white hover:bg-[var(--header-border,#424242)]"
-            )}
-          >
-            {t("nav_sustainability", "ESG")}
-          </NavLink>
-          <NavLink
-            to="/engineering/eco"
-            className={clsx(
-              "flex items-center px-3 h-[43px] transition-all duration-200 border-r border-[var(--header-border,#424242)]",
-              "text-[10px] font-semibold uppercase tracking-wide",
-              isPathActive("/engineering/eco")
-                ? "bg-[var(--primary)] text-white"
-                : "text-white hover:bg-[var(--header-border,#424242)]"
-            )}
-          >
-            {t("nav_eco", "ECO")}
-          </NavLink>
-          <NavLink
-            to="/ai/copilot"
-            className={clsx(
-              "flex items-center px-3 h-[43px] transition-all duration-200 border-r border-[var(--header-border,#424242)]",
-              "text-[10px] font-semibold uppercase tracking-wide",
-              isPathActive("/ai/copilot")
-                ? "bg-[var(--primary)] text-white"
-                : "text-white hover:bg-[var(--header-border,#424242)]"
-            )}
-          >
-            {t("nav_copilot", "Copiloto IA")}
-          </NavLink>
-          <NavLink
-            to="/analytics/executive"
-            className={clsx(
-              "flex items-center px-3 h-[43px] transition-all duration-200 border-r border-[var(--header-border,#424242)]",
-              "text-[10px] font-semibold uppercase tracking-wide",
-              isPathActive("/analytics/executive")
-                ? "bg-[var(--primary)] text-white"
-                : "text-white hover:bg-[var(--header-border,#424242)]"
-            )}
-          >
-            {t("nav_executive", "Ejecutivo")}
-          </NavLink>
-          <NavLink
-            to="/finance/supplier-finance"
-            className={clsx(
-              "flex items-center px-3 h-[43px] transition-all duration-200 border-r border-[var(--header-border,#424242)]",
-              "text-[10px] font-semibold uppercase tracking-wide",
-              isPathActive("/finance/supplier-finance")
-                ? "bg-[var(--primary)] text-white"
-                : "text-white hover:bg-[var(--header-border,#424242)]"
-            )}
-          >
-            {t("nav_supplier_finance", "Financiamiento")}
-          </NavLink>
-          <NavLink
-            to="/procurement/prices"
-            className={clsx(
-              "flex items-center px-3 h-[43px] transition-all duration-200 border-r border-[var(--header-border,#424242)]",
-              "text-[10px] font-semibold uppercase tracking-wide",
-              isPathActive("/procurement/prices")
-                ? "bg-[var(--primary)] text-white"
-                : "text-white hover:bg-[var(--header-border,#424242)]"
-            )}
-          >
-            {t("nav_prices", "Precios")}
-          </NavLink>
-        </>
-      )}
-
+                return (
+                  <React.Fragment key={sIdx}>
+                    {section.header && (
+                      <ListSubheader sx={subheaderSx} disableSticky>
+                        {t(section.header.key, section.header.fallback)}
+                      </ListSubheader>
+                    )}
+                    {visibleItems.map((item) => (
+                      <MenuItem
+                        key={item.to}
+                        component={NavLink}
+                        to={item.to}
+                        onClick={handleClose}
+                        sx={isPathActive(item.to) ? activeMenuItemSx : menuItemSx}
+                      >
+                        {t(item.labelKey, item.labelFallback)}
+                      </MenuItem>
+                    ))}
+                  </React.Fragment>
+                );
+              })}
+            </Menu>
+          </div>
+        );
+      })}
     </nav>
   );
 }
