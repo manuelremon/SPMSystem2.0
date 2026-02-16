@@ -187,6 +187,7 @@ jobs:
             git remote set-url origin https://github.com/${{ github.repository }}.git
             echo "=== Building frontend ==="
             cd frontend
+            rm -rf node_modules 2>/dev/null || true
             npm install --force
             npm run build
             cd ..
