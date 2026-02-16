@@ -52,6 +52,9 @@ const PackingDetail = () => {
   const [openAddItem, setOpenAddItem] = useState(false);
   const [openGenerateLabel, setOpenGenerateLabel] = useState(false);
 
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+
   const [newItem, setNewItem] = useState({
     material_codigo: '',
     cantidad: '',
@@ -107,15 +110,21 @@ const PackingDetail = () => {
     }
   };
 
-  const handleDeleteItem = async (itemId) => {
-    if (!window.confirm(t('pack_confirm_delete_item', '¿Eliminar este item?'))) return;
-
-    try {
-      await api.delete(`/api/packaging/packing-lists/${id}/items/${itemId}`);
-      loadData();
-    } catch (error) {
-      alert(error.response?.data?.error || 'Error al eliminar item');
-    }
+  const handleDeleteItem = (itemId) => {
+    setConfirmDialog({
+      open: true,
+      title: t('pack_confirm_delete_item', '¿Eliminar este item?'),
+      message: t('pack_confirm_delete_item_desc', 'Esta acción no se puede deshacer.'),
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, open: false }));
+        try {
+          await api.delete(`/api/packaging/packing-lists/${id}/items/${itemId}`);
+          loadData();
+        } catch (error) {
+          alert(error.response?.data?.error || 'Error al eliminar item');
+        }
+      },
+    });
   };
 
   const handleOptimize = async () => {
@@ -136,30 +145,42 @@ const PackingDetail = () => {
     }
   };
 
-  const handlePack = async () => {
-    if (!window.confirm(t('pack_confirm_pack', '¿Marcar como empacado?'))) return;
-
-    try {
-      const res = await api.put(`/api/packaging/packing-lists/${id}/pack`);
-      if (res.data.ok) {
-        loadData();
-      }
-    } catch (error) {
-      alert(error.response?.data?.error || 'Error al empacar');
-    }
+  const handlePack = () => {
+    setConfirmDialog({
+      open: true,
+      title: t('pack_confirm_pack', '¿Marcar como empacado?'),
+      message: t('pack_confirm_pack_desc', 'Una vez empacado, no se podrán agregar más items.'),
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, open: false }));
+        try {
+          const res = await api.put(`/api/packaging/packing-lists/${id}/pack`);
+          if (res.data.ok) {
+            loadData();
+          }
+        } catch (error) {
+          alert(error.response?.data?.error || 'Error al empacar');
+        }
+      },
+    });
   };
 
-  const handleDispatch = async () => {
-    if (!window.confirm(t('pack_confirm_dispatch', '¿Despachar packing list?'))) return;
-
-    try {
-      const res = await api.put(`/api/packaging/packing-lists/${id}/dispatch`);
-      if (res.data.ok) {
-        loadData();
-      }
-    } catch (error) {
-      alert(error.response?.data?.error || 'Error al despachar');
-    }
+  const handleDispatch = () => {
+    setConfirmDialog({
+      open: true,
+      title: t('pack_confirm_dispatch', '¿Despachar packing list?'),
+      message: t('pack_confirm_dispatch_desc', 'El packing list se marcará como despachado.'),
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, open: false }));
+        try {
+          const res = await api.put(`/api/packaging/packing-lists/${id}/dispatch`);
+          if (res.data.ok) {
+            loadData();
+          }
+        } catch (error) {
+          alert(error.response?.data?.error || 'Error al despachar');
+        }
+      },
+    });
   };
 
   const handleGenerateLabel = async () => {
@@ -496,6 +517,18 @@ const PackingDetail = () => {
           >
             {t('common_add', 'Agregar')}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Confirm Dialog */}
+      <Dialog open={confirmDialog.open} onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))} maxWidth="xs" fullWidth>
+        <DialogTitle>{confirmDialog.title}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">{confirmDialog.message}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))}>{t('common_cancel', 'Cancelar')}</Button>
+          <Button variant="contained" color="warning" onClick={confirmDialog.onConfirm}>{t('common_confirm', 'Confirmar')}</Button>
         </DialogActions>
       </Dialog>
 

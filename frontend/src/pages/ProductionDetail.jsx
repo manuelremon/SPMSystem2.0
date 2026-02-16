@@ -45,6 +45,9 @@ const ProductionDetail = () => {
     notas: ''
   });
 
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
+
   // Report production dialog
   const [reportOpen, setReportOpen] = useState(false);
   const [reportItem, setReportItem] = useState(null);
@@ -151,36 +154,41 @@ const ProductionDetail = () => {
     // Validate first
     await handleValidateCapacity();
 
-    const confirmMsg = t(
-      'prod_confirm_publish',
-      'Are you sure you want to publish this plan? This will commit capacity.'
-    );
-    if (!window.confirm(confirmMsg)) return;
-
-    try {
-      const res = await api.put(`/api/production/plans/${id}/publish`);
-      if (res.data.ok) {
-        alert(t('prod_plan_published', 'Plan published successfully'));
-        loadPlanDetail();
-      }
-    } catch (error) {
-      alert(t('common_error', 'Error: ') + (error.response?.data?.mensaje || error.message));
-    }
+    setConfirmDialog({
+      open: true,
+      title: t('prod_confirm_publish_title', 'Publicar Plan'),
+      message: t('prod_confirm_publish', 'Are you sure you want to publish this plan? This will commit capacity.'),
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, open: false }));
+        try {
+          const res = await api.put(`/api/production/plans/${id}/publish`);
+          if (res.data.ok) {
+            loadPlanDetail();
+          }
+        } catch (error) {
+          alert(t('common_error', 'Error: ') + (error.response?.data?.mensaje || error.message));
+        }
+      },
+    });
   };
 
-  const handleComplete = async () => {
-    const confirmMsg = t('prod_confirm_complete', 'Mark this plan as completed?');
-    if (!window.confirm(confirmMsg)) return;
-
-    try {
-      const res = await api.put(`/api/production/plans/${id}/complete`);
-      if (res.data.ok) {
-        alert(t('prod_plan_completed', 'Plan completed successfully'));
-        loadPlanDetail();
-      }
-    } catch (error) {
-      alert(t('common_error', 'Error: ') + (error.response?.data?.mensaje || error.message));
-    }
+  const handleComplete = () => {
+    setConfirmDialog({
+      open: true,
+      title: t('prod_confirm_complete_title', 'Completar Plan'),
+      message: t('prod_confirm_complete', 'Mark this plan as completed?'),
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, open: false }));
+        try {
+          const res = await api.put(`/api/production/plans/${id}/complete`);
+          if (res.data.ok) {
+            loadPlanDetail();
+          }
+        } catch (error) {
+          alert(t('common_error', 'Error: ') + (error.response?.data?.mensaje || error.message));
+        }
+      },
+    });
   };
 
   // Items grid columns
@@ -459,6 +467,18 @@ const ProductionDetail = () => {
           <Button onClick={handleAddItem} variant="contained">
             {t('common_add', 'Add')}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Confirm Dialog */}
+      <Dialog open={confirmDialog.open} onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))} maxWidth="xs" fullWidth>
+        <DialogTitle>{confirmDialog.title}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">{confirmDialog.message}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))}>{t('common_cancel', 'Cancel')}</Button>
+          <Button variant="contained" onClick={confirmDialog.onConfirm}>{t('common_confirm', 'Confirm')}</Button>
         </DialogActions>
       </Dialog>
 

@@ -42,7 +42,6 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import CheckIcon from "@mui/icons-material/Check";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -50,6 +49,7 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 // Material-specific components
 import { MaterialDetailModal, MaterialsTable, SearchDropdown, BarcodeScanner } from "../components/materials";
 import { AssistantModal } from "../components/AssistantModal";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 // Skeleton for loading state
 function TableSkeleton() {
@@ -724,75 +724,7 @@ function ContextSection({ m, t }) {
 // DIALOG COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-function ConfirmDialog({ open, onClose, onConfirm, title, description, confirmText, cancelText, variant = "info", loading }) {
-  const getVariantColor = () => {
-    switch (variant) {
-      case "warning":
-        return "warning";
-      case "error":
-        return "error";
-      default:
-        return "primary";
-    }
-  };
-
-  const getVariantIcon = () => {
-    switch (variant) {
-      case "warning":
-      case "error":
-        return <WarningAmberIcon sx={{ fontSize: 24 }} />;
-      default:
-        return <CheckIcon sx={{ fontSize: 24 }} />;
-    }
-  };
-
-  const color = getVariantColor();
-
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
-      <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1 }}>
-        <Box
-          sx={{
-            p: 1,
-            borderRadius: "50%",
-            bgcolor: `${color}.lighter`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: `${color}.main`,
-          }}
-        >
-          {getVariantIcon()}
-        </Box>
-        <Typography variant="subtitle1" component="span" fontWeight={600} color="text.primary">
-          {title}
-        </Typography>
-      </DialogTitle>
-
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary">
-          {description}
-        </Typography>
-      </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50" }}>
-        <Button onClick={onClose} variant="outlined" size="small" sx={{ textTransform: "none" }}>
-          {cancelText}
-        </Button>
-        <Button
-          onClick={onConfirm}
-          disabled={loading}
-          variant="contained"
-          color={color}
-          size="small"
-          sx={{ textTransform: "none" }}
-        >
-          {loading ? <CircularProgress size={16} sx={{ color: "inherit" }} /> : confirmText}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
+// ConfirmDialog imported from components/ui/ConfirmDialog
 
 function CommentDialog({ open, onClose, codigo, comment, onCommentChange, onSave, t }) {
   return (
