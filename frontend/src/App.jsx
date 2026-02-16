@@ -220,7 +220,6 @@ function App() {
     init()
   }, [])
 
-  // Detectar basename para GitHub Pages
   const basename = import.meta.env.BASE_URL || '/'
 
   const router = useMemo(
