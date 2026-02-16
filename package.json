@@ -4,19 +4,12 @@
   "private": true,
   "description": "SPM - Sistema de Planificacion de Materiales",
   "scripts": {
-    "prepare": "husky",
     "lint:frontend": "cd frontend && npm run lint",
     "test:frontend": "cd frontend && npm test",
     "test:backend": "python -m pytest tests/ -v --tb=short",
     "build": "cd frontend && npm run build"
   },
-  "devDependencies": {
-    "husky": "^9.1.7",
-    "lint-staged": "^15.2.0"
-  },
-  "lint-staged": {
-    "backend/**/*.py": [
-      "python3 -m py_compile"
-    ]
+  "dependencies": {
+    "@playwright/test": "^1.58.2"
   }
 }
