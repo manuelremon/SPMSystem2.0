@@ -127,9 +127,9 @@ class DataLoader(BaseTool):
             }
 
     def _load_materiales(self, filters: Dict[str, Any], limit: int) -> Dict[str, Any]:
-        """Carga materiales desde catalogo_materiales (vista compatible en PG y SQLite)."""
+        """Carga materiales desde master_materiales (vista compatible en PG y SQLite)."""
         try:
-            with _get_db_connection("catalogo_materiales") as conn:
+            with _get_db_connection("master_materiales") as conn:
                 cursor = conn.cursor()
 
                 query = "SELECT codigo, descripcion, descripcion_larga, unidad_medida, precio_usd FROM catalogo_materiales WHERE 1=1"

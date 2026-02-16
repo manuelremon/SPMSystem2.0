@@ -36,7 +36,7 @@ import { admin } from "../services/spm";
 import { SPMAgGrid } from "./ui/SPMAgGrid";
 import { ConfirmModal } from "./ui/ConfirmModal";
 import { useI18n } from "../context/i18n";
-import { useDebounced } from "../hooks/useDebounced";
+import { useDebouncedValue as useDebounced } from "../hooks/useDebouncedValue";
 
 const PAGE_SIZE = 20;
 

@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { planner, solicitudes } from "../services/spm";
 import { useAuthStore } from "../store/authStore";
 import { useRealtimeEvent } from "../hooks/useRealtime";
-import { useDebounced } from "../hooks/useDebounced";
+import { useDebouncedValue as useDebounced } from "../hooks/useDebouncedValue";
 import { getSectorNombre, formatDate, exportToExcel } from "../utils/formatters";
 import api from "../services/api";
 

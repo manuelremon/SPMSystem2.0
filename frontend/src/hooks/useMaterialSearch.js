@@ -6,7 +6,7 @@
  */
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { materiales } from '../services/spm'
-import { useDebounced } from './useDebounced'
+import { useDebouncedValue as useDebounced } from './useDebouncedValue'
 
 const DEBOUNCE_MS = 250
 const MAX_RESULTS = 500

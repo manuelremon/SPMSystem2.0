@@ -412,7 +412,7 @@ class MaterialRetriever:
                 AND material_descripcion IS NOT NULL
             """
         elif source == "catalogo":
-            db_path = CATALOGO_DB
+            db_path = MASTER_MATERIALES_DB
             query = """
                 SELECT DISTINCT
                     codigo,

@@ -52,6 +52,9 @@ frontend/public/assets/
 frontend/public/dist/
 .vite/
 *.tsbuildinfo
+# Package locks - solo mantener el de frontend/
+/package-lock.json
+!/frontend/package-lock.json
 
 # =============================================================================
 # Build artifacts

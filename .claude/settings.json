@@ -2,16 +2,30 @@
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Edit|Write",
-        "command": "python -m ruff format --config pyproject.toml \"$CLAUDE_FILE_PATH\" 2>/dev/null; python -m ruff check --fix --config pyproject.toml \"$CLAUDE_FILE_PATH\" 2>/dev/null; exit 0",
-        "filePattern": "backend/**/*.py"
+        "matcher": {
+          "tools": ["Edit", "Write"],
+          "file_paths": ["backend/**/*.py"]
+        },
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -m ruff format --config pyproject.toml \"$CLAUDE_FILE_PATH\" 2>/dev/null; python -m ruff check --fix --config pyproject.toml \"$CLAUDE_FILE_PATH\" 2>/dev/null; exit 0"
+          }
+        ]
       }
     ],
     "PreToolUse": [
       {
-        "matcher": "Edit|Write",
-        "command": "echo 'BLOCKED: This file should not be edited by Claude Code' && exit 1",
-        "filePattern": "{data/*.db,.env,.env.*,**/package-lock.json,**/*.key,**/*.pem}"
+        "matcher": {
+          "tools": ["Edit", "Write"],
+          "file_paths": ["data/*.db", ".env", ".env.*", "**/package-lock.json", "**/*.key", "**/*.pem"]
+        },
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'BLOCKED: This file should not be edited by Claude Code' && exit 1"
+          }
+        ]
       }
     ]
   }

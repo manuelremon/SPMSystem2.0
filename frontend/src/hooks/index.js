@@ -2,7 +2,8 @@
  * Hooks personalizados de la aplicación
  */
 
-export { useDebounced } from './useDebounced'
+// useDebounced es un alias de useDebouncedValue (consolidación de hooks duplicados)
+export { useDebouncedValue as useDebounced } from './useDebouncedValue'
 export { useNotifications } from './useNotifications'
 export {
   useRealtime,

@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { solicitudes } from "../services/spm";
 import api from "../services/api";
 import { useAuthStore } from "../store/authStore";
-import { useDebounced } from "../hooks/useDebounced";
+import { useDebouncedValue as useDebounced } from "../hooks/useDebouncedValue";
 import { useI18n } from "../context/i18n";
 import { formatDate, formatCurrency, getSectorNombre, formatAlmacen } from "../utils/formatters";
 import { getCriticidadConfig } from "../utils/styleConfig";
