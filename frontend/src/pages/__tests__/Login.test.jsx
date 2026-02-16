@@ -29,6 +29,14 @@ vi.mock('../../context/i18n', () => ({
   })
 }));
 
+vi.mock('../../hooks/useParallax', () => ({
+  useParallax: () => ({
+    ref: { current: null },
+    style: {},
+    isDisabled: true
+  })
+}));
+
 // Mock de navigate
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -68,15 +76,15 @@ describe('Login', () => {
       renderLogin();
 
       expect(screen.getByText('Iniciar sesión')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('usuario@empresa.com')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('correo@empresa.com o 12345')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('••••••')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /ingresar/i })).toBeInTheDocument();
     });
 
     it('muestra el logo y titulo SPM', () => {
       renderLogin();
 
-      expect(screen.getByAltText('SPM')).toBeInTheDocument();
+      expect(screen.getByText('SPM')).toBeInTheDocument();
       expect(screen.getByText('Sistema de Planificación de Materiales')).toBeInTheDocument();
     });
 
@@ -96,15 +104,16 @@ describe('Login', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Usuario y contraseña son requeridos')).toBeInTheDocument();
+        expect(screen.getByText('Ingresa un correo electrónico o número de ID válido.')).toBeInTheDocument();
+        expect(screen.getByText('La contraseña debe tener al menos 6 caracteres.')).toBeInTheDocument();
       });
     });
 
     it('permite escribir en los campos', () => {
       renderLogin();
 
-      const emailInput = screen.getByPlaceholderText('usuario@empresa.com');
-      const passwordInput = screen.getByPlaceholderText('••••••••');
+      const emailInput = screen.getByPlaceholderText('correo@empresa.com o 12345');
+      const passwordInput = screen.getByPlaceholderText('••••••');
 
       fireEvent.change(emailInput, { target: { value: 'test@test.com' } });
       fireEvent.change(passwordInput, { target: { value: 'password123' } });
@@ -118,20 +127,17 @@ describe('Login', () => {
     it('alterna visibilidad de contraseña', () => {
       renderLogin();
 
-      const passwordInput = screen.getByPlaceholderText('••••••••');
+      const passwordInput = screen.getByPlaceholderText('••••••');
       expect(passwordInput.type).toBe('password');
 
-      // Buscar el boton de toggle (el primero en el form principal)
-      const toggleButtons = screen.getAllByRole('button');
-      const toggleButton = toggleButtons.find(btn => btn.tabIndex === -1);
+      // Find toggle button by aria-label
+      const toggleButton = screen.getByLabelText('toggle password visibility');
 
-      if (toggleButton) {
-        fireEvent.click(toggleButton);
-        expect(passwordInput.type).toBe('text');
+      fireEvent.click(toggleButton);
+      expect(passwordInput.type).toBe('text');
 
-        fireEvent.click(toggleButton);
-        expect(passwordInput.type).toBe('password');
-      }
+      fireEvent.click(toggleButton);
+      expect(passwordInput.type).toBe('password');
     });
   });
 
@@ -149,8 +155,8 @@ describe('Login', () => {
 
       renderLogin();
 
-      const emailInput = screen.getByPlaceholderText('usuario@empresa.com');
-      const passwordInput = screen.getByPlaceholderText('••••••••');
+      const emailInput = screen.getByPlaceholderText('correo@empresa.com o 12345');
+      const passwordInput = screen.getByPlaceholderText('••••••');
       const submitButton = screen.getByRole('button', { name: /ingresar/i });
 
       fireEvent.change(emailInput, { target: { value: 'test@test.com' } });
@@ -251,7 +257,9 @@ describe('Login', () => {
       fireEvent.click(registerLink);
 
       await waitFor(() => {
-        expect(screen.getByText(/crear cuenta/i)).toBeInTheDocument();
+        // Dialog title "Crear cuenta" + the link text = multiple matches, use getAllByText
+        const crearCuentaElements = screen.getAllByText(/crear cuenta/i);
+        expect(crearCuentaElements.length).toBeGreaterThanOrEqual(2); // link + dialog title
         expect(screen.getByPlaceholderText('Juan Pérez')).toBeInTheDocument();
       });
     });

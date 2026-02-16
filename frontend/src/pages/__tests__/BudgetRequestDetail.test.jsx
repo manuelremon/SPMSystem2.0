@@ -1,22 +1,25 @@
 /**
  * Tests para BudgetRequestDetail
  * Testing de visualizacion, aprobacion y rechazo de solicitud individual
+ *
+ * Component uses Material-UI (not custom UI components)
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import BudgetRequestDetail from '../BudgetRequestDetail'
 import { budget } from '../../services/spm'
 import { useAuthStore } from '../../store/authStore'
 
 // Mock de react-router-dom useParams
+const mockNavigate = vi.fn()
 const mockId = '1'
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom')
   return {
     ...actual,
     useParams: () => ({ id: mockId }),
-    useNavigate: () => vi.fn(),
+    useNavigate: () => mockNavigate,
   }
 })
 
@@ -37,78 +40,18 @@ vi.mock('../../store/authStore', () => ({
   })),
 }))
 
-// Mock de i18n
+// Stable t function reference for i18n mock
+const mockT = (key, fallback) => fallback || key
+
 vi.mock('../../context/i18n', () => ({
   useI18n: () => ({
-    t: (key, fallback) => fallback || key,
+    t: mockT,
   }),
 }))
 
-// Mock de componentes UI
-vi.mock('../../components/ui/Button', () => ({
-  Button: ({ children, onClick, disabled, variant }) => (
-    <button onClick={onClick} disabled={disabled} data-variant={variant}>
-      {children}
-    </button>
-  ),
-}))
-
-vi.mock('../../components/ui/Card', () => ({
-  Card: ({ children }) => <div data-testid="card">{children}</div>,
-  CardHeader: ({ children }) => <div data-testid="card-header">{children}</div>,
-  CardTitle: ({ children }) => <h3 data-testid="card-title">{children}</h3>,
-  CardDescription: ({ children }) => <p data-testid="card-description">{children}</p>,
-  CardContent: ({ children }) => <div data-testid="card-content">{children}</div>,
-}))
-
-vi.mock('../../components/ui/PageHeader', () => ({
-  PageHeader: ({ title, actions }) => (
-    <div data-testid="page-header-wrapper">
-      <h1 data-testid="page-header">{title}</h1>
-      {actions && <div data-testid="page-header-actions">{actions}</div>}
-    </div>
-  ),
-}))
-
-vi.mock('../../components/ui/Alert', () => ({
-  Alert: ({ children, variant, onDismiss }) => (
-    <div data-testid="alert" data-variant={variant}>
-      {children}
-      {onDismiss && <button onClick={onDismiss}>Cerrar</button>}
-    </div>
-  ),
-}))
-
-vi.mock('../../components/ui/StatusBadge', () => ({
-  default: ({ estado }) => <span data-testid="status-badge">{estado}</span>,
-}))
-
-vi.mock('../../components/ui/Modal', () => ({
-  Modal: ({ isOpen, onClose, title, children, footer }) =>
-    isOpen ? (
-      <div data-testid="modal">
-        <div data-testid="modal-title">{title}</div>
-        <div data-testid="modal-content">{children}</div>
-        <div data-testid="modal-footer">{footer}</div>
-      </div>
-    ) : null,
-}))
-
+// Mock formatCurrency - the component imports and uses it
 vi.mock('../../utils/formatters', () => ({
   formatCurrency: (val) => `$${val}`,
-}))
-
-vi.mock('../../components/ui/Icons', () => ({
-  ArrowLeft: () => <span>←</span>,
-  CheckCircle: () => <span>✓</span>,
-  XCircle: () => <span>X</span>,
-  DollarSign: () => <span>$</span>,
-  Building: () => <span>🏢</span>,
-  MapPin: () => <span>📍</span>,
-  User: () => <span>👤</span>,
-  Calendar: () => <span>📅</span>,
-  FileText: () => <span>📄</span>,
-  Shield: () => <span>🛡</span>,
 }))
 
 // Datos de prueba
@@ -156,7 +99,8 @@ describe('BudgetRequestDetail', () => {
     it('should show loading state initially', () => {
       budget.obtener.mockImplementation(() => new Promise(() => {}))
       renderComponent()
-      expect(screen.getByText('Cargando...')).toBeInTheDocument()
+      // MUI CircularProgress renders with role="progressbar"
+      expect(screen.getByRole('progressbar')).toBeInTheDocument()
     })
   })
 
@@ -164,7 +108,8 @@ describe('BudgetRequestDetail', () => {
     it('should render page header with BUR ID', async () => {
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByTestId('page-header')).toHaveTextContent('#1')
+        // Component renders "SOLICITUD #1" in an h5 Typography
+        expect(screen.getByText('SOLICITUD #1')).toBeInTheDocument()
       })
     })
 
@@ -180,7 +125,8 @@ describe('BudgetRequestDetail', () => {
     it('should display status badge', async () => {
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByTestId('status-badge')).toHaveTextContent('Pendiente')
+        // MUI Chip renders the estado label text
+        expect(screen.getByText('Pendiente')).toBeInTheDocument()
       })
     })
 
@@ -220,8 +166,8 @@ describe('BudgetRequestDetail', () => {
     it('should show approve and reject buttons for pending state', async () => {
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByText('Aprobar')).toBeInTheDocument()
-        expect(screen.getByText('Rechazar')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /Aprobar/i })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /Rechazar/i })).toBeInTheDocument()
       })
     })
 
@@ -231,8 +177,8 @@ describe('BudgetRequestDetail', () => {
       })
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByText('Aprobar')).toBeInTheDocument()
-        expect(screen.getByText('Rechazar')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /Aprobar/i })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /Rechazar/i })).toBeInTheDocument()
       })
     })
 
@@ -242,8 +188,8 @@ describe('BudgetRequestDetail', () => {
       })
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByText('Aprobar')).toBeInTheDocument()
-        expect(screen.getByText('Rechazar')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /Aprobar/i })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /Rechazar/i })).toBeInTheDocument()
       })
     })
 
@@ -253,11 +199,12 @@ describe('BudgetRequestDetail', () => {
       })
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByTestId('status-badge')).toHaveTextContent('Aprobada')
+        // The "Aprobada" chip should appear
+        expect(screen.getByText('Aprobada')).toBeInTheDocument()
       })
-      // Only "Volver" button should be in actions
-      const actions = screen.getByTestId('page-header-actions')
-      expect(actions.querySelectorAll('button').length).toBe(1)
+      // No Aprobar/Rechazar buttons should be present
+      expect(screen.queryByRole('button', { name: /Aprobar/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /Rechazar/i })).not.toBeInTheDocument()
     })
 
     it('should NOT show approve/reject buttons for rejected state', async () => {
@@ -266,10 +213,14 @@ describe('BudgetRequestDetail', () => {
       })
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByTestId('status-badge')).toHaveTextContent('Rechazada')
+        // "Rechazada" appears in both the status Chip and the timeline
+        const matches = screen.getAllByText('Rechazada')
+        expect(matches.length).toBeGreaterThanOrEqual(1)
       })
-      const actions = screen.getByTestId('page-header-actions')
-      expect(actions.querySelectorAll('button').length).toBe(1)
+      // No Aprobar/Rechazar buttons should be present
+      expect(screen.queryByRole('button', { name: /^Aprobar$/i })).not.toBeInTheDocument()
+      // "Rechazar" button should not exist (only "Rechazada" text in chip)
+      expect(screen.queryByRole('button', { name: /^Rechazar$/i })).not.toBeInTheDocument()
     })
   })
 
@@ -277,14 +228,14 @@ describe('BudgetRequestDetail', () => {
     it('should open approve modal when Aprobar clicked', async () => {
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByText('Aprobar')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /Aprobar/i })).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByText('Aprobar'))
+      fireEvent.click(screen.getByRole('button', { name: /Aprobar/i }))
 
       await waitFor(() => {
-        expect(screen.getByTestId('modal')).toBeInTheDocument()
-        expect(screen.getByTestId('modal-title')).toHaveTextContent('Aprobar')
+        // MUI Modal opens with the title "Aprobar #1"
+        expect(screen.getByText('Aprobar #1')).toBeInTheDocument()
       })
     })
 
@@ -293,18 +244,18 @@ describe('BudgetRequestDetail', () => {
       renderComponent()
 
       await waitFor(() => {
-        expect(screen.getByText('Aprobar')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /Aprobar/i })).toBeInTheDocument()
       })
 
       // Open modal
-      fireEvent.click(screen.getByText('Aprobar'))
+      fireEvent.click(screen.getByRole('button', { name: /Aprobar/i }))
 
       await waitFor(() => {
-        expect(screen.getByTestId('modal')).toBeInTheDocument()
+        expect(screen.getByText('Aprobar #1')).toBeInTheDocument()
       })
 
-      // Confirm in modal (find the second Aprobar button)
-      const aprobarButtons = screen.getAllByText('Aprobar')
+      // Confirm in modal - find all Aprobar buttons and click the last one (inside modal)
+      const aprobarButtons = screen.getAllByRole('button', { name: /Aprobar/i })
       fireEvent.click(aprobarButtons[aprobarButtons.length - 1])
 
       await waitFor(() => {
@@ -317,14 +268,14 @@ describe('BudgetRequestDetail', () => {
     it('should open reject modal when Rechazar clicked', async () => {
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByText('Rechazar')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /Rechazar/i })).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByText('Rechazar'))
+      fireEvent.click(screen.getByRole('button', { name: /Rechazar/i }))
 
       await waitFor(() => {
-        expect(screen.getByTestId('modal')).toBeInTheDocument()
-        expect(screen.getByTestId('modal-title')).toHaveTextContent('Rechazar')
+        // MUI Modal opens with the title "Rechazar #1"
+        expect(screen.getByText('Rechazar #1')).toBeInTheDocument()
       })
     })
 
@@ -332,19 +283,20 @@ describe('BudgetRequestDetail', () => {
       renderComponent()
 
       await waitFor(() => {
-        expect(screen.getByText('Rechazar')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /Rechazar/i })).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByText('Rechazar'))
+      fireEvent.click(screen.getByRole('button', { name: /Rechazar/i }))
 
       await waitFor(() => {
-        expect(screen.getByTestId('modal')).toBeInTheDocument()
+        expect(screen.getByText('Rechazar #1')).toBeInTheDocument()
       })
 
-      // Try to confirm without motivo
-      const rechazarButtons = screen.getAllByText('Rechazar')
+      // Try to confirm without motivo - find the confirm Rechazar button in modal
+      const rechazarButtons = screen.getAllByRole('button', { name: /Rechazar/i })
       fireEvent.click(rechazarButtons[rechazarButtons.length - 1])
 
+      // The error message is rendered in an MUI Alert (role="alert") outside the modal
       await waitFor(() => {
         expect(screen.getByText('Debe proporcionar un motivo')).toBeInTheDocument()
       })
@@ -355,21 +307,21 @@ describe('BudgetRequestDetail', () => {
       renderComponent()
 
       await waitFor(() => {
-        expect(screen.getByText('Rechazar')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /Rechazar/i })).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByText('Rechazar'))
+      fireEvent.click(screen.getByRole('button', { name: /Rechazar/i }))
 
       await waitFor(() => {
-        expect(screen.getByTestId('modal')).toBeInTheDocument()
+        expect(screen.getByText('Rechazar #1')).toBeInTheDocument()
       })
 
-      // Enter motivo
+      // Enter motivo - MUI TextField renders a textarea with the placeholder
       const textarea = screen.getByPlaceholderText('Indica el motivo del rechazo...')
       fireEvent.change(textarea, { target: { value: 'Presupuesto insuficiente' } })
 
       // Confirm
-      const rechazarButtons = screen.getAllByText('Rechazar')
+      const rechazarButtons = screen.getAllByRole('button', { name: /Rechazar/i })
       fireEvent.click(rechazarButtons[rechazarButtons.length - 1])
 
       await waitFor(() => {
@@ -384,6 +336,7 @@ describe('BudgetRequestDetail', () => {
       renderComponent()
 
       await waitFor(() => {
+        // MUI Alert with role="alert" contains the not found message
         expect(screen.getByText('Solicitud no encontrada')).toBeInTheDocument()
       })
     })
@@ -396,9 +349,9 @@ describe('BudgetRequestDetail', () => {
       })
       renderComponent()
 
-      // When API fails, component shows "not found" with error alert
+      // When API fails, bur is null so the not-found view shows with role="alert"
       await waitFor(() => {
-        expect(screen.getByTestId('alert')).toBeInTheDocument()
+        expect(screen.getByRole('alert')).toBeInTheDocument()
       })
     })
   })

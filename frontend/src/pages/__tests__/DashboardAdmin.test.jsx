@@ -350,17 +350,18 @@ describe('DashboardAdmin', () => {
       })
     })
 
-    it('calls solicitudes.listar on mount for each status', async () => {
+    it('calls solicitudes.listar on mount for todas only (lazy loading)', async () => {
       renderDashboard()
       await waitFor(() => {
         expect(mockListar).toHaveBeenCalled()
       })
-      // The component calls listar 5 times: once without estado (todas) + 4 statuses
-      const estados = mockListar.mock.calls.map((c) => c[0]?.estado).filter(Boolean)
-      expect(estados).toContain('submitted')
-      expect(estados).toContain('processing')
-      expect(estados).toContain('approved')
-      expect(estados).toContain('rejected')
+      // The component now uses lazy loading: only fetches "todas" on mount (no estado param).
+      // Individual status tabs are fetched on-demand when the user clicks them.
+      expect(mockListar).toHaveBeenCalledTimes(1)
+      // The single call should NOT have an estado parameter (fetches all)
+      const firstCallArg = mockListar.mock.calls[0][0]
+      expect(firstCallArg).not.toHaveProperty('estado')
+      expect(firstCallArg).toHaveProperty('page_size', 2000)
     })
 
     it('calls cachedGet for KPIs on mount', async () => {
@@ -554,13 +555,16 @@ describe('DashboardAdmin', () => {
 
     it('displays tab labels with correct counts', async () => {
       renderDashboard()
+      // "Todas" count comes from statsFiltrados (after filters init)
+      // Other tab counts start at 0 (lazy-loaded on tab click)
       await waitFor(() => {
         expect(screen.getByTestId('tab-todas')).toHaveTextContent('Todas (5)')
-        expect(screen.getByTestId('tab-pendientes')).toHaveTextContent('Pendientes (2)')
-        expect(screen.getByTestId('tab-en_proceso')).toHaveTextContent('En Proceso (1)')
-        expect(screen.getByTestId('tab-completadas')).toHaveTextContent('Completadas (1)')
-        expect(screen.getByTestId('tab-rechazadas')).toHaveTextContent('Rechazadas (1)')
-      })
+      }, { timeout: 3000 })
+      // Secondary tabs show 0 until navigated (lazy loading)
+      expect(screen.getByTestId('tab-pendientes')).toHaveTextContent('Pendientes')
+      expect(screen.getByTestId('tab-en_proceso')).toHaveTextContent('En Proceso')
+      expect(screen.getByTestId('tab-completadas')).toHaveTextContent('Completadas')
+      expect(screen.getByTestId('tab-rechazadas')).toHaveTextContent('Rechazadas')
     })
 
     it('renders the solicitudes grid after data loads', async () => {

@@ -1,26 +1,14 @@
 /**
  * Tests para Paso2DecisionAbastecimiento
- * Generado por Sugar Autonomous System
+ * Rewritten to match the MUI-based multi-source component
  */
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import Paso2DecisionAbastecimiento from '../Paso2DecisionAbastecimiento'
 
-// Mock de componentes UI
-vi.mock('../../ui/Card', () => ({
-  Card: ({ children, className }) => <div data-testid="card" className={className}>{children}</div>,
-  CardHeader: ({ children, className }) => <div data-testid="card-header" className={className}>{children}</div>,
-  CardTitle: ({ children }) => <h2 data-testid="card-title">{children}</h2>,
-  CardDescription: ({ children, className }) => <p data-testid="card-description" className={className}>{children}</p>,
-  CardContent: ({ children, className }) => <div data-testid="card-content" className={className}>{children}</div>,
-}))
-
-vi.mock('../../ui/Button', () => ({
-  Button: ({ children, onClick, variant, type, disabled, title }) => (
-    <button onClick={onClick} data-variant={variant} type={type} disabled={disabled} title={title}>
-      {children}
-    </button>
-  ),
+// Mock formatAlmacen utility
+vi.mock('../../../utils/formatters', () => ({
+  formatAlmacen: vi.fn((val) => val || ''),
 }))
 
 describe('Paso2DecisionAbastecimiento', () => {
@@ -40,83 +28,131 @@ describe('Paso2DecisionAbastecimiento', () => {
     onNext: vi.fn(),
   }
 
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   describe('Renderizado basico', () => {
     it('debe renderizar el componente', () => {
-      render(<Paso2DecisionAbastecimiento {...defaultProps} />)
-      expect(screen.getAllByTestId('card').length).toBeGreaterThan(0)
+      const { container } = render(<Paso2DecisionAbastecimiento {...defaultProps} />)
+      // The component renders a MUI Box as root
+      expect(container.querySelector('.MuiBox-root')).toBeInTheDocument()
     })
 
-    it('debe mostrar el titulo "Decision de abastecimiento"', () => {
-      render(<Paso2DecisionAbastecimiento {...defaultProps} />)
-      expect(screen.getByText('Decision de abastecimiento')).toBeInTheDocument()
-    })
-
-    it('debe mostrar la descripcion', () => {
-      render(<Paso2DecisionAbastecimiento {...defaultProps} />)
-      expect(screen.getByText('Selecciona la mejor opcion para cada material')).toBeInTheDocument()
-    })
-  })
-
-  describe('Barra de progreso', () => {
-    it('debe mostrar progreso correcto', () => {
-      const props = {
-        ...defaultProps,
-        currentIdx: 0,
-        totalItems: 5,
-      }
-      render(<Paso2DecisionAbastecimiento {...props} />)
-      expect(screen.getByText('Item 1 de 5')).toBeInTheDocument()
-      expect(screen.getByText('20%')).toBeInTheDocument()
-    })
-
-    it('debe actualizar progreso al cambiar idx', () => {
-      const props = {
-        ...defaultProps,
-        currentIdx: 2,
-        totalItems: 5,
-      }
-      render(<Paso2DecisionAbastecimiento {...props} />)
-      expect(screen.getByText('Item 3 de 5')).toBeInTheDocument()
-      expect(screen.getByText('60%')).toBeInTheDocument()
-    })
-  })
-
-  describe('Item actual', () => {
-    it('debe mostrar informacion del item actual', () => {
-      const props = {
-        ...defaultProps,
-        items: [
-          { idx: 0, codigo: 'MAT001', descripcion: 'Tornillo M8', cantidad: 100, precio_unitario: 5.50 },
-        ],
-        totalItems: 1,
-        currentIdx: 0,
-      }
-      render(<Paso2DecisionAbastecimiento {...props} />)
-      expect(screen.getByText(/MAT001/)).toBeInTheDocument()
-    })
-
-    it('debe mostrar cantidad solicitada', () => {
-      const props = {
-        ...defaultProps,
-        items: [
-          { idx: 0, codigo: 'MAT001', descripcion: 'Tornillo M8', cantidad: 100 },
-        ],
-        totalItems: 1,
-        currentIdx: 0,
-      }
-      render(<Paso2DecisionAbastecimiento {...props} />)
-      expect(screen.getByText(/Cantidad solicitada: 100/)).toBeInTheDocument()
-    })
-
-    it('debe mostrar "N/D" cuando no hay cantidad', () => {
+    it('debe mostrar mensaje cuando no hay opciones de abastecimiento', () => {
       const props = {
         ...defaultProps,
         items: [{ idx: 0, codigo: 'MAT001' }],
         totalItems: 1,
         currentIdx: 0,
+        opciones: { 0: { opciones: [] } },
       }
       render(<Paso2DecisionAbastecimiento {...props} />)
-      expect(screen.getByText(/Cantidad solicitada: N\/D/)).toBeInTheDocument()
+      expect(screen.getByText('Sin opciones de abastecimiento')).toBeInTheDocument()
+    })
+
+    it('debe mostrar descripcion de sin alternativas', () => {
+      const props = {
+        ...defaultProps,
+        items: [{ idx: 0, codigo: 'MAT001' }],
+        totalItems: 1,
+        currentIdx: 0,
+        opciones: { 0: { opciones: [] } },
+      }
+      render(<Paso2DecisionAbastecimiento {...props} />)
+      expect(screen.getByText(/No se encontro stock ni alternativas/)).toBeInTheDocument()
+    })
+  })
+
+  describe('Barra de progreso (navegacion items)', () => {
+    it('debe mostrar navegacion de items cuando hay mas de 1', () => {
+      const props = {
+        ...defaultProps,
+        items: [{ idx: 0, codigo: 'MAT001' }, { idx: 1, codigo: 'MAT002' }],
+        currentIdx: 0,
+        totalItems: 2,
+        opciones: {
+          0: { opciones: [{ opcion_id: 1, tipo: 'stock', nombre: 'Stock A' }] },
+        },
+      }
+      render(<Paso2DecisionAbastecimiento {...props} />)
+      // The component shows "Item 1/2" format in the controls bar
+      expect(screen.getByText('Item 1/2')).toBeInTheDocument()
+    })
+
+    it('debe actualizar texto de navegacion al cambiar idx', () => {
+      const props = {
+        ...defaultProps,
+        items: [
+          { idx: 0, codigo: 'MAT001' },
+          { idx: 1, codigo: 'MAT002' },
+          { idx: 2, codigo: 'MAT003' },
+        ],
+        currentIdx: 2,
+        totalItems: 3,
+        opciones: {
+          2: { opciones: [{ opcion_id: 1, tipo: 'stock', nombre: 'Stock A' }] },
+        },
+      }
+      render(<Paso2DecisionAbastecimiento {...props} />)
+      expect(screen.getByText('Item 3/3')).toBeInTheDocument()
+    })
+  })
+
+  describe('Item actual', () => {
+    it('debe mostrar nombre de opcion de stock disponible', () => {
+      const props = {
+        ...defaultProps,
+        items: [{ idx: 0, codigo: 'MAT001', descripcion: 'Tornillo M8', cantidad: 100 }],
+        totalItems: 1,
+        currentIdx: 0,
+        opciones: {
+          0: {
+            opciones: [
+              { opcion_id: 1, tipo: 'stock', nombre: 'Stock Almacen Central', precio_unitario: 5.50 },
+            ],
+          },
+        },
+      }
+      render(<Paso2DecisionAbastecimiento {...props} />)
+      expect(screen.getByText('Stock Almacen Central')).toBeInTheDocument()
+    })
+
+    it('debe mostrar N/D cuando no hay cantidad disponible', () => {
+      const props = {
+        ...defaultProps,
+        items: [{ idx: 0, codigo: 'MAT001' }],
+        totalItems: 1,
+        currentIdx: 0,
+        opciones: {
+          0: {
+            opciones: [
+              { opcion_id: 1, tipo: 'stock', nombre: 'Stock A', precio_unitario: 10 },
+            ],
+          },
+        },
+      }
+      render(<Paso2DecisionAbastecimiento {...props} />)
+      // The card shows "N/D disponibles" when cantidad_disponible is not set
+      expect(screen.getAllByText('N/D').length).toBeGreaterThan(0)
+    })
+
+    it('debe mostrar precio formateado en USD', () => {
+      const props = {
+        ...defaultProps,
+        items: [{ idx: 0, codigo: 'MAT001', cantidad: 10 }],
+        totalItems: 1,
+        currentIdx: 0,
+        opciones: {
+          0: {
+            opciones: [
+              { opcion_id: 1, tipo: 'stock', nombre: 'Stock A', precio_unitario: 10 },
+            ],
+          },
+        },
+      }
+      render(<Paso2DecisionAbastecimiento {...props} />)
+      expect(screen.getByText(/USD 10,00/)).toBeInTheDocument()
     })
   })
 
@@ -130,7 +166,7 @@ describe('Paso2DecisionAbastecimiento', () => {
       expect(screen.getByText('Cargando opciones...')).toBeInTheDocument()
     })
 
-    it('debe mostrar "Sin opciones disponibles" cuando no hay opciones', () => {
+    it('debe mostrar "Sin opciones de abastecimiento" cuando no hay opciones', () => {
       const props = {
         ...defaultProps,
         items: [{ idx: 0, codigo: 'MAT001' }],
@@ -139,10 +175,10 @@ describe('Paso2DecisionAbastecimiento', () => {
         opciones: { 0: { opciones: [] } },
       }
       render(<Paso2DecisionAbastecimiento {...props} />)
-      expect(screen.getByText('Sin opciones disponibles para este item.')).toBeInTheDocument()
+      expect(screen.getByText('Sin opciones de abastecimiento')).toBeInTheDocument()
     })
 
-    it('debe mostrar opciones cuando existen', () => {
+    it('debe mostrar opciones de stock cuando existen', () => {
       const props = {
         ...defaultProps,
         items: [{ idx: 0, codigo: 'MAT001' }],
@@ -159,10 +195,28 @@ describe('Paso2DecisionAbastecimiento', () => {
       render(<Paso2DecisionAbastecimiento {...props} />)
       expect(screen.getByText('Stock Almacen Central')).toBeInTheDocument()
     })
+
+    it('debe mostrar la cabecera "Stock Disponible" para opciones de stock fallback', () => {
+      const props = {
+        ...defaultProps,
+        items: [{ idx: 0, codigo: 'MAT001' }],
+        totalItems: 1,
+        currentIdx: 0,
+        opciones: {
+          0: {
+            opciones: [
+              { opcion_id: 1, tipo: 'stock', nombre: 'Stock A', precio_unitario: 10 },
+            ],
+          },
+        },
+      }
+      render(<Paso2DecisionAbastecimiento {...props} />)
+      expect(screen.getByText('Stock Disponible')).toBeInTheDocument()
+    })
   })
 
   describe('Filtros de tipo', () => {
-    it('debe mostrar filtro "Todas" por defecto', () => {
+    it('debe mostrar filtro "Todas" con conteo cuando hay opciones', () => {
       const props = {
         ...defaultProps,
         items: [{ idx: 0, codigo: 'MAT001' }],
@@ -178,10 +232,11 @@ describe('Paso2DecisionAbastecimiento', () => {
         },
       }
       render(<Paso2DecisionAbastecimiento {...props} />)
+      // FilterButton renders label + count as "Todas (2)"
       expect(screen.getByText(/Todas/)).toBeInTheDocument()
     })
 
-    it('debe filtrar opciones por tipo al hacer clic', () => {
+    it('debe mostrar filtro de Stock cuando hay opciones de stock', () => {
       const props = {
         ...defaultProps,
         items: [{ idx: 0, codigo: 'MAT001' }],
@@ -197,180 +252,241 @@ describe('Paso2DecisionAbastecimiento', () => {
         },
       }
       render(<Paso2DecisionAbastecimiento {...props} />)
+      // Stock filter button shows "Stock (1)"
+      expect(screen.getByText(/Stock \(1\)/)).toBeInTheDocument()
+    })
 
-      const stockFilter = screen.getByText(/Stock Interno/)
-      fireEvent.click(stockFilter)
+    it('debe mostrar filtro Proveedor cuando hay opciones de proveedor', () => {
+      const props = {
+        ...defaultProps,
+        items: [{ idx: 0, codigo: 'MAT001' }],
+        totalItems: 1,
+        currentIdx: 0,
+        opciones: {
+          0: {
+            opciones: [
+              { opcion_id: 1, tipo: 'stock', nombre: 'Stock A' },
+              { opcion_id: 2, tipo: 'proveedor', nombre: 'Proveedor B' },
+            ],
+          },
+        },
+      }
+      render(<Paso2DecisionAbastecimiento {...props} />)
+      expect(screen.getByText(/Proveedor \(1\)/)).toBeInTheDocument()
+    })
 
-      expect(screen.getByText('Stock A')).toBeInTheDocument()
+    it('debe mostrar boton "Aceptar Sugerido"', () => {
+      const props = {
+        ...defaultProps,
+        items: [{ idx: 0, codigo: 'MAT001' }],
+        totalItems: 1,
+        currentIdx: 0,
+        opciones: {
+          0: {
+            opciones: [
+              { opcion_id: 1, tipo: 'stock', nombre: 'Stock A' },
+            ],
+          },
+        },
+      }
+      render(<Paso2DecisionAbastecimiento {...props} />)
+      expect(screen.getByText('Aceptar Sugerido')).toBeInTheDocument()
     })
   })
 
-  describe('Resumen de decisiones', () => {
-    it('debe mostrar "Resumen de decisiones"', () => {
-      render(<Paso2DecisionAbastecimiento {...defaultProps} />)
-      expect(screen.getByText('Resumen de decisiones')).toBeInTheDocument()
-    })
-
-    it('debe mostrar mensaje cuando no hay decisiones', () => {
-      render(<Paso2DecisionAbastecimiento {...defaultProps} />)
-      expect(screen.getByText('Aun no seleccionaste opciones.')).toBeInTheDocument()
-    })
-
-    it('debe mostrar decisiones seleccionadas', () => {
+  describe('Panel de fuentes seleccionadas', () => {
+    it('debe mostrar panel de fuentes cuando hay seleccion', () => {
       const props = {
         ...defaultProps,
-        items: [{ idx: 0, codigo: 'MAT001', descripcion: 'Tornillo' }],
+        items: [{ idx: 0, codigo: 'MAT001', descripcion: 'Tornillo', cantidad: 100 }],
         totalItems: 1,
         currentIdx: 0,
+        opciones: {
+          0: {
+            opciones: [
+              { opcion_id: 1, tipo: 'stock', nombre: 'Stock Central', precio_unitario: 5.50, cantidad_disponible: 50 },
+            ],
+          },
+        },
         decisiones: {
-          0: { opcion_id: 1, nombre: 'Stock Central', precio_unitario: 5.50 },
+          0: {
+            fuentes: [
+              { opcion: { opcion_id: 1, tipo: 'stock', nombre: 'Stock Central', precio_unitario: 5.50 }, cantidad_asignada: 50 },
+            ],
+            comentario: '',
+          },
         },
       }
       render(<Paso2DecisionAbastecimiento {...props} />)
-      expect(screen.getByText('MAT001')).toBeInTheDocument()
+      expect(screen.getByText(/Fuentes Seleccionadas/)).toBeInTheDocument()
     })
 
-    it('debe mostrar porcentaje de progreso total', () => {
+    it('debe mostrar resumen de cantidades asignadas', () => {
       const props = {
         ...defaultProps,
-        items: [
-          { idx: 0, codigo: 'MAT001' },
-          { idx: 1, codigo: 'MAT002' },
-        ],
-        totalItems: 2,
+        items: [{ idx: 0, codigo: 'MAT001', descripcion: 'Tornillo', cantidad: 100 }],
+        totalItems: 1,
+        currentIdx: 0,
+        opciones: {
+          0: {
+            opciones: [
+              { opcion_id: 1, tipo: 'stock', nombre: 'Stock Central', precio_unitario: 5.50, cantidad_disponible: 50 },
+            ],
+          },
+        },
         decisiones: {
-          0: { opcion_id: 1, nombre: 'Stock Central' },
+          0: {
+            fuentes: [
+              { opcion: { opcion_id: 1, tipo: 'stock', nombre: 'Stock Central', precio_unitario: 5.50 }, cantidad_asignada: 50 },
+            ],
+            comentario: '',
+          },
         },
       }
       render(<Paso2DecisionAbastecimiento {...props} />)
-      expect(screen.getByText('Progreso total')).toBeInTheDocument()
-      expect(screen.getByText('50%')).toBeInTheDocument()
+      // Shows "X de Y asignados"
+      expect(screen.getByText(/asignados/)).toBeInTheDocument()
     })
 
-    it('debe mostrar alerta cuando faltan items', () => {
+    it('debe mostrar chip "Completo" cuando cantidad asignada cubre la solicitada', () => {
       const props = {
         ...defaultProps,
-        totalItems: 3,
-        decisiones: { 0: { opcion_id: 1 } },
-      }
-      render(<Paso2DecisionAbastecimiento {...props} />)
-      expect(screen.getByText(/Faltan 2 items por decidir/)).toBeInTheDocument()
-    })
-
-    it('debe mostrar mensaje de exito cuando todos decididos', () => {
-      const props = {
-        ...defaultProps,
-        totalItems: 2,
-        items: [
-          { idx: 0, codigo: 'MAT001' },
-          { idx: 1, codigo: 'MAT002' },
-        ],
+        items: [{ idx: 0, codigo: 'MAT001', cantidad: 50 }],
+        totalItems: 1,
+        currentIdx: 0,
+        opciones: {
+          0: {
+            opciones: [
+              { opcion_id: 1, tipo: 'stock', nombre: 'Stock Central', precio_unitario: 5.50, cantidad_disponible: 50 },
+            ],
+          },
+        },
         decisiones: {
-          0: { opcion_id: 1 },
-          1: { opcion_id: 2 },
+          0: {
+            fuentes: [
+              { opcion: { opcion_id: 1, tipo: 'stock', nombre: 'Stock Central', precio_unitario: 5.50, cantidad_disponible: 50 }, cantidad_asignada: 50 },
+            ],
+            comentario: '',
+          },
         },
       }
       render(<Paso2DecisionAbastecimiento {...props} />)
-      expect(screen.getByText(/Todos los items decididos/)).toBeInTheDocument()
+      expect(screen.getByText('Completo')).toBeInTheDocument()
+    })
+
+    it('debe mostrar chip de faltantes cuando la cantidad no alcanza', () => {
+      const props = {
+        ...defaultProps,
+        items: [{ idx: 0, codigo: 'MAT001', cantidad: 100 }],
+        totalItems: 1,
+        currentIdx: 0,
+        opciones: {
+          0: {
+            opciones: [
+              { opcion_id: 1, tipo: 'stock', nombre: 'Stock Central', precio_unitario: 5.50, cantidad_disponible: 30 },
+            ],
+          },
+        },
+        decisiones: {
+          0: {
+            fuentes: [
+              { opcion: { opcion_id: 1, tipo: 'stock', nombre: 'Stock Central', precio_unitario: 5.50, cantidad_disponible: 30 }, cantidad_asignada: 30 },
+            ],
+            comentario: '',
+          },
+        },
+      }
+      render(<Paso2DecisionAbastecimiento {...props} />)
+      expect(screen.getByText(/Faltan 70 un\./)).toBeInTheDocument()
     })
   })
 
   describe('Navegacion', () => {
-    it('debe llamar onPrev al hacer clic en "Volver"', () => {
-      const onPrev = vi.fn()
-      render(<Paso2DecisionAbastecimiento {...defaultProps} onPrev={onPrev} />)
-
-      fireEvent.click(screen.getByText('Volver'))
-      expect(onPrev).toHaveBeenCalledTimes(1)
-    })
-
-    it('debe deshabilitar "Item anterior" cuando idx es 0', () => {
+    it('debe deshabilitar boton anterior cuando idx es 0', () => {
       const props = {
         ...defaultProps,
+        items: [{ idx: 0, codigo: 'MAT001' }, { idx: 1, codigo: 'MAT002' }],
         currentIdx: 0,
-        totalItems: 3,
+        totalItems: 2,
+        opciones: {
+          0: { opciones: [{ opcion_id: 1, tipo: 'stock', nombre: 'Stock A' }] },
+        },
       }
       render(<Paso2DecisionAbastecimiento {...props} />)
-
-      const prevButton = screen.getByText('Item anterior')
+      // Navigation uses IconButtons with ChevronLeft/ChevronRight icons
+      const prevButton = screen.getByTestId('ChevronLeftIcon').closest('button')
       expect(prevButton).toBeDisabled()
     })
 
-    it('debe deshabilitar "Siguiente item" cuando es el ultimo', () => {
+    it('debe deshabilitar boton siguiente cuando es el ultimo', () => {
       const props = {
         ...defaultProps,
-        currentIdx: 2,
-        totalItems: 3,
+        items: [{ idx: 0, codigo: 'MAT001' }, { idx: 1, codigo: 'MAT002' }],
+        currentIdx: 1,
+        totalItems: 2,
+        opciones: {
+          1: { opciones: [{ opcion_id: 1, tipo: 'stock', nombre: 'Stock A' }] },
+        },
       }
       render(<Paso2DecisionAbastecimiento {...props} />)
-
-      const nextButton = screen.getByText('Siguiente item')
+      const nextButton = screen.getByTestId('ChevronRightIcon').closest('button')
       expect(nextButton).toBeDisabled()
     })
 
-    it('debe llamar onChangeIdx al navegar items', () => {
+    it('debe llamar onChangeIdx al navegar items con boton anterior', () => {
       const onChangeIdx = vi.fn()
       const props = {
         ...defaultProps,
         onChangeIdx,
+        items: [
+          { idx: 0, codigo: 'MAT001' },
+          { idx: 1, codigo: 'MAT002' },
+          { idx: 2, codigo: 'MAT003' },
+        ],
         currentIdx: 1,
         totalItems: 3,
-      }
-      render(<Paso2DecisionAbastecimiento {...props} />)
-
-      fireEvent.click(screen.getByText('Item anterior'))
-      expect(onChangeIdx).toHaveBeenCalledWith(0)
-    })
-
-    it('debe deshabilitar "Continuar" cuando faltan decisiones', () => {
-      const props = {
-        ...defaultProps,
-        totalItems: 3,
-        decisiones: {},
-      }
-      render(<Paso2DecisionAbastecimiento {...props} />)
-
-      const continueButton = screen.getByText(/Faltan 3 items/)
-      expect(continueButton).toBeDisabled()
-    })
-
-    it('debe habilitar "Continuar" cuando todos decididos', () => {
-      const props = {
-        ...defaultProps,
-        totalItems: 2,
-        decisiones: {
-          0: { opcion_id: 1 },
-          1: { opcion_id: 2 },
+        opciones: {
+          1: { opciones: [{ opcion_id: 1, tipo: 'stock', nombre: 'Stock A' }] },
         },
       }
       render(<Paso2DecisionAbastecimiento {...props} />)
 
-      const continueButton = screen.getByText('Continuar')
-      expect(continueButton).not.toBeDisabled()
+      const prevButton = screen.getByTestId('ChevronLeftIcon').closest('button')
+      fireEvent.click(prevButton)
+      expect(onChangeIdx).toHaveBeenCalledWith(0)
     })
 
-    it('debe llamar onNext al hacer clic en Continuar', () => {
-      const onNext = vi.fn()
+    it('debe llamar onChangeIdx al navegar items con boton siguiente', () => {
+      const onChangeIdx = vi.fn()
       const props = {
         ...defaultProps,
-        onNext,
-        totalItems: 1,
-        decisiones: { 0: { opcion_id: 1 } },
+        onChangeIdx,
+        items: [
+          { idx: 0, codigo: 'MAT001' },
+          { idx: 1, codigo: 'MAT002' },
+          { idx: 2, codigo: 'MAT003' },
+        ],
+        currentIdx: 0,
+        totalItems: 3,
+        opciones: {
+          0: { opciones: [{ opcion_id: 1, tipo: 'stock', nombre: 'Stock A' }] },
+        },
       }
       render(<Paso2DecisionAbastecimiento {...props} />)
 
-      fireEvent.click(screen.getByText('Continuar'))
-      expect(onNext).toHaveBeenCalledTimes(1)
+      const nextButton = screen.getByTestId('ChevronRightIcon').closest('button')
+      fireEvent.click(nextButton)
+      expect(onChangeIdx).toHaveBeenCalledWith(1)
     })
   })
 
   describe('Seleccion de opciones', () => {
-    it('debe llamar onSelectDecision al seleccionar opcion', () => {
+    it('debe llamar onSelectDecision al hacer clic en una opcion', () => {
       const onSelectDecision = vi.fn()
       const props = {
         ...defaultProps,
         onSelectDecision,
-        items: [{ idx: 0, codigo: 'MAT001' }],
+        items: [{ idx: 0, codigo: 'MAT001', cantidad: 100 }],
         totalItems: 1,
         currentIdx: 0,
         opciones: {
@@ -383,15 +499,47 @@ describe('Paso2DecisionAbastecimiento', () => {
       }
       render(<Paso2DecisionAbastecimiento {...props} />)
 
+      // The option card is a Paper component rendered as a button
       const opcionCard = screen.getByText('Stock Central').closest('button')
       fireEvent.click(opcionCard)
 
-      expect(onSelectDecision).toHaveBeenCalledWith(0, expect.objectContaining({ opcion_id: 1 }))
+      // The new multi-source model calls onSelectDecision with a fuentes-based decision
+      expect(onSelectDecision).toHaveBeenCalledWith(0, expect.objectContaining({
+        fuentes: expect.any(Array),
+        cantidad_solicitada: 100,
+      }))
+    })
+
+    it('debe incluir la opcion seleccionada en las fuentes', () => {
+      const onSelectDecision = vi.fn()
+      const props = {
+        ...defaultProps,
+        onSelectDecision,
+        items: [{ idx: 0, codigo: 'MAT001', cantidad: 50 }],
+        totalItems: 1,
+        currentIdx: 0,
+        opciones: {
+          0: {
+            opciones: [
+              { opcion_id: 1, tipo: 'stock', nombre: 'Stock Central', precio_unitario: 5.50, cantidad_disponible: 30 },
+            ],
+          },
+        },
+      }
+      render(<Paso2DecisionAbastecimiento {...props} />)
+
+      const opcionCard = screen.getByText('Stock Central').closest('button')
+      fireEvent.click(opcionCard)
+
+      const call = onSelectDecision.mock.calls[0]
+      expect(call[0]).toBe(0) // idx
+      expect(call[1].fuentes).toHaveLength(1)
+      expect(call[1].fuentes[0].opcion.opcion_id).toBe(1)
     })
   })
 
   describe('Vista Grid/Tabla', () => {
-    it('debe mostrar botones de vista cuando hay opciones', () => {
+    it('debe mostrar botones de vista (tooltips) cuando hay opciones', () => {
       const props = {
         ...defaultProps,
         items: [{ idx: 0, codigo: 'MAT001' }],
@@ -405,11 +553,12 @@ describe('Paso2DecisionAbastecimiento', () => {
       }
       render(<Paso2DecisionAbastecimiento {...props} />)
 
-      expect(screen.getByText('Vista Grid')).toBeInTheDocument()
-      expect(screen.getByText('Vista Tabla')).toBeInTheDocument()
+      // View toggles use MUI IconButtons with LayoutGrid and List icons
+      expect(screen.getByTestId('GridViewIcon')).toBeInTheDocument()
+      expect(screen.getByTestId('ListIcon')).toBeInTheDocument()
     })
 
-    it('debe cambiar a vista tabla al hacer clic', () => {
+    it('debe cambiar a vista tabla al hacer clic en el icono tabla', () => {
       const props = {
         ...defaultProps,
         items: [{ idx: 0, codigo: 'MAT001' }],
@@ -423,10 +572,13 @@ describe('Paso2DecisionAbastecimiento', () => {
       }
       render(<Paso2DecisionAbastecimiento {...props} />)
 
-      fireEvent.click(screen.getByText('Vista Tabla'))
+      // Click the List icon button to switch to table view
+      const listIconButton = screen.getByTestId('ListIcon').closest('button')
+      fireEvent.click(listIconButton)
 
-      // En vista tabla debe haber encabezados de columna
-      expect(screen.getByText('Seleccionar')).toBeInTheDocument()
+      // In table view, column headers should appear
+      expect(screen.getByText('Opcion')).toBeInTheDocument()
+      expect(screen.getByText('Precio')).toBeInTheDocument()
     })
   })
 
@@ -444,17 +596,79 @@ describe('Paso2DecisionAbastecimiento', () => {
     })
   })
 
-  describe('Informacion MRP', () => {
-    it('debe mostrar badge MRP', () => {
+  describe('Proveedores externos', () => {
+    it('debe mostrar seccion PROVEEDORES EXTERNOS cuando hay opciones de proveedor', () => {
       const props = {
         ...defaultProps,
-        items: [{ idx: 0, codigo: 'MAT001', mrp_planificado: true }],
+        items: [{ idx: 0, codigo: 'MAT001', cantidad: 100 }],
         totalItems: 1,
         currentIdx: 0,
+        opciones: {
+          0: {
+            opciones: [
+              { opcion_id: 2, tipo: 'proveedor', nombre: 'Proveedor ABC', precio_unitario: 15 },
+            ],
+          },
+        },
+      }
+      render(<Paso2DecisionAbastecimiento {...props} />)
+      expect(screen.getByText('PROVEEDORES EXTERNOS')).toBeInTheDocument()
+      expect(screen.getByText('Proveedor ABC')).toBeInTheDocument()
+    })
+  })
+
+  describe('Aceptar Sugerido', () => {
+    it('debe llamar onSelectDecision al hacer clic en Aceptar Sugerido', () => {
+      const onSelectDecision = vi.fn()
+      const props = {
+        ...defaultProps,
+        onSelectDecision,
+        items: [{ idx: 0, codigo: 'MAT001', cantidad: 50 }],
+        totalItems: 1,
+        currentIdx: 0,
+        opciones: {
+          0: {
+            opciones: [
+              { opcion_id: 1, tipo: 'stock', nombre: 'Stock A', precio_unitario: 5, cantidad_disponible: 50 },
+            ],
+          },
+        },
       }
       render(<Paso2DecisionAbastecimiento {...props} />)
 
-      expect(screen.getByText(/MRP/)).toBeInTheDocument()
+      fireEvent.click(screen.getByText('Aceptar Sugerido'))
+      expect(onSelectDecision).toHaveBeenCalledWith(0, expect.objectContaining({
+        fuentes: expect.any(Array),
+      }))
+    })
+  })
+
+  describe('Modal de excedente', () => {
+    it('debe mostrar dialogo de excedente al intentar avanzar con exceso', () => {
+      const props = {
+        ...defaultProps,
+        items: [{ idx: 0, codigo: 'MAT001', cantidad: 10 }],
+        totalItems: 1,
+        currentIdx: 0,
+        opciones: {
+          0: {
+            opciones: [
+              { opcion_id: 1, tipo: 'stock', nombre: 'Stock A', precio_unitario: 5, cantidad_disponible: 20 },
+            ],
+          },
+        },
+        decisiones: {
+          0: {
+            fuentes: [
+              { opcion: { opcion_id: 1, tipo: 'stock', nombre: 'Stock A' }, cantidad_asignada: 20 },
+            ],
+            comentario: '',
+          },
+        },
+      }
+      render(<Paso2DecisionAbastecimiento {...props} />)
+      // The chip should show "Excede +10 un."
+      expect(screen.getByText(/Excede \+10 un\./)).toBeInTheDocument()
     })
   })
 })

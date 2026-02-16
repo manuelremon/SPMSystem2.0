@@ -62,6 +62,16 @@ vi.mock('../../components/ui/Alert', () => ({
   ),
 }))
 
+// Mock useToast since the component uses it
+vi.mock('../../hooks/useToast', () => ({
+  default: () => ({
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+  }),
+}))
+
 vi.mock('../../components/MensajeThreadModal', () => ({
   default: ({ message, isOpen, onClose }) =>
     isOpen ? (
@@ -275,7 +285,7 @@ describe('Mensajes', () => {
       })
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByTestId('alert')).toBeInTheDocument()
+        expect(screen.getByRole('alert')).toBeInTheDocument()
       })
     })
 
@@ -288,7 +298,7 @@ describe('Mensajes', () => {
       })
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByText('Error de conexión al cargar mensajes')).toBeInTheDocument()
+        expect(screen.getByText('Error de conexion al cargar mensajes')).toBeInTheDocument()
       })
     })
   })

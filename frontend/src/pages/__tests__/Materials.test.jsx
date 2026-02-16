@@ -1,15 +1,21 @@
 /**
  * Tests para Materials
- * Testing de búsqueda y agregado de materiales a solicitudes
+ * Testing de busqueda y agregado de materiales a solicitudes
+ *
+ * Component uses MUI components (TextField, Button, Dialog, etc.)
+ * with sub-components: MaterialDetailModal, MaterialsTable,
+ * SearchDropdown, BarcodeScanner, AssistantModal.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import Materials from '../Materials'
-import * as spm from '../../services/spm'
-import api from '../../services/api'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
-// Mock de servicios
+// ─── Stable i18n mock (must be module-level) ────────────────────────────────
+const stableT = (key, fallback) => fallback || key
+const stableI18n = { t: stableT, locale: 'es' }
+vi.mock('../../context/i18n', () => ({ useI18n: () => stableI18n }))
+
+// ─── Mock services ──────────────────────────────────────────────────────────
 vi.mock('../../services/spm', () => ({
   solicitudes: {
     obtener: vi.fn(),
@@ -20,164 +26,154 @@ vi.mock('../../services/spm', () => ({
   materiales: {
     buscar: vi.fn(),
     detalle: vi.fn(),
+    getFavoritos: vi.fn(),
+    addFavorito: vi.fn(),
+    removeFavorito: vi.fn(),
   },
 }))
 
-vi.mock('../../services/api')
+vi.mock('../../services/api', () => ({
+  default: { get: vi.fn().mockResolvedValue({ data: null }) },
+}))
 
-// Mock de react-router-dom
+import * as spm from '../../services/spm'
+import api from '../../services/api'
+
+// ─── Mock router ────────────────────────────────────────────────────────────
 const mockNavigate = vi.fn()
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom')
   return {
     ...actual,
     useNavigate: () => mockNavigate,
-    useParams: () => ({ id: '123' }),
   }
 })
 
-// Mock de i18n context
-vi.mock('../../context/i18n', () => ({
-  useI18n: () => ({
-    t: (key, fallback) => fallback || key,
-  }),
-}))
-
-// Mock de formatters
+// ─── Mock formatters / constants ────────────────────────────────────────────
 vi.mock('../../utils/formatters', () => ({
   formatCurrency: (val) => `USD ${val?.toFixed(2) || '0.00'}`,
   formatAlmacen: (val) => val || '-',
 }))
 
-// Mock de constants
 vi.mock('../../constants/sectores', () => ({
   renderSector: (sol) => sol?.sector || '-',
 }))
 
-// Mock de componentes UI
-vi.mock('../../components/ui/Button', () => ({
-  Button: ({ children, onClick, disabled, variant, as, to }) => {
-    const Component = as || 'button'
-    return (
-      <Component onClick={onClick} disabled={disabled} data-variant={variant} to={to}>
-        {children}
-      </Component>
-    )
-  },
-}))
-
-vi.mock('../../components/ui/Input', () => ({
-  Input: ({ value, onChange, placeholder, name, id, type }) => (
-    <input
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      name={name}
-      id={id}
-      type={type}
-      data-testid={`input-${id || name}`}
-    />
-  ),
-}))
-
-vi.mock('../../components/ui/Alert', () => ({
-  Alert: ({ children, variant, onDismiss }) => (
-    <div data-testid="alert" data-variant={variant}>
-      {children}
-      {onDismiss && <button onClick={onDismiss}>Cerrar</button>}
-    </div>
-  ),
-}))
-
-vi.mock('../../components/ui/Card', () => ({
-  Card: ({ children, hover }) => <div data-testid="card" data-hover={hover}>{children}</div>,
-  CardHeader: ({ children }) => <div data-testid="card-header">{children}</div>,
-  CardTitle: ({ children }) => <h2 data-testid="card-title">{children}</h2>,
-  CardDescription: ({ children }) => <p data-testid="card-description">{children}</p>,
-  CardContent: ({ children }) => <div data-testid="card-content">{children}</div>,
-}))
-
-vi.mock('../../components/ui/PageHeader', () => ({
-  PageHeader: ({ title, subtitle, actions }) => (
-    <div data-testid="page-header">
-      <h1>{title}</h1>
-      {subtitle}
-      {actions}
-    </div>
-  ),
-}))
-
-vi.mock('../../components/ui/Modal', () => ({
-  Modal: ({ isOpen, onClose, title, children, size }) => {
+// ─── Mock child components (they are MUI-heavy, so we mock them simply) ─────
+vi.mock('../../components/materials', () => ({
+  MaterialDetailModal: ({ isOpen, onClose, selectedMaterial, detail, loadingDetail }) => {
     if (!isOpen) return null
     return (
-      <div data-testid="modal" data-size={size}>
-        <h3>{title}</h3>
-        <button onClick={onClose}>Cerrar modal</button>
-        {children}
+      <div data-testid="material-detail-modal">
+        <span>Material Detail Modal</span>
+        {detail && (
+          <>
+            <span>Stock: {detail.stock_total}</span>
+            {detail.mrp && <span>Stock seguridad: {detail.mrp.stock_seguridad}</span>}
+          </>
+        )}
+        <button onClick={onClose}>Cerrar modal detalle</button>
       </div>
     )
   },
-}))
-
-vi.mock('../../components/ui/ConfirmModal', () => ({
-  ConfirmModal: ({ isOpen, onClose, onConfirm, title, description, confirmText, variant }) => {
-    if (!isOpen) return null
+  MaterialsTable: ({ items, onQtyChange, onDelete, onOpenComment }) => {
+    if (!items || items.length === 0) {
+      return <div data-testid="materials-table">Sin materiales agregados</div>
+    }
     return (
-      <div data-testid="confirm-modal" data-variant={variant}>
-        <h3>{title}</h3>
-        <p>{description}</p>
-        <button onClick={onClose}>Cancelar</button>
-        <button onClick={onConfirm}>{confirmText}</button>
+      <div data-testid="materials-table">
+        <table>
+          <tbody>
+            {items.map((it) => (
+              <tr key={it.codigo} data-testid={`row-${it.codigo}`}>
+                <td>{it.codigo}</td>
+                <td>{it.descripcion}</td>
+                <td>{it.unidad}</td>
+                <td>
+                  <input
+                    type="number"
+                    value={it.cantidad}
+                    onChange={(e) => onQtyChange(it.codigo, e.target.value)}
+                    data-testid={`qty-${it.codigo}`}
+                  />
+                </td>
+                <td>USD {(it.precio_unitario || 0).toFixed(2)}</td>
+                <td>USD {((it.cantidad || 0) * (it.precio_unitario || 0)).toFixed(2)}</td>
+                <td>
+                  <button onClick={() => onDelete(it.codigo)} data-testid={`delete-${it.codigo}`}>
+                    Eliminar
+                  </button>
+                </td>
+                <td>
+                  <button onClick={() => onOpenComment(it.codigo)} data-testid={`comment-${it.codigo}`}>
+                    Nota
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     )
   },
+  SearchDropdown: ({
+    dropdownOpen,
+    results,
+    loadingSearch,
+    selectedMaterial,
+    onSelect,
+    onClose,
+    debouncedCodigo,
+    debouncedDesc,
+  }) => {
+    if (!dropdownOpen) return null
+    return (
+      <div data-testid="search-dropdown">
+        {loadingSearch && <span>Buscando...</span>}
+        {!loadingSearch && results.map((m) => (
+          <button
+            key={m.codigo}
+            onClick={() => onSelect(m)}
+            data-testid={`result-${m.codigo}`}
+          >
+            <span>{m.codigo}</span>
+            <span>{m.descripcion}</span>
+          </button>
+        ))}
+        <button onClick={onClose}>Cerrar dropdown</button>
+      </div>
+    )
+  },
+  BarcodeScanner: ({ open, onClose, onScan }) => {
+    if (!open) return null
+    return <div data-testid="barcode-scanner">Scanner</div>
+  },
 }))
 
-vi.mock('../../components/ui/Skeleton', () => ({
-  TableSkeleton: () => <div data-testid="skeleton">Loading...</div>,
+vi.mock('../../components/AssistantModal', () => ({
+  AssistantModal: ({ isOpen, onClose }) => {
+    if (!isOpen) return null
+    return <div data-testid="assistant-modal">Assistant</div>
+  },
 }))
 
-vi.mock('../../components/ui/Badge', () => ({
-  Badge: ({ children, variant }) => (
-    <span data-testid="badge" data-variant={variant}>{children}</span>
-  ),
-}))
+// ─── Import component under test (AFTER mocks) ─────────────────────────────
+import Materials from '../Materials'
 
-vi.mock('../../components/ui/ScrollReveal', () => ({
-  ScrollReveal: ({ children }) => <div>{children}</div>,
-}))
-
-// Mock de lucide-react icons
-vi.mock('lucide-react', () => ({
-  Search: () => <span>🔍</span>,
-  X: () => <span>X</span>,
-  Loader2: () => <span>⏳</span>,
-  Check: () => <span>✓</span>,
-  Trash2: () => <span>🗑️</span>,
-  MessageSquare: () => <span>💬</span>,
-  Package: () => <span>📦</span>,
-}))
-
-// Mock de react-dom createPortal
-vi.mock('react-dom', async () => {
-  const actual = await vi.importActual('react-dom')
-  return {
-    ...actual,
-    createPortal: (children) => children,
-  }
-})
-
-const renderWithRouter = (component) => {
+// ─── Helper: render with router + route param id=123 ────────────────────────
+const renderWithRouter = (ui) => {
   return render(
-    <BrowserRouter>
+    <MemoryRouter initialEntries={['/solicitud/123/materiales']}>
       <Routes>
-        <Route path="/" element={component} />
+        <Route path="/solicitud/:id/materiales" element={ui} />
       </Routes>
-    </BrowserRouter>
+    </MemoryRouter>
   )
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// TEST SUITE
+// ═══════════════════════════════════════════════════════════════════════════════
 describe('Materials', () => {
   const mockSolicitud = {
     id: 123,
@@ -192,14 +188,14 @@ describe('Materials', () => {
     {
       codigo: 'MAT001',
       descripcion: 'Tornillo M6x20',
-      descripcion_larga: 'Tornillo métrico M6 x 20mm acero inoxidable',
+      descripcion_larga: 'Tornillo metrico M6 x 20mm acero inoxidable',
       unidad: 'UNI',
       precio_usd: 0.50,
     },
     {
       codigo: 'MAT002',
       descripcion: 'Tuerca M6',
-      descripcion_larga: 'Tuerca métrica M6 acero inoxidable',
+      descripcion_larga: 'Tuerca metrica M6 acero inoxidable',
       unidad: 'UNI',
       precio_usd: 0.25,
     },
@@ -210,9 +206,7 @@ describe('Materials', () => {
     almacen_consultado: 'ALM001',
     stock_total: 500,
     pedidos_en_curso: 2,
-    stock_detalle: [
-      { centro: '1001', almacen_consultado: 'ALM001', stock: 500 },
-    ],
+    stock_detalle: [{ centro: '1001', almacen_consultado: 'ALM001', stock: 500 }],
     stock_detalle_full: [],
     mrp: {
       planificado_mrp: true,
@@ -234,157 +228,221 @@ describe('Materials', () => {
   }
 
   beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
     spm.solicitudes.obtener.mockResolvedValue({
       data: { solicitud: mockSolicitud },
     })
     spm.materiales.buscar.mockResolvedValue({ data: mockMateriales })
     spm.materiales.detalle.mockResolvedValue({ data: mockDetalle })
-    api.get = vi.fn().mockResolvedValue({ data: null })
+    spm.materiales.getFavoritos.mockResolvedValue({ data: { data: [] } })
+    spm.materiales.addFavorito.mockResolvedValue({ data: { ok: true } })
+    spm.materiales.removeFavorito.mockResolvedValue({ data: { ok: true } })
+    api.get.mockResolvedValue({ data: null })
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.clearAllMocks()
   })
 
+  // ─── Helper: get the actual <input> inside a MUI TextField by its id ────
+  const getInput = (id) => document.getElementById(id)
+
+  // ─── Helper: wait for loading to finish ─────────────────────────────────
+  const waitForLoaded = async () => {
+    await act(async () => {
+      await vi.runAllTimersAsync()
+    })
+    // Wait for the solicitud to load and component to render past loading state
+    await waitFor(() => {
+      expect(screen.getByText('Agregar Materiales')).toBeInTheDocument()
+      expect(screen.getByText('#123')).toBeInTheDocument()
+    })
+  }
+
+  // ─── Helper: type in search and trigger debounce ────────────────────────
+  const searchByDesc = async (text) => {
+    const descInput = getInput('searchDesc')
+    await act(async () => {
+      fireEvent.change(descInput, { target: { value: text } })
+    })
+    // Advance past debounce (250ms)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300)
+    })
+    // Wait for search results
+    await waitFor(() => {
+      expect(spm.materiales.buscar).toHaveBeenCalled()
+    })
+    // Let the search promise resolve
+    await act(async () => {
+      await vi.runAllTimersAsync()
+    })
+  }
+
+  // ─── Helper: select a material from results ────────────────────────────
+  const selectMaterial = async (codigo = 'MAT001') => {
+    await waitFor(() => {
+      expect(screen.getByTestId(`result-${codigo}`)).toBeInTheDocument()
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`result-${codigo}`))
+    })
+    // Wait for detail to load
+    await act(async () => {
+      await vi.runAllTimersAsync()
+    })
+  }
+
+  // ─── Helper: add a material (search + select + click Add) ──────────────
+  const addMaterial = async () => {
+    await searchByDesc('Tornillo')
+    await selectMaterial('MAT001')
+    // After selection, detail auto-loads and detailViewed becomes true
+    await waitFor(() => {
+      const addButtons = screen.getAllByText('Agregar')
+      expect(addButtons.length).toBeGreaterThan(0)
+    })
+    const addButton = screen.getAllByText('Agregar').find(
+      (btn) => !btn.closest('[data-testid="search-dropdown"]')
+    )
+    await act(async () => {
+      fireEvent.click(addButton)
+    })
+    await act(async () => {
+      await vi.runAllTimersAsync()
+    })
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Renderizado inicial
+  // ═══════════════════════════════════════════════════════════════════════════
   describe('Renderizado inicial', () => {
     it('debe renderizar el componente', async () => {
       renderWithRouter(<Materials />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('page-header')).toBeInTheDocument()
-      })
+      await waitForLoaded()
+      // Title is rendered
+      expect(screen.getByText('Agregar Materiales')).toBeInTheDocument()
     })
 
-    it('debe mostrar el título "Agregar Materiales"', async () => {
+    it('debe mostrar el titulo "Agregar Materiales"', async () => {
       renderWithRouter(<Materials />)
-
-      await waitFor(() => {
-        expect(screen.getByText('Agregar Materiales')).toBeInTheDocument()
-      })
+      await waitForLoaded()
+      expect(screen.getByText('Agregar Materiales')).toBeInTheDocument()
     })
 
     it('debe cargar la solicitud al montar', async () => {
       renderWithRouter(<Materials />)
-
-      await waitFor(() => {
-        expect(spm.solicitudes.obtener).toHaveBeenCalledWith('123')
-      })
+      await waitForLoaded()
+      expect(spm.solicitudes.obtener).toHaveBeenCalledWith('123')
     })
 
-    it('debe mostrar skeleton mientras carga', () => {
+    it('debe mostrar skeleton mientras carga', async () => {
+      // Make the solicitud load hang
+      spm.solicitudes.obtener.mockReturnValue(new Promise(() => {}))
       renderWithRouter(<Materials />)
-      expect(screen.getByTestId('skeleton')).toBeInTheDocument()
+      // The loading state shows "Cargando materiales" aria-label
+      expect(screen.getByLabelText('Cargando materiales')).toBeInTheDocument()
     })
 
-    it('debe mostrar información de la solicitud', async () => {
+    it('debe mostrar informacion de la solicitud', async () => {
       renderWithRouter(<Materials />)
-
-      await waitFor(() => {
-        expect(screen.getByText('#123')).toBeInTheDocument()
-        expect(screen.getByText('1001')).toBeInTheDocument()
-        expect(screen.getByText('Compras')).toBeInTheDocument()
-      })
+      await waitForLoaded()
+      expect(screen.getByText('#123')).toBeInTheDocument()
+      expect(screen.getByText('1001')).toBeInTheDocument()
+      expect(screen.getByText('Compras')).toBeInTheDocument()
     })
   })
 
-  describe('Búsqueda de materiales', () => {
-    it('debe mostrar campos de búsqueda', async () => {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Busqueda de materiales
+  // ═══════════════════════════════════════════════════════════════════════════
+  describe('Busqueda de materiales', () => {
+    it('debe mostrar campos de busqueda', async () => {
       renderWithRouter(<Materials />)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('input-searchCodigo')).toBeInTheDocument()
-        expect(screen.getByTestId('input-searchDesc')).toBeInTheDocument()
-      })
+      await waitForLoaded()
+      expect(getInput('searchCodigo')).toBeInTheDocument()
+      expect(getInput('searchDesc')).toBeInTheDocument()
     })
 
-    it('debe buscar materiales al escribir código', async () => {
+    it('debe buscar materiales al escribir codigo', async () => {
       renderWithRouter(<Materials />)
+      await waitForLoaded()
 
-      await waitFor(() => {
-        const codigoInput = screen.getByTestId('input-searchCodigo')
+      const codigoInput = getInput('searchCodigo')
+      await act(async () => {
         fireEvent.change(codigoInput, { target: { value: 'MAT001' } })
+      })
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(300)
       })
 
       await waitFor(() => {
         expect(spm.materiales.buscar).toHaveBeenCalledWith(
           expect.objectContaining({ codigo: 'MAT001' })
         )
-      }, { timeout: 1000 })
-    })
-
-    it('debe buscar materiales al escribir descripción', async () => {
-      renderWithRouter(<Materials />)
-
-      await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
-      })
-
-      await waitFor(() => {
-        expect(spm.materiales.buscar).toHaveBeenCalledWith(
-          expect.objectContaining({ descripcion: 'Tornillo' })
-        )
-      }, { timeout: 1000 })
-    })
-
-    it('debe mostrar resultados de búsqueda', async () => {
-      renderWithRouter(<Materials />)
-
-      await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
-      })
-
-      await waitFor(() => {
-        expect(screen.getByText('MAT001')).toBeInTheDocument()
-        expect(screen.getByText((content, element) => {
-          return element.textContent === 'Tornillo M6x20'
-        })).toBeInTheDocument()
       })
     })
 
-    it('debe limpiar búsqueda al hacer clic en limpiar', async () => {
+    it('debe buscar materiales al escribir descripcion', async () => {
       renderWithRouter(<Materials />)
+      await waitForLoaded()
+
+      await searchByDesc('Tornillo')
+
+      expect(spm.materiales.buscar).toHaveBeenCalledWith(
+        expect.objectContaining({ descripcion: 'Tornillo' })
+      )
+    })
+
+    it('debe mostrar resultados de busqueda', async () => {
+      renderWithRouter(<Materials />)
+      await waitForLoaded()
+      await searchByDesc('Tornillo')
 
       await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
+        expect(screen.getByTestId('search-dropdown')).toBeInTheDocument()
+        expect(screen.getByTestId('result-MAT001')).toBeInTheDocument()
+      })
+    })
+
+    it('debe limpiar busqueda al hacer clic en limpiar', async () => {
+      renderWithRouter(<Materials />)
+      await waitForLoaded()
+
+      const descInput = getInput('searchDesc')
+      await act(async () => {
         fireEvent.change(descInput, { target: { value: 'Tornillo' } })
       })
-
-      // Esperar a que aparezca el botón de limpiar (X)
-      await waitFor(() => {
-        const clearButtons = screen.getAllByText('X')
-        // El último X debería ser el de limpiar búsqueda
-        const clearButton = clearButtons[clearButtons.length - 1]
-        fireEvent.click(clearButton)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(300)
       })
 
+      // Click the clear search button (has aria-label "Limpiar busqueda")
       await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        expect(descInput.value).toBe('')
+        expect(screen.getByLabelText('Limpiar busqueda')).toBeInTheDocument()
       })
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText('Limpiar busqueda'))
+      })
+      await act(async () => {
+        await vi.runAllTimersAsync()
+      })
+
+      // The input should be cleared
+      expect(getInput('searchDesc').value).toBe('')
     })
   })
 
-  describe('Selección de materiales', () => {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Seleccion de materiales
+  // ═══════════════════════════════════════════════════════════════════════════
+  describe('Seleccion de materiales', () => {
     it('debe seleccionar un material al hacer clic', async () => {
       renderWithRouter(<Materials />)
-
-      await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
-      })
-
-      await waitFor(() => {
-        expect(screen.getByText('MAT001')).toBeInTheDocument()
-      })
-
-      // Simular clic en el resultado (el componente usa button para los resultados)
-      const mat001Elements = screen.getAllByText('MAT001')
-      if (mat001Elements.length > 1) {
-        // El primer elemento es el del dropdown
-        fireEvent.click(mat001Elements[0].closest('button') || mat001Elements[0])
-      }
+      await waitForLoaded()
+      await searchByDesc('Tornillo')
+      await selectMaterial('MAT001')
 
       await waitFor(() => {
         expect(spm.materiales.detalle).toHaveBeenCalledWith(
@@ -396,39 +454,22 @@ describe('Materials', () => {
 
     it('debe mostrar el material seleccionado', async () => {
       renderWithRouter(<Materials />)
+      await waitForLoaded()
+      await searchByDesc('Tornillo')
+      await selectMaterial('MAT001')
 
+      // The selected material section should display the material code
       await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
-      })
-
-      await waitFor(() => {
-        const mat001Elements = screen.getAllByText('MAT001')
-        if (mat001Elements.length > 0) {
-          fireEvent.click(mat001Elements[0].closest('button') || mat001Elements[0])
-        }
-      })
-
-      await waitFor(() => {
-        // Verificar que el material está seleccionado (aparece con check)
-        expect(screen.getByText('✓')).toBeInTheDocument()
+        // The component shows material code in the "selected material" section
+        expect(screen.getByText('MAT001')).toBeInTheDocument()
       })
     })
 
-    it('debe cargar detalles automáticamente al seleccionar', async () => {
+    it('debe cargar detalles automaticamente al seleccionar', async () => {
       renderWithRouter(<Materials />)
-
-      await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
-      })
-
-      await waitFor(() => {
-        const mat001Elements = screen.getAllByText('MAT001')
-        if (mat001Elements.length > 0) {
-          fireEvent.click(mat001Elements[0].closest('button') || mat001Elements[0])
-        }
-      })
+      await waitForLoaded()
+      await searchByDesc('Tornillo')
+      await selectMaterial('MAT001')
 
       await waitFor(() => {
         expect(spm.materiales.detalle).toHaveBeenCalled()
@@ -436,210 +477,132 @@ describe('Materials', () => {
     })
   })
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Agregar materiales a la solicitud
+  // ═══════════════════════════════════════════════════════════════════════════
   describe('Agregar materiales a la solicitud', () => {
     it('debe agregar material seleccionado al hacer clic en Agregar', async () => {
       renderWithRouter(<Materials />)
+      await waitForLoaded()
+      await addMaterial()
 
+      // Material should appear in the MaterialsTable mock
       await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
-      })
-
-      await waitFor(() => {
-        const mat001Elements = screen.getAllByText('MAT001')
-        if (mat001Elements.length > 0) {
-          fireEvent.click(mat001Elements[0].closest('button') || mat001Elements[0])
-        }
-      })
-
-      // Esperar a que se carguen los detalles y click en Agregar
-      await waitFor(() => {
-        const agregarButton = screen.getByText('Agregar')
-        fireEvent.click(agregarButton)
-      })
-
-      // Verificar que el material está en la tabla
-      await waitFor(() => {
-        const allMAT001 = screen.getAllByText('MAT001')
-        // Debería haber al menos 2: uno en la lista y otro en la tabla
-        expect(allMAT001.length).toBeGreaterThanOrEqual(1)
+        expect(screen.getByTestId('row-MAT001')).toBeInTheDocument()
       })
     })
 
     it('debe mostrar el material en la tabla de resumen', async () => {
       renderWithRouter(<Materials />)
+      await waitForLoaded()
+      await addMaterial()
 
       await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
-      })
-
-      await waitFor(() => {
-        const mat001Elements = screen.getAllByText('MAT001')
-        if (mat001Elements.length > 0) {
-          fireEvent.click(mat001Elements[0].closest('button') || mat001Elements[0])
-        }
-      })
-
-      await waitFor(() => {
-        const agregarButton = screen.getByText('Agregar')
-        fireEvent.click(agregarButton)
-      })
-
-      await waitFor(() => {
-        expect(screen.getByText((content, element) => {
-          return element.textContent === 'Tornillo M6x20'
-        })).toBeInTheDocument()
+        expect(screen.getByText('Tornillo M6x20')).toBeInTheDocument()
       })
     })
 
     it('debe incrementar cantidad si el material ya existe', async () => {
       renderWithRouter(<Materials />)
+      await waitForLoaded()
+      await addMaterial()
 
-      // Agregar material una vez
+      // Add the same material again: search again
+      await searchByDesc('Tornillo')
+      await selectMaterial('MAT001')
+
       await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
+        const addButtons = screen.getAllByText('Agregar')
+        expect(addButtons.length).toBeGreaterThan(0)
       })
 
-      await waitFor(() => {
-        const mat001Elements = screen.getAllByText('MAT001')
-        if (mat001Elements.length > 0) {
-          fireEvent.click(mat001Elements[0].closest('button') || mat001Elements[0])
-        }
+      const addButton = screen.getAllByText('Agregar').find(
+        (btn) => !btn.closest('[data-testid="search-dropdown"]')
+      )
+      await act(async () => {
+        fireEvent.click(addButton)
+      })
+      await act(async () => {
+        await vi.runAllTimersAsync()
       })
 
+      // The quantity input should show 2
       await waitFor(() => {
-        const agregarButton = screen.getByText('Agregar')
-        fireEvent.click(agregarButton)
-      })
-
-      // Buscar y agregar el mismo material nuevamente
-      await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
-      })
-
-      await waitFor(() => {
-        const mat001Elements = screen.getAllByText('MAT001')
-        if (mat001Elements.length > 0) {
-          fireEvent.click(mat001Elements[0].closest('button') || mat001Elements[0])
-        }
-      })
-
-      await waitFor(() => {
-        const agregarButton = screen.getByText('Agregar')
-        fireEvent.click(agregarButton)
-      })
-
-      // Verificar que la cantidad se incrementó a 2
-      await waitFor(() => {
-        const cantidadInputs = screen.getAllByDisplayValue('2')
-        expect(cantidadInputs.length).toBeGreaterThan(0)
+        const qtyInput = screen.getByTestId('qty-MAT001')
+        expect(Number(qtyInput.value)).toBe(2)
       })
     })
   })
 
-  describe('Gestión de cantidad', () => {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Gestion de cantidad
+  // ═══════════════════════════════════════════════════════════════════════════
+  describe('Gestion de cantidad', () => {
     it('debe permitir cambiar la cantidad de un material', async () => {
-      // Primero agregar un material
       renderWithRouter(<Materials />)
+      await waitForLoaded()
+      await addMaterial()
 
-      await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
+      const qtyInput = screen.getByTestId('qty-MAT001')
+      await act(async () => {
+        fireEvent.change(qtyInput, { target: { value: '10' } })
+      })
+      await act(async () => {
+        await vi.runAllTimersAsync()
       })
 
-      await waitFor(() => {
-        const mat001Elements = screen.getAllByText('MAT001')
-        if (mat001Elements.length > 0) {
-          fireEvent.click(mat001Elements[0].closest('button') || mat001Elements[0])
-        }
-      })
-
-      await waitFor(() => {
-        const agregarButton = screen.getByText('Agregar')
-        fireEvent.click(agregarButton)
-      })
-
-      // Cambiar la cantidad
-      await waitFor(() => {
-        const cantidadInput = screen.getByDisplayValue('1')
-        fireEvent.change(cantidadInput, { target: { value: '10' } })
-        expect(cantidadInput.value).toBe('10')
-      })
+      expect(qtyInput.value).toBe('10')
     })
 
     it('debe calcular el subtotal correctamente', async () => {
       renderWithRouter(<Materials />)
+      await waitForLoaded()
+      await addMaterial()
 
-      await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
+      const qtyInput = screen.getByTestId('qty-MAT001')
+      await act(async () => {
+        fireEvent.change(qtyInput, { target: { value: '10' } })
+      })
+      await act(async () => {
+        await vi.runAllTimersAsync()
       })
 
+      // MaterialsTable mock renders subtotal = cantidad * precio_unitario
+      // 10 * 0.50 = 5.00 (may appear in both table row and context total)
       await waitFor(() => {
-        const mat001Elements = screen.getAllByText('MAT001')
-        if (mat001Elements.length > 0) {
-          fireEvent.click(mat001Elements[0].closest('button') || mat001Elements[0])
-        }
-      })
-
-      await waitFor(() => {
-        const agregarButton = screen.getByText('Agregar')
-        fireEvent.click(agregarButton)
-      })
-
-      // Cambiar cantidad a 10
-      await waitFor(() => {
-        const cantidadInput = screen.getByDisplayValue('1')
-        fireEvent.change(cantidadInput, { target: { value: '10' } })
-      })
-
-      // Verificar subtotal (10 * 0.50 = 5.00)
-      await waitFor(() => {
-        expect(screen.getByText('USD 5.00')).toBeInTheDocument()
+        const matches = screen.getAllByText('USD 5.00')
+        expect(matches.length).toBeGreaterThanOrEqual(1)
       })
     })
   })
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Eliminar materiales
+  // ═══════════════════════════════════════════════════════════════════════════
   describe('Eliminar materiales', () => {
     it('debe eliminar un material de la lista', async () => {
       renderWithRouter(<Materials />)
+      await waitForLoaded()
+      await addMaterial()
 
-      // Agregar material
-      await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
+      // Click the delete button in our mocked MaterialsTable
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('delete-MAT001'))
+      })
+      await act(async () => {
+        await vi.runAllTimersAsync()
       })
 
-      await waitFor(() => {
-        const mat001Elements = screen.getAllByText('MAT001')
-        if (mat001Elements.length > 0) {
-          fireEvent.click(mat001Elements[0].closest('button') || mat001Elements[0])
-        }
-      })
-
-      await waitFor(() => {
-        const agregarButton = screen.getByText('Agregar')
-        fireEvent.click(agregarButton)
-      })
-
-      // Eliminar material
-      await waitFor(() => {
-        const deleteButtons = screen.getAllByText('🗑️')
-        if (deleteButtons.length > 0) {
-          fireEvent.click(deleteButtons[0])
-        }
-      })
-
-      // Verificar que muestra "Sin materiales"
+      // The empty table message should appear
       await waitFor(() => {
         expect(screen.getByText('Sin materiales agregados')).toBeInTheDocument()
       })
     })
   })
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Guardar borrador
+  // ═══════════════════════════════════════════════════════════════════════════
   describe('Guardar borrador', () => {
     it('debe guardar borrador al hacer clic en Guardar como borrador', async () => {
       spm.solicitudes.guardarBorrador.mockResolvedValue({
@@ -647,59 +610,39 @@ describe('Materials', () => {
       })
 
       renderWithRouter(<Materials />)
+      await waitForLoaded()
+      await addMaterial()
 
-      // Agregar un material primero
-      await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
-      })
-
-      await waitFor(() => {
-        const mat001Elements = screen.getAllByText('MAT001')
-        if (mat001Elements.length > 0) {
-          fireEvent.click(mat001Elements[0].closest('button') || mat001Elements[0])
-        }
-      })
-
-      await waitFor(() => {
-        const agregarButton = screen.getByText('Agregar')
-        fireEvent.click(agregarButton)
-      })
-
-      // Guardar borrador
+      // Click "Guardar como borrador"
       const guardarButton = screen.getByText('Guardar como borrador')
-      fireEvent.click(guardarButton)
+      await act(async () => {
+        fireEvent.click(guardarButton)
+      })
+      await act(async () => {
+        await vi.runAllTimersAsync()
+      })
 
       await waitFor(() => {
         expect(spm.solicitudes.guardarBorrador).toHaveBeenCalled()
       })
     })
 
-    it('debe mostrar mensaje de éxito al guardar borrador', async () => {
+    it('debe mostrar mensaje de exito al guardar borrador', async () => {
       spm.solicitudes.guardarBorrador.mockResolvedValue({
         data: { solicitud: mockSolicitud },
       })
 
       renderWithRouter(<Materials />)
+      await waitForLoaded()
+      await addMaterial()
 
-      // Agregar material y guardar
-      await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
+      await act(async () => {
+        fireEvent.click(screen.getByText('Guardar como borrador'))
       })
-
-      await waitFor(() => {
-        const mat001Elements = screen.getAllByText('MAT001')
-        if (mat001Elements.length > 0) {
-          fireEvent.click(mat001Elements[0].closest('button') || mat001Elements[0])
-        }
+      // Only advance enough for the async save, not the 3000ms auto-dismiss
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(100)
       })
-
-      await waitFor(() => {
-        fireEvent.click(screen.getByText('Agregar'))
-      })
-
-      fireEvent.click(screen.getByText('Guardar como borrador'))
 
       await waitFor(() => {
         expect(screen.getByText('Borrador guardado.')).toBeInTheDocument()
@@ -707,33 +650,23 @@ describe('Materials', () => {
     })
   })
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Enviar solicitud
+  // ═══════════════════════════════════════════════════════════════════════════
   describe('Enviar solicitud', () => {
-    it('debe abrir modal de confirmación al enviar', async () => {
+    it('debe abrir modal de confirmacion al enviar', async () => {
       renderWithRouter(<Materials />)
+      await waitForLoaded()
+      await addMaterial()
 
-      // Agregar material
-      await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
+      // Click "Enviar Solicitud"
+      await act(async () => {
+        fireEvent.click(screen.getByText('Enviar Solicitud'))
       })
 
+      // The submit confirm dialog should open (MUI Dialog with "Si, enviar solicitud")
       await waitFor(() => {
-        const mat001Elements = screen.getAllByText('MAT001')
-        if (mat001Elements.length > 0) {
-          fireEvent.click(mat001Elements[0].closest('button') || mat001Elements[0])
-        }
-      })
-
-      await waitFor(() => {
-        fireEvent.click(screen.getByText('Agregar'))
-      })
-
-      // Click en Enviar
-      const enviarButton = screen.getByText('Enviar Solicitud')
-      fireEvent.click(enviarButton)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('confirm-modal')).toBeInTheDocument()
+        expect(screen.getByText('Si, enviar solicitud')).toBeInTheDocument()
       })
     })
 
@@ -743,30 +676,22 @@ describe('Materials', () => {
       })
 
       renderWithRouter(<Materials />)
+      await waitForLoaded()
+      await addMaterial()
 
-      // Agregar material
-      await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
+      await act(async () => {
+        fireEvent.click(screen.getByText('Enviar Solicitud'))
       })
 
       await waitFor(() => {
-        const mat001Elements = screen.getAllByText('MAT001')
-        if (mat001Elements.length > 0) {
-          fireEvent.click(mat001Elements[0].closest('button') || mat001Elements[0])
-        }
+        expect(screen.getByText('Si, enviar solicitud')).toBeInTheDocument()
       })
 
-      await waitFor(() => {
-        fireEvent.click(screen.getByText('Agregar'))
+      await act(async () => {
+        fireEvent.click(screen.getByText('Si, enviar solicitud'))
       })
-
-      // Enviar
-      fireEvent.click(screen.getByText('Enviar Solicitud'))
-
-      await waitFor(() => {
-        const confirmarButton = screen.getByText('Sí, enviar solicitud')
-        fireEvent.click(confirmarButton)
+      await act(async () => {
+        await vi.runAllTimersAsync()
       })
 
       await waitFor(() => {
@@ -774,86 +699,82 @@ describe('Materials', () => {
       })
     })
 
-    it('debe navegar a Mis Solicitudes después de enviar', async () => {
+    it('debe navegar a Mis Solicitudes despues de enviar', async () => {
       spm.solicitudes.finalizar.mockResolvedValue({
         data: { solicitud: { ...mockSolicitud, estado: 'Enviada' } },
       })
 
       renderWithRouter(<Materials />)
+      await waitForLoaded()
+      await addMaterial()
 
-      // Agregar material
-      await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
+      await act(async () => {
+        fireEvent.click(screen.getByText('Enviar Solicitud'))
       })
 
       await waitFor(() => {
-        const mat001Elements = screen.getAllByText('MAT001')
-        if (mat001Elements.length > 0) {
-          fireEvent.click(mat001Elements[0].closest('button') || mat001Elements[0])
-        }
+        expect(screen.getByText('Si, enviar solicitud')).toBeInTheDocument()
       })
 
-      await waitFor(() => {
-        fireEvent.click(screen.getByText('Agregar'))
+      await act(async () => {
+        fireEvent.click(screen.getByText('Si, enviar solicitud'))
+      })
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000)
       })
 
-      fireEvent.click(screen.getByText('Enviar Solicitud'))
-
-      await waitFor(() => {
-        const confirmarButton = screen.getByText('Sí, enviar solicitud')
-        fireEvent.click(confirmarButton)
-      })
-
-      // Verificar navegación (con timeout para el setTimeout de 1500ms)
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('/mis-solicitudes')
-      }, { timeout: 2000 })
+      })
     })
 
     it('debe validar que hay al menos un item antes de enviar', async () => {
       renderWithRouter(<Materials />)
+      await waitForLoaded()
 
-      await waitFor(() => {
-        expect(screen.getByText('Enviar Solicitud')).toBeInTheDocument()
-      })
-
-      // Intentar enviar sin items
-      fireEvent.click(screen.getByText('Enviar Solicitud'))
-
-      await waitFor(() => {
-        expect(screen.getByText('Agrega al menos un ítem')).toBeInTheDocument()
-      })
+      // Without items, the Enviar Solicitud button should be disabled
+      const enviarButton = screen.getByText('Enviar Solicitud').closest('button')
+      expect(enviarButton).toBeDisabled()
     })
   })
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Cancelar solicitud
+  // ═══════════════════════════════════════════════════════════════════════════
   describe('Cancelar solicitud', () => {
-    it('debe abrir modal de confirmación al cancelar', async () => {
+    it('debe abrir modal de confirmacion al cancelar', async () => {
       renderWithRouter(<Materials />)
+      await waitForLoaded()
 
-      await waitFor(() => {
-        expect(screen.getByText('Cancelar Solicitud')).toBeInTheDocument()
+      await act(async () => {
+        fireEvent.click(screen.getByText('Cancelar Solicitud'))
       })
 
-      fireEvent.click(screen.getByText('Cancelar Solicitud'))
-
+      // ConfirmDialog opens with "Confirmar" button
       await waitFor(() => {
-        expect(screen.getByTestId('confirm-modal')).toBeInTheDocument()
+        expect(screen.getByText('Confirmar')).toBeInTheDocument()
       })
     })
 
-    it('debe eliminar solicitud al confirmar cancelación', async () => {
+    it('debe eliminar solicitud al confirmar cancelacion', async () => {
       spm.solicitudes.eliminar.mockResolvedValue({ data: { success: true } })
 
       renderWithRouter(<Materials />)
+      await waitForLoaded()
 
-      await waitFor(() => {
+      await act(async () => {
         fireEvent.click(screen.getByText('Cancelar Solicitud'))
       })
 
       await waitFor(() => {
-        const confirmarButton = screen.getByText('Confirmar')
-        fireEvent.click(confirmarButton)
+        expect(screen.getByText('Confirmar')).toBeInTheDocument()
+      })
+
+      await act(async () => {
+        fireEvent.click(screen.getByText('Confirmar'))
+      })
+      await act(async () => {
+        await vi.runAllTimersAsync()
       })
 
       await waitFor(() => {
@@ -862,49 +783,44 @@ describe('Materials', () => {
     })
   })
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Modal de detalle de material
+  // ═══════════════════════════════════════════════════════════════════════════
   describe('Modal de detalle de material', () => {
     it('debe abrir modal de detalle al hacer clic en Ver detalles', async () => {
       renderWithRouter(<Materials />)
+      await waitForLoaded()
+      await searchByDesc('Tornillo')
+      await selectMaterial('MAT001')
 
+      // Wait for the "Ver detalles" button to be present
       await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
+        expect(screen.getByText('Ver detalles')).toBeInTheDocument()
+      })
+
+      await act(async () => {
+        fireEvent.click(screen.getByText('Ver detalles'))
+      })
+      await act(async () => {
+        await vi.runAllTimersAsync()
       })
 
       await waitFor(() => {
-        const mat001Elements = screen.getAllByText('MAT001')
-        if (mat001Elements.length > 0) {
-          fireEvent.click(mat001Elements[0].closest('button') || mat001Elements[0])
-        }
-      })
-
-      await waitFor(() => {
-        const verDetallesButton = screen.getByText('Ver detalles')
-        fireEvent.click(verDetallesButton)
-      })
-
-      await waitFor(() => {
-        expect(screen.getByTestId('modal')).toBeInTheDocument()
+        expect(screen.getByTestId('material-detail-modal')).toBeInTheDocument()
       })
     })
 
     it('debe mostrar stock en el modal', async () => {
       renderWithRouter(<Materials />)
+      await waitForLoaded()
+      await searchByDesc('Tornillo')
+      await selectMaterial('MAT001')
 
-      await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
-      })
-
-      await waitFor(() => {
-        const mat001Elements = screen.getAllByText('MAT001')
-        if (mat001Elements.length > 0) {
-          fireEvent.click(mat001Elements[0].closest('button') || mat001Elements[0])
-        }
-      })
-
-      await waitFor(() => {
+      await act(async () => {
         fireEvent.click(screen.getByText('Ver detalles'))
+      })
+      await act(async () => {
+        await vi.runAllTimersAsync()
       })
 
       await waitFor(() => {
@@ -912,61 +828,46 @@ describe('Materials', () => {
       })
     })
 
-    it('debe mostrar información de MRP en el modal', async () => {
+    it('debe mostrar informacion de MRP en el modal', async () => {
       renderWithRouter(<Materials />)
+      await waitForLoaded()
+      await searchByDesc('Tornillo')
+      await selectMaterial('MAT001')
 
-      await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
-      })
-
-      await waitFor(() => {
-        const mat001Elements = screen.getAllByText('MAT001')
-        if (mat001Elements.length > 0) {
-          fireEvent.click(mat001Elements[0].closest('button') || mat001Elements[0])
-        }
-      })
-
-      await waitFor(() => {
+      await act(async () => {
         fireEvent.click(screen.getByText('Ver detalles'))
       })
+      await act(async () => {
+        await vi.runAllTimersAsync()
+      })
 
       await waitFor(() => {
-        // Verificar campos de MRP
         expect(screen.getByText(/Stock seguridad/)).toBeInTheDocument()
       })
     })
   })
 
-  describe('Cálculo de totales', () => {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Calculo de totales
+  // ═══════════════════════════════════════════════════════════════════════════
+  describe('Calculo de totales', () => {
     it('debe calcular el total correctamente', async () => {
       renderWithRouter(<Materials />)
+      await waitForLoaded()
+      await addMaterial()
 
-      // Agregar material con cantidad 10
-      await waitFor(() => {
-        const descInput = screen.getByTestId('input-searchDesc')
-        fireEvent.change(descInput, { target: { value: 'Tornillo' } })
+      const qtyInput = screen.getByTestId('qty-MAT001')
+      await act(async () => {
+        fireEvent.change(qtyInput, { target: { value: '10' } })
+      })
+      await act(async () => {
+        await vi.runAllTimersAsync()
       })
 
+      // Total = 10 * 0.50 = 5.00
       await waitFor(() => {
-        const mat001Elements = screen.getAllByText('MAT001')
-        if (mat001Elements.length > 0) {
-          fireEvent.click(mat001Elements[0].closest('button') || mat001Elements[0])
-        }
-      })
-
-      await waitFor(() => {
-        fireEvent.click(screen.getByText('Agregar'))
-      })
-
-      await waitFor(() => {
-        const cantidadInput = screen.getByDisplayValue('1')
-        fireEvent.change(cantidadInput, { target: { value: '10' } })
-      })
-
-      // El total debería ser 10 * 0.50 = 5.00
-      await waitFor(() => {
-        expect(screen.getByText('USD 5.00')).toBeInTheDocument()
+        const matches = screen.getAllByText('USD 5.00')
+        expect(matches.length).toBeGreaterThanOrEqual(1)
       })
     })
   })

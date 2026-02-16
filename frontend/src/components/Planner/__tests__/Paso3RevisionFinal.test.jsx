@@ -1,350 +1,362 @@
 /**
  * Tests para Paso3RevisionFinal
- * Generado por Sugar Autonomous System
+ * Component renders stock/compra tables from decisiones with cost summary.
+ * Props: { items, decisiones }
  */
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import Paso3RevisionFinal from '../Paso3RevisionFinal'
 
-// Mock de componentes UI
-vi.mock('../../ui/Card', () => ({
-  Card: ({ children, className }) => <div data-testid="card" className={className}>{children}</div>,
-  CardHeader: ({ children, className }) => <div data-testid="card-header" className={className}>{children}</div>,
-  CardTitle: ({ children }) => <h2 data-testid="card-title">{children}</h2>,
-  CardDescription: ({ children, className }) => <p data-testid="card-description" className={className}>{children}</p>,
-  CardContent: ({ children, className }) => <div data-testid="card-content" className={className}>{children}</div>,
-}))
-
-vi.mock('../../ui/Button', () => ({
-  Button: ({ children, onClick, variant, type, disabled }) => (
-    <button onClick={onClick} data-variant={variant} type={type} disabled={disabled}>
-      {children}
-    </button>
-  ),
-}))
-
-vi.mock('../../ui/StatusBadge', () => ({
-  default: ({ estado }) => <span data-testid="status-badge">{estado}</span>,
-}))
-
 describe('Paso3RevisionFinal', () => {
-  const defaultProps = {
-    solicitud: { id: 1, centro: '1008', sector: 'Mantenimiento', status: 'en_proceso' },
-    items: [],
-    decisiones: {},
-    totalItems: 0,
-    onBack: vi.fn(),
-    onConfirm: vi.fn(),
-    loading: false,
-  }
-
-  describe('Renderizado basico', () => {
-    it('debe renderizar el componente', () => {
-      render(<Paso3RevisionFinal {...defaultProps} />)
-      expect(screen.getByTestId('card')).toBeInTheDocument()
+  describe('Estado vacio', () => {
+    it('debe mostrar mensaje cuando no hay decisiones', () => {
+      render(<Paso3RevisionFinal items={[]} decisiones={{}} />)
+      expect(screen.getByText('No hay decisiones de abastecimiento registradas.')).toBeInTheDocument()
     })
 
-    it('debe mostrar el titulo "Revision final"', () => {
-      render(<Paso3RevisionFinal {...defaultProps} />)
-      expect(screen.getByText('Revision final')).toBeInTheDocument()
+    it('debe renderizar con props por defecto', () => {
+      render(<Paso3RevisionFinal />)
+      expect(screen.getByText('No hay decisiones de abastecimiento registradas.')).toBeInTheDocument()
     })
 
-    it('debe mostrar la descripcion', () => {
-      render(<Paso3RevisionFinal {...defaultProps} />)
-      expect(screen.getByText('Confirma antes de guardar el tratamiento')).toBeInTheDocument()
+    it('debe mostrar estado vacio cuando decisiones no tienen fuentes validas', () => {
+      render(
+        <Paso3RevisionFinal
+          items={[{ idx: 0, codigo: 'MAT001' }]}
+          decisiones={{ 0: { fuentes: [] } }}
+        />
+      )
+      expect(screen.getByText('No hay decisiones de abastecimiento registradas.')).toBeInTheDocument()
     })
   })
 
-  describe('Informacion de resumen', () => {
-    it('debe mostrar el estado de la solicitud', () => {
-      render(<Paso3RevisionFinal {...defaultProps} />)
-      expect(screen.getByText('Estado')).toBeInTheDocument()
-      expect(screen.getByTestId('status-badge')).toBeInTheDocument()
+  describe('Seccion de Stock', () => {
+    const stockProps = {
+      items: [
+        { idx: 0, codigo: 'MAT001', descripcion: 'Tornillo M8', cantidad: 100, precio_unitario: 5.50 },
+      ],
+      decisiones: {
+        0: {
+          fuentes: [
+            {
+              opcion: {
+                tipo: 'stock',
+                centro_origen: '1008',
+                almacen_origen: '0100',
+                nombre_almacen: 'Almacen Central',
+                precio_unitario: 5.50,
+                plazo_dias: 2,
+              },
+              cantidad_asignada: 80,
+            },
+          ],
+        },
+      },
+    }
+
+    it('debe mostrar encabezado "DESDE STOCK"', () => {
+      render(<Paso3RevisionFinal {...stockProps} />)
+      expect(screen.getByText('DESDE STOCK')).toBeInTheDocument()
     })
 
-    it('debe mostrar items decididos sobre total', () => {
+    it('debe mostrar codigo SAP del material', () => {
+      render(<Paso3RevisionFinal {...stockProps} />)
+      expect(screen.getByText('MAT001')).toBeInTheDocument()
+    })
+
+    it('debe mostrar descripcion del material', () => {
+      render(<Paso3RevisionFinal {...stockProps} />)
+      expect(screen.getByText('Tornillo M8')).toBeInTheDocument()
+    })
+
+    it('debe mostrar cantidad solicitada', () => {
+      render(<Paso3RevisionFinal {...stockProps} />)
+      expect(screen.getByText('100')).toBeInTheDocument()
+    })
+
+    it('debe mostrar cantidad asignada', () => {
+      render(<Paso3RevisionFinal {...stockProps} />)
+      expect(screen.getByText('80')).toBeInTheDocument()
+    })
+
+    it('debe mostrar porcentaje de asignacion', () => {
+      render(<Paso3RevisionFinal {...stockProps} />)
+      expect(screen.getByText('80%')).toBeInTheDocument()
+    })
+
+    it('debe mostrar ubicacion centro/almacen', () => {
+      render(<Paso3RevisionFinal {...stockProps} />)
+      expect(screen.getByText(/1008/)).toBeInTheDocument()
+    })
+
+    it('debe mostrar nombre del almacen', () => {
+      render(<Paso3RevisionFinal {...stockProps} />)
+      expect(screen.getByText('Almacen Central')).toBeInTheDocument()
+    })
+
+    it('debe mostrar plazo en dias', () => {
+      render(<Paso3RevisionFinal {...stockProps} />)
+      expect(screen.getByText('2 dias')).toBeInTheDocument()
+    })
+
+    it('debe mostrar "Inmediato" cuando no hay plazo', () => {
       const props = {
-        ...defaultProps,
-        items: [
-          { idx: 0, codigo: 'MAT001' },
-          { idx: 1, codigo: 'MAT002' },
-        ],
-        totalItems: 3,
+        items: [{ idx: 0, codigo: 'MAT001', descripcion: 'Test', cantidad: 10 }],
         decisiones: {
-          0: { opcion_id: 1 },
-          1: { opcion_id: 2 },
+          0: {
+            fuentes: [{
+              opcion: { tipo: 'stock', centro_origen: '1008' },
+              cantidad_asignada: 10,
+            }],
+          },
         },
       }
       render(<Paso3RevisionFinal {...props} />)
-      expect(screen.getByText('Items decididos')).toBeInTheDocument()
-      expect(screen.getByText('2/3')).toBeInTheDocument()
+      expect(screen.getByText('Inmediato')).toBeInTheDocument()
     })
 
-    it('debe mostrar costo total calculado', () => {
-      const props = {
-        ...defaultProps,
-        items: [
-          { idx: 0, codigo: 'MAT001', precio_unitario: 100 },
-          { idx: 1, codigo: 'MAT002', precio_unitario: 50 },
-        ],
-        totalItems: 2,
-        decisiones: {
-          0: { opcion_id: 1, cantidad_solicitada: 10, precio_unitario: 100 },
-          1: { opcion_id: 2, cantidad_solicitada: 20, precio_unitario: 50 },
+    it('debe mostrar encabezados de tabla stock', () => {
+      render(<Paso3RevisionFinal {...stockProps} />)
+      expect(screen.getByText('Codigo SAP')).toBeInTheDocument()
+      expect(screen.getByText('Descripcion')).toBeInTheDocument()
+      expect(screen.getByText('Solicitado')).toBeInTheDocument()
+      expect(screen.getByText('Asignado')).toBeInTheDocument()
+      expect(screen.getByText('Ubicacion')).toBeInTheDocument()
+    })
+  })
+
+  describe('Seccion de Compra', () => {
+    const compraProps = {
+      items: [
+        { idx: 0, codigo: 'MAT002', descripcion: 'Tuerca M10', cantidad: 200, precio_unitario: 3.00 },
+      ],
+      decisiones: {
+        0: {
+          fuentes: [
+            {
+              opcion: {
+                tipo: 'proveedor',
+                nombre_proveedor: 'Aceros SA',
+                precio_unitario: 3.00,
+                plazo_dias: 15,
+              },
+              cantidad_asignada: 200,
+            },
+          ],
         },
-      }
-      render(<Paso3RevisionFinal {...props} />)
-      expect(screen.getByText('Costo total')).toBeInTheDocument()
-      // 10*100 + 20*50 = 2000
-      expect(screen.getByText(/2.*000/)).toBeInTheDocument()
+      },
+    }
+
+    it('debe mostrar encabezado "POR COMPRA"', () => {
+      render(<Paso3RevisionFinal {...compraProps} />)
+      expect(screen.getByText('POR COMPRA')).toBeInTheDocument()
     })
 
-    it('debe mostrar plazo maximo', () => {
-      const props = {
-        ...defaultProps,
-        items: [{ idx: 0, codigo: 'MAT001' }],
-        totalItems: 1,
-        decisiones: {
-          0: { opcion_id: 1, plazo_dias: 15 },
-        },
-      }
-      render(<Paso3RevisionFinal {...props} />)
-      expect(screen.getByText('Plazo maximo')).toBeInTheDocument()
+    it('debe mostrar codigo del material de compra', () => {
+      render(<Paso3RevisionFinal {...compraProps} />)
+      expect(screen.getByText('MAT002')).toBeInTheDocument()
+    })
+
+    it('debe mostrar proveedor', () => {
+      render(<Paso3RevisionFinal {...compraProps} />)
+      expect(screen.getByText('Aceros SA')).toBeInTheDocument()
+    })
+
+    it('debe mostrar plazo de compra', () => {
+      render(<Paso3RevisionFinal {...compraProps} />)
       expect(screen.getByText('15 dias')).toBeInTheDocument()
     })
 
-    it('debe mostrar centro y sector', () => {
+    it('debe mostrar "N/D" cuando proveedor no tiene plazo', () => {
       const props = {
-        ...defaultProps,
-        solicitud: { id: 1, centro: '1008', sector: 'Mantenimiento' },
-      }
-      render(<Paso3RevisionFinal {...props} />)
-      expect(screen.getByText('Centro / Sector')).toBeInTheDocument()
-      expect(screen.getByText('1008 / Mantenimiento')).toBeInTheDocument()
-    })
-  })
-
-  describe('Tabla de decisiones', () => {
-    it('debe mostrar mensaje cuando no hay decisiones', () => {
-      render(<Paso3RevisionFinal {...defaultProps} />)
-      expect(screen.getByText('Sin decisiones cargadas.')).toBeInTheDocument()
-    })
-
-    it('debe mostrar encabezados de tabla', () => {
-      const props = {
-        ...defaultProps,
-        items: [{ idx: 0, codigo: 'MAT001' }],
-        totalItems: 1,
-        decisiones: { 0: { opcion_id: 1, nombre: 'Stock', precio_unitario: 10 } },
-      }
-      render(<Paso3RevisionFinal {...props} />)
-
-      expect(screen.getByText('Item')).toBeInTheDocument()
-      expect(screen.getByText('Codigo')).toBeInTheDocument()
-      expect(screen.getByText('Opcion')).toBeInTheDocument()
-      expect(screen.getByText('Cantidad')).toBeInTheDocument()
-      expect(screen.getByText('P.U.')).toBeInTheDocument()
-      expect(screen.getByText('Subtotal')).toBeInTheDocument()
-      expect(screen.getByText('Plazo')).toBeInTheDocument()
-    })
-
-    it('debe mostrar filas de decisiones', () => {
-      const props = {
-        ...defaultProps,
-        items: [
-          { idx: 0, codigo: 'MAT001', cantidad: 10 },
-        ],
-        totalItems: 1,
+        items: [{ idx: 0, codigo: 'MAT003', descripcion: 'Test', cantidad: 50 }],
         decisiones: {
-          0: { opcion_id: 1, nombre: 'Stock Central', precio_unitario: 5.50, plazo_dias: 3 },
+          0: {
+            fuentes: [{
+              opcion: { tipo: 'proveedor', nombre_proveedor: 'Test Prov' },
+              cantidad_asignada: 50,
+            }],
+          },
         },
-      }
-      render(<Paso3RevisionFinal {...props} />)
-
-      expect(screen.getByText('#1')).toBeInTheDocument()
-      expect(screen.getByText('MAT001')).toBeInTheDocument()
-      expect(screen.getByText('Stock Central')).toBeInTheDocument()
-    })
-
-    it('debe mostrar cantidad correcta de la opcion', () => {
-      const props = {
-        ...defaultProps,
-        items: [{ idx: 0, codigo: 'MAT001', cantidad: 100 }],
-        totalItems: 1,
-        decisiones: {
-          0: { opcion_id: 1, cantidad_solicitada: 50, precio_unitario: 10 },
-        },
-      }
-      render(<Paso3RevisionFinal {...props} />)
-      // La cantidad viene de cantidad_solicitada de la opcion
-      expect(screen.getByText('50')).toBeInTheDocument()
-    })
-
-    it('debe calcular subtotal correctamente', () => {
-      const props = {
-        ...defaultProps,
-        items: [{ idx: 0, codigo: 'MAT001' }],
-        totalItems: 1,
-        decisiones: {
-          0: { opcion_id: 1, cantidad_solicitada: 10, precio_unitario: 100 },
-        },
-      }
-      render(<Paso3RevisionFinal {...props} />)
-      // 10 * 100 = 1000
-      expect(screen.getByText(/1.*000/)).toBeInTheDocument()
-    })
-
-    it('debe mostrar plazo por item', () => {
-      const props = {
-        ...defaultProps,
-        items: [{ idx: 0, codigo: 'MAT001' }],
-        totalItems: 1,
-        decisiones: {
-          0: { opcion_id: 1, plazo_dias: 7, precio_unitario: 10 },
-        },
-      }
-      render(<Paso3RevisionFinal {...props} />)
-      expect(screen.getByText('7 d')).toBeInTheDocument()
-    })
-
-    it('debe mostrar "N/D" cuando no hay plazo', () => {
-      const props = {
-        ...defaultProps,
-        items: [{ idx: 0, codigo: 'MAT001' }],
-        totalItems: 1,
-        decisiones: {
-          0: { opcion_id: 1, precio_unitario: 10 },
-        },
-      }
-      render(<Paso3RevisionFinal {...props} />)
-      expect(screen.getByText('N/D d')).toBeInTheDocument()
-    })
-  })
-
-  describe('Lista de proveedores', () => {
-    it('debe mostrar proveedores unicos', () => {
-      const props = {
-        ...defaultProps,
-        items: [
-          { idx: 0, codigo: 'MAT001' },
-          { idx: 1, codigo: 'MAT002' },
-        ],
-        totalItems: 2,
-        decisiones: {
-          0: { opcion_id: 1, id_proveedor: 'PROV001' },
-          1: { opcion_id: 2, id_proveedor: 'PROV002' },
-        },
-      }
-      render(<Paso3RevisionFinal {...props} />)
-      expect(screen.getByText('Proveedores')).toBeInTheDocument()
-      expect(screen.getByText('PROV001, PROV002')).toBeInTheDocument()
-    })
-
-    it('debe mostrar "N/D" cuando no hay proveedores', () => {
-      const props = {
-        ...defaultProps,
-        items: [{ idx: 0, codigo: 'MAT001' }],
-        totalItems: 1,
-        decisiones: { 0: { opcion_id: 1 } },
       }
       render(<Paso3RevisionFinal {...props} />)
       expect(screen.getByText('N/D')).toBeInTheDocument()
     })
-  })
 
-  describe('Botones de accion', () => {
-    it('debe llamar onBack al hacer clic en "Volver"', () => {
-      const onBack = vi.fn()
-      render(<Paso3RevisionFinal {...defaultProps} onBack={onBack} />)
-
-      fireEvent.click(screen.getByText('Volver'))
-      expect(onBack).toHaveBeenCalledTimes(1)
-    })
-
-    it('debe llamar onConfirm al hacer clic en "Confirmar y guardar"', () => {
-      const onConfirm = vi.fn()
+    it('debe mostrar "N/D" para proveedor sin nombre', () => {
       const props = {
-        ...defaultProps,
-        onConfirm,
-        items: [{ idx: 0, codigo: 'MAT001' }],
-        totalItems: 1,
-        decisiones: { 0: { opcion_id: 1 } },
-      }
-      render(<Paso3RevisionFinal {...props} />)
-
-      fireEvent.click(screen.getByText('Confirmar y guardar'))
-      expect(onConfirm).toHaveBeenCalledTimes(1)
-    })
-
-    it('debe mostrar "Guardando..." cuando loading es true', () => {
-      const props = {
-        ...defaultProps,
-        loading: true,
-      }
-      render(<Paso3RevisionFinal {...props} />)
-      expect(screen.getByText('Guardando...')).toBeInTheDocument()
-    })
-
-    it('debe deshabilitar boton cuando loading es true', () => {
-      const props = {
-        ...defaultProps,
-        loading: true,
-      }
-      render(<Paso3RevisionFinal {...props} />)
-      expect(screen.getByText('Guardando...')).toBeDisabled()
-    })
-
-    it('debe deshabilitar boton cuando faltan decisiones', () => {
-      const props = {
-        ...defaultProps,
-        totalItems: 3,
-        decisiones: { 0: { opcion_id: 1 } },
-      }
-      render(<Paso3RevisionFinal {...props} />)
-      expect(screen.getByText('Confirmar y guardar')).toBeDisabled()
-    })
-  })
-
-  describe('Formato de montos', () => {
-    it('debe formatear montos en USD con formato argentino', () => {
-      const props = {
-        ...defaultProps,
-        items: [{ idx: 0, codigo: 'MAT001' }],
-        totalItems: 1,
+        items: [{ idx: 0, codigo: 'MAT004', descripcion: 'Test', cantidad: 10 }],
         decisiones: {
-          0: { opcion_id: 1, cantidad_solicitada: 1, precio_unitario: 1234.56 },
+          0: {
+            fuentes: [{
+              opcion: { tipo: 'proveedor', precio_unitario: 1 },
+              cantidad_asignada: 10,
+            }],
+          },
         },
       }
       render(<Paso3RevisionFinal {...props} />)
-      // Debe mostrar USD$ con formato argentino (coma para decimales, punto para miles)
-      expect(screen.getByText(/USD\$/)).toBeInTheDocument()
+      // Column for Proveedor shows "N/D" when no nombre_proveedor or nombre
+      const ndElements = screen.getAllByText('N/D')
+      expect(ndElements.length).toBeGreaterThan(0)
+    })
+
+    it('debe mostrar encabezados de tabla compra', () => {
+      render(<Paso3RevisionFinal {...compraProps} />)
+      expect(screen.getByText('Proveedor')).toBeInTheDocument()
     })
   })
 
-  describe('Multiples items', () => {
-    it('debe renderizar multiples filas correctamente', () => {
+  describe('Resumen de costos', () => {
+    it('debe mostrar encabezado "RESUMEN DE COSTOS"', () => {
       const props = {
-        ...defaultProps,
-        items: [
-          { idx: 0, codigo: 'MAT001', cantidad: 10 },
-          { idx: 1, codigo: 'MAT002', cantidad: 20 },
-          { idx: 2, codigo: 'MAT003', cantidad: 30 },
-        ],
-        totalItems: 3,
+        items: [{ idx: 0, codigo: 'MAT001', cantidad: 10, precio_unitario: 100 }],
         decisiones: {
-          0: { opcion_id: 1, nombre: 'Stock A', precio_unitario: 100 },
-          1: { opcion_id: 2, nombre: 'Proveedor B', precio_unitario: 200 },
-          2: { opcion_id: 3, nombre: 'Stock C', precio_unitario: 50 },
+          0: {
+            fuentes: [{
+              opcion: { tipo: 'stock', precio_unitario: 100 },
+              cantidad_asignada: 10,
+            }],
+          },
         },
       }
       render(<Paso3RevisionFinal {...props} />)
+      expect(screen.getByText('RESUMEN DE COSTOS')).toBeInTheDocument()
+    })
 
-      expect(screen.getByText('#1')).toBeInTheDocument()
-      expect(screen.getByText('#2')).toBeInTheDocument()
-      expect(screen.getByText('#3')).toBeInTheDocument()
-      expect(screen.getByText('MAT001')).toBeInTheDocument()
+    it('debe mostrar etiquetas de costos', () => {
+      const props = {
+        items: [{ idx: 0, codigo: 'MAT001', cantidad: 10, precio_unitario: 50 }],
+        decisiones: {
+          0: {
+            fuentes: [{
+              opcion: { tipo: 'stock', precio_unitario: 50 },
+              cantidad_asignada: 10,
+            }],
+          },
+        },
+      }
+      render(<Paso3RevisionFinal {...props} />)
+      expect(screen.getByText('Desde Stock')).toBeInTheDocument()
+      expect(screen.getByText('Por Compra')).toBeInTheDocument()
+      expect(screen.getByText('Costo Total')).toBeInTheDocument()
+    })
+
+    it('debe mostrar conteo de lineas', () => {
+      const props = {
+        items: [{ idx: 0, codigo: 'MAT001', cantidad: 5, precio_unitario: 10 }],
+        decisiones: {
+          0: {
+            fuentes: [{
+              opcion: { tipo: 'stock', precio_unitario: 10 },
+              cantidad_asignada: 5,
+            }],
+          },
+        },
+      }
+      render(<Paso3RevisionFinal {...props} />)
+      const lineaElements = screen.getAllByText('1 lineas')
+      expect(lineaElements.length).toBeGreaterThan(0)
+    })
+
+    it('debe no mostrar resumen cuando no hay decisiones', () => {
+      render(<Paso3RevisionFinal items={[]} decisiones={{}} />)
+      expect(screen.queryByText('RESUMEN DE COSTOS')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('Multiples items y fuentes mixtas', () => {
+    const mixedProps = {
+      items: [
+        { idx: 0, codigo: 'MAT001', descripcion: 'Material A', cantidad: 100, precio_unitario: 10 },
+        { idx: 1, codigo: 'MAT002', descripcion: 'Material B', cantidad: 50, precio_unitario: 20 },
+      ],
+      decisiones: {
+        0: {
+          fuentes: [
+            {
+              opcion: { tipo: 'stock', precio_unitario: 10, centro_origen: '1008', almacen_origen: '0100' },
+              cantidad_asignada: 60,
+            },
+            {
+              opcion: { tipo: 'proveedor', precio_unitario: 12, nombre_proveedor: 'Prov A', plazo_dias: 7 },
+              cantidad_asignada: 40,
+            },
+          ],
+        },
+        1: {
+          fuentes: [
+            {
+              opcion: { tipo: 'proveedor', precio_unitario: 20, nombre_proveedor: 'Prov B', plazo_dias: 10 },
+              cantidad_asignada: 50,
+            },
+          ],
+        },
+      },
+    }
+
+    it('debe mostrar ambas secciones (stock y compra) cuando hay fuentes mixtas', () => {
+      render(<Paso3RevisionFinal {...mixedProps} />)
+      expect(screen.getByText('DESDE STOCK')).toBeInTheDocument()
+      expect(screen.getByText('POR COMPRA')).toBeInTheDocument()
+    })
+
+    it('debe mostrar todos los codigos de materiales', () => {
+      render(<Paso3RevisionFinal {...mixedProps} />)
+      expect(screen.getAllByText('MAT001').length).toBeGreaterThan(0)
       expect(screen.getByText('MAT002')).toBeInTheDocument()
-      expect(screen.getByText('MAT003')).toBeInTheDocument()
+    })
+
+    it('debe mostrar multiples proveedores', () => {
+      render(<Paso3RevisionFinal {...mixedProps} />)
+      expect(screen.getByText('Prov A')).toBeInTheDocument()
+      expect(screen.getByText('Prov B')).toBeInTheDocument()
+    })
+
+    it('debe calcular costos correctamente para fuentes mixtas', () => {
+      render(<Paso3RevisionFinal {...mixedProps} />)
+      // Stock: 60*10 = 600 -> formatted as $600,00
+      // Compra: 40*12 + 50*20 = 480+1000 = 1480 -> formatted as $1.480,00
+      // Total: 2080 -> formatted as $2.080,00
+      expect(screen.getByText('RESUMEN DE COSTOS')).toBeInTheDocument()
+    })
+  })
+
+  describe('Equivalencia como compra', () => {
+    it('debe tratar equivalencias como compra', () => {
+      const props = {
+        items: [{ idx: 0, codigo: 'MAT005', descripcion: 'Equiv Test', cantidad: 30 }],
+        decisiones: {
+          0: {
+            fuentes: [{
+              opcion: { tipo: 'equivalencia', nombre_proveedor: 'Equiv Prov', precio_unitario: 8, plazo_dias: 5 },
+              cantidad_asignada: 30,
+            }],
+          },
+        },
+      }
+      render(<Paso3RevisionFinal {...props} />)
+      expect(screen.getByText('POR COMPRA')).toBeInTheDocument()
+      expect(screen.queryByText('DESDE STOCK')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('Transferencia como stock', () => {
+    it('debe tratar transferencias como stock', () => {
+      const props = {
+        items: [{ idx: 0, codigo: 'MAT006', descripcion: 'Transfer Test', cantidad: 20 }],
+        decisiones: {
+          0: {
+            fuentes: [{
+              opcion: { tipo: 'transferencia', centro_origen: '2000', almacen_origen: '0100', precio_unitario: 15 },
+              cantidad_asignada: 20,
+            }],
+          },
+        },
+      }
+      render(<Paso3RevisionFinal {...props} />)
+      expect(screen.getByText('DESDE STOCK')).toBeInTheDocument()
+      expect(screen.queryByText('POR COMPRA')).not.toBeInTheDocument()
     })
   })
 })

@@ -11,11 +11,10 @@ import { MemoryRouter } from 'react-router-dom'
 // MOCKS - must be defined before importing the component
 // ============================================================================
 
+const stableT = vi.fn((key, fallback) => fallback || key)
+const stableI18n = { t: stableT, lang: 'es' }
 vi.mock('../../context/i18n', () => ({
-  useI18n: () => ({
-    t: (key, fallback) => fallback || key,
-    lang: 'es',
-  }),
+  useI18n: () => stableI18n,
 }))
 
 const mockToast = {

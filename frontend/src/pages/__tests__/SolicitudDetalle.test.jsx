@@ -27,82 +27,79 @@ vi.mock('../../services/spm', () => ({
   },
 }))
 
+// Stable t function for i18n mock (module-level const)
+const mockT = (key, fallback) => fallback || key
+
 // Mock de i18n
 vi.mock('../../context/i18n', () => ({
   useI18n: () => ({
-    t: (key, fallback) => fallback || key,
+    t: mockT,
   }),
 }))
 
-// Mock de componentes UI
-vi.mock('../../components/ui/Button', () => ({
-  Button: ({ children, onClick, variant }) => (
-    <button onClick={onClick} data-variant={variant}>
-      {children}
-    </button>
-  ),
+// Mock authStore
+vi.mock('../../store/authStore', () => ({
+  useAuthStore: () => ({
+    user: { id: 1, rol: 'admin', roles: ['admin'] },
+  }),
 }))
 
-vi.mock('../../components/ui/Card', () => ({
-  Card: ({ children }) => <div data-testid="card">{children}</div>,
-  CardHeader: ({ children }) => <div data-testid="card-header">{children}</div>,
-  CardTitle: ({ children }) => <h3 data-testid="card-title">{children}</h3>,
-  CardContent: ({ children }) => <div data-testid="card-content">{children}</div>,
-}))
-
-vi.mock('../../components/ui/PageHeader', () => ({
-  PageHeader: ({ title, actions }) => (
-    <div data-testid="page-header-wrapper">
-      <h1 data-testid="page-header">{title}</h1>
-      {actions && <div data-testid="page-header-actions">{actions}</div>}
-    </div>
-  ),
-}))
-
-vi.mock('../../components/ui/Alert', () => ({
-  Alert: ({ children, variant }) => (
-    <div data-testid="alert" data-variant={variant}>
-      {children}
-    </div>
-  ),
-}))
-
-vi.mock('../../components/ui/Badge', () => ({
-  Badge: ({ children, variant }) => (
-    <span data-testid="badge" data-variant={variant}>
-      {children}
-    </span>
-  ),
-}))
-
+// Mock StatusBadge
 vi.mock('../../components/ui/StatusBadge', () => ({
   default: ({ estado }) => <span data-testid="status-badge">{estado}</span>,
 }))
 
-vi.mock('../../components/ui/ScrollReveal', () => ({
-  ScrollReveal: ({ children }) => <div>{children}</div>,
+// Mock SPMAgGrid - renders rows as simple table for testing
+vi.mock('../../components/ui/SPMAgGrid', () => ({
+  SPMAgGrid: ({ rowData, columnDefs, emptyMessage }) => {
+    if (!rowData || rowData.length === 0) {
+      return <div data-testid="ag-grid-empty">{emptyMessage}</div>
+    }
+    return (
+      <table data-testid="ag-grid">
+        <thead>
+          <tr>
+            {columnDefs.map((col) => (
+              <th key={col.field}>{col.headerName}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rowData.map((row, idx) => (
+            <tr key={idx}>
+              {columnDefs.map((col) => {
+                // Handle valueFormatter
+                if (col.valueFormatter) {
+                  return (
+                    <td key={col.field}>
+                      {col.valueFormatter({ data: row })}
+                    </td>
+                  )
+                }
+                // Handle cellRenderer
+                if (col.cellRenderer) {
+                  return (
+                    <td key={col.field}>
+                      {col.cellRenderer({ data: row })}
+                    </td>
+                  )
+                }
+                return <td key={col.field}>{row[col.field]}</td>
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  },
 }))
 
+// Mock formatters
 vi.mock('../../utils/formatters', () => ({
   formatCurrency: (val) => `$${val || 0}`,
   formatDate: (val) => val || '-',
   getSectorNombre: (val) => val || '-',
   formatAlmacen: (val) => val || '-',
-}))
-
-vi.mock('../../components/ui/Icons', () => ({
-  ArrowLeft: () => <span>←</span>,
-  Calendar: () => <span>📅</span>,
-  Building2: () => <span>🏢</span>,
-  MapPin: () => <span>📍</span>,
-  FileText: () => <span>📄</span>,
-  Package: () => <span>📦</span>,
-  DollarSign: () => <span>$</span>,
-  AlertTriangle: () => <span>⚠</span>,
-  Clock: () => <span>⏰</span>,
-  User: () => <span>👤</span>,
-  Hash: () => <span>#</span>,
-  ICON_COLORS: { money: 'text-blue-500', logistics: 'text-amber-500' },
 }))
 
 // Datos de prueba
@@ -158,7 +155,9 @@ describe('SolicitudDetalle', () => {
     it('should show back button during loading', () => {
       solicitudes.obtener.mockImplementation(() => new Promise(() => {}))
       renderComponent()
-      expect(screen.getByText('Volver')).toBeInTheDocument()
+      // The component uses an MUI IconButton with ArrowBackIcon, no text "Volver"
+      // We look for the back arrow icon by its test id
+      expect(screen.getByTestId('ArrowBackIcon')).toBeInTheDocument()
     })
   })
 
@@ -166,7 +165,8 @@ describe('SolicitudDetalle', () => {
     it('should render page header with solicitud ID', async () => {
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByTestId('page-header')).toHaveTextContent('#123')
+        // The component renders an h1 with "Solicitud #123"
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('#123')
       })
     })
 
@@ -254,22 +254,25 @@ describe('SolicitudDetalle', () => {
   })
 
   describe('Criticidad Display', () => {
-    it('should display normal criticidad with default badge', async () => {
+    it('should display normal criticidad with default chip', async () => {
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByTestId('badge')).toHaveTextContent('Normal')
+        // Component uses MUI Chip for criticidad
+        const chip = screen.getByText('Normal')
+        expect(chip).toBeInTheDocument()
       })
     })
 
-    it('should display alta criticidad with danger badge', async () => {
+    it('should display alta criticidad with error chip', async () => {
       solicitudes.obtener.mockResolvedValue({
         data: { solicitud: { ...mockSolicitud, criticidad: 'Alta' } }
       })
       renderComponent()
       await waitFor(() => {
-        const badge = screen.getByTestId('badge')
-        expect(badge).toHaveTextContent('Alta')
-        expect(badge).toHaveAttribute('data-variant', 'danger')
+        const chip = screen.getByText('Alta')
+        expect(chip).toBeInTheDocument()
+        // MUI Chip with color="error" gets a class containing "colorError"
+        expect(chip.closest('.MuiChip-root')).toHaveClass('MuiChip-colorError')
       })
     })
   })
@@ -279,7 +282,9 @@ describe('SolicitudDetalle', () => {
       solicitudes.obtener.mockResolvedValue({ data: null })
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByText('No se encontró la solicitud')).toBeInTheDocument()
+        // The component sets error "No se encontro la solicitud" (without accent)
+        // but then falls through to !solicitud check which renders the alert
+        expect(screen.getByText(/no.*encontr/i)).toBeInTheDocument()
       })
     })
   })
@@ -291,7 +296,6 @@ describe('SolicitudDetalle', () => {
       })
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByTestId('alert')).toBeInTheDocument()
         expect(screen.getByText('Error de servidor')).toBeInTheDocument()
       })
     })
@@ -300,7 +304,8 @@ describe('SolicitudDetalle', () => {
       solicitudes.obtener.mockRejectedValue(new Error('Network Error'))
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByTestId('alert')).toBeInTheDocument()
+        // Falls back to err.message which is "Network Error"
+        expect(screen.getByText('Network Error')).toBeInTheDocument()
       })
     })
   })
@@ -328,17 +333,19 @@ describe('SolicitudDetalle', () => {
     it('should render information cards', async () => {
       renderComponent()
       await waitFor(() => {
-        const cards = screen.getAllByTestId('card')
-        expect(cards.length).toBeGreaterThanOrEqual(3)
+        // Component uses MUI Paper with variant="outlined"
+        const papers = document.querySelectorAll('.MuiPaper-outlined')
+        expect(papers.length).toBeGreaterThanOrEqual(3)
       })
     })
 
     it('should render card titles', async () => {
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByText('Información General')).toBeInTheDocument()
-        expect(screen.getByText('Ubicación y Costos')).toBeInTheDocument()
-        expect(screen.getByText('Justificación')).toBeInTheDocument()
+        // i18n mock returns fallback strings which do NOT have accents
+        expect(screen.getByText('Informacion General')).toBeInTheDocument()
+        expect(screen.getByText('Ubicacion y Costos')).toBeInTheDocument()
+        expect(screen.getByText('Justificacion')).toBeInTheDocument()
       })
     })
   })

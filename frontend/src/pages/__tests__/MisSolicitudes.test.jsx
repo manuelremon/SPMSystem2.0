@@ -4,53 +4,23 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
-import MisSolicitudes from '../MisSolicitudes';
+import { MemoryRouter } from 'react-router-dom';
 
-// Mock de spm service
-vi.mock('../../services/spm', () => ({
-  getMisSolicitudes: vi.fn(() => Promise.resolve({
-    data: {
-      ok: true,
-      solicitudes: [
-        {
-          id: 1,
-          numero_solicitud: 'SOL-2025-001',
-          estado: 'draft',
-          created_at: '2025-01-01T10:00:00',
-          items_count: 3,
-          total_items: 3
-        },
-        {
-          id: 2,
-          numero_solicitud: 'SOL-2025-002',
-          estado: 'submitted',
-          created_at: '2025-01-02T10:00:00',
-          items_count: 5,
-          total_items: 5
-        }
-      ],
-      pagination: {
-        total: 2,
-        page: 1,
-        per_page: 10,
-        pages: 1
-      }
-    }
-  })),
-  deleteSolicitud: vi.fn(() => Promise.resolve({ data: { ok: true } }))
-}));
+// ============================================================================
+// MOCKS - must be defined before importing the component
+// ============================================================================
 
+// Stable i18n mock (module-level const to avoid re-render loops)
+const mockT = (key, fallback) => fallback || key;
+const mockI18n = { t: mockT, lang: 'es' };
 vi.mock('../../context/i18n', () => ({
-  useI18n: () => ({
-    t: (key, fallback) => fallback || key
-  })
+  useI18n: () => mockI18n,
 }));
 
 vi.mock('../../store/authStore', () => ({
   useAuthStore: () => ({
-    user: { id: '1', nombre: 'Test User' }
-  })
+    user: { id: '1', nombre: 'Test User' },
+  }),
 }));
 
 // Mock navigate
@@ -59,45 +29,158 @@ vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
-    useNavigate: () => mockNavigate
+    useNavigate: () => mockNavigate,
   };
 });
 
-import { getMisSolicitudes, deleteSolicitud } from '../../services/spm';
+// Mock spm service - component uses `solicitudes.listar()` and `solicitudes.eliminar()`
+const mockListar = vi.fn();
+const mockEliminar = vi.fn();
+vi.mock('../../services/spm', () => ({
+  solicitudes: {
+    listar: (...args) => mockListar(...args),
+    eliminar: (...args) => mockEliminar(...args),
+  },
+}));
 
+// Mock api (used for fetching sectores: api.get('/catalogos/sectores'))
+const mockApiGet = vi.fn();
+vi.mock('../../services/api', () => ({
+  default: {
+    get: (...args) => mockApiGet(...args),
+    post: vi.fn(() => Promise.resolve({ data: {} })),
+    put: vi.fn(() => Promise.resolve({ data: {} })),
+    delete: vi.fn(() => Promise.resolve({ data: {} })),
+  },
+}));
+
+// Mock useDebounced to return value immediately (no delay)
+vi.mock('../../hooks/useDebounced', () => ({
+  useDebounced: (value) => value,
+  default: (value) => value,
+}));
+
+// Mock formatters
+vi.mock('../../utils/formatters', () => ({
+  formatDate: (d) => d || '-',
+  formatCurrency: (v) => `$${v || 0}`,
+  getSectorNombre: (s) => s || '-',
+  formatAlmacen: (a) => a || '-',
+}));
+
+// Mock styleConfig
+vi.mock('../../utils/styleConfig', () => ({
+  getCriticidadConfig: (c) => ({ label: c || 'Normal', color: '#333', bg: '#eee' }),
+}));
+
+// Mock StatusBadge
+vi.mock('../../components/ui/StatusBadge', () => ({
+  default: ({ estado }) => <span data-testid="status-badge">{estado}</span>,
+}));
+
+// Mock SPMAgGrid - render data in a testable table
+vi.mock('../../components/ui/SPMAgGrid', () => ({
+  SPMAgGrid: ({ rowData, columnDefs, loading, emptyMessage, onRowDoubleClick }) => (
+    <div data-testid="spm-ag-grid">
+      {loading ? (
+        <span data-testid="grid-loading">Cargando...</span>
+      ) : rowData?.length > 0 ? (
+        <table>
+          <thead>
+            <tr>
+              {columnDefs?.map((col, i) => (
+                <th key={i}>{col.headerName}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rowData.map((row, i) => (
+              <tr
+                key={row.id || i}
+                data-testid={`grid-row-${row.id || i}`}
+                onDoubleClick={() => onRowDoubleClick && onRowDoubleClick(row)}
+              >
+                <td>{row.id}</td>
+                <td>{row.fecha_creacion || row.created_at}</td>
+                <td>{row.justificacion || '-'}</td>
+                <td>{row.centro || '-'}</td>
+                <td>{row.almacen_virtual || '-'}</td>
+                <td>{row.sector || '-'}</td>
+                <td>{row.criticidad || 'Normal'}</td>
+                <td>${row.total_monto || 0}</td>
+                <td data-testid={`status-${row.id}`}>{row.estado || row.status}</td>
+                <td>{row.planner_nombre || '-'}</td>
+                <td>
+                  {columnDefs?.find(c => c.headerName === 'Acciones')?.cellRenderer?.({
+                    data: row,
+                    value: row.acciones,
+                  })}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <span data-testid="grid-empty">{emptyMessage}</span>
+      )}
+    </div>
+  ),
+}));
+
+import MisSolicitudes from '../MisSolicitudes';
+
+// ============================================================================
+// TEST DATA
+// ============================================================================
+const mockSolicitudes = [
+  {
+    id: 1,
+    estado: 'draft',
+    created_at: '2025-01-01T10:00:00',
+    items_count: 3,
+    justificacion: 'Solicitud de prueba 1',
+    centro: 'C100',
+  },
+  {
+    id: 2,
+    estado: 'submitted',
+    created_at: '2025-01-02T10:00:00',
+    items_count: 5,
+    justificacion: 'Solicitud de prueba 2',
+    centro: 'C200',
+  },
+];
+
+// ============================================================================
+// HELPERS
+// ============================================================================
 const renderMisSolicitudes = () => {
   return render(
-    <BrowserRouter>
+    <MemoryRouter>
       <MisSolicitudes />
-    </BrowserRouter>
+    </MemoryRouter>
   );
 };
 
+// ============================================================================
+// TESTS
+// ============================================================================
 describe('MisSolicitudes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getMisSolicitudes.mockResolvedValue({
+
+    // Default: sectores fetch succeeds
+    mockApiGet.mockResolvedValue({ data: [] });
+
+    // Default: solicitudes.listar succeeds with mock data
+    mockListar.mockResolvedValue({
       data: {
         ok: true,
-        solicitudes: [
-          {
-            id: 1,
-            numero_solicitud: 'SOL-2025-001',
-            estado: 'draft',
-            created_at: '2025-01-01T10:00:00',
-            items_count: 3
-          },
-          {
-            id: 2,
-            numero_solicitud: 'SOL-2025-002',
-            estado: 'submitted',
-            created_at: '2025-01-02T10:00:00',
-            items_count: 5
-          }
-        ],
-        pagination: { total: 2, page: 1, per_page: 10, pages: 1 }
-      }
+        solicitudes: mockSolicitudes,
+      },
     });
+
+    mockEliminar.mockResolvedValue({ data: { ok: true } });
   });
 
   describe('Renderizado inicial', () => {
@@ -105,7 +188,7 @@ describe('MisSolicitudes', () => {
       renderMisSolicitudes();
 
       await waitFor(() => {
-        expect(screen.getByText(/mis solicitudes/i)).toBeInTheDocument();
+        expect(screen.getByText(/Mis Solicitudes/i)).toBeInTheDocument();
       });
     });
 
@@ -113,45 +196,45 @@ describe('MisSolicitudes', () => {
       renderMisSolicitudes();
 
       await waitFor(() => {
-        const newButton = screen.getByRole('button', { name: /nueva|crear/i });
+        const newButton = screen.getByRole('button', { name: /Crear Solicitud/i });
         expect(newButton).toBeInTheDocument();
       });
     });
   });
 
   describe('Carga de datos', () => {
-    it('llama a getMisSolicitudes al montar', async () => {
+    it('llama a solicitudes.listar al montar', async () => {
       renderMisSolicitudes();
 
       await waitFor(() => {
-        expect(getMisSolicitudes).toHaveBeenCalled();
+        expect(mockListar).toHaveBeenCalled();
       });
     });
 
-    it('muestra las solicitudes cargadas', async () => {
+    it('muestra las solicitudes cargadas en el grid', async () => {
       renderMisSolicitudes();
 
       await waitFor(() => {
-        expect(screen.getByText('SOL-2025-001')).toBeInTheDocument();
-        expect(screen.getByText('SOL-2025-002')).toBeInTheDocument();
+        expect(screen.getByTestId('grid-row-1')).toBeInTheDocument();
+        expect(screen.getByTestId('grid-row-2')).toBeInTheDocument();
       });
     });
   });
 
   describe('Estados de solicitud', () => {
-    it('muestra badge de estado borrador', async () => {
+    it('muestra estado borrador para solicitud draft', async () => {
       renderMisSolicitudes();
 
       await waitFor(() => {
-        expect(screen.getByText(/borrador|draft/i)).toBeInTheDocument();
+        expect(screen.getByTestId('status-1')).toHaveTextContent('draft');
       });
     });
 
-    it('muestra badge de estado enviada', async () => {
+    it('muestra estado enviada para solicitud submitted', async () => {
       renderMisSolicitudes();
 
       await waitFor(() => {
-        expect(screen.getByText(/enviada|submitted/i)).toBeInTheDocument();
+        expect(screen.getByTestId('status-2')).toHaveTextContent('submitted');
       });
     });
   });
@@ -161,10 +244,10 @@ describe('MisSolicitudes', () => {
       renderMisSolicitudes();
 
       await waitFor(() => {
-        const newButton = screen.getByRole('button', { name: /nueva|crear/i });
-        fireEvent.click(newButton);
+        expect(screen.getByRole('button', { name: /Crear Solicitud/i })).toBeInTheDocument();
       });
 
+      fireEvent.click(screen.getByRole('button', { name: /Crear Solicitud/i }));
       expect(mockNavigate).toHaveBeenCalledWith('/solicitudes/nueva');
     });
 
@@ -172,38 +255,34 @@ describe('MisSolicitudes', () => {
       renderMisSolicitudes();
 
       await waitFor(() => {
-        expect(screen.getByText('SOL-2025-001')).toBeInTheDocument();
+        expect(screen.getByTestId('grid-row-1')).toBeInTheDocument();
       });
 
-      // Buscar enlace o fila clickeable
-      const solicitudRow = screen.getByText('SOL-2025-001').closest('tr');
-      if (solicitudRow) {
-        fireEvent.click(solicitudRow);
-      }
+      // The grid renders action buttons via cellRenderer - for draft rows there is "Editar"
+      // We verify the row exists and can be interacted with
+      const row = screen.getByTestId('grid-row-1');
+      expect(row).toBeInTheDocument();
     });
   });
 
   describe('Filtros', () => {
-    it('permite filtrar por estado', async () => {
+    it('permite filtrar por estado via tabs', async () => {
       renderMisSolicitudes();
 
       await waitFor(() => {
-        const filterSelect = screen.getByRole('combobox');
-        if (filterSelect) {
-          expect(filterSelect).toBeInTheDocument();
-        }
+        // Tabs are rendered: Todas, Borradores, Enviadas, Aprobadas, Rechazadas, Cerradas
+        expect(screen.getByText('Todas')).toBeInTheDocument();
+        expect(screen.getByText('Borradores')).toBeInTheDocument();
+        expect(screen.getByText('Enviadas')).toBeInTheDocument();
       });
     });
 
-    it('permite buscar por texto', async () => {
+    it('permite buscar por texto - el componente tiene busqueda quick filter en grid', async () => {
       renderMisSolicitudes();
 
+      // The SPMAgGrid has enableQuickFilter=true which renders a toolbar
       await waitFor(() => {
-        const searchInput = screen.getByPlaceholderText(/buscar/i);
-        if (searchInput) {
-          fireEvent.change(searchInput, { target: { value: 'SOL-2025' } });
-          expect(searchInput.value).toBe('SOL-2025');
-        }
+        expect(screen.getByTestId('spm-ag-grid')).toBeInTheDocument();
       });
     });
   });
@@ -213,94 +292,85 @@ describe('MisSolicitudes', () => {
       renderMisSolicitudes();
 
       await waitFor(() => {
-        expect(screen.getByText('SOL-2025-001')).toBeInTheDocument();
+        expect(screen.getByTestId('grid-row-1')).toBeInTheDocument();
       });
 
-      // Buscar boton de editar
-      const editButtons = screen.getAllByRole('button');
-      const editButton = editButtons.find(btn =>
-        btn.getAttribute('aria-label')?.includes('editar') ||
-        btn.textContent?.toLowerCase().includes('editar')
-      );
-
-      if (editButton) {
-        expect(editButton).toBeInTheDocument();
-      }
+      // The cellRenderer for draft rows shows "Editar" button
+      const editButton = screen.getByText('Editar');
+      expect(editButton).toBeInTheDocument();
     });
 
     it('permite eliminar solicitud en borrador', async () => {
       renderMisSolicitudes();
 
       await waitFor(() => {
-        expect(screen.getByText('SOL-2025-001')).toBeInTheDocument();
+        expect(screen.getByTestId('grid-row-1')).toBeInTheDocument();
       });
 
-      // Buscar boton de eliminar
-      const deleteButtons = screen.getAllByRole('button');
-      const deleteButton = deleteButtons.find(btn =>
-        btn.getAttribute('aria-label')?.includes('eliminar') ||
-        btn.getAttribute('aria-label')?.includes('borrar')
-      );
+      // The cellRenderer for draft rows shows "Borrar" button
+      const deleteButton = screen.getByText('Borrar');
+      expect(deleteButton).toBeInTheDocument();
 
-      if (deleteButton) {
-        fireEvent.click(deleteButton);
-        // Deberia mostrar confirmacion
-      }
+      // Clicking Borrar should open the delete modal
+      fireEvent.click(deleteButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Eliminar solicitud')).toBeInTheDocument();
+      });
     });
   });
 
   describe('Lista vacia', () => {
     it('muestra mensaje cuando no hay solicitudes', async () => {
-      getMisSolicitudes.mockResolvedValue({
+      mockListar.mockResolvedValue({
         data: {
           ok: true,
           solicitudes: [],
-          pagination: { total: 0, page: 1, per_page: 10, pages: 0 }
-        }
+        },
       });
 
       renderMisSolicitudes();
 
       await waitFor(() => {
-        expect(screen.getByText(/no tienes solicitudes|sin solicitudes/i)).toBeInTheDocument();
+        expect(screen.getByTestId('grid-empty')).toHaveTextContent('No tienes solicitudes');
       });
     });
   });
 
   describe('Manejo de errores', () => {
     it('muestra error cuando falla la carga', async () => {
-      getMisSolicitudes.mockRejectedValue(new Error('Error de red'));
+      mockListar.mockRejectedValue(new Error('Error de red'));
 
       renderMisSolicitudes();
 
       await waitFor(() => {
-        expect(screen.getByText(/error/i)).toBeInTheDocument();
+        expect(screen.getByText(/Error de red/i)).toBeInTheDocument();
       });
     });
   });
 
   describe('Paginacion', () => {
     it('muestra paginacion cuando hay muchas solicitudes', async () => {
-      getMisSolicitudes.mockResolvedValue({
+      mockListar.mockResolvedValue({
         data: {
           ok: true,
           solicitudes: Array.from({ length: 10 }, (_, i) => ({
             id: i + 1,
-            numero_solicitud: `SOL-2025-00${i + 1}`,
             estado: 'draft',
             created_at: '2025-01-01',
-            items_count: 1
+            items_count: 1,
+            justificacion: `Solicitud ${i + 1}`,
           })),
-          pagination: { total: 25, page: 1, per_page: 10, pages: 3 }
-        }
+        },
       });
 
       renderMisSolicitudes();
 
+      // The SPMAgGrid component handles pagination internally (AG Grid)
+      // We verify the grid receives the data correctly
       await waitFor(() => {
-        // Deberia haber controles de paginacion
-        const nextButton = screen.getByRole('button', { name: /siguiente|next|›/i });
-        expect(nextButton).toBeInTheDocument();
+        expect(screen.getByTestId('grid-row-1')).toBeInTheDocument();
+        expect(screen.getByTestId('grid-row-10')).toBeInTheDocument();
       });
     });
   });

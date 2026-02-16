@@ -1,30 +1,41 @@
 /**
  * Tests para Paso1AnalisisInicial
- * Generado por Sugar Autonomous System
+ * Updated to match MUI-based component implementation
  */
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import Paso1AnalisisInicial from '../Paso1AnalisisInicial'
 
-// Mock de componentes UI
-vi.mock('../../ui/Card', () => ({
-  Card: ({ children, className }) => <div data-testid="card" className={className}>{children}</div>,
-  CardHeader: ({ children, className }) => <div data-testid="card-header" className={className}>{children}</div>,
-  CardTitle: ({ children }) => <h2 data-testid="card-title">{children}</h2>,
-  CardDescription: ({ children, className }) => <p data-testid="card-description" className={className}>{children}</p>,
-  CardContent: ({ children, className }) => <div data-testid="card-content" className={className}>{children}</div>,
+// Mock api and csrf (used by PresupuestoInsuficienteModal)
+vi.mock('../../../services/api', () => ({
+  default: { post: vi.fn(), patch: vi.fn() },
+}))
+vi.mock('../../../services/csrf', () => ({
+  ensureCsrfToken: vi.fn(),
 }))
 
-vi.mock('../../ui/Button', () => ({
-  Button: ({ children, onClick, variant, type }) => (
-    <button onClick={onClick} data-variant={variant} type={type}>
-      {children}
-    </button>
+// Mock formatCurrency to return a predictable string
+vi.mock('../../../utils/formatters', () => ({
+  formatCurrency: (val) => `USD ${(val || 0).toFixed(2)}`,
+}))
+
+// Mock SPMAgGrid to render row data as text
+vi.mock('../../ui/SPMAgGrid', () => ({
+  SPMAgGrid: ({ rowData, columnDefs, emptyMessage }) => (
+    <div data-testid="spm-ag-grid">
+      {(!rowData || rowData.length === 0) ? (
+        <span>{emptyMessage}</span>
+      ) : (
+        rowData.map((row, idx) => (
+          <div key={idx} data-testid={`grid-row-${idx}`}>
+            {columnDefs.map((col) => (
+              <span key={col.field}>{row[col.field]}</span>
+            ))}
+          </div>
+        ))
+      )}
+    </div>
   ),
-}))
-
-vi.mock('../../ui/StatusBadge', () => ({
-  default: ({ status }) => <span data-testid="status-badge">{status}</span>,
 }))
 
 describe('Paso1AnalisisInicial', () => {
@@ -36,35 +47,38 @@ describe('Paso1AnalisisInicial', () => {
     onRequestInfo: vi.fn(),
   }
 
-  describe('Renderizado básico', () => {
+  describe('Renderizado basico', () => {
     it('debe renderizar el componente', () => {
       render(<Paso1AnalisisInicial {...defaultProps} />)
-      expect(screen.getByTestId('card')).toBeInTheDocument()
+      // Component renders a MUI Paper as the root element with a header
+      expect(screen.getByText(/lisis Inicial/)).toBeInTheDocument()
     })
 
-    it('debe mostrar el título "Analisis inicial"', () => {
+    it('debe mostrar el titulo "Analisis Inicial"', () => {
       render(<Paso1AnalisisInicial {...defaultProps} />)
-      expect(screen.getByText('Analisis inicial')).toBeInTheDocument()
+      expect(screen.getByText(/lisis Inicial/)).toBeInTheDocument()
     })
 
-    it('debe mostrar la descripción', () => {
+    it('debe mostrar la seccion de balance presupuesto', () => {
       render(<Paso1AnalisisInicial {...defaultProps} />)
-      expect(screen.getByText(/Presupuesto, criticidad y conflictos/)).toBeInTheDocument()
+      expect(screen.getByText('BALANCE PRESUPUESTO')).toBeInTheDocument()
     })
 
-    it('debe mostrar el botón "Continuar con tratamiento"', () => {
+    it('debe mostrar las tres secciones de alertas', () => {
       render(<Paso1AnalisisInicial {...defaultProps} />)
-      expect(screen.getByText('Continuar con tratamiento')).toBeInTheDocument()
+      expect(screen.getByText('CONFLICTOS')).toBeInTheDocument()
+      expect(screen.getByText('AVISOS')).toBeInTheDocument()
+      expect(screen.getByText('RECOMENDACIONES')).toBeInTheDocument()
     })
   })
 
-  describe('Sección de Presupuesto', () => {
-    it('debe mostrar el análisis presupuestario', () => {
+  describe('Seccion de Presupuesto', () => {
+    it('debe mostrar el balance presupuesto', () => {
       render(<Paso1AnalisisInicial {...defaultProps} />)
-      expect(screen.getByText('Análisis Presupuestario')).toBeInTheDocument()
+      expect(screen.getByText('BALANCE PRESUPUESTO')).toBeInTheDocument()
     })
 
-    it('debe mostrar presupuesto total', () => {
+    it('debe mostrar presupuesto disponible', () => {
       const props = {
         ...defaultProps,
         analisis: {
@@ -75,7 +89,7 @@ describe('Paso1AnalisisInicial', () => {
         },
       }
       render(<Paso1AnalisisInicial {...props} />)
-      expect(screen.getByText('Presupuesto Total')).toBeInTheDocument()
+      expect(screen.getByText('Presupuesto Disponible')).toBeInTheDocument()
     })
 
     it('debe mostrar balance positivo con check', () => {
@@ -95,10 +109,10 @@ describe('Paso1AnalisisInicial', () => {
     })
   })
 
-  describe('Sección de Conflictos', () => {
-    it('debe mostrar "Sin conflictos detectados" cuando no hay conflictos', () => {
+  describe('Seccion de Conflictos', () => {
+    it('debe mostrar "Sin conflictos" cuando no hay conflictos', () => {
       render(<Paso1AnalisisInicial {...defaultProps} />)
-      expect(screen.getByText('Sin conflictos detectados')).toBeInTheDocument()
+      expect(screen.getByText('Sin conflictos')).toBeInTheDocument()
     })
 
     it('debe mostrar conflictos cuando existen', () => {
@@ -114,7 +128,7 @@ describe('Paso1AnalisisInicial', () => {
       expect(screen.getByText('STOCK')).toBeInTheDocument()
     })
 
-    it('debe marcar conflictos críticos con emoji de advertencia', () => {
+    it('debe marcar conflictos criticos con emoji de advertencia', () => {
       const props = {
         ...defaultProps,
         analisis: {
@@ -124,11 +138,13 @@ describe('Paso1AnalisisInicial', () => {
         },
       }
       render(<Paso1AnalisisInicial {...props} />)
-      expect(screen.getByText(/PRESUPUESTO/)).toBeInTheDocument()
+      // The critical item renders with a warning emoji prefix
+      const items = screen.getAllByText(/PRESUPUESTO/)
+      expect(items.length).toBeGreaterThanOrEqual(1)
     })
   })
 
-  describe('Sección de Avisos', () => {
+  describe('Seccion de Avisos', () => {
     it('debe mostrar "Sin avisos" cuando no hay avisos', () => {
       render(<Paso1AnalisisInicial {...defaultProps} />)
       expect(screen.getByText('Sin avisos')).toBeInTheDocument()
@@ -148,7 +164,7 @@ describe('Paso1AnalisisInicial', () => {
     })
   })
 
-  describe('Sección de Recomendaciones', () => {
+  describe('Seccion de Recomendaciones', () => {
     it('debe mostrar "Sin recomendaciones" cuando no hay recomendaciones', () => {
       render(<Paso1AnalisisInicial {...defaultProps} />)
       expect(screen.getByText('Sin recomendaciones')).toBeInTheDocument()
@@ -168,10 +184,10 @@ describe('Paso1AnalisisInicial', () => {
     })
   })
 
-  describe('Sección de Materiales', () => {
-    it('debe mostrar "Materiales Solicitados"', () => {
+  describe('Seccion de Materiales', () => {
+    it('debe mostrar "MATERIALES SOLICITADOS"', () => {
       render(<Paso1AnalisisInicial {...defaultProps} />)
-      expect(screen.getByText('Materiales Solicitados')).toBeInTheDocument()
+      expect(screen.getByText('MATERIALES SOLICITADOS')).toBeInTheDocument()
     })
 
     it('debe mostrar materiales de la solicitud', () => {
@@ -203,15 +219,7 @@ describe('Paso1AnalisisInicial', () => {
   })
 
   describe('Interacciones', () => {
-    it('debe llamar onNext al hacer clic en "Continuar con tratamiento"', () => {
-      const onNext = vi.fn()
-      render(<Paso1AnalisisInicial {...defaultProps} onNext={onNext} />)
-
-      fireEvent.click(screen.getByText('Continuar con tratamiento'))
-      expect(onNext).toHaveBeenCalledTimes(1)
-    })
-
-    it('debe mostrar botón "Rechazar solicitud" cuando hay conflictos críticos', () => {
+    it('debe mostrar boton "Rechazar solicitud" cuando hay conflictos criticos', () => {
       const props = {
         ...defaultProps,
         analisis: {
@@ -241,7 +249,7 @@ describe('Paso1AnalisisInicial', () => {
       expect(onReject).toHaveBeenCalledTimes(1)
     })
 
-    it('debe mostrar botón "Solicitar información" cuando hay conflictos', () => {
+    it('debe mostrar boton "Solicitar informacion" cuando hay conflictos', () => {
       const props = {
         ...defaultProps,
         analisis: {
@@ -251,10 +259,10 @@ describe('Paso1AnalisisInicial', () => {
         },
       }
       render(<Paso1AnalisisInicial {...props} />)
-      expect(screen.getByText('Solicitar información')).toBeInTheDocument()
+      expect(screen.getByText(/Solicitar informaci/)).toBeInTheDocument()
     })
 
-    it('debe llamar onRequestInfo al solicitar información', () => {
+    it('debe llamar onRequestInfo al solicitar informacion', () => {
       const onRequestInfo = vi.fn()
       const props = {
         ...defaultProps,
@@ -267,37 +275,44 @@ describe('Paso1AnalisisInicial', () => {
       }
       render(<Paso1AnalisisInicial {...props} />)
 
-      fireEvent.click(screen.getByText('Solicitar información'))
+      fireEvent.click(screen.getByText(/Solicitar informaci/))
       expect(onRequestInfo).toHaveBeenCalledTimes(1)
     })
 
-    it('debe toggle sección de conflictos', () => {
+    it('debe expandir alertas con mas de 2 items', () => {
       const props = {
         ...defaultProps,
         analisis: {
-          conflictos: [{ tipo: 'TEST', impacto_critico: false }],
+          conflictos: [
+            { tipo: 'STOCK', descripcion: 'Stock bajo', impacto_critico: false },
+            { tipo: 'PRECIO', descripcion: 'Precio alto', impacto_critico: false },
+            { tipo: 'PLAZO', descripcion: 'Plazo vencido', impacto_critico: false },
+          ],
         },
       }
       render(<Paso1AnalisisInicial {...props} />)
 
-      // Click en "Ocultar" para colapsar
-      const toggleButtons = screen.getAllByText(/Mostrar|Ocultar/)
-      fireEvent.click(toggleButtons[0])
+      // Should show "+1 mas" link since there are 3 items but only 2 shown
+      const expandLink = screen.getByText(/\+1 m/)
+      expect(expandLink).toBeInTheDocument()
 
-      // Ahora debe mostrar "Mostrar"
-      expect(screen.getByText(/Mostrar/)).toBeInTheDocument()
+      // Click to expand
+      fireEvent.click(expandLink)
+
+      // After expanding, should show "Ver menos"
+      expect(screen.getByText('Ver menos')).toBeInTheDocument()
     })
   })
 
   describe('Props por defecto', () => {
     it('debe manejar analisis undefined', () => {
       render(<Paso1AnalisisInicial onNext={vi.fn()} />)
-      expect(screen.getByTestId('card')).toBeInTheDocument()
+      expect(screen.getByText(/lisis Inicial/)).toBeInTheDocument()
     })
 
     it('debe manejar solicitud undefined', () => {
       render(<Paso1AnalisisInicial analisis={{}} onNext={vi.fn()} />)
-      expect(screen.getByTestId('card')).toBeInTheDocument()
+      expect(screen.getByText(/lisis Inicial/)).toBeInTheDocument()
     })
   })
 })
