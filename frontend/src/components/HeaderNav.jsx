@@ -604,6 +604,54 @@ function HeaderNav() {
             >
               {t("nav_returns", "Devoluciones (RMA)")}
             </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/operations/packaging"
+              onClick={() => setOperationsAnchor(null)}
+              sx={isPathActive("/operations/packaging") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_packaging", "Packaging")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/operations/consignment"
+              onClick={() => setOperationsAnchor(null)}
+              sx={isPathActive("/operations/consignment") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_consignment", "Consignación")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/operations/customs"
+              onClick={() => setOperationsAnchor(null)}
+              sx={isPathActive("/operations/customs") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_customs", "Aduanas")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/operations/kanban"
+              onClick={() => setOperationsAnchor(null)}
+              sx={isPathActive("/operations/kanban") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_kanban", "Kanban")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/operations/production"
+              onClick={() => setOperationsAnchor(null)}
+              sx={isPathActive("/operations/production") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_production", "Producción")}
+            </MenuItem>
+            <MenuItem
+              component={NavLink}
+              to="/operations/warranty"
+              onClick={() => setOperationsAnchor(null)}
+              sx={isPathActive("/operations/warranty") ? activeMenuItemSx : menuItemSx}
+            >
+              {t("nav_warranty", "Garantías")}
+            </MenuItem>
             <Divider />
             <MenuItem
               component={NavLink}
@@ -975,6 +1023,42 @@ function HeaderNav() {
             )}
           >
             {t("nav_copilot", "Copiloto IA")}
+          </NavLink>
+          <NavLink
+            to="/analytics/executive"
+            className={clsx(
+              "flex items-center px-3 h-[43px] transition-all duration-200 border-r border-[var(--header-border,#424242)]",
+              "text-[10px] font-semibold uppercase tracking-wide",
+              isPathActive("/analytics/executive")
+                ? "bg-[var(--primary)] text-white"
+                : "text-white hover:bg-[var(--header-border,#424242)]"
+            )}
+          >
+            {t("nav_executive", "Ejecutivo")}
+          </NavLink>
+          <NavLink
+            to="/finance/supplier-finance"
+            className={clsx(
+              "flex items-center px-3 h-[43px] transition-all duration-200 border-r border-[var(--header-border,#424242)]",
+              "text-[10px] font-semibold uppercase tracking-wide",
+              isPathActive("/finance/supplier-finance")
+                ? "bg-[var(--primary)] text-white"
+                : "text-white hover:bg-[var(--header-border,#424242)]"
+            )}
+          >
+            {t("nav_supplier_finance", "Financiamiento")}
+          </NavLink>
+          <NavLink
+            to="/procurement/prices"
+            className={clsx(
+              "flex items-center px-3 h-[43px] transition-all duration-200 border-r border-[var(--header-border,#424242)]",
+              "text-[10px] font-semibold uppercase tracking-wide",
+              isPathActive("/procurement/prices")
+                ? "bg-[var(--primary)] text-white"
+                : "text-white hover:bg-[var(--header-border,#424242)]"
+            )}
+          >
+            {t("nav_prices", "Precios")}
           </NavLink>
         </>
       )}

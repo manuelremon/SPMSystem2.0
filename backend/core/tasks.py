@@ -1346,6 +1346,25 @@ def importar_tasas_cambio(self) -> Dict[str, Any]:
 
 
 # =============================================================================
+# Executive Analytics Tasks (Sprint 90)
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+def snapshot_executive_kpis(self) -> Dict[str, Any]:
+    """Monthly snapshot of executive procurement KPIs."""
+    logger.info("Creating executive KPIs snapshot")
+    try:
+        from backend.services.executive_analytics_service import snapshot_kpis_mensual
+        snapshot_kpis_mensual()
+        logger.info("Executive KPIs snapshot completed")
+        return {"success": True}
+    except Exception as e:
+        logger.error("Error creating executive KPIs snapshot: %s", e)
+        raise self.retry(exc=e)
+
+
+# =============================================================================
 # Email Templates (copied from background_jobs.py)
 # =============================================================================
 
@@ -1486,3 +1505,106 @@ def _get_email_template(template_type: str, **kwargs) -> str:
         </body>
         </html>
         """
+
+
+
+# =============================================================================
+# Consignment Reconciliation Tasks (Sprint 83)
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=300)
+def generar_reconciliacion_consignment(self) -> Dict[str, Any]:
+    """Monthly auto-generation of consignment reconciliations."""
+    logger.info("Generating consignment reconciliations")
+    try:
+        from datetime import datetime
+
+        from backend.services.consignment_service import generar_reconciliacion_automatica
+
+        periodo = datetime.utcnow().strftime("%Y-%m")
+        result = generar_reconciliacion_automatica(periodo)
+        logger.info("Consignment reconciliation completed for %s: %s", periodo, result)
+        return {"success": True, "periodo": periodo, **result}
+    except Exception as e:
+        logger.error("Error generating consignment reconciliation: %s", e)
+        raise self.retry(exc=e)
+
+
+# =============================================================================
+# Kanban & Pull Replenishment Tasks (Sprint 85)
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+def evaluar_reposicion_kanban(self):
+    """
+    Evaluar tarjetas kanban que requieren reposición automática.
+    Busca tarjetas vacías que han superado su lead time sin señal pendiente.
+    Should be scheduled to run every hour.
+    """
+    logger.info("Evaluando reposición automática kanban")
+
+    try:
+        from backend.services.kanban_service import evaluar_reposicion_automatica
+
+        resultado = evaluar_reposicion_automatica()
+        evaluadas = resultado["evaluadas"]
+        senales = resultado["senales_generadas"]
+        logger.info(
+            f"Kanban auto-replenishment: {evaluadas} evaluated, {senales} signals generated"
+        )
+        return resultado
+
+    except Exception as e:
+        logger.error(f"Error evaluando reposición kanban: {e}")
+        raise self.retry(exc=e)
+
+
+# =============================================================================
+# Warranty & Claims Tasks (Sprint 87)
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+def check_garantias_por_vencer(self) -> Dict[str, Any]:
+    """
+    Verifica garantías próximas a vencer y actualiza vencidas.
+
+    Ejecuta diariamente a las 8:30 AM.
+    Envía notificaciones de garantías que vencen en próximos 30 días.
+
+    Returns:
+        Dict con garantías por vencer y vencidas
+    """
+    try:
+        from backend.services import warranty_service
+        from backend.services.notification_service import crear_notificacion
+
+        logger.info("Verificando garantías por vencer")
+
+        garantias_por_vencer = warranty_service.check_garantias_por_vencer(dias_anticipacion=30)
+
+        logger.info(f"Encontradas {len(garantias_por_vencer)} garantías por vencer")
+
+        # Enviar notificaciones por garantías próximas a vencer
+        for garantia in garantias_por_vencer:
+            # Notificar a admin/coordinadores
+            mensaje = f"La garantía GAR-{garantia['id']} para {garantia['material_desc']} ({garantia['proveedor_nombre']}) vence en {garantia['dias_restantes']} días ({garantia['fecha_fin']})"
+
+            crear_notificacion(
+                usuario_id=1,  # Admin
+                tipo="alerta",
+                titulo="Garantía por vencer",
+                mensaje=mensaje,
+                prioridad="media"
+            )
+
+        return {
+            "garantias_por_vencer": len(garantias_por_vencer),
+            "detalles": garantias_por_vencer
+        }
+
+    except Exception as e:
+        logger.error(f"Error verificando garantías: {e}")
+        raise self.retry(exc=e)

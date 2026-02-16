@@ -2,17 +2,17 @@
 
 Guia para Claude Code (claude.ai/code) cuando trabaja con este repositorio.
 
-> **Ultima actualizacion**: 2026-02-15 (Sprints 71-80: control tower, sustainability, VMI, lot traceability, cycle counting, multi-currency, ECO, kitting, supplier portal, AI copilot)
+> **Ultima actualizacion**: 2026-02-15 (Sprints 81-90: supplier onboarding, price management, consignment, customs, kanban, production, warranty, packaging, supplier finance, executive analytics)
 
 ## Resumen del Proyecto
 
 | Metrica | Valor |
 |---------|-------|
-| **Backend** | 275+ archivos Python, ~100,000 lineas |
-| **Frontend** | 139 paginas, 145 componentes, 22 hooks |
-| **Endpoints API** | 450+ endpoints en 57 modulos (3 packages) |
+| **Backend** | 305+ archivos Python, ~115,000 lineas |
+| **Frontend** | 159 paginas, 145 componentes, 22 hooks |
+| **Endpoints API** | 560+ endpoints en 67 modulos (3 packages) |
 | **Tests** | 1,330+ tests (101 archivos backend, 25 frontend) |
-| **Base de Datos** | 3 SQLite + PostgreSQL (produccion) |
+| **Base de Datos** | 3 SQLite + PostgreSQL (produccion), 83 migraciones |
 
 ## Comandos de Desarrollo
 
@@ -138,8 +138,18 @@ SPMv3.0/
 | `kitting.py` | 14 | Kitting y ensamblaje liviano, BOMs, ordenes |
 | `supplier_portal.py` | 12 | Portal proveedores, ASN, forecast compartido |
 | `copilot.py` | 10 | AI Procurement Copilot, sugerencias, chat |
+| `supplier_onboarding.py` | 11 | Supplier Onboarding & Development |
+| `price_management.py` | 13 | Price Management & Price Lists |
+| `consignment.py` | 10 | Consignment Inventory |
+| `customs.py` | 11 | Customs & Trade Compliance |
+| `kanban.py` | 10 | Kanban & Pull Replenishment |
+| `production.py` | 13 | Production Planning (MPS) |
+| `warranty.py` | 11 | Warranty & Claims Management |
+| `packaging.py` | 12 | Advanced Packaging & Labels |
+| `supplier_finance.py` | 11 | Supplier Finance (Dynamic Discounting) |
+| `executive_analytics.py` | 10 | Executive Procurement Dashboard |
 
-### Services (39 servicios)
+### Services (49 servicios)
 
 | Servicio | Proposito |
 |----------|-----------|
@@ -184,6 +194,16 @@ SPMv3.0/
 | `kitting_service.py` | BOMs, ordenes kitting, asignacion componentes |
 | `supplier_portal_service.py` | Usuarios portal, ASN, forecasts compartidos |
 | `copilot_service.py` | Conversaciones IA, sugerencias sourcing, insights |
+| `supplier_onboarding_service.py` | Onboarding de proveedores, documentos, evaluaciones |
+| `price_management_service.py` | Listas de precios, negociaciones, historial |
+| `consignment_service.py` | Inventario en consignación, reconciliaciones |
+| `customs_service.py` | Clasificación aduanera, tributos, acuerdos |
+| `kanban_service.py` | Tableros kanban, tarjetas, señales reposición |
+| `production_planning_service.py` | Work centers, planes producción, capacidad |
+| `warranty_service.py` | Garantías, reclamos, resoluciones |
+| `packaging_service.py` | Packing lists, empaque, etiquetas |
+| `supplier_finance_service.py` | Descuento dinámico, cashflow, términos pago |
+| `executive_analytics_service.py` | KPIs ejecutivos, benchmarks, scorecards |
 
 ### Core (39 modulos)
 
@@ -315,6 +335,16 @@ agent/
 | **Kitting** | KitBOMs, KitBOMDetail, KitOrders, KitOrderDetail |
 | **Supplier Portal** | SupplierPortalAdmin, SupplierPortalPreview |
 | **AI Copilot** | ProcurementCopilot |
+| **Supplier Onboarding** | OnboardingList, OnboardingDetail |
+| **Price Management** | PriceManagement, PriceCompare |
+| **Consignment** | ConsignmentPrograms, ConsignmentDetail |
+| **Customs** | CustomsOperations, HSCodeManagement |
+| **Kanban** | KanbanBoard, KanbanConfig |
+| **Production** | ProductionPlanning, ProductionDetail |
+| **Warranty** | WarrantyList, WarrantyClaimDetail |
+| **Packaging** | PackingLists, PackingDetail |
+| **Supplier Finance** | SupplierFinance, CashflowSimulator |
+| **Executive** | ExecutiveDashboard, BenchmarkAnalysis |
 
 ### Components (145 totales)
 
@@ -406,7 +436,7 @@ agent/
 | `data/sap_data.db` | Stock, consumo historico, pedidos | 178,338 |
 | `data/catalogo_materiales.db` | Catalogo completo de materiales SAP | ~28,000 |
 
-**Produccion:** PostgreSQL con 73 migraciones aplicadas (tablas renombradas a espanol).
+**Produccion:** PostgreSQL con 83 migraciones aplicadas (tablas renombradas a espanol).
 
 **Reimportacion de datos SAP:**
 ```bash
@@ -568,7 +598,7 @@ frontend/src/
 ### Sistema i18n
 - Ubicacion: `frontend/src/context/i18n.jsx`
 - API: `const { t } = useI18n(); t('clave', 'fallback')`
-- Prefijos: `nav_`, `dash_`, `common_`, `materials_`, `admin_`, `planner_`, `matching_`, `spend_`, `risk_`, `demand_`, `returns_`, `warehouse_`, `compliance_`, `rebate_`, `inv_opt_`, `cert_`, `supplier_audit_`, `freight_`, `ct_`, `sust_`, `vmi_`, `lot_`, `recall_`, `cc_`, `curr_`, `eco_`, `kit_`, `portal_`, `copilot_`
+- Prefijos: `nav_`, `dash_`, `common_`, `materials_`, `admin_`, `planner_`, `matching_`, `spend_`, `risk_`, `demand_`, `returns_`, `warehouse_`, `compliance_`, `rebate_`, `inv_opt_`, `cert_`, `supplier_audit_`, `freight_`, `ct_`, `sust_`, `vmi_`, `lot_`, `recall_`, `cc_`, `curr_`, `eco_`, `kit_`, `portal_`, `copilot_`, `onb_`, `price_`, `cons_`, `customs_`, `kanban_`, `prod_`, `warr_`, `pack_`, `sf_`, `exec_`
 
 ### Sistema de Estilos
 - **Tema:** Solo light mode (dark mode eliminado)
@@ -868,6 +898,70 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 - **Tablas:** `copilot_conversacion`, `copilot_mensaje`, `copilot_sugerencia`, `copilot_learning`
 - **Features:** Chat IA procurement, sugerencias sourcing, auto-draft RFQ, patrones gasto, feedback learning
 
+### Supplier Onboarding & Development (Sprint 81)
+- **Backend:** `routes/supplier_onboarding.py` (11 endpoints), `services/supplier_onboarding_service.py`, migracion 074
+- **Frontend:** `OnboardingList.jsx`, `OnboardingDetail.jsx`
+- **Tablas:** `supplier_onboarding`, `onboarding_documento`, `onboarding_evaluacion`, `onboarding_historial`
+- **Features:** Workflow onboarding proveedores, documentos requeridos, evaluaciones por etapa, timeline historial
+
+### Price Management & Price Lists (Sprint 82)
+- **Backend:** `routes/price_management.py` (13 endpoints), `services/price_management_service.py`, migracion 075
+- **Frontend:** `PriceManagement.jsx`, `PriceCompare.jsx`
+- **Tablas:** `lista_precios`, `precio_item`, `precio_negociacion`, `precio_historial`
+- **Features:** Listas precios multi-version, negociaciones rastreadas, historial tendencias, comparacion multi-proveedor
+
+### Consignment Inventory (Sprint 83)
+- **Backend:** `routes/consignment.py` (10 endpoints), `services/consignment_service.py`, migracion 076
+- **Frontend:** `ConsignmentPrograms.jsx`, `ConsignmentDetail.jsx`
+- **Tablas:** `consignment_programa`, `consignment_stock`, `consignment_consumo`, `consignment_reconciliacion`
+- **Features:** Programas consignacion, stock compartido, consumo rastreado, reconciliaciones mensuales
+- **Celery:** `generar_reconciliacion_consignment` (1ro mes 4:30AM)
+
+### Customs & Trade Compliance (Sprint 84)
+- **Backend:** `routes/customs.py` (11 endpoints), `services/customs_service.py`, migracion 077
+- **Frontend:** `CustomsOperations.jsx`, `HSCodeManagement.jsx`
+- **Tablas:** `hs_code`, `material_clasificacion_aduanera`, `operacion_aduanera`, `acuerdo_comercial`
+- **Features:** Clasificacion HS codes, calculo tributos, acuerdos comerciales, operaciones aduaneras
+
+### Kanban & Pull Replenishment (Sprint 85)
+- **Backend:** `routes/kanban.py` (10 endpoints), `services/kanban_service.py`, migracion 078
+- **Frontend:** `KanbanBoard.jsx`, `KanbanConfig.jsx`
+- **Tablas:** `kanban_tablero`, `kanban_tarjeta`, `kanban_senal`, `kanban_historial`
+- **Features:** Tableros kanban visual, tarjetas digitales, señales reposicion automaticas, metricas flujo
+- **Celery:** `evaluar_kanban_reposicion` (cada 30min)
+
+### Production Planning (MPS) (Sprint 86)
+- **Backend:** `routes/production.py` (13 endpoints), `services/production_planning_service.py`, migracion 079
+- **Frontend:** `ProductionPlanning.jsx`, `ProductionDetail.jsx`
+- **Tablas:** `work_center`, `plan_produccion`, `plan_produccion_item`, `produccion_capacidad`
+- **Features:** Work centers, planes produccion MPS, analisis capacidad, explosion materiales
+
+### Warranty & Claims Management (Sprint 87)
+- **Backend:** `routes/warranty.py` (11 endpoints), `services/warranty_service.py`, migracion 080
+- **Frontend:** `WarrantyList.jsx`, `WarrantyClaimDetail.jsx`
+- **Tablas:** `garantia`, `reclamo_garantia`, `reclamo_historial`, `reclamo_documento`
+- **Features:** Registro garantias, reclamos con workflow, resolucion rastreada, documentos adjuntos
+- **Celery:** `check_garantias_por_vencer` (diario 8AM)
+
+### Advanced Packaging & Shipping Labels (Sprint 88)
+- **Backend:** `routes/packaging.py` (12 endpoints), `services/packaging_service.py`, migracion 081
+- **Frontend:** `PackingLists.jsx`, `PackingDetail.jsx`
+- **Tablas:** `packaging_template`, `packing_list`, `packing_item`, `shipping_label`
+- **Features:** Templates empaque, packing lists auto-generadas, etiquetas envio, cumplimiento regulatorio
+
+### Supplier Finance (Dynamic Discounting) (Sprint 89)
+- **Backend:** `routes/supplier_finance.py` (11 endpoints), `services/supplier_finance_service.py`, migracion 082
+- **Frontend:** `SupplierFinance.jsx`, `CashflowSimulator.jsx`
+- **Tablas:** `programa_descuento`, `oferta_descuento`, `terminos_pago_proveedor`, `cashflow_simulacion`
+- **Features:** Descuento dinamico, early payment, simulacion cashflow, terminos pago flexibles
+
+### Executive Procurement Dashboard (Sprint 90)
+- **Backend:** `routes/executive_analytics.py` (10 endpoints), `services/executive_analytics_service.py`, migracion 083
+- **Frontend:** `ExecutiveDashboard.jsx`, `BenchmarkAnalysis.jsx`
+- **Tablas:** `executive_kpi`, `executive_snapshot`, `benchmark`, `procurement_scorecard`
+- **Features:** KPIs ejecutivos consolidados, benchmarks industria, procurement scorecard, trends estrategicos
+- **Celery:** `snapshot_executive_kpis` (1ro mes 1AM)
+
 ### SLA Dashboard
 - **Backend:** `routes/sla.py`, `services/sla_service.py`
 - **Frontend:** `SLADashboard.jsx`
@@ -925,6 +1019,16 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 | `071` | Tablas kit_bom, kit_bom_componente, kit_orden, kit_componente_asignacion (Kitting) |
 | `072` | Tablas portal_proveedor_usuario, portal_acceso_log, asn, asn_item, forecast_compartido (Supplier Portal) |
 | `073` | Tablas copilot_conversacion, copilot_mensaje, copilot_sugerencia, copilot_learning (AI Copilot) |
+| `074` | Tablas supplier_onboarding, onboarding_documento, onboarding_evaluacion, onboarding_historial (Supplier Onboarding) |
+| `075` | Tablas lista_precios, precio_item, precio_negociacion, precio_historial (Price Management) |
+| `076` | Tablas consignment_programa, consignment_stock, consignment_consumo, consignment_reconciliacion (Consignment) |
+| `077` | Tablas hs_code, material_clasificacion_aduanera, operacion_aduanera, acuerdo_comercial (Customs) |
+| `078` | Tablas kanban_tablero, kanban_tarjeta, kanban_senal, kanban_historial (Kanban) |
+| `079` | Tablas work_center, plan_produccion, plan_produccion_item, produccion_capacidad (Production) |
+| `080` | Tablas garantia, reclamo_garantia, reclamo_historial, reclamo_documento (Warranty) |
+| `081` | Tablas packaging_template, packing_list, packing_item, shipping_label (Packaging) |
+| `082` | Tablas programa_descuento, oferta_descuento, terminos_pago_proveedor, cashflow_simulacion (Supplier Finance) |
+| `083` | Tablas executive_kpi, executive_snapshot, benchmark, procurement_scorecard (Executive Analytics) |
 
 ## CI/CD
 
@@ -995,6 +1099,16 @@ draft -> submitted -> approved/rejected -> processing -> dispatched -> closed
 | 78 | Kitting & Light Assembly | 2026-02-15 |
 | 79 | Supplier Collaboration Portal | 2026-02-15 |
 | 80 | AI Procurement Copilot | 2026-02-15 |
+| 81 | Supplier Onboarding & Development | 2026-02-15 |
+| 82 | Price Management & Price Lists | 2026-02-15 |
+| 83 | Consignment Inventory | 2026-02-15 |
+| 84 | Customs & Trade Compliance | 2026-02-15 |
+| 85 | Kanban & Pull Replenishment | 2026-02-15 |
+| 86 | Production Planning (MPS) | 2026-02-15 |
+| 87 | Warranty & Claims Management | 2026-02-15 |
+| 88 | Advanced Packaging & Shipping Labels | 2026-02-15 |
+| 89 | Supplier Finance (Dynamic Discounting) | 2026-02-15 |
+| 90 | Executive Procurement Dashboard | 2026-02-15 |
 
 ---
 

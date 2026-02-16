@@ -228,3 +228,43 @@ def register_blueprints(app: Flask) -> None:
     # AI Procurement Copilot (Sprint 80)
     from backend.routes.copilot import copilot_bp
     app.register_blueprint(copilot_bp)  # Copilot at /api/copilot
+
+    # Supplier Onboarding & Development (Sprint 81)
+    from backend.routes.supplier_onboarding import supplier_onboarding_bp
+    app.register_blueprint(supplier_onboarding_bp)  # Onboarding at /api/supplier-onboarding
+
+    # Price Management & Price Lists (Sprint 82)
+    from backend.routes.price_management import price_mgmt_bp
+    app.register_blueprint(price_mgmt_bp)  # Price Management at /api/prices
+
+    # Consignment Inventory (Sprint 83)
+    from backend.routes.consignment import consignment_bp
+    app.register_blueprint(consignment_bp)  # Consignment at /api/consignment
+
+    # Customs & Trade Compliance (Sprint 84)
+    from backend.routes.customs import customs_bp
+    app.register_blueprint(customs_bp)  # Customs at /api/customs
+
+    # Kanban & Pull Replenishment (Sprint 85)
+    from backend.routes.kanban import kanban_bp
+    app.register_blueprint(kanban_bp)  # Kanban at /api/kanban
+
+    # Production Planning - MPS (Sprint 86)
+    from backend.routes.production import bp as production_bp
+    app.register_blueprint(production_bp)  # Production at /api/production
+
+    # Warranty & Claims Management (Sprint 87)
+    from backend.routes.warranty import bp as warranty_bp
+    app.register_blueprint(warranty_bp)  # Warranty at /api/warranty
+
+    # Advanced Packaging & Shipping Labels (Sprint 88)
+    from backend.routes.packaging import packaging_bp
+    app.register_blueprint(packaging_bp)  # Packaging at /api/packaging
+
+    # Supplier Finance - Dynamic Discounting (Sprint 89)
+    from backend.routes.supplier_finance import supplier_finance_bp
+    app.register_blueprint(supplier_finance_bp)  # Supplier Finance at /api/supplier-finance
+
+    # Executive Procurement Dashboard (Sprint 90)
+    from backend.routes.executive_analytics import executive_bp
+    app.register_blueprint(executive_bp)  # Executive at /api/executive

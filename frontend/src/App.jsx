@@ -176,6 +176,26 @@ const KitOrderDetail = lazy(() => import('./pages/KitOrderDetail'))
 const SupplierPortalAdmin = lazy(() => import('./pages/SupplierPortalAdmin'))
 const SupplierPortalPreview = lazy(() => import('./pages/SupplierPortalPreview'))
 const ProcurementCopilot = lazy(() => import('./pages/ProcurementCopilot'))
+const OnboardingList = lazy(() => import('./pages/OnboardingList'))
+const OnboardingDetail = lazy(() => import('./pages/OnboardingDetail'))
+const SupplierFinance = lazy(() => import('./pages/SupplierFinance'))
+const CashflowSimulator = lazy(() => import('./pages/CashflowSimulator'))
+const PriceManagement = lazy(() => import('./pages/PriceManagement'))
+const PriceCompare = lazy(() => import('./pages/PriceCompare'))
+const ConsignmentPrograms = lazy(() => import('./pages/ConsignmentPrograms'))
+const ConsignmentDetail = lazy(() => import('./pages/ConsignmentDetail'))
+const CustomsOperations = lazy(() => import('./pages/CustomsOperations'))
+const HSCodeManagement = lazy(() => import('./pages/HSCodeManagement'))
+const PackingLists = lazy(() => import('./pages/PackingLists'))
+const PackingDetail = lazy(() => import('./pages/PackingDetail'))
+const ProductionPlanning = lazy(() => import('./pages/ProductionPlanning'))
+const ProductionDetail = lazy(() => import('./pages/ProductionDetail'))
+const KanbanBoard = lazy(() => import('./pages/KanbanBoard'))
+const KanbanConfig = lazy(() => import('./pages/KanbanConfig'))
+const WarrantyList = lazy(() => import('./pages/WarrantyList'))
+const WarrantyClaimDetail = lazy(() => import('./pages/WarrantyClaimDetail'))
+const ExecutiveDashboard = lazy(() => import('./pages/ExecutiveDashboard'))
+const BenchmarkAnalysis = lazy(() => import('./pages/BenchmarkAnalysis'))
 
 function App() {
   const { user, isLoading, getCurrentUser } = useAuthStore()
@@ -373,6 +393,36 @@ function App() {
             <Route path="/admin/supplier-portal/preview" element={<ProtectedRoute roles={['administrador', 'admin']}><SupplierPortalPreview /></ProtectedRoute>} />
             {/* AI Copilot - Sprint 80 */}
             <Route path="/ai/copilot" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ProcurementCopilot /></ProtectedRoute>} />
+            {/* Supplier Onboarding - Sprint 81 */}
+            <Route path="/admin/supplier-onboarding" element={<ProtectedRoute roles={['administrador', 'admin']}><OnboardingList /></ProtectedRoute>} />
+            <Route path="/admin/supplier-onboarding/:id" element={<ProtectedRoute roles={['administrador', 'admin']}><OnboardingDetail /></ProtectedRoute>} />
+            {/* Price Management - Sprint 82 */}
+            <Route path="/procurement/prices" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><PriceManagement /></ProtectedRoute>} />
+            <Route path="/procurement/prices/compare" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><PriceCompare /></ProtectedRoute>} />
+            {/* Consignment Inventory - Sprint 83 */}
+            <Route path="/operations/consignment" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ConsignmentPrograms /></ProtectedRoute>} />
+            <Route path="/operations/consignment/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ConsignmentDetail /></ProtectedRoute>} />
+            {/* Customs & Trade Compliance - Sprint 84 */}
+            <Route path="/operations/customs" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><CustomsOperations /></ProtectedRoute>} />
+            <Route path="/operations/customs/hs-codes" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><HSCodeManagement /></ProtectedRoute>} />
+            {/* Kanban & Pull Replenishment - Sprint 85 */}
+            <Route path="/operations/kanban" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><KanbanBoard /></ProtectedRoute>} />
+            <Route path="/operations/kanban/config" element={<ProtectedRoute roles={['administrador', 'admin']}><KanbanConfig /></ProtectedRoute>} />
+            {/* Production Planning - Sprint 86 */}
+            <Route path="/operations/production" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ProductionPlanning /></ProtectedRoute>} />
+            <Route path="/operations/production/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ProductionDetail /></ProtectedRoute>} />
+            {/* Warranty & Claims - Sprint 87 */}
+            <Route path="/operations/warranty" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><WarrantyList /></ProtectedRoute>} />
+            <Route path="/operations/warranty/claims/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><WarrantyClaimDetail /></ProtectedRoute>} />
+            {/* Packaging & Labels - Sprint 88 */}
+            <Route path="/operations/packaging" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><PackingLists /></ProtectedRoute>} />
+            <Route path="/operations/packaging/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><PackingDetail /></ProtectedRoute>} />
+            {/* Supplier Finance - Sprint 89 */}
+            <Route path="/finance/supplier-finance" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><SupplierFinance /></ProtectedRoute>} />
+            <Route path="/finance/supplier-finance/simulator" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><CashflowSimulator /></ProtectedRoute>} />
+            {/* Executive Analytics - Sprint 90 */}
+            <Route path="/analytics/executive" element={<ProtectedRoute roles={['administrador', 'admin', 'coordinador', 'jefe']}><ExecutiveDashboard /></ProtectedRoute>} />
+            <Route path="/analytics/executive/benchmarks" element={<ProtectedRoute roles={['administrador', 'admin']}><BenchmarkAnalysis /></ProtectedRoute>} />
             <Route path="/registro/completar" element={<ProtectedRoute><CompleteRegistration /></ProtectedRoute>} />
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="*" element={<Navigate to="/dashboard" />} />

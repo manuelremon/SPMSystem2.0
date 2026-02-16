@@ -172,6 +172,26 @@ def make_celery(app_name: str = "spm") -> Celery:
                 "task": "backend.core.tasks.importar_tasas_cambio",
                 "schedule": crontab(hour=9, minute=0),
             },
+            # Sprint 83: Consignment Inventory
+            "generar-reconciliacion-consignment-mensual": {
+                "task": "backend.core.tasks.generar_reconciliacion_consignment",
+                "schedule": crontab(day_of_month=1, hour=4, minute=30),
+            },
+            # Sprint 85: Kanban & Pull Replenishment
+            "evaluar-reposicion-kanban-cada-30min": {
+                "task": "backend.core.tasks.evaluar_reposicion_kanban",
+                "schedule": 1800.0,  # 30 minutes
+            },
+            # Sprint 90: Executive Analytics
+            "snapshot-executive-kpis-monthly": {
+                "task": "backend.core.tasks.snapshot_executive_kpis",
+                "schedule": crontab(day_of_month=1, hour=1, minute=0),
+            },
+            # Sprint 87: Warranty & Claims
+            "check-garantias-por-vencer-diario": {
+                "task": "backend.core.tasks.check_garantias_por_vencer",
+                "schedule": crontab(hour=8, minute=30),
+            },
         },
     )
 
