@@ -17,12 +17,10 @@ import {
   Alert
 } from '@mui/material';
 import { Add, CompareArrows } from '@mui/icons-material';
-import { AgGridReact } from 'ag-grid-react';
+import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import api from '../services/api';
 import { useI18n } from '../context/i18n';
 import { useAuthStore } from '../store/authStore';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 const BenchmarkAnalysis = () => {
   const { t } = useI18n();
@@ -227,16 +225,14 @@ const BenchmarkAnalysis = () => {
           <Typography variant="h6" gutterBottom>
             {t('exec_all_benchmarks', 'Todos los Benchmarks')}
           </Typography>
-          <Box className="ag-theme-alpine" sx={{ height: 500, width: '100%' }}>
-            <AgGridReact
-              rowData={benchmarks}
-              columnDefs={columnDefs}
-              pagination={true}
-              paginationPageSize={20}
-              domLayout="autoHeight"
-              suppressRowHoverHighlight={false}
-            />
-          </Box>
+          <SPMAgGrid
+            rowData={benchmarks}
+            columnDefs={columnDefs}
+            pagination={true}
+            paginationPageSize={20}
+            height={500}
+            exportFileName="benchmarks"
+          />
         </CardContent>
       </Card>
 

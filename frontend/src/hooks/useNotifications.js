@@ -148,10 +148,15 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
   }, [onNotification])
 
   /**
-   * Conectar via WebSocket
+   * Conectar via WebSocket (skip si ya falló antes — fallback directo a SSE)
    */
+  const wsFailedRef = useRef(false)
+
   const connectWS = useCallback(() => {
     if (!enabled || wsRef.current) return false
+
+    // Si WS ya falló en esta sesión, ir directo a SSE
+    if (wsFailedRef.current) return false
 
     try {
       // Construir URL WS desde API URL
@@ -209,6 +214,8 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
         if (isMountedRef.current && enabled) {
           setIsConnected(false)
           clearHeartbeatCheck()
+          // Marcar WS como no disponible para no reintentar
+          wsFailedRef.current = true
           // Fallback a SSE
           connectSSE()
         }
@@ -220,6 +227,7 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
 
       return true
     } catch {
+      wsFailedRef.current = true
       return false
     }
   }, [enabled, handleIncomingNotification])

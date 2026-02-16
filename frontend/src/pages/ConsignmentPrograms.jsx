@@ -33,9 +33,7 @@ import InventoryIcon from '@mui/icons-material/Inventory';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 
-import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 
 const ESTADO_COLORS = {
   active: 'success',
@@ -99,8 +97,8 @@ export default function ConsignmentPrograms() {
     fetchKpis();
   }, [fetchPrograms, fetchKpis]);
 
-  const handleRowClick = useCallback((event) => {
-    const programaId = event.data.id;
+  const handleRowClick = useCallback((rowData) => {
+    const programaId = rowData.id;
     navigate(`/consignment/${programaId}`);
   }, [navigate]);
 
@@ -293,21 +291,21 @@ export default function ConsignmentPrograms() {
             <CircularProgress />
           </Box>
         ) : (
-          <div className="ag-theme-alpine" style={{ height: 500, width: '100%' }}>
-            <AgGridReact
-              rowData={programs}
-              columnDefs={columnDefs}
-              defaultColDef={{
-                resizable: true,
-                sortable: true,
-              }}
-              pagination={true}
-              paginationPageSize={20}
-              onRowClicked={handleRowClick}
-              rowStyle={{ cursor: 'pointer' }}
-              overlayNoRowsTemplate={`<span style="padding: 10px;">${t('consign_no_programs', 'No hay programas')}</span>`}
-            />
-          </div>
+          <SPMAgGrid
+            rowData={programs}
+            columnDefs={columnDefs}
+            defaultColDef={{
+              resizable: true,
+              sortable: true,
+            }}
+            pagination={true}
+            paginationPageSize={20}
+            onRowClick={handleRowClick}
+            rowStyle={{ cursor: 'pointer' }}
+            emptyMessage={t('consign_no_programs', 'No hay programas')}
+            height={500}
+            exportFileName="consignment-programs"
+          />
         )}
       </Paper>
 

@@ -17,9 +17,7 @@ import {
   Tab,
   Alert,
 } from '@mui/material';
-import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import api from '../services/api';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -459,36 +457,36 @@ export default function SupplierFinance() {
               {t('finance_new_program')}
             </Button>
           </Box>
-          <div className="ag-theme-alpine" style={{ height: 500, width: '100%' }}>
-            <AgGridReact
-              rowData={programas}
-              columnDefs={programsColumns}
-              defaultColDef={{
-                sortable: true,
-                filter: true,
-                resizable: true,
-              }}
-              loading={loading}
-            />
-          </div>
+          <SPMAgGrid
+            rowData={programas}
+            columnDefs={programsColumns}
+            defaultColDef={{
+              sortable: true,
+              filter: true,
+              resizable: true,
+            }}
+            height={500}
+            loading={loading}
+            exportFileName="supplier-finance-programs"
+          />
         </Box>
       )}
 
       {/* Offers Tab */}
       {activeTab === 1 && (
         <Box>
-          <div className="ag-theme-alpine" style={{ height: 500, width: '100%' }}>
-            <AgGridReact
-              rowData={ofertas}
-              columnDefs={offersColumns}
-              defaultColDef={{
-                sortable: true,
-                filter: true,
-                resizable: true,
-              }}
-              loading={loading}
-            />
-          </div>
+          <SPMAgGrid
+            rowData={ofertas}
+            columnDefs={offersColumns}
+            defaultColDef={{
+              sortable: true,
+              filter: true,
+              resizable: true,
+            }}
+            height={500}
+            loading={loading}
+            exportFileName="supplier-finance-offers"
+          />
         </Box>
       )}
 
@@ -498,19 +496,19 @@ export default function SupplierFinance() {
           <Alert severity="info" sx={{ mb: 2 }}>
             Términos editables: haga doble clic en una celda para editar
           </Alert>
-          <div className="ag-theme-alpine" style={{ height: 500, width: '100%' }}>
-            <AgGridReact
-              rowData={terminos}
-              columnDefs={termsColumns}
-              defaultColDef={{
-                sortable: true,
-                filter: true,
-                resizable: true,
-              }}
-              onCellValueChanged={onCellValueChanged}
-              loading={loading}
-            />
-          </div>
+          <SPMAgGrid
+            rowData={terminos}
+            columnDefs={termsColumns}
+            defaultColDef={{
+              sortable: true,
+              filter: true,
+              resizable: true,
+            }}
+            height={500}
+            onCellValueChanged={onCellValueChanged}
+            loading={loading}
+            exportFileName="supplier-payment-terms"
+          />
         </Box>
       )}
 

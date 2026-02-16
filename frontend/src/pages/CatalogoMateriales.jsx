@@ -10,6 +10,7 @@ import { materiales, equivalencias } from "../services/spm";
 import { formatCurrency, formatAlmacen } from "../utils/formatters";
 import { useI18n } from "../context/i18n";
 import { SPMAgGrid } from "../components/ui/SPMAgGrid";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import {
   Box,
   Paper,
@@ -44,15 +45,6 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 
 const DEBOUNCE_MS = 300;
 const MAX_RESULTS = 500;
-
-function useDebouncedValue(value, delay) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const handler = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(handler);
-  }, [value, delay]);
-  return debounced;
-}
 
 /* ─────────────────────────────────────────────────────────────
    Collapsible Section

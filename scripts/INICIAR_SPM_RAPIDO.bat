@@ -1,15 +1,24 @@
 @echo off
 REM ============================================================================
-REM SPM - Inicio Rapido (sin deploy)
+REM SPM System 2.0 - Inicio Rapido (sin verificaciones)
 REM ============================================================================
-REM Solo inicia Backend + Tunnel
-REM Usa este si ya hiciste deploy antes y solo necesitas reconectar
+REM Inicia Backend + Frontend directamente sin chequeos previos
 REM ============================================================================
 
-title SPM - Inicio Rapido
+title SPM System 2.0 - Rapido
 
-cd /d "%~dp0"
+REM Cambiar al directorio raiz del proyecto
+cd /d "%~dp0\.."
 
-powershell -ExecutionPolicy Bypass -File ".\scripts\Start-SPM-GithubPages.ps1" -SkipDeploy
+echo [1/2] Iniciando Backend Flask...
+start "SPM Backend" cmd /k "cd /d "%cd%" && python wsgi.py"
 
-pause
+timeout /t 1 /nobreak >nul
+
+echo [2/2] Iniciando Frontend Vite...
+start "SPM Frontend" cmd /k "cd /d "%cd%\frontend" && npm run dev"
+
+echo.
+echo  Backend:  http://localhost:5000
+echo  Frontend: http://localhost:5173
+echo.

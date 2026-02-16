@@ -9,6 +9,7 @@ import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
 import { SPMAgGrid } from "../components/ui/SPMAgGrid";
 import { useNavigate } from "react-router-dom";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
 // MUI Components
 import {
@@ -54,17 +55,6 @@ const DEBOUNCE_MS = 300;
 /* ---------------------------------------------------------------
    Helpers
 --------------------------------------------------------------- */
-function useDebouncedValue(value, delay) {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(handler);
-  }, [value, delay]);
-
-  return debounced;
-}
-
 const tipoStyles = {
   E0_DUPLICADO: { bgcolor: "success.lighter", color: "success.dark", label: "Duplicado" },
   E1_ESTRICTA: { bgcolor: "info.lighter", color: "info.dark", label: "Estricta" },

@@ -47,9 +47,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import SearchIcon from '@mui/icons-material/Search';
 import PriceCheckIcon from '@mui/icons-material/PriceCheck';
 
-import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-material.css';
+import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 
 const ESTADO_COLORS = {
   draft: 'default',
@@ -454,15 +452,14 @@ export default function PriceManagement() {
                   <CircularProgress />
                 </Box>
               ) : (
-                <Box className="ag-theme-material" sx={{ height: 500, width: '100%' }}>
-                  <AgGridReact
-                    rowData={listas}
-                    columnDefs={listasColumns}
-                    pagination
-                    paginationPageSize={20}
-                    domLayout="normal"
-                  />
-                </Box>
+                <SPMAgGrid
+                  rowData={listas}
+                  columnDefs={listasColumns}
+                  height={500}
+                  pagination
+                  paginationPageSize={20}
+                  exportFileName="price-lists"
+                />
               )}
             </Box>
           )}
@@ -483,15 +480,14 @@ export default function PriceManagement() {
                   {t('price_no_negos', 'No hay negociaciones pendientes')}
                 </Typography>
               ) : (
-                <Box className="ag-theme-material" sx={{ height: 500, width: '100%' }}>
-                  <AgGridReact
-                    rowData={negociaciones}
-                    columnDefs={negosColumns}
-                    pagination
-                    paginationPageSize={20}
-                    domLayout="normal"
-                  />
-                </Box>
+                <SPMAgGrid
+                  rowData={negociaciones}
+                  columnDefs={negosColumns}
+                  height={500}
+                  pagination
+                  paginationPageSize={20}
+                  exportFileName="price-negotiations"
+                />
               )}
             </Box>
           )}
@@ -722,13 +718,13 @@ export default function PriceManagement() {
                   {t('price_no_items', 'Sin items')}
                 </Typography>
               ) : (
-                <Box className="ag-theme-material" sx={{ height: 300, width: '100%' }}>
-                  <AgGridReact
-                    rowData={detalleItems}
-                    columnDefs={detalleItemsColumns}
-                    domLayout="normal"
-                  />
-                </Box>
+                <SPMAgGrid
+                  rowData={detalleItems}
+                  columnDefs={detalleItemsColumns}
+                  height={300}
+                  pagination={false}
+                  exportFileName="price-list-items"
+                />
               )}
             </Box>
           ) : null}

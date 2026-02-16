@@ -25,9 +25,7 @@ import {
   Inventory as PackageIcon,
   Label as LabelIcon
 } from '@mui/icons-material';
-import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import api from '../services/api';
 import { useI18n } from '../context/i18n';
 import { useNavigate } from 'react-router-dom';
@@ -354,20 +352,20 @@ const PackingLists = () => {
               </TextField>
             </Box>
 
-            <Box className="ag-theme-alpine" sx={{ height: 500 }}>
-              <AgGridReact
-                rowData={packingLists}
-                columnDefs={packingColumnDefs}
-                defaultColDef={{
-                  sortable: true,
-                  filter: true,
-                  resizable: true
-                }}
-                pagination
-                paginationPageSize={20}
-                loading={loading}
-              />
-            </Box>
+            <SPMAgGrid
+              rowData={packingLists}
+              columnDefs={packingColumnDefs}
+              defaultColDef={{
+                sortable: true,
+                filter: true,
+                resizable: true
+              }}
+              height={500}
+              pagination
+              paginationPageSize={20}
+              loading={loading}
+              exportFileName="packing-lists"
+            />
           </CardContent>
         )}
 
@@ -384,20 +382,20 @@ const PackingLists = () => {
               </Button>
             </Box>
 
-            <Box className="ag-theme-alpine" sx={{ height: 500 }}>
-              <AgGridReact
-                rowData={templates}
-                columnDefs={templateColumnDefs}
-                defaultColDef={{
-                  sortable: true,
-                  filter: true,
-                  resizable: true
-                }}
-                pagination
-                paginationPageSize={20}
-                loading={loading}
-              />
-            </Box>
+            <SPMAgGrid
+              rowData={templates}
+              columnDefs={templateColumnDefs}
+              defaultColDef={{
+                sortable: true,
+                filter: true,
+                resizable: true
+              }}
+              height={500}
+              pagination
+              paginationPageSize={20}
+              loading={loading}
+              exportFileName="packing-templates"
+            />
           </CardContent>
         )}
       </Card>

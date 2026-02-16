@@ -17,9 +17,7 @@ import {
   Paper,
   Divider
 } from '@mui/material';
-import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-material.css';
+import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import api from '../services/api';
 import { useI18n } from '../context/i18n';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -386,15 +384,14 @@ const ProductionDetail = () => {
           <Typography variant="h6" gutterBottom>
             {t('prod_plan_items', 'Plan Items')}
           </Typography>
-          <div className="ag-theme-material" style={{ height: 500, width: '100%' }}>
-            <AgGridReact
-              rowData={items}
-              columnDefs={itemsColumns}
-              pagination={true}
-              paginationPageSize={20}
-              domLayout="normal"
-            />
-          </div>
+          <SPMAgGrid
+            rowData={items}
+            columnDefs={itemsColumns}
+            height={500}
+            pagination={true}
+            paginationPageSize={20}
+            exportFileName="production-plan-items"
+          />
         </CardContent>
       </Card>
 

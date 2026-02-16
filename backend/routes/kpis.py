@@ -5,6 +5,7 @@ Rutas para KPIs y métricas del sistema
 import json
 import logging
 from collections import Counter, defaultdict
+from datetime import datetime, timedelta
 
 from flask import Blueprint, jsonify
 
@@ -49,6 +50,7 @@ def get_stock_inmovilizado():
         - centros: lista de centros (códigos, ej: AA101,AA102)
         - centro: un solo centro (alternativa a centros)
         - almacen: filtrar por almacén específico
+        - periodo_anos: filtrar materiales sin consumo en N años (1, 2 o 3)
         - limit: límite de resultados (default 50)
 
     Returns:
@@ -72,6 +74,13 @@ def get_stock_inmovilizado():
 
         # Filtro de almacén
         almacen_param = request.args.get("almacen", "").strip()
+
+        # Filtro de período sin consumo (1, 2 o 3 años)
+        periodo_anos = int(request.args.get("periodo_anos", 0))
+        periodo_anos = min(max(periodo_anos, 0), 5)  # Entre 0 y 5
+        fecha_limite = None
+        if periodo_anos > 0:
+            fecha_limite = (datetime.now() - timedelta(days=periodo_anos * 365)).strftime("%Y-%m-%d")
 
         # Límite de resultados
         limit = int(request.args.get("limit", 50))
@@ -100,31 +109,46 @@ def get_stock_inmovilizado():
                 global_valor = float(global_row[1]) if global_row and global_row[1] else 0
 
             # Construir query con filtros
-            where_clauses = ["inmovilizado = ?", "stock > 0"]
+            where_clauses = ["s.inmovilizado = ?", "s.stock > 0"]
             params = ["INMOVILIZADO"]
 
             if centros:
                 placeholders = ",".join(["?" for _ in centros])
-                where_clauses.append(f"centro IN ({placeholders})")
+                where_clauses.append(f"s.centro IN ({placeholders})")
                 params.extend(centros)
 
             if almacen_param:
-                where_clauses.append("almacen = ?")
+                where_clauses.append("s.almacen = ?")
                 params.append(almacen_param)
+
+            # Filtro de período: solo materiales sin consumo en los últimos N años
+            consumo_join = ""
+            if fecha_limite:
+                where_clauses.append(
+                    """NOT EXISTS (
+                        SELECT 1 FROM consumo_historico ch
+                        WHERE ch.material = s.material
+                        AND ch.centro = s.centro
+                        AND ch.almacen = s.almacen
+                        AND ch.fecha >= ?
+                    )"""
+                )
+                params.append(fecha_limite)
 
             where_sql = " AND ".join(where_clauses)
 
             # Query filtrada para items (agrupado por material)
             query = f"""
                 SELECT
-                    material as codigo,
-                    material_descripcion as descripcion,
-                    lote,
-                    SUM(stock) as stock_total,
-                    SUM(stock_valorizado) as valor_total
-                FROM stock
+                    s.material as codigo,
+                    s.material_descripcion as descripcion,
+                    s.lote,
+                    SUM(s.stock) as stock_total,
+                    SUM(s.stock_valorizado) as valor_total
+                FROM stock s
+                {consumo_join}
                 WHERE {where_sql}
-                GROUP BY material, material_descripcion, lote
+                GROUP BY s.material, s.material_descripcion, s.lote
                 ORDER BY valor_total DESC
                 LIMIT {limit}
             """
@@ -153,9 +177,10 @@ def get_stock_inmovilizado():
             # Total filtrado
             count_query = f"""
                 SELECT
-                    COUNT(DISTINCT material) as total,
-                    COALESCE(SUM(stock_valorizado), 0) as valor_total
-                FROM stock
+                    COUNT(DISTINCT s.material) as total,
+                    COALESCE(SUM(s.stock_valorizado), 0) as valor_total
+                FROM stock s
+                {consumo_join}
                 WHERE {where_sql}
             """
             cursor.execute(count_query, params)

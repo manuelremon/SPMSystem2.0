@@ -29,9 +29,7 @@ import {
   LocalShipping as TransitIcon,
   CheckCircle as FullIcon
 } from '@mui/icons-material';
-import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import api from '../services/api';
 import { useI18n } from '../context/i18n';
 
@@ -364,19 +362,19 @@ const KanbanBoard = () => {
             <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
               {t('kanban_senales_pendientes', 'Señales Pendientes')} ({tableroDetalle.senales_pendientes.length})
             </Typography>
-            <div className="ag-theme-alpine" style={{ height: 300, width: '100%' }}>
-              <AgGridReact
-                rowData={tableroDetalle.senales_pendientes}
-                columnDefs={senalesColumns}
-                defaultColDef={{
-                  sortable: true,
-                  filter: true,
-                  resizable: true
-                }}
-                pagination={true}
-                paginationPageSize={10}
-              />
-            </div>
+            <SPMAgGrid
+              rowData={tableroDetalle.senales_pendientes}
+              columnDefs={senalesColumns}
+              defaultColDef={{
+                sortable: true,
+                filter: true,
+                resizable: true
+              }}
+              pagination={true}
+              paginationPageSize={10}
+              height={300}
+              exportFileName="kanban-signals"
+            />
           </Paper>
         </>
       )}

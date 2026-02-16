@@ -34,9 +34,7 @@ import SendIcon from '@mui/icons-material/Send';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import InventoryIcon from '@mui/icons-material/Inventory';
 
-import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 
 const ESTADO_RECON_COLORS = {
   draft: 'default',
@@ -443,16 +441,16 @@ export default function ConsignmentDetail() {
                 {t('consign_update_stock', 'Actualizar Stock')}
               </Button>
             </Stack>
-            <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
-              <AgGridReact
-                rowData={stock}
-                columnDefs={stockColumns}
-                defaultColDef={{ resizable: true }}
-                pagination={true}
-                paginationPageSize={10}
-                overlayNoRowsTemplate={`<span>${t('consign_no_stock', 'Sin stock')}</span>`}
-              />
-            </div>
+            <SPMAgGrid
+              rowData={stock}
+              columnDefs={stockColumns}
+              defaultColDef={{ resizable: true }}
+              pagination={true}
+              paginationPageSize={10}
+              emptyMessage={t('consign_no_stock', 'Sin stock')}
+              height={400}
+              exportFileName="consignment-stock"
+            />
           </Box>
         )}
 
@@ -464,16 +462,16 @@ export default function ConsignmentDetail() {
                 {t('consign_register_consumo', 'Registrar Consumo')}
               </Button>
             </Stack>
-            <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
-              <AgGridReact
-                rowData={consumos}
-                columnDefs={consumoColumns}
-                defaultColDef={{ resizable: true }}
-                pagination={true}
-                paginationPageSize={10}
-                overlayNoRowsTemplate={`<span>${t('consign_no_consumos', 'Sin consumos')}</span>`}
-              />
-            </div>
+            <SPMAgGrid
+              rowData={consumos}
+              columnDefs={consumoColumns}
+              defaultColDef={{ resizable: true }}
+              pagination={true}
+              paginationPageSize={10}
+              emptyMessage={t('consign_no_consumos', 'Sin consumos')}
+              height={400}
+              exportFileName="consignment-consumos"
+            />
           </Box>
         )}
 
@@ -485,16 +483,16 @@ export default function ConsignmentDetail() {
                 {t('consign_new_recon', 'Nueva Reconciliación')}
               </Button>
             </Stack>
-            <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
-              <AgGridReact
-                rowData={reconciliaciones}
-                columnDefs={reconColumns}
-                defaultColDef={{ resizable: true }}
-                pagination={true}
-                paginationPageSize={10}
-                overlayNoRowsTemplate={`<span>${t('consign_no_recon', 'Sin reconciliaciones')}</span>`}
-              />
-            </div>
+            <SPMAgGrid
+              rowData={reconciliaciones}
+              columnDefs={reconColumns}
+              defaultColDef={{ resizable: true }}
+              pagination={true}
+              paginationPageSize={10}
+              emptyMessage={t('consign_no_recon', 'Sin reconciliaciones')}
+              height={400}
+              exportFileName="consignment-reconciliaciones"
+            />
           </Box>
         )}
 

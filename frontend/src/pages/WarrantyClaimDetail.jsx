@@ -25,7 +25,7 @@ import {
   Paper,
   Divider
 } from '@mui/material';
-import { AgGridReact } from 'ag-grid-react';
+import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import {
   Send as SendIcon,
   Check as CheckIcon,
@@ -38,8 +38,6 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useI18n } from '../context/i18n';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 const WarrantyClaimDetail = () => {
   const { id } = useParams();
@@ -341,17 +339,17 @@ const WarrantyClaimDetail = () => {
               {t('warranty_add_document', 'Agregar Documento')}
             </Button>
           </Box>
-          <Box className="ag-theme-alpine" sx={{ height: 400, width: '100%' }}>
-            <AgGridReact
-              rowData={reclamo.documentos || []}
-              columnDefs={documentColumns}
-              defaultColDef={{
-                sortable: true,
-                filter: true,
-                resizable: true
-              }}
-            />
-          </Box>
+          <SPMAgGrid
+            rowData={reclamo.documentos || []}
+            columnDefs={documentColumns}
+            defaultColDef={{
+              sortable: true,
+              filter: true,
+              resizable: true
+            }}
+            height={400}
+            exportFileName="warranty-claim-documents"
+          />
         </Box>
       )}
 

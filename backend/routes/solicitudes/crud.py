@@ -195,10 +195,9 @@ def get_solicitud(solicitud_id):
         extra = {}
     d["items"] = extra.get("items", [])
 
-    # FIX: Si monto_total es None o 0, recalcularlo desde los items
-    # (bug: monto_total no se guardo correctamente en la BD)
-    if not d.get("monto_total") and d["items"]:
-        d["monto_total"] = _calcular_total(d["items"])
+    # FIX: Si total_monto es None o 0, recalcularlo desde los items
+    if not d.get("total_monto") and d["items"]:
+        d["total_monto"] = _calcular_total(d["items"])
 
     return jsonify({"ok": True, "solicitud": d}), 200
 

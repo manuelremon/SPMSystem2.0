@@ -17,9 +17,7 @@ import {
   Tab,
   Alert
 } from '@mui/material';
-import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-material.css';
+import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import api from '../services/api';
 import { useI18n } from '../context/i18n';
 import { useNavigate } from 'react-router-dom';
@@ -375,16 +373,15 @@ const ProductionPlanning = () => {
               </Button>
             </Box>
 
-            <div className="ag-theme-material" style={{ height: 500, width: '100%' }}>
-              <AgGridReact
-                rowData={plans}
-                columnDefs={plansColumns}
-                pagination={true}
-                paginationPageSize={20}
-                loading={loading}
-                domLayout="normal"
-              />
-            </div>
+            <SPMAgGrid
+              rowData={plans}
+              columnDefs={plansColumns}
+              height={500}
+              pagination={true}
+              paginationPageSize={20}
+              loading={loading}
+              exportFileName="production-plans"
+            />
           </CardContent>
         </Card>
       )}
@@ -400,15 +397,14 @@ const ProductionPlanning = () => {
               </Button>
             </Box>
 
-            <div className="ag-theme-material" style={{ height: 500, width: '100%' }}>
-              <AgGridReact
-                rowData={workCenters}
-                columnDefs={wcColumns}
-                pagination={true}
-                paginationPageSize={20}
-                domLayout="normal"
-              />
-            </div>
+            <SPMAgGrid
+              rowData={workCenters}
+              columnDefs={wcColumns}
+              height={500}
+              pagination={true}
+              paginationPageSize={20}
+              exportFileName="work-centers"
+            />
           </CardContent>
         </Card>
       )}

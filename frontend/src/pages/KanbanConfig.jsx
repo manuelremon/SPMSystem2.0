@@ -21,9 +21,7 @@ import {
   Tooltip
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import api from '../services/api';
 import { useI18n } from '../context/i18n';
 
@@ -265,19 +263,19 @@ const KanbanConfig = () => {
                   {t('kanban_crear_tablero', 'Crear Tablero')}
                 </Button>
               </Box>
-              <div className="ag-theme-alpine" style={{ height: 500, width: '100%' }}>
-                <AgGridReact
-                  rowData={tableros}
-                  columnDefs={tablerosColumns}
-                  defaultColDef={{
-                    sortable: true,
-                    filter: true,
-                    resizable: true
-                  }}
-                  pagination={true}
-                  paginationPageSize={20}
-                />
-              </div>
+              <SPMAgGrid
+                rowData={tableros}
+                columnDefs={tablerosColumns}
+                defaultColDef={{
+                  sortable: true,
+                  filter: true,
+                  resizable: true
+                }}
+                pagination={true}
+                paginationPageSize={20}
+                height={500}
+                exportFileName="kanban-boards"
+              />
             </Box>
           )}
 
@@ -311,19 +309,19 @@ const KanbanConfig = () => {
                   {t('kanban_crear_tarjeta', 'Crear Tarjeta')}
                 </Button>
               </Box>
-              <div className="ag-theme-alpine" style={{ height: 500, width: '100%' }}>
-                <AgGridReact
-                  rowData={tarjetas}
-                  columnDefs={tarjetasColumns}
-                  defaultColDef={{
-                    sortable: true,
-                    filter: true,
-                    resizable: true
-                  }}
-                  pagination={true}
-                  paginationPageSize={20}
-                />
-              </div>
+              <SPMAgGrid
+                rowData={tarjetas}
+                columnDefs={tarjetasColumns}
+                defaultColDef={{
+                  sortable: true,
+                  filter: true,
+                  resizable: true
+                }}
+                pagination={true}
+                paginationPageSize={20}
+                height={500}
+                exportFileName="kanban-cards"
+              />
             </Box>
           )}
         </CardContent>

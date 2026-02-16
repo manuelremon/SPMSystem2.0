@@ -18,9 +18,7 @@ import {
   Chip
 } from '@mui/material';
 import { Add, Search, Calculate, Label } from '@mui/icons-material';
-import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import api from '../services/api';
 import { useI18n } from '../context/i18n';
 
@@ -246,19 +244,19 @@ const HSCodeManagement = () => {
                 </Button>
               </Box>
 
-              <div className="ag-theme-alpine" style={{ height: 500, width: '100%' }}>
-                <AgGridReact
-                  rowData={hsCodes}
-                  columnDefs={columnDefs}
-                  pagination={true}
-                  paginationPageSize={20}
-                  defaultColDef={{
-                    sortable: true,
-                    filter: true,
-                    resizable: true
-                  }}
-                />
-              </div>
+              <SPMAgGrid
+                rowData={hsCodes}
+                columnDefs={columnDefs}
+                pagination={true}
+                paginationPageSize={20}
+                defaultColDef={{
+                  sortable: true,
+                  filter: true,
+                  resizable: true
+                }}
+                height={500}
+                exportFileName="hs-codes"
+              />
             </CardContent>
           </Card>
         </Grid>

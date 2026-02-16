@@ -4,9 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useI18n } from '../context/i18n';
@@ -362,21 +360,20 @@ const ABCAnalysis = () => {
 
         {/* Data Table */}
         <Card className="p-4">
-          <div className="ag-theme-alpine" style={{ height: '500px', width: '100%' }}>
-            <AgGridReact
-              rowData={data}
-              columnDefs={columnDefs}
-              defaultColDef={{
-                resizable: true,
-                sortable: true,
-                filter: true,
-              }}
-              pagination={true}
-              paginationPageSize={50}
-              domLayout="normal"
-              loading={loading}
-            />
-          </div>
+          <SPMAgGrid
+            rowData={data}
+            columnDefs={columnDefs}
+            defaultColDef={{
+              resizable: true,
+              sortable: true,
+              filter: true,
+            }}
+            pagination={true}
+            paginationPageSize={50}
+            loading={loading}
+            height={500}
+            exportFileName="abc-analysis"
+          />
         </Card>
 
         {/* Empty state */}

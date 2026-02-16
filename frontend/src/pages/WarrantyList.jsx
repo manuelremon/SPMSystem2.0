@@ -19,13 +19,11 @@ import {
   InputLabel,
   Select
 } from '@mui/material';
-import { AgGridReact } from 'ag-grid-react';
+import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import { Add as AddIcon, Warning as WarningIcon, CheckCircle as CheckCircleIcon, AttachMoney as MoneyIcon, Schedule as ScheduleIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useI18n } from '../context/i18n';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 const WarrantyList = () => {
   const { t } = useI18n();
@@ -389,37 +387,37 @@ const WarrantyList = () => {
 
       {/* Content */}
       {activeTab === 0 && (
-        <Box className="ag-theme-alpine" sx={{ height: 600, width: '100%' }}>
-          <AgGridReact
-            rowData={garantias}
-            columnDefs={garantiasColumns}
-            defaultColDef={{
-              sortable: true,
-              filter: true,
-              resizable: true
-            }}
-            pagination={true}
-            paginationPageSize={50}
-            loading={loadingGarantias}
-          />
-        </Box>
+        <SPMAgGrid
+          rowData={garantias}
+          columnDefs={garantiasColumns}
+          defaultColDef={{
+            sortable: true,
+            filter: true,
+            resizable: true
+          }}
+          height={600}
+          pagination={true}
+          paginationPageSize={50}
+          loading={loadingGarantias}
+          exportFileName="warranties"
+        />
       )}
 
       {activeTab === 1 && (
-        <Box className="ag-theme-alpine" sx={{ height: 600, width: '100%' }}>
-          <AgGridReact
-            rowData={reclamos}
-            columnDefs={reclamosColumns}
-            defaultColDef={{
-              sortable: true,
-              filter: true,
-              resizable: true
-            }}
-            pagination={true}
-            paginationPageSize={50}
-            loading={loadingReclamos}
-          />
-        </Box>
+        <SPMAgGrid
+          rowData={reclamos}
+          columnDefs={reclamosColumns}
+          defaultColDef={{
+            sortable: true,
+            filter: true,
+            resizable: true
+          }}
+          height={600}
+          pagination={true}
+          paginationPageSize={50}
+          loading={loadingReclamos}
+          exportFileName="warranty-claims"
+        />
       )}
 
       {/* Modal Crear Garantía */}

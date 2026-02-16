@@ -29,12 +29,10 @@ import {
   Refresh,
   Download
 } from '@mui/icons-material';
-import { AgGridReact } from 'ag-grid-react';
+import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 // Chart replaced with simple table (recharts removed from project)
 import api from '../services/api';
 import { useI18n } from '../context/i18n';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 const ExecutiveDashboard = () => {
   const { t } = useI18n();
@@ -277,16 +275,14 @@ const ExecutiveDashboard = () => {
             </Button>
           </Box>
 
-          <Box className="ag-theme-alpine" sx={{ height: 300, width: '100%' }}>
-            <AgGridReact
-              rowData={scorecards}
-              columnDefs={scorecardColumns}
-              pagination={true}
-              paginationPageSize={5}
-              domLayout="autoHeight"
-              suppressRowHoverHighlight={false}
-            />
-          </Box>
+          <SPMAgGrid
+            rowData={scorecards}
+            columnDefs={scorecardColumns}
+            pagination={true}
+            paginationPageSize={5}
+            height={300}
+            exportFileName="executive-scorecards"
+          />
         </CardContent>
       </Card>
 
