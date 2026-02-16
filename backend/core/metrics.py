@@ -459,15 +459,6 @@ def get_cache_metrics() -> Dict[str, Any]:
     except Exception:
         pass
 
-    # Cache avanzado (MemoryCache/Redis)
-    try:
-        from backend.core.cache_advanced import get_cache
-        advanced = get_cache()
-        advanced_stats = advanced.get_stats()
-        result["advanced_cache"] = advanced_stats
-    except Exception:
-        pass
-
     # Data cache loader (DataFrames SAP)
     try:
         from backend.core.cache_loader import get_consumo_cache, get_stock_cache

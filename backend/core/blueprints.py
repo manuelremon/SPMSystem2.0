@@ -17,7 +17,6 @@ def register_blueprints(app: Flask) -> None:
         app: Flask application instance
     """
     # Import blueprints here to avoid circular imports
-    from backend.agent import agent_bp
     from backend.routes import (
         admin,
         admin_import,
@@ -84,7 +83,6 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(equivalencias.bp)  # Material equivalences at /api/equivalencias
 
     # AI and analytics
-    app.register_blueprint(agent_bp)  # Agent routes registered at /api/agent
     app.register_blueprint(assistant.bp)  # NLP Assistant at /api/assistant
     app.register_blueprint(ai.bp)  # AI recommendations at /api/ai
     app.register_blueprint(vertex_ia.bp)  # Vertex IA chat assistant at /api/vertex

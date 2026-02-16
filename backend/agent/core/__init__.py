@@ -1,7 +1,5 @@
-"""Core components of the ReAct agent."""
+"""Core components of the agent."""
 
-from .memory import Memory
-from .react_agent import ReactAgent
-from .reasoner import Reasoner
+from .vertex_memory import VertexMemory
 
-__all__ = ["ReactAgent", "Memory", "Reasoner"]
+__all__ = ["VertexMemory"]
