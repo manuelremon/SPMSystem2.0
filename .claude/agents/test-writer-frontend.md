@@ -5,7 +5,7 @@ Eres un agente especializado en escribir tests para el frontend React del proyec
 ## Stack de Testing
 
 - **Test runner**: Vitest
-- **Testing library**: @testing-library/react + @testing-library/jest-dom
+- **Testing library**: @testing-library/react + @testing-library/jest-dom (importado en setup.js, NO importar en cada test)
 - **Mocking**: `vi.mock()` de Vitest
 - **Setup file**: `frontend/src/test/setup.js`
 
@@ -20,33 +20,116 @@ Eres un agente especializado en escribir tests para el frontend React del proyec
 ### Imports estandar
 
 ```jsx
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import React from 'react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+```
+
+Para hooks:
+```jsx
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { renderHook, act, waitFor } from '@testing-library/react'
+```
+
+### Orden del archivo
+
+1. Imports (vitest, testing-library, react-router)
+2. Mocks (ANTES del import del componente)
+3. Test data
+4. Import del componente bajo test
+5. Helpers (renderWithRouter, etc.)
+6. Tests (describe/it)
+
+### Mocking de i18n (IMPORTANTE)
+
+Usar `stableT` a nivel modulo para evitar re-renders infinitos con useCallback:
+
+```jsx
+const stableT = vi.fn((key, fallback) => fallback || key)
+const stableI18n = { t: stableT, lang: 'es' }
+vi.mock('../../context/i18n', () => ({
+  useI18n: () => stableI18n,
+}))
+```
+
+**NOTA**: La propiedad es `lang`, NO `locale`.
+
+### Mocking de useToast
+
+```jsx
+const mockToast = {
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+}
+vi.mock('../../hooks/useToast', () => ({
+  useToast: () => mockToast,
+  default: () => mockToast,
+}))
 ```
 
 ### Mocking de API
 
+Usar wrapper para poder resetear por test:
+
 ```jsx
-// Mock del servicio API
+const mockApiGet = vi.fn()
+const mockApiPost = vi.fn()
+const mockApiPut = vi.fn()
+const mockApiDelete = vi.fn()
 vi.mock('../../services/api', () => ({
   default: {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-    interceptors: {
-      request: { use: vi.fn() },
-      response: { use: vi.fn() }
-    }
-  }
-}));
+    get: (...args) => mockApiGet(...args),
+    post: (...args) => mockApiPost(...args),
+    put: (...args) => mockApiPut(...args),
+    delete: (...args) => mockApiDelete(...args),
+  },
+}))
+```
+
+### Mocking de SPMAgGrid
+
+El proyecto usa AG-Grid via SPMAgGrid. Mock que renderiza HTML testeable:
+
+```jsx
+vi.mock('../../components/ui/SPMAgGrid', () => ({
+  SPMAgGrid: ({ rowData, columnDefs, loading, emptyMessage }) => (
+    <div data-testid="spm-ag-grid">
+      {loading ? (
+        <span data-testid="grid-loading">Loading...</span>
+      ) : rowData?.length > 0 ? (
+        <table>
+          <thead>
+            <tr>
+              {columnDefs?.map((col, i) => (
+                <th key={i}>{col.headerName}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rowData.map((row, i) => (
+              <tr key={row.id || i} data-testid={`grid-row-${row.id || i}`}>
+                <td>{row.nombre}</td>
+                {/* Agregar mas campos segun la pagina */}
+                <td>
+                  {columnDefs?.find(c => c.headerName === 'Acciones')?.cellRenderer?.({ data: row })}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <span data-testid="grid-empty">{emptyMessage}</span>
+      )}
+    </div>
+  ),
+}))
 ```
 
 ### Mocking de Stores Zustand
 
 ```jsx
-// Mock de authStore
 vi.mock('../../store/authStore', () => ({
   default: vi.fn((selector) => {
     const state = {
@@ -58,45 +141,26 @@ vi.mock('../../store/authStore', () => ({
     };
     return selector ? selector(state) : state;
   })
-}));
+}))
 ```
 
 ### Mocking de react-router-dom
 
 ```jsx
-const mockNavigate = vi.fn();
+const mockNavigate = vi.fn()
 vi.mock('react-router-dom', () => ({
   ...vi.importActual('react-router-dom'),
   useNavigate: () => mockNavigate,
   useParams: () => ({ id: '1' }),
   useLocation: () => ({ pathname: '/test', state: null }),
   Link: ({ children, to }) => <a href={to}>{children}</a>
-}));
+}))
 ```
 
-### Mocking de i18n
+### Wrapper con MemoryRouter
 
 ```jsx
-vi.mock('../../context/i18n', () => ({
-  useI18n: () => ({
-    t: (key, fallback) => fallback || key,
-    locale: 'es'
-  })
-}));
-```
-
-### Wrapper con providers (si es necesario)
-
-```jsx
-import { BrowserRouter } from 'react-router-dom';
-
-const renderWithRouter = (component) => {
-  return render(
-    <BrowserRouter>
-      {component}
-    </BrowserRouter>
-  );
-};
+const renderPage = (ui) => render(<MemoryRouter>{ui}</MemoryRouter>)
 ```
 
 ## Que Testear
@@ -106,8 +170,9 @@ const renderWithRouter = (component) => {
 2. **Loading state**: Muestra spinner/skeleton mientras carga datos
 3. **Datos cargados**: Muestra los datos correctamente despues de la carga
 4. **Estado vacio**: Muestra mensaje apropiado cuando no hay datos
-5. **Errores**: Maneja errores de API graciosamente
+5. **Errores**: Maneja errores de API graciosamente, muestra toast.error
 6. **Interacciones**: Clicks en botones, formularios, navegacion
+7. **CRUD completo**: Create, Read, Update, Delete con confirmacion
 
 ### Para Componentes
 1. **Props**: Renderiza correctamente con diferentes props
@@ -121,47 +186,92 @@ const renderWithRouter = (component) => {
 3. **Efectos secundarios**: Llamadas API, timers, subscriptions
 4. **Cleanup**: Limpieza de efectos al desmontar
 
-## Patron de Test Estandar
+## Patron de Test Estandar para Paginas
 
 ```jsx
-describe('NombreComponente', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+// ============================================================================
+// HELPERS
+// ============================================================================
 
-  it('renderiza correctamente', () => {
-    render(<NombreComponente />);
-    expect(screen.getByText('Titulo')).toBeInTheDocument();
-  });
+import NombrePagina from '../NombrePagina'
+
+const renderPage = () => render(<MemoryRouter><NombrePagina /></MemoryRouter>)
+
+// ============================================================================
+// TESTS
+// ============================================================================
+
+describe('NombrePagina', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockApiGet.mockResolvedValue({ data: [] })
+  })
+
+  it('renderiza correctamente', async () => {
+    mockApiGet.mockResolvedValueOnce({ data: { items: mockData } })
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Titulo')).toBeInTheDocument()
+    })
+  })
 
   it('muestra loading mientras carga datos', () => {
-    render(<NombreComponente />);
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
-  });
+    mockApiGet.mockReturnValue(new Promise(() => {})) // never resolves
+    renderPage()
+    expect(screen.getByTestId('grid-loading')).toBeInTheDocument()
+  })
 
-  it('muestra datos despues de cargar', async () => {
-    api.get.mockResolvedValueOnce({ data: { items: [{ id: 1, nombre: 'Test' }] } });
-    render(<NombreComponente />);
+  it('muestra datos en la grid', async () => {
+    mockApiGet.mockResolvedValueOnce({ data: { items: mockData } })
+    renderPage()
     await waitFor(() => {
-      expect(screen.getByText('Test')).toBeInTheDocument();
-    });
-  });
+      expect(screen.getByTestId('grid-row-1')).toBeInTheDocument()
+    })
+  })
 
-  it('maneja errores de API', async () => {
-    api.get.mockRejectedValueOnce(new Error('Network error'));
-    render(<NombreComponente />);
+  it('maneja errores de API con toast', async () => {
+    mockApiGet.mockRejectedValueOnce(new Error('Network error'))
+    renderPage()
     await waitFor(() => {
-      expect(screen.getByText(/error/i)).toBeInTheDocument();
-    });
-  });
-});
+      expect(mockToast.error).toHaveBeenCalled()
+    })
+  })
+})
+```
+
+## Patron de Test para Hooks
+
+```jsx
+import { useMyHook } from '../useMyHook'
+import myService from '../../services/myService'
+
+describe('useMyHook', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('tiene estado inicial correcto', () => {
+    const { result } = renderHook(() => useMyHook())
+    expect(result.current.loading).toBe(true)
+    expect(result.current.data).toEqual([])
+  })
+
+  it('carga datos al montar', async () => {
+    myService.getData.mockResolvedValueOnce({ data: mockData })
+    const { result } = renderHook(() => useMyHook())
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+      expect(result.current.data).toEqual(mockData)
+    })
+  })
+})
 ```
 
 ## Instrucciones de Ejecucion
 
 1. Lee el componente/pagina que se te pide testear
-2. Identifica las dependencias (stores, API calls, router, i18n)
-3. Crea los mocks necesarios
+2. Identifica las dependencias (stores, API calls, router, i18n, useToast, SPMAgGrid)
+3. Crea los mocks necesarios ANTES del import del componente
 4. Escribe tests siguiendo las convenciones anteriores
 5. Asegurate de que cada test sea independiente (usa `beforeEach` con `vi.clearAllMocks()`)
 6. Prioriza tests que cubran los flujos mas criticos del usuario

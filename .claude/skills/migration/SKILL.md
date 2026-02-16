@@ -26,14 +26,20 @@ Si no se proporcionaron detalles, pregunta:
 Usa este template exacto:
 
 ```python
-"""Migration {NNN}: {Descripcion breve}"""
+"""
+Migracion {NNN}: {Titulo descriptivo}
+Fecha: {YYYY-MM-DD}
+Descripcion: {Descripcion detallada de lo que hace}
+"""
+from backend.core.db import get_db_connection, is_using_postgresql
 
 
-def migrate(conn, is_postgresql=False):
-    cursor = conn.cursor()
-    try:
-        if is_postgresql:
-            # PostgreSQL: usar IF NOT EXISTS, tipos nativos
+def up():
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+
+        if is_using_postgresql():
+            # PostgreSQL: usar SERIAL, TIMESTAMP, y sintaxis FK completa
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS nombre_tabla (
                     id SERIAL PRIMARY KEY,
@@ -42,36 +48,62 @@ def migrate(conn, is_postgresql=False):
                 )
             """)
         else:
-            # SQLite: verificar existencia manualmente si es ALTER TABLE
+            # SQLite: usar INTEGER PRIMARY KEY AUTOINCREMENT y TEXT para fechas
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS nombre_tabla (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     columna TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at TEXT DEFAULT (datetime('now'))
                 )
             """)
 
+        # Crear indices (misma sintaxis para ambos)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_tabla_columna ON nombre_tabla(columna)")
+
         conn.commit()
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning(f"Migration {NNN}: {e}")
+
+    print("Migracion {NNN}: {descripcion} - Tablas creadas")
+
+
+def down():
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+
+        # Eliminar indices primero
+        cursor.execute("DROP INDEX IF EXISTS idx_tabla_columna")
+
+        # Eliminar tablas
+        cursor.execute("DROP TABLE IF EXISTS nombre_tabla")
+
+        conn.commit()
+
+    print("Migracion {NNN}: Revertida exitosamente")
+
+
+if __name__ == '__main__':
+    up()
 ```
 
 ### 4. Reglas importantes
 
 - **Nombres de tablas en espanol** (convencion del proyecto desde migracion 025)
-- **Siempre soportar dual SQLite/PostgreSQL** con el parametro `is_postgresql`
-- **PostgreSQL usa** `SERIAL`, `IF NOT EXISTS` en ALTER TABLE, `TIMESTAMP`
-- **SQLite usa** `INTEGER PRIMARY KEY AUTOINCREMENT`, `PRAGMA table_info()` para verificar columnas
+- **Siempre soportar dual SQLite/PostgreSQL** con `is_using_postgresql()`
+- **Import**: `from backend.core.db import get_db_connection, is_using_postgresql`
+- **Connection**: usar `with get_db_connection() as conn:` (context manager)
+- **Funcion principal**: siempre `def up():` (sin parametros)
+- **Funcion rollback**: siempre `def down():` (sin parametros)
+- **Entry point**: incluir `if __name__ == '__main__': up()`
+- **PostgreSQL usa**: `SERIAL PRIMARY KEY`, `TIMESTAMP DEFAULT CURRENT_TIMESTAMP`, `CHECK()` constraints
+- **SQLite usa**: `INTEGER PRIMARY KEY AUTOINCREMENT`, `TEXT DEFAULT (datetime('now'))`, `CHECK()` constraints
 - **Para ALTER TABLE en SQLite**: verificar si la columna existe con `PRAGMA table_info(tabla)`
-- **Siempre hacer `conn.commit()`** al final
-- **Wrap en try/except** con logging de warning (no error fatal)
-- La funcion SIEMPRE se llama `migrate(conn, is_postgresql=False)`
-- NO incluir funcion downgrade (el proyecto no usa rollbacks de migracion)
+- **Siempre hacer `conn.commit()`** dentro del `with` block
+- **Indices**: crear al final, sintaxis identica para ambos motores
+- **Print de confirmacion** despues del `with` block
 
 ### 5. Verificar
 
 Despues de crear el archivo, confirma:
 - El numero de migracion es consecutivo
-- El archivo sigue el patron exacto
+- El archivo sigue el patron exacto (imports, `up()`, `down()`, `__main__`)
 - Los tipos de datos son correctos para ambos motores
+- Las fechas usan `TIMESTAMP` en PG y `TEXT DEFAULT (datetime('now'))` en SQLite
