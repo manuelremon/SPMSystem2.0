@@ -43,7 +43,7 @@ jobs:
           python -m pytest tests/unit/ -v --tb=short \
             --ignore=tests/unit/test_forecast_parallel.py \
             --ignore=tests/unit/test_lstm_model.py \
-            -x --timeout=60
+            --timeout=60
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
