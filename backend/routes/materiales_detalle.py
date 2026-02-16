@@ -8,10 +8,8 @@ from backend.core.db import get_db_connection
 bp_detalle = Blueprint("materiales_detalle", __name__, url_prefix="/api/materiales")
 
 # Caches para datos de sap_data.db
-_STOCK_CACHE: Optional[List[Dict[str, Any]]] = None
 _PEDIDOS_CACHE: Optional[List[Dict[str, Any]]] = None
 _MRP_CACHE: Optional[List[Dict[str, Any]]] = None
-_CONSUMO_CACHE: Optional[List[Dict[str, Any]]] = None
 
 
 def _normalize_code(val: str) -> str:
@@ -194,30 +192,6 @@ def _get_consumo_por_ubicacion(codigo: str) -> List[Dict[str, Any]]:
         return []
 
 
-def _load_stock() -> List[Dict[str, Any]]:
-    """Carga stock desde sap_data.db tabla 'stock'"""
-    global _STOCK_CACHE
-    if _STOCK_CACHE is not None:
-        return _STOCK_CACHE
-
-    try:
-        with get_db_connection("sap_data") as conn:
-            cur = conn.cursor()
-            cur.execute(
-                """
-                SELECT material as codigo, centro, almacen, lote, stock
-                FROM stock
-                WHERE stock > 0
-            """
-            )
-            rows = [dict(row) for row in cur.fetchall()]
-        _STOCK_CACHE = rows
-        return _STOCK_CACHE
-    except Exception:
-        _STOCK_CACHE = []
-        return _STOCK_CACHE
-
-
 def _load_pedidos() -> List[Dict[str, Any]]:
     """Carga pedidos en curso desde sap_data.db tabla 'pedidos_sap'"""
     global _PEDIDOS_CACHE
@@ -270,36 +244,6 @@ def _load_mrp() -> List[Dict[str, Any]]:
     except Exception:
         _MRP_CACHE = []
         return _MRP_CACHE
-
-
-def _load_consumo() -> List[Dict[str, Any]]:
-    """Carga consumo histórico desde sap_data.db tabla 'consumo_historico'"""
-    global _CONSUMO_CACHE
-    if _CONSUMO_CACHE is not None:
-        return _CONSUMO_CACHE
-
-    try:
-        with get_db_connection("sap_data") as conn:
-            cur = conn.cursor()
-            cur.execute(
-                """
-                SELECT
-                    material as codigo,
-                    centro,
-                    almacen,
-                    cantidad,
-                    fecha,
-                    descripcion
-                FROM consumo_historico
-                ORDER BY fecha DESC
-            """
-            )
-            rows = [dict(row) for row in cur.fetchall()]
-        _CONSUMO_CACHE = rows
-        return _CONSUMO_CACHE
-    except Exception:
-        _CONSUMO_CACHE = []
-        return _CONSUMO_CACHE
 
 
 @bp_detalle.route("/<codigo>/detalle", methods=["GET"])

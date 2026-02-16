@@ -33,12 +33,6 @@ def get_db_connection():
     return db_conn()
 
 
-def _sql_now_minus(interval: str) -> str:
-    """Helper para obtener expresion SQL NOW() - interval compatible."""
-    from backend.core.db import sql_now_minus
-    return sql_now_minus(interval)
-
-
 class AIService:
     """
     Servicio unificado de inteligencia artificial.

@@ -47,21 +47,8 @@ export const getForecast = async (codigo, options = {}) => {
     params.almacen = Array.isArray(almacen) ? almacen.join(',') : almacen;
   }
 
-  console.log('[Forecast] Enviando request con dias:', dias, 'params:', params);
-
   const response = await api.get(`/ai/materiales/forecast/${codigo}`, { params });
   const result = response.data?.data || response.data;
-
-  console.log('[Forecast] Respuesta - dias solicitados:', dias, ', predicciones recibidas:', result?.predicciones?.length);
-  if (result?.predicciones?.length > 0) {
-    console.log('[Forecast] Primera predicción:', result.predicciones[0]);
-    console.log('[Forecast] Última predicción:', result.predicciones[result.predicciones.length - 1]);
-  }
-  if (result?.historico?.length > 0) {
-    console.log('[Forecast] Histórico - registros:', result.historico.length);
-    console.log('[Forecast] Histórico primera fecha:', result.historico[0]);
-    console.log('[Forecast] Histórico última fecha:', result.historico[result.historico.length - 1]);
-  }
 
   // Backend retorna { ok: true, data: {...} }, extraemos solo data
   return result;

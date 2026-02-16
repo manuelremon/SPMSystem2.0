@@ -22,7 +22,6 @@ numpy==2.3.4
 openpyxl==3.1.5
 packaging==25.0
 pandas==2.3.3
-pillow==12.0.0
 pydantic==2.12.3
 pydantic_core==2.41.4
 pydantic-settings==2.6.1
@@ -42,7 +41,6 @@ typing_extensions==4.15.0
 tzdata==2025.2
 urllib3==2.5.0
 Werkzeug==3.1.3
-flask-shell-ipython==0.5.3
 
 # PostgreSQL (produccion)
 psycopg2-binary>=2.9.9
@@ -68,5 +66,3 @@ google-genai>=1.0.0
 # Edge TTS - Voces neurales GRATIS de Microsoft (incluye voz argentina)
 edge-tts>=7.0.0
 
-# Desarrollo y testing
-faker>=28.0.0  # Generacion de datos de prueba

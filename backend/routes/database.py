@@ -864,12 +864,6 @@ def _log_crud_operation(operation: str, table: str, db_name: str, data: dict, us
         logger.warning(f"Error logging CRUD operation: {e}")
 
 
-def _filter_protected_columns(columns: list, for_display: bool = True) -> list:
-    """Filtra columnas protegidas"""
-    if for_display:
-        return [c for c in columns if c.get("name") not in PROTECTED_COLUMNS]
-    return [c for c in columns if c not in PROTECTED_COLUMNS]
-
 
 def _is_table_read_only(db_name: str, table: str) -> bool:
     """Verifica si una tabla es de solo lectura"""

@@ -77,10 +77,6 @@ class AtomicBudgetTransaction:
             self._conn.close()
         return False
 
-    def _placeholder(self) -> str:
-        """Retorna el placeholder correcto para la BD"""
-        return "%s" if self._use_postgresql else "?"
-
     def _execute(self, sql: str, params: tuple = None):
         """Ejecuta SQL con placeholders convertidos"""
         if self._use_postgresql:
