@@ -6,8 +6,10 @@ import { cachedGet } from "../services/cachedApi";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
 import { useNavigate } from "react-router-dom";
-import { getTableColumnsAgGrid } from "./DashboardShared";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
+import StatusBadge from "../components/ui/StatusBadge";
+import { formatCurrency, formatAlmacen, formatDate } from "../utils/formatters";
+import { getCriticidadConfig } from "../utils/styleConfig";
 import { useTrendData } from '../components/dashboard/TrendChart';
 import { useDashboardLayout } from "../hooks/useDashboardLayout";
 // MUI Components
@@ -32,6 +34,117 @@ import { KPIRow2 } from './DashboardAdmin/index';
 import { KPIRow3 } from './DashboardAdmin/index';
 import { ExpandedCardDialog } from './DashboardAdmin/index';
 import DrillDownModal from '../components/dashboard/DrillDownModal';
+
+// ============================================================================
+// AG-Grid column definitions for solicitudes table
+// ============================================================================
+
+function getTableColumnsAgGrid(t) {
+  return [
+    {
+      field: "id", headerName: "ID", width: 80, flex: 0,
+      cellRenderer: (params) => (
+        <Typography component="span" sx={{ fontFamily: "monospace", fontSize: "0.75rem", fontVariantNumeric: "tabular-nums", color: "slate.700" }}>
+          {params.data?.id}
+        </Typography>
+      ),
+    },
+    {
+      field: "solicitante", headerName: t("dash_table_solicitante", "Solicitante"), minWidth: 150,
+      valueGetter: (params) => [params.data?.solicitante_nombre, params.data?.solicitante_apellido].filter(Boolean).join(" ").trim() || "-",
+      cellRenderer: (params) => (
+        <Typography component="span" sx={{ fontSize: "0.75rem", color: "text.secondary", fontWeight: 500 }}>
+          {[params.data?.solicitante_nombre, params.data?.solicitante_apellido].filter(Boolean).join(" ").trim() || "-"}
+        </Typography>
+      ),
+    },
+    {
+      field: "created_at", headerName: t("dash_table_fecha", "Fecha"), minWidth: 100,
+      valueGetter: (params) => params.data?.created_at ? new Date(params.data.created_at).getTime() : 0,
+      valueFormatter: (params) => formatDate(params.data?.created_at),
+      cellRenderer: (params) => (
+        <Typography component="span" sx={{ fontSize: "0.75rem", color: "text.secondary", fontVariantNumeric: "tabular-nums" }}>
+          {formatDate(params.data?.created_at)}
+        </Typography>
+      ),
+    },
+    {
+      field: "estado", headerName: t("dash_table_estado", "Estado"), minWidth: 120,
+      cellRenderer: (params) => {
+        const row = params.data;
+        return (
+          <StatusBadge
+            estado={row?.estado || row?.status || "Desconocido"}
+            showIcon={false}
+            tooltipInfo={{
+              aprobador: [row?.aprobador_nombre, row?.aprobador_apellido].filter(Boolean).join(" ").trim() || null,
+              planificador: [row?.planner_nombre, row?.planner_apellido].filter(Boolean).join(" ").trim() || null,
+              fechaAprobacion: row?.updated_at,
+              fechaEnvio: row?.created_at,
+            }}
+          />
+        );
+      },
+    },
+    {
+      field: "criticidad", headerName: "Criticidad", minWidth: 100,
+      cellRenderer: (params) => {
+        const config = getCriticidadConfig(params.data?.criticidad || "Normal");
+        return <Typography component="span" sx={{ fontSize: "0.75rem", fontWeight: 600, color: config.color }}>{config.label}</Typography>;
+      },
+    },
+    {
+      field: "items", headerName: "Items", width: 80, flex: 0,
+      valueGetter: (params) => (params.data?.items || []).length,
+      cellRenderer: (params) => (
+        <Typography component="span" sx={{ fontFamily: "monospace", fontSize: "0.75rem", fontVariantNumeric: "tabular-nums" }}>
+          {(params.data?.items || []).length}
+        </Typography>
+      ),
+    },
+    {
+      field: "total_monto", headerName: "Monto", minWidth: 120, type: "numericColumn",
+      cellStyle: { textAlign: 'right', paddingRight: '16px' },
+      valueFormatter: (params) => formatCurrency(params.data?.total_monto || 0),
+      cellRenderer: (params) => (
+        <Box component="span" sx={{ fontFamily: "monospace", fontSize: "0.75rem", fontVariantNumeric: "tabular-nums", fontWeight: 500, display: "block", whiteSpace: "nowrap" }}>
+          {formatCurrency(params.data?.total_monto || 0)}
+        </Box>
+      ),
+    },
+    {
+      field: "sector_nombre", headerName: "Sector", minWidth: 120,
+      valueGetter: (params) => params.data?.sector_nombre || params.data?.sector || "-",
+      cellRenderer: (params) => (
+        <Typography component="span" sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
+          {params.data?.sector_nombre || params.data?.sector || "-"}
+        </Typography>
+      ),
+    },
+    {
+      field: "centro", headerName: "Centro", minWidth: 100,
+      cellRenderer: (params) => (
+        <Typography component="span" sx={{ fontSize: "0.75rem", color: "text.secondary" }}>{params.data?.centro || "-"}</Typography>
+      ),
+    },
+    {
+      field: "almacen_virtual", headerName: "Almacén", minWidth: 100,
+      valueGetter: (params) => formatAlmacen(params.data?.almacen_virtual),
+      cellRenderer: (params) => (
+        <Typography component="span" sx={{ fontSize: "0.75rem", color: "text.secondary" }}>{formatAlmacen(params.data?.almacen_virtual)}</Typography>
+      ),
+    },
+    {
+      field: "planificador", headerName: "Planificador", minWidth: 140,
+      valueGetter: (params) => [params.data?.planner_nombre, params.data?.planner_apellido].filter(Boolean).join(" ").trim() || "-",
+      cellRenderer: (params) => (
+        <Typography component="span" sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
+          {[params.data?.planner_nombre, params.data?.planner_apellido].filter(Boolean).join(" ").trim() || "-"}
+        </Typography>
+      ),
+    },
+  ];
+}
 
 // ============================================================================
 // DASHBOARD ADMIN COMPONENT
