@@ -192,6 +192,33 @@ def get_stock_inmovilizado():
                 total_count = totals_row[0] if totals_row else 0
                 valor_total = float(totals_row[1]) if totals_row and totals_row[1] else 0
 
+            # Opciones de filtro (centros y almacenes disponibles en stock inmovilizado)
+            cursor.execute(
+                """
+                SELECT DISTINCT centro FROM stock
+                WHERE inmovilizado = ? AND stock > 0
+                ORDER BY centro
+            """,
+                ("INMOVILIZADO",),
+            )
+            centros_disponibles = [
+                r["centro"] if isinstance(r, dict) else r[0]
+                for r in cursor.fetchall()
+            ]
+
+            cursor.execute(
+                """
+                SELECT DISTINCT almacen FROM stock
+                WHERE inmovilizado = ? AND stock > 0
+                ORDER BY almacen
+            """,
+                ("INMOVILIZADO",),
+            )
+            almacenes_disponibles = [
+                r["almacen"] if isinstance(r, dict) else r[0]
+                for r in cursor.fetchall()
+            ]
+
             return jsonify({
                 "ok": True,
                 "items": items,
@@ -199,6 +226,10 @@ def get_stock_inmovilizado():
                 "valorTotal": valor_total,
                 "globalTotal": global_total,
                 "globalValorTotal": global_valor,
+                "filtros": {
+                    "centros": centros_disponibles,
+                    "almacenes": almacenes_disponibles,
+                },
             })
 
     except Exception as e:

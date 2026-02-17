@@ -246,6 +246,7 @@ export default function DashboardAdmin() {
   const [stockFiltrosCentro, setStockFiltrosCentro] = useState("");
   const [stockFiltrosAlmacen, setStockFiltrosAlmacen] = useState("");
   const [stockFiltrosPeriodo, setStockFiltrosPeriodo] = useState(1); // 1, 2 o 3 anos
+  const [stockFiltrosOpciones, setStockFiltrosOpciones] = useState({ centros: [], almacenes: [] });
 
   // Compras evitadas detalle (para filtrado)
   const [comprasEvitadasDetalle, setComprasEvitadasDetalle] = useState([]);
@@ -435,6 +436,10 @@ export default function DashboardAdmin() {
             globalTotal: response.data.globalTotal || response.data.total || 0,
             globalValorTotal: response.data.globalValorTotal || response.data.valorTotal || 0,
           });
+          // Guardar opciones de filtros propias del stock inmovilizado
+          if (response.data.filtros) {
+            setStockFiltrosOpciones(response.data.filtros);
+          }
         }
       } catch (err) {
         if (!isMounted || err?.name === 'AbortError') return;
@@ -846,7 +851,7 @@ export default function DashboardAdmin() {
             setStockFiltrosAlmacen={setStockFiltrosAlmacen}
             stockFiltrosPeriodo={stockFiltrosPeriodo}
             setStockFiltrosPeriodo={setStockFiltrosPeriodo}
-            filtrosOpciones={filtrosOpciones}
+            filtrosOpciones={stockFiltrosOpciones}
             onKpiDrillDown={handleKpiDrillDown}
           />
         );
@@ -860,7 +865,7 @@ export default function DashboardAdmin() {
       datosFiltrados, kpiData, rangoFechas, sliderAFechaDate, comprasEvitadasDetalle,
       cumplimientoProveedores, proveedoresSeleccionados, trendData, handleDrillDown,
       handleKpiDrillDown, stockInmovilizadoFiltrado, kpiLoading, stockFiltradoLocal,
-      stockFiltrosCentro, stockFiltrosAlmacen, stockFiltrosPeriodo]);
+      stockFiltrosCentro, stockFiltrosAlmacen, stockFiltrosPeriodo, stockFiltrosOpciones]);
 
   const orderedVisibleIds = layout.getOrderedVisibleIds();
   const isKpiSection = (id) => id.startsWith('kpi_row');
