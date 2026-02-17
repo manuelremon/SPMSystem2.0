@@ -22,13 +22,8 @@ function KPIRow3({
   kpiLoading,
   // Stock filtrado local
   stockFiltradoLocal,
-  stockFiltrosCentro,
-  setStockFiltrosCentro,
-  stockFiltrosAlmacen,
-  setStockFiltrosAlmacen,
   stockFiltrosPeriodo,
   setStockFiltrosPeriodo,
-  filtrosOpciones,
   // Drill-down handler
   onKpiDrillDown,
 }) {
@@ -227,38 +222,8 @@ function KPIRow3({
                 <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
                   Stock Inmovilizado
                 </Typography>
-                {/* Filtros MUI */}
+                {/* Filtro de periodo sin consumo */}
                 <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
-                  <FormControl size="small" sx={{ minWidth: 120 }}>
-                    <InputLabel id="stock-centro-label" sx={{ fontSize: '0.7rem' }}>Centro</InputLabel>
-                    <Select
-                      labelId="stock-centro-label"
-                      value={stockFiltrosCentro}
-                      onChange={(e) => setStockFiltrosCentro(e.target.value)}
-                      input={<OutlinedInput label="Centro" />}
-                      sx={{ fontSize: '0.7rem' }}
-                    >
-                      <MenuItem value=""><em>Todos</em></MenuItem>
-                      {filtrosOpciones.centros.map((centro) => (
-                        <MenuItem key={centro} value={centro} sx={{ fontSize: FONT_SIZES.md }}>{centro}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                  <FormControl size="small" sx={{ minWidth: 120 }}>
-                    <InputLabel id="stock-almacen-label" sx={{ fontSize: '0.7rem' }}>Almacen</InputLabel>
-                    <Select
-                      labelId="stock-almacen-label"
-                      value={stockFiltrosAlmacen}
-                      onChange={(e) => setStockFiltrosAlmacen(e.target.value)}
-                      input={<OutlinedInput label="Almacen" />}
-                      sx={{ fontSize: '0.7rem' }}
-                    >
-                      <MenuItem value=""><em>Todos</em></MenuItem>
-                      {filtrosOpciones.almacenes.map((almacen) => (
-                        <MenuItem key={almacen} value={almacen} sx={{ fontSize: FONT_SIZES.md }}>{almacen}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
                   <FormControl size="small" sx={{ minWidth: 170 }}>
                     <InputLabel id="stock-periodo-label" sx={{ fontSize: '0.75rem' }}>Sin consumo</InputLabel>
                     <Select

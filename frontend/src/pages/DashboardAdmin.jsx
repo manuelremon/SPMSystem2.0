@@ -845,13 +845,8 @@ export default function DashboardAdmin() {
             stockInmovilizadoFiltrado={stockInmovilizadoFiltrado}
             kpiLoading={kpiLoading}
             stockFiltradoLocal={stockFiltradoLocal}
-            stockFiltrosCentro={stockFiltrosCentro}
-            setStockFiltrosCentro={setStockFiltrosCentro}
-            stockFiltrosAlmacen={stockFiltrosAlmacen}
-            setStockFiltrosAlmacen={setStockFiltrosAlmacen}
             stockFiltrosPeriodo={stockFiltrosPeriodo}
             setStockFiltrosPeriodo={setStockFiltrosPeriodo}
-            filtrosOpciones={stockFiltrosOpciones}
             onKpiDrillDown={handleKpiDrillDown}
           />
         );
