@@ -2,8 +2,8 @@
 
 from .base import BaseTool, ToolError, ToolMetadata
 from .data_loader import DataLoader
-from .nlp_processor import NLPProcessor
 from .material_matcher import MaterialMatcher
+from .nlp_processor import NLPProcessor
 
 __all__ = [
     "BaseTool",

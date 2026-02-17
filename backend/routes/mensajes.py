@@ -20,7 +20,6 @@ from backend.core.user_helpers import get_user_name
 from backend.services.message_service import MessageService
 from backend.services.notification_service import NotificationService
 
-
 bp = Blueprint("mensajes", __name__, url_prefix="/api/mensajes")
 
 

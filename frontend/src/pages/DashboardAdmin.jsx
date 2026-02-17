@@ -176,19 +176,15 @@ export default function DashboardAdmin() {
   // Solicitudes state
   const [solicitudesCollapsed, setSolicitudesCollapsed] = useState(true); // Por defecto colapsado
   const [activeTab, setActiveTab] = useState("todas");
+  const [allData, setAllData] = useState({
+    todas: [],
+  });
   const [stats, setStats] = useState({
     todas: 0,
     pendientes: 0,
     en_proceso: 0,
     completadas: 0,
     rechazadas: 0,
-  });
-  const [allData, setAllData] = useState({
-    todas: [],
-    pendientes: [],
-    en_proceso: [],
-    completadas: [],
-    rechazadas: [],
   });
   const [loading, setLoading] = useState(true);
 
@@ -243,10 +239,7 @@ export default function DashboardAdmin() {
 
   // Stock inmovilizado con filtros locales (nueva card)
   const [stockFiltradoLocal, setStockFiltradoLocal] = useState({ items: [], total: 0, valorTotal: 0, loading: false });
-  const [stockFiltrosCentro, setStockFiltrosCentro] = useState("");
-  const [stockFiltrosAlmacen, setStockFiltrosAlmacen] = useState("");
   const [stockFiltrosPeriodo, setStockFiltrosPeriodo] = useState(1); // 1, 2 o 3 anos
-  const [stockFiltrosOpciones, setStockFiltrosOpciones] = useState({ centros: [], almacenes: [] });
 
   // Compras evitadas detalle (para filtrado)
   const [comprasEvitadasDetalle, setComprasEvitadasDetalle] = useState([]);
@@ -255,11 +248,7 @@ export default function DashboardAdmin() {
   // DATA FETCHING EFFECTS
   // ============================================================================
 
-  // Track which tabs have been loaded (lazy loading)
-  const [loadedTabs, setLoadedTabs] = useState({ todas: false, pendientes: false, en_proceso: false, completadas: false, rechazadas: false });
-  const [tabLoading, setTabLoading] = useState({});
-
-  // Fetch solicitudes - Solo "todas" en mount (para KPIs), otras tabs on-demand
+  // Fetch solicitudes - todas en mount (para KPIs y tabs)
   useEffect(() => {
     const abortController = new AbortController();
     let isMounted = true;
@@ -275,13 +264,26 @@ export default function DashboardAdmin() {
         const todasLista = (todasRes?.data?.solicitudes || todasRes?.data?.items || [])
           .sort((a, b) => new Date(b.fecha_creacion || b.created_at || 0) - new Date(a.fecha_creacion || a.created_at || 0));
 
-        setStats(prev => ({
-          ...prev,
-          todas: todasRes?.data?.total || todasLista.length,
-        }));
+        setAllData({ todas: todasLista });
 
-        setAllData(prev => ({ ...prev, todas: todasLista }));
-        setLoadedTabs(prev => ({ ...prev, todas: true }));
+        // Calcular conteos por estado desde los datos ya cargados
+        const countByFilter = (filterFn) => todasLista.filter(s => {
+          const estado = (s.estado || s.status || '').toLowerCase();
+          return filterFn(estado);
+        }).length;
+        setStats({
+          todas: todasRes?.data?.total || todasLista.length,
+          pendientes: countByFilter(e => e === 'enviada' || e === 'submitted' || e === 'pendiente'),
+          en_proceso: countByFilter(e =>
+            e === 'approved' || e.includes('aprobada')
+            || e === 'in_planning' || e === 'in_treatment'
+            || e === 'processing' || e.includes('progreso') || e === 'in_progress'),
+          completadas: countByFilter(e =>
+            e === 'completed' || e === 'treated'
+            || e === 'dispatched' || e === 'closed'
+            || e.includes('completada') || e.includes('cerrada')),
+          rechazadas: countByFilter(e => e.includes('rechazada') || e === 'rejected' || e === 'cancelled'),
+        });
       } catch (err) {
         if (!isMounted || err?.name === 'AbortError') return;
       } finally {
@@ -297,31 +299,31 @@ export default function DashboardAdmin() {
     };
   }, [user]);
 
-  // Lazy fetch tab data when tab is selected
-  const fetchTabData = useCallback(async (tabKey) => {
-    if (loadedTabs[tabKey] || tabKey === 'todas') return;
-
-    const estadoMap = {
-      pendientes: 'submitted',
-      en_proceso: 'processing',
-      completadas: 'approved',
-      rechazadas: 'rejected',
+  // Filtrar datos localmente por tab desde allData.todas (sin fetch adicional)
+  const filteredTabData = useMemo(() => {
+    const todas = allData.todas || [];
+    const filterByEstado = (filterFn) => todas.filter(s => {
+      const estado = (s.estado || s.status || '').toLowerCase();
+      return filterFn(estado);
+    });
+    return {
+      pendientes: filterByEstado(e => e === 'enviada' || e === 'submitted' || e === 'pendiente'),
+      en_proceso: filterByEstado(e =>
+        e === 'approved' || e.includes('aprobada')
+        || e === 'in_planning' || e === 'in_treatment'
+        || e === 'processing' || e.includes('progreso') || e === 'in_progress'),
+      completadas: filterByEstado(e =>
+        e === 'completed' || e === 'treated'
+        || e === 'dispatched' || e === 'closed'
+        || e.includes('completada') || e.includes('cerrada')),
+      rechazadas: filterByEstado(e => e.includes('rechazada') || e === 'rejected' || e === 'cancelled'),
     };
-    const estado = estadoMap[tabKey];
-    if (!estado) return;
+  }, [allData.todas]);
 
-    setTabLoading(prev => ({ ...prev, [tabKey]: true }));
-    try {
-      const res = await solicitudes.listar({ estado, page_size: 2000 }).catch(() => null);
-      const lista = res?.data?.solicitudes || res?.data?.items || [];
-      setAllData(prev => ({ ...prev, [tabKey]: lista }));
-      setStats(prev => ({ ...prev, [tabKey]: res?.data?.total || lista.length }));
-      setLoadedTabs(prev => ({ ...prev, [tabKey]: true }));
-    } catch (err) {
-    } finally {
-      setTabLoading(prev => ({ ...prev, [tabKey]: false }));
-    }
-  }, [loadedTabs]);
+  // fetchTabData ahora es no-op — datos se filtran localmente
+  const fetchTabData = useCallback((_tabKey) => {
+    // No-op: los datos de cada tab se calculan desde allData.todas via filteredTabData
+  }, []);
 
   // Fetch KPIs - con AbortController
   useEffect(() => {
@@ -436,10 +438,6 @@ export default function DashboardAdmin() {
             globalTotal: response.data.globalTotal || response.data.total || 0,
             globalValorTotal: response.data.globalValorTotal || response.data.valorTotal || 0,
           });
-          // Guardar opciones de filtros propias del stock inmovilizado
-          if (response.data.filtros) {
-            setStockFiltrosOpciones(response.data.filtros);
-          }
         }
       } catch (err) {
         if (!isMounted || err?.name === 'AbortError') return;
@@ -464,8 +462,6 @@ export default function DashboardAdmin() {
       setStockFiltradoLocal(prev => ({ ...prev, loading: true }));
       try {
         const params = new URLSearchParams();
-        if (stockFiltrosCentro) params.set("centro", stockFiltrosCentro);
-        if (stockFiltrosAlmacen) params.set("almacen", stockFiltrosAlmacen);
         params.set("periodo_anos", stockFiltrosPeriodo.toString());
         params.set("limit", "10");
 
@@ -496,7 +492,7 @@ export default function DashboardAdmin() {
       isMounted = false;
       abortController.abort();
     };
-  }, [stockFiltrosCentro, stockFiltrosAlmacen, stockFiltrosPeriodo]);
+  }, [stockFiltrosPeriodo]);
 
   // Fetch compras evitadas detalle - con AbortController
   useEffect(() => {
@@ -661,15 +657,19 @@ export default function DashboardAdmin() {
     }).length;
     const en_proceso = datosFiltrados.filter(s => {
       const estado = (s.estado || s.status || '').toLowerCase();
-      return estado.includes('progreso') || estado === 'processing' || estado === 'in_progress';
+      return estado === 'approved' || estado.includes('aprobada')
+        || estado === 'in_planning' || estado === 'in_treatment'
+        || estado === 'processing' || estado.includes('progreso') || estado === 'in_progress';
     }).length;
     const completadas = datosFiltrados.filter(s => {
       const estado = (s.estado || s.status || '').toLowerCase();
-      return estado.includes('aprobada') || estado === 'approved';
+      return estado === 'completed' || estado === 'treated'
+        || estado === 'dispatched' || estado === 'closed'
+        || estado.includes('completada') || estado.includes('cerrada');
     }).length;
     const rechazadas = datosFiltrados.filter(s => {
       const estado = (s.estado || s.status || '').toLowerCase();
-      return estado.includes('rechazada') || estado === 'rejected';
+      return estado.includes('rechazada') || estado === 'rejected' || estado === 'cancelled';
     }).length;
     return { todas, pendientes, en_proceso, completadas, rechazadas };
   }, [datosFiltrados]);
@@ -712,18 +712,18 @@ export default function DashboardAdmin() {
 
   const columnDefs = useMemo(() => getTableColumnsAgGrid(t), [t]);
 
-  // Tabs configuration - "todas" usa conteo filtrado para consistencia con KPIs
+  // Tabs configuration - usar statsFiltrados para todos los conteos (calculados desde datos ya cargados)
   const tabs = useMemo(() => [
     { key: "todas", label: t("dash_todas", "Todas"), count: statsFiltrados.todas },
-    { key: "pendientes", label: t("dash_pendientes", "Pendientes"), count: stats.pendientes },
-    { key: "en_proceso", label: t("dash_en_proceso", "En Proceso"), count: stats.en_proceso },
-    { key: "completadas", label: t("dash_completadas", "Completadas"), count: stats.completadas },
-    { key: "rechazadas", label: t("dash_rechazadas", "Rechazadas"), count: stats.rechazadas },
-  ], [t, stats, statsFiltrados]);
+    { key: "pendientes", label: t("dash_pendientes", "Pendientes"), count: statsFiltrados.pendientes },
+    { key: "en_proceso", label: t("dash_en_proceso", "En Proceso"), count: statsFiltrados.en_proceso },
+    { key: "completadas", label: t("dash_completadas", "Completadas"), count: statsFiltrados.completadas },
+    { key: "rechazadas", label: t("dash_rechazadas", "Rechazadas"), count: statsFiltrados.rechazadas },
+  ], [t, statsFiltrados]);
 
-  // Cuando estamos en tab "todas", usar datos filtrados para consistencia con KPIs
-  const currentData = activeTab === 'todas' ? datosFiltrados : (allData[activeTab] || []);
-  const isTabLoading = tabLoading[activeTab] || false;
+  // Cuando estamos en tab "todas", usar datos filtrados; otras tabs se filtran localmente
+  const currentData = activeTab === 'todas' ? datosFiltrados : (filteredTabData[activeTab] || []);
+  const isTabLoading = false;
 
   const handleTabChange = useCallback((value) => {
     if (value === "crear") {
@@ -764,7 +764,7 @@ export default function DashboardAdmin() {
             key="solicitudes"
             t={t}
             loading={loading || isTabLoading}
-            stats={{ ...stats, todas: statsFiltrados.todas }}
+            stats={statsFiltrados}
             solicitudesCollapsed={solicitudesCollapsed}
             setSolicitudesCollapsed={setSolicitudesCollapsed}
             activeTab={activeTab}
@@ -853,14 +853,14 @@ export default function DashboardAdmin() {
       default:
         return null;
     }
-  }, [t, loading, isTabLoading, stats, statsFiltrados, solicitudesCollapsed, activeTab,
+  }, [t, loading, isTabLoading, statsFiltrados, solicitudesCollapsed, activeTab,
       handleTabChange, tabs, currentData, columnDefs, navigate, tableTitle,
       rangoFechasLocal, sliderAFecha, centrosSeleccionados, almacenesSeleccionados,
       sectoresSeleccionados, solicitantesSeleccionados, filtrosOpciones,
       datosFiltrados, kpiData, rangoFechas, sliderAFechaDate, comprasEvitadasDetalle,
       cumplimientoProveedores, proveedoresSeleccionados, trendData, handleDrillDown,
       handleKpiDrillDown, stockInmovilizadoFiltrado, kpiLoading, stockFiltradoLocal,
-      stockFiltrosCentro, stockFiltrosAlmacen, stockFiltrosPeriodo, stockFiltrosOpciones]);
+      stockFiltrosPeriodo]);
 
   const orderedVisibleIds = layout.getOrderedVisibleIds();
   const isKpiSection = (id) => id.startsWith('kpi_row');

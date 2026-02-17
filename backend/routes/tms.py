@@ -80,7 +80,7 @@ def list_shipments():
         result = service.list_shipments(user_id, filters)
         return success_response(result)
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error listing shipments: {e}", exc_info=True)
@@ -116,7 +116,7 @@ def create_shipment():
         shipment = service.create_shipment(user_id, data)
         return success_response(shipment, "Envio creado exitosamente"), 201
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error creating shipment: {e}", exc_info=True)
@@ -137,7 +137,7 @@ def get_shipment(shipment_id: int):
 
         return success_response(shipment)
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error getting shipment {shipment_id}: {e}", exc_info=True)
@@ -167,7 +167,7 @@ def update_shipment(shipment_id: int):
 
         return success_response(updated, "Envio actualizado exitosamente")
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error updating shipment {shipment_id}: {e}", exc_info=True)
@@ -200,7 +200,7 @@ def transition_shipment(shipment_id: int):
 
         return success_response(result, "Estado actualizado exitosamente")
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error transitioning shipment {shipment_id}: {e}", exc_info=True)
@@ -240,7 +240,7 @@ def assign_shipment(shipment_id: int):
 
         return success_response(result, "Envio asignado exitosamente")
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error assigning shipment {shipment_id}: {e}", exc_info=True)
@@ -276,7 +276,7 @@ def deliver_shipment(shipment_id: int):
 
         return success_response(result, "Entrega confirmada exitosamente")
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error delivering shipment {shipment_id}: {e}", exc_info=True)
@@ -298,7 +298,7 @@ def get_tracking(shipment_id: int):
         tracking = service.get_tracking(shipment_id, user_id)
         return success_response(tracking)
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error getting tracking for shipment {shipment_id}: {e}", exc_info=True)
@@ -325,7 +325,7 @@ def register_tracking(shipment_id: int):
         event = service.register_tracking(shipment_id, user_id, data)
         return success_response(event, "Evento registrado exitosamente"), 201
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error registering tracking for shipment {shipment_id}: {e}", exc_info=True)
@@ -344,7 +344,7 @@ def get_in_transit_shipments():
         shipments = service.get_in_transit_shipments(user_id)
         return success_response(shipments)
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error getting in-transit shipments: {e}", exc_info=True)
@@ -373,7 +373,7 @@ def list_consolidations():
         result = service.list_consolidations(user_id, filters)
         return success_response(result)
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error listing consolidations: {e}", exc_info=True)
@@ -405,7 +405,7 @@ def create_consolidation():
         consolidation = service.create_consolidation(user_id, data)
         return success_response(consolidation, "Consolidacion creada exitosamente"), 201
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error creating consolidation: {e}", exc_info=True)
@@ -430,7 +430,7 @@ def suggest_consolidations():
         suggestions = service.suggest_consolidations(user_id, destino, max_suggestions)
         return success_response(suggestions)
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error suggesting consolidations: {e}", exc_info=True)
@@ -465,7 +465,7 @@ def add_shipment_to_consolidation(consolidation_id: int):
 
         return success_response(result, "Envio agregado exitosamente")
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error adding shipment to consolidation {consolidation_id}: {e}", exc_info=True)
@@ -500,7 +500,7 @@ def remove_shipment_from_consolidation(consolidation_id: int):
 
         return success_response(result, "Envio removido exitosamente")
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error removing shipment from consolidation {consolidation_id}: {e}", exc_info=True)
@@ -528,7 +528,7 @@ def list_routes():
         result = service.list_routes(user_id, filters)
         return success_response(result)
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error listing routes: {e}", exc_info=True)
@@ -560,7 +560,7 @@ def create_route():
         route = service.create_route(user_id, data)
         return success_response(route, "Ruta creada exitosamente"), 201
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error creating route: {e}", exc_info=True)
@@ -581,7 +581,7 @@ def get_route(route_id: int):
 
         return success_response(route)
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error getting route {route_id}: {e}", exc_info=True)
@@ -611,7 +611,7 @@ def update_route(route_id: int):
 
         return success_response(updated, "Ruta actualizada exitosamente")
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error updating route {route_id}: {e}", exc_info=True)
@@ -633,7 +633,7 @@ def get_shipment_costs(shipment_id: int):
         costs = service.get_shipment_costs(shipment_id, user_id)
         return success_response(costs)
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error getting costs for shipment {shipment_id}: {e}", exc_info=True)
@@ -665,7 +665,7 @@ def register_cost(shipment_id: int):
         cost = service.register_cost(shipment_id, user_id, data)
         return success_response(cost, "Costo registrado exitosamente"), 201
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error registering cost for shipment {shipment_id}: {e}", exc_info=True)
@@ -689,7 +689,7 @@ def list_tariffs():
         result = service.list_tariffs(user_id, filters)
         return success_response(result)
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error listing tariffs: {e}", exc_info=True)
@@ -721,7 +721,7 @@ def create_tariff():
         tariff = service.create_tariff(user_id, data)
         return success_response(tariff, "Tarifa creada exitosamente"), 201
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error creating tariff: {e}", exc_info=True)
@@ -748,7 +748,7 @@ def update_tariff(tariff_id: int):
 
         return success_response(updated, "Tarifa actualizada exitosamente")
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error updating tariff {tariff_id}: {e}", exc_info=True)
@@ -778,7 +778,7 @@ def list_settlements():
         result = service.list_settlements(user_id, filters)
         return success_response(result)
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error listing settlements: {e}", exc_info=True)
@@ -807,7 +807,7 @@ def settle_shipment(shipment_id: int):
 
         return success_response(settlement, "Liquidacion creada exitosamente"), 201
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error settling shipment {shipment_id}: {e}", exc_info=True)
@@ -828,7 +828,7 @@ def get_settlement(shipment_id: int):
 
         return success_response(settlement)
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error getting settlement for shipment {shipment_id}: {e}", exc_info=True)
@@ -846,7 +846,7 @@ def calculate_freight(shipment_id: int):
         estimate = service.calculate_freight(shipment_id, user_id)
         return success_response(estimate)
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error calculating freight for shipment {shipment_id}: {e}", exc_info=True)
@@ -882,7 +882,7 @@ def register_fuel():
         fuel_record = service.register_fuel(user_id, data)
         return success_response(fuel_record, "Combustible registrado exitosamente"), 201
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error registering fuel: {e}", exc_info=True)
@@ -904,7 +904,7 @@ def get_config():
         config = service.get_config(user_id)
         return success_response(config)
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error getting config: {e}", exc_info=True)
@@ -934,7 +934,7 @@ def update_config(config_key: str):
 
         return success_response(updated, "Configuracion actualizada exitosamente")
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error updating config {config_key}: {e}", exc_info=True)
@@ -961,7 +961,7 @@ def get_kpis():
         kpis = service.get_kpis(user_id, filters)
         return success_response(kpis)
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
     except Exception as e:
         logger.error(f"[TMS] Error getting KPIs: {e}", exc_info=True)

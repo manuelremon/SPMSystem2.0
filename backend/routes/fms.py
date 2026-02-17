@@ -35,7 +35,7 @@ def list_vehicles():
         vehicles = fms_service.list_vehicles(filters)
         return jsonify({"ok": True, "data": vehicles})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -67,7 +67,7 @@ def create_vehicle():
         vehicle = fms_service.create_vehicle(data, user_id)
         return jsonify({"ok": True, "data": vehicle}), 201
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -96,7 +96,7 @@ def get_vehicle(vehicle_id):
 
         return jsonify({"ok": True, "data": vehicle})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -135,7 +135,7 @@ def update_vehicle(vehicle_id):
 
         return jsonify({"ok": True, "data": vehicle})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -174,7 +174,7 @@ def change_vehicle_status(vehicle_id):
 
         return jsonify({"ok": True, "data": vehicle})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -201,7 +201,7 @@ def get_available_vehicles():
         vehicles = fms_service.get_available_vehicles(filters)
         return jsonify({"ok": True, "data": vehicles})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -231,7 +231,7 @@ def list_drivers():
         drivers = fms_service.list_drivers(filters)
         return jsonify({"ok": True, "data": drivers})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -263,7 +263,7 @@ def create_driver():
         driver = fms_service.create_driver(data, user_id)
         return jsonify({"ok": True, "data": driver}), 201
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -292,7 +292,7 @@ def get_driver(driver_id):
 
         return jsonify({"ok": True, "data": driver})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -331,7 +331,7 @@ def update_driver(driver_id):
 
         return jsonify({"ok": True, "data": driver})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -353,7 +353,7 @@ def get_available_drivers():
         drivers = fms_service.get_available_drivers()
         return jsonify({"ok": True, "data": drivers})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -388,7 +388,7 @@ def list_work_orders():
         result = fms_service.list_work_orders(filters)
         return jsonify({"ok": True, "data": result})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -420,7 +420,7 @@ def create_work_order():
         work_order = fms_service.create_work_order(data, user_id)
         return jsonify({"ok": True, "data": work_order}), 201
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -449,7 +449,7 @@ def get_work_order(order_id):
 
         return jsonify({"ok": True, "data": work_order})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -488,7 +488,7 @@ def transition_work_order(order_id):
 
         return jsonify({"ok": True, "data": work_order})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -520,7 +520,7 @@ def add_part_to_work_order(order_id):
         part = fms_service.add_part_to_work_order(order_id, data, user_id)
         return jsonify({"ok": True, "data": part}), 201
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -552,7 +552,7 @@ def request_part_from_spm(order_id):
         result = fms_service.request_part_from_spm(order_id, data, user_id)
         return jsonify({"ok": True, "data": result}), 201
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -578,7 +578,7 @@ def list_maintenance_plans(vehicle_id):
         plans = fms_service.list_maintenance_plans(vehicle_id)
         return jsonify({"ok": True, "data": plans})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -610,7 +610,7 @@ def create_maintenance_plan(vehicle_id):
         plan = fms_service.create_maintenance_plan(vehicle_id, data, user_id)
         return jsonify({"ok": True, "data": plan}), 201
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -649,7 +649,7 @@ def update_maintenance_plan(plan_id):
 
         return jsonify({"ok": True, "data": plan})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -673,7 +673,7 @@ def evaluate_preventive_maintenance():
         result = fms_service.evaluate_preventive_maintenance(user_id)
         return jsonify({"ok": True, "data": result})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -705,7 +705,7 @@ def list_inspections():
         inspections = fms_service.list_inspections(filters)
         return jsonify({"ok": True, "data": inspections})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -736,7 +736,7 @@ def create_inspection():
         inspection = fms_service.create_inspection(data, user_id)
         return jsonify({"ok": True, "data": inspection}), 201
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -765,7 +765,7 @@ def get_inspection(inspection_id):
 
         return jsonify({"ok": True, "data": inspection})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -803,7 +803,7 @@ def complete_inspection(inspection_id):
 
         return jsonify({"ok": True, "data": inspection})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -829,7 +829,7 @@ def list_vehicle_documents(vehicle_id):
         documents = fms_service.list_vehicle_documents(vehicle_id)
         return jsonify({"ok": True, "data": documents})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -861,7 +861,7 @@ def add_vehicle_document(vehicle_id):
         document = fms_service.add_vehicle_document(vehicle_id, data, user_id)
         return jsonify({"ok": True, "data": document}), 201
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -884,7 +884,7 @@ def get_expiring_documents():
         documents = fms_service.get_expiring_documents(days)
         return jsonify({"ok": True, "data": documents})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}
@@ -910,7 +910,7 @@ def get_fms_kpis():
         kpis = fms_service.get_fms_kpis()
         return jsonify({"ok": True, "data": kpis})
 
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError):
         return jsonify({
             "ok": False,
             "error": {"code": "validation_error", "message": "Datos de entrada inválidos"}

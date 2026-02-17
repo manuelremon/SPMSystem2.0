@@ -6,7 +6,7 @@ Permite registrar ahorros, definir metas y exportar reportes.
 import io
 from datetime import datetime
 
-from flask import Blueprint, g, jsonify, request, send_file
+from flask import Blueprint, jsonify, request, send_file
 
 from backend.core.roles import require_admin, require_auth
 from backend.core.user_helpers import get_current_user_id
