@@ -219,15 +219,32 @@ jobs:
 
             echo "=== Pruning old Docker images ==="
             docker image prune -f || true
-            echo "=== Stopping existing containers ==="
-            docker compose -f infra/docker-compose.prod.yml down --remove-orphans || true
-            docker network rm spm_network 2>/dev/null || true
+
+            # Save iptables rules before Docker changes (Oracle Cloud needs these)
+            echo "=== Saving iptables rules ==="
+            sudo iptables-save > /tmp/iptables-backup.rules 2>/dev/null || true
+
             echo "=== Rebuilding backend container ==="
             docker compose -f infra/docker-compose.prod.yml build --no-cache backend
-            echo "=== Starting all containers ==="
-            docker compose -f infra/docker-compose.prod.yml up -d
+
+            echo "=== Restarting containers (rolling) ==="
+            docker compose -f infra/docker-compose.prod.yml up -d --force-recreate --remove-orphans
+
             echo "=== Waiting for containers to start ==="
             sleep 20
+
+            # Restore iptables if Docker broke them (Oracle Cloud iptables fix)
+            echo "=== Verifying iptables rules ==="
+            if ! sudo iptables -L INPUT -n 2>/dev/null | grep -q "ACCEPT.*dpt:443"; then
+              echo "WARNING: iptables rules missing, restoring..."
+              sudo iptables-restore < /tmp/iptables-backup.rules 2>/dev/null || true
+            fi
+
+            # Ensure ports 80/443 are open (Oracle Cloud sometimes needs this)
+            sudo iptables -I INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
+            sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
+            sudo iptables -I INPUT -p tcp --dport 22 -j ACCEPT 2>/dev/null || true
+
             echo "=== Container status ==="
             docker compose -f infra/docker-compose.prod.yml ps
             echo "=== Restart completed ==="
@@ -262,16 +279,15 @@ jobs:
 
       - name: Health check with retry
         id: health_check
-        continue-on-error: true  # Don't fail deployment, just report status
         run: |
           echo "=== Running health checks ==="
-          MAX_RETRIES=5
-          RETRY_DELAY=10
+          MAX_RETRIES=8
+          RETRY_DELAY=15
           HEALTH_URL="https://planifica-materiales.com/api/health"
 
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Health check attempt $i/$MAX_RETRIES..."
-            response=$(curl -s -o /dev/null -w "%{http_code}" $HEALTH_URL || echo "000")
+            response=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 --max-time 15 $HEALTH_URL || echo "000")
 
             if [ "$response" = "200" ]; then
               echo "Health check passed! Site responding with HTTP 200"
@@ -280,6 +296,19 @@ jobs:
             fi
 
             echo "Received HTTP $response, waiting ${RETRY_DELAY}s before retry..."
+
+            # If connection times out, try to fix iptables via SSH
+            if [ "$response" = "000" ] && [ "$i" -ge 3 ]; then
+              echo "Connection timeout detected, attempting iptables fix via SSH..."
+              ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'FIX_SCRIPT' || true
+                sudo iptables -I INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
+                sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
+                sudo systemctl restart docker 2>/dev/null || true
+                sleep 10
+                cd /opt/spm && docker compose -f infra/docker-compose.prod.yml up -d 2>/dev/null || true
+              FIX_SCRIPT
+            fi
+
             sleep $RETRY_DELAY
           done
 
@@ -288,7 +317,7 @@ jobs:
           exit 1
 
       - name: Rollback on failure
-        if: failure() && steps.health_check.outputs.health_status == 'failed'
+        if: failure()
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'ROLLBACK_SCRIPT'
             set -e
