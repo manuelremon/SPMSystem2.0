@@ -42,6 +42,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // Allow large chunks (fortune-sheet ~2.8MB)
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+        // SPA fallback: serve index.html for all navigation requests
+        navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/api\//],
         // Include push notification handlers from existing SW
         importScripts: ['/push-sw.js'],
         // Runtime caching for API endpoints
