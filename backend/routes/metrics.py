@@ -126,17 +126,17 @@ def get_business_metrics():
         row = cur.fetchone()
         pendientes = row["cnt"] if isinstance(row, dict) else row[0]
 
-        # Usuarios activos (login últimas 24h) - desde audit_log
+        # Usuarios activos (login últimas 24h) - desde audit_trail
         try:
             cur.execute(f"""
-                SELECT COUNT(DISTINCT user_id) as cnt FROM audit_log
+                SELECT COUNT(DISTINCT user_id) as cnt FROM audit_trail
                 WHERE action = 'login'
                 AND timestamp > {date_1day_ago}
             """)
             row = cur.fetchone()
             usuarios_activos = row["cnt"] if isinstance(row, dict) else row[0]
         except Exception:
-            # Si audit_log no existe o falla, retornar 0
+            # Si audit_trail no existe o falla, retornar 0
             usuarios_activos = 0
 
         # Total usuarios activos

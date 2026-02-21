@@ -212,7 +212,7 @@ def obtener_detalle_contrato(contrato_id: int) -> Dict[str, Any]:
         cursor.execute("""
             SELECT h.*, u.nombre as actor_nombre
             FROM contrato_historial h
-            LEFT JOIN usuarios u ON h.actor_id = u.id
+            LEFT JOIN usuarios u ON h.actor_id = u.id_spm
             WHERE h.contrato_id = ?
             ORDER BY h.created_at DESC
         """, (contrato_id,))
@@ -615,7 +615,7 @@ def obtener_documentos(contrato_id: int) -> List[Dict[str, Any]]:
         cursor.execute("""
             SELECT d.*, u.nombre as subido_por_nombre
             FROM contrato_documento d
-            LEFT JOIN usuarios u ON d.subido_por = u.id
+            LEFT JOIN usuarios u ON d.subido_por = u.id_spm
             WHERE d.contrato_id = ?
             ORDER BY d.created_at DESC
         """, (contrato_id,))
@@ -642,7 +642,7 @@ def eliminar_documento(doc_id: int, user_id: int) -> None:
             raise NotFoundError(f"Documento {doc_id} no encontrado")
 
         # Verificar permisos (debe ser uploader o admin)
-        cursor.execute("SELECT rol FROM usuarios WHERE id = ?", (user_id,))
+        cursor.execute("SELECT rol FROM usuarios WHERE id_spm = ?", (user_id,))
         user_row = cursor.fetchone()
 
         if not user_row:

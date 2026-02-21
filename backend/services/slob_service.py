@@ -536,8 +536,8 @@ def obtener_disposiciones(filtros=None):
         u2.nombre as aprobado_por_nombre,
         m.descripcion as material_descripcion
     FROM slob_disposicion sd
-    LEFT JOIN usuarios u1 ON sd.propuesto_por = u1.id
-    LEFT JOIN usuarios u2 ON sd.aprobado_por = u2.id
+    LEFT JOIN usuarios u1 ON sd.propuesto_por = u1.id_spm
+    LEFT JOIN usuarios u2 ON sd.aprobado_por = u2.id_spm
     LEFT JOIN materiales_bbdd m ON sd.material_codigo = m.codigo
     WHERE {where_sql}
     ORDER BY sd.created_at DESC

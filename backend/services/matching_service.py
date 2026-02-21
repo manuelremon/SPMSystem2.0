@@ -421,7 +421,7 @@ def obtener_detalle_factura(factura_id: int) -> dict:
             FROM factura_proveedor fp
             LEFT JOIN proveedores p ON fp.proveedor_cuit = p.cuit
             LEFT JOIN orden_compra oc ON fp.orden_compra_id = oc.id
-            LEFT JOIN usuarios u ON fp.registrado_por = u.id
+            LEFT JOIN usuarios u ON fp.registrado_por = u.id_spm
             WHERE fp.id = {placeholder}
             """,
             (factura_id,)
@@ -482,7 +482,7 @@ def obtener_detalle_factura(factura_id: int) -> dict:
                 mr.diferencia_cantidad, mr.diferencia_precio, mr.estado,
                 mr.aprobado_por, u.nombre as aprobado_por_nombre, mr.notas
             FROM matching_resultado mr
-            LEFT JOIN usuarios u ON mr.aprobado_por = u.id
+            LEFT JOIN usuarios u ON mr.aprobado_por = u.id_spm
             WHERE mr.factura_id = {placeholder}
             """,
             (factura_id,)

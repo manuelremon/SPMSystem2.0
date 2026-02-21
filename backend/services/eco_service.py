@@ -183,7 +183,7 @@ def obtener_ecos(filtros: dict = None) -> dict:
                 e.material_codigo, e.solicitante_id, u.nombre as solicitante_nombre,
                 e.fecha_efectividad, e.costo_estimado, e.created_at
             FROM eco e
-            LEFT JOIN usuarios u ON e.solicitante_id = u.id
+            LEFT JOIN usuarios u ON e.solicitante_id = u.id_spm
             {where_sql}
             ORDER BY e.created_at DESC
             LIMIT {placeholder} OFFSET {placeholder}
@@ -250,7 +250,7 @@ def obtener_detalle_eco(eco_id: int) -> dict:
                 e.created_at, e.updated_at
             FROM eco e
             LEFT JOIN catalogo_materiales m ON e.material_codigo = m.codigo
-            LEFT JOIN usuarios u ON e.solicitante_id = u.id
+            LEFT JOIN usuarios u ON e.solicitante_id = u.id_spm
             WHERE e.id = {placeholder}
             """,
             (eco_id,)
@@ -311,7 +311,7 @@ def obtener_detalle_eco(eco_id: int) -> dict:
                 ea.id, ea.aprobador_id, u.nombre as aprobador_nombre,
                 ea.estado, ea.comentarios, ea.fecha_aprobacion
             FROM eco_aprobacion ea
-            LEFT JOIN usuarios u ON ea.aprobador_id = u.id
+            LEFT JOIN usuarios u ON ea.aprobador_id = u.id_spm
             WHERE ea.eco_id = {placeholder}
             ORDER BY ea.created_at
             """,
@@ -338,7 +338,7 @@ def obtener_detalle_eco(eco_id: int) -> dict:
                 eh.id, eh.estado, eh.actor_id, u.nombre as actor_nombre,
                 eh.comentarios, eh.created_at
             FROM eco_historial eh
-            LEFT JOIN usuarios u ON eh.actor_id = u.id
+            LEFT JOIN usuarios u ON eh.actor_id = u.id_spm
             WHERE eh.eco_id = {placeholder}
             ORDER BY eh.created_at DESC
             """,
@@ -490,7 +490,7 @@ def solicitar_aprobacion(eco_id: int, actor_id: int) -> None:
 
         # Crear registros de aprobación (simplificado: buscar usuarios con rol admin o jefe)
         cursor.execute(
-            "SELECT id FROM usuarios WHERE rol IN ('admin', 'jefe') AND activo = TRUE"
+            "SELECT id_spm FROM usuarios WHERE rol IN ('admin', 'jefe') AND activo = TRUE"
         )
         aprobadores = [row[0] for row in cursor.fetchall()]
 

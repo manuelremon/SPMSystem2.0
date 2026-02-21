@@ -126,7 +126,7 @@ def obtener_ciclos(filtros: dict) -> dict:
                 COUNT(DISTINCT pde.id) as num_entradas,
                 COUNT(DISTINCT pdc.id) as num_consensos
             FROM plan_demanda pd
-            LEFT JOIN usuarios u ON pd.creado_por = u.id
+            LEFT JOIN usuarios u ON pd.creado_por = u.id_spm
             LEFT JOIN plan_demanda_entrada pde ON pd.id = pde.plan_id
             LEFT JOIN plan_demanda_consenso pdc ON pd.id = pdc.plan_id
             {where_sql}
@@ -191,7 +191,7 @@ def obtener_detalle_ciclo(plan_id: int) -> dict:
                 pd.descripcion, pd.estado, pd.created_at, pd.creado_por,
                 u.nombre as creado_por_nombre
             FROM plan_demanda pd
-            LEFT JOIN usuarios u ON pd.creado_por = u.id
+            LEFT JOIN usuarios u ON pd.creado_por = u.id_spm
             WHERE pd.id = {placeholder}
             """,
             (plan_id,)
@@ -227,7 +227,7 @@ def obtener_detalle_ciclo(plan_id: int) -> dict:
                 pde.notas
             FROM plan_demanda_entrada pde
             LEFT JOIN catalogo_materiales m ON pde.material_codigo = m.codigo
-            LEFT JOIN usuarios u ON pde.creado_por = u.id
+            LEFT JOIN usuarios u ON pde.creado_por = u.id_spm
             WHERE pde.plan_id = {placeholder}
             ORDER BY pde.material_codigo, pde.created_at
             """,
@@ -268,7 +268,7 @@ def obtener_detalle_ciclo(plan_id: int) -> dict:
                 pdc.created_at
             FROM plan_demanda_consenso pdc
             LEFT JOIN catalogo_materiales m ON pdc.material_codigo = m.codigo
-            LEFT JOIN usuarios u ON pdc.aprobado_por = u.id
+            LEFT JOIN usuarios u ON pdc.aprobado_por = u.id_spm
             WHERE pdc.plan_id = {placeholder}
             ORDER BY pdc.material_codigo
             """,

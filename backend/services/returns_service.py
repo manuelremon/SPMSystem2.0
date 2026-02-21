@@ -353,7 +353,7 @@ def obtener_detalle_devolucion(devolucion_id: int) -> dict:
             FROM devolucion d
             LEFT JOIN proveedores p ON d.proveedor_cuit = p.cuit
             LEFT JOIN orden_compra oc ON d.orden_compra_id = oc.id
-            LEFT JOIN usuarios u ON d.creado_por = u.id
+            LEFT JOIN usuarios u ON d.creado_por = u.id_spm
             WHERE d.id = {placeholder}
             """,
             (devolucion_id,)
@@ -414,7 +414,7 @@ def obtener_detalle_devolucion(devolucion_id: int) -> dict:
                 dh.estado, dh.user_id, u.nombre as user_nombre,
                 dh.notas, dh.created_at
             FROM devolucion_historial dh
-            LEFT JOIN usuarios u ON dh.user_id = u.id
+            LEFT JOIN usuarios u ON dh.user_id = u.id_spm
             WHERE dh.devolucion_id = {placeholder}
             ORDER BY dh.created_at ASC
             """,

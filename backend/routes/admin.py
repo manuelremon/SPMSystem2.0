@@ -1560,7 +1560,7 @@ def auto_approval_historial():
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
-            # Buscar en audit_log eventos de auto_approval
+            # Buscar en audit_trail eventos de auto_approval
             query = """
                 SELECT
                     al.id,
@@ -1569,8 +1569,8 @@ def auto_approval_historial():
                     al.created_at,
                     al.user_id,
                     u.nombre || ' ' || u.apellido as solicitante
-                FROM audit_log al
-                LEFT JOIN usuario u ON al.user_id = u.id
+                FROM audit_trail al
+                LEFT JOIN usuario u ON al.user_id = u.id_spm
                 WHERE al.event_type = 'auto_approval'
             """
             params = []
@@ -1587,7 +1587,7 @@ def auto_approval_historial():
                 cursor.execute(query, params)
                 audit_rows = [dict(r) for r in cursor.fetchall()]
             except Exception:
-                # Tabla audit_log puede no existir o no tener índice
+                # Tabla audit_trail puede no existir o no tener índice
                 audit_rows = []
 
             # Alternativa: buscar solicitudes con estado=approved y flag auto_aprobada

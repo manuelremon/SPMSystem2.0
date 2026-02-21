@@ -190,7 +190,7 @@ def obtener_reclamos(page=1, per_page=50, estado=None, tipo=None, garantia_id=No
         LEFT JOIN garantia g ON r.garantia_id = g.id
         LEFT JOIN materiales_bbdd m ON g.material_codigo = m.codigo
         LEFT JOIN proveedores p ON g.proveedor_cuit = p.cuit
-        LEFT JOIN usuarios u ON r.responsable_id = u.id
+        LEFT JOIN usuarios u ON r.responsable_id = u.id_spm
         LEFT JOIN reclamo_documento d ON d.reclamo_id = r.id
         {where_sql}
         GROUP BY r.id
@@ -258,7 +258,7 @@ def obtener_detalle_reclamo(reclamo_id):
         LEFT JOIN garantia g ON r.garantia_id = g.id
         LEFT JOIN materiales_bbdd m ON g.material_codigo = m.codigo
         LEFT JOIN proveedores p ON g.proveedor_cuit = p.cuit
-        LEFT JOIN usuarios u ON r.responsable_id = u.id
+        LEFT JOIN usuarios u ON r.responsable_id = u.id_spm
         WHERE r.id = ?
     """, (reclamo_id,))
 
@@ -317,7 +317,7 @@ def obtener_detalle_reclamo(reclamo_id):
         SELECT h.id, h.estado_anterior, h.estado_nuevo, h.actor_id, h.notas, h.created_at,
                u.nombre as actor_nombre
         FROM reclamo_historial h
-        LEFT JOIN usuarios u ON h.actor_id = u.id
+        LEFT JOIN usuarios u ON h.actor_id = u.id_spm
         WHERE h.reclamo_id = ?
         ORDER BY h.created_at DESC
     """, (reclamo_id,))

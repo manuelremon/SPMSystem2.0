@@ -59,13 +59,13 @@ def buscar_auditoria(filtros):
     try:
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute(f"SELECT COUNT(*) as cnt FROM audit_log a WHERE {where}", params)
+            cur.execute(f"SELECT COUNT(*) as cnt FROM audit_trail a WHERE {where}", params)
             total = cur.fetchone()["cnt"]
 
             cur.execute(f"""
                 SELECT a.*, u.nombre as actor_nombre
-                FROM audit_log a
-                LEFT JOIN usuarios u ON a.actor_id = u.id
+                FROM audit_trail a
+                LEFT JOIN usuarios u ON a.actor_id = u.id_spm
                 WHERE {where}
                 ORDER BY a.created_at DESC
                 LIMIT ? OFFSET ?
@@ -99,8 +99,8 @@ def obtener_timeline_entidad(entidad, entidad_id):
             cur = conn.cursor()
             cur.execute("""
                 SELECT a.*, u.nombre as actor_nombre
-                FROM audit_log a
-                LEFT JOIN usuarios u ON a.actor_id = u.id
+                FROM audit_trail a
+                LEFT JOIN usuarios u ON a.actor_id = u.id_spm
                 WHERE a.entidad = ? AND a.entidad_id = ?
                 ORDER BY a.created_at ASC
             """, (entidad, str(entidad_id)))
@@ -124,7 +124,7 @@ def obtener_stats_auditoria():
             # Count by action
             cur.execute("""
                 SELECT accion, COUNT(*) as cnt
-                FROM audit_log
+                FROM audit_trail
                 GROUP BY accion
                 ORDER BY cnt DESC
                 LIMIT 20
@@ -134,8 +134,8 @@ def obtener_stats_auditoria():
             # Top actors
             cur.execute("""
                 SELECT a.actor_id, u.nombre as actor_nombre, COUNT(*) as cnt
-                FROM audit_log a
-                LEFT JOIN usuarios u ON a.actor_id = u.id
+                FROM audit_trail a
+                LEFT JOIN usuarios u ON a.actor_id = u.id_spm
                 WHERE a.actor_id IS NOT NULL
                 GROUP BY a.actor_id, u.nombre
                 ORDER BY cnt DESC
@@ -146,7 +146,7 @@ def obtener_stats_auditoria():
             # Count by entity
             cur.execute("""
                 SELECT entidad, COUNT(*) as cnt
-                FROM audit_log
+                FROM audit_trail
                 GROUP BY entidad
                 ORDER BY cnt DESC
                 LIMIT 20
@@ -154,7 +154,7 @@ def obtener_stats_auditoria():
             por_entidad = [dict(r) for r in cur.fetchall()]
 
             # Total
-            cur.execute("SELECT COUNT(*) as total FROM audit_log")
+            cur.execute("SELECT COUNT(*) as total FROM audit_trail")
             total = cur.fetchone()["total"]
 
         return {

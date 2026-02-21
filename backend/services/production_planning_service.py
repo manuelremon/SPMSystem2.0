@@ -135,7 +135,7 @@ def obtener_planes(filtros: Optional[Dict[str, Any]] = None, page: int = 1, page
                (SELECT COUNT(*) FROM plan_produccion_item WHERE plan_id = pp.id) as total_items,
                (SELECT COUNT(*) FROM plan_produccion_item WHERE plan_id = pp.id AND estado = 'completado') as items_completados
         FROM plan_produccion pp
-        LEFT JOIN usuarios u ON pp.responsable_id = u.id
+        LEFT JOIN usuarios u ON pp.responsable_id = u.id_spm
         WHERE 1=1
     """
     params = []
@@ -193,7 +193,7 @@ def obtener_detalle_plan(plan_id: int) -> Optional[Dict[str, Any]]:
     cursor.execute("""
         SELECT pp.*, u.nombre_completo as responsable_nombre
         FROM plan_produccion pp
-        LEFT JOIN usuarios u ON pp.responsable_id = u.id
+        LEFT JOIN usuarios u ON pp.responsable_id = u.id_spm
         WHERE pp.id = ?
     """, (plan_id,))
 

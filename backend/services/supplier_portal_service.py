@@ -680,7 +680,7 @@ def obtener_forecasts_compartidos(proveedor_cuit: str) -> list:
                 fc.compartido_por, u.nombre as compartido_por_nombre, fc.created_at
             FROM forecast_compartido fc
             LEFT JOIN catalogo_materiales m ON fc.material_codigo = m.codigo
-            LEFT JOIN usuarios u ON fc.compartido_por = u.id
+            LEFT JOIN usuarios u ON fc.compartido_por = u.id_spm
             WHERE fc.proveedor_cuit = {placeholder}
             ORDER BY fc.periodo DESC
             """,
