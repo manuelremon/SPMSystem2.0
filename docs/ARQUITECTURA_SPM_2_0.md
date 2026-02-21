@@ -81,7 +81,6 @@ SPMv2.0/
 │   └── guides/                 # Guias de uso
 │
 ├── wsgi.py                     # Punto de entrada del servidor
-├── CLAUDE.md                   # Instrucciones para Claude
 └── AGENTS.md                   # Configuracion de agentes
 ```
 

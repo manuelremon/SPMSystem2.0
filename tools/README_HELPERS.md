@@ -71,7 +71,7 @@ Pregunta: Propon 2 estrategias de division y sus riesgos
 El script genera Markdown con secciones:
 1. **Gemini** - Respuesta de Gemini CLI
 2. **Codex** - Respuesta de Codex CLI
-3. **Resumen (por Claude)** - Seccion vacia para que Claude complete
+3. **Resumen** - Seccion para analisis consolidado
 
 ## Troubleshooting
 

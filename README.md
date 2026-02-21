@@ -133,7 +133,6 @@ SPMv3.0/
 ├── docs/                       # Documentacion tecnica
 │
 ├── wsgi.py                     # Entry point del servidor
-├── CLAUDE.md                   # Guia para Claude Code
 └── README.md                   # Este archivo
 ```
 

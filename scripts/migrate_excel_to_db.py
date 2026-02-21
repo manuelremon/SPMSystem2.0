@@ -10,7 +10,6 @@ Bases de datos generadas:
     - data/equivalentes.db  : Equivalencias de materiales
     - data/sap_data.db      : Stock, consumo histórico, pedidos SAP
 
-Autor: Claude Code
 Fecha: 2025-12-05
 """
 

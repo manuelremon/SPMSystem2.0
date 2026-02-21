@@ -237,5 +237,4 @@ docker-compose up -d --build
 ## 📚 Referencias
 
 - [Docker Compose Docs](https://docs.docker.com/compose/)
-- [CLAUDE.md](../CLAUDE.md) - Guía completa del proyecto
 - [DEPLOYMENT.md](../docs/DEPLOYMENT.md) - Guía de despliegue

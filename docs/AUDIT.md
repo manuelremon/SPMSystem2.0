@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-01-02
 **URL:** https://planifica-materiales.com
-**Auditor:** Claude Code (Senior Full-Stack Engineer + QA + UX)
+**Auditor:** Equipo de Desarrollo (Senior Full-Stack Engineer + QA + UX)
 **Stack:** React 18 + Vite | Flask + Gunicorn | PostgreSQL | Nginx | Docker
 
 ---

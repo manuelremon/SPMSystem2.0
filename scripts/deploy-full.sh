@@ -150,11 +150,7 @@ git_operations() {
         # Add y commit
         print_step "2/3" "Haciendo commit..."
         git add -A
-        git commit -m "$COMMIT_MSG
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>" || true
+        git commit -m "$COMMIT_MSG" || true
         print_success "Commit OK"
     fi
 
