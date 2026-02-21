@@ -102,6 +102,22 @@ class ProcurementService:
                     GROUP BY s.centro
                 """)
                 cur.execute("""
+                    CREATE OR REPLACE VIEW v_sap_pipeline AS
+                    SELECT
+                        etapa, cantidad,
+                        ROUND(100.0 * cantidad / NULLIF(SUM(cantidad) OVER(), 0), 1) as porcentaje,
+                        orden
+                    FROM (
+                        SELECT 'Requisiciones' as etapa, COUNT(DISTINCT solped_id) as cantidad, 1 as orden FROM sap_solpeds
+                        UNION ALL
+                        SELECT 'Liberadas', COUNT(DISTINCT solped_id), 2 FROM sap_solpeds WHERE estrategia_liberacion = 'LIBERADA'
+                        UNION ALL
+                        SELECT 'En Pedido', COUNT(DISTINCT pedido_id), 3 FROM sap_purchase_orders
+                        UNION ALL
+                        SELECT 'Recepcionadas', COUNT(DISTINCT pedido_id), 4 FROM sap_purchase_orders WHERE fecha_recepcion IS NOT NULL
+                    ) sub
+                """)
+                cur.execute("""
                     CREATE OR REPLACE VIEW v_sap_analisis_costos AS
                     SELECT
                         s.material_codigo,
