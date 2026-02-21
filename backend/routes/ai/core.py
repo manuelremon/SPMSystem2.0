@@ -76,7 +76,7 @@ def train_models():
                 """
                 SELECT codigo, descripcion, precio_usd, unidad, activo
                 FROM catalogo_materiales
-                WHERE activo = 1
+                WHERE activo = TRUE
             """
             )
             materiales = [dict(row) for row in cursor.fetchall()]

@@ -64,7 +64,7 @@ class AutoApprovalService:
                 cur.execute("""
                     SELECT id, nombre, condiciones_json, centro_id, prioridad
                     FROM regla_auto_aprobacion
-                    WHERE activo = 1
+                    WHERE activo = TRUE
                     AND (centro_id IS NULL OR centro_id = ?)
                     ORDER BY prioridad ASC
                 """, (centro_id,))
@@ -209,7 +209,7 @@ class AutoApprovalService:
             condiciones = data.get("condiciones", {})
             centro_id = data.get("centro_id")
             prioridad = int(data.get("prioridad", 100))
-            activo = int(data.get("activo", 1))
+            activo = bool(data.get("activo", True))
 
             if not nombre:
                 return None
@@ -267,7 +267,7 @@ class AutoApprovalService:
 
             if "activo" in data:
                 updates.append("activo = ?")
-                params.append(int(data["activo"]))
+                params.append(bool(data["activo"]))
 
             if "centro_id" in data:
                 updates.append("centro_id = ?")

@@ -22,7 +22,7 @@ class EscalationService:
             cur = conn.cursor()
             query = "SELECT * FROM regla_escalacion"
             if activo_only:
-                query += " WHERE activo = 1"
+                query += " WHERE activo = TRUE"
             query += " ORDER BY centro, criticidad"
             cur.execute(query)
             rows = cur.fetchall()

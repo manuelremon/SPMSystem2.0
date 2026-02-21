@@ -25,7 +25,7 @@ class ProveedorRepository:
                 """
                 SELECT id_proveedor, nombre, plazo_entrega_dias, rating
                 FROM proveedores
-                WHERE tipo = 'externo' AND activo = 1
+                WHERE tipo = 'externo' AND activo = TRUE
             """
             )
             return [dict(row) for row in cur.fetchall()]
@@ -48,7 +48,7 @@ class ProveedorPreciosRepository:
                        fecha_vigencia_desde, fecha_vigencia_hasta, condicion_pago,
                        cantidad_minima, notas
                 FROM proveedor_precio_negociado
-                WHERE cuit_proveedor = ? AND codigo_material = ? AND activo = 1
+                WHERE cuit_proveedor = ? AND codigo_material = ? AND activo = TRUE
                   AND fecha_vigencia_desde <= {sql_current_date()}
                   AND (fecha_vigencia_hasta IS NULL OR fecha_vigencia_hasta >= {sql_current_date()})
                 ORDER BY fecha_vigencia_desde DESC
@@ -73,7 +73,7 @@ class ProveedorPreciosRepository:
                        p.condicion_pago, p.cantidad_minima, pe.nombre as proveedor_nombre
                 FROM proveedor_precio_negociado p
                 LEFT JOIN proveedor_externo pe ON p.cuit_proveedor = pe.cuit
-                WHERE p.codigo_material = ? AND p.activo = 1
+                WHERE p.codigo_material = ? AND p.activo = TRUE
                   AND p.fecha_vigencia_desde <= {sql_current_date()}
                   AND (p.fecha_vigencia_hasta IS NULL OR p.fecha_vigencia_hasta >= {sql_current_date()})
                 ORDER BY p.precio_usd ASC
@@ -279,11 +279,11 @@ class ProveedorExternoRepository:
                 SELECT pe.cuit, pe.nombre, pe.direccion, pe.localidad, pe.pais, pe.origen,
                        pe.lead_time_dias, pe.rubro, pe.calificacion,
                        (SELECT email FROM proveedor_externo_email
-                        WHERE cuit_proveedor = pe.cuit AND es_principal = 1 LIMIT 1) as email_principal,
+                        WHERE cuit_proveedor = pe.cuit AND es_principal = TRUE LIMIT 1) as email_principal,
                        (SELECT telefono FROM proveedor_externo_telefono
                         WHERE proveedor_id = pe.id LIMIT 1) as telefono_principal
                 FROM proveedor_externo pe
-                WHERE pe.activo = 1
+                WHERE pe.activo = TRUE
                 ORDER BY pe.nombre
             """
             )

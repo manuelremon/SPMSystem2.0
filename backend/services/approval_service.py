@@ -486,7 +486,7 @@ def _detectar_ciclo_delegacion(delegado_id: str, aprobador_original_id: str) -> 
                 """
                 SELECT delegado_id FROM aprobadores_delegados
                 WHERE aprobador_original_id = ?
-                    AND activo = 1
+                    AND activo = TRUE
                     AND fecha_inicio <= ?
                     AND fecha_fin >= ?
             """,
@@ -573,7 +573,7 @@ def obtener_delegacion_activa(aprobador_id: str) -> Optional[Dict[str, Any]]:
             """
             SELECT * FROM aprobadores_delegados
             WHERE aprobador_original_id = ?
-                AND activo = 1
+                AND activo = TRUE
                 AND fecha_inicio <= ?
                 AND fecha_fin >= ?
             ORDER BY fecha_fin DESC
@@ -607,7 +607,7 @@ def obtener_delegaciones_como_delegado(delegado_id: str) -> List[Dict[str, Any]]
             FROM aprobadores_delegados d
             JOIN usuario u ON d.aprobador_original_id = u.id_spm
             WHERE d.delegado_id = ?
-                AND d.activo = 1
+                AND d.activo = TRUE
                 AND d.fecha_inicio <= ?
                 AND d.fecha_fin >= ?
             ORDER BY d.fecha_fin DESC
@@ -715,7 +715,7 @@ def listar_reglas(solo_activas: bool = True) -> List[Dict[str, Any]]:
             cursor.execute(
                 """
                 SELECT * FROM reglas_aprobacion
-                WHERE activo = 1
+                WHERE activo = TRUE
                 ORDER BY nivel_aprobacion, monto_minimo_usd
             """
             )
@@ -788,8 +788,8 @@ def crear_regla(
                 criticidad,
                 rol_requerido,
                 nivel_aprobacion,
-                1 if requiere_justificacion else 0,
-                1 if requiere_documentacion else 0,
+                bool(requiere_justificacion),
+                bool(requiere_documentacion),
                 created_by,
             ),
         )
@@ -873,7 +873,7 @@ def desactivar_regla(regla_id: int, deactivated_by: Optional[str] = None) -> Dic
         cursor.execute(
             """
             UPDATE reglas_aprobacion
-            SET activo = 0, updated_at = CURRENT_TIMESTAMP
+            SET activo = FALSE, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         """,
             (regla_id,),

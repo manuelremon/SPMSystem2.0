@@ -18,7 +18,7 @@ def obtener_kpis_configurados() -> List[Dict[str, Any]]:
         SELECT id, categoria, kpi_key, nombre, descripcion, unidad,
                formula, target_value, warning_threshold, critical_threshold, activo
         FROM executive_kpi
-        WHERE activo = 1
+        WHERE activo = TRUE
         ORDER BY categoria, nombre
     """)
 
@@ -84,7 +84,7 @@ def actualizar_kpi(kpi_id: int, data: Dict[str, Any]) -> bool:
         data.get('target_value'),
         data.get('warning_threshold'),
         data.get('critical_threshold'),
-        data.get('activo', 1),
+        bool(data.get('activo', True)),
         kpi_id
     ))
 
@@ -195,7 +195,7 @@ def calcular_kpis_actuales() -> Dict[str, Any]:
         cursor.execute("""
             SELECT AVG(risk_score)
             FROM proveedor_riesgo
-            WHERE activo = 1
+            WHERE activo = TRUE
         """)
         row = cursor.fetchone()
         kpis_valores['supplier_risk_avg'] = row[0] if row[0] else 0

@@ -97,7 +97,7 @@ def _calcular_lead_time_promedio() -> Tuple[float, str]:
             cursor.execute("""
                 SELECT AVG(lead_time_dias)
                 FROM proveedores_externos
-                WHERE lead_time_dias IS NOT NULL AND lead_time_dias > 0 AND activo = 1
+                WHERE lead_time_dias IS NOT NULL AND lead_time_dias > 0 AND activo = TRUE
             """)
             row = cursor.fetchone()
             if row and row[0] and row[0] > 0:
@@ -1190,16 +1190,16 @@ def get_catalogos():
             cursor = conn.cursor()
 
             cursor.execute(
-                "SELECT codigo, nombre FROM catalogo_centro WHERE activo = 1 ORDER BY codigo"
+                "SELECT codigo, nombre FROM catalogo_centro WHERE activo = TRUE ORDER BY codigo"
             )
             centros = [{"codigo": r["codigo"], "nombre": r["nombre"]} for r in cursor.fetchall()]
 
             cursor.execute(
-                "SELECT codigo, nombre FROM catalogo_almacen WHERE activo = 1 ORDER BY codigo"
+                "SELECT codigo, nombre FROM catalogo_almacen WHERE activo = TRUE ORDER BY codigo"
             )
             almacenes = [{"codigo": r["codigo"], "nombre": r["nombre"]} for r in cursor.fetchall()]
 
-            cursor.execute("SELECT nombre FROM catalogo_sector WHERE activo = 1 ORDER BY nombre")
+            cursor.execute("SELECT nombre FROM catalogo_sector WHERE activo = TRUE ORDER BY nombre")
             sectores = [{"nombre": r["nombre"]} for r in cursor.fetchall()]
 
         return jsonify(

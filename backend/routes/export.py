@@ -779,7 +779,7 @@ def create_reporte_programado():
     try:
         filtros_json = json.dumps(data.get("filtros_json", {}))
         destinatarios_json = json.dumps(data.get("destinatarios_json", []))
-        activo = 1 if data.get("activo", True) else 0
+        activo = bool(data.get("activo", True))
 
         # Calculate proximo_envio based on frecuencia
         proximo_envio = None
@@ -915,7 +915,7 @@ def update_reporte_programado(reporte_id: int):
                 params.append(data["formato"])
             if "activo" in data:
                 updates.append("activo = %s" if is_using_postgresql() else "activo = ?")
-                params.append(1 if data["activo"] else 0)
+                params.append(bool(data["activo"]))
 
             if not updates:
                 return jsonify({

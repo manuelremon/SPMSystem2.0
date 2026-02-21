@@ -209,7 +209,7 @@ class MaterialRetriever:
                     grupo_articulos,
                     unidad_medida
                 FROM catalogo_materiales
-                WHERE activo = 1
+                WHERE activo = TRUE
                 AND codigo IS NOT NULL
                 AND descripcion IS NOT NULL
             """)

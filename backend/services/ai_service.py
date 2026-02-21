@@ -560,7 +560,7 @@ class AIService:
                     """
                     SELECT codigo, stock_actual, punto_pedido, stock_seguridad
                     FROM catalogo_materiales
-                    WHERE centro = ? AND activo = 1
+                    WHERE centro = ? AND activo = TRUE
                 """,
                     (centro,),
                 )

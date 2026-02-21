@@ -383,7 +383,7 @@ def get_centros_cached() -> List[Dict]:
     """Obtiene lista de centros (cacheada 10 min)."""
     with get_pooled_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM centros WHERE activo = 1 ORDER BY nombre")
+        cursor.execute("SELECT * FROM centros WHERE activo = TRUE ORDER BY nombre")
         return [dict(row) for row in cursor.fetchall()]
 
 
@@ -392,7 +392,7 @@ def get_sectores_cached() -> List[Dict]:
     """Obtiene lista de sectores (cacheada 10 min)."""
     with get_pooled_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM sectores WHERE activo = 1 ORDER BY nombre")
+        cursor.execute("SELECT * FROM sectores WHERE activo = TRUE ORDER BY nombre")
         return [dict(row) for row in cursor.fetchall()]
 
 
@@ -401,7 +401,7 @@ def get_almacenes_cached() -> List[Dict]:
     """Obtiene lista de almacenes (cacheada 10 min)."""
     with get_pooled_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM almacenes WHERE activo = 1 ORDER BY nombre")
+        cursor.execute("SELECT * FROM almacenes WHERE activo = TRUE ORDER BY nombre")
         return [dict(row) for row in cursor.fetchall()]
 
 

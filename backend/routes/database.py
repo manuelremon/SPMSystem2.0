@@ -1201,7 +1201,7 @@ def delete_row(table: str):
                 col_names = {c["name"] for c in table_columns}
 
                 if "activo" in col_names:
-                    cur.execute(f"UPDATE [{table}] SET activo = 0 WHERE {where_clause}", where_values)
+                    cur.execute(f"UPDATE [{table}] SET activo = FALSE WHERE {where_clause}", where_values)
                 elif "active" in col_names:
                     cur.execute(f"UPDATE [{table}] SET active = 0 WHERE {where_clause}", where_values)
                 elif "deleted" in col_names:

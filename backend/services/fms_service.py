@@ -92,7 +92,7 @@ def obtener_vehiculo(vehicle_id: int) -> Optional[dict]:
 
         # Obtener planes de mantenimiento
         cursor = conn.execute(
-            "SELECT * FROM fms_maintenance_plans WHERE vehicle_id = ? AND activo = 1",
+            "SELECT * FROM fms_maintenance_plans WHERE vehicle_id = ? AND activo = TRUE",
             (vehicle_id,)
         )
         vehicle["planes_mantenimiento"] = [dict(r) for r in cursor.fetchall()]
@@ -116,7 +116,7 @@ def listar_vehiculos(filtros: dict = None) -> List[dict]:
 
     if "activo" in filtros:
         query += " AND activo = ?"
-        params.append(filtros["activo"])
+        params.append(bool(filtros["activo"]))
 
     query += " ORDER BY placa"
 
@@ -179,7 +179,7 @@ def obtener_vehiculos_disponibles(requiere_frio: bool = False, requiere_hazmat: 
     """Obtiene vehiculos disponibles que cumplan requisitos."""
     query = """
         SELECT * FROM fms_vehicles
-        WHERE estado = 'disponible' AND activo = 1
+        WHERE estado = 'disponible' AND activo = TRUE
     """
     params = []
 
@@ -263,7 +263,7 @@ def listar_conductores(filtros: dict = None) -> List[dict]:
 
     if "activo" in filtros:
         query += " AND activo = ?"
-        params.append(filtros["activo"])
+        params.append(bool(filtros["activo"]))
 
     query += " ORDER BY apellido, nombre"
 
@@ -518,7 +518,7 @@ def _recalcular_proximo_mantenimiento(conn, vehicle_id: int, km_actual: Optional
         return
 
     cursor = conn.execute(
-        "SELECT * FROM fms_maintenance_plans WHERE vehicle_id = ? AND activo = 1",
+        "SELECT * FROM fms_maintenance_plans WHERE vehicle_id = ? AND activo = TRUE",
         (vehicle_id,)
     )
 
@@ -720,7 +720,7 @@ def evaluar_mantenimiento_preventivo() -> List[dict]:
             SELECT mp.*, v.id as vehicle_id, v.placa, v.odometro_actual, v.estado
             FROM fms_maintenance_plans mp
             JOIN fms_vehicles v ON mp.vehicle_id = v.id
-            WHERE mp.activo = 1 AND v.activo = 1
+            WHERE mp.activo = TRUE AND v.activo = TRUE
         """)
 
         for row in cursor.fetchall():
@@ -777,7 +777,7 @@ def evaluar_mantenimiento_preventivo() -> List[dict]:
             SELECT vd.*, v.placa
             FROM fms_vehicle_docs vd
             JOIN fms_vehicles v ON vd.vehicle_id = v.id
-            WHERE v.activo = 1 AND vd.fecha_vencimiento IS NOT NULL
+            WHERE v.activo = TRUE AND vd.fecha_vencimiento IS NOT NULL
         """)
 
         for row in cursor.fetchall():
@@ -1029,13 +1029,13 @@ def obtener_kpis_fms() -> dict:
         cursor = conn.execute("""
             SELECT estado, COUNT(*) as count
             FROM fms_vehicles
-            WHERE activo = 1
+            WHERE activo = TRUE
             GROUP BY estado
         """)
         vehiculos_por_estado = {row["estado"]: row["count"] for row in cursor.fetchall()}
 
         # Total vehiculos activos
-        cursor = conn.execute("SELECT COUNT(*) as total FROM fms_vehicles WHERE activo = 1")
+        cursor = conn.execute("SELECT COUNT(*) as total FROM fms_vehicles WHERE activo = TRUE")
         total_vehiculos = cursor.fetchone()["total"]
 
         disponibles = vehiculos_por_estado.get("disponible", 0)
@@ -1067,7 +1067,7 @@ def obtener_kpis_fms() -> dict:
             SELECT COUNT(*) as count
             FROM fms_maintenance_plans mp
             JOIN fms_vehicles v ON mp.vehicle_id = v.id
-            WHERE mp.activo = 1 AND v.activo = 1
+            WHERE mp.activo = TRUE AND v.activo = TRUE
             AND (
                 (mp.proximo_km IS NOT NULL AND v.odometro_actual >= mp.proximo_km - 500)
                 OR (mp.proxima_fecha IS NOT NULL AND mp.proxima_fecha <= date('now', '+7 days'))
@@ -1079,7 +1079,7 @@ def obtener_kpis_fms() -> dict:
         cursor = conn.execute("""
             SELECT AVG(rendimiento_km_lt) as promedio
             FROM fms_vehicles
-            WHERE activo = 1 AND rendimiento_km_lt IS NOT NULL
+            WHERE activo = TRUE AND rendimiento_km_lt IS NOT NULL
         """)
         row = cursor.fetchone()
         rendimiento_promedio = row["promedio"] if row and row["promedio"] else 0

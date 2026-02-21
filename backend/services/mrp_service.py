@@ -1154,7 +1154,7 @@ def _notificar_planificadores_alerta(
                 JOIN usuario_rol ur ON u.id = ur.usuario_id
                 JOIN rol r ON ur.rol_id = r.id
                 WHERE LOWER(r.nombre) IN ('planner', 'planificador', 'admin')
-                AND u.activo = 1
+                AND u.activo = TRUE
             """)
             planificadores = cursor.fetchall()
 

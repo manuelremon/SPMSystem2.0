@@ -343,7 +343,7 @@ class ReportingService:
                     SELECT codigo, descripcion, stock_actual, stock_seguridad,
                            punto_pedido, precio_usd, centro
                     FROM catalogo_materiales
-                    WHERE activo = 1
+                    WHERE activo = TRUE
                 """
                 params = []
 

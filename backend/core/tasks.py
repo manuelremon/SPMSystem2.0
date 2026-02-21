@@ -513,7 +513,7 @@ def generate_scheduled_reports(self) -> Dict[str, Any]:
                     SELECT id, nombre, tipo, frecuencia, filtros_json,
                            destinatarios_json, formato, creado_por
                     FROM reporte_programado
-                    WHERE activo = 1
+                    WHERE activo = TRUE
                     AND (proximo_envio IS NULL OR proximo_envio <= NOW())
                     ORDER BY proximo_envio
                     LIMIT 50
@@ -523,7 +523,7 @@ def generate_scheduled_reports(self) -> Dict[str, Any]:
                     SELECT id, nombre, tipo, frecuencia, filtros_json,
                            destinatarios_json, formato, creado_por
                     FROM reporte_programado
-                    WHERE activo = 1
+                    WHERE activo = TRUE
                     AND (proximo_envio IS NULL OR proximo_envio <= datetime('now'))
                     ORDER BY proximo_envio
                     LIMIT 50

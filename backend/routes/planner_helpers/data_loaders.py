@@ -138,10 +138,10 @@ def _rankear_proveedores(cur, cantidad: float, precio_unitario: float):
             pe.rubro,
             pe.origen,
             (SELECT email FROM proveedor_ext_emails
-             WHERE cuit_proveedor = pe.cuit AND es_principal = 1
+             WHERE cuit_proveedor = pe.cuit AND es_principal = TRUE
              LIMIT 1) as email_principal
         FROM proveedores_externos pe
-        WHERE pe.activo = 1
+        WHERE pe.activo = TRUE
         """
     )
     proveedores = cur.fetchall() or []

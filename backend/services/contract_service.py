@@ -522,7 +522,7 @@ def obtener_precio_contractual(material_codigo: str, proveedor_cuit: str, fecha:
               AND c.estado = 'active'
               AND c.deleted = 0
               AND ci.material_codigo = ?
-              AND ci.activo = 1
+              AND ci.activo = TRUE
               AND (ci.fecha_vigencia_desde IS NULL OR ci.fecha_vigencia_desde <= ?)
               AND (ci.fecha_vigencia_hasta IS NULL OR ci.fecha_vigencia_hasta >= ?)
             ORDER BY ci.created_at DESC
@@ -550,7 +550,7 @@ def actualizar_cantidad_consumida(contrato_id: int, material_codigo: str, cantid
         cursor.execute("""
             UPDATE contrato_item
             SET cantidad_consumida = cantidad_consumida + ?
-            WHERE contrato_id = ? AND material_codigo = ? AND activo = 1
+            WHERE contrato_id = ? AND material_codigo = ? AND activo = TRUE
         """, (cantidad, contrato_id, material_codigo))
 
         conn.commit()

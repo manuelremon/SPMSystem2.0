@@ -140,7 +140,7 @@ def get_business_metrics():
             usuarios_activos = 0
 
         # Total usuarios activos
-        cur.execute("SELECT COUNT(*) as cnt FROM usuario WHERE activo = 1")
+        cur.execute("SELECT COUNT(*) as cnt FROM usuario WHERE activo = TRUE")
         row = cur.fetchone()
         total_usuarios = row["cnt"] if isinstance(row, dict) else row[0]
 

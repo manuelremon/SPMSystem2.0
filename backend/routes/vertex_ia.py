@@ -1018,7 +1018,7 @@ def _search_materials_direct(query: str) -> list:
         for code in sap_codes + sap_codes_alt:
             cur.execute(
                 """SELECT codigo, descripcion, COALESCE(precio_usd, 0) as precio
-                   FROM catalogo_materiales WHERE codigo = ? AND activo = 1""",
+                   FROM catalogo_materiales WHERE codigo = ? AND activo = TRUE""",
                 (code,),
             )
             for row in cur.fetchall():
@@ -1043,7 +1043,7 @@ def _search_materials_direct(query: str) -> list:
                         ({ranking_expr}) as relevance
                     FROM catalogo_materiales
                     WHERE ({search.where_clause})
-                    AND activo = 1
+                    AND activo = TRUE
                     ORDER BY relevance DESC, precio DESC
                     LIMIT 10
                 """

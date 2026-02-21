@@ -67,8 +67,7 @@ def get_roles():
 
 def _activo_condition():
     """Retorna la condición de activo correcta para la BD"""
-    # Usar =1 para ambos porque la columna es INTEGER en ambas BDs
-    return "activo=1"
+    return "activo=TRUE"
 
 
 @cached(catalog_cache, "centros", ttl=600)  # 10 min TTL

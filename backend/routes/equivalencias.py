@@ -403,7 +403,7 @@ def crear_equivalencia():
                 """
                 INSERT INTO material_equivalencias
                 (codigo_original, codigo_equivalente, compatibilidad_pct, descripcion, notas, activo)
-                VALUES (?, ?, ?, ?, ?, 1)
+                VALUES (?, ?, ?, ?, ?, TRUE)
             """,
                 (
                     codigo_original,
@@ -501,7 +501,7 @@ def actualizar_equivalencia(id_equivalencia):
 
     if "activo" in data:
         updates.append("activo = ?")
-        params.append(1 if data["activo"] else 0)
+        params.append(bool(data["activo"]))
 
     if not updates:
         return (
@@ -569,7 +569,7 @@ def eliminar_equivalencia(id_equivalencia):
         with get_db_transaction() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "UPDATE material_equivalencias SET activo = 0 WHERE id_equivalencia = ?",
+                "UPDATE material_equivalencias SET activo = FALSE WHERE id_equivalencia = ?",
                 (id_equivalencia,),
             )
 

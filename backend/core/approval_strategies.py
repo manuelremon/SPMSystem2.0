@@ -30,7 +30,7 @@ class CriticidadStrategy(ApprovalStrategy):
             cursor.execute(
                 """
                 SELECT * FROM reglas_aprobacion
-                WHERE activo = 1
+                WHERE activo = TRUE
                     AND criticidad = ?
                     AND (monto_minimo_usd <= ? OR monto_minimo_usd IS NULL)
                     AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)
@@ -55,7 +55,7 @@ class CentroStrategy(ApprovalStrategy):
             cursor.execute(
                 """
                 SELECT * FROM reglas_aprobacion
-                WHERE activo = 1
+                WHERE activo = TRUE
                     AND centro = ?
                     AND (monto_minimo_usd <= ? OR monto_minimo_usd IS NULL)
                     AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)
@@ -78,7 +78,7 @@ class MontoStrategy(ApprovalStrategy):
             cursor.execute(
                 """
                 SELECT * FROM reglas_aprobacion
-                WHERE activo = 1
+                WHERE activo = TRUE
                     AND centro IS NULL
                     AND sector IS NULL
                     AND criticidad IS NULL
@@ -103,7 +103,7 @@ class AdminFallbackStrategy(ApprovalStrategy):
             cursor.execute(
                 """
                 SELECT * FROM reglas_aprobacion
-                WHERE activo = 1
+                WHERE activo = TRUE
                     AND LOWER(rol_requerido) = 'admin'
                     AND monto_minimo_usd <= ?
                     AND (monto_maximo_usd >= ? OR monto_maximo_usd IS NULL)

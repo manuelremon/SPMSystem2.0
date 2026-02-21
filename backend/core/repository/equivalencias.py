@@ -81,7 +81,7 @@ class EquivalenciasRepository:
             cur.execute(
                 """
                 SELECT tipo_equiv, compatibilidad_pct
-                FROM config_equivalencia_scores WHERE activo = 1
+                FROM config_equivalencia_scores WHERE activo = TRUE
             """
             )
             return {row["tipo_equiv"]: row["compatibilidad_pct"] for row in cur.fetchall()}

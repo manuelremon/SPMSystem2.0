@@ -124,7 +124,7 @@ class MaterialMatcher(BaseTool):
                         SELECT codigo, descripcion, descripcion_larga,
                                grupo_articulos, unidad_medida, precio_usd
                         FROM catalogo_materiales
-                        WHERE activo = 1
+                        WHERE activo = TRUE
                           AND {search.where_clause}
                         ORDER BY codigo ASC
                         LIMIT 15

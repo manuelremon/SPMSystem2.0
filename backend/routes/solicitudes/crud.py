@@ -262,7 +262,7 @@ def create_solicitud():
 
             if centro:
                 cur.execute(
-                    "SELECT 1 FROM catalogo_centro WHERE (codigo = ? OR nombre = ?) AND activo = 1",
+                    "SELECT 1 FROM catalogo_centro WHERE (codigo = ? OR nombre = ?) AND activo = TRUE",
                     (centro, centro),
                 )
                 if not cur.fetchone():
@@ -281,7 +281,7 @@ def create_solicitud():
 
             if sector:
                 cur.execute(
-                    "SELECT 1 FROM catalogo_sector WHERE nombre = ? AND activo = 1",
+                    "SELECT 1 FROM catalogo_sector WHERE nombre = ? AND activo = TRUE",
                     (sector,),
                 )
                 if not cur.fetchone():

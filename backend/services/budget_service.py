@@ -746,7 +746,7 @@ def verificar_umbrales_presupuesto() -> Dict[str, Any]:
                             JOIN usuario_rol ur ON u.id = ur.usuario_id
                             JOIN rol r ON ur.rol_id = r.id
                             WHERE LOWER(r.nombre) IN ('admin', 'administrador', 'coordinador', 'jefe')
-                            AND u.activo = 1
+                            AND u.activo = TRUE
                         """)
                         admins = _fetchall(cur2)
                     finally:

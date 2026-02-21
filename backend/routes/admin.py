@@ -37,7 +37,7 @@ def admin_centros():
             cur = conn.cursor()
             cur.execute(
                 "INSERT INTO catalogo_centro (codigo, nombre, activo) VALUES (?,?,?)",
-                (data["codigo"], data.get("nombre"), 1),
+                (data["codigo"], data.get("nombre"), True),
             )
         invalidate_catalog_cache()
 
@@ -58,10 +58,10 @@ def admin_centros_mod(centro_codigo):
             data = request.get_json(silent=True) or {}
             cur.execute(
                 "UPDATE catalogo_centro SET nombre=?, activo=? WHERE codigo=?",
-                (data.get("nombre"), data.get("activo", 1), centro_codigo),
+                (data.get("nombre"), bool(data.get("activo", True)), centro_codigo),
             )
         else:
-            cur.execute("UPDATE catalogo_centro SET activo=0 WHERE codigo=?", (centro_codigo,))
+            cur.execute("UPDATE catalogo_centro SET activo=FALSE WHERE codigo=?", (centro_codigo,))
 
     invalidate_catalog_cache()
     return jsonify({"ok": True}), 200
@@ -79,7 +79,7 @@ def admin_almacenes():
             cur = conn.cursor()
             cur.execute(
                 "INSERT INTO catalogo_almacen (codigo, nombre, activo) VALUES (?,?,?)",
-                (data["codigo"], data.get("nombre"), 1),
+                (data["codigo"], data.get("nombre"), True),
             )
         invalidate_catalog_cache()
 
@@ -100,10 +100,10 @@ def admin_almacenes_mod(almacen_codigo):
             data = request.get_json(silent=True) or {}
             cur.execute(
                 "UPDATE catalogo_almacen SET nombre=?, activo=? WHERE codigo=?",
-                (data.get("nombre"), data.get("activo", 1), almacen_codigo),
+                (data.get("nombre"), bool(data.get("activo", True)), almacen_codigo),
             )
         else:
-            cur.execute("UPDATE catalogo_almacen SET activo=0 WHERE codigo=?", (almacen_codigo,))
+            cur.execute("UPDATE catalogo_almacen SET activo=FALSE WHERE codigo=?", (almacen_codigo,))
 
     invalidate_catalog_cache()
     return jsonify({"ok": True}), 200
@@ -121,7 +121,7 @@ def admin_sectores():
             cur = conn.cursor()
             cur.execute(
                 "INSERT INTO catalogo_sector (nombre, activo) VALUES (?,?)",
-                (data["nombre"], 1),
+                (data["nombre"], True),
             )
         invalidate_catalog_cache()
 
@@ -142,10 +142,10 @@ def admin_sectores_mod(sector_nombre):
             data = request.get_json(silent=True) or {}
             cur.execute(
                 "UPDATE catalogo_sector SET activo=? WHERE nombre=?",
-                (data.get("activo", 1), sector_nombre),
+                (bool(data.get("activo", True)), sector_nombre),
             )
         else:
-            cur.execute("UPDATE catalogo_sector SET activo=0 WHERE nombre=?", (sector_nombre,))
+            cur.execute("UPDATE catalogo_sector SET activo=FALSE WHERE nombre=?", (sector_nombre,))
 
     invalidate_catalog_cache()
     return jsonify({"ok": True}), 200
@@ -164,7 +164,7 @@ def admin_roles():
             cur = conn.cursor()
             cur.execute(
                 "INSERT INTO catalogo_rol (nombre, activo, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
-                (data["nombre"], data.get("activo", 1)),
+                (data["nombre"], bool(data.get("activo", True))),
             )
         invalidate_catalog_cache()
 
@@ -185,11 +185,11 @@ def admin_roles_mod(rol_nombre):
             data = request.get_json(silent=True) or {}
             cur.execute(
                 "UPDATE catalogo_rol SET activo=?, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
-                (data.get("activo", 1), rol_nombre),
+                (bool(data.get("activo", True)), rol_nombre),
             )
         else:
             cur.execute(
-                "UPDATE catalogo_rol SET activo=0, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
+                "UPDATE catalogo_rol SET activo=FALSE, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
                 (rol_nombre,),
             )
 
@@ -210,7 +210,7 @@ def admin_puestos():
             cur = conn.cursor()
             cur.execute(
                 "INSERT INTO catalogo_puesto (nombre, activo, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
-                (data["nombre"], data.get("activo", 1)),
+                (data["nombre"], bool(data.get("activo", True))),
             )
         invalidate_catalog_cache()
 
@@ -231,11 +231,11 @@ def admin_puestos_mod(puesto_nombre):
             data = request.get_json(silent=True) or {}
             cur.execute(
                 "UPDATE catalogo_puesto SET activo=?, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
-                (data.get("activo", 1), puesto_nombre),
+                (bool(data.get("activo", True)), puesto_nombre),
             )
         else:
             cur.execute(
-                "UPDATE catalogo_puesto SET activo=0, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
+                "UPDATE catalogo_puesto SET activo=FALSE, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
                 (puesto_nombre,),
             )
 
@@ -424,7 +424,7 @@ def admin_planificadores():
             cur = conn.cursor()
             for a in asignaciones:
                 cur.execute(
-                    "INSERT INTO planificador_asignaciones (planificador_id, centro, sector, almacen_virtual, activo) VALUES (%s,%s,%s,%s,1) ON CONFLICT DO NOTHING",
+                    "INSERT INTO planificador_asignaciones (planificador_id, centro, sector, almacen_virtual, activo) VALUES (%s,%s,%s,%s,TRUE) ON CONFLICT DO NOTHING",
                     (
                         data["usuario_id"],
                         a.get("centro"),
@@ -462,12 +462,12 @@ def admin_planificadores_mod(usuario_id):
                 )
                 for a in data.get("asignaciones") or []:
                     cur.execute(
-                        "INSERT INTO planificador_asignaciones (planificador_id, centro, sector, almacen_virtual, activo) VALUES (%s,%s,%s,%s,1) ON CONFLICT DO NOTHING",
+                        "INSERT INTO planificador_asignaciones (planificador_id, centro, sector, almacen_virtual, activo) VALUES (%s,%s,%s,%s,TRUE) ON CONFLICT DO NOTHING",
                         (usuario_id, a.get("centro"), a.get("sector"), a.get("almacen_virtual")),
                     )
         else:
             cur.execute(
-                "UPDATE planificador_asignaciones SET activo=0 WHERE planificador_id=%s",
+                "UPDATE planificador_asignaciones SET activo=FALSE WHERE planificador_id=%s",
                 (usuario_id,),
             )
 
@@ -796,9 +796,9 @@ def admin_config_almacenes():
                     data["centro"],
                     data["almacen"],
                     data.get("nombre"),
-                    1 if data.get("libre_disponibilidad") else 0,
+                    bool(data.get("libre_disponibilidad")),
                     data.get("responsable_id"),
-                    1 if data.get("excluido") else 0,
+                    bool(data.get("excluido")),
                 ),
             )
 
@@ -842,9 +842,9 @@ def admin_config_almacenes_mod(centro, almacen):
             """,
                 (
                     data.get("nombre"),
-                    1 if data.get("libre_disponibilidad") else 0,
+                    bool(data.get("libre_disponibilidad")),
                     data.get("responsable_id"),
-                    1 if data.get("excluido") else 0,
+                    bool(data.get("excluido")),
                     centro,
                     almacen,
                 ),
@@ -883,7 +883,7 @@ def admin_proveedores_externos():
                 """
                 INSERT INTO proveedor_externo
                     (cuit, nombre, direccion, localidad, pais, origen, lead_time_dias, rubro, calificacion, activo, notas)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?)
                 ON CONFLICT(cuit) DO UPDATE SET
                     nombre = excluded.nombre,
                     direccion = excluded.direccion,
@@ -914,14 +914,14 @@ def admin_proveedores_externos():
             if data.get("email"):
                 # Primero eliminar emails principales existentes para este proveedor
                 cur.execute(
-                    "DELETE FROM proveedor_externo_email WHERE cuit_proveedor = %s AND es_principal = 1",
+                    "DELETE FROM proveedor_externo_email WHERE cuit_proveedor = %s AND es_principal = TRUE",
                     (data["cuit"],),
                 )
                 # Insertar el nuevo email principal
                 cur.execute(
                     """
                     INSERT INTO proveedor_externo_email (cuit_proveedor, email, tipo, es_principal)
-                    VALUES (%s, %s, 'comercial', 1)
+                    VALUES (%s, %s, 'comercial', TRUE)
                     """,
                     (data["cuit"], data["email"]),
                 )
@@ -933,7 +933,7 @@ def admin_proveedores_externos():
             """
             SELECT
                 pe.*,
-                (SELECT email FROM proveedor_externo_email WHERE cuit_proveedor = pe.cuit AND es_principal = 1 LIMIT 1) as email_principal,
+                (SELECT email FROM proveedor_externo_email WHERE cuit_proveedor = pe.cuit AND es_principal = TRUE LIMIT 1) as email_principal,
                 (SELECT COUNT(*) FROM proveedor_externo_contacto WHERE cuit_proveedor = pe.cuit) as num_contactos
             FROM proveedor_externo pe
             ORDER BY pe.nombre
@@ -1005,14 +1005,14 @@ def admin_proveedores_externos_mod(cuit):
                     data.get("lead_time_dias", 7),
                     data.get("rubro"),
                     data.get("calificacion", "sin_calificar"),
-                    1 if data.get("activo", True) else 0,
+                    bool(data.get("activo", True)),
                     data.get("notas"),
                     cuit,
                 ),
             )
         else:  # DELETE
             cur.execute(
-                "UPDATE proveedor_externo SET activo = 0, updated_at = CURRENT_TIMESTAMP WHERE cuit = ?",
+                "UPDATE proveedor_externo SET activo = FALSE, updated_at = CURRENT_TIMESTAMP WHERE cuit = ?",
                 (cuit,),
             )
 
@@ -1045,7 +1045,7 @@ def admin_proveedores_internos():
                     (centro, almacen, centro_nombre, almacen_nombre, sector,
                      contacto_centro, responsable_centro, referente_id, referente_nombre, referente_email,
                      activo, notas)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?)
                 ON CONFLICT(centro, almacen) DO UPDATE SET
                     centro_nombre = excluded.centro_nombre,
                     almacen_nombre = excluded.almacen_nombre,
@@ -1137,7 +1137,7 @@ def admin_proveedores_internos_mod(centro, almacen):
                     data.get("referente_id"),
                     data.get("referente_nombre"),
                     data.get("referente_email"),
-                    1 if data.get("activo", True) else 0,
+                    bool(data.get("activo", True)),
                     data.get("notas"),
                     centro,
                     almacen,
@@ -1145,7 +1145,7 @@ def admin_proveedores_internos_mod(centro, almacen):
             )
         else:  # DELETE
             cur.execute(
-                "UPDATE proveedor_interno SET activo = 0, updated_at = CURRENT_TIMESTAMP WHERE centro = ? AND almacen = ?",
+                "UPDATE proveedor_interno SET activo = FALSE, updated_at = CURRENT_TIMESTAMP WHERE centro = ? AND almacen = ?",
                 (centro, almacen),
             )
 
@@ -1351,7 +1351,7 @@ def admin_delegaciones_aprobacion():
             FROM aprobadores_delegados d
             LEFT JOIN usuario u1 ON d.aprobador_original_id = u1.id_spm
             LEFT JOIN usuario u2 ON d.delegado_id = u2.id_spm
-            WHERE d.activo = 1
+            WHERE d.activo = TRUE
             ORDER BY d.fecha_fin DESC
         """
         )
@@ -1384,7 +1384,7 @@ def admin_delegaciones_aprobacion_mod(delegacion_id):
                 valores.append(data["motivo"])
             if "activo" in data:
                 campos.append("activo = ?")
-                valores.append(1 if data["activo"] else 0)
+                valores.append(bool(data["activo"]))
 
             if not campos:
                 return jsonify({"ok": False, "error": "No hay campos para actualizar"}), 400
@@ -1396,7 +1396,7 @@ def admin_delegaciones_aprobacion_mod(delegacion_id):
 
         else:  # DELETE
             cur.execute(
-                "UPDATE aprobadores_delegados SET activo = 0 WHERE id = ?", (delegacion_id,)
+                "UPDATE aprobadores_delegados SET activo = FALSE WHERE id = ?", (delegacion_id,)
             )
 
         if cur.rowcount == 0:

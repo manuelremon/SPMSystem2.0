@@ -50,7 +50,7 @@ def obtener_configuracion_sla(
             WHERE criticidad = ?
               AND estado_desde = ?
               AND estado_hasta = ?
-              AND activo = 1
+              AND activo = TRUE
             LIMIT 1
         """,
             (criticidad, estado_desde, estado_hasta),
@@ -70,7 +70,7 @@ def obtener_configuracion_sla(
             WHERE criticidad IS NULL
               AND estado_desde = ?
               AND estado_hasta = ?
-              AND activo = 1
+              AND activo = TRUE
             LIMIT 1
         """,
             (estado_desde, estado_hasta),
@@ -679,7 +679,7 @@ def listar_configuraciones_sla(activo: Optional[bool] = None) -> List[Dict[str, 
 
         if activo is not None:
             query += " WHERE activo = ?"
-            params.append(1 if activo else 0)
+            params.append(bool(activo))
 
         query += " ORDER BY estado_desde, criticidad"
 
@@ -827,7 +827,7 @@ def eliminar_configuracion_sla(config_id: int) -> Dict[str, Any]:
         cursor.execute(
             """
             UPDATE sla_configuracion
-            SET activo = 0,
+            SET activo = FALSE,
                 updated_at = ?
             WHERE id = ?
         """,

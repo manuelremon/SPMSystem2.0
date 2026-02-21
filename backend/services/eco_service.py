@@ -490,7 +490,7 @@ def solicitar_aprobacion(eco_id: int, actor_id: int) -> None:
 
         # Crear registros de aprobación (simplificado: buscar usuarios con rol admin o jefe)
         cursor.execute(
-            "SELECT id FROM usuarios WHERE rol IN ('admin', 'jefe') AND activo = 1"
+            "SELECT id FROM usuarios WHERE rol IN ('admin', 'jefe') AND activo = TRUE"
         )
         aprobadores = [row[0] for row in cursor.fetchall()]
 

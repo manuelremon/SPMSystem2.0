@@ -828,7 +828,7 @@ class DashboardShareService:
                 """SELECT s.*, d.uuid as dashboard_uuid
                    FROM dashboard_share s
                    INNER JOIN dashboard d ON s.dashboard_id = d.id
-                   WHERE s.token = ? AND s.esta_activo = 1""",
+                   WHERE s.token = ? AND s.esta_activo = TRUE""",
                 (token,),
             )
             row = _fetchone(cur)
@@ -911,7 +911,7 @@ class DashboardShareService:
 
             _execute(
                 cur,
-                "UPDATE dashboard_share SET esta_activo = 0 WHERE id = ?",
+                "UPDATE dashboard_share SET esta_activo = FALSE WHERE id = ?",
                 (share_id,),
             )
             conn.commit()

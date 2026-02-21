@@ -38,7 +38,7 @@ class WebhookService:
                     """
                     SELECT id, url, secret, eventos, activo, created_by, created_at, updated_at
                     FROM webhook
-                    WHERE activo = 1
+                    WHERE activo = TRUE
                     ORDER BY created_at DESC
                     """
                 )
