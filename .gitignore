@@ -144,22 +144,19 @@ repomix-output.xml
 cookies.txt
 
 # =============================================================================
-# Configuración local Claude Code
+# Configuración local de editores/herramientas IA
 # =============================================================================
-.claude/settings.local.json
+.claude/
+CLAUDE.md
+.geminiignore
+GEMINI.md
+.stfolder/
+data/.claude/
 
 # =============================================================================
 # Backups de BD
 # =============================================================================
 data/*.backup_*
-
-# =============================================================================
-# Configuración local de editores/herramientas IA
-# =============================================================================
-.geminiignore
-GEMINI.md
-.stfolder/
-data/.claude/
 
 # =============================================================================
 # Reportes generados
