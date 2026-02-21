@@ -328,6 +328,26 @@ class DualModeConnection:
         return getattr(self._conn, name)
 
 
+class DictRow(dict):
+    """
+    Dict subclass that supports both key access (row['column']) and
+    positional index access (row[0]), like sqlite3.Row.
+    """
+
+    def __init__(self, keys, values):
+        super().__init__(zip(keys, values))
+        self._keys = list(keys)
+        self._values = list(values)
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self._values[key]
+        return super().__getitem__(key)
+
+    def keys(self):
+        return self._keys
+
+
 class PostgresCursorWrapper:
     """Wrapper para cursor PostgreSQL que convierte ? a %s automaticamente"""
 
@@ -343,10 +363,9 @@ class PostgresCursorWrapper:
         row = self._cursor.fetchone()
         if row is None:
             return None
-        # Convertir a dict-like para compatibilidad con sqlite3.Row
         if hasattr(self._cursor, "description") and self._cursor.description:
             cols = [desc[0] for desc in self._cursor.description]
-            return dict(zip(cols, row))
+            return DictRow(cols, row)
         return row
 
     def fetchall(self):
@@ -355,7 +374,7 @@ class PostgresCursorWrapper:
             return []
         if hasattr(self._cursor, "description") and self._cursor.description:
             cols = [desc[0] for desc in self._cursor.description]
-            return [dict(zip(cols, row)) for row in rows]
+            return [DictRow(cols, row) for row in rows]
         return rows
 
     def __getattr__(self, name):
