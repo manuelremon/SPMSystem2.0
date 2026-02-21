@@ -513,6 +513,26 @@ def get_db_connection(db_name: str = "spm"):
     return DualModeConnection(conn)
 
 
+class _TransactionResult:
+    """Supports both `as conn` (conn.cursor()) and `as (conn, cur)` (tuple unpacking)."""
+
+    def __init__(self, conn, cur):
+        self._conn = conn
+        self._cur = cur
+
+    def __iter__(self):
+        return iter((self._conn, self._cur))
+
+    def cursor(self):
+        return self._conn.cursor()
+
+    def execute(self, *args, **kwargs):
+        return self._conn.execute(*args, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
 class DualModeTransaction:
     """
     Connection wrapper with automatic commit/rollback for use as context manager.
@@ -543,9 +563,11 @@ class DualModeTransaction:
         return self._conn.execute(*args, **kwargs)
 
     def __enter__(self):
-        # Return (conn, cursor) tuple for compatibility with:
-        #   with get_db_transaction() as (conn, cursor):
-        return (self._conn, self._conn.cursor())
+        # Return a TransactionResult that supports BOTH usage patterns:
+        #   with get_db_transaction() as conn:        -> conn.cursor() works
+        #   with get_db_transaction() as (conn, cur):  -> tuple unpacking works
+        cur = self._conn.cursor()
+        return _TransactionResult(self._conn, cur)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         try:
