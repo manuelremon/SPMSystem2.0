@@ -130,8 +130,6 @@ SPMv3.0/
 │   ├── unit/                   # Tests unitarios
 │   ├── integration/            # Tests de integracion
 │   └── e2e/                    # Tests end-to-end
-├── docs/                       # Documentacion tecnica
-│
 ├── wsgi.py                     # Entry point del servidor
 └── README.md                   # Este archivo
 ```
@@ -191,10 +189,6 @@ scripts/INICIAR_SPM.bat           # Inicia backend + frontend
 
 ## Documentacion
 
-- `docs/ARQUITECTURA_SPM_2_0.md` - Arquitectura del sistema
-- `docs/DEPLOYMENT.md` - Guia de despliegue
-- `docs/GUIA_RAPIDA_USAR_SERVICIOS.md` - Uso de servicios
-- `docs/AUDIT.md` - Auditoria de seguridad
 - `/api/docs` - Swagger UI (servidor corriendo)
 
 ---
