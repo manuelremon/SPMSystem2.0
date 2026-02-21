@@ -279,7 +279,7 @@ def obtener_devoluciones(filtros: dict) -> dict:
                 oc.numero as orden_compra_numero,
                 COUNT(di.id) as num_items
             FROM devolucion d
-            LEFT JOIN proveedores p ON d.proveedor_cuit = p.cuit
+            LEFT JOIN proveedores p ON d.proveedor_cuit = p.id_proveedor
             LEFT JOIN orden_compra oc ON d.orden_compra_id = oc.id
             LEFT JOIN devolucion_item di ON d.id = di.devolucion_id
             {where_sql}
@@ -351,7 +351,7 @@ def obtener_detalle_devolucion(devolucion_id: int) -> dict:
                 d.created_at, d.creado_por,
                 u.nombre as creado_por_nombre
             FROM devolucion d
-            LEFT JOIN proveedores p ON d.proveedor_cuit = p.cuit
+            LEFT JOIN proveedores p ON d.proveedor_cuit = p.id_proveedor
             LEFT JOIN orden_compra oc ON d.orden_compra_id = oc.id
             LEFT JOIN usuarios u ON d.creado_por = u.id_spm
             WHERE d.id = {placeholder}

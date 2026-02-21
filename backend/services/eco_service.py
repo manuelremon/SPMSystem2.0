@@ -183,7 +183,7 @@ def obtener_ecos(filtros: dict = None) -> dict:
                 e.material_codigo, e.solicitante_id, u.nombre as solicitante_nombre,
                 e.fecha_efectividad, e.costo_estimado, e.created_at
             FROM eco e
-            LEFT JOIN usuarios u ON e.solicitante_id = u.id_spm
+            LEFT JOIN usuarios u ON e.solicitante_id::text = u.id_spm
             {where_sql}
             ORDER BY e.created_at DESC
             LIMIT {placeholder} OFFSET {placeholder}
@@ -250,7 +250,7 @@ def obtener_detalle_eco(eco_id: int) -> dict:
                 e.created_at, e.updated_at
             FROM eco e
             LEFT JOIN catalogo_materiales m ON e.material_codigo = m.codigo
-            LEFT JOIN usuarios u ON e.solicitante_id = u.id_spm
+            LEFT JOIN usuarios u ON e.solicitante_id::text = u.id_spm
             WHERE e.id = {placeholder}
             """,
             (eco_id,)

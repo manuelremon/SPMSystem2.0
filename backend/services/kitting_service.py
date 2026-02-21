@@ -109,7 +109,7 @@ def obtener_boms(filtros: dict = None) -> list:
                 kb.estado, kb.creado_por, u.nombre as creado_por_nombre,
                 kb.created_at
             FROM kit_bom kb
-            LEFT JOIN usuarios u ON kb.creado_por = u.id_spm
+            LEFT JOIN usuarios u ON kb.creado_por::text = u.id_spm
             {where_sql}
             ORDER BY kb.created_at DESC
             """,
@@ -161,7 +161,7 @@ def obtener_detalle_bom(bom_id: int) -> dict:
                 kb.estado, kb.creado_por, u.nombre as creado_por_nombre,
                 kb.created_at
             FROM kit_bom kb
-            LEFT JOIN usuarios u ON kb.creado_por = u.id_spm
+            LEFT JOIN usuarios u ON kb.creado_por::text = u.id_spm
             WHERE kb.id = {placeholder}
             """,
             (bom_id,)
@@ -469,7 +469,7 @@ def obtener_ordenes(filtros: dict = None) -> dict:
                 ko.fecha_inicio, ko.fecha_completado, ko.created_at
             FROM kit_orden ko
             LEFT JOIN kit_bom kb ON ko.kit_bom_id = kb.id
-            LEFT JOIN usuarios u ON ko.solicitante_id = u.id_spm
+            LEFT JOIN usuarios u ON ko.solicitante_id::text = u.id_spm
             {where_sql}
             ORDER BY ko.created_at DESC
             LIMIT {placeholder} OFFSET {placeholder}
@@ -535,7 +535,7 @@ def obtener_detalle_orden(orden_id: int) -> dict:
                 ko.fecha_inicio, ko.fecha_completado, ko.notas, ko.created_at
             FROM kit_orden ko
             LEFT JOIN kit_bom kb ON ko.kit_bom_id = kb.id
-            LEFT JOIN usuarios u ON ko.solicitante_id = u.id_spm
+            LEFT JOIN usuarios u ON ko.solicitante_id::text = u.id_spm
             WHERE ko.id = {placeholder}
             """,
             (orden_id,)

@@ -121,7 +121,7 @@ def obtener_listas(filtros: dict = None, page: int = 1, per_page: int = 50) -> d
                    lp.estado, lp.notas, lp.created_at,
                    (SELECT COUNT(*) FROM precio_item WHERE lista_id = lp.id) as items_count
             FROM lista_precios lp
-            LEFT JOIN proveedores p ON lp.proveedor_cuit = p.cuit
+            LEFT JOIN proveedores p ON lp.proveedor_cuit = p.id_proveedor
             {where_sql}
             ORDER BY lp.created_at DESC
             LIMIT {placeholder} OFFSET {placeholder}
@@ -183,7 +183,7 @@ def obtener_detalle_lista(lista_id: int) -> dict:
                    lp.moneda, lp.fecha_vigencia_desde, lp.fecha_vigencia_hasta,
                    lp.estado, lp.notas, lp.created_at
             FROM lista_precios lp
-            LEFT JOIN proveedores p ON lp.proveedor_cuit = p.cuit
+            LEFT JOIN proveedores p ON lp.proveedor_cuit = p.id_proveedor
             WHERE lp.id = {placeholder}
             """,
             (lista_id,)
@@ -215,7 +215,7 @@ def obtener_detalle_lista(lista_id: int) -> dict:
             LEFT JOIN (
                 SELECT codigo, descripcion as nombre FROM catalogo_materiales
                 UNION ALL
-                SELECT material_codigo as codigo, material_descripcion as nombre FROM materiales_bbdd
+                SELECT codigo_material as codigo, descripcion as nombre FROM materiales_bbdd
             ) m ON pi.material_codigo = m.codigo
             WHERE pi.lista_id = {placeholder}
             ORDER BY pi.material_codigo
@@ -414,7 +414,7 @@ def obtener_precio_material(material_codigo: str, proveedor_cuit: str = None, ca
                    pi.cantidad_minima
             FROM precio_item pi
             JOIN lista_precios lp ON pi.lista_id = lp.id
-            LEFT JOIN proveedores p ON lp.proveedor_cuit = p.cuit
+            LEFT JOIN proveedores p ON lp.proveedor_cuit = p.id_proveedor
             WHERE {where_sql}
             AND (pi.cantidad_maxima IS NULL OR pi.cantidad_maxima >= {placeholder})
             ORDER BY pi.cantidad_minima DESC, pi.precio_unitario ASC
@@ -481,7 +481,7 @@ def comparar_precios(material_codigo: str, cantidad: int = 1) -> list:
                    lp.fecha_vigencia_desde, lp.fecha_vigencia_hasta
             FROM precio_item pi
             JOIN lista_precios lp ON pi.lista_id = lp.id
-            LEFT JOIN proveedores p ON lp.proveedor_cuit = p.cuit
+            LEFT JOIN proveedores p ON lp.proveedor_cuit = p.id_proveedor
             WHERE lp.estado = 'active'
             AND pi.material_codigo = {placeholder}
             AND pi.cantidad_minima <= {placeholder}
@@ -496,7 +496,7 @@ def comparar_precios(material_codigo: str, cantidad: int = 1) -> list:
                    lp.fecha_vigencia_desde, lp.fecha_vigencia_hasta
             FROM precio_item pi
             JOIN lista_precios lp ON pi.lista_id = lp.id
-            LEFT JOIN proveedores p ON lp.proveedor_cuit = p.cuit
+            LEFT JOIN proveedores p ON lp.proveedor_cuit = p.id_proveedor
             WHERE lp.estado = 'active'
             AND pi.material_codigo = {placeholder}
             AND pi.cantidad_minima <= {placeholder}
@@ -687,7 +687,7 @@ def obtener_historial_precios(material_codigo: str, proveedor_cuit: str = None) 
             SELECT ph.precio, ph.fecha_desde, ph.fecha_hasta, ph.fuente,
                    ph.proveedor_cuit, p.nombre as proveedor_nombre, ph.created_at
             FROM precio_historial ph
-            LEFT JOIN proveedores p ON ph.proveedor_cuit = p.cuit
+            LEFT JOIN proveedores p ON ph.proveedor_cuit = p.id_proveedor
             WHERE {where_sql}
             ORDER BY ph.fecha_desde DESC, ph.created_at DESC
             """,

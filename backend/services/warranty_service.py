@@ -66,8 +66,8 @@ def obtener_garantias(page=1, per_page=50, material_codigo=None, proveedor_cuit=
             p.razon_social as proveedor_nombre,
             COUNT(DISTINCT r.id) as reclamos_count
         FROM garantia g
-        LEFT JOIN materiales_bbdd m ON g.material_codigo = m.codigo
-        LEFT JOIN proveedores p ON g.proveedor_cuit = p.cuit
+        LEFT JOIN materiales_bbdd m ON g.material_codigo = m.codigo_material
+        LEFT JOIN proveedores p ON g.proveedor_cuit = p.id_proveedor
         LEFT JOIN reclamo_garantia r ON r.garantia_id = g.id
         {where_sql}
         GROUP BY g.id
@@ -188,8 +188,8 @@ def obtener_reclamos(page=1, per_page=50, estado=None, tipo=None, garantia_id=No
             COUNT(DISTINCT d.id) as documentos_count
         FROM reclamo_garantia r
         LEFT JOIN garantia g ON r.garantia_id = g.id
-        LEFT JOIN materiales_bbdd m ON g.material_codigo = m.codigo
-        LEFT JOIN proveedores p ON g.proveedor_cuit = p.cuit
+        LEFT JOIN materiales_bbdd m ON g.material_codigo = m.codigo_material
+        LEFT JOIN proveedores p ON g.proveedor_cuit = p.id_proveedor
         LEFT JOIN usuarios u ON r.responsable_id = u.id_spm
         LEFT JOIN reclamo_documento d ON d.reclamo_id = r.id
         {where_sql}
@@ -256,8 +256,8 @@ def obtener_detalle_reclamo(reclamo_id):
             u.nombre as responsable_nombre
         FROM reclamo_garantia r
         LEFT JOIN garantia g ON r.garantia_id = g.id
-        LEFT JOIN materiales_bbdd m ON g.material_codigo = m.codigo
-        LEFT JOIN proveedores p ON g.proveedor_cuit = p.cuit
+        LEFT JOIN materiales_bbdd m ON g.material_codigo = m.codigo_material
+        LEFT JOIN proveedores p ON g.proveedor_cuit = p.id_proveedor
         LEFT JOIN usuarios u ON r.responsable_id = u.id_spm
         WHERE r.id = ?
     """, (reclamo_id,))
@@ -491,8 +491,8 @@ def check_garantias_por_vencer(dias_anticipacion=30):
             m.descripcion as material_desc,
             p.razon_social as proveedor_nombre
         FROM garantia g
-        LEFT JOIN materiales_bbdd m ON g.material_codigo = m.codigo
-        LEFT JOIN proveedores p ON g.proveedor_cuit = p.cuit
+        LEFT JOIN materiales_bbdd m ON g.material_codigo = m.codigo_material
+        LEFT JOIN proveedores p ON g.proveedor_cuit = p.id_proveedor
         WHERE g.estado = 'active'
         AND g.fecha_fin <= ?
         AND g.fecha_fin >= date('now')

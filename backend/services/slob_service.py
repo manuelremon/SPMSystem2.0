@@ -195,7 +195,7 @@ def obtener_inventario_aging(filtros=None):
         ia.*,
         m.descripcion as material_descripcion
     FROM inventario_aging ia
-    LEFT JOIN materiales_bbdd m ON ia.material_codigo = m.codigo
+    LEFT JOIN materiales_bbdd m ON ia.material_codigo = m.codigo_material
     WHERE {where_sql}
     ORDER BY ia.dias_sin_movimiento DESC, ia.valor DESC
     LIMIT ? OFFSET ?
@@ -538,7 +538,7 @@ def obtener_disposiciones(filtros=None):
     FROM slob_disposicion sd
     LEFT JOIN usuarios u1 ON sd.propuesto_por = u1.id_spm
     LEFT JOIN usuarios u2 ON sd.aprobado_por = u2.id_spm
-    LEFT JOIN materiales_bbdd m ON sd.material_codigo = m.codigo
+    LEFT JOIN materiales_bbdd m ON sd.material_codigo = m.codigo_material
     WHERE {where_sql}
     ORDER BY sd.created_at DESC
     LIMIT ? OFFSET ?
