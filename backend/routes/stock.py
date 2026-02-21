@@ -129,7 +129,7 @@ def get_stock():
                     ) as ultimo_consumo
                 FROM stock s
                 WHERE {where_sql}
-                GROUP BY s.material, s.centro, s.almacen
+                GROUP BY s.material, s.material_descripcion, s.centro, s.centro_descripcion, s.almacen, s.um, s.precio, s.inmovilizado
             """
 
             # Add HAVING clauses for inmovilizado/mrp filters
@@ -147,13 +147,13 @@ def get_stock():
             if having_clauses:
                 query += " HAVING " + " AND ".join(having_clauses)
 
-            query += " ORDER BY s.stock_valorizado DESC"
+            query += " ORDER BY stock_valorizado DESC"
 
             # Add fecha_limite as first param
             all_params = [fecha_limite] + params
 
             # Get total count
-            count_query = f"SELECT COUNT(*) as total FROM ({query})"
+            count_query = f"SELECT COUNT(*) as total FROM ({query}) sub"
             cur.execute(count_query, all_params)
             total = cur.fetchone()["total"]
 

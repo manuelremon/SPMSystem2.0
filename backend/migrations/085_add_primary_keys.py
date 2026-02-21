@@ -10,7 +10,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from backend.core.db import get_db_connection, is_using_postgresql
+from backend.core.db import get_db_connection, is_using_postgresql  # noqa: I001, E402
 
 
 # Tablas con PK en columna 'id'
@@ -267,7 +267,7 @@ def up():
 
         conn.commit()
 
-        print(f"\n=== Resultado ===")
+        print("\n=== Resultado ===")
         print(f"  PKs agregadas: {added}")
         print(f"  Ya tenían PK:  {skipped}")
         print(f"  No existen:    {missing}")
