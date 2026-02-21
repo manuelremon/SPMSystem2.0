@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "context7": {
-      "type": "stdio",
-      "command": "cmd",
-      "args": ["/c", "npx", "-y", "@upwind-media/context7-mcp@latest"]
-    }
-  }
-}

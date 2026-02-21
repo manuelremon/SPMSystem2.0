@@ -150,6 +150,7 @@ cookies.txt
 CLAUDE.md
 .geminiignore
 GEMINI.md
+.mcp.json
 .stfolder/
 data/.claude/
 

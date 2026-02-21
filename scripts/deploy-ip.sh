@@ -1,7 +1,6 @@
 #!/bin/bash
 # =============================================================================
 # SPM v2.0 - Script de Despliegue para Acceso por IP (Sin SSL)
-# IP: <SERVER_IP>
 # =============================================================================
 
 set -e
@@ -115,8 +114,8 @@ echo -e "${GREEN}DESPLIEGUE COMPLETADO${NC}"
 echo -e "${GREEN}==========================================${NC}"
 echo ""
 echo "Acceso:"
-echo "  - Frontend: http://<SERVER_IP>"
-echo "  - API:      http://<SERVER_IP>/api/health"
+echo "  - Frontend: http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'TU_IP')"
+echo "  - API:      http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'TU_IP')/api/health"
 echo ""
 echo "Comandos utiles:"
 echo "  - Ver logs:      docker-compose -f infra/docker-compose.ip.yml logs -f"

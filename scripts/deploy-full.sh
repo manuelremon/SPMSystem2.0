@@ -10,7 +10,7 @@
 #   2. Acceso SSH al servidor Oracle
 #
 # PRIMERA VEZ:
-#   cp "docs/ssh-key-2025-12-19 (3).key" ~/.ssh/oracle_vps.key
+#   cp <tu-clave-ssh> ~/.ssh/oracle_vps.key
 #   chmod 600 ~/.ssh/oracle_vps.key
 # =============================================================================
 
@@ -19,8 +19,8 @@ set -e
 # ============================================================================
 # CONFIGURACION
 # ============================================================================
-SERVER_IP="<SERVER_IP>"
-SERVER_USER="ubuntu"
+SERVER_IP="${SERVER_IP:?ERROR: Definir SERVER_IP en variable de entorno}"
+SERVER_USER="${SERVER_USER:-ubuntu}"
 SSH_KEY="${SSH_KEY:-$HOME/.ssh/oracle_vps.key}"
 REMOTE_DIR="/home/ubuntu/SPMv2.0"
 GITHUB_REPO="https://github.com/manuelremon/SPMSystem2.0.git"
