@@ -181,7 +181,7 @@ def obtener_negociaciones():
                        pn.fecha, pn.notas, pn.estado, pn.created_at
                 FROM precio_negociacion pn
                 LEFT JOIN (
-                    SELECT codigo, nombre FROM catalogo_materiales
+                    SELECT codigo, descripcion as nombre FROM catalogo_materiales
                     UNION ALL
                     SELECT material_codigo as codigo, material_descripcion as nombre FROM materiales_bbdd
                 ) m ON pn.material_codigo = m.codigo

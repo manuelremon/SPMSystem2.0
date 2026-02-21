@@ -213,7 +213,7 @@ def obtener_detalle_lista(lista_id: int) -> dict:
                    pi.descuento_pct, pi.created_at
             FROM precio_item pi
             LEFT JOIN (
-                SELECT codigo, nombre FROM catalogo_materiales
+                SELECT codigo, descripcion as nombre FROM catalogo_materiales
                 UNION ALL
                 SELECT material_codigo as codigo, material_descripcion as nombre FROM materiales_bbdd
             ) m ON pi.material_codigo = m.codigo

@@ -498,6 +498,11 @@ class DualModeTransaction:
     """
     Connection wrapper with automatic commit/rollback for use as context manager.
     Also works without `with` for legacy code (caller must commit/close manually).
+
+    When used as context manager, __enter__ returns (conn, cursor) tuple:
+        with get_db_transaction() as (conn, cursor):
+            cursor.execute("INSERT INTO tabla VALUES (?)", (valor,))
+        # auto-commit on success, auto-rollback on error
     """
 
     def __init__(self, conn):
@@ -519,7 +524,9 @@ class DualModeTransaction:
         return self._conn.execute(*args, **kwargs)
 
     def __enter__(self):
-        return self._conn
+        # Return (conn, cursor) tuple for compatibility with:
+        #   with get_db_transaction() as (conn, cursor):
+        return (self._conn, self._conn.cursor())
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         try:
@@ -550,9 +557,8 @@ def get_db_transaction(db_name: str = "spm"):
 
     Example (ambos funcionan):
         # Con context manager (preferido):
-        with get_db_transaction() as conn:
-            cur = conn.cursor()
-            cur.execute("INSERT INTO tabla VALUES (?)", (valor,))
+        with get_db_transaction() as (conn, cursor):
+            cursor.execute("INSERT INTO tabla VALUES (?)", (valor,))
         # commit automático
 
         # Sin context manager (legacy):
