@@ -130,7 +130,7 @@ class ProcurementService:
                         MAX(s.precio_unitario) as precio_maximo,
                         CASE
                             WHEN AVG(s.precio_unitario) > 0
-                            THEN ROUND((MAX(s.precio_unitario) - MIN(s.precio_unitario)) / AVG(s.precio_unitario) * 100, 2)
+                            THEN ROUND(((MAX(s.precio_unitario) - MIN(s.precio_unitario)) / AVG(s.precio_unitario) * 100)::numeric, 2)
                             ELSE 0
                         END as variacion_pct,
                         SUM(s.cantidad) as cantidad_total,
