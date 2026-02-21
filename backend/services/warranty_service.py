@@ -70,7 +70,7 @@ def obtener_garantias(page=1, per_page=50, material_codigo=None, proveedor_cuit=
         LEFT JOIN proveedores p ON g.proveedor_cuit = p.id_proveedor
         LEFT JOIN reclamo_garantia r ON r.garantia_id = g.id
         {where_sql}
-        GROUP BY g.id
+        GROUP BY g.id, m.descripcion, p.razon_social
         ORDER BY g.created_at DESC
         LIMIT ? OFFSET ?
     """
@@ -193,7 +193,7 @@ def obtener_reclamos(page=1, per_page=50, estado=None, tipo=None, garantia_id=No
         LEFT JOIN usuarios u ON r.responsable_id = u.id_spm
         LEFT JOIN reclamo_documento d ON d.reclamo_id = r.id
         {where_sql}
-        GROUP BY r.id
+        GROUP BY r.id, m.descripcion, p.razon_social, u.nombre
         ORDER BY r.created_at DESC
         LIMIT ? OFFSET ?
     """

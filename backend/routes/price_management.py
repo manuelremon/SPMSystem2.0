@@ -186,7 +186,7 @@ def obtener_negociaciones():
                     SELECT codigo_material as codigo, descripcion as nombre FROM materiales_bbdd
                 ) m ON pn.material_codigo = m.codigo
                 LEFT JOIN proveedores p ON pn.proveedor_cuit = p.id_proveedor
-                LEFT JOIN usuarios u ON pn.negociado_por = u.id_spm
+                LEFT JOIN usuarios u ON pn.negociado_por::text = u.id_spm
                 WHERE pn.estado = {placeholder}
                 ORDER BY pn.created_at DESC
                 LIMIT 100
