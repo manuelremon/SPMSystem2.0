@@ -38,7 +38,7 @@ def _generar_numero_rfq(cursor) -> str:
     return f"{prefijo}{siguiente:03d}"
 
 
-def crear_rfq(data: Dict[str, Any], user_id: int) -> Dict[str, Any]:
+def crear_rfq(data: Dict[str, Any], user_id: str) -> Dict[str, Any]:
     """
     Crea un nuevo RFQ con items y proveedores invitados
 
@@ -116,7 +116,7 @@ def crear_rfq(data: Dict[str, Any], user_id: int) -> Dict[str, Any]:
         return obtener_detalle_rfq(rfq_id)
 
 
-def crear_rfq_desde_solicitud(solicitud_id: int, data: Dict[str, Any], user_id: int) -> Dict[str, Any]:
+def crear_rfq_desde_solicitud(solicitud_id: int, data: Dict[str, Any], user_id: str) -> Dict[str, Any]:
     """
     Crea un RFQ pre-poblado desde una solicitud existente
 
@@ -235,7 +235,7 @@ def obtener_rfqs(filtros: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
                 r.creado_por, r.created_at, r.updated_at,
                 u.nombre as creador_nombre
             FROM rfq r
-            LEFT JOIN usuarios u ON r.creado_por = u.id
+            LEFT JOIN usuarios u ON r.creado_por = u.id_spm
             {where_sql}
             ORDER BY r.created_at DESC
             LIMIT ? OFFSET ?
@@ -297,7 +297,7 @@ def obtener_detalle_rfq(rfq_id: int) -> Dict[str, Any]:
                 r.creado_por, r.created_at, r.updated_at,
                 u.nombre as creador_nombre
             FROM rfq r
-            LEFT JOIN usuarios u ON r.creado_por = u.id
+            LEFT JOIN usuarios u ON r.creado_por = u.id_spm
             WHERE r.id = ?
         """, (rfq_id,))
 
@@ -370,7 +370,7 @@ def obtener_detalle_rfq(rfq_id: int) -> Dict[str, Any]:
     return rfq
 
 
-def actualizar_rfq(rfq_id: int, data: Dict[str, Any], user_id: int) -> Dict[str, Any]:
+def actualizar_rfq(rfq_id: int, data: Dict[str, Any], user_id: str) -> Dict[str, Any]:
     """
     Actualiza un RFQ en estado draft
     Solo permite actualizar titulo, descripcion, fecha_cierre_ofertas
@@ -418,7 +418,7 @@ def actualizar_rfq(rfq_id: int, data: Dict[str, Any], user_id: int) -> Dict[str,
     return obtener_detalle_rfq(rfq_id)
 
 
-def publicar_rfq(rfq_id: int, user_id: int) -> Dict[str, Any]:
+def publicar_rfq(rfq_id: int, user_id: str) -> Dict[str, Any]:
     """
     Publica un RFQ (draft -> published)
     Establece la fecha de publicacion
@@ -805,7 +805,7 @@ def calcular_puntajes(rfq_id: int) -> List[Dict[str, Any]]:
     return evaluaciones
 
 
-def adjudicar_rfq(rfq_id: int, adjudicaciones: List[Dict[str, Any]], user_id: int) -> Dict[str, Any]:
+def adjudicar_rfq(rfq_id: int, adjudicaciones: List[Dict[str, Any]], user_id: str) -> Dict[str, Any]:
     """
     Adjudica items del RFQ a proveedores ganadores
 
@@ -865,7 +865,7 @@ def adjudicar_rfq(rfq_id: int, adjudicaciones: List[Dict[str, Any]], user_id: in
     }
 
 
-def generar_oc_desde_rfq(rfq_id: int, user_id: int) -> List[Dict[str, Any]]:
+def generar_oc_desde_rfq(rfq_id: int, user_id: str) -> List[Dict[str, Any]]:
     """
     Genera ordenes de compra desde las adjudicaciones del RFQ
     Agrupa por proveedor y crea una OC por cada proveedor

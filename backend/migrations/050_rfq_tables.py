@@ -25,11 +25,11 @@ def upgrade(cursor, db_type):
                 fecha_publicacion TIMESTAMP,
                 fecha_cierre_ofertas TIMESTAMP,
                 solicitud_id INTEGER,
-                creado_por INTEGER NOT NULL,
+                creado_por TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (solicitud_id) REFERENCES solicitudes(id) ON DELETE SET NULL,
-                FOREIGN KEY (creado_por) REFERENCES usuarios(id) ON DELETE CASCADE
+                FOREIGN KEY (creado_por) REFERENCES usuarios(id_spm) ON DELETE CASCADE
             )
         """)
 
@@ -91,11 +91,11 @@ def upgrade(cursor, db_type):
                 fecha_publicacion TEXT,
                 fecha_cierre_ofertas TEXT,
                 solicitud_id INTEGER,
-                creado_por INTEGER NOT NULL,
+                creado_por TEXT NOT NULL,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (solicitud_id) REFERENCES solicitudes(id) ON DELETE SET NULL,
-                FOREIGN KEY (creado_por) REFERENCES usuarios(id) ON DELETE CASCADE
+                FOREIGN KEY (creado_por) REFERENCES usuarios(id_spm) ON DELETE CASCADE
             )
         """)
 

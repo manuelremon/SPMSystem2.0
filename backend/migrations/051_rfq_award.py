@@ -36,14 +36,15 @@ def upgrade(cursor, db_type):
                 puntaje_lead_time REAL,
                 puntaje_calidad REAL,
                 puntaje_terminos REAL,
-                evaluado_por INTEGER,
+                evaluado_por TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (rfq_id) REFERENCES rfq(id) ON DELETE CASCADE,
-                FOREIGN KEY (evaluado_por) REFERENCES usuarios(id) ON DELETE SET NULL
+                FOREIGN KEY (evaluado_por) REFERENCES usuarios(id_spm) ON DELETE SET NULL
             )
         """)
 
         # Tabla rfq_adjudicacion
+        # Nota: orden_compra_id sin FK porque orden_compra es una vista en PG (migracion 020)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS rfq_adjudicacion (
                 id SERIAL PRIMARY KEY,
@@ -55,8 +56,7 @@ def upgrade(cursor, db_type):
                 orden_compra_id INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (rfq_id) REFERENCES rfq(id) ON DELETE CASCADE,
-                FOREIGN KEY (rfq_item_id) REFERENCES rfq_item(id) ON DELETE CASCADE,
-                FOREIGN KEY (orden_compra_id) REFERENCES orden_compra(id) ON DELETE SET NULL
+                FOREIGN KEY (rfq_item_id) REFERENCES rfq_item(id) ON DELETE CASCADE
             )
         """)
 
@@ -84,10 +84,10 @@ def upgrade(cursor, db_type):
                 puntaje_lead_time REAL,
                 puntaje_calidad REAL,
                 puntaje_terminos REAL,
-                evaluado_por INTEGER,
+                evaluado_por TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (rfq_id) REFERENCES rfq(id) ON DELETE CASCADE,
-                FOREIGN KEY (evaluado_por) REFERENCES usuarios(id) ON DELETE SET NULL
+                FOREIGN KEY (evaluado_por) REFERENCES usuarios(id_spm) ON DELETE SET NULL
             )
         """)
 
