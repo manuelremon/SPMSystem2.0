@@ -55,8 +55,8 @@ RUN mkdir -p /app/uploads /app/logs && chown -R spm:spm /app/uploads /app/logs
 USER spm
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:5000/api/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=180s --retries=3 \
+    CMD curl -f --max-time 8 http://localhost:5000/api/health || exit 1
 
 EXPOSE 5000
 
