@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 """
-Migra datos desde SQLite local a PostgreSQL en produccion.
+Script para migrar datos de SQLite (dev) a PostgreSQL (local o producción).
 
-Uso (dentro del container backend):
-    python /tmp/migrate_sqlite_to_pg.py
+Lee datos de las 3 bases SQLite:
+  - data/spm.db (usuarios, solicitudes, presupuestos, etc.)
+  - data/sap_data.db (stock, consumo, pedidos SAP)
+  - data/master_materiales.db (catálogo materiales, equivalencias)
 
-Requisitos:
-    - Archivos .db copiados a /tmp/ en el container
-    - DATABASE_URL configurada en el entorno
+E inserta en PostgreSQL donde las tablas ya existen (creadas por schema dump).
+
+Uso:
+  python scripts/migrate_sqlite_to_pg.py
+  python scripts/migrate_sqlite_to_pg.py --pg-url postgresql://spm:pass@host:5432/spm_production
 """
 
+import argparse
 import os
 import sqlite3
 import sys
@@ -18,704 +23,397 @@ import time
 import psycopg2
 import psycopg2.extras
 
+# Directorio de datos SQLite
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+
+# URL por defecto de PG local dev
+DEFAULT_PG_URL = "postgresql://spm:8300_@@localhost:5432/spm_dev"
+
+
 # ============================================================================
-# CONFIGURACION
+# Mapeo: (archivo_sqlite, tabla_sqlite) -> tabla_pg
 # ============================================================================
 
-SQLITE_DIR = "/tmp"
-BATCH_SIZE = 1000
-
-# Mapeo: (sqlite_file, sqlite_table) -> (pg_table, column_mapping)
-# column_mapping: None = mismas columnas, o dict {sqlite_col: pg_col}
-# Si pg_table tiene 'id' SERIAL y sqlite no tiene 'id', se omite del INSERT
-
-MIGRATIONS = {
-    # === spm.db ===
-    "spm": {
-        # Tabla principal de usuarios
-        "usuario": {
-            "pg_table": "usuarios",
-            "truncate": True,
-            "columns": None,  # Mismas columnas
-        },
-        # Solicitudes
-        "solicitud": {
-            "pg_table": "solicitudes",
-            "truncate": True,
-            "columns": None,
-        },
-        # Notificaciones
-        "notificacion": {
-            "pg_table": "notificaciones",
-            "truncate": True,
-            "columns": None,
-        },
-        # Presupuestos
-        "presupuesto": {
-            "pg_table": "presupuestos",
-            "truncate": True,
-            "columns": None,
-        },
-        # Presupuesto ledger
-        "presupuesto_ledger": {
-            "pg_table": "presupuesto_ledger",
-            "truncate": True,
-            "columns": None,
-        },
-        # BUR (Budget Update Requests)
-        "presupuesto_solicitud_cambio": {
-            "pg_table": "budget_update_requests",
-            "truncate": True,
-            "columns": None,  # Mismas columnas
-        },
-        # Proveedores externos
-        "proveedor_externo": {
-            "pg_table": "proveedores_externos",
-            "truncate": True,
-            "columns": None,
-        },
-        # Contactos de proveedores
-        "proveedor_externo_contacto": {
-            "pg_table": "proveedor_ext_contactos",
-            "truncate": True,
-            "columns": None,
-        },
-        # Emails de proveedores
-        "proveedor_externo_email": {
-            "pg_table": "proveedor_ext_emails",
-            "truncate": True,
-            "columns": None,
-        },
-        # Telefonos de proveedores
-        "proveedor_externo_telefono": {
-            "pg_table": "proveedor_ext_telefonos",
-            "truncate": True,
-            "columns": None,
-        },
-        # Proveedores internos
-        "proveedor_interno": {
-            "pg_table": "proveedores_internos",
-            "truncate": True,
-            "columns": None,
-        },
-        # Precios negociados
-        "proveedor_precio_negociado": {
-            "pg_table": "proveedor_precios_negociados",
-            "truncate": True,
-            "columns": None,
-        },
-        # Config equivalencia scores
-        "config_equivalencia_scores": {
-            "pg_table": "config_equivalencia_scores",
-            "truncate": True,
-            "columns": None,
-        },
-        # Decision abastecimiento
-        "decision_abastecimiento": {
-            "pg_table": "decision_abastecimiento",
-            "truncate": True,
-            "columns": None,
-        },
-        # Fuentes de decision
-        "decision_abastecimiento_fuentes": {
-            "pg_table": "decision_abastecimiento_fuentes",
-            "truncate": True,
-            "columns": None,
-        },
-        # Historial estados solicitud
-        "solicitud_historial_estado": {
-            "pg_table": "solicitudes_historial_estados",
-            "truncate": True,
-            "columns": None,
-        },
-        # Items tratamiento
-        "solicitud_items_tratamiento": {
-            "pg_table": "solicitud_items_tratamiento",
-            "truncate": True,
-            "columns": None,
-        },
-        # Tratamiento log
-        "solicitud_tratamiento_log": {
-            "pg_table": "solicitud_tratamiento_log",
-            "truncate": True,
-            "columns": None,
-        },
-        # Catalogos
-        "catalogo_sector": {
-            "pg_table": "catalog_sectores",
-            "truncate": True,
-            "columns": None,
-        },
-        "catalogo_centro": {
-            "pg_table": "catalog_centros",
-            "truncate": True,
-            "columns": None,
-        },
-        "catalogo_almacen": {
-            "pg_table": "catalog_almacenes",
-            "truncate": True,
-            "columns": None,
-        },
-        "catalogo_rol": {
-            "pg_table": "catalog_roles",
-            "truncate": True,
-            "columns": None,
-        },
-        "catalogo_puesto": {
-            "pg_table": "catalog_puestos",
-            "truncate": True,
-            "columns": None,
-        },
-        # Vertex IA tables
-        "vertex_conversations": {
-            "pg_table": "vertex_conversations",
-            "truncate": True,
-            "columns": None,
-        },
-        "vertex_messages": {
-            "pg_table": "vertex_messages",
-            "truncate": True,
-            "columns": None,
-        },
-        "vertex_user_memory": {
-            "pg_table": "vertex_user_memory",
-            "truncate": True,
-            "columns": None,
-        },
-        "vertex_proactive_alerts": {
-            "pg_table": "vertex_proactive_alerts",
-            "truncate": True,
-            "columns": None,
-        },
-    },
-    # === sap_data.db ===
-    "sap_data": {
-        "stock": {
-            "pg_table": "sap_stock",
-            "truncate": True,
-            # Renombrar ypf/ute_desc -> ypf_ute_desc, omitir rowid
-            "column_rename": {"ypf/ute_desc": "ypf_ute_desc"},
-            "columns": None,
-        },
-        "consumo_historico": {
-            "pg_table": "sap_consumo_historico",
-            "truncate": True,
-            "columns": None,
-        },
-        "pedidos_sap": {
-            "pg_table": "sap_pedidos",
-            "truncate": True,
-            "columns": None,
-        },
-        "materiales_bbdd": {
-            "pg_table": "sap_materiales_bbdd",
-            "truncate": True,
-            "columns": None,
-        },
-    },
-    # === master_materiales.db ===
-    "master_materiales": {
-        "catalogo_materiales": {
-            "pg_table": "cat_materiales",
-            "truncate": True,
-            "columns": None,
-        },
-        "materiales_equivalencias": {
-            "pg_table": "cat_equivalencias",
-            "truncate": True,
-            "columns": None,
-        },
-    },
+# spm.db: tabla real SQLite (español/singular) → tabla real PostgreSQL (legacy/plural)
+SPM_TABLE_MAP = {
+    "usuario": "usuarios",
+    "solicitud": "solicitudes",
+    "notificacion": "notificaciones",
+    "mensaje": "mensajes",
+    "presupuesto": "presupuestos",
+    "presupuesto_solicitud_cambio": "budget_update_requests",
+    "presupuesto_ledger": "presupuesto_ledger",
+    "presupuesto_incorporaciones": "presupuesto_incorporaciones",
+    "catalogo_almacen": "catalog_almacenes",
+    "catalogo_centro": "catalog_centros",
+    "catalogo_puesto": "catalog_puestos",
+    "catalogo_rol": "catalog_roles",
+    "catalogo_sector": "catalog_sectores",
+    "proveedor_externo": "proveedores_externos",
+    "proveedor_externo_contacto": "proveedor_ext_contactos",
+    "proveedor_externo_email": "proveedor_ext_emails",
+    "proveedor_externo_telefono": "proveedor_ext_telefonos",
+    "proveedor_interno": "proveedores_internos",
+    "proveedor_precio_negociado": "proveedor_precios_negociados",
+    "proveedores": "proveedores",
+    "orden_compra": "purchase_orders",
+    "solicitud_pedido_sap": "solpeds",
+    "solicitud_traslado": "traslados",
+    "email_bandeja_salida": "outbox_emails",
+    "notificacion_push_suscripcion": "push_subscriptions",
+    "trivia_score": "trivias_scores",
+    "usuario_solicitud_perfil": "user_profile_requests",
+    "reglas_aprobacion": "reglas_aprobacion",
+    "aprobadores_delegados": "aprobadores_delegados",
+    "archivos_adjuntos": "archivos_adjuntos",
+    "config_almacenes": "config_almacenes",
+    "config_equivalencia_scores": "config_equivalencia_scores",
+    "config_lotes_excluidos": "config_lotes_excluidos",
+    "decision_abastecimiento": "decision_abastecimiento",
+    "decision_abastecimiento_fuentes": "decision_abastecimiento_fuentes",
+    "solicitud_historial_estado": "solicitudes_historial_estados",
+    "solicitud_items_tratamiento": "solicitud_items_tratamiento",
+    "solicitud_tratamiento_eventos": "solicitud_tratamiento_eventos",
+    "solicitud_tratamiento_log": "solicitud_tratamiento_log",
+    "planificador_asignaciones": "planificador_asignaciones",
+    "user_material_favorito": "user_material_favorito",
+    "foro_posts": "foro_posts",
+    "foro_respuestas": "foro_respuestas",
+    "foro_likes": "foro_likes",
+    "vertex_conversations": "vertex_conversations",
+    "vertex_messages": "vertex_messages",
+    "vertex_proactive_alerts": "vertex_proactive_alerts",
+    "vertex_user_memory": "vertex_user_memory",
+    "webhook": "webhook",
+    "webhook_delivery": "webhook_delivery",
+    "reporte_destinatario": "reporte_destinatario",
+    "executive_kpi": "executive_kpi",
+    "executive_snapshot": "executive_snapshot",
+    "benchmark": "benchmark",
+    "procurement_scorecard": "procurement_scorecard",
+    "cashflow_simulacion": "cashflow_simulacion",
+    "programa_descuento": "programa_descuento",
+    "oferta_descuento": "oferta_descuento",
+    "lista_precios": "lista_precios",
+    "precio_item": "precio_item",
+    "precio_historial": "precio_historial",
+    "precio_negociacion": "precio_negociacion",
+    "terminos_pago_proveedor": "terminos_pago_proveedor",
+    "consignment_programa": "consignment_programa",
+    "consignment_stock": "consignment_stock",
+    "consignment_consumo": "consignment_consumo",
+    "consignment_reconciliacion": "consignment_reconciliacion",
+    "kanban_tablero": "kanban_tablero",
+    "kanban_tarjeta": "kanban_tarjeta",
+    "kanban_senal": "kanban_senal",
+    "kanban_historial": "kanban_historial",
 }
 
-# Orden de truncado para respetar FK constraints
-TRUNCATE_ORDER = [
-    # Primero hijos (FK dependientes)
-    "vertex_messages",
-    "vertex_user_memory",
-    "vertex_proactive_alerts",
-    "vertex_conversations",
-    "decision_abastecimiento_fuentes",
-    "decision_abastecimiento",
-    "solicitud_items_tratamiento",
-    "solicitud_tratamiento_log",
-    "solicitudes_historial_estados",
-    "budget_update_requests",
-    "presupuesto_ledger",
-    "proveedor_ext_contactos",
-    "proveedor_ext_emails",
-    "proveedor_ext_telefonos",
-    "proveedor_precios_negociados",
-    "solicitudes",
-    "notificaciones",
-    "presupuestos",
-    "proveedores_externos",
-    "proveedores_internos",
-    "config_equivalencia_scores",
-    "catalog_sectores",
-    "catalog_centros",
-    "catalog_almacenes",
-    "catalog_roles",
-    "catalog_puestos",
-    "usuarios",
-    # SAP tables (no FK)
-    "sap_stock",
-    "sap_consumo_historico",
-    "sap_pedidos",
-    "sap_materiales_bbdd",
-    # Catalog tables (no FK)
-    "cat_materiales",
-    "cat_equivalencias",
-]
+# sap_data.db
+SAP_TABLE_MAP = {
+    "stock": "sap_stock",
+    "consumo_historico": "sap_consumo_historico",
+    "pedidos_sap": "sap_pedidos",
+    "materiales_bbdd": "sap_materiales_bbdd",
+}
 
-# Orden de insercion (padres primero)
-INSERT_ORDER = [
-    # Padres primero
-    ("spm", "usuario"),
-    ("spm", "catalogo_sector"),
-    ("spm", "catalogo_centro"),
-    ("spm", "catalogo_almacen"),
-    ("spm", "catalogo_rol"),
-    ("spm", "catalogo_puesto"),
-    ("spm", "presupuesto"),
-    ("spm", "proveedor_externo"),
-    ("spm", "proveedor_interno"),
-    ("spm", "config_equivalencia_scores"),
-    # Hijos
-    ("spm", "solicitud"),
-    ("spm", "notificacion"),
-    ("spm", "presupuesto_ledger"),
-    ("spm", "presupuesto_solicitud_cambio"),
-    ("spm", "proveedor_externo_contacto"),
-    ("spm", "proveedor_externo_email"),
-    ("spm", "proveedor_externo_telefono"),
-    ("spm", "proveedor_precio_negociado"),
-    ("spm", "decision_abastecimiento"),
-    ("spm", "decision_abastecimiento_fuentes"),
-    ("spm", "solicitud_historial_estado"),
-    ("spm", "solicitud_items_tratamiento"),
-    ("spm", "solicitud_tratamiento_log"),
-    # Vertex
-    ("spm", "vertex_conversations"),
-    ("spm", "vertex_messages"),
-    ("spm", "vertex_user_memory"),
-    ("spm", "vertex_proactive_alerts"),
-    # SAP
-    ("sap_data", "stock"),
-    ("sap_data", "consumo_historico"),
-    ("sap_data", "pedidos_sap"),
-    ("sap_data", "materiales_bbdd"),
-    # Master materiales
-    ("master_materiales", "catalogo_materiales"),
-    ("master_materiales", "materiales_equivalencias"),
-]
+# master_materiales.db
+MASTER_TABLE_MAP = {
+    "catalogo_materiales": "cat_materiales",
+    "materiales_equivalencias": "cat_equivalencias",
+}
+
+# Columnas SQLite que no existen en PG (excluir)
+EXCLUDE_COLUMNS = {
+    "sap_materiales_bbdd": {"demanda_estimada_anual", "consumo_promedio_anual", "rotacion"},
+}
+
+# Renombrar columnas SQLite → PG (cuando el nombre difiere)
+COLUMN_RENAME = {
+    "sap_stock": {"ypf/ute_desc": "ypf_ute_desc"},
+}
 
 
-def create_vertex_tables(pg_conn):
-    """Crea tablas vertex si no existen."""
-    cur = pg_conn.cursor()
-
-    print("\n=== Creando tablas vertex (si no existen) ===")
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS vertex_conversations (
-            id SERIAL PRIMARY KEY,
-            user_id TEXT NOT NULL,
-            session_id TEXT,
-            started_at TIMESTAMP DEFAULT NOW(),
-            ended_at TIMESTAMP,
-            context TEXT DEFAULT '{}',
-            summary TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS vertex_messages (
-            id SERIAL PRIMARY KEY,
-            conversation_id INTEGER NOT NULL,
-            role VARCHAR(20) NOT NULL,
-            content TEXT NOT NULL,
-            tokens_used INTEGER DEFAULT 0,
-            created_at TIMESTAMP DEFAULT NOW(),
-            metadata TEXT DEFAULT '{}'
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS vertex_user_memory (
-            id SERIAL PRIMARY KEY,
-            user_id TEXT NOT NULL,
-            fact_key VARCHAR(100) NOT NULL,
-            fact_value TEXT NOT NULL,
-            learned_at TIMESTAMP DEFAULT NOW(),
-            confidence FLOAT DEFAULT 1.0,
-            expires_at TIMESTAMP
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS vertex_proactive_alerts (
-            id SERIAL PRIMARY KEY,
-            user_id TEXT NOT NULL,
-            alert_type VARCHAR(50) NOT NULL,
-            priority INTEGER DEFAULT 5,
-            title TEXT NOT NULL,
-            message TEXT NOT NULL,
-            context TEXT DEFAULT '{}',
-            created_at TIMESTAMP DEFAULT NOW(),
-            shown_at TIMESTAMP,
-            dismissed_at TIMESTAMP,
-            actioned_at TIMESTAMP
-        )
-    """)
-
-    pg_conn.commit()
-    print("  Tablas vertex creadas/verificadas")
-
-
-def get_sqlite_conn(db_name):
-    """Obtiene conexion SQLite."""
-    db_path = os.path.join(SQLITE_DIR, f"{db_name}.db")
-    if not os.path.exists(db_path):
-        raise FileNotFoundError(f"SQLite no encontrado: {db_path}")
-    conn = sqlite3.connect(db_path)
+def get_sqlite_conn(db_file):
+    path = os.path.join(DATA_DIR, db_file)
+    if not os.path.exists(path):
+        print(f"  WARN: No encontrado {path}")
+        return None
+    conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     return conn
 
 
-def get_pg_conn():
-    """Obtiene conexion PostgreSQL."""
-    database_url = os.environ.get("DATABASE_URL")
-    if not database_url:
-        raise RuntimeError("DATABASE_URL no configurada")
-    return psycopg2.connect(database_url)
+def get_pg_conn(pg_url):
+    return psycopg2.connect(pg_url)
 
 
-def truncate_tables(pg_conn):
-    """Trunca todas las tablas destino."""
+def get_pg_columns(pg_conn, table_name):
     cur = pg_conn.cursor()
-    print("\n=== Truncando tablas destino ===")
-
-    for table in TRUNCATE_ORDER:
-        try:
-            cur.execute(f"TRUNCATE TABLE {table} CASCADE")
-            print(f"  [OK] TRUNCATE {table}")
-        except Exception as e:
-            pg_conn.rollback()
-            print(f"  [SKIP] {table}: {e}")
-
-    pg_conn.commit()
-    print("  Truncado completado")
+    cur.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = %s
+        ORDER BY ordinal_position
+    """, (table_name,))
+    cols = [row[0] for row in cur.fetchall()]
+    cur.close()
+    return cols
 
 
-def migrate_table(sqlite_conn, pg_conn, db_name, sqlite_table, config):
-    """Migra una tabla de SQLite a PostgreSQL."""
-    pg_table = config["pg_table"]
-    column_rename = config.get("column_rename", {})
+def get_pg_boolean_columns(pg_conn, table_name):
+    cur = pg_conn.cursor()
+    cur.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = %s AND data_type = 'boolean'
+    """, (table_name,))
+    cols = {row[0] for row in cur.fetchall()}
+    cur.close()
+    return cols
 
-    # Leer datos de SQLite
+
+def table_exists_pg(pg_conn, table_name):
+    cur = pg_conn.cursor()
+    cur.execute("""
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = %s AND table_type = 'BASE TABLE'
+    """, (table_name,))
+    exists = cur.fetchone() is not None
+    cur.close()
+    return exists
+
+
+def migrate_table(sqlite_conn, pg_conn, sqlite_table, pg_table, batch_size=2000):
+    """Migra una tabla de SQLite a PostgreSQL usando bulk inserts."""
+    sqlite_cur = sqlite_conn.cursor()
     try:
-        rows = sqlite_conn.execute(f"SELECT * FROM [{sqlite_table}]").fetchall()
+        sqlite_cur.execute(f"SELECT COUNT(*) FROM [{sqlite_table}]")
+        total = sqlite_cur.fetchone()[0]
     except Exception as e:
-        print(f"  [ERROR] No se pudo leer {sqlite_table}: {e}")
+        print(f"  ERROR leyendo {sqlite_table}: {e}")
         return 0
 
-    if not rows:
-        print(f"  [SKIP] {sqlite_table} -> {pg_table}: 0 filas")
+    if total == 0:
         return 0
 
-    # Obtener columnas de SQLite
-    sqlite_cols = rows[0].keys()
+    # Columnas SQLite
+    sqlite_cur.execute(f"PRAGMA table_info([{sqlite_table}])")
+    sqlite_cols = [row[1] for row in sqlite_cur.fetchall()]
 
-    # Obtener columnas de PG con tipos
+    # Columnas PG
+    pg_cols = get_pg_columns(pg_conn, pg_table)
+    if not pg_cols:
+        print(f"  WARN: Tabla PG '{pg_table}' sin columnas")
+        return 0
+
+    # Columnas comunes (con renombramientos)
+    excluded = EXCLUDE_COLUMNS.get(pg_table, set())
+    rename = COLUMN_RENAME.get(pg_table, {})
+
+    # Mapear: para cada columna SQLite, determinar nombre PG
+    common_sqlite_cols = []  # nombres en SQLite
+    common_pg_cols = []      # nombres en PG
+    for c in sqlite_cols:
+        if c in excluded:
+            continue
+        pg_name = rename.get(c, c)
+        if pg_name in pg_cols:
+            common_sqlite_cols.append(c)
+            common_pg_cols.append(pg_name)
+
+    if not common_pg_cols:
+        print(f"  WARN: Sin columnas comunes {sqlite_table} <-> {pg_table}")
+        return 0
+
+    # Detectar BOOLEAN columns
+    bool_cols = get_pg_boolean_columns(pg_conn, pg_table)
+    bool_indices = {i for i, c in enumerate(common_pg_cols) if c in bool_cols}
+
+    # Leer datos
+    cols_str = ", ".join(f"[{c}]" for c in common_sqlite_cols)
+    sqlite_cur.execute(f"SELECT {cols_str} FROM [{sqlite_table}]")
+
+    # INSERT con execute_values (mucho más rápido que insert individual)
+    pg_cols_str = ", ".join(f'"{c}"' for c in common_pg_cols)
+    insert_sql = f'INSERT INTO "{pg_table}" ({pg_cols_str}) VALUES %s ON CONFLICT DO NOTHING'
+
     pg_cur = pg_conn.cursor()
-    pg_cur.execute(
-        "SELECT column_name, data_type FROM information_schema.columns "
-        f"WHERE table_name = %s ORDER BY ordinal_position",
-        (pg_table,)
-    )
-    pg_cols_info = {r[0]: r[1] for r in pg_cur.fetchall()}
-
-    # Mapear columnas SQLite -> PG
-    col_mapping = []
-    for sc in sqlite_cols:
-        pg_col = column_rename.get(sc, sc)
-        if pg_col in pg_cols_info:
-            col_mapping.append((sc, pg_col, pg_cols_info[pg_col]))
-
-    if not col_mapping:
-        print(f"  [ERROR] No hay columnas comunes entre {sqlite_table} y {pg_table}")
-        return 0
-
-    pg_col_names = [m[1] for m in col_mapping]
-    boolean_indices = {i for i, m in enumerate(col_mapping) if m[2] == "boolean"}
-    placeholders = ", ".join(["%s"] * len(pg_col_names))
-    col_list = ", ".join(pg_col_names)
-    insert_sql = f"INSERT INTO {pg_table} ({col_list}) VALUES ({placeholders})"
-
-    # Insertar en batches
-    total = len(rows)
     inserted = 0
 
-    for i in range(0, total, BATCH_SIZE):
-        batch = rows[i:i + BATCH_SIZE]
-        values = []
+    while True:
+        batch = sqlite_cur.fetchmany(batch_size)
+        if not batch:
+            break
+
+        values_list = []
         for row in batch:
-            row_data = []
-            for idx, (sc, pc, dt) in enumerate(col_mapping):
-                val = row[sc]
-                # Convertir INTEGER 0/1 -> boolean para columnas PG boolean
-                if idx in boolean_indices and isinstance(val, int):
-                    val = bool(val)
-                row_data.append(val)
-            values.append(tuple(row_data))
+            values = [row[c] for c in common_sqlite_cols]
+            for idx in bool_indices:
+                v = values[idx]
+                if isinstance(v, int):
+                    values[idx] = bool(v)
+            values_list.append(tuple(values))
 
         try:
-            psycopg2.extras.execute_batch(pg_cur, insert_sql, values, page_size=100)
-            inserted += len(batch)
+            psycopg2.extras.execute_values(
+                pg_cur, insert_sql, values_list, page_size=batch_size
+            )
+            inserted += pg_cur.rowcount
+            pg_conn.commit()
         except Exception as e:
             pg_conn.rollback()
-            print(f"  [ERROR] Batch {i}-{i+len(batch)} de {pg_table}: {e}")
-            # Intentar fila por fila para encontrar la problematica
-            for j, v in enumerate(values):
+            print(f"  ERROR bulk insert en {pg_table}: {e}")
+            # Fallback: intentar row-by-row para encontrar la fila problemática
+            single_sql = f'INSERT INTO "{pg_table}" ({pg_cols_str}) VALUES ({", ".join(["%s"] * len(common_pg_cols))}) ON CONFLICT DO NOTHING'
+            for vals in values_list:
                 try:
-                    pg_cur.execute(insert_sql, v)
-                    inserted += 1
-                except Exception as e2:
-                    print(f"    Fila {i+j} error: {e2}")
-                    print(f"    Datos: {v[:5]}...")
+                    pg_cur.execute(single_sql, vals)
+                    if pg_cur.rowcount > 0:
+                        inserted += 1
+                except Exception:
                     pg_conn.rollback()
+                    continue
+            pg_conn.commit()
 
-    pg_conn.commit()
-
-    # Reset sequences si la tabla tiene id SERIAL
-    if "id" in pg_cols_info and any(m[1] == "id" for m in col_mapping):
+    # Actualizar secuencia SERIAL si la tabla tiene 'id'
+    if "id" in common_pg_cols:
         try:
-            pg_cur.execute(
-                f"SELECT setval(pg_get_serial_sequence('{pg_table}', 'id'), "
-                f"COALESCE((SELECT MAX(id) FROM {pg_table}), 0) + 1, false)"
-            )
+            pg_cur.execute(f"""
+                SELECT setval(pg_get_serial_sequence('"{pg_table}"', 'id'),
+                       COALESCE((SELECT MAX(id) FROM "{pg_table}"), 0) + 1, false)
+            """)
             pg_conn.commit()
         except Exception:
             pg_conn.rollback()
 
-    print(f"  [OK] {sqlite_table} -> {pg_table}: {inserted}/{total} filas")
+    pg_cur.close()
     return inserted
 
 
-def update_passwords(pg_conn):
-    """Actualiza todas las contrasenas a bcrypt hash de '8300_@'."""
-    import bcrypt
+def migrate_db(sqlite_file, table_map, pg_url):
+    """Migra todas las tablas de un archivo SQLite a PG (conexión nueva)."""
+    print(f"\n{'='*60}")
+    print(f"Migrando: {sqlite_file}")
+    print(f"{'='*60}")
 
-    password = "8300_@"
-    hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    sqlite_conn = get_sqlite_conn(sqlite_file)
+    if sqlite_conn is None:
+        return 0
 
-    cur = pg_conn.cursor()
-    cur.execute("UPDATE usuarios SET contrasena = %s", (hashed,))
-    count = cur.rowcount
-    pg_conn.commit()
+    pg_conn = get_pg_conn(pg_url)
+    pg_conn.autocommit = False
 
-    print(f"\n=== Passwords actualizados: {count} usuarios con password '8300_@' ===")
+    total_migrated = 0
+    for sqlite_table, pg_table in table_map.items():
+        if not table_exists_pg(pg_conn, pg_table):
+            print(f"  SKIP: {pg_table} no existe en PG")
+            continue
+
+        start = time.time()
+        count = migrate_table(sqlite_conn, pg_conn, sqlite_table, pg_table)
+        elapsed = time.time() - start
+
+        if count > 0:
+            print(f"  OK: {sqlite_table} -> {pg_table}: {count} registros ({elapsed:.1f}s)")
+            total_migrated += count
+        else:
+            # Check if table had data in SQLite
+            try:
+                cur = sqlite_conn.cursor()
+                cur.execute(f"SELECT COUNT(*) FROM [{sqlite_table}]")
+                sqlite_count = cur.fetchone()[0]
+                if sqlite_count > 0:
+                    print(f"  OK: {sqlite_table} -> {pg_table}: {sqlite_count} ya existían")
+            except Exception:
+                pass
+
+    sqlite_conn.close()
+    pg_conn.close()
+    print(f"  Total migrados desde {sqlite_file}: {total_migrated}")
+    return total_migrated
 
 
-def verify_migration(pg_conn):
-    """Verifica conteos post-migracion."""
-    cur = pg_conn.cursor()
+def verify_migration(pg_url):
+    print(f"\n{'='*60}")
+    print("Verificación de datos en PostgreSQL")
+    print(f"{'='*60}")
 
-    print("\n" + "=" * 60)
-    print("VERIFICACION POST-MIGRACION")
-    print("=" * 60)
-
-    tables_to_check = [
-        ("usuarios", 120),
-        ("solicitudes", 501),
-        ("notificaciones", 8),
-        ("presupuestos", 36),
-        ("presupuesto_ledger", 1),
-        ("budget_update_requests", 32),
-        ("proveedores_externos", 18),
-        ("proveedor_ext_contactos", 36),
-        ("proveedor_ext_emails", 28),
-        ("proveedor_ext_telefonos", 23),
-        ("proveedores_internos", 25),
-        ("proveedor_precios_negociados", 66),
-        ("config_equivalencia_scores", 3),
-        ("decision_abastecimiento", 1),
-        ("decision_abastecimiento_fuentes", 2),
-        ("solicitudes_historial_estados", 2),
-        ("solicitud_items_tratamiento", 1),
-        ("solicitud_tratamiento_log", 16),
-        ("catalog_sectores", 6),
-        ("catalog_centros", 6),
-        ("catalog_almacenes", 6),
-        ("catalog_roles", 4),
-        ("catalog_puestos", 8),
-        ("vertex_conversations", 2),
-        ("vertex_messages", 18),
-        ("vertex_user_memory", 2),
-        ("sap_stock", 149997),
-        ("sap_consumo_historico", 20424),
-        ("sap_pedidos", 602),
-        ("sap_materiales_bbdd", 7309),
-        ("cat_materiales", 44461),
-        ("cat_equivalencias", 180065),
+    checks = [
+        ("usuarios", "Usuarios"),
+        ("solicitudes", "Solicitudes"),
+        ("presupuestos", "Presupuestos"),
+        ("budget_update_requests", "BURs"),
+        ("reglas_aprobacion", "Reglas aprobación"),
+        ("notificaciones", "Notificaciones"),
+        ("proveedores_externos", "Proveedores externos"),
+        ("proveedores_internos", "Proveedores internos"),
+        ("proveedor_precios_negociados", "Precios negociados"),
+        ("sap_stock", "Stock SAP"),
+        ("sap_consumo_historico", "Consumo histórico"),
+        ("sap_pedidos", "Pedidos SAP"),
+        ("sap_materiales_bbdd", "Materiales BBDD"),
+        ("cat_materiales", "Catálogo materiales"),
+        ("cat_equivalencias", "Equivalencias"),
+        ("catalog_almacenes", "Catálogo almacenes"),
+        ("catalog_centros", "Catálogo centros"),
+        ("catalog_sectores", "Catálogo sectores"),
+        ("catalog_roles", "Catálogo roles"),
+        ("catalog_puestos", "Catálogo puestos"),
+        ("config_equivalencia_scores", "Config equiv scores"),
+        ("vertex_conversations", "Vertex conversations"),
+        ("vertex_messages", "Vertex messages"),
     ]
 
-    all_ok = True
-    for table, expected in tables_to_check:
-        try:
-            cur.execute(f"SELECT COUNT(*) FROM {table}")
-            actual = cur.fetchone()[0]
-            status = "OK" if actual == expected else "MISMATCH"
-            if status == "MISMATCH":
-                all_ok = False
-            print(f"  {table}: {actual}/{expected} {'✓' if status == 'OK' else '✗ MISMATCH'}")
-        except Exception as e:
-            all_ok = False
-            print(f"  {table}: ERROR - {e}")
-            pg_conn.rollback()
-
-    return all_ok
-
-
-def create_compatibility_views(pg_conn):
-    """Crea vistas de compatibilidad post-025 (singular) si no existen."""
+    pg_conn = get_pg_conn(pg_url)
     cur = pg_conn.cursor()
-
-    print("\n=== Creando vistas de compatibilidad (migr. 025 naming) ===")
-
-    views = {
-        # solicitud -> solicitudes (ya existe como tabla)
-        # usuario -> usuarios (ya existe como vista)
-        "presupuesto_solicitud_cambio":
-            "SELECT * FROM budget_update_requests",
-        "proveedor_externo":
-            "SELECT * FROM proveedores_externos",
-        "proveedor_interno":
-            "SELECT * FROM proveedores_internos",
-        "proveedor_externo_contacto":
-            "SELECT * FROM proveedor_ext_contactos",
-        "proveedor_externo_email":
-            "SELECT * FROM proveedor_ext_emails",
-        "proveedor_externo_telefono":
-            "SELECT * FROM proveedor_ext_telefonos",
-        "proveedor_precio_negociado":
-            "SELECT * FROM proveedor_precios_negociados",
-        "solicitud":
-            "SELECT * FROM solicitudes",
-        "presupuesto":
-            "SELECT * FROM presupuestos",
-        "notificacion":
-            "SELECT * FROM notificaciones",
-        "mensaje":
-            "SELECT * FROM mensajes",
-        "solicitud_historial_estado":
-            "SELECT * FROM solicitudes_historial_estados",
-        "catalogo_sector":
-            "SELECT * FROM catalog_sectores",
-        "catalogo_centro":
-            "SELECT * FROM catalog_centros",
-        "catalogo_almacen":
-            "SELECT * FROM catalog_almacenes",
-        "catalogo_rol":
-            "SELECT * FROM catalog_roles",
-        "catalogo_puesto":
-            "SELECT * FROM catalog_puestos",
-        "trivia_score":
-            "SELECT * FROM trivias_scores",
-        "solicitud_pedido_sap":
-            "SELECT * FROM solpeds",
-        "solicitud_traslado":
-            "SELECT * FROM traslados",
-        "orden_compra":
-            "SELECT * FROM purchase_orders",
-        "email_bandeja_salida":
-            "SELECT * FROM outbox_emails",
-        "notificacion_push_suscripcion":
-            "SELECT * FROM push_subscriptions",
-        "usuario_preferencia_notificacion":
-            "SELECT * FROM user_notification_preferences" if False else None,
-        "usuario_solicitud_perfil":
-            "SELECT * FROM user_profile_requests",
-    }
-
-    for view_name, select_sql in views.items():
-        if select_sql is None:
-            continue
+    for table, label in checks:
         try:
-            cur.execute(f"CREATE OR REPLACE VIEW {view_name} AS {select_sql}")
-            print(f"  [OK] Vista {view_name}")
+            cur.execute(f'SELECT COUNT(*) FROM "{table}"')
+            count = cur.fetchone()[0]
+            status = "OK" if count > 0 else "--"
+            print(f"  {status}: {label:30s} = {count:>10,}")
         except Exception as e:
             pg_conn.rollback()
-            print(f"  [SKIP] {view_name}: {e}")
-
-    pg_conn.commit()
-    print("  Vistas de compatibilidad creadas")
+            print(f"  ERR: {label:30s} = {e}")
+    cur.close()
+    pg_conn.close()
 
 
 def main():
-    """Ejecuta la migracion completa."""
-    print("=" * 60)
-    print("MIGRACION SQLite -> PostgreSQL")
-    print(f"Directorio SQLite: {SQLITE_DIR}")
-    print("=" * 60)
+    parser = argparse.ArgumentParser(description="Migrar datos de SQLite a PostgreSQL")
+    parser.add_argument("--pg-url", default=None, help="URL de PostgreSQL")
+    parser.add_argument("--verify-only", action="store_true", help="Solo verificar")
+    args = parser.parse_args()
 
-    # Verificar archivos SQLite
-    for db in ["spm", "sap_data", "master_materiales"]:
-        path = os.path.join(SQLITE_DIR, f"{db}.db")
-        if not os.path.exists(path):
-            print(f"ERROR: No se encuentra {path}")
-            sys.exit(1)
-        size_mb = os.path.getsize(path) / (1024 * 1024)
-        print(f"  {db}.db: {size_mb:.1f} MB")
+    # Determinar URL de PG
+    pg_url = args.pg_url
+    if not pg_url:
+        env_path = os.path.join(os.path.dirname(DATA_DIR), ".env")
+        if os.path.exists(env_path):
+            with open(env_path) as f:
+                for line in f:
+                    if line.startswith("DATABASE_URL="):
+                        pg_url = line.strip().split("=", 1)[1]
+                        break
+    if not pg_url:
+        pg_url = DEFAULT_PG_URL
 
-    # Conectar a PostgreSQL
-    pg_conn = get_pg_conn()
-    print(f"\nConectado a PostgreSQL")
+    print(f"Conectando a PostgreSQL: {pg_url.split('@')[0].rsplit(':', 1)[0]}@...")
 
-    start_time = time.time()
+    if args.verify_only:
+        verify_migration(pg_url)
+        return
 
-    # Paso 0: Crear tablas vertex
-    create_vertex_tables(pg_conn)
+    start_total = time.time()
 
-    # Paso 1: Truncar tablas destino
-    truncate_tables(pg_conn)
+    migrate_db("spm.db", SPM_TABLE_MAP, pg_url)
+    migrate_db("sap_data.db", SAP_TABLE_MAP, pg_url)
+    migrate_db("master_materiales.db", MASTER_TABLE_MAP, pg_url)
 
-    # Paso 2: Migrar datos en orden
-    print("\n=== Migrando datos ===")
-    total_rows = 0
+    elapsed_total = time.time() - start_total
+    print(f"\nMigración completada en {elapsed_total:.1f}s")
 
-    for db_name, sqlite_table in INSERT_ORDER:
-        config = MIGRATIONS[db_name][sqlite_table]
-        sqlite_conn = get_sqlite_conn(db_name)
-        try:
-            count = migrate_table(sqlite_conn, pg_conn, db_name, sqlite_table, config)
-            total_rows += count
-        finally:
-            sqlite_conn.close()
-
-    elapsed = time.time() - start_time
-    print(f"\nTotal migrado: {total_rows:,} filas en {elapsed:.1f}s")
-
-    # Paso 3: Actualizar passwords
-    update_passwords(pg_conn)
-
-    # Paso 4: Crear vistas de compatibilidad
-    create_compatibility_views(pg_conn)
-
-    # Paso 5: Verificar
-    all_ok = verify_migration(pg_conn)
-
-    pg_conn.close()
-
-    print("\n" + "=" * 60)
-    if all_ok:
-        print("MIGRACION COMPLETADA EXITOSAMENTE")
-    else:
-        print("MIGRACION COMPLETADA CON DISCREPANCIAS")
-    print("=" * 60)
-
-    sys.exit(0 if all_ok else 1)
+    verify_migration(pg_url)
+    print("\nDone!")
 
 
 if __name__ == "__main__":
