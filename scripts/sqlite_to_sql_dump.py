@@ -12,7 +12,6 @@ Uso:
 
 import os
 import sqlite3
-import sys
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 OUTPUT_FILE = os.path.join(DATA_DIR, "production_dump.sql")
@@ -213,7 +212,7 @@ def dump_table(f, sqlite_conn, sqlite_table, pg_table, pg_columns=None):
 
     # Transacción por tabla
     f.write(f'\n-- {pg_table}\n')
-    f.write(f'BEGIN;\n')
+    f.write('BEGIN;\n')
     f.write(f'TRUNCATE TABLE "{pg_table}" CASCADE;\n')
 
     # Generar INSERTs en batches de 500 valores
@@ -241,7 +240,7 @@ def dump_table(f, sqlite_conn, sqlite_table, pg_table, pg_columns=None):
         f.write(",\n".join(batch))
         f.write(";\n")
 
-    f.write(f'COMMIT;\n')
+    f.write('COMMIT;\n')
     return count
 
 
@@ -255,9 +254,9 @@ def dump_db(f, sqlite_file, table_map, pg_columns_cache):
     conn = sqlite3.connect(path)
     total = 0
 
-    f.write(f"\n-- ============================================\n")
+    f.write("\n-- ============================================\n")
     f.write(f"-- Fuente: {sqlite_file}\n")
-    f.write(f"-- ============================================\n\n")
+    f.write("-- ============================================\n\n")
 
     for sqlite_table, pg_table in table_map.items():
         pg_cols = pg_columns_cache.get(pg_table)
@@ -271,7 +270,6 @@ def dump_db(f, sqlite_file, table_map, pg_columns_cache):
 
 
 def main():
-    import subprocess
 
     print("Obteniendo columnas de producción...")
     ssh_prefix = "ssh -i ~/.ssh/oracle_vps_key -o StrictHostKeyChecking=no ubuntu@144.22.47.110"
