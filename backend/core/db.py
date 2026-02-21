@@ -13,9 +13,7 @@ master_materiales) solo se usan en desarrollo local.
 """
 
 import sqlite3
-from contextlib import contextmanager
 from pathlib import Path
-from typing import Generator
 
 from flask_sqlalchemy import SQLAlchemy
 
@@ -281,6 +279,55 @@ def insert_returning_id(cursor, sql: str, params: tuple = None) -> int:
         return cursor.lastrowid
 
 
+class DualModeConnection:
+    """
+    Wrapper that allows a connection to be used BOTH as a context manager
+    and as a direct connection object.
+
+    This solves the issue where `get_db_connection()` returns a generator
+    (context manager) but many services call `conn = get_db_connection()`
+    without `with`, which gives them the generator instead of the connection.
+
+    Usage (both work):
+        # With context manager (preferred):
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+        # Without context manager (legacy, still works):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        conn.close()
+    """
+
+    def __init__(self, conn):
+        self._conn = conn
+
+    def cursor(self):
+        return self._conn.cursor()
+
+    def commit(self):
+        return self._conn.commit()
+
+    def rollback(self):
+        return self._conn.rollback()
+
+    def close(self):
+        return self._conn.close()
+
+    def execute(self, *args, **kwargs):
+        return self._conn.execute(*args, **kwargs)
+
+    def __enter__(self):
+        return self._conn
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._conn.close()
+        return False
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
 class PostgresCursorWrapper:
     """Wrapper para cursor PostgreSQL que convierte ? a %s automaticamente"""
 
@@ -408,85 +455,122 @@ def _get_postgres_connection():
 # =============================================================================
 
 
-@contextmanager
-def get_db_connection(db_name: str = "spm") -> Generator:
+def get_db_connection(db_name: str = "spm"):
     """
-    Context manager para conexiones de BD seguras.
+    Obtiene una conexión de BD que funciona tanto con `with` como sin `with`.
 
     Soporta:
     - PostgreSQL para TODAS las BDs en produccion (incluye catalogs)
     - SQLite para desarrollo local
 
-    Garantiza que la conexión se cierre automáticamente, incluso si hay excepciones.
-
     Args:
         db_name: Nombre de la base de datos ("spm", "equivalentes", "sap_data")
 
-    Yields:
-        Conexion con row_factory/cursor configurado
+    Returns:
+        DualModeConnection que puede usarse como context manager o directamente
 
-    Example:
+    Example (ambos funcionan):
+        # Con context manager (preferido):
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute("SELECT * FROM usuario")
             rows = cur.fetchall()
-        # conn se cierra automáticamente aquí
+
+        # Sin context manager (legacy, sigue funcionando):
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM usuario")
+        rows = cur.fetchall()
+        conn.close()
     """
-    conn = None
-    try:
-        # En producción, TODAS las BDs (incluidas SAP) usan PostgreSQL
-        if is_using_postgresql():
-            conn = _get_postgres_connection()
-        else:
-            db_path = get_db_path(db_name)
-            conn = sqlite3.connect(db_path)
-            conn.row_factory = sqlite3.Row
-            conn.execute("PRAGMA foreign_keys = ON")
-        yield conn
-    finally:
-        if conn:
-            conn.close()
+    # En producción, TODAS las BDs (incluidas SAP) usan PostgreSQL
+    if is_using_postgresql():
+        conn = _get_postgres_connection()
+    else:
+        db_path = get_db_path(db_name)
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+    return DualModeConnection(conn)
 
 
-@contextmanager
-def get_db_transaction(db_name: str = "spm") -> Generator:
+class DualModeTransaction:
     """
-    Context manager para transacciones con commit automático.
+    Connection wrapper with automatic commit/rollback for use as context manager.
+    Also works without `with` for legacy code (caller must commit/close manually).
+    """
 
-    Soporta PostgreSQL y SQLite.
-    Si no hay excepciones, hace commit. Si hay excepción, hace rollback.
+    def __init__(self, conn):
+        self._conn = conn
+
+    def cursor(self):
+        return self._conn.cursor()
+
+    def commit(self):
+        return self._conn.commit()
+
+    def rollback(self):
+        return self._conn.rollback()
+
+    def close(self):
+        return self._conn.close()
+
+    def execute(self, *args, **kwargs):
+        return self._conn.execute(*args, **kwargs)
+
+    def __enter__(self):
+        return self._conn
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            if exc_type is None:
+                self._conn.commit()
+            else:
+                self._conn.rollback()
+        finally:
+            self._conn.close()
+        return False
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
+def get_db_transaction(db_name: str = "spm"):
+    """
+    Obtiene una conexión con transacción que funciona con y sin `with`.
+
+    Con `with`: commit automático si no hay error, rollback si hay excepción.
+    Sin `with`: el caller debe hacer commit/rollback y close manualmente.
 
     Args:
         db_name: Nombre de la base de datos
 
-    Yields:
-        Conexion con row_factory/cursor configurado
+    Returns:
+        DualModeTransaction
 
-    Example:
+    Example (ambos funcionan):
+        # Con context manager (preferido):
         with get_db_transaction() as conn:
             cur = conn.cursor()
             cur.execute("INSERT INTO tabla VALUES (?)", (valor,))
-        # commit automático si no hay error
-    """
-    conn = None
-    try:
-        # En producción, TODAS las BDs (incluidas SAP) usan PostgreSQL
-        if is_using_postgresql():
-            conn = _get_postgres_connection()
-        else:
-            db_path = get_db_path(db_name)
-            conn = sqlite3.connect(db_path)
-            conn.row_factory = sqlite3.Row
-            conn.execute("PRAGMA foreign_keys = ON")
-        yield conn
+        # commit automático
+
+        # Sin context manager (legacy):
+        conn = get_db_transaction()
+        cur = conn.cursor()
+        cur.execute("INSERT INTO tabla VALUES (?)", (valor,))
         conn.commit()
-    except Exception:
-        if conn:
-            conn.rollback()
-        raise
-    finally:
-        if conn:
-            conn.close()
+        conn.close()
+    """
+    # En producción, TODAS las BDs (incluidas SAP) usan PostgreSQL
+    if is_using_postgresql():
+        conn = _get_postgres_connection()
+    else:
+        db_path = get_db_path(db_name)
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+    return DualModeTransaction(conn)
 
 
 # =============================================================================
