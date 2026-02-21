@@ -40,7 +40,7 @@ import GroupIcon from '@mui/icons-material/Group';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 
 // Componente StatCard estilo MUI
-const StatCard = ({ title, value, subtitle, icon: Icon, color = 'var(--primary)', trend }) => (
+const StatCard = ({ title, value, subtitle, icon: Icon, color = 'var(--primary)', trend, trendLabel }) => (
   <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
     <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
       <Box>
@@ -65,7 +65,7 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color = 'var(--primary)'
               fontWeight: 500
             }}
           >
-            {trend >= 0 ? '+' : ''}{trend}% vs periodo anterior
+            {trend >= 0 ? '+' : ''}{trend}% {trendLabel || 'vs periodo anterior'}
           </Typography>
         )}
       </Box>
@@ -84,7 +84,7 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color = 'var(--primary)'
 );
 
 // Componente Gauge para OTIF
-const OTIFGauge = ({ value }) => {
+const OTIFGauge = ({ value, label = 'OTIF', sublabel = 'A tiempo y completo' }) => {
   const getColor = (val) => {
     if (val >= 90) return 'var(--success)';
     if (val >= 70) return 'var(--warning)';
@@ -122,10 +122,10 @@ const OTIFGauge = ({ value }) => {
         </Box>
       </Box>
       <Typography variant="body2" fontWeight={600} color="text.primary" sx={{ mt: 1 }}>
-        OTIF
+        {label}
       </Typography>
       <Typography variant="caption" color="text.secondary">
-        A tiempo y completo
+        {sublabel}
       </Typography>
     </Box>
   );
@@ -425,7 +425,7 @@ export default function ProcurementDashboard() {
       setPipeline(pipelineRes.data?.items || []);
       setImportHistory(historyRes.data?.items || []);
     } catch (err) {
-      setError('Error al cargar datos de procurement');
+      setError(err.response?.data?.error || t('procurement_error_loading', 'Error al cargar datos de procurement'));
     } finally {
       setLoading(false);
     }
@@ -478,16 +478,16 @@ export default function ProcurementDashboard() {
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel sx={{ fontSize: "0.75rem" }}>Período</InputLabel>
+            <InputLabel sx={{ fontSize: "0.75rem" }}>{t('procurement_period', 'Periodo')}</InputLabel>
             <Select
               value={periodo}
               onChange={(e) => setPeriodo(e.target.value)}
-              label="Período"
+              label={t('procurement_period', 'Periodo')}
               sx={{ fontSize: "0.75rem" }}
             >
-              <MenuItem value="mes">Último Mes</MenuItem>
-              <MenuItem value="trimestre">Último Trimestre</MenuItem>
-              <MenuItem value="anio">Último Año</MenuItem>
+              <MenuItem value="mes">{t('procurement_last_month', 'Ultimo Mes')}</MenuItem>
+              <MenuItem value="trimestre">{t('procurement_last_quarter', 'Ultimo Trimestre')}</MenuItem>
+              <MenuItem value="anio">{t('procurement_last_year', 'Ultimo Ano')}</MenuItem>
             </Select>
           </FormControl>
 
@@ -506,7 +506,7 @@ export default function ProcurementDashboard() {
             onClick={() => setShowImportModal(true)}
             size="small"
           >
-            Importar ZM65
+            {t('procurement_import_zm65', 'Importar ZM65')}
           </Button>
         </Box>
       </Box>
@@ -521,30 +521,30 @@ export default function ProcurementDashboard() {
       {kpis && (
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" }, gap: 2 }}>
           <StatCard
-            title="Requisiciones (SOLPEDs)"
+            title={t('procurement_requisitions', 'Requisiciones (SOLPEDs)')}
             value={kpis.totales?.solpeds?.toLocaleString() || 0}
-            subtitle={`${kpis.totales?.items || 0} items totales`}
+            subtitle={`${kpis.totales?.items || 0} ${t('procurement_total_items', 'items totales')}`}
             icon={ShoppingCartIcon}
             color="var(--primary)"
           />
           <StatCard
-            title="Tiempo de Entrega"
-            value={`${kpis.lead_times?.total_dias || 0} días`}
-            subtitle={`Aprobación: ${kpis.lead_times?.aprobacion_dias || 0}d | Entrega: ${kpis.lead_times?.entrega_dias || 0}d`}
+            title={t('procurement_lead_time', 'Tiempo de Entrega')}
+            value={`${kpis.lead_times?.total_dias || 0} ${t('procurement_days', 'dias')}`}
+            subtitle={`${t('procurement_approval', 'Aprobacion')}: ${kpis.lead_times?.aprobacion_dias || 0}d | ${t('procurement_delivery', 'Entrega')}: ${kpis.lead_times?.entrega_dias || 0}d`}
             icon={AccessTimeIcon}
             color="var(--purple-dark)"
           />
           <StatCard
-            title="Entregas a Tiempo"
+            title={t('procurement_on_time', 'Entregas a Tiempo')}
             value={`${kpis.cumplimiento?.pct_a_tiempo || 0}%`}
-            subtitle={`OTIF: ${kpis.cumplimiento?.pct_otif || 0}%`}
+            subtitle={`${t('procurement_otif', 'OTIF')}: ${kpis.cumplimiento?.pct_otif || 0}%`}
             icon={CheckCircleIcon}
             color="var(--success)"
           />
           <StatCard
-            title="Proveedores Activos"
+            title={t('procurement_active_suppliers', 'Proveedores Activos')}
             value={kpis.totales?.proveedores_unicos || 0}
-            subtitle={`${kpis.totales?.materiales_unicos || 0} materiales únicos`}
+            subtitle={`${kpis.totales?.materiales_unicos || 0} ${t('procurement_unique_materials', 'materiales unicos')}`}
             icon={GroupIcon}
             color="var(--warning)"
           />
@@ -556,23 +556,27 @@ export default function ProcurementDashboard() {
         {/* OTIF Gauge */}
         <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
           <Typography variant="h6" fontWeight={600} color="text.primary" sx={{ mb: 3 }}>
-            Cumplimiento OTIF
+            {t('procurement_otif_compliance', 'Cumplimiento OTIF')}
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <OTIFGauge value={kpis?.cumplimiento?.pct_otif || 0} />
+            <OTIFGauge
+              value={kpis?.cumplimiento?.pct_otif || 0}
+              label={t('procurement_otif', 'OTIF')}
+              sublabel={t('procurement_on_time_complete', 'A tiempo y completo')}
+            />
           </Box>
           <Box sx={{ mt: 3, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, textAlign: "center" }}>
             <Box>
               <Typography variant="h5" fontWeight={700} color="primary.main">
                 {kpis?.cumplimiento?.pct_a_tiempo || 0}%
               </Typography>
-              <Typography variant="caption" color="text.secondary">A Tiempo</Typography>
+              <Typography variant="caption" color="text.secondary">{t('procurement_on_time_short', 'A Tiempo')}</Typography>
             </Box>
             <Box>
               <Typography variant="h5" fontWeight={700} color="success.main">
                 {kpis?.cumplimiento?.pct_completas || 0}%
               </Typography>
-              <Typography variant="caption" color="text.secondary">Completas</Typography>
+              <Typography variant="caption" color="text.secondary">{t('procurement_complete', 'Completas')}</Typography>
             </Box>
           </Box>
         </Paper>
@@ -580,7 +584,7 @@ export default function ProcurementDashboard() {
         {/* Top Proveedores */}
         <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
           <Typography variant="h6" fontWeight={600} color="text.primary" sx={{ mb: 2 }}>
-            Top 5 Proveedores por Volumen
+            {t('procurement_top_suppliers', 'Top 5 Proveedores por Volumen')}
           </Typography>
           <TopProveedoresTable data={kpis?.top_proveedores} />
         </Paper>
@@ -590,7 +594,7 @@ export default function ProcurementDashboard() {
       {pipeline.length > 0 && (
         <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
           <Typography variant="h6" fontWeight={600} color="text.primary" sx={{ mb: 3 }}>
-            Embudo de Conversión
+            {t('procurement_conversion_funnel', 'Embudo de Conversion')}
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}>
             {pipeline.map((etapa, idx) => (
@@ -626,7 +630,7 @@ export default function ProcurementDashboard() {
       {compliance.length > 0 && (
         <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
           <Typography variant="h6" fontWeight={600} color="text.primary" sx={{ mb: 2 }}>
-            Cumplimiento por Proveedor
+            {t('procurement_compliance_by_supplier', 'Cumplimiento por Proveedor')}
           </Typography>
           <ComplianceTable data={compliance} />
         </Paper>
@@ -636,7 +640,7 @@ export default function ProcurementDashboard() {
       {importHistory.length > 0 && (
         <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
           <Typography variant="h6" fontWeight={600} color="text.primary" sx={{ mb: 2 }}>
-            Últimas Importaciones
+            {t('procurement_recent_imports', 'Ultimas Importaciones')}
           </Typography>
           <ImportHistoryTable data={importHistory} />
         </Paper>
@@ -649,10 +653,10 @@ export default function ProcurementDashboard() {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle sx={{ fontWeight: 600 }}>Importar Archivo ZM65</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>{t('procurement_import_title', 'Importar Archivo ZM65')}</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Seleccione un archivo Excel (.xlsx) con datos de requisiciones SAP.
+            {t('procurement_import_desc', 'Seleccione un archivo Excel (.xlsx) con datos de requisiciones SAP.')}
           </Typography>
           <input
             type="file"
@@ -675,7 +679,7 @@ export default function ProcurementDashboard() {
           {importing && (
             <Box sx={{ mt: 2, display: "flex", alignItems: "center", gap: 1, color: "var(--primary)" }}>
               <CircularProgress size={16} color="inherit" />
-              <Typography variant="body2">Importando...</Typography>
+              <Typography variant="body2">{t('procurement_importing', 'Importando...')}</Typography>
             </Box>
           )}
         </DialogContent>
@@ -685,7 +689,7 @@ export default function ProcurementDashboard() {
             disabled={importing}
             color="inherit"
           >
-            Cancelar
+            {t('common_cancelar', 'Cancelar')}
           </Button>
         </DialogActions>
       </Dialog>

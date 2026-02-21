@@ -15,6 +15,16 @@ logger = logging.getLogger(__name__)
 
 procurement_bp = Blueprint('procurement', __name__, url_prefix='/api/procurement')
 
+
+@procurement_bp.record_once
+def _on_register(state):
+    """Crear vistas de procurement al registrar el blueprint."""
+    try:
+        ProcurementService.ensure_procurement_views()
+    except Exception as e:
+        logger.warning(f"Could not create procurement views on startup: {e}")
+
+
 def ensure_procurement_views():
     """Wrapper for backward compatibility"""
     ProcurementService.ensure_procurement_views()
@@ -43,7 +53,7 @@ def get_solpeds():
         logger.error(f"Error getting solpeds: {e}", exc_info=True)
         return jsonify({"error": "Error interno del servidor"}), 500
 
-@procurement_bp.route('/solpeds/<int:solped_id>', methods=['GET'])
+@procurement_bp.route('/solpeds/<solped_id>', methods=['GET'])
 @require_auth
 def get_solped_detail(solped_id):
     try:
@@ -77,7 +87,7 @@ def get_orders():
         logger.error(f"Error getting orders: {e}", exc_info=True)
         return jsonify({"error": "Error interno del servidor"}), 500
 
-@procurement_bp.route('/orders/<int:pedido_id>', methods=['GET'])
+@procurement_bp.route('/orders/<pedido_id>', methods=['GET'])
 @require_auth
 def get_order_detail(pedido_id):
     try:
@@ -120,7 +130,8 @@ def get_lead_times():
 def get_compliance():
     try:
         min_pedidos = request.args.get('min_pedidos', 5, type=int)
-        return jsonify({"items": ProcurementService.get_compliance(min_pedidos=min_pedidos)})
+        limit = request.args.get('limit', 50, type=int)
+        return jsonify({"items": ProcurementService.get_compliance(min_pedidos=min_pedidos, limit=limit)})
     except Exception as e:
         logger.error(f"Error getting compliance: {e}", exc_info=True)
         return jsonify({"error": "Error interno del servidor"}), 500
@@ -183,7 +194,7 @@ def get_summary():
 @require_auth
 def get_pipeline():
     try:
-        return jsonify(ProcurementService.get_pipeline())
+        return jsonify({"items": ProcurementService.get_pipeline()})
     except Exception as e:
         logger.error(f"Error getting pipeline: {e}", exc_info=True)
         return jsonify({"error": "Error interno del servidor"}), 500

@@ -215,7 +215,7 @@ class ProcurementService:
         }
 
     @staticmethod
-    def get_solped_detail(solped_id: int) -> Optional[Dict[str, Any]]:
+    def get_solped_detail(solped_id: str) -> Optional[Dict[str, Any]]:
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute("""
@@ -310,7 +310,7 @@ class ProcurementService:
         }
 
     @staticmethod
-    def get_order_detail(pedido_id: int) -> Optional[Dict[str, Any]]:
+    def get_order_detail(pedido_id: str) -> Optional[Dict[str, Any]]:
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute("""
@@ -379,12 +379,15 @@ class ProcurementService:
             """, params)
             totals = cur.fetchone()
 
-            # Lead time promedio
+            # Lead time promedio (usar _date_diff_sql para compatibilidad PG/SQLite)
+            lt_total = ProcurementService._date_diff_sql('p.fecha_recepcion', 's.fecha_creacion')
+            lt_aprobacion = ProcurementService._date_diff_sql('p.fecha_pedido', 's.fecha_creacion')
+            lt_entrega = ProcurementService._date_diff_sql('p.fecha_recepcion', 'p.fecha_pedido')
             cur.execute(f"""
                 SELECT
-                    AVG(p.fecha_recepcion - s.fecha_creacion) as lead_time_total,
-                    AVG(p.fecha_pedido - s.fecha_creacion) as tiempo_aprobacion,
-                    AVG(p.fecha_recepcion - p.fecha_pedido) as tiempo_entrega
+                    {ProcurementService._round_avg_sql(lt_total)} as lead_time_total,
+                    {ProcurementService._round_avg_sql(lt_aprobacion)} as tiempo_aprobacion,
+                    {ProcurementService._round_avg_sql(lt_entrega)} as tiempo_entrega
                 FROM sap_solpeds s
                 INNER JOIN sap_purchase_orders p
                     ON s.solped_id = p.solped_id AND s.posicion = p.solped_posicion
@@ -451,9 +454,9 @@ class ProcurementService:
                 "pct_recibidas": round(100 * (totals_dict.get('items_recibidos', 0) or 0) / max(totals_dict.get('total_items', 1), 1), 1)
             },
             "lead_times": {
-                "total_dias": round(lead_time_dict.get('lead_time_total') or 0, 1),
-                "aprobacion_dias": round(lead_time_dict.get('tiempo_aprobacion') or 0, 1),
-                "entrega_dias": round(lead_time_dict.get('tiempo_entrega') or 0, 1)
+                "total_dias": round(float(lead_time_dict.get('lead_time_total') or 0), 1),
+                "aprobacion_dias": round(float(lead_time_dict.get('tiempo_aprobacion') or 0), 1),
+                "entrega_dias": round(float(lead_time_dict.get('tiempo_entrega') or 0), 1)
             },
             "cumplimiento": {
                 "pct_a_tiempo": round(100 * (otif_dict.get('a_tiempo', 0) or 0) / total_otif, 1),
@@ -526,7 +529,8 @@ class ProcurementService:
         }
 
     @staticmethod
-    def get_compliance(min_pedidos: int = 5) -> List[Dict[str, Any]]:
+    def get_compliance(min_pedidos: int = 5, limit: int = 50) -> List[Dict[str, Any]]:
+        limit = min(limit, 200)
         with get_db_connection() as conn:
             cur = conn.cursor()
             # Verificar si la vista existe (compatible SQLite y PostgreSQL)
@@ -539,7 +543,8 @@ class ProcurementService:
                 SELECT * FROM v_sap_cumplimiento
                 WHERE total_pedidos >= ?
                 ORDER BY pct_otif DESC
-            """, (min_pedidos,))
+                LIMIT ?
+            """, (min_pedidos, limit))
             rows = cur.fetchall()
 
         return [_row_to_dict(r) for r in rows]
@@ -666,13 +671,12 @@ class ProcurementService:
             """)
             orders_stats = cur.fetchone()
 
-            # 2. Lead times (SQL compatible con PG y SQLite)
-            date_diff = ProcurementService._date_diff_sql('fecha_recepcion', 'fecha_creacion')
-            cur.execute(f"""
+            # 2. Lead times (usar columnas pre-calculadas de la vista)
+            cur.execute("""
                 SELECT
-                    {ProcurementService._round_avg_sql(date_diff)} as promedio,
-                    MIN({date_diff}) as minimo,
-                    MAX({date_diff}) as maximo
+                    ROUND(AVG(dias_total)::numeric, 1) as promedio,
+                    MIN(dias_total) as minimo,
+                    MAX(dias_total) as maximo
                 FROM v_sap_lead_times
             """)
             lead_times = cur.fetchone()
@@ -706,12 +710,12 @@ class ProcurementService:
             """)
             top_proveedores = cur.fetchall()
 
-            # 6. Top 5 proveedores por lead time (mas rapidos, SQL compatible)
-            cur.execute(f"""
+            # 6. Top 5 proveedores por lead time (mas rapidos)
+            cur.execute("""
                 SELECT
                     proveedor_nombre,
                     COUNT(*) as entregas,
-                    {ProcurementService._round_avg_sql(date_diff)} as lead_time_promedio
+                    ROUND(AVG(dias_total)::numeric, 1) as lead_time_promedio
                 FROM v_sap_lead_times
                 WHERE proveedor_nombre IS NOT NULL
                 GROUP BY proveedor_nombre
@@ -1353,25 +1357,36 @@ class ProcurementService:
 
             rows = cur.fetchall()
 
-        ranking = []
-        for row in rows:
-            d = dict(row)
-            # Calculate tendencia (diff with previous period)
-            tendencia = None
+        # Build tendencia map in a single query (avoid N+1)
+        tendencia_map = {}
+        if rows:
+            prov_ids = list({dict(r).get('proveedor_id') for r in rows})
             try:
-                with get_db_connection() as conn:
-                    cur = conn.cursor()
-                    cur.execute("""
-                        SELECT score_global FROM proveedor_evaluacion
-                        WHERE proveedor_id = ? AND created_at < ?
-                        ORDER BY created_at DESC LIMIT 1
-                    """, (d['proveedor_id'], d['created_at']))
-                    prev = cur.fetchone()
-                    if prev:
-                        tendencia = round(float(d.get('score_global') or 0) - float(prev['score_global'] or 0), 1)
+                with get_db_connection() as conn2:
+                    cur2 = conn2.cursor()
+                    placeholders = ','.join(['?'] * len(prov_ids))
+                    cur2.execute(f"""
+                        SELECT proveedor_id, score_global,
+                               LAG(score_global) OVER (
+                                   PARTITION BY proveedor_id ORDER BY created_at
+                               ) as prev_score
+                        FROM proveedor_evaluacion
+                        WHERE proveedor_id IN ({placeholders})
+                        ORDER BY proveedor_id, created_at DESC
+                    """, prov_ids)
+                    for trow in cur2.fetchall():
+                        td = dict(trow)
+                        pid = td.get('proveedor_id')
+                        if pid not in tendencia_map and td.get('prev_score') is not None:
+                            tendencia_map[pid] = round(
+                                float(td.get('score_global') or 0) - float(td['prev_score']), 1
+                            )
             except Exception:
                 pass
 
+        ranking = []
+        for row in rows:
+            d = dict(row)
             ranking.append({
                 'proveedor_id': d.get('proveedor_id'),
                 'nombre': d.get('proveedor_nombre'),
@@ -1380,7 +1395,7 @@ class ProcurementService:
                 'calidad_score': float(d.get('calidad_score') or 0),
                 'precio_score': float(d.get('precio_score') or 0),
                 'servicio_score': float(d.get('servicio_score') or 0),
-                'tendencia': tendencia,
+                'tendencia': tendencia_map.get(d.get('proveedor_id')),
                 'periodo': d.get('periodo'),
             })
 
@@ -1404,29 +1419,18 @@ class ProcurementService:
         notas = data.get('notas', '')
         proveedor_nombre = data.get('nombre', proveedor_id)
 
-        with get_db_transaction() as conn:
-            cur = conn.cursor()
-            if is_using_postgresql():
-                cur.execute("""
-                    INSERT INTO proveedor_evaluacion
-                    (proveedor_id, proveedor_nombre, periodo, calidad_score,
-                     entrega_score, precio_score, servicio_score, score_global,
-                     evaluado_por, notas)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    RETURNING id
-                """, (proveedor_id, proveedor_nombre, periodo, calidad,
-                      entrega, precio, servicio, score_global, user_id, notas))
-                eval_id = cur.fetchone()[0]
-            else:
-                cur.execute("""
-                    INSERT INTO proveedor_evaluacion
-                    (proveedor_id, proveedor_nombre, periodo, calidad_score,
-                     entrega_score, precio_score, servicio_score, score_global,
-                     evaluado_por, notas)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (proveedor_id, proveedor_nombre, periodo, calidad,
-                      entrega, precio, servicio, score_global, user_id, notas))
-                eval_id = cur.lastrowid
+        with get_db_transaction() as (conn, cur):
+            cur.execute("""
+                INSERT INTO proveedor_evaluacion
+                (proveedor_id, proveedor_nombre, periodo, calidad_score,
+                 entrega_score, precio_score, servicio_score, score_global,
+                 evaluado_por, notas)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                RETURNING id
+            """, (proveedor_id, proveedor_nombre, periodo, calidad,
+                  entrega, precio, servicio, score_global, user_id, notas))
+            row = cur.fetchone()
+            eval_id = row[0] if row else None
 
         return {
             "ok": True,
@@ -1487,7 +1491,7 @@ class ProcurementService:
     @staticmethod
     def _date_diff_sql(col1: str, col2: str) -> str:
         if is_using_postgresql():
-            return f"({col1} - {col2})"
+            return f"EXTRACT(EPOCH FROM ({col1} - {col2})) / 86400.0"
         return f"julianday({col1}) - julianday({col2})"
 
     @staticmethod

@@ -106,7 +106,7 @@ export default function PriceManagement() {
         setListas(res.data.items || []);
       }
     } catch (err) {
-      toast.error(t('price_error_listas', 'Error al cargar listas de precios'));
+      toast.error(err.response?.data?.error || t('price_error_listas', 'Error al cargar listas de precios'));
     } finally {
       setListasLoading(false);
     }
@@ -120,7 +120,7 @@ export default function PriceManagement() {
         setNegociaciones(res.data.negociaciones || []);
       }
     } catch (err) {
-      toast.error(t('price_error_negos', 'Error al cargar negociaciones'));
+      toast.error(err.response?.data?.error || t('price_error_negos', 'Error al cargar negociaciones'));
     } finally {
       setNegosLoading(false);
     }
@@ -182,7 +182,7 @@ export default function PriceManagement() {
         setDetalleItems(res.data.items || []);
       }
     } catch (err) {
-      toast.error(t('price_error_detalle', 'Error al cargar detalle'));
+      toast.error(err.response?.data?.error || t('price_error_detalle', 'Error al cargar detalle'));
     } finally {
       setDetalleLoading(false);
     }
@@ -230,7 +230,7 @@ export default function PriceManagement() {
         setHistorial(res.data.historial || []);
       }
     } catch (err) {
-      toast.error(t('price_error_historial', 'Error al cargar historial'));
+      toast.error(err.response?.data?.error || t('price_error_historial', 'Error al cargar historial'));
     } finally {
       setHistorialLoading(false);
     }

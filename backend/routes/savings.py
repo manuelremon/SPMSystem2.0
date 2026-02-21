@@ -1,6 +1,11 @@
 """
-Rutas para el módulo de ahorro de costos.
+Rutas para el módulo de ahorro de costos (Cost Savings).
 Permite registrar ahorros, definir metas y exportar reportes.
+
+Nota: Este blueprint usa /api/savings/ como prefijo separado,
+aunque en el frontend se accede desde /procurement/savings.
+Forma parte del módulo de procurement pero se mantiene como
+blueprint independiente por separación de responsabilidades.
 """
 
 import io
