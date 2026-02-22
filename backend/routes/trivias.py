@@ -23,23 +23,42 @@ logger = logging.getLogger(__name__)
 
 def _ensure_trivias_table():
     """Create trivia_score table if not exists"""
+    from backend.core.db import is_using_postgresql
+
     with get_db_transaction() as conn:
         cur = conn.cursor()
-        cur.execute(
+        if is_using_postgresql():
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS trivia_score (
+                    id SERIAL PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    user_name TEXT NOT NULL,
+                    game_mode TEXT NOT NULL,
+                    score INTEGER NOT NULL,
+                    correct_answers INTEGER DEFAULT 0,
+                    total_questions INTEGER DEFAULT 0,
+                    time_spent INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
             """
-            CREATE TABLE IF NOT EXISTS trivia_score (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id TEXT NOT NULL,
-                user_name TEXT NOT NULL,
-                game_mode TEXT NOT NULL,
-                score INTEGER NOT NULL,
-                correct_answers INTEGER DEFAULT 0,
-                total_questions INTEGER DEFAULT 0,
-                time_spent INTEGER DEFAULT 0,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
-        """
-        )
+        else:
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS trivia_score (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL,
+                    user_name TEXT NOT NULL,
+                    game_mode TEXT NOT NULL,
+                    score INTEGER NOT NULL,
+                    correct_answers INTEGER DEFAULT 0,
+                    total_questions INTEGER DEFAULT 0,
+                    time_spent INTEGER DEFAULT 0,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """
+            )
 
 
 def _get_token_from_request() -> str | None:

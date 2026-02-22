@@ -127,7 +127,7 @@ def obtener_programas(filtros: dict = None) -> dict:
                 cp.condiciones_pago, cp.porcentaje_margen, cp.periodo_reconciliacion,
                 cp.created_at, cp.updated_at
             FROM consignment_programa cp
-            LEFT JOIN proveedores p ON cp.proveedor_cuit = p.cuit
+            LEFT JOIN proveedores p ON cp.proveedor_cuit = p.id_proveedor
             {where_sql}
             ORDER BY cp.created_at DESC
             LIMIT {placeholder} OFFSET {placeholder}
@@ -191,7 +191,7 @@ def obtener_detalle_programa(programa_id: int) -> dict:
                 cp.condiciones_pago, cp.porcentaje_margen, cp.periodo_reconciliacion,
                 cp.created_at, cp.updated_at
             FROM consignment_programa cp
-            LEFT JOIN proveedores p ON cp.proveedor_cuit = p.cuit
+            LEFT JOIN proveedores p ON cp.proveedor_cuit = p.id_proveedor
             WHERE cp.id = {placeholder}
         """, (programa_id,))
 

@@ -302,13 +302,13 @@ def generar_sugerencia_sourcing(material_codigo: str) -> dict:
         # 1. Proveedores actuales (de órdenes de compra)
         cursor.execute(
             f"""
-            SELECT DISTINCT p.cuit, p.nombre, AVG(oci.precio_unitario) as precio_promedio
+            SELECT DISTINCT p.id_proveedor, p.nombre, AVG(oci.precio_unitario) as precio_promedio
             FROM orden_compra oc
             JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
-            JOIN proveedores p ON oc.proveedor_cuit = p.cuit
+            JOIN proveedores p ON oc.proveedor_cuit = p.id_proveedor
             WHERE oci.material_codigo = {placeholder}
             AND oc.estado IN ('completed', 'approved')
-            GROUP BY p.cuit, p.nombre
+            GROUP BY p.id_proveedor, p.nombre
             ORDER BY precio_promedio ASC
             LIMIT 5
             """,
@@ -346,28 +346,30 @@ def generar_sugerencia_sourcing(material_codigo: str) -> dict:
             if using_pg:
                 cursor_tx.execute("""
                     INSERT INTO copilot_sugerencia
-                    (tipo, titulo, contenido, metadata, estado, created_at)
-                    VALUES (%s, %s, %s, %s, %s, NOW())
+                    (tipo, titulo, contenido, datos_soporte, estado, material_codigo, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
                     RETURNING id
                 """, (
                     'sourcing_strategy',
                     f'Estrategia de Sourcing - {material_codigo}',
                     contenido,
-                    f'{{"material_codigo": "{material_codigo}", "num_proveedores": {len(proveedores)}}}',
-                    'pending'
+                    f'{{"num_proveedores": {len(proveedores)}}}',
+                    'pending',
+                    material_codigo
                 ))
                 sugerencia_id = cursor_tx.fetchone()[0]
             else:
                 cursor_tx.execute("""
                     INSERT INTO copilot_sugerencia
-                    (tipo, titulo, contenido, metadata, estado, created_at)
-                    VALUES (?, ?, ?, ?, ?, datetime('now'))
+                    (tipo, titulo, contenido, datos_soporte, estado, material_codigo, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
                 """, (
                     'sourcing_strategy',
                     f'Estrategia de Sourcing - {material_codigo}',
                     contenido,
-                    f'{{"material_codigo": "{material_codigo}", "num_proveedores": {len(proveedores)}}}',
-                    'pending'
+                    f'{{"num_proveedores": {len(proveedores)}}}',
+                    'pending',
+                    material_codigo
                 ))
                 sugerencia_id = cursor_tx.lastrowid
 
@@ -422,10 +424,10 @@ def auto_draft_rfq(solicitud_id: int) -> dict:
         for material_codigo, cantidad, unidad in items:
             cursor.execute(
                 f"""
-                SELECT DISTINCT p.cuit, p.nombre
+                SELECT DISTINCT p.id_proveedor, p.nombre
                 FROM orden_compra oc
                 JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
-                JOIN proveedores p ON oc.proveedor_cuit = p.cuit
+                JOIN proveedores p ON oc.proveedor_cuit = p.id_proveedor
                 WHERE oci.material_codigo = {placeholder}
                 AND oc.estado IN ('completed', 'approved')
                 LIMIT 3
@@ -458,7 +460,7 @@ Próximos pasos:
             if using_pg:
                 cursor_tx.execute("""
                     INSERT INTO copilot_sugerencia
-                    (tipo, titulo, contenido, metadata, estado, created_at)
+                    (tipo, titulo, contenido, datos_soporte, estado, created_at)
                     VALUES (%s, %s, %s, %s, %s, NOW())
                     RETURNING id
                 """, (
@@ -472,7 +474,7 @@ Próximos pasos:
             else:
                 cursor_tx.execute("""
                     INSERT INTO copilot_sugerencia
-                    (tipo, titulo, contenido, metadata, estado, created_at)
+                    (tipo, titulo, contenido, datos_soporte, estado, created_at)
                     VALUES (?, ?, ?, ?, ?, datetime('now'))
                 """, (
                     'rfq_draft',
@@ -534,7 +536,7 @@ def obtener_sugerencias(filtros: dict = None) -> list:
 
         cursor.execute(
             f"""
-            SELECT id, tipo, titulo, contenido, metadata, estado, created_at
+            SELECT id, tipo, titulo, contenido, datos_soporte, estado, created_at
             FROM copilot_sugerencia
             {where_sql}
             ORDER BY created_at DESC
@@ -550,7 +552,7 @@ def obtener_sugerencias(filtros: dict = None) -> list:
                 'tipo': row[1],
                 'titulo': row[2],
                 'contenido': row[3],
-                'metadata': row[4],
+                'datos_soporte': row[4],
                 'estado': row[5],
                 'created_at': row[6]
             })
@@ -644,14 +646,14 @@ def obtener_insights_dashboard() -> dict:
         # 2. Alertas de riesgo (proveedores de alto riesgo con OCs activas)
         cursor.execute("""
             SELECT DISTINCT
-                p.cuit, p.nombre, pr.risk_score_compuesto,
+                p.id_proveedor, p.nombre, pr.risk_score_compuesto,
                 COUNT(DISTINCT oc.id) as ocs_activas
             FROM proveedores p
-            JOIN proveedor_riesgo pr ON p.cuit = pr.proveedor_cuit
-            JOIN orden_compra oc ON p.cuit = oc.proveedor_cuit
+            JOIN proveedor_riesgo pr ON p.id_proveedor = pr.proveedor_cuit
+            JOIN orden_compra oc ON p.id_proveedor = oc.proveedor_cuit
             WHERE pr.risk_score_compuesto >= 70
             AND oc.estado IN ('submitted', 'approved')
-            GROUP BY p.cuit, p.nombre, pr.risk_score_compuesto
+            GROUP BY p.id_proveedor, p.nombre, pr.risk_score_compuesto
             ORDER BY pr.risk_score_compuesto DESC
             LIMIT 5
         """)

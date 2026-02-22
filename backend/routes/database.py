@@ -174,12 +174,13 @@ def get_overview():
         try:
             start = time.time()
 
-            if db_name == "spm" and is_postgres():
-                # PostgreSQL
+            if is_postgres():
+                # PostgreSQL (all databases share the same PG instance)
                 with get_db_connection() as conn:
                     cur = conn.cursor()
                     cur.execute("SELECT 1")
                     db_info["latency_ms"] = round((time.time() - start) * 1000, 2)
+                    db_info["type"] = "postgresql"
 
                     # Contar tablas
                     cur.execute("""
@@ -256,7 +257,7 @@ def get_tables():
     allowed_tables_for_db = set(ALLOWED_TABLES.get(db_name, []))
 
     try:
-        if db_name == "spm" and is_postgres():
+        if is_postgres():
             with get_db_connection() as conn:
                 cur = conn.cursor()
                 cur.execute("""
@@ -1292,7 +1293,7 @@ def get_table_stats(table: str):
         return jsonify({"ok": False, "error": {"code": "forbidden", "message": f"Tabla no permitida: {table}"}}), 403
 
     try:
-        if is_postgres() and db_name == "spm":
+        if is_postgres():
             with get_db_connection() as conn:
                 cur = conn.cursor()
 

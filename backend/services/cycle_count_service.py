@@ -318,16 +318,13 @@ def generar_conteo(tipo: str, almacen_id: int, programa_id: Optional[int] = None
             for mat in selected_materials:
                 cursor.execute(f"""
                     INSERT INTO cycle_count_item (
-                        count_id, material_codigo, cantidad_sistema, unidad,
-                        estado, categoria_abc
-                    ) VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph})
+                        count_id, material_codigo, cantidad_sistema, estado
+                    ) VALUES ({ph}, {ph}, {ph}, {ph})
                 """, (
                     count_id,
                     mat['codigo'],
                     mat.get('cantidad', 0),
-                    mat.get('unidad'),
-                    'pending',
-                    mat.get('categoria_abc')
+                    'pending'
                 ))
 
             conn.commit()
@@ -364,21 +361,21 @@ def obtener_conteos(filtros: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
             params = []
 
             if filtros.get('estado'):
-                conditions.append(f"estado = {ph}")
+                conditions.append(f"cc.estado = {ph}")
                 params.append(filtros['estado'])
 
             if filtros.get('almacen_id'):
-                conditions.append(f"almacen_id = {ph}")
+                conditions.append(f"cc.almacen_id = {ph}")
                 params.append(filtros['almacen_id'])
 
             if filtros.get('tipo'):
-                conditions.append(f"tipo = {ph}")
+                conditions.append(f"cc.tipo = {ph}")
                 params.append(filtros['tipo'])
 
             where_clause = ' AND '.join(conditions) if conditions else '1=1'
 
             # Count total
-            cursor.execute(f"SELECT COUNT(*) FROM cycle_count WHERE {where_clause}", params)
+            cursor.execute(f"SELECT COUNT(*) FROM cycle_count cc WHERE {where_clause}", params)
             total = cursor.fetchone()[0]
 
             # Get items
@@ -464,9 +461,8 @@ def obtener_detalle_conteo(count_id: int) -> Optional[Dict[str, Any]]:
 
             # Get items
             cursor.execute(f"""
-                SELECT id, material_codigo, cantidad_sistema, cantidad_contada, unidad,
-                       varianza, varianza_pct, estado, contado_por, fecha_conteo,
-                       categoria_abc
+                SELECT id, material_codigo, cantidad_sistema, cantidad_contada,
+                       varianza, varianza_pct, estado, contado_por, fecha_conteo
                 FROM cycle_count_item
                 WHERE count_id = {ph}
                 ORDER BY material_codigo
@@ -485,13 +481,12 @@ def obtener_detalle_conteo(count_id: int) -> Optional[Dict[str, Any]]:
                     'material_codigo': item_row[1],
                     'cantidad_sistema': float(item_row[2]) if item_row[2] is not None else 0,
                     'cantidad_contada': float(item_row[3]) if item_row[3] is not None else None,
-                    'unidad': item_row[4],
-                    'varianza': float(item_row[5]) if item_row[5] is not None else None,
-                    'varianza_pct': float(item_row[6]) if item_row[6] is not None else None,
-                    'estado': item_row[7],
-                    'contado_por': item_row[8],
-                    'fecha_conteo': item_row[9].isoformat() if item_row[9] else None,
-                    'categoria_abc': item_row[10]
+                    'varianza': float(item_row[4]) if item_row[4] is not None else None,
+                    'varianza_pct': float(item_row[5]) if item_row[5] is not None else None,
+                    'estado': item_row[6],
+                    'contado_por': item_row[7],
+                    'fecha_conteo': item_row[8].isoformat() if item_row[8] else None,
+                    'categoria_abc': None
                 }
                 items.append(item)
 
@@ -740,11 +735,11 @@ def obtener_kpis() -> Dict[str, Any]:
             """, ('counted',))
             varianza_total_abs = float(cursor.fetchone()[0] or 0)
 
-            # Ajustes pendientes
-            cursor.execute(f"""
+            # Ajustes pendientes (ajuste_inventario no tiene columna estado)
+            cursor.execute("""
                 SELECT COUNT(*) FROM ajuste_inventario
-                WHERE estado = {ph}
-            """, ('pending',))
+                WHERE aprobado_por IS NULL
+            """)
             ajustes_pendientes = cursor.fetchone()[0] or 0
 
             return {

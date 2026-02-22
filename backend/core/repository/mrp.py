@@ -5,6 +5,7 @@ Repositorio para parámetros MRP
 import logging
 from typing import Any, Dict, List, Optional
 
+from backend.core.db import is_using_postgresql
 from backend.core.repository.base import _connect_sap_data
 
 logger = logging.getLogger(__name__)
@@ -20,13 +21,23 @@ class MrpRepository:
         try:
             cur = conn_sap.cursor()
             # Buscar tabla MRP
-            cur.execute(
+            if is_using_postgresql():
+                cur.execute(
+                    """
+                    SELECT table_name FROM information_schema.tables
+                    WHERE table_schema = 'public'
+                    AND (table_name LIKE '%%mrp%%' OR table_name LIKE '%%param%%')
                 """
-                SELECT name FROM sqlite_master
-                WHERE type='table' AND (name LIKE '%%mrp%%' OR name LIKE '%%param%%')
-            """
-            )
-            mrp_tables = [row[0] for row in cur.fetchall()]
+                )
+                mrp_tables = [row[0] if isinstance(row, (list, tuple)) else row.get("table_name", row[0]) for row in cur.fetchall()]
+            else:
+                cur.execute(
+                    """
+                    SELECT name FROM sqlite_master
+                    WHERE type='table' AND (name LIKE '%%mrp%%' OR name LIKE '%%param%%')
+                """
+                )
+                mrp_tables = [row[0] for row in cur.fetchall()]
 
             if not mrp_tables:
                 return None
@@ -34,8 +45,18 @@ class MrpRepository:
             # Intentar con la primera tabla MRP encontrada
             for table in mrp_tables:
                 try:
-                    cur.execute(f"PRAGMA table_info({table})")
-                    columns = {row[1].lower() for row in cur.fetchall()}
+                    if is_using_postgresql():
+                        cur.execute(
+                            """
+                            SELECT column_name FROM information_schema.columns
+                            WHERE table_name = %s
+                            """,
+                            (table,),
+                        )
+                        columns = {row[0].lower() if isinstance(row, (list, tuple)) else row.get("column_name", "").lower() for row in cur.fetchall()}
+                    else:
+                        cur.execute(f"PRAGMA table_info({table})")
+                        columns = {row[1].lower() for row in cur.fetchall()}
 
                     if "material" in columns or "codigo" in columns:
                         material_col = "material" if "material" in columns else "codigo"
@@ -88,18 +109,38 @@ class MrpRepository:
         try:
             cur = conn_sap.cursor()
             # Buscar tabla de pedidos
-            cur.execute(
+            if is_using_postgresql():
+                cur.execute(
+                    """
+                    SELECT table_name FROM information_schema.tables
+                    WHERE table_schema = 'public'
+                    AND (table_name LIKE '%%pedido%%' OR table_name LIKE '%%orden%%')
                 """
-                SELECT name FROM sqlite_master
-                WHERE type='table' AND (name LIKE '%%pedido%%' OR name LIKE '%%orden%%')
-            """
-            )
-            pedido_tables = [row[0] for row in cur.fetchall()]
+                )
+                pedido_tables = [row[0] if isinstance(row, (list, tuple)) else row.get("table_name", row[0]) for row in cur.fetchall()]
+            else:
+                cur.execute(
+                    """
+                    SELECT name FROM sqlite_master
+                    WHERE type='table' AND (name LIKE '%%pedido%%' OR name LIKE '%%orden%%')
+                """
+                )
+                pedido_tables = [row[0] for row in cur.fetchall()]
 
             for table in pedido_tables:
                 try:
-                    cur.execute(f"PRAGMA table_info({table})")
-                    columns = {row[1].lower() for row in cur.fetchall()}
+                    if is_using_postgresql():
+                        cur.execute(
+                            """
+                            SELECT column_name FROM information_schema.columns
+                            WHERE table_name = %s
+                            """,
+                            (table,),
+                        )
+                        columns = {row[0].lower() if isinstance(row, (list, tuple)) else row.get("column_name", "").lower() for row in cur.fetchall()}
+                    else:
+                        cur.execute(f"PRAGMA table_info({table})")
+                        columns = {row[1].lower() for row in cur.fetchall()}
 
                     if "material" in columns or "codigo" in columns:
                         material_col = "material" if "material" in columns else "codigo"
@@ -131,18 +172,38 @@ class MrpRepository:
         try:
             cur = conn_sap.cursor()
             # Buscar tabla de consumo
-            cur.execute(
+            if is_using_postgresql():
+                cur.execute(
+                    """
+                    SELECT table_name FROM information_schema.tables
+                    WHERE table_schema = 'public'
+                    AND table_name LIKE '%%consumo%%'
                 """
-                SELECT name FROM sqlite_master
-                WHERE type='table' AND name LIKE '%%consumo%%'
-            """
-            )
-            consumo_tables = [row[0] for row in cur.fetchall()]
+                )
+                consumo_tables = [row[0] if isinstance(row, (list, tuple)) else row.get("table_name", row[0]) for row in cur.fetchall()]
+            else:
+                cur.execute(
+                    """
+                    SELECT name FROM sqlite_master
+                    WHERE type='table' AND name LIKE '%%consumo%%'
+                """
+                )
+                consumo_tables = [row[0] for row in cur.fetchall()]
 
             for table in consumo_tables:
                 try:
-                    cur.execute(f"PRAGMA table_info({table})")
-                    columns = {row[1].lower() for row in cur.fetchall()}
+                    if is_using_postgresql():
+                        cur.execute(
+                            """
+                            SELECT column_name FROM information_schema.columns
+                            WHERE table_name = %s
+                            """,
+                            (table,),
+                        )
+                        columns = {row[0].lower() if isinstance(row, (list, tuple)) else row.get("column_name", "").lower() for row in cur.fetchall()}
+                    else:
+                        cur.execute(f"PRAGMA table_info({table})")
+                        columns = {row[1].lower() for row in cur.fetchall()}
 
                     if "material" in columns or "codigo" in columns:
                         material_col = "material" if "material" in columns else "codigo"

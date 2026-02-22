@@ -19,10 +19,29 @@ _get_user = get_user_by_id
 
 
 def _table_exists(conn, name: str) -> bool:
-    """Verifica si una tabla existe en la BD"""
+    """Verifica si una tabla existe en la BD (compatible PostgreSQL y SQLite)"""
+    from backend.core.db import is_using_postgresql
+
     cur = conn.cursor()
-    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,))
-    return cur.fetchone() is not None
+    try:
+        if is_using_postgresql():
+            cur.execute(
+                "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = %s)",
+                (name,),
+            )
+            result = cur.fetchone()
+            if not result:
+                return False
+            if hasattr(result, "get"):
+                return bool(result.get("exists", False))
+            return bool(result[0]) if result else False
+        else:
+            cur.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,)
+            )
+            return cur.fetchone() is not None
+    except Exception:
+        return False
 
 
 def _current_user():

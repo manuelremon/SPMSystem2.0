@@ -28,15 +28,15 @@ def calcular_gasto_por_categoria(periodo_desde: str = None, periodo_hasta: str =
     cursor = conn.cursor()
 
     try:
-        where_clauses = ["oc.estado != 'cancelled'"]
+        where_clauses = ["oc.status != 'cancelled'"]
         params = []
 
         if periodo_desde:
-            where_clauses.append(f"oc.fecha_orden >= {placeholder}")
+            where_clauses.append(f"oc.created_at >= {placeholder}")
             params.append(periodo_desde)
 
         if periodo_hasta:
-            where_clauses.append(f"oc.fecha_orden <= {placeholder}")
+            where_clauses.append(f"oc.created_at <= {placeholder}")
             params.append(periodo_hasta)
 
         where_sql = " AND ".join(where_clauses)
@@ -44,15 +44,15 @@ def calcular_gasto_por_categoria(periodo_desde: str = None, periodo_hasta: str =
         cursor.execute(
             f"""
             SELECT
-                COALESCE(m.categoria, 'Sin Categoría') as categoria,
+                COALESCE(sr.categoria, 'Sin Categoría') as categoria,
                 SUM(oci.cantidad * oci.precio_unitario) as gasto_total,
                 COUNT(DISTINCT oc.id) as num_ordenes,
-                COUNT(DISTINCT oc.proveedor_cuit) as num_proveedores
+                COUNT(DISTINCT oc.proveedor_nombre) as num_proveedores
             FROM orden_compra oc
             JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
-            LEFT JOIN catalogo_materiales m ON oci.material_codigo = m.codigo
+            LEFT JOIN spend_registro sr ON oci.material_codigo = sr.material_codigo
             WHERE {where_sql}
-            GROUP BY COALESCE(m.categoria, 'Sin Categoría')
+            GROUP BY COALESCE(sr.categoria, 'Sin Categoría')
             ORDER BY gasto_total DESC
             """,
             params
@@ -95,7 +95,7 @@ def detectar_maverick_spend(periodo: str = None) -> dict:
     cursor = conn.cursor()
 
     try:
-        where_clauses = ["oc.estado != 'cancelled'"]
+        where_clauses = ["oc.status != 'cancelled'"]
         params = []
 
         if periodo:
@@ -109,8 +109,8 @@ def detectar_maverick_spend(periodo: str = None) -> dict:
             else:
                 fecha_fin = f"{year}-{month + 1:02d}-01"
 
-            where_clauses.append(f"oc.fecha_orden >= {placeholder}")
-            where_clauses.append(f"oc.fecha_orden < {placeholder}")
+            where_clauses.append(f"oc.created_at >= {placeholder}")
+            where_clauses.append(f"oc.created_at < {placeholder}")
             params.extend([fecha_inicio, fecha_fin])
 
         where_sql = " AND ".join(where_clauses)
@@ -145,14 +145,14 @@ def detectar_maverick_spend(periodo: str = None) -> dict:
         cursor.execute(
             f"""
             SELECT
-                oc.id, oc.numero, oc.fecha_orden, oc.proveedor_cuit,
+                oc.id, oc.numero, oc.created_at, oc.proveedor_nombre,
                 p.nombre as proveedor_nombre,
                 SUM(oci.cantidad * oci.precio_unitario) as monto
             FROM orden_compra oc
             JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
-            LEFT JOIN proveedores p ON oc.proveedor_cuit = p.cuit
+            LEFT JOIN proveedores p ON oc.proveedor_nombre = p.nombre
             WHERE {where_sql} AND oci.contrato_id IS NULL
-            GROUP BY oc.id, oc.numero, oc.fecha_orden, oc.proveedor_cuit, p.nombre
+            GROUP BY oc.id, oc.numero, oc.created_at, oc.proveedor_nombre, p.nombre
             ORDER BY monto DESC
             LIMIT 50
             """,
@@ -201,15 +201,15 @@ def generar_kraljic_matrix() -> list:
         # Obtener datos por categoría
         cursor.execute("""
             SELECT
-                COALESCE(m.categoria, 'Sin Categoría') as categoria,
-                COUNT(DISTINCT oc.proveedor_cuit) as num_proveedores,
-                AVG(oc.lead_time_dias) as avg_lead_time,
+                COALESCE(sr.categoria, 'Sin Categoría') as categoria,
+                COUNT(DISTINCT oc.proveedor_nombre) as num_proveedores,
+                0 as avg_lead_time,
                 SUM(oci.cantidad * oci.precio_unitario) as gasto_total
             FROM orden_compra oc
             JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
-            LEFT JOIN catalogo_materiales m ON oci.material_codigo = m.codigo
-            WHERE oc.estado != 'cancelled'
-            GROUP BY COALESCE(m.categoria, 'Sin Categoría')
+            LEFT JOIN spend_registro sr ON oci.material_codigo = sr.material_codigo
+            WHERE oc.status != 'cancelled'
+            GROUP BY COALESCE(sr.categoria, 'Sin Categoría')
         """)
 
         categorias = []
@@ -286,27 +286,27 @@ def obtener_tendencia_gasto(meses: int = 12) -> list:
         if using_pg:
             cursor.execute("""
                 SELECT
-                    TO_CHAR(oc.fecha_orden, 'YYYY-MM') as periodo,
+                    TO_CHAR(oc.created_at, 'YYYY-MM') as periodo,
                     SUM(oci.cantidad * oci.precio_unitario) as gasto_total,
                     SUM(CASE WHEN oci.contrato_id IS NOT NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_contrato,
                     SUM(CASE WHEN oci.contrato_id IS NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_maverick
                 FROM orden_compra oc
                 JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
-                WHERE oc.fecha_orden >= %s AND oc.estado != 'cancelled'
-                GROUP BY TO_CHAR(oc.fecha_orden, 'YYYY-MM')
+                WHERE oc.created_at >= %s AND oc.status != 'cancelled'
+                GROUP BY TO_CHAR(oc.created_at, 'YYYY-MM')
                 ORDER BY periodo
             """, (fecha_inicio,))
         else:
             cursor.execute("""
                 SELECT
-                    strftime('%Y-%m', oc.fecha_orden) as periodo,
+                    strftime('%Y-%m', oc.created_at) as periodo,
                     SUM(oci.cantidad * oci.precio_unitario) as gasto_total,
                     SUM(CASE WHEN oci.contrato_id IS NOT NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_contrato,
                     SUM(CASE WHEN oci.contrato_id IS NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_maverick
                 FROM orden_compra oc
                 JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
-                WHERE oc.fecha_orden >= ? AND oc.estado != 'cancelled'
-                GROUP BY strftime('%Y-%m', oc.fecha_orden)
+                WHERE oc.created_at >= ? AND oc.status != 'cancelled'
+                GROUP BY strftime('%Y-%m', oc.created_at)
                 ORDER BY periodo
             """, (fecha_inicio,))
 
@@ -353,17 +353,17 @@ def tomar_snapshot_periodo(periodo: str) -> dict:
         cursor.execute(
             f"""
             SELECT
-                COALESCE(m.categoria, 'Sin Categoría') as categoria,
+                COALESCE(sr.categoria, 'Sin Categoría') as categoria,
                 SUM(oci.cantidad * oci.precio_unitario) as gasto_total,
                 COUNT(DISTINCT oc.id) as num_ordenes,
-                COUNT(DISTINCT oc.proveedor_cuit) as num_proveedores,
+                COUNT(DISTINCT oc.proveedor_nombre) as num_proveedores,
                 SUM(CASE WHEN oci.contrato_id IS NOT NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_contrato
             FROM orden_compra oc
             JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
-            LEFT JOIN catalogo_materiales m ON oci.material_codigo = m.codigo
-            WHERE oc.fecha_orden >= {placeholder} AND oc.fecha_orden < {placeholder}
-            AND oc.estado != 'cancelled'
-            GROUP BY COALESCE(m.categoria, 'Sin Categoría')
+            LEFT JOIN spend_registro sr ON oci.material_codigo = sr.material_codigo
+            WHERE oc.created_at >= {placeholder} AND oc.created_at < {placeholder}
+            AND oc.status != 'cancelled'
+            GROUP BY COALESCE(sr.categoria, 'Sin Categoría')
             """,
             (fecha_inicio, fecha_fin)
         )
@@ -440,8 +440,8 @@ def obtener_tco_material(material_codigo: str) -> dict:
             FROM orden_compra oc
             JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
             WHERE oci.material_codigo = {placeholder}
-            AND oc.estado != 'cancelled'
-            ORDER BY oc.fecha_orden DESC
+            AND oc.status != 'cancelled'
+            ORDER BY oc.created_at DESC
             LIMIT 10
             """,
             (material_codigo,)

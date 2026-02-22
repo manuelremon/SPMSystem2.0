@@ -21,6 +21,7 @@ from typing import Any, Dict, Generator, List
 
 from backend.core.cache import cached, catalog_cache, query_cache
 from backend.core.config import settings
+from backend.core.db import is_using_postgresql
 
 logger = logging.getLogger(__name__)
 
@@ -357,20 +358,35 @@ def analyze_tables(db_name: str = "spm") -> Dict[str, Any]:
     Returns:
         Resultado de la operacion
     """
-    with get_pooled_connection(db_name) as conn:
-        cursor = conn.cursor()
+    if is_using_postgresql():
+        # PostgreSQL: use information_schema to list tables
+        from backend.core.db import get_db_connection
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_schema = 'public'
+            """)
+            tables = [row[0] if isinstance(row, (list, tuple)) else row.get("table_name", row[0]) for row in cursor.fetchall()]
+            for table in tables:
+                cursor.execute(f'ANALYZE "{table}"')
+            conn.commit()
+        return {"ok": True, "tables_analyzed": len(tables), "tables": tables}
+    else:
+        with get_pooled_connection(db_name) as conn:
+            cursor = conn.cursor()
 
-        # Obtener tablas
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        tables = [row[0] for row in cursor.fetchall()]
+            # Obtener tablas
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            tables = [row[0] for row in cursor.fetchall()]
 
-        # Analizar cada tabla
-        for table in tables:
-            cursor.execute(f"ANALYZE {table}")
+            # Analizar cada tabla
+            for table in tables:
+                cursor.execute(f"ANALYZE {table}")
 
-        conn.commit()
+            conn.commit()
 
-    return {"ok": True, "tables_analyzed": len(tables), "tables": tables}
+        return {"ok": True, "tables_analyzed": len(tables), "tables": tables}
 
 
 # =============================================================================
@@ -468,37 +484,70 @@ def get_db_stats(db_name: str = "spm") -> Dict[str, Any]:
     Returns:
         Estadisticas de la BD
     """
-    with get_pooled_connection(db_name) as conn:
-        cursor = conn.cursor()
+    if is_using_postgresql():
+        from backend.core.db import get_db_connection
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
 
-        # Tamano de la BD
-        cursor.execute("PRAGMA page_count")
-        page_count = cursor.fetchone()[0]
-        cursor.execute("PRAGMA page_size")
-        page_size = cursor.fetchone()[0]
-        size_bytes = page_count * page_size
+            # Tamano de la BD
+            cursor.execute("SELECT pg_database_size(current_database())")
+            size_bytes = cursor.fetchone()[0] or 0
 
-        # Conteo de tablas
-        cursor.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'")
-        table_count = cursor.fetchone()[0]
+            # Conteo de tablas
+            cursor.execute("""
+                SELECT COUNT(*) FROM information_schema.tables
+                WHERE table_schema = 'public'
+            """)
+            table_count = cursor.fetchone()[0]
 
-        # Conteo de indices
-        cursor.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='index'")
-        index_count = cursor.fetchone()[0]
+            # Conteo de indices
+            cursor.execute("""
+                SELECT COUNT(*) FROM pg_indexes
+                WHERE schemaname = 'public'
+            """)
+            index_count = cursor.fetchone()[0]
 
-        # WAL size
-        cursor.execute("PRAGMA wal_checkpoint(PASSIVE)")
-        wal_info = cursor.fetchone()
+            return {
+                "db_name": db_name,
+                "size_mb": round(size_bytes / (1024 * 1024), 2),
+                "page_count": 0,
+                "page_size": 0,
+                "table_count": table_count,
+                "index_count": index_count,
+                "wal_pages": 0,
+            }
+    else:
+        with get_pooled_connection(db_name) as conn:
+            cursor = conn.cursor()
 
-        return {
-            "db_name": db_name,
-            "size_mb": round(size_bytes / (1024 * 1024), 2),
-            "page_count": page_count,
-            "page_size": page_size,
-            "table_count": table_count,
-            "index_count": index_count,
-            "wal_pages": wal_info[1] if wal_info else 0,
-        }
+            # Tamano de la BD
+            cursor.execute("PRAGMA page_count")
+            page_count = cursor.fetchone()[0]
+            cursor.execute("PRAGMA page_size")
+            page_size = cursor.fetchone()[0]
+            size_bytes = page_count * page_size
+
+            # Conteo de tablas
+            cursor.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'")
+            table_count = cursor.fetchone()[0]
+
+            # Conteo de indices
+            cursor.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='index'")
+            index_count = cursor.fetchone()[0]
+
+            # WAL size
+            cursor.execute("PRAGMA wal_checkpoint(PASSIVE)")
+            wal_info = cursor.fetchone()
+
+            return {
+                "db_name": db_name,
+                "size_mb": round(size_bytes / (1024 * 1024), 2),
+                "page_count": page_count,
+                "page_size": page_size,
+                "table_count": table_count,
+                "index_count": index_count,
+                "wal_pages": wal_info[1] if wal_info else 0,
+            }
 
 
 def get_all_pool_stats() -> Dict[str, Any]:

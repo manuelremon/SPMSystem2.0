@@ -266,3 +266,7 @@ def register_blueprints(app: Flask) -> None:
     # Executive Procurement Dashboard (Sprint 90)
     from backend.routes.executive_analytics import executive_bp
     app.register_blueprint(executive_bp)  # Executive at /api/executive
+
+    # Barcode Scanner Pairing (Sprint 91)
+    from backend.routes.scanner import scanner_bp
+    app.register_blueprint(scanner_bp)  # Scanner at /api/scanner

@@ -106,26 +106,30 @@ class DashboardGrupoService:
 
     @staticmethod
     def list_all(owner_id: str, include_public: bool = True) -> List[DashboardGrupo]:
-        """Lista todos los grupos accesibles por el usuario"""
+        """Lista todos los grupos accesibles por el usuario.
+        Actual dashboard_grupo schema: id, nombre, descripcion, layout_json, widgets_json,
+        creado_por, es_publico, created_at, updated_at
+        """
         conn = _connect()
         try:
             cur = conn.cursor()
+            pub_clause = "es_publico = TRUE" if is_using_postgresql() else "es_publico = 1"
             if include_public:
                 _execute(
                     cur,
-                    """SELECT * FROM dashboard_grupo
-                       WHERE owner_id = ? OR es_publico = 1
-                       ORDER BY orden, nombre""",
+                    f"SELECT * FROM dashboard_grupo WHERE creado_por = ? OR {pub_clause} ORDER BY nombre",
                     (owner_id,),
                 )
             else:
                 _execute(
                     cur,
-                    "SELECT * FROM dashboard_grupo WHERE owner_id = ? ORDER BY orden, nombre",
+                    "SELECT * FROM dashboard_grupo WHERE creado_por = ? ORDER BY nombre",
                     (owner_id,),
                 )
             rows = _fetchall(cur)
-            return [DashboardGrupo.from_row(r) for r in rows]
+            # Remap creado_por -> owner_id for DashboardGrupo.from_row
+            remapped = [{**r, "owner_id": r.get("creado_por", "")} for r in rows]
+            return [DashboardGrupo.from_row(r) for r in remapped]
         finally:
             conn.close()
 
@@ -137,7 +141,10 @@ class DashboardGrupoService:
             cur = conn.cursor()
             _execute(cur, "SELECT * FROM dashboard_grupo WHERE id = ?", (grupo_id,))
             row = _fetchone(cur)
-            return DashboardGrupo.from_row(row) if row else None
+            if not row:
+                return None
+            remapped = {**row, "owner_id": row.get("creado_por", "")}
+            return DashboardGrupo.from_row(remapped)
         finally:
             conn.close()
 
@@ -148,11 +155,12 @@ class DashboardGrupoService:
         try:
             cur = conn.cursor()
             now = datetime.utcnow().isoformat() + "Z"
+            # Actual columns: nombre, descripcion, creado_por, es_publico, created_at, updated_at
             _execute(
                 cur,
-                """INSERT INTO dashboard_grupo (nombre, descripcion, icono, color, owner_id, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                (nombre, descripcion, icono, color, owner_id, now, now),
+                """INSERT INTO dashboard_grupo (nombre, descripcion, creado_por, es_publico, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (nombre, descripcion, owner_id, False, now, now),
             )
             conn.commit()
             grupo_id = cur.lastrowid
@@ -168,7 +176,7 @@ class DashboardGrupoService:
             cur = conn.cursor()
             _execute(
                 cur,
-                "DELETE FROM dashboard_grupo WHERE id = ? AND owner_id = ?",
+                "DELETE FROM dashboard_grupo WHERE id = ? AND creado_por = ?",
                 (grupo_id, owner_id),
             )
             conn.commit()
@@ -186,45 +194,85 @@ class DashboardService:
     """Servicio principal para dashboards"""
 
     @staticmethod
+    def _remap_row(row: Dict[str, Any]) -> Dict[str, Any]:
+        """Remaps actual DB columns to the Dashboard schema field names.
+        Actual: id (uuid), creado_por -> Expected: uuid, owner_id
+        """
+        if not row:
+            return row
+        out = dict(row)
+        # id is a UUID in PG, map to both 'id' (keep as-is) and 'uuid'
+        out["uuid"] = str(out.get("id", ""))
+        # creado_por -> owner_id
+        out["owner_id"] = out.get("creado_por", "")
+        return out
+
+    @staticmethod
     def list_all(
         owner_id: str,
         user_roles: List[str] = None,
         grupo_id: int = None,
         include_shared: bool = True,
     ) -> List[Dashboard]:
-        """Lista dashboards accesibles por el usuario usando QueryBuilder"""
+        """Lista dashboards accesibles por el usuario.
+
+        Actual dashboard table schema:
+          id (uuid), nombre, descripcion, layout_json, widgets_json,
+          creado_por, es_publico, created_at, updated_at, grupo_id
+        """
         conn = _connect()
         try:
             cur = conn.cursor()
+            pub_clause = "d.es_publico = TRUE" if is_using_postgresql() else "d.es_publico = 1"
 
-            # Build query using SQLAlchemy Core via QueryBuilder
-            query = QueryBuilder.get_dashboard_list_query(owner_id, grupo_id, include_shared)
-            
-            # Compile query to string and params
-            # We use the postgresql dialect for string rendering if on postgres, else default (sqlite)
-            # Actually, _execute handles ? vs %s, but SQLAlchemy generates :param
-            # We need to bridge SQLAlchemy params to the driver params.
-            
-            from sqlalchemy.dialects import postgresql as pg_dialect
-            from sqlalchemy.dialects import sqlite as sqlite_dialect
-
-            if is_using_postgresql():
-                compiled = query.compile(dialect=pg_dialect.dialect())
+            if include_shared:
+                if grupo_id is not None:
+                    sql = f"""
+                        SELECT d.*, dg.nombre as grupo_nombre
+                        FROM dashboard d
+                        LEFT JOIN dashboard_grupo dg ON d.grupo_id = dg.id
+                        WHERE (d.creado_por = ? OR {pub_clause}) AND d.grupo_id = ?
+                        ORDER BY d.updated_at DESC
+                    """
+                    _execute(cur, sql, (owner_id, grupo_id))
+                else:
+                    sql = f"""
+                        SELECT d.*, dg.nombre as grupo_nombre
+                        FROM dashboard d
+                        LEFT JOIN dashboard_grupo dg ON d.grupo_id = dg.id
+                        WHERE d.creado_por = ? OR {pub_clause}
+                        ORDER BY d.updated_at DESC
+                    """
+                    _execute(cur, sql, (owner_id,))
             else:
-                compiled = query.compile(dialect=sqlite_dialect.dialect())
+                if grupo_id is not None:
+                    sql = """
+                        SELECT d.*, dg.nombre as grupo_nombre
+                        FROM dashboard d
+                        LEFT JOIN dashboard_grupo dg ON d.grupo_id = dg.id
+                        WHERE d.creado_por = ? AND d.grupo_id = ?
+                        ORDER BY d.updated_at DESC
+                    """
+                    _execute(cur, sql, (owner_id, grupo_id))
+                else:
+                    sql = """
+                        SELECT d.*, dg.nombre as grupo_nombre
+                        FROM dashboard d
+                        LEFT JOIN dashboard_grupo dg ON d.grupo_id = dg.id
+                        WHERE d.creado_por = ?
+                        ORDER BY d.updated_at DESC
+                    """
+                    _execute(cur, sql, (owner_id,))
 
-            sql_str = str(compiled)
-            params = compiled.params
-            cur.execute(sql_str, params)
-            
             rows = _fetchall(cur)
 
             dashboards = []
             seen_ids = set()
             for row in rows:
-                if row["id"] not in seen_ids:
-                    seen_ids.add(row["id"])
-                    dashboards.append(Dashboard.from_row(row))
+                row_id = row.get("id")
+                if row_id not in seen_ids:
+                    seen_ids.add(row_id)
+                    dashboards.append(Dashboard.from_row(DashboardService._remap_row(row)))
 
             return dashboards
         finally:
@@ -232,42 +280,31 @@ class DashboardService:
 
     @staticmethod
     def get_by_uuid(uuid: str, user_id: str = None, check_permission: bool = True) -> Optional[Dashboard]:
-        """Obtiene un dashboard por UUID con todas sus hojas y datasources"""
+        """Obtiene un dashboard por UUID (id column is of type uuid in PG)."""
         conn = _connect()
         try:
             cur = conn.cursor()
 
-            # Obtener dashboard base
-            _execute(cur, "SELECT * FROM dashboard WHERE uuid = ?", (uuid,))
+            # Actual PK 'id' is a UUID type; cast to text for comparison
+            if is_using_postgresql():
+                _execute(cur, "SELECT * FROM dashboard WHERE id::text = ?", (str(uuid),))
+            else:
+                _execute(cur, "SELECT * FROM dashboard WHERE id = ?", (str(uuid),))
             row = _fetchone(cur)
 
             if not row:
                 return None
 
-            dashboard = Dashboard.from_row(row)
+            dashboard = Dashboard.from_row(DashboardService._remap_row(row))
 
             # Verificar permisos si se requiere
             if check_permission and user_id:
                 if not DashboardService._has_access(dashboard, user_id):
                     return None
 
-            # Cargar sheets
-            _execute(
-                cur,
-                "SELECT * FROM dashboard_sheet WHERE dashboard_id = ? ORDER BY sheet_index",
-                (dashboard.id,),
-            )
-            sheets = _fetchall(cur)
-            dashboard.sheets = [DashboardSheet.from_row(s) for s in sheets]
-
-            # Cargar datasources
-            _execute(
-                cur,
-                "SELECT * FROM dashboard_datasource WHERE dashboard_id = ?",
-                (dashboard.id,),
-            )
-            datasources = _fetchall(cur)
-            dashboard.datasources = [DashboardDataSource.from_row(d) for d in datasources]
+            # No dashboard_sheet or dashboard_datasource tables exist - return empty
+            dashboard.sheets = []
+            dashboard.datasources = []
 
             # Cargar grupo si existe
             if dashboard.grupo_id:
@@ -279,31 +316,25 @@ class DashboardService:
 
     @staticmethod
     def _has_access(dashboard: Dashboard, user_id: str) -> bool:
-        """Verifica si el usuario tiene acceso al dashboard"""
-        # Propietario siempre tiene acceso
-        if dashboard.owner_id == user_id:
+        """Verifica si el usuario tiene acceso al dashboard.
+        Actual schema: creado_por (not owner_id), no dashboard_permiso table.
+        """
+        # Propietario (creado_por) siempre tiene acceso
+        owner = getattr(dashboard, 'owner_id', None) or getattr(dashboard, 'creado_por', None)
+        if owner == user_id:
             return True
 
         # Dashboard publico
         if dashboard.es_publico:
             return True
 
-        # Verificar permisos explicitos
-        conn = _connect()
-        try:
-            cur = conn.cursor()
-            _execute(
-                cur,
-                "SELECT 1 FROM dashboard_permiso WHERE dashboard_id = ? AND usuario_id = ?",
-                (dashboard.id, user_id),
-            )
-            return _fetchone(cur) is not None
-        finally:
-            conn.close()
+        return False
 
     @staticmethod
-    def get_permission_level(dashboard_id: int, user_id: str, owner_id: str) -> Optional[str]:
-        """Obtiene el nivel de permiso del usuario para el dashboard"""
+    def get_permission_level(dashboard_id: Any, user_id: str, owner_id: str) -> Optional[str]:
+        """Obtiene el nivel de permiso del usuario para el dashboard.
+        No dashboard_permiso table exists - simplified permission check.
+        """
         # Propietario tiene admin
         if owner_id == user_id:
             return PermisoNivel.ADMIN.value
@@ -311,23 +342,14 @@ class DashboardService:
         conn = _connect()
         try:
             cur = conn.cursor()
-            _execute(
-                cur,
-                "SELECT permiso FROM dashboard_permiso WHERE dashboard_id = ? AND usuario_id = ?",
-                (dashboard_id, user_id),
-            )
-            row = _fetchone(cur)
-            if row:
-                return row["permiso"]
 
-            # Verificar si es publico
-            _execute(
-                cur,
-                "SELECT es_publico FROM dashboard WHERE id = ?",
-                (dashboard_id,),
-            )
+            # Check if public (no dashboard_permiso table in actual schema)
+            if is_using_postgresql():
+                _execute(cur, "SELECT es_publico FROM dashboard WHERE id::text = ?", (str(dashboard_id),))
+            else:
+                _execute(cur, "SELECT es_publico FROM dashboard WHERE id = ?", (str(dashboard_id),))
             dash_row = _fetchone(cur)
-            if dash_row and dash_row["es_publico"]:
+            if dash_row and dash_row.get("es_publico"):
                 return PermisoNivel.VIEW.value
 
             return None

@@ -2,9 +2,12 @@
 Servicio para gestión de garantías y reclamos
 Fecha: 2026-02-15
 """
+import logging
 from datetime import datetime, timedelta
 
 from backend.core.db import get_db_connection
+
+logger = logging.getLogger(__name__)
 
 
 def crear_garantia(material_codigo, proveedor_cuit, tipo, duracion_meses, fecha_inicio,
@@ -22,10 +25,11 @@ def crear_garantia(material_codigo, proveedor_cuit, tipo, duracion_meses, fecha_
             material_codigo, proveedor_cuit, lote_id, orden_compra_id,
             tipo, duracion_meses, fecha_inicio, fecha_fin, condiciones, estado
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+        RETURNING id
     """, (material_codigo, proveedor_cuit, lote_id, orden_compra_id,
           tipo, duracion_meses, fecha_inicio, fecha_fin.isoformat(), condiciones))
 
-    garantia_id = cursor.lastrowid
+    garantia_id = cursor.fetchone()[0]
     conn.commit()
     conn.close()
 
@@ -129,10 +133,11 @@ def crear_reclamo(garantia_id, tipo, descripcion, cantidad_afectada=None,
             numero_reclamo, garantia_id, tipo, descripcion,
             cantidad_afectada, costo_estimado, responsable_id, estado
         ) VALUES (?, ?, ?, ?, ?, ?, ?, 'draft')
+        RETURNING id
     """, (numero_reclamo, garantia_id, tipo, descripcion,
           cantidad_afectada, costo_estimado, responsable_id))
 
-    reclamo_id = cursor.lastrowid
+    reclamo_id = cursor.fetchone()[0]
 
     # Registrar en historial
     cursor.execute("""
@@ -465,9 +470,10 @@ def agregar_documento_reclamo(reclamo_id, nombre, path, tipo):
         INSERT INTO reclamo_documento (
             reclamo_id, nombre, path, tipo
         ) VALUES (?, ?, ?, ?)
+        RETURNING id
     """, (reclamo_id, nombre, path, tipo))
 
-    doc_id = cursor.lastrowid
+    doc_id = cursor.fetchone()[0]
     conn.commit()
     conn.close()
 
@@ -495,7 +501,7 @@ def check_garantias_por_vencer(dias_anticipacion=30):
         LEFT JOIN proveedores p ON g.proveedor_cuit = p.id_proveedor
         WHERE g.estado = 'active'
         AND g.fecha_fin <= ?
-        AND g.fecha_fin >= date('now')
+        AND g.fecha_fin >= CURRENT_DATE
         ORDER BY g.fecha_fin ASC
     """, (fecha_limite,))
 
@@ -516,7 +522,7 @@ def check_garantias_por_vencer(dias_anticipacion=30):
         UPDATE garantia
         SET estado = 'expired'
         WHERE estado = 'active'
-        AND fecha_fin < date('now')
+        AND fecha_fin < CURRENT_DATE
     """)
 
     conn.commit()
@@ -543,7 +549,7 @@ def obtener_kpis():
         SELECT COALESCE(SUM(monto_recuperado), 0)
         FROM reclamo_garantia
         WHERE estado = 'resolved'
-        AND fecha_resolucion >= date('now', '-30 days')
+        AND fecha_resolucion >= CURRENT_DATE - INTERVAL '30 days'
     """)
     monto_recuperado = cursor.fetchone()[0]
 
@@ -554,7 +560,7 @@ def obtener_kpis():
             COUNT(CASE WHEN estado = 'rejected' THEN 1 END) as rechazados
         FROM reclamo_garantia
         WHERE estado IN ('approved', 'rejected', 'resolved')
-        AND created_at >= date('now', '-90 days')
+        AND created_at >= CURRENT_DATE - INTERVAL '90 days'
     """)
     row = cursor.fetchone()
     aprobados = row[0] or 0
@@ -566,8 +572,8 @@ def obtener_kpis():
         SELECT COUNT(*)
         FROM garantia
         WHERE estado = 'active'
-        AND fecha_fin <= date('now', '+30 days')
-        AND fecha_fin >= date('now')
+        AND fecha_fin <= CURRENT_DATE + INTERVAL '30 days'
+        AND fecha_fin >= CURRENT_DATE
     """)
     garantias_por_vencer = cursor.fetchone()[0]
 

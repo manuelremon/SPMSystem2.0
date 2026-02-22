@@ -999,59 +999,115 @@ def _search_materials_direct(query: str) -> list:
 
     try:
 
-        from backend.core.db import get_master_materiales_db_path
+        from backend.core.db import get_master_materiales_db_path, is_using_postgresql
 
-        db_path = str(get_master_materiales_db_path())
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
+        if is_using_postgresql():
+            from backend.core.db import get_db_connection
+            with get_db_connection() as conn:
+                cur = conn.cursor()
 
-        # Verificar si la tabla existe
-        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='catalogo_materiales'")
-        if not cur.fetchone():
+                # Verificar si la tabla existe
+                cur.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables
+                        WHERE table_schema = 'public' AND table_name = 'catalogo_materiales'
+                    )
+                """)
+                row = cur.fetchone()
+                exists = row[0] if isinstance(row, (list, tuple)) else row.get("exists", False)
+                if not exists:
+                    return []
+
+                results = []
+
+                # 1. Busqueda por codigo SAP exacto (maxima prioridad)
+                for code in sap_codes + sap_codes_alt:
+                    cur.execute(
+                        """SELECT codigo, descripcion, COALESCE(precio_usd, 0) as precio
+                           FROM catalogo_materiales WHERE codigo = ? AND activo = TRUE""",
+                        (code,),
+                    )
+                    for row in cur.fetchall():
+                        results.append({**dict(row), "relevance": 100})
+
+                # 2. Busqueda por keywords (si no encontramos por codigo)
+                if not results and keywords:
+                    search = build_description_search(
+                        " ".join(keywords[:5]),
+                        ["descripcion", "descripcion_larga"],
+                        include_ranking=True,
+                    )
+                    if search:
+                        ranking_expr = search.order_expr or "0"
+                        all_params = (search.order_params or []) + search.params
+
+                        sql = f"""
+                            SELECT
+                                codigo,
+                                descripcion,
+                                COALESCE(precio_usd, 0) as precio,
+                                ({ranking_expr}) as relevance
+                            FROM catalogo_materiales
+                            WHERE ({search.where_clause})
+                            AND activo = TRUE
+                            ORDER BY relevance DESC, precio DESC
+                            LIMIT 10
+                        """
+                        cur.execute(sql, all_params)
+                        results = [dict(row) for row in cur.fetchall()]
+                        results = [r for r in results if r.get('relevance', 0) > 0]
+        else:
+            db_path = str(get_master_materiales_db_path())
+            conn = sqlite3.connect(db_path)
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+
+            # Verificar si la tabla existe
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='catalogo_materiales'")
+            if not cur.fetchone():
+                conn.close()
+                return []
+
+            results = []
+
+            # 1. Busqueda por codigo SAP exacto (maxima prioridad)
+            for code in sap_codes + sap_codes_alt:
+                cur.execute(
+                    """SELECT codigo, descripcion, COALESCE(precio_usd, 0) as precio
+                       FROM catalogo_materiales WHERE codigo = ? AND activo = TRUE""",
+                    (code,),
+                )
+                for row in cur.fetchall():
+                    results.append({**dict(row), "relevance": 100})
+
+            # 2. Busqueda por keywords (si no encontramos por codigo)
+            if not results and keywords:
+                search = build_description_search(
+                    " ".join(keywords[:5]),
+                    ["descripcion", "descripcion_larga"],
+                    include_ranking=True,
+                )
+                if search:
+                    ranking_expr = search.order_expr or "0"
+                    all_params = (search.order_params or []) + search.params
+
+                    sql = f"""
+                        SELECT
+                            codigo,
+                            descripcion,
+                            COALESCE(precio_usd, 0) as precio,
+                            ({ranking_expr}) as relevance
+                        FROM catalogo_materiales
+                        WHERE ({search.where_clause})
+                        AND activo = TRUE
+                        ORDER BY relevance DESC, precio DESC
+                        LIMIT 10
+                    """
+                    cur.execute(sql, all_params)
+                    results = [dict(row) for row in cur.fetchall()]
+                    results = [r for r in results if r.get('relevance', 0) > 0]
+
             conn.close()
-            return []
-
-        results = []
-
-        # 1. Busqueda por codigo SAP exacto (maxima prioridad)
-        for code in sap_codes + sap_codes_alt:
-            cur.execute(
-                """SELECT codigo, descripcion, COALESCE(precio_usd, 0) as precio
-                   FROM catalogo_materiales WHERE codigo = ? AND activo = TRUE""",
-                (code,),
-            )
-            for row in cur.fetchall():
-                results.append({**dict(row), "relevance": 100})
-
-        # 2. Busqueda por keywords (si no encontramos por codigo)
-        if not results and keywords:
-            search = build_description_search(
-                " ".join(keywords[:5]),
-                ["descripcion", "descripcion_larga"],
-                include_ranking=True,
-            )
-            if search:
-                ranking_expr = search.order_expr or "0"
-                all_params = (search.order_params or []) + search.params
-
-                sql = f"""
-                    SELECT
-                        codigo,
-                        descripcion,
-                        COALESCE(precio_usd, 0) as precio,
-                        ({ranking_expr}) as relevance
-                    FROM catalogo_materiales
-                    WHERE ({search.where_clause})
-                    AND activo = TRUE
-                    ORDER BY relevance DESC, precio DESC
-                    LIMIT 10
-                """
-                cur.execute(sql, all_params)
-                results = [dict(row) for row in cur.fetchall()]
-                results = [r for r in results if r.get('relevance', 0) > 0]
-
-        conn.close()
 
         # 3. Enriquecer con datos de stock (sap_data.db)
         if results:
@@ -1103,39 +1159,77 @@ def _enrich_with_equivalencias(materials: list) -> list:
     """Agrega equivalencias disponibles a los resultados."""
     import sqlite3
     try:
-        from backend.core.db import get_master_materiales_db_path
-        db_path = str(get_master_materiales_db_path())
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
+        from backend.core.db import get_master_materiales_db_path, is_using_postgresql
 
-        # Verificar si existe la tabla de equivalencias
-        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='materiales_equivalencias'")
-        if not cur.fetchone():
+        if is_using_postgresql():
+            from backend.core.db import get_db_connection
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+
+                # Verificar si existe la tabla de equivalencias
+                cur.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables
+                        WHERE table_schema = 'public' AND table_name = 'materiales_equivalencias'
+                    )
+                """)
+                row = cur.fetchone()
+                exists = row[0] if isinstance(row, (list, tuple)) else row.get("exists", False)
+                if not exists:
+                    return materials
+
+                for mat in materials:
+                    codigo = mat.get("codigo", "")
+                    cur.execute(
+                        """SELECT material_equivalente, texto_breve_equivalente, tipo_equiv
+                           FROM materiales_equivalencias
+                           WHERE material_base = ?
+                           LIMIT 3""",
+                        (codigo,),
+                    )
+                    equiv_rows = cur.fetchall()
+                    if equiv_rows:
+                        mat["equivalencias"] = [
+                            {
+                                "codigo": r["material_equivalente"] if isinstance(r, dict) else r[0],
+                                "descripcion": r["texto_breve_equivalente"] if isinstance(r, dict) else r[1],
+                                "tipo": r["tipo_equiv"] if isinstance(r, dict) else r[2],
+                            }
+                            for r in equiv_rows
+                        ]
+        else:
+            db_path = str(get_master_materiales_db_path())
+            conn = sqlite3.connect(db_path)
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+
+            # Verificar si existe la tabla de equivalencias
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='materiales_equivalencias'")
+            if not cur.fetchone():
+                conn.close()
+                return materials
+
+            for mat in materials:
+                codigo = mat.get("codigo", "")
+                cur.execute(
+                    """SELECT material_equivalente, texto_breve_equivalente, tipo_equiv
+                       FROM materiales_equivalencias
+                       WHERE material_base = ?
+                       LIMIT 3""",
+                    (codigo,),
+                )
+                equiv_rows = cur.fetchall()
+                if equiv_rows:
+                    mat["equivalencias"] = [
+                        {
+                            "codigo": r["material_equivalente"],
+                            "descripcion": r["texto_breve_equivalente"],
+                            "tipo": r["tipo_equiv"],
+                        }
+                        for r in equiv_rows
+                    ]
+
             conn.close()
-            return materials
-
-        for mat in materials:
-            codigo = mat.get("codigo", "")
-            cur.execute(
-                """SELECT material_equivalente, texto_breve_equivalente, tipo_equiv
-                   FROM materiales_equivalencias
-                   WHERE material_base = ?
-                   LIMIT 3""",
-                (codigo,),
-            )
-            equiv_rows = cur.fetchall()
-            if equiv_rows:
-                mat["equivalencias"] = [
-                    {
-                        "codigo": r["material_equivalente"],
-                        "descripcion": r["texto_breve_equivalente"],
-                        "tipo": r["tipo_equiv"],
-                    }
-                    for r in equiv_rows
-                ]
-
-        conn.close()
     except Exception as e:
         logger.debug(f"No se pudo enriquecer con equivalencias: {e}")
 

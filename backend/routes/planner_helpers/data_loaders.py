@@ -80,13 +80,12 @@ def _load_equivalencias_catalogo():
 
 def _stock_disponible(codigo: str, centro: str = None, almacen: str = None, stock_df=None) -> float:
     """Obtiene stock disponible priorizando tabla stock_almacenes; cae a sap_data.db si no existe."""
+    from backend.routes.planner_helpers.helpers import _table_exists
+
     try:
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='stock_almacenes'"
-            )
-            if cur.fetchone():
+            if _table_exists(conn, "stock_almacenes"):
                 params = [_norm_codigo(codigo)]
                 sql = "SELECT COALESCE(SUM(cantidad),0) FROM stock_almacenes WHERE codigo_material = ?"
                 if centro:
@@ -315,13 +314,12 @@ def _stock_detalle(codigo: str, centro: str = None, almacen: str = None, stock_d
     almacen_norm = _norm_codigo(almacen) if almacen else None
 
     # Primero intentar tabla stock_almacenes en spm.db
+    from backend.routes.planner_helpers.helpers import _table_exists
+
     try:
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='stock_almacenes'"
-            )
-            if cur.fetchone():
+            if _table_exists(conn, "stock_almacenes"):
                 params = [codigo_norm]
                 sql = "SELECT centro, almacen, SUM(cantidad) as cantidad FROM stock_almacenes WHERE codigo_material=?"
                 if centro:

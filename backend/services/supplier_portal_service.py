@@ -185,7 +185,7 @@ def obtener_usuarios_portal(filtros: dict = None) -> list:
                 ppu.id, ppu.proveedor_cuit, p.nombre as proveedor_nombre,
                 ppu.email, ppu.nombre, ppu.estado, ppu.ultimo_login, ppu.created_at
             FROM portal_proveedor_usuario ppu
-            LEFT JOIN proveedores p ON ppu.proveedor_cuit = p.cuit
+            LEFT JOIN proveedores p ON ppu.proveedor_cuit = p.id_proveedor
             {where_sql}
             ORDER BY ppu.created_at DESC
             """,
@@ -291,13 +291,13 @@ def obtener_pos_proveedor(proveedor_cuit: str) -> list:
         cursor.execute(
             f"""
             SELECT
-                id, numero, fecha_emision, fecha_entrega_esperada,
-                monto_total, moneda, estado, created_at
+                id, numero, status, subtotal, moneda, created_at,
+                proveedor_nombre, proveedor_email
             FROM orden_compra
-            WHERE proveedor_cuit = {placeholder}
+            WHERE proveedor_email = {placeholder} OR proveedor_nombre = {placeholder}
             ORDER BY created_at DESC
             """,
-            (proveedor_cuit,)
+            (proveedor_cuit, proveedor_cuit)
         )
 
         ordenes = []
@@ -305,12 +305,12 @@ def obtener_pos_proveedor(proveedor_cuit: str) -> list:
             ordenes.append({
                 'id': row[0],
                 'numero': row[1],
-                'fecha_emision': row[2],
-                'fecha_entrega_esperada': row[3],
-                'monto_total': float(row[4]) if row[4] else 0,
-                'moneda': row[5],
-                'estado': row[6],
-                'created_at': row[7]
+                'fecha_emision': str(row[5]) if row[5] else None,
+                'fecha_entrega_estimada': None,
+                'monto_total': float(row[3]) if row[3] else 0,
+                'moneda': row[4],
+                'estado': row[2],
+                'created_at': str(row[5]) if row[5] else None
             })
 
         return ordenes
@@ -503,7 +503,7 @@ def obtener_asns(proveedor_cuit: str = None, estado: str = None) -> list:
                 a.fecha_envio, a.fecha_entrega_estimada, a.transportista,
                 a.guia_rastreo, a.estado, a.created_at
             FROM asn a
-            LEFT JOIN proveedores p ON a.proveedor_cuit = p.cuit
+            LEFT JOIN proveedores p ON a.proveedor_cuit = p.id_proveedor
             LEFT JOIN orden_compra oc ON a.orden_compra_id = oc.id
             {where_sql}
             ORDER BY a.created_at DESC
@@ -560,7 +560,7 @@ def obtener_detalle_asn(asn_id: int) -> dict:
                 a.fecha_envio, a.fecha_entrega_estimada, a.transportista,
                 a.guia_rastreo, a.estado, a.created_at
             FROM asn a
-            LEFT JOIN proveedores p ON a.proveedor_cuit = p.cuit
+            LEFT JOIN proveedores p ON a.proveedor_cuit = p.id_proveedor
             LEFT JOIN orden_compra oc ON a.orden_compra_id = oc.id
             WHERE a.id = {placeholder}
             """,
@@ -786,7 +786,7 @@ def obtener_actividad_proveedores() -> list:
                 pal.ip, pal.created_at
             FROM portal_acceso_log pal
             LEFT JOIN portal_proveedor_usuario ppu ON pal.usuario_id = ppu.id
-            LEFT JOIN proveedores p ON ppu.proveedor_cuit = p.cuit
+            LEFT JOIN proveedores p ON ppu.proveedor_cuit = p.id_proveedor
             ORDER BY pal.created_at DESC
             LIMIT 100
         """)

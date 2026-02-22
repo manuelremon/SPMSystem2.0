@@ -32,12 +32,12 @@ def detectar_desbalances() -> list:
             SELECT
                 ns.material_codigo,
                 ns.almacen,
-                ns.safety_stock,
-                COALESCE(s.cantidad, 0) as stock_actual
+                ns.stock_seguridad_calculado,
+                COALESCE(s.stock, 0) as stock_actual
             FROM nivel_servicio_objetivo ns
-            LEFT JOIN stock s ON ns.material_codigo = s.codigo
-                              AND ns.almacen = s.almacen
-            WHERE ns.safety_stock > 0
+            LEFT JOIN stock s ON ns.material_codigo = s.material
+                              AND ns.almacen = s.centro
+            WHERE ns.stock_seguridad_calculado > 0
         """)
 
         stock_data = {}
@@ -387,32 +387,30 @@ def calcular_niveles_servicio(material_codigo: str, almacen: str) -> dict:
         # Reorder point = demanda promedio durante lead time + safety stock
         reorder_point = (promedio * lead_time_days) + safety_stock
 
-        # Upsert nivel_servicio_objetivo
+        # Upsert nivel_servicio_objetivo using actual schema columns
         if is_using_postgresql():
             cur.execute("""
                 INSERT INTO nivel_servicio_objetivo
-                    (material_codigo, almacen, safety_stock, reorder_point,
-                     service_level, demanda_promedio, desviacion_estandar, lead_time_days)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    (material_codigo, almacen, nivel_servicio,
+                     stock_seguridad_calculado, punto_reorden_calculado,
+                     ultimo_calculo, updated_at)
+                VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
                 ON CONFLICT (material_codigo, almacen)
                 DO UPDATE SET
-                    safety_stock = EXCLUDED.safety_stock,
-                    reorder_point = EXCLUDED.reorder_point,
-                    service_level = EXCLUDED.service_level,
-                    demanda_promedio = EXCLUDED.demanda_promedio,
-                    desviacion_estandar = EXCLUDED.desviacion_estandar,
-                    lead_time_days = EXCLUDED.lead_time_days,
+                    nivel_servicio = EXCLUDED.nivel_servicio,
+                    stock_seguridad_calculado = EXCLUDED.stock_seguridad_calculado,
+                    punto_reorden_calculado = EXCLUDED.punto_reorden_calculado,
+                    ultimo_calculo = NOW(),
                     updated_at = NOW()
-            """, (material_codigo, almacen, safety_stock, reorder_point,
-                  service_level, promedio, desviacion, lead_time_days))
+            """, (material_codigo, almacen, service_level, safety_stock, reorder_point))
         else:
             cur.execute("""
                 INSERT OR REPLACE INTO nivel_servicio_objetivo
-                    (material_codigo, almacen, safety_stock, reorder_point,
-                     service_level, demanda_promedio, desviacion_estandar, lead_time_days)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (material_codigo, almacen, safety_stock, reorder_point,
-                  service_level, promedio, desviacion, lead_time_days))
+                    (material_codigo, almacen, nivel_servicio,
+                     stock_seguridad_calculado, punto_reorden_calculado,
+                     ultimo_calculo, updated_at)
+                VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+            """, (material_codigo, almacen, service_level, safety_stock, reorder_point))
 
         conn.commit()
 
@@ -571,7 +569,7 @@ def obtener_kpis_optimizacion() -> dict:
 
         # Nivel de servicio promedio
         cur.execute("""
-            SELECT AVG(service_level) FROM nivel_servicio_objetivo
+            SELECT AVG(nivel_servicio) FROM nivel_servicio_objetivo
         """)
         nivel_servicio_promedio = cur.fetchone()[0] or 0
 

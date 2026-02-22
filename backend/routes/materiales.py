@@ -33,6 +33,122 @@ def _fetch_catalogo(query: str, params: tuple) -> list[dict]:
     return [dict(row) for row in rows]
 
 
+def _build_desc_query(q_desc: str, q_codigo: str, q_grupo: str, limit: int):
+    """Build a smart description search query.
+
+    Combines descripcion (short) + descripcion_larga (long) but avoids
+    false positives from kits that merely mention a material as a
+    sub-component.
+
+    Strategy:
+      - Match in descripcion (words with AND) → always included
+      - Match in descripcion_larga only if the phrase appears at the
+        START of the text (i.e. it describes the material itself, not
+        a sub-component)
+      - Results are sorted: descripcion matches first, then
+        descripcion_larga starts-with matches, then by codigo.
+    """
+    from backend.core.search_utils import build_description_search, normalize_search_term
+
+    normalized = normalize_search_term(q_desc)
+    words = [w for w in normalized.split() if len(w) >= 2]
+    if not words:
+        return None, None
+
+    phrase = " ".join(words)
+
+    conditions = []
+    params = []
+
+    # Condition A: words match in descripcion (short)
+    search_desc = build_description_search(q_desc, ["descripcion"])
+    if search_desc:
+        conditions.append(search_desc.where_clause)
+        params.extend(search_desc.params)
+
+    # Condition B: descripcion_larga STARTS WITH the phrase
+    conditions.append("UPPER(descripcion_larga) LIKE ?")
+    params.append(f"{phrase}%")
+
+    desc_filter = "(" + " OR ".join(conditions) + ")"
+
+    # Also add codigo filter if present
+    filters = []
+    if q_codigo:
+        filters.append(f"UPPER({_COL_ID}) LIKE UPPER(?)")
+        params.insert(0, f"%{q_codigo}%")
+        # codigo OR description
+        filters = ["(" + " OR ".join([filters[0], desc_filter]) + ")"]
+    else:
+        filters.append(desc_filter)
+
+    if q_grupo:
+        filters.append(f"UPPER({_COL_GRUPO}) LIKE UPPER(?)")
+        params.append(f"%{q_grupo}%")
+
+    where = "WHERE " + " AND ".join(filters)
+
+    # Ranking: descripcion match = 0 (best), descripcion_larga starts-with = 1
+    rank_parts = []
+    rank_params = []
+    if search_desc:
+        rank_parts.append(f"CASE WHEN {search_desc.where_clause} THEN 0 ELSE 1 END")
+        rank_params.extend(search_desc.params)
+    else:
+        rank_parts.append("1")
+
+    order_by = f"ORDER BY {rank_parts[0]}, {_COL_ID} ASC"
+    all_params = params + rank_params + [limit]
+
+    query = f"""
+        SELECT {_COL_ID} AS codigo, descripcion, descripcion_larga,
+               {_COL_GRUPO} AS grupo_articulos, unidad_medida, precio_usd
+        FROM {_TABLA}
+        {where}
+        {order_by}
+        LIMIT ?
+    """
+    return query, tuple(all_params)
+
+
+def _fallback_broad(q_desc: str, q_grupo: str, limit: int) -> list[dict]:
+    """Broadest fallback: all words in descripcion OR descripcion_larga.
+
+    Only used when the smart query returns 0 results.  Results where
+    descripcion_larga starts with the phrase are sorted first.
+    """
+    from backend.core.search_utils import build_description_search, normalize_search_term
+
+    normalized = normalize_search_term(q_desc)
+    words = [w for w in normalized.split() if len(w) >= 2]
+    if not words:
+        return []
+
+    phrase = " ".join(words)
+
+    search = build_description_search(q_desc, ["descripcion", "descripcion_larga"])
+    if not search:
+        return []
+
+    grupo_clause = ""
+    grupo_params: list = []
+    if q_grupo:
+        grupo_clause = f" AND UPPER({_COL_GRUPO}) LIKE UPPER(?)"
+        grupo_params = [f"%{q_grupo}%"]
+
+    query = f"""
+        SELECT {_COL_ID} AS codigo, descripcion, descripcion_larga,
+               {_COL_GRUPO} AS grupo_articulos, unidad_medida, precio_usd
+        FROM {_TABLA}
+        WHERE {search.where_clause}{grupo_clause}
+        ORDER BY (CASE WHEN UPPER(descripcion_larga) LIKE ? THEN 0 ELSE 1 END),
+                 {_COL_ID} ASC
+        LIMIT ?
+    """
+    params = list(search.params) + grupo_params + [f"{phrase}%", limit]
+    return _fetch_catalogo(query, tuple(params))
+
+
 @bp.route("", methods=["GET"])
 @require_auth
 def search_materiales():
@@ -56,41 +172,37 @@ def search_materiales():
     q_grupo = (request.args.get("grupo") or "").strip()
     limit = min(request.args.get("limit", 500, type=int), 500)
 
-    filters = []
-    params = []
-
-    # Búsqueda por código o descripción (OR)
-    search_conditions = []
-    if q_codigo:
-        search_conditions.append(f"UPPER({_COL_ID}) LIKE UPPER(?)")
-        params.append(f"%{q_codigo}%")
-    if q_desc:
-        search = build_description_search(q_desc, ["descripcion", "descripcion_larga"])
-        if search:
-            search_conditions.append(search.where_clause)
-            params.extend(search.params)
-
-    if search_conditions:
-        filters.append("(" + " OR ".join(search_conditions) + ")")
-
-    # Filtro por grupo de artículos (AND)
-    if q_grupo:
-        filters.append(f"UPPER({_COL_GRUPO}) LIKE UPPER(?)")
-        params.append(f"%{q_grupo}%")
-
-    where = "WHERE " + " AND ".join(filters) if filters else ""
-
-    query = f"""
-        SELECT {_COL_ID} AS codigo, descripcion, descripcion_larga,
-               {_COL_GRUPO} AS grupo_articulos, unidad_medida, precio_usd
-        FROM {_TABLA}
-        {where}
-        ORDER BY {_COL_ID} ASC
-        LIMIT ?
-    """
-    params.append(limit)
-
     try:
+        if q_desc:
+            # Smart search: descripcion + descripcion_larga starts-with
+            query, params = _build_desc_query(q_desc, q_codigo, q_grupo, limit)
+            if query:
+                rows = _fetch_catalogo(query, params)
+                # If 0 results, broaden to all words in descripcion+descripcion_larga
+                if not rows and not q_codigo:
+                    rows = _fallback_broad(q_desc, q_grupo, limit)
+                return jsonify({"ok": True, "data": rows, "total": len(rows)}), 200
+
+        # Code-only or group-only search (no description)
+        filters = []
+        params = []
+        if q_codigo:
+            filters.append(f"UPPER({_COL_ID}) LIKE UPPER(?)")
+            params.append(f"%{q_codigo}%")
+        if q_grupo:
+            filters.append(f"UPPER({_COL_GRUPO}) LIKE UPPER(?)")
+            params.append(f"%{q_grupo}%")
+
+        where = "WHERE " + " AND ".join(filters) if filters else ""
+        query = f"""
+            SELECT {_COL_ID} AS codigo, descripcion, descripcion_larga,
+                   {_COL_GRUPO} AS grupo_articulos, unidad_medida, precio_usd
+            FROM {_TABLA}
+            {where}
+            ORDER BY {_COL_ID} ASC
+            LIMIT ?
+        """
+        params.append(limit)
         rows = _fetch_catalogo(query, tuple(params))
         return jsonify({"ok": True, "data": rows, "total": len(rows)}), 200
     except Exception as e:

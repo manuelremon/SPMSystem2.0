@@ -2,10 +2,13 @@
 Servicio para gestión de financiamiento de proveedores y descuentos dinámicos.
 Sprint 89: Supplier Finance
 """
+import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 from backend.core.db import get_db_connection
+
+logger = logging.getLogger(__name__)
 
 
 def crear_programa(
@@ -24,9 +27,10 @@ def crear_programa(
         INSERT INTO programa_descuento
         (nombre, tipo, descuento_base_pct, dias_anticipacion, formula, presupuesto_anual)
         VALUES (?, ?, ?, ?, ?, ?)
+        RETURNING id
     """, (nombre, tipo, descuento_base_pct, dias_anticipacion, formula, presupuesto_anual))
 
-    programa_id = cursor.lastrowid
+    programa_id = cursor.fetchone()[0]
     conn.commit()
     conn.close()
 
@@ -161,11 +165,12 @@ def generar_ofertas(programa_id: int, dias_horizonte: int = 30) -> List[int]:
             (programa_id, factura_id, proveedor_cuit, monto_factura,
              descuento_ofrecido_pct, monto_descuento, fecha_pago_original, fecha_pago_anticipado)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            RETURNING id
         """, (programa_id, factura_id, proveedor_cuit, monto_total,
               descuento_pct, monto_descuento, fecha_vencimiento,
               fecha_anticipado.strftime('%Y-%m-%d')))
 
-        ofertas_creadas.append(cursor.lastrowid)
+        ofertas_creadas.append(cursor.fetchone()[0])
 
     conn.commit()
     conn.close()
@@ -423,11 +428,11 @@ def simular_cashflow(
     # Obtener facturas históricas para proyección
     cursor.execute("""
         SELECT
-            strftime('%Y-%m', fecha_emision) as periodo,
+            TO_CHAR(fecha_emision, 'YYYY-MM') as periodo,
             SUM(monto_total) as monto_mes
         FROM factura_proveedor
-        WHERE fecha_emision >= date('now', '-6 months')
-        GROUP BY strftime('%Y-%m', fecha_emision)
+        WHERE fecha_emision >= CURRENT_DATE - INTERVAL '6 months'
+        GROUP BY TO_CHAR(fecha_emision, 'YYYY-MM')
         ORDER BY periodo DESC
     """)
 
@@ -495,10 +500,10 @@ def obtener_kpis() -> Dict:
 
     # DPO promedio (calculado desde facturas pagadas en últimos 90 días)
     cursor.execute("""
-        SELECT AVG(julianday(fecha_pago) - julianday(fecha_emision)) as dpo
+        SELECT AVG(EXTRACT(EPOCH FROM (fecha_pago::timestamp - fecha_emision::timestamp)) / 86400) as dpo
         FROM factura_proveedor
         WHERE estado = 'pagada'
-        AND fecha_pago >= date('now', '-90 days')
+        AND fecha_pago >= CURRENT_DATE - INTERVAL '90 days'
     """)
     avg_dpo = cursor.fetchone()[0] or 30
 

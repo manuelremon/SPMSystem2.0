@@ -68,9 +68,18 @@ class CSRFProtection:
             "/api/health",
         }
 
+        # Prefix-based exemptions (public endpoints with dynamic segments)
+        exempt_prefixes = (
+            "/api/scanner/session/",  # Mobile scanner submits codes
+        )
+
         # Validate on state-changing methods (excepto en endpoints públicos)
         if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
-            if request.path not in exempt_paths:
+            path = request.path
+            is_exempt = path in exempt_paths or (
+                path.endswith("/code") and path.startswith(exempt_prefixes[0])
+            )
+            if not is_exempt:
                 # Si hay Bearer token, el usuario está autenticado de forma segura
                 # CSRF protege contra ataques que explotan cookies, no Bearer tokens
                 auth_header = request.headers.get("Authorization", "")

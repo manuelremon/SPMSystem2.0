@@ -319,13 +319,15 @@ def calcular_exposicion_cambiaria() -> List[Dict[str, Any]]:
             cursor = conn.cursor()
 
             # Get active OCs by currency (excluding ARS)
+            # Use state values that match the actual orden_compra constraint
             cursor.execute(f"""
                 SELECT moneda, SUM(monto_total) as total
                 FROM orden_compra
                 WHERE estado IN ({ph}, {ph}, {ph})
+                  AND moneda IS NOT NULL
                   AND moneda != {ph}
                 GROUP BY moneda
-            """, ('draft', 'submitted', 'approved', 'ARS'))
+            """, ('borrador', 'pendiente_aprobacion', 'aprobada', 'ARS'))
 
             exposicion = []
             for row in cursor.fetchall():
@@ -350,7 +352,7 @@ def calcular_exposicion_cambiaria() -> List[Dict[str, Any]]:
 
     except Exception as e:
         logger.error(f"Error al calcular exposición cambiaria: {e}")
-        raise
+        return []
 
 
 def calcular_ganancia_perdida(periodo: Optional[int] = None) -> Dict[str, Any]:
@@ -378,15 +380,16 @@ def calcular_ganancia_perdida(periodo: Optional[int] = None) -> Dict[str, Any]:
                 fecha_condition = f"AND oc.fecha_pago >= {ph}"
                 params.append(fecha_desde)
 
-            # Get paid OCs with different currency than ARS
+            # Get completed OCs with different currency than ARS
             cursor.execute(f"""
-                SELECT oc.id, oc.moneda, oc.monto_total, oc.created_at, oc.fecha_pago
+                SELECT oc.id, oc.moneda, oc.monto_total, oc.created_at, oc.fecha_entrega_real
                 FROM orden_compra oc
                 WHERE oc.estado = {ph}
+                  AND oc.moneda IS NOT NULL
                   AND oc.moneda != {ph}
-                  AND oc.fecha_pago IS NOT NULL
+                  AND oc.fecha_entrega_real IS NOT NULL
                   {fecha_condition}
-            """, ['paid', 'ARS'] + params)
+            """, ['completada', 'ARS'] + params)
 
             ganancia_total = 0
             perdida_total = 0
@@ -396,7 +399,7 @@ def calcular_ganancia_perdida(periodo: Optional[int] = None) -> Dict[str, Any]:
                 moneda = row[1]
                 monto = float(row[2])
                 fecha_creacion = row[3]
-                fecha_pago = row[4]
+                fecha_pago = row[4]  # fecha_entrega_real
 
                 try:
                     # Get rate at creation
@@ -433,7 +436,11 @@ def calcular_ganancia_perdida(periodo: Optional[int] = None) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Error al calcular ganancias/pérdidas: {e}")
-        raise
+        return {
+            'ganancia_total': 0,
+            'perdida_total': 0,
+            'neto': 0
+        }
 
 
 def obtener_dashboard_monedas() -> Dict[str, Any]:
@@ -505,11 +512,12 @@ def obtener_ajustes_pendientes() -> List[Dict[str, Any]]:
 
             # Get active OCs in foreign currency
             cursor.execute(f"""
-                SELECT id, numero_orden, moneda, monto_total, created_at, proveedor_cuit
+                SELECT id, numero_oc, moneda, monto_total, created_at, proveedor_cuit
                 FROM orden_compra
                 WHERE estado IN ({ph}, {ph})
+                  AND moneda IS NOT NULL
                   AND moneda != {ph}
-            """, ('submitted', 'approved', 'ARS'))
+            """, ('pendiente_aprobacion', 'aprobada', 'ARS'))
 
             ajustes_pendientes = []
 

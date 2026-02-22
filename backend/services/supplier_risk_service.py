@@ -224,7 +224,7 @@ def detectar_fuentes_unicas() -> list:
                 SUM(oci.cantidad * oci.precio_unitario) as gasto_total
             FROM orden_compra oc
             JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
-            LEFT JOIN proveedores p ON oc.proveedor_cuit = p.cuit
+            LEFT JOIN proveedores p ON oc.proveedor_cuit = p.id_proveedor
             LEFT JOIN catalogo_materiales m ON oci.material_codigo = m.codigo
             WHERE oc.estado != 'cancelled'
             GROUP BY oci.material_codigo, oc.proveedor_cuit, p.nombre, m.descripcion
@@ -294,7 +294,7 @@ def obtener_mapa_riesgo(filtros: dict) -> dict:
             f"""
             SELECT COUNT(*)
             FROM proveedor_riesgo pr
-            LEFT JOIN proveedores p ON pr.proveedor_cuit = p.cuit
+            LEFT JOIN proveedores p ON pr.proveedor_cuit = p.id_proveedor
             {where_sql}
             """,
             params
@@ -317,7 +317,7 @@ def obtener_mapa_riesgo(filtros: dict) -> dict:
                 pr.es_fuente_unica,
                 pr.updated_at
             FROM proveedor_riesgo pr
-            LEFT JOIN proveedores p ON pr.proveedor_cuit = p.cuit
+            LEFT JOIN proveedores p ON pr.proveedor_cuit = p.id_proveedor
             {where_sql}
             ORDER BY pr.score_riesgo DESC
             LIMIT {placeholder} OFFSET {placeholder}
@@ -376,7 +376,7 @@ def obtener_alertas_riesgo() -> list:
                 pr.riesgo_calidad,
                 pr.riesgo_dependencia
             FROM proveedor_riesgo pr
-            LEFT JOIN proveedores p ON pr.proveedor_cuit = p.cuit
+            LEFT JOIN proveedores p ON pr.proveedor_cuit = p.id_proveedor
             WHERE pr.nivel = 'critical' OR pr.es_fuente_unica = 1
             ORDER BY pr.score_riesgo DESC
         """)

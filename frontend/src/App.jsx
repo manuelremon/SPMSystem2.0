@@ -107,6 +107,9 @@ const Dashboards = lazy(() => import('./pages/Dashboards'))
 const DashboardEditor = lazy(() => import('./pages/DashboardEditor'))
 const SpreadsheetShared = lazy(() => import('./pages/SpreadsheetShared'))
 
+// Mobile Scanner (public page, no auth)
+const MobileScanner = lazy(() => import('./pages/MobileScanner'))
+
 // New feature pages (lazy-loaded)
 const AnomaliaDetection = lazy(() => import('./pages/AnomaliaDetection'))
 const MaterialClusters = lazy(() => import('./pages/MaterialClusters'))
@@ -271,6 +274,7 @@ function App() {
             <Route path="/dashboards" element={<ProtectedRoute><Dashboards /></ProtectedRoute>} />
             <Route path="/dashboards/:uuid" element={<ProtectedRoute><DashboardEditor /></ProtectedRoute>} />
             <Route path="/shared/:token" element={<SpreadsheetShared />} />
+            <Route path="/scan/:sessionId" element={<MobileScanner />} />
             {/* TMS Routes */}
             <Route path="/tms/shipments" element={<ProtectedRoute><ShipmentsList /></ProtectedRoute>} />
             <Route path="/tms/shipments/new" element={<ProtectedRoute><ShipmentCreate /></ProtectedRoute>} />

@@ -436,14 +436,14 @@ function SearchSection({ m, t }) {
           value={m.searchCodigo}
           onChange={(e) => m.setSearchCodigo(e.target.value)}
           onKeyDown={m.handleSearchKeyDown}
-          placeholder={t("materials_codigo_sap", "Codigo SAP")}
+          placeholder={t("materials_codigo_sap", "Código Material")}
           size="small"
           sx={{
             width: { xs: "100%", sm: 144 },
             flexShrink: 0,
             "& .MuiInputBase-input": { fontFamily: "monospace" },
           }}
-          aria-label={t("materials_codigo_sap", "Codigo SAP")}
+          aria-label={t("materials_codigo_sap", "Código Material")}
         />
 
         {/* Descripcion */}

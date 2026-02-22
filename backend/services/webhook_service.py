@@ -38,7 +38,7 @@ class WebhookService:
                     """
                     SELECT id, url, secret, eventos, activo, created_by, created_at, updated_at
                     FROM webhook
-                    WHERE activo = TRUE
+                    WHERE activo = 1
                     ORDER BY created_at DESC
                     """
                 )
@@ -76,10 +76,11 @@ class WebhookService:
                 """
                 INSERT INTO webhook (url, secret, eventos, created_by)
                 VALUES (?, ?, ?, ?)
+                RETURNING id
                 """,
                 (url, secret, eventos_json, created_by),
             )
-            webhook_id = cur.lastrowid
+            webhook_id = cur.fetchone()[0]
 
         logger.info(f"[Webhook] Created webhook {webhook_id} for {url} by {created_by}")
         return webhook_id

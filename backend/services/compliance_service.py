@@ -21,7 +21,7 @@ def verificar_compliance_oc(oc_id: int) -> list:
         oc_id: ID de la orden de compra
 
     Returns:
-        List de dicts con [{material, precio_contrato, precio_real, es_compliant, desviacion_pct}]
+        List de dicts con [{material, precio_contrato, precio_real, es_compliant, desviacion_porcentaje}]
     """
     conn, cur = get_db_transaction()
 
@@ -86,7 +86,7 @@ def verificar_compliance_oc(oc_id: int) -> list:
                         INSERT INTO compliance_check
                             (contrato_id, orden_compra_id, orden_compra_item_id,
                              material_codigo, precio_contrato, precio_real,
-                             es_compliant, desviacion_pct)
+                             es_compliant, desviacion_porcentaje)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     """, (contrato_id, oc_id, item_id, material_codigo,
                           precio_contrato, precio_real, es_compliant, desviacion))
@@ -95,7 +95,7 @@ def verificar_compliance_oc(oc_id: int) -> list:
                         INSERT INTO compliance_check
                             (contrato_id, orden_compra_id, orden_compra_item_id,
                              material_codigo, precio_contrato, precio_real,
-                             es_compliant, desviacion_pct)
+                             es_compliant, desviacion_porcentaje)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """, (contrato_id, oc_id, item_id, material_codigo,
                           precio_contrato, precio_real, es_compliant, desviacion))
@@ -105,7 +105,7 @@ def verificar_compliance_oc(oc_id: int) -> list:
                     'precio_contrato': precio_contrato,
                     'precio_real': precio_real,
                     'es_compliant': es_compliant,
-                    'desviacion_pct': round(desviacion, 2)
+                    'desviacion_porcentaje': round(desviacion, 2)
                 })
             else:
                 # No hay contrato - registrar como no compliant
@@ -129,7 +129,7 @@ def verificar_compliance_oc(oc_id: int) -> list:
                     'precio_contrato': None,
                     'precio_real': precio_real,
                     'es_compliant': False,
-                    'desviacion_pct': None
+                    'desviacion_porcentaje': None
                 })
 
         conn.commit()
@@ -158,13 +158,13 @@ def obtener_compliance_dashboard() -> dict:
         cur.execute("""
             SELECT
                 COUNT(*) as total,
-                SUM(CASE WHEN es_compliant THEN 1 ELSE 0 END) as compliant_count
+                SUM(CASE WHEN es_compliant = 1 THEN 1 ELSE 0 END) as compliant_count
             FROM compliance_check
             WHERE DATE(created_at) >= CURRENT_DATE - INTERVAL '30 days'
         """ if is_using_postgresql() else """
             SELECT
                 COUNT(*) as total,
-                SUM(CASE WHEN es_compliant THEN 1 ELSE 0 END) as compliant_count
+                SUM(CASE WHEN es_compliant = 1 THEN 1 ELSE 0 END) as compliant_count
             FROM compliance_check
             WHERE DATE(created_at) >= DATE('now', '-30 days')
         """)
@@ -177,32 +177,32 @@ def obtener_compliance_dashboard() -> dict:
 
         # Desviación promedio
         cur.execute("""
-            SELECT AVG(ABS(desviacion_pct))
+            SELECT AVG(ABS(desviacion_porcentaje))
             FROM compliance_check
-            WHERE desviacion_pct IS NOT NULL
+            WHERE desviacion_porcentaje IS NOT NULL
               AND DATE(created_at) >= CURRENT_DATE - INTERVAL '30 days'
         """ if is_using_postgresql() else """
-            SELECT AVG(ABS(desviacion_pct))
+            SELECT AVG(ABS(desviacion_porcentaje))
             FROM compliance_check
-            WHERE desviacion_pct IS NOT NULL
+            WHERE desviacion_porcentaje IS NOT NULL
               AND DATE(created_at) >= DATE('now', '-30 days')
         """)
         desviacion_promedio = cur.fetchone()[0] or 0
 
         # Top desviaciones
         cur.execute("""
-            SELECT material_codigo, precio_contrato, precio_real, desviacion_pct
+            SELECT material_codigo, precio_contrato, precio_real, desviacion_porcentaje
             FROM compliance_check
             WHERE es_compliant = ?
               AND DATE(created_at) >= ?
-            ORDER BY ABS(desviacion_pct) DESC
+            ORDER BY ABS(desviacion_porcentaje) DESC
             LIMIT 10
         """ if not is_using_postgresql() else """
-            SELECT material_codigo, precio_contrato, precio_real, desviacion_pct
+            SELECT material_codigo, precio_contrato, precio_real, desviacion_porcentaje
             FROM compliance_check
-            WHERE es_compliant = FALSE
+            WHERE es_compliant = 0
               AND DATE(created_at) >= CURRENT_DATE - INTERVAL '30 days'
-            ORDER BY ABS(desviacion_pct) DESC
+            ORDER BY ABS(desviacion_porcentaje) DESC
             LIMIT 10
         """, () if is_using_postgresql() else (0, (datetime.now().date() - datetime.timedelta(days=30)).isoformat()))
 
@@ -618,13 +618,13 @@ def obtener_kpis_compliance() -> dict:
         cur.execute("""
             SELECT
                 COUNT(*) as total,
-                SUM(CASE WHEN es_compliant THEN 1 ELSE 0 END) as compliant
+                SUM(CASE WHEN es_compliant = 1 THEN 1 ELSE 0 END) as compliant
             FROM compliance_check
             WHERE DATE(created_at) >= CURRENT_DATE - INTERVAL '30 days'
         """ if is_using_postgresql() else """
             SELECT
                 COUNT(*) as total,
-                SUM(CASE WHEN es_compliant THEN 1 ELSE 0 END) as compliant
+                SUM(CASE WHEN es_compliant = 1 THEN 1 ELSE 0 END) as compliant
             FROM compliance_check
             WHERE DATE(created_at) >= DATE('now', '-30 days')
         """)

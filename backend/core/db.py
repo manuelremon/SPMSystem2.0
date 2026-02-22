@@ -241,32 +241,52 @@ def sql_pattern_is_numeric(column: str) -> str:
     return f"{column} GLOB '[0-9]*'"
 
 
-def insert_returning_id(cursor, sql: str, params: tuple = None) -> int:
+def insert_returning_id(cursor_or_conn, sql_or_table, params=None) -> int:
     """
     Ejecuta INSERT y retorna el ID generado.
 
-    Para PostgreSQL agrega RETURNING id automáticamente.
+    Para PostgreSQL agrega RETURNING id automaticamente.
     Para SQLite usa lastrowid.
 
+    Soporta dos modos de uso:
+    1. insert_returning_id(cursor, "INSERT INTO t (a,b) VALUES (?,?)", (v1,v2))
+    2. insert_returning_id(conn, "table_name", {"col1": val1, "col2": val2})
+
     Args:
-        cursor: Cursor de base de datos
-        sql: Query INSERT (sin RETURNING para SQLite)
-        params: Parámetros del query
+        cursor_or_conn: Cursor o conexion de base de datos
+        sql_or_table: Query INSERT o nombre de tabla (si params es dict)
+        params: Parametros del query (tuple) o columnas/valores (dict)
 
     Returns:
         ID del registro insertado
-
-    Example:
-        with get_db_transaction() as conn:
-            cur = conn.cursor()
-            new_id = insert_returning_id(
-                cur,
-                "INSERT INTO posts (titulo, contenido) VALUES (?, ?)",
-                (titulo, contenido)
-            )
     """
+    # Mode 2: table name + dict -> build INSERT SQL
+    if isinstance(params, dict):
+        conn = cursor_or_conn
+        table_name = sql_or_table
+        columns = list(params.keys())
+        values = list(params.values())
+        placeholders = ", ".join(["?"] * len(columns))
+        cols_str = ", ".join(columns)
+        sql = f"INSERT INTO {table_name} ({cols_str}) VALUES ({placeholders})"
+        # Use conn.cursor() to get a wrapped cursor
+        cursor = conn.cursor()
+        if is_using_postgresql():
+            sql = sql + " RETURNING id"
+            cursor.execute(sql, values)
+            row = cursor.fetchone()
+            if row is None:
+                return None
+            return row["id"] if isinstance(row, dict) else row[0]
+        else:
+            cursor.execute(sql, values)
+            return cursor.lastrowid
+
+    # Mode 1: cursor + SQL string + tuple params
+    cursor = cursor_or_conn
+    sql = sql_or_table
     if is_using_postgresql():
-        # Agregar RETURNING id si no está presente
+        # Agregar RETURNING id si no esta presente
         if "RETURNING" not in sql.upper():
             sql = sql.rstrip(";").rstrip() + " RETURNING id"
         cursor.execute(sql, params)
@@ -397,8 +417,14 @@ class PostgresConnectionWrapper:
     def rollback(self):
         return self._conn.rollback()
 
+    def execute(self, sql, params=None):
+        """Ejecuta query directamente en la conexion, con conversion ? -> %s."""
+        cur = self.cursor()  # Uses PostgresCursorWrapper
+        cur.execute(sql, params)
+        return cur
+
     def close(self):
-        """Devuelve la conexión al pool en lugar de cerrarla"""
+        """Devuelve la conexion al pool en lugar de cerrarla"""
         if self._pool:
             self._pool.putconn(self._conn)
         else:
@@ -709,6 +735,29 @@ def _get_schema_path() -> Path:
 
 def _is_db_empty(db_path: Path) -> bool:
     """Verifica si la BD necesita inicialización (no existe o sin usuarios)"""
+    if is_using_postgresql():
+        # PostgreSQL: check via information_schema
+        try:
+            conn = _get_postgres_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables
+                    WHERE table_schema = 'public' AND table_name = 'usuarios'
+                )
+            """)
+            row = cursor.fetchone()
+            exists = row[0] if row else False
+            if not exists:
+                conn.close()
+                return True
+            cursor.execute("SELECT COUNT(*) FROM usuarios")
+            count = cursor.fetchone()[0]
+            conn.close()
+            return count == 0
+        except Exception:
+            return True
+
     if not db_path.exists():
         return True
 

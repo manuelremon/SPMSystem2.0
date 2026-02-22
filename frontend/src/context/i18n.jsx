@@ -1275,6 +1275,13 @@ const translations = {
   scanner_hint: { es: "Apunta la cámara hacia el código de barras o QR", en: "Point camera at barcode or QR" },
   scanner_scanning: { es: "Escaneando...", en: "Scanning..." },
   scanner_stop: { es: "Detener", en: "Stop" },
+  scanner_tab_local: { es: "Cámara Local", en: "Local Camera" },
+  scanner_tab_mobile: { es: "Escanear con Celular", en: "Scan with Phone" },
+  scanner_pairing_error: { es: "No se pudo crear la sesión de escaneo.", en: "Could not create scan session." },
+  scanner_creating_session: { es: "Creando sesión...", en: "Creating session..." },
+  scanner_scan_qr_instruction: { es: "Escaneá este QR con tu celular para abrir la cámara remota", en: "Scan this QR with your phone to open the remote camera" },
+  scanner_codes_received: { es: "{count} código(s) recibido(s)", en: "{count} code(s) received" },
+  scanner_waiting_mobile: { es: "Esperando escaneo del celular...", en: "Waiting for phone scan..." },
 
   // Favorites
   favorites_title: { es: "Favoritos", en: "Favorites" },

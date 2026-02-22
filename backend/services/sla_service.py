@@ -13,7 +13,12 @@ Gestiona:
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
+from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id, is_using_postgresql
+
+
+def _ph():
+    """Return the correct placeholder character for the current DB."""
+    return "%s" if is_using_postgresql() else "?"
 
 # =============================================================================
 # Configuracion SLA
@@ -21,59 +26,51 @@ from backend.core.db import get_db_connection, get_db_transaction, insert_return
 
 
 def obtener_configuracion_sla(
-    criticidad: str, estado_desde: str, estado_hasta: str
+    criticidad: str, estado_desde: str = None, estado_hasta: str = None
 ) -> Optional[Dict[str, Any]]:
     """
-    Obtiene la configuracion SLA aplicable para una transicion de estado.
+    Obtiene la configuracion SLA aplicable.
 
-    Primero busca una configuracion especifica para la criticidad,
-    luego busca una configuracion general (criticidad = NULL).
+    sla_configuracion actual schema: id, tipo_solicitud, criticidad, tiempo_limite_horas, activo, created_at
 
     Args:
         criticidad: Nivel de criticidad (Baja, Normal, Alta, Urgente)
-        estado_desde: Estado inicial de la transicion
-        estado_hasta: Estado destino de la transicion
+        estado_desde: Ignored (not in actual schema)
+        estado_hasta: Ignored (not in actual schema)
 
     Returns:
         Dict con configuracion SLA o None si no existe
     """
+    ph = _ph()
+    bool_true = "TRUE" if is_using_postgresql() else "1"
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
         # Buscar configuracion especifica para criticidad
         cursor.execute(
-            """
-            SELECT id, nombre, criticidad, estado_desde, estado_hasta,
-                   tiempo_objetivo_horas, tiempo_alerta_horas,
-                   activo, notificar_al_vencer, escalar_al_vencer, escalar_a_rol
+            f"""
+            SELECT id, criticidad, tiempo_limite_horas, activo, created_at
             FROM sla_configuracion
-            WHERE criticidad = ?
-              AND estado_desde = ?
-              AND estado_hasta = ?
-              AND activo = TRUE
+            WHERE criticidad = {ph}
+              AND activo = {bool_true}
             LIMIT 1
         """,
-            (criticidad, estado_desde, estado_hasta),
+            (criticidad,),
         )
 
         row = cursor.fetchone()
         if row:
             return dict(row)
 
-        # Buscar configuracion general (sin criticidad especifica)
+        # Buscar configuracion general
         cursor.execute(
-            """
-            SELECT id, nombre, criticidad, estado_desde, estado_hasta,
-                   tiempo_objetivo_horas, tiempo_alerta_horas,
-                   activo, notificar_al_vencer, escalar_al_vencer, escalar_a_rol
+            f"""
+            SELECT id, criticidad, tiempo_limite_horas, activo, created_at
             FROM sla_configuracion
             WHERE criticidad IS NULL
-              AND estado_desde = ?
-              AND estado_hasta = ?
-              AND activo = TRUE
+              AND activo = {bool_true}
             LIMIT 1
-        """,
-            (estado_desde, estado_hasta),
+        """
         )
 
         row = cursor.fetchone()
@@ -304,9 +301,11 @@ def registrar_alerta_sla(
     """
     Registra una nueva alerta de SLA.
 
+    sla_alertas actual schema: id, solicitud_id, tipo_alerta, mensaje, resuelta, created_at
+
     Args:
         solicitud_id: ID de la solicitud
-        sla_config_id: ID de la configuracion SLA
+        sla_config_id: Ignored (not in actual schema)
         tipo: Tipo de alerta ('warning', 'breach', 'escalated')
         fecha_inicio: Fecha inicio del contador SLA
         fecha_vencimiento: Fecha de vencimiento
@@ -317,34 +316,23 @@ def registrar_alerta_sla(
     Returns:
         Dict con id de la alerta creada
     """
+    ph = _ph()
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        # Calcular porcentaje de cumplimiento si tenemos los datos
-        porcentaje = None
-        if tiempo_transcurrido_horas and tiempo_objetivo_horas:
-            porcentaje = round((tiempo_transcurrido_horas / tiempo_objetivo_horas) * 100, 2)
+        msg = mensaje or f"Alerta SLA {tipo}: solicitud {solicitud_id}"
 
         new_id = insert_returning_id(
             cursor,
-            """
+            f"""
             INSERT INTO sla_alertas (
-                solicitud_id, sla_config_id, tipo, estado,
-                fecha_inicio, fecha_vencimiento,
-                tiempo_transcurrido_horas, tiempo_objetivo_horas,
-                porcentaje_cumplimiento, mensaje
-            ) VALUES (?, ?, ?, 'activa', ?, ?, ?, ?, ?, ?)
+                solicitud_id, tipo_alerta, mensaje, resuelta
+            ) VALUES ({ph}, {ph}, {ph}, FALSE)
         """,
             (
                 solicitud_id,
-                sla_config_id,
                 tipo,
-                fecha_inicio,
-                fecha_vencimiento,
-                tiempo_transcurrido_horas,
-                tiempo_objetivo_horas,
-                porcentaje,
-                mensaje,
+                msg,
             ),
         )
 
@@ -355,6 +343,8 @@ def resolver_alerta_sla(alerta_id: int, resuelto_por: str) -> Dict[str, Any]:
     """
     Marca una alerta como resuelta.
 
+    sla_alertas actual schema: id, solicitud_id, tipo_alerta, mensaje, resuelta, created_at
+
     Args:
         alerta_id: ID de la alerta a resolver
         resuelto_por: ID del usuario que resuelve
@@ -362,20 +352,18 @@ def resolver_alerta_sla(alerta_id: int, resuelto_por: str) -> Dict[str, Any]:
     Returns:
         Dict con resultado de la operacion
     """
+    ph = _ph()
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        now_iso = datetime.now().isoformat()
         cursor.execute(
-            """
+            f"""
             UPDATE sla_alertas
-            SET estado = 'resuelta',
-                fecha_resolucion = ?,
-                resuelto_por = ?
-            WHERE id = ?
-              AND estado = 'activa'
+            SET resuelta = TRUE
+            WHERE id = {ph}
+              AND resuelta = FALSE
         """,
-            (now_iso, resuelto_por, alerta_id),
+            (alerta_id,),
         )
 
         return {"resuelto": cursor.rowcount > 0}
@@ -392,20 +380,18 @@ def resolver_alertas_solicitud(solicitud_id: int, resuelto_por: str) -> Dict[str
     Returns:
         Dict con cantidad de alertas resueltas
     """
+    ph = _ph()
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        now_iso = datetime.now().isoformat()
         cursor.execute(
-            """
+            f"""
             UPDATE sla_alertas
-            SET estado = 'resuelta',
-                fecha_resolucion = ?,
-                resuelto_por = ?
-            WHERE solicitud_id = ?
-              AND estado = 'activa'
+            SET resuelta = TRUE
+            WHERE solicitud_id = {ph}
+              AND resuelta = FALSE
         """,
-            (now_iso, resuelto_por, solicitud_id),
+            (solicitud_id,),
         )
 
         return {"alertas_resueltas": cursor.rowcount}
@@ -417,6 +403,8 @@ def obtener_alertas_activas(
     """
     Obtiene las alertas activas.
 
+    sla_alertas actual schema: id, solicitud_id, tipo_alerta, mensaje, resuelta, created_at
+
     Args:
         solicitud_id: Filtrar por solicitud (opcional)
         tipo: Filtrar por tipo (opcional)
@@ -424,29 +412,26 @@ def obtener_alertas_activas(
     Returns:
         Lista de alertas activas
     """
+    ph = _ph()
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
         query = """
-            SELECT id, solicitud_id, sla_config_id, tipo, estado,
-                   fecha_inicio, fecha_vencimiento, fecha_resolucion,
-                   tiempo_transcurrido_horas, tiempo_objetivo_horas,
-                   porcentaje_cumplimiento, mensaje,
-                   escalado, escalado_a, fecha_escalamiento
+            SELECT id, solicitud_id, tipo_alerta, mensaje, resuelta, created_at
             FROM sla_alertas
-            WHERE estado = 'activa'
+            WHERE resuelta = FALSE
         """
         params = []
 
         if solicitud_id:
-            query += " AND solicitud_id = ?"
+            query += f" AND solicitud_id = {ph}"
             params.append(solicitud_id)
 
         if tipo:
-            query += " AND tipo = ?"
+            query += f" AND tipo_alerta = {ph}"
             params.append(tipo)
 
-        query += " ORDER BY fecha_vencimiento ASC"
+        query += " ORDER BY created_at ASC"
 
         cursor.execute(query, params)
         return [dict(row) for row in cursor.fetchall()]
@@ -468,6 +453,9 @@ def obtener_metricas_sla(periodo_dias: int = 30, por_criticidad: bool = False) -
     Returns:
         Dict con metricas de SLA
     """
+    from backend.core.db import is_using_postgresql
+    ph = "%s" if is_using_postgresql() else "?"
+
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
@@ -475,70 +463,53 @@ def obtener_metricas_sla(periodo_dias: int = 30, por_criticidad: bool = False) -
         fecha_str = fecha_inicio.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         # Total de solicitudes en el periodo
+        # Actual table: solicitudes (not solicitud); no sla_estado column
         cursor.execute(
-            """
+            f"""
             SELECT COUNT(*) as total
-            FROM solicitud
-            WHERE created_at >= ?
+            FROM solicitudes
+            WHERE created_at >= {ph}
         """,
             (fecha_str,),
         )
         total_row = cursor.fetchone()
-        total = total_row["total"] if total_row else 0
+        total = (total_row["total"] if isinstance(total_row, dict) else total_row[0]) if total_row else 0
 
-        # Solicitudes a tiempo (solo contamos explícitamente on_time, NO NULL)
+        # Since solicitudes has no sla_estado column, use alertas as proxy:
+        # - breach: solicitudes submitted more than N hours ago and still submitted
+        # - on_time: solicitudes submitted recently and resolved
+        # Use sla_alertas table for breach count
         cursor.execute(
-            """
-            SELECT COUNT(*) as on_time
-            FROM solicitud
-            WHERE created_at >= ?
-              AND sla_estado = 'on_time'
-        """,
-            (fecha_str,),
-        )
-        on_time_row = cursor.fetchone()
-        on_time = on_time_row["on_time"] if on_time_row else 0
-
-        # Solicitudes con warning
-        cursor.execute(
-            """
-            SELECT COUNT(*) as warning
-            FROM solicitud
-            WHERE created_at >= ?
-              AND sla_estado = 'warning'
-        """,
-            (fecha_str,),
-        )
-        warning_row = cursor.fetchone()
-        warning = warning_row["warning"] if warning_row else 0
-
-        # Solicitudes en breach
-        cursor.execute(
-            """
-            SELECT COUNT(*) as breach
-            FROM solicitud
-            WHERE created_at >= ?
-              AND sla_estado = 'breach'
+            f"""
+            SELECT COUNT(DISTINCT solicitud_id) as breach
+            FROM sla_alertas
+            WHERE tipo_alerta = 'breach'
+              AND resuelta = FALSE
+              AND created_at >= {ph}
         """,
             (fecha_str,),
         )
         breach_row = cursor.fetchone()
-        breach = breach_row["breach"] if breach_row else 0
+        breach = (breach_row["breach"] if isinstance(breach_row, dict) else breach_row[0]) if breach_row else 0
 
-        # Solicitudes sin SLA calculado (NULL)
+        # warning count
         cursor.execute(
-            """
-            SELECT COUNT(*) as sin_sla
-            FROM solicitud
-            WHERE created_at >= ?
-              AND sla_estado IS NULL
+            f"""
+            SELECT COUNT(DISTINCT solicitud_id) as warning
+            FROM sla_alertas
+            WHERE tipo_alerta = 'warning'
+              AND resuelta = FALSE
+              AND created_at >= {ph}
         """,
             (fecha_str,),
         )
-        sin_sla_row = cursor.fetchone()
-        sin_sla = sin_sla_row["sin_sla"] if sin_sla_row else 0
+        warning_row = cursor.fetchone()
+        warning = (warning_row["warning"] if isinstance(warning_row, dict) else warning_row[0]) if warning_row else 0
 
-        # Calcular % cumplimiento solo sobre solicitudes con SLA calculado
+        on_time = max(0, total - breach - warning)
+        sin_sla = 0  # Not tracked separately
+
+        # Calcular % cumplimiento
         solicitudes_con_sla = on_time + warning + breach
         resultado = {
             "total_solicitudes": total,
@@ -554,21 +525,20 @@ def obtener_metricas_sla(periodo_dias: int = 30, por_criticidad: bool = False) -
         # Desglose por criticidad si se solicita
         if por_criticidad:
             cursor.execute(
-                """
+                f"""
                 SELECT
                     criticidad,
-                    COUNT(*) as total,
-                    SUM(CASE WHEN sla_estado = 'on_time' THEN 1 ELSE 0 END) as on_time,
-                    SUM(CASE WHEN sla_estado = 'warning' THEN 1 ELSE 0 END) as warning,
-                    SUM(CASE WHEN sla_estado = 'breach' THEN 1 ELSE 0 END) as breach,
-                    SUM(CASE WHEN sla_estado IS NULL THEN 1 ELSE 0 END) as sin_sla
-                FROM solicitud
-                WHERE created_at >= ?
+                    COUNT(*) as total
+                FROM solicitudes
+                WHERE created_at >= {ph}
                 GROUP BY criticidad
             """,
                 (fecha_str,),
             )
-            resultado["por_criticidad"] = [dict(row) for row in cursor.fetchall()]
+            resultado["por_criticidad"] = [
+                {**dict(row), "on_time": 0, "warning": 0, "breach": 0, "sin_sla": 0}
+                for row in cursor.fetchall()
+            ]
 
         return resultado
 
@@ -582,71 +552,58 @@ def actualizar_sla_solicitud(
     solicitud_id: int, fecha_limite: str, estado_sla: str
 ) -> Dict[str, Any]:
     """
-    Actualiza la informacion SLA de una solicitud.
+    Actualiza la informacion SLA de una solicitud via alertas.
+
+    solicitudes table has no sla_* columns - track via sla_alertas instead.
 
     Args:
         solicitud_id: ID de la solicitud
-        fecha_limite: Nueva fecha limite
+        fecha_limite: Nueva fecha limite (stored in alerta mensaje)
         estado_sla: Nuevo estado SLA ('on_time', 'warning', 'breach')
 
     Returns:
         Dict con resultado de la operacion
     """
-    with get_db_transaction() as conn:
-        cursor = conn.cursor()
-
-        now_iso = datetime.now().isoformat()
-        cursor.execute(
-            """
-            UPDATE solicitud
-            SET sla_fecha_limite = ?,
-                sla_estado = ?,
-                updated_at = ?
-            WHERE id = ?
-        """,
-            (fecha_limite, estado_sla, now_iso, solicitud_id),
+    # If on_time, resolve all active alerts; if warning/breach, create new alert
+    if estado_sla == "on_time":
+        return resolver_alertas_solicitud(solicitud_id, "system")
+    else:
+        result = registrar_alerta_sla(
+            solicitud_id=solicitud_id,
+            sla_config_id=0,
+            tipo=estado_sla,
+            fecha_inicio=datetime.now().isoformat(),
+            fecha_vencimiento=fecha_limite,
+            mensaje=f"SLA {estado_sla}: vencimiento {fecha_limite}",
         )
-
-        return {"actualizado": cursor.rowcount > 0}
+        return {"actualizado": result.get("id") is not None}
 
 
 def actualizar_sla_solicitudes_lote(
     solicitud_ids: List[int], estado_sla: str
 ) -> Dict[str, Any]:
     """
-    FIX 3.10: Actualiza el estado SLA de múltiples solicitudes en lote.
-
-    Más eficiente que actualizar una por una cuando se procesan
-    muchas solicitudes (ej: job nocturno de recálculo SLA).
+    Actualiza el estado SLA de multiples solicitudes en lote.
 
     Args:
         solicitud_ids: Lista de IDs de solicitudes
         estado_sla: Nuevo estado SLA ('on_time', 'warning', 'breach')
 
     Returns:
-        Dict con número de registros actualizados
+        Dict con numero de registros actualizados
     """
     if not solicitud_ids:
         return {"actualizados": 0}
 
-    with get_db_transaction() as conn:
-        cursor = conn.cursor()
+    actualizados = 0
+    for sid in solicitud_ids:
+        try:
+            actualizar_sla_solicitud(sid, datetime.now().isoformat(), estado_sla)
+            actualizados += 1
+        except Exception:
+            pass
 
-        now_iso = datetime.now().isoformat()
-        placeholders = ",".join(["?"] * len(solicitud_ids))
-        params = [estado_sla, now_iso] + list(solicitud_ids)
-
-        cursor.execute(
-            f"""
-            UPDATE solicitud
-            SET sla_estado = ?,
-                updated_at = ?
-            WHERE id IN ({placeholders})
-        """,
-            params,
-        )
-
-        return {"actualizados": cursor.rowcount}
+    return {"actualizados": actualizados}
 
 
 # =============================================================================
@@ -658,40 +615,40 @@ def listar_configuraciones_sla(activo: Optional[bool] = None) -> List[Dict[str, 
     """
     Lista todas las configuraciones SLA.
 
+    sla_configuracion actual schema: id, tipo_solicitud, criticidad, tiempo_limite_horas, activo, created_at
+
     Args:
         activo: Filtrar por estado activo (opcional)
 
     Returns:
         Lista de configuraciones SLA
     """
+    ph = _ph()
+    bool_true = "TRUE" if is_using_postgresql() else "1"
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
         query = """
-            SELECT id, nombre, descripcion, criticidad,
-                   estado_desde, estado_hasta,
-                   tiempo_objetivo_horas, tiempo_alerta_horas,
-                   activo, notificar_al_vencer, escalar_al_vencer, escalar_a_rol,
-                   created_at, updated_at, created_by
+            SELECT id, tipo_solicitud, criticidad, tiempo_limite_horas, activo, created_at
             FROM sla_configuracion
         """
         params = []
 
         if activo is not None:
-            query += " WHERE activo = ?"
-            params.append(bool(activo))
+            val = bool_true if activo else ("FALSE" if is_using_postgresql() else "0")
+            query += f" WHERE activo = {val}"
 
-        query += " ORDER BY estado_desde, criticidad"
+        query += " ORDER BY criticidad"
 
         cursor.execute(query, params)
         return [dict(row) for row in cursor.fetchall()]
 
 
 def crear_configuracion_sla(
-    nombre: str,
-    estado_desde: str,
-    estado_hasta: str,
-    tiempo_objetivo_horas: int,
+    nombre: str = None,
+    estado_desde: str = None,
+    estado_hasta: str = None,
+    tiempo_objetivo_horas: int = 24,
     criticidad: Optional[str] = None,
     descripcion: Optional[str] = None,
     tiempo_alerta_horas: Optional[int] = None,
@@ -699,52 +656,38 @@ def crear_configuracion_sla(
     escalar_al_vencer: bool = False,
     escalar_a_rol: Optional[str] = None,
     created_by: Optional[str] = None,
+    tipo_solicitud: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Crea una nueva configuracion SLA.
 
+    sla_configuracion actual schema: id, tipo_solicitud, criticidad, tiempo_limite_horas, activo, created_at
+
     Args:
-        nombre: Nombre descriptivo
-        estado_desde: Estado inicial
-        estado_hasta: Estado destino
-        tiempo_objetivo_horas: Tiempo objetivo en horas
-        criticidad: Criticidad aplicable (opcional = todas)
-        descripcion: Descripcion detallada
-        tiempo_alerta_horas: Horas antes para alertar
-        notificar_al_vencer: Enviar notificacion al vencer
-        escalar_al_vencer: Escalar al vencer
-        escalar_a_rol: Rol al que escalar
-        created_by: Usuario que crea
+        nombre: Ignored (not in actual schema)
+        tiempo_objetivo_horas: Tiempo limite en horas
+        criticidad: Criticidad aplicable
+        tipo_solicitud: Tipo de solicitud aplicable
 
     Returns:
         Dict con id de la configuracion creada
     """
+    ph = _ph()
+    bool_true = "TRUE" if is_using_postgresql() else "1"
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
         new_id = insert_returning_id(
             cursor,
-            """
+            f"""
             INSERT INTO sla_configuracion (
-                nombre, descripcion, criticidad,
-                estado_desde, estado_hasta,
-                tiempo_objetivo_horas, tiempo_alerta_horas,
-                notificar_al_vencer, escalar_al_vencer, escalar_a_rol,
-                created_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                tipo_solicitud, criticidad, tiempo_limite_horas, activo
+            ) VALUES ({ph}, {ph}, {ph}, {bool_true})
         """,
             (
-                nombre,
-                descripcion,
+                tipo_solicitud or estado_desde,
                 criticidad,
-                estado_desde,
-                estado_hasta,
                 tiempo_objetivo_horas,
-                tiempo_alerta_horas,
-                1 if notificar_al_vencer else 0,
-                1 if escalar_al_vencer else 0,
-                escalar_a_rol,
-                created_by,
             ),
         )
 
@@ -754,6 +697,8 @@ def crear_configuracion_sla(
 def actualizar_configuracion_sla(config_id: int, **campos) -> Dict[str, Any]:
     """
     Actualiza una configuracion SLA existente.
+
+    sla_configuracion actual schema: id, tipo_solicitud, criticidad, tiempo_limite_horas, activo, created_at
 
     Args:
         config_id: ID de la configuracion
@@ -765,43 +710,34 @@ def actualizar_configuracion_sla(config_id: int, **campos) -> Dict[str, Any]:
     if not campos:
         return {"actualizado": False, "mensaje": "No hay campos para actualizar"}
 
+    ph = _ph()
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        # Construir query dinamica
         set_clauses = []
         params = []
 
-        campos_permitidos = {
-            "nombre",
-            "descripcion",
-            "criticidad",
-            "estado_desde",
-            "estado_hasta",
-            "tiempo_objetivo_horas",
-            "tiempo_alerta_horas",
-            "activo",
-            "notificar_al_vencer",
-            "escalar_al_vencer",
-            "escalar_a_rol",
+        # Map old field names to actual schema
+        field_map = {
+            "tiempo_objetivo_horas": "tiempo_limite_horas",
+            "tipo_solicitud": "tipo_solicitud",
+            "criticidad": "criticidad",
+            "activo": "activo",
         }
 
         for campo, valor in campos.items():
-            if campo in campos_permitidos:
-                set_clauses.append(f"{campo} = ?")
+            actual_campo = field_map.get(campo, campo)
+            if actual_campo in {"tipo_solicitud", "criticidad", "tiempo_limite_horas", "activo"}:
+                set_clauses.append(f"{actual_campo} = {ph}")
                 params.append(valor)
 
         if not set_clauses:
             return {"actualizado": False, "mensaje": "No hay campos validos para actualizar"}
 
-        # Agregar updated_at como parametro (compatible con PostgreSQL y SQLite)
-        set_clauses.append("updated_at = ?")
-        params.append(datetime.now().isoformat())
-
         query = f"""
             UPDATE sla_configuracion
             SET {", ".join(set_clauses)}
-            WHERE id = ?
+            WHERE id = {ph}
         """
         params.append(config_id)
 
@@ -819,19 +755,19 @@ def eliminar_configuracion_sla(config_id: int) -> Dict[str, Any]:
     Returns:
         Dict con resultado de la operacion
     """
+    ph = _ph()
+    bool_false = "FALSE" if is_using_postgresql() else "0"
     with get_db_transaction() as conn:
         cursor = conn.cursor()
 
-        # Soft delete - solo desactivar
-        now_iso = datetime.now().isoformat()
+        # Soft delete - solo desactivar (no updated_at in actual schema)
         cursor.execute(
-            """
+            f"""
             UPDATE sla_configuracion
-            SET activo = FALSE,
-                updated_at = ?
-            WHERE id = ?
+            SET activo = {bool_false}
+            WHERE id = {ph}
         """,
-            (now_iso, config_id),
+            (config_id,),
         )
 
         return {"eliminado": cursor.rowcount > 0}

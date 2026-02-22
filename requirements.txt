@@ -66,3 +66,6 @@ google-genai>=1.0.0
 # Edge TTS - Voces neurales GRATIS de Microsoft (incluye voz argentina)
 edge-tts>=7.0.0
 
+# QR Code generation (scanner pairing)
+qrcode[pil]>=7.4
+

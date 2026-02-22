@@ -196,13 +196,12 @@ export function SearchDropdown({
 
             return (
               <Box
-                component="button"
+                component="div"
                 key={m.codigo}
                 role="option"
                 aria-selected={isSelected}
                 onClick={() => onSelect(m)}
                 onMouseEnter={() => setHighlightedIndex(idx)}
-                type="button"
                 sx={{
                   width: '100%',
                   textAlign: 'left',

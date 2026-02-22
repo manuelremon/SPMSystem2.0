@@ -9,12 +9,17 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, List, Optional
 
-from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
+from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id, is_using_postgresql
 from backend.core.tms_schemas import (
     validar_transicion_shipment,
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _ph():
+    """Return the correct placeholder character for the current DB."""
+    return "%s" if is_using_postgresql() else "?"
 
 
 # =============================================================================
@@ -27,7 +32,8 @@ def _generate_code(prefix: str, conn) -> str:
     year = datetime.now().strftime("%Y")
     table_map = {"SHP": "tms_shipments", "CON": "tms_consolidations"}
     table = table_map.get(prefix, "tms_shipments")
-    cursor.execute(f"SELECT COUNT(*) as cnt FROM {table} WHERE codigo LIKE ?", (f"{prefix}-{year}-%",))
+    ph = _ph()
+    cursor.execute(f"SELECT COUNT(*) as cnt FROM {table} WHERE codigo LIKE {ph}", (f"{prefix}-{year}-%",))
     row = cursor.fetchone()
     count = (row["cnt"] if row else 0) + 1
     return f"{prefix}-{year}-{count:04d}"
@@ -142,6 +148,7 @@ def obtener_envio(shipment_id: int) -> Optional[dict]:
 def listar_envios(filtros: dict = None, page: int = 1, per_page: int = 20) -> dict:
     """Lista envios con filtros."""
     filtros = filtros or {}
+    ph = _ph()
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
@@ -150,45 +157,44 @@ def listar_envios(filtros: dict = None, page: int = 1, per_page: int = 20) -> di
         params = []
 
         if filtros.get("estado"):
-            where_clauses.append("s.estado = ?")
+            where_clauses.append(f"s.estado = {ph}")
             params.append(filtros["estado"])
 
         if filtros.get("created_by"):
-            where_clauses.append("s.created_by = ?")
+            where_clauses.append(f"s.created_by = {ph}")
             params.append(filtros["created_by"])
 
         if filtros.get("fecha_desde"):
-            where_clauses.append("s.created_at >= ?")
+            where_clauses.append(f"s.created_at >= {ph}")
             params.append(filtros["fecha_desde"])
 
         if filtros.get("fecha_hasta"):
-            where_clauses.append("s.created_at <= ?")
+            where_clauses.append(f"s.created_at <= {ph}")
             params.append(filtros["fecha_hasta"])
 
         if filtros.get("prioridad"):
-            where_clauses.append("s.prioridad = ?")
+            where_clauses.append(f"s.prioridad = {ph}")
             params.append(filtros["prioridad"])
 
         where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
 
         # Count
         cursor.execute(f"SELECT COUNT(*) as cnt FROM tms_shipments s WHERE {where_sql}", params)
-        total = cursor.fetchone()["cnt"]
+        row = cursor.fetchone()
+        total = (row["cnt"] if isinstance(row, dict) else row[0]) if row else 0
 
         # Fetch page
         offset = (page - 1) * per_page
         cursor.execute(f"""
             SELECT s.*,
-                   co.nombre as origen_nombre, cd.nombre as destino_nombre,
-                   v.placa, d.nombre || ' ' || COALESCE(d.apellido, '') as conductor_nombre
+                   v.patente,
+                   d.nombre as conductor_nombre
             FROM tms_shipments s
-            LEFT JOIN centros co ON s.origen_centro_id = co.id
-            LEFT JOIN centros cd ON s.destino_centro_id = cd.id
-            LEFT JOIN fms_vehicles v ON s.vehicle_id = v.id
-            LEFT JOIN fms_drivers d ON s.assigned_driver_id = d.id
+            LEFT JOIN fms_vehicles v ON s.vehiculo_id = v.id
+            LEFT JOIN fms_drivers d ON s.conductor_id = d.id
             WHERE {where_sql}
             ORDER BY s.created_at DESC
-            LIMIT ? OFFSET ?
+            LIMIT {ph} OFFSET {ph}
         """, params + [per_page, offset])
 
         items = [dict(r) for r in cursor.fetchall()]
@@ -646,6 +652,7 @@ def remover_envio_de_consolidacion(consolidation_id: int, shipment_id: int, user
 def listar_consolidaciones(filtros: dict = None) -> List[dict]:
     """Lista consolidaciones."""
     filtros = filtros or {}
+    ph = _ph()
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
@@ -653,20 +660,17 @@ def listar_consolidaciones(filtros: dict = None) -> List[dict]:
         params = []
 
         if filtros.get("estado"):
-            where_clauses.append("c.estado = ?")
+            where_clauses.append(f"c.estado = {ph}")
             params.append(filtros["estado"])
 
         where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
 
         cursor.execute(f"""
             SELECT c.*,
-                   v.placa, d.nombre || ' ' || COALESCE(d.apellido, '') as conductor_nombre,
-                   COUNT(s.id) as shipment_count,
-                   SUM(s.peso_total_kg) as peso_total,
-                   SUM(s.volumen_total_m3) as volumen_total
+                   COUNT(s.id) as shipment_count_calc,
+                   SUM(s.peso_kg) as peso_total_calc,
+                   SUM(s.volumen_m3) as volumen_total_calc
             FROM tms_consolidations c
-            LEFT JOIN fms_vehicles v ON c.vehicle_id = v.id
-            LEFT JOIN fms_drivers d ON c.driver_id = d.id
             LEFT JOIN tms_shipments s ON s.consolidation_id = c.id
             WHERE {where_sql}
             GROUP BY c.id
@@ -709,15 +713,14 @@ def listar_rutas(activas_only: bool = True) -> List[dict]:
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
-        where_sql = "WHERE activa = 1" if activas_only else ""
+        # tms_routes.activo is a boolean column in PostgreSQL
+        where_sql = "WHERE activo = TRUE" if activas_only and is_using_postgresql() else ("WHERE activo = 1" if activas_only else "")
 
         cursor.execute(f"""
-            SELECT r.*,
-                   co.nombre as origen_nombre, cd.nombre as destino_nombre
-            FROM tms_routes r
-            LEFT JOIN centros co ON r.origen_centro_id = co.id
-            LEFT JOIN centros cd ON r.destino_centro_id = cd.id
+            SELECT *
+            FROM tms_routes
             {where_sql}
+            ORDER BY nombre
         """)
         return [dict(r) for r in cursor.fetchall()]
 
@@ -1197,45 +1200,55 @@ def obtener_kpis_tms() -> dict:
         # In transit
         in_transit = shipments_by_state.get("in_transit", 0)
 
-        # On-time delivery rate
+        # On-time delivery rate - use actual columns: fecha_llegada_real vs fecha_llegada_est
         cursor.execute("""
             SELECT
                 COUNT(*) as total_delivered,
-                SUM(CASE WHEN fecha_entrega_real <= fecha_programada THEN 1 ELSE 0 END) as on_time
+                SUM(CASE WHEN fecha_llegada_real <= fecha_llegada_est THEN 1 ELSE 0 END) as on_time
             FROM tms_shipments
-            WHERE estado IN ('delivered', 'settled')
-              AND fecha_entrega_real IS NOT NULL
-              AND fecha_programada IS NOT NULL
+            WHERE estado = 'entregado'
+              AND fecha_llegada_real IS NOT NULL
+              AND fecha_llegada_est IS NOT NULL
         """)
         delivery = cursor.fetchone()
-        total_delivered = delivery["total_delivered"] or 0
-        on_time = delivery["on_time"] or 0
-        on_time_rate = (on_time / total_delivered * 100) if total_delivered > 0 else 0
+        total_delivered = (delivery["total_delivered"] if isinstance(delivery, dict) else delivery[0]) or 0
+        on_time_val = (delivery["on_time"] if isinstance(delivery, dict) else delivery[1]) or 0
+        on_time_rate = (on_time_val / total_delivered * 100) if total_delivered > 0 else 0
 
-        # Average cost per shipment
+        # Average cost per shipment from tms_shipment_costs (actual table name)
         cursor.execute("""
-            SELECT AVG(total_gastos) as avg_cost
-            FROM tms_trip_settlements
+            SELECT AVG(monto) as avg_cost
+            FROM tms_shipment_costs
         """)
-        avg_cost = cursor.fetchone()["avg_cost"] or 0
+        row = cursor.fetchone()
+        avg_cost = (row["avg_cost"] if isinstance(row, dict) else row[0]) or 0
 
         # Average consolidation utilization
         cursor.execute("""
             SELECT AVG(
-                (SELECT SUM(peso_total_kg) FROM tms_shipments s WHERE s.consolidation_id = c.id) * 100.0 /
-                (SELECT capacidad_peso_kg FROM fms_vehicles v WHERE v.id = c.vehicle_id)
+                CASE
+                    WHEN c.peso_total > 0 THEN c.peso_total * 100.0
+                    ELSE 0
+                END
             ) as avg_util
             FROM tms_consolidations c
-            WHERE c.vehicle_id IS NOT NULL
         """)
-        avg_util = cursor.fetchone()["avg_util"] or 0
+        row = cursor.fetchone()
+        avg_util = (row["avg_util"] if isinstance(row, dict) else row[0]) or 0
 
-        # Average margin
+        # Average settlement margin from tms_settlements (actual table name)
         cursor.execute("""
-            SELECT AVG(margen_pct) as avg_margin
-            FROM tms_trip_settlements
+            SELECT AVG(
+                CASE
+                    WHEN total_cobrado > 0
+                    THEN (total_cobrado - total_costos) / total_cobrado * 100
+                    ELSE 0
+                END
+            ) as avg_margin
+            FROM tms_settlements
         """)
-        avg_margin = cursor.fetchone()["avg_margin"] or 0
+        row = cursor.fetchone()
+        avg_margin = (row["avg_margin"] if isinstance(row, dict) else row[0]) or 0
 
         # Top routes by volume
         cursor.execute("""
@@ -1243,7 +1256,7 @@ def obtener_kpis_tms() -> dict:
             FROM tms_routes r
             LEFT JOIN tms_shipments s ON s.route_id = r.id
             WHERE s.id IS NOT NULL
-            GROUP BY r.id
+            GROUP BY r.id, r.nombre
             ORDER BY shipment_count DESC
             LIMIT 5
         """)
@@ -1253,9 +1266,9 @@ def obtener_kpis_tms() -> dict:
             "shipments_by_state": shipments_by_state,
             "in_transit": in_transit,
             "on_time_delivery_rate": round(on_time_rate, 2),
-            "avg_cost_per_shipment": round(avg_cost, 2),
-            "avg_consolidation_utilization": round(avg_util, 2),
-            "avg_margin_pct": round(avg_margin, 2),
+            "avg_cost_per_shipment": round(float(avg_cost), 2),
+            "avg_consolidation_utilization": round(float(avg_util), 2),
+            "avg_margin_pct": round(float(avg_margin), 2),
             "top_routes": top_routes
         }
 
@@ -1268,13 +1281,29 @@ def _registrar_auditoria(conn, entidad: str, entidad_id: int, accion: str,
                          datos_antes: dict = None, datos_despues: dict = None,
                          usuario_id: str = "", ip: str = None):
     """Registra accion en tms_audit_log."""
+    ph = _ph()
     cursor = conn.cursor()
-    cursor.execute("""
+    cursor.execute(f"""
         INSERT INTO tms_audit_log (entidad, entidad_id, accion, datos_antes, datos_despues, usuario_id, ip_address)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
     """, (
         entidad, entidad_id, accion,
         json.dumps(datos_antes) if datos_antes else None,
         json.dumps(datos_despues) if datos_despues else None,
         usuario_id, ip
     ))
+
+
+# --- Aliases for English route compatibility ---
+def list_shipments(user_id: str = None, filters: dict = None) -> dict:
+    return listar_envios(filters, page=filters.get("page", 1) if filters else 1,
+                          per_page=filters.get("per_page", 20) if filters else 20)
+
+def list_consolidations(user_id: str = None, filters: dict = None):
+    return listar_consolidaciones(filters)
+
+def list_routes(user_id: str = None, filters: dict = None):
+    return listar_rutas(activas_only=True)
+
+def get_kpis(user_id: str = None, filters: dict = None) -> dict:
+    return obtener_kpis_tms()

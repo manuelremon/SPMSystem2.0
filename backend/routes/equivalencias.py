@@ -19,7 +19,7 @@ bp = Blueprint("equivalencias", __name__, url_prefix="/api/equivalencias")
 # Configuración de BDs - en producción PG usa vistas de compatibilidad
 _PG = is_using_postgresql()
 _DB_EQUIV = "spm"  # Cambiado de "equivalentes" a "spm"
-_TABLA_EQUIV = "material_equivalencias" # Nombre correcto de la tabla en spm.db/Postgres
+_TABLA_EQUIV = "materiales_equivalencias"  # Vista PG con columnas SAP (material_base, texto_breve_base, etc.)
 _DB_CATALOGO = "master_materiales" # Cambiado de "catalogo_materiales"
 _TABLA_CATALOGO = "catalogo_materiales"
 _COL_MAT_ID = "codigo"

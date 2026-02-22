@@ -26,8 +26,8 @@ def crear_ciclo_planificacion(data: dict, user_id: int) -> int:
     Args:
         data: {
             'nombre': str,
-            'periodo_inicio': str (YYYY-MM-DD),
-            'periodo_fin': str (YYYY-MM-DD),
+            'periodo_desde': str (YYYY-MM-DD),
+            'periodo_hasta': str (YYYY-MM-DD),
             'descripcion': str (optional)
         }
         user_id: ID del usuario creador
@@ -41,13 +41,13 @@ def crear_ciclo_planificacion(data: dict, user_id: int) -> int:
         if using_pg:
             cursor.execute("""
                 INSERT INTO plan_demanda
-                (nombre, periodo_inicio, periodo_fin, descripcion, estado, creado_por, created_at)
+                (nombre, periodo_desde, periodo_hasta, descripcion, estado, creado_por, created_at)
                 VALUES (%s, %s, %s, %s, 'draft', %s, NOW())
                 RETURNING id
             """, (
                 data['nombre'],
-                data['periodo_inicio'],
-                data['periodo_fin'],
+                data['periodo_desde'],
+                data['periodo_hasta'],
                 data.get('descripcion'),
                 user_id
             ))
@@ -55,12 +55,12 @@ def crear_ciclo_planificacion(data: dict, user_id: int) -> int:
         else:
             cursor.execute("""
                 INSERT INTO plan_demanda
-                (nombre, periodo_inicio, periodo_fin, descripcion, estado, creado_por, created_at)
+                (nombre, periodo_desde, periodo_hasta, descripcion, estado, creado_por, created_at)
                 VALUES (?, ?, ?, ?, 'draft', ?, datetime('now'))
             """, (
                 data['nombre'],
-                data['periodo_inicio'],
-                data['periodo_fin'],
+                data['periodo_desde'],
+                data['periodo_hasta'],
                 data.get('descripcion'),
                 user_id
             ))
@@ -120,17 +120,17 @@ def obtener_ciclos(filtros: dict) -> dict:
         cursor.execute(
             f"""
             SELECT
-                pd.id, pd.nombre, pd.periodo_inicio, pd.periodo_fin,
+                pd.id, pd.nombre, pd.periodo_desde, pd.periodo_hasta,
                 pd.estado, pd.created_at, pd.creado_por,
                 u.nombre as creado_por_nombre,
                 COUNT(DISTINCT pde.id) as num_entradas,
                 COUNT(DISTINCT pdc.id) as num_consensos
             FROM plan_demanda pd
-            LEFT JOIN usuarios u ON pd.creado_por = u.id_spm
+            LEFT JOIN usuarios u ON pd.creado_por::text = u.id_spm
             LEFT JOIN plan_demanda_entrada pde ON pd.id = pde.plan_id
             LEFT JOIN plan_demanda_consenso pdc ON pd.id = pdc.plan_id
             {where_sql}
-            GROUP BY pd.id, pd.nombre, pd.periodo_inicio, pd.periodo_fin,
+            GROUP BY pd.id, pd.nombre, pd.periodo_desde, pd.periodo_hasta,
                      pd.estado, pd.created_at, pd.creado_por, u.nombre
             ORDER BY pd.created_at DESC
             LIMIT {placeholder} OFFSET {placeholder}
@@ -143,8 +143,8 @@ def obtener_ciclos(filtros: dict) -> dict:
             items.append({
                 'id': row[0],
                 'nombre': row[1],
-                'periodo_inicio': row[2],
-                'periodo_fin': row[3],
+                'periodo_desde': row[2],
+                'periodo_hasta': row[3],
                 'estado': row[4],
                 'created_at': row[5],
                 'creado_por': row[6],
@@ -187,11 +187,11 @@ def obtener_detalle_ciclo(plan_id: int) -> dict:
         cursor.execute(
             f"""
             SELECT
-                pd.id, pd.nombre, pd.periodo_inicio, pd.periodo_fin,
+                pd.id, pd.nombre, pd.periodo_desde, pd.periodo_hasta,
                 pd.descripcion, pd.estado, pd.created_at, pd.creado_por,
                 u.nombre as creado_por_nombre
             FROM plan_demanda pd
-            LEFT JOIN usuarios u ON pd.creado_por = u.id_spm
+            LEFT JOIN usuarios u ON pd.creado_por::text = u.id_spm
             WHERE pd.id = {placeholder}
             """,
             (plan_id,)
@@ -204,8 +204,8 @@ def obtener_detalle_ciclo(plan_id: int) -> dict:
         plan = {
             'id': row[0],
             'nombre': row[1],
-            'periodo_inicio': row[2],
-            'periodo_fin': row[3],
+            'periodo_desde': row[2],
+            'periodo_hasta': row[3],
             'descripcion': row[4],
             'estado': row[5],
             'created_at': row[6],
@@ -227,7 +227,7 @@ def obtener_detalle_ciclo(plan_id: int) -> dict:
                 pde.notas
             FROM plan_demanda_entrada pde
             LEFT JOIN catalogo_materiales m ON pde.material_codigo = m.codigo
-            LEFT JOIN usuarios u ON pde.creado_por = u.id_spm
+            LEFT JOIN usuarios u ON pde.creado_por::text = u.id_spm
             WHERE pde.plan_id = {placeholder}
             ORDER BY pde.material_codigo, pde.created_at
             """,
@@ -268,7 +268,7 @@ def obtener_detalle_ciclo(plan_id: int) -> dict:
                 pdc.created_at
             FROM plan_demanda_consenso pdc
             LEFT JOIN catalogo_materiales m ON pdc.material_codigo = m.codigo
-            LEFT JOIN usuarios u ON pdc.aprobado_por = u.id_spm
+            LEFT JOIN usuarios u ON pdc.aprobado_por::text = u.id_spm
             WHERE pdc.plan_id = {placeholder}
             ORDER BY pdc.material_codigo
             """,
@@ -433,7 +433,7 @@ def generar_baseline_ml(plan_id: int) -> dict:
     with get_db_transaction() as (conn, cursor):
         # Obtener periodo del plan
         cursor.execute(
-            f"SELECT periodo_inicio, periodo_fin FROM plan_demanda WHERE id = {placeholder}",
+            f"SELECT periodo_desde, periodo_hasta FROM plan_demanda WHERE id = {placeholder}",
             (plan_id,)
         )
         result = cursor.fetchone()
@@ -659,20 +659,20 @@ def obtener_accuracy_kpis() -> dict:
             SELECT
                 pdc.material_codigo,
                 pdc.cantidad_consenso,
-                pd.periodo_inicio,
-                pd.periodo_fin
+                pd.periodo_desde,
+                pd.periodo_hasta
             FROM plan_demanda_consenso pdc
             JOIN plan_demanda pd ON pdc.plan_id = pd.id
             WHERE pd.estado = 'approved'
-            AND pd.periodo_fin < date('now')
+            AND pd.periodo_hasta < CURRENT_DATE
         """)
 
         comparaciones = []
         for row in cursor.fetchall():
             material_codigo = row[0]
             cantidad_consenso = float(row[1]) if row[1] else 0
-            periodo_inicio = row[2]
-            periodo_fin = row[3]
+            periodo_desde = row[2]
+            periodo_hasta = row[3]
 
             # Obtener consumo real del periodo
             cursor.execute("""
@@ -680,7 +680,7 @@ def obtener_accuracy_kpis() -> dict:
                 FROM consumo_historico
                 WHERE material_codigo = ?
                 AND fecha >= ? AND fecha <= ?
-            """, (material_codigo, periodo_inicio, periodo_fin))
+            """, (material_codigo, periodo_desde, periodo_hasta))
 
             result = cursor.fetchone()
             consumo_real = float(result[0]) if result and result[0] else 0
