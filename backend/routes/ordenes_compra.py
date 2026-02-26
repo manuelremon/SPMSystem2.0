@@ -82,15 +82,16 @@ def listar_ordenes():
         centro = request.args.get("centro")
         proveedor = request.args.get("proveedor")
 
-        filtros = {
-            "page": page,
-            "per_page": per_page,
-            "estado": estado,
-            "centro": centro,
-            "proveedor": proveedor,
-        }
+        contrato_id = request.args.get("contrato_id", type=int)
 
-        result = OCService.listar_ordenes(filtros)
+        result = OCService.listar_ordenes(
+            page=page,
+            per_page=per_page,
+            estado=estado,
+            centro=centro,
+            proveedor=proveedor,
+            contrato_id=contrato_id,
+        )
         return _success_response(result)
 
     except Exception as e:
@@ -204,18 +205,21 @@ def crear_orden():
                     f"Item {idx + 1}: precio_unitario no puede ser negativo",
                 )
 
-        user_id = str(g.user.get("id_spm") or g.user.get("user_id"))
+        user_id = g.user.get("id_spm") or g.user.get("user_id")
 
-        result = OCService.crear_orden(data, user_id)
-
-        if not result.get("ok"):
-            return _error_response(
-                result.get("code", "create_error"),
-                result.get("error", "Error al crear orden"),
-            )
+        result = OCService.crear_orden(
+            solicitud_id=data.get("solicitud_id"),
+            proveedor_cuit=data["proveedor_cuit"],
+            proveedor_nombre=data["proveedor_nombre"],
+            centro=data["centro"],
+            items=items,
+            creado_por=user_id,
+            notas=data.get("notas"),
+            moneda=data.get("moneda", "ARS"),
+        )
 
         return _success_response(
-            result.get("data"), "Orden de compra creada exitosamente", 201
+            result, "Orden de compra creada exitosamente", 201
         )
 
     except ValueError as e:
@@ -276,21 +280,14 @@ def cambiar_estado(orden_id: int):
                 "Debe proporcionar una razon para cancelar (minimo 5 caracteres)",
             )
 
-        user_id = str(g.user.get("id_spm") or g.user.get("user_id"))
-        user_rol = g.user.get("rol", "")
+        user_id = g.user.get("id_spm") or g.user.get("user_id")
 
         result = OCService.cambiar_estado(
-            orden_id, nuevo_estado, user_id, user_rol, razon
+            orden_id, nuevo_estado, user_id, razon or None
         )
 
-        if not result.get("ok"):
-            return _error_response(
-                result.get("code", "transition_error"),
-                result.get("error", "Transicion de estado invalida"),
-            )
-
         return _success_response(
-            result.get("data"), "Estado actualizado exitosamente"
+            result, "Estado actualizado exitosamente"
         )
 
     except ValueError as e:
@@ -358,20 +355,17 @@ def registrar_recepcion(orden_id: int):
                     f"Item {idx + 1}: cantidad_recibida no puede ser negativa",
                 )
 
-        user_id = str(g.user.get("id_spm") or g.user.get("user_id"))
+        user_id = g.user.get("id_spm") or g.user.get("user_id")
 
         result = OCService.registrar_recepcion(
-            orden_id, data, user_id
+            orden_id,
+            items_recibidos=items,
+            recibido_por=user_id,
+            notas=data.get("notas"),
         )
 
-        if not result.get("ok"):
-            return _error_response(
-                result.get("code", "receipt_error"),
-                result.get("error", "Error al registrar recepcion"),
-            )
-
         return _success_response(
-            result.get("data"), "Recepcion registrada exitosamente"
+            result, "Recepcion registrada exitosamente"
         )
 
     except ValueError as e:
@@ -460,18 +454,17 @@ def crear_desde_solicitud():
                     "missing_field", f"Campo requerido: {field}"
                 )
 
-        user_id = str(g.user.get("id_spm") or g.user.get("user_id"))
+        user_id = g.user.get("id_spm") or g.user.get("user_id")
 
-        result = OCService.crear_desde_solicitud(data, user_id)
-
-        if not result.get("ok"):
-            return _error_response(
-                result.get("code", "create_error"),
-                result.get("error", "Error al generar orden desde solicitud"),
-            )
+        result = OCService.generar_oc_desde_solicitud(
+            solicitud_id=data["solicitud_id"],
+            proveedor_cuit=data["proveedor_cuit"],
+            proveedor_nombre=data["proveedor_nombre"],
+            creado_por=user_id,
+        )
 
         return _success_response(
-            result.get("data"),
+            result,
             "Orden de compra generada desde solicitud exitosamente",
             201,
         )

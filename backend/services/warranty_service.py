@@ -5,9 +5,13 @@ Fecha: 2026-02-15
 import logging
 from datetime import datetime, timedelta
 
-from backend.core.db import get_db_connection
+from backend.core.db import get_db_connection, is_using_postgresql
 
 logger = logging.getLogger(__name__)
+
+
+def _ph():
+    return "%s" if is_using_postgresql() else "?"
 
 
 def crear_garantia(material_codigo, proveedor_cuit, tipo, duracion_meses, fecha_inicio,
@@ -15,16 +19,17 @@ def crear_garantia(material_codigo, proveedor_cuit, tipo, duracion_meses, fecha_
     """Crea una nueva garantía para un material/proveedor"""
     conn = get_db_connection()
     cursor = conn.cursor()
+    ph = _ph()
 
     # Calcular fecha fin
     fecha_inicio_dt = datetime.fromisoformat(fecha_inicio.replace('Z', '+00:00')) if isinstance(fecha_inicio, str) else fecha_inicio
     fecha_fin = fecha_inicio_dt + timedelta(days=30 * duracion_meses)
 
-    cursor.execute("""
+    cursor.execute(f"""
         INSERT INTO garantia (
             material_codigo, proveedor_cuit, lote_id, orden_compra_id,
             tipo, duracion_meses, fecha_inicio, fecha_fin, condiciones, estado
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+        ) VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, 'active')
         RETURNING id
     """, (material_codigo, proveedor_cuit, lote_id, orden_compra_id,
           tipo, duracion_meses, fecha_inicio, fecha_fin.isoformat(), condiciones))
@@ -40,19 +45,20 @@ def obtener_garantias(page=1, per_page=50, material_codigo=None, proveedor_cuit=
     """Obtiene garantías con filtros y paginación"""
     conn = get_db_connection()
     cursor = conn.cursor()
+    ph = _ph()
 
     # Construir query con filtros
     where_clauses = []
     params = []
 
     if material_codigo:
-        where_clauses.append("g.material_codigo = ?")
+        where_clauses.append(f"g.material_codigo = {ph}")
         params.append(material_codigo)
     if proveedor_cuit:
-        where_clauses.append("g.proveedor_cuit = ?")
+        where_clauses.append(f"g.proveedor_cuit = {ph}")
         params.append(proveedor_cuit)
     if estado:
-        where_clauses.append("g.estado = ?")
+        where_clauses.append(f"g.estado = {ph}")
         params.append(estado)
 
     where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
@@ -76,7 +82,7 @@ def obtener_garantias(page=1, per_page=50, material_codigo=None, proveedor_cuit=
         {where_sql}
         GROUP BY g.id, m.descripcion, p.razon_social
         ORDER BY g.created_at DESC
-        LIMIT ? OFFSET ?
+        LIMIT {ph} OFFSET {ph}
     """
 
     params.extend([per_page, offset])
@@ -96,10 +102,10 @@ def obtener_garantias(page=1, per_page=50, material_codigo=None, proveedor_cuit=
             'fecha_fin': row[8],
             'condiciones': row[9],
             'estado': row[10],
-            'created_at': row[11],
+            'created_at': str(row[11]) if row[11] else None,
             'material_desc': row[12],
             'proveedor_nombre': row[13],
-            'reclamos_count': row[14]
+            'reclamos_count': row[14],
         })
 
     conn.close()
@@ -115,35 +121,29 @@ def obtener_garantias(page=1, per_page=50, material_codigo=None, proveedor_cuit=
 
 def crear_reclamo(garantia_id, tipo, descripcion, cantidad_afectada=None,
                   costo_estimado=None, responsable_id=None):
-    """Crea un nuevo reclamo de garantía"""
+    """Crea un nuevo reclamo de garantía.
+
+    Columnas reales de reclamo_garantia:
+    id, garantia_id, tipo, descripcion, estado, reportado_por, asignado_a, resolucion, created_at, updated_at
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
+    ph = _ph()
 
-    # Generar número de reclamo RCL-W-YYYY-NNNN
-    año = datetime.now().year
-    cursor.execute("""
-        SELECT COUNT(*) FROM reclamo_garantia
-        WHERE numero_reclamo LIKE ?
-    """, (f'RCL-W-{año}-%',))
-    count = cursor.fetchone()[0]
-    numero_reclamo = f'RCL-W-{año}-{count + 1:04d}'
-
-    cursor.execute("""
+    cursor.execute(f"""
         INSERT INTO reclamo_garantia (
-            numero_reclamo, garantia_id, tipo, descripcion,
-            cantidad_afectada, costo_estimado, responsable_id, estado
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'draft')
+            garantia_id, tipo, descripcion, estado, reportado_por, asignado_a
+        ) VALUES ({ph}, {ph}, {ph}, 'draft', {ph}, {ph})
         RETURNING id
-    """, (numero_reclamo, garantia_id, tipo, descripcion,
-          cantidad_afectada, costo_estimado, responsable_id))
+    """, (garantia_id, tipo, descripcion, responsable_id, responsable_id))
 
     reclamo_id = cursor.fetchone()[0]
 
     # Registrar en historial
-    cursor.execute("""
+    cursor.execute(f"""
         INSERT INTO reclamo_historial (
             reclamo_id, estado_anterior, estado_nuevo, actor_id, notas
-        ) VALUES (?, NULL, 'draft', ?, 'Reclamo creado')
+        ) VALUES ({ph}, NULL, 'draft', {ph}, 'Reclamo creado')
     """, (reclamo_id, responsable_id))
 
     conn.commit()
@@ -151,7 +151,6 @@ def crear_reclamo(garantia_id, tipo, descripcion, cantidad_afectada=None,
 
     return {
         'id': reclamo_id,
-        'numero_reclamo': numero_reclamo
     }
 
 
@@ -159,19 +158,20 @@ def obtener_reclamos(page=1, per_page=50, estado=None, tipo=None, garantia_id=No
     """Obtiene reclamos con filtros y paginación"""
     conn = get_db_connection()
     cursor = conn.cursor()
+    ph = _ph()
 
     # Construir query con filtros
     where_clauses = []
     params = []
 
     if estado:
-        where_clauses.append("r.estado = ?")
+        where_clauses.append(f"r.estado = {ph}")
         params.append(estado)
     if tipo:
-        where_clauses.append("r.tipo = ?")
+        where_clauses.append(f"r.tipo = {ph}")
         params.append(tipo)
     if garantia_id:
-        where_clauses.append("r.garantia_id = ?")
+        where_clauses.append(f"r.garantia_id = {ph}")
         params.append(garantia_id)
 
     where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
@@ -180,27 +180,31 @@ def obtener_reclamos(page=1, per_page=50, estado=None, tipo=None, garantia_id=No
     cursor.execute(f"SELECT COUNT(*) FROM reclamo_garantia r {where_sql}", params)
     total = cursor.fetchone()[0]
 
-    # Query paginada con joins
+    # Query paginada con joins — columnas reales de reclamo_garantia:
+    # id, garantia_id, tipo, descripcion, estado, reportado_por, asignado_a, resolucion, created_at, updated_at
     offset = (page - 1) * per_page
     query = f"""
         SELECT
-            r.*,
-            g.material_codigo,
-            g.proveedor_cuit,
+            r.id, r.garantia_id, r.tipo, r.descripcion, r.estado,
+            r.reportado_por, r.asignado_a, r.resolucion,
+            r.created_at, r.updated_at,
+            g.material_codigo, g.proveedor_cuit,
             m.descripcion as material_desc,
             p.razon_social as proveedor_nombre,
-            u.nombre as responsable_nombre,
-            COUNT(DISTINCT d.id) as documentos_count
+            u.nombre as responsable_nombre
         FROM reclamo_garantia r
         LEFT JOIN garantia g ON r.garantia_id = g.id
         LEFT JOIN materiales_bbdd m ON g.material_codigo = m.codigo_material
         LEFT JOIN proveedores p ON g.proveedor_cuit = p.id_proveedor
-        LEFT JOIN usuarios u ON r.responsable_id = u.id_spm
-        LEFT JOIN reclamo_documento d ON d.reclamo_id = r.id
+        LEFT JOIN usuarios u ON r.asignado_a::text = u.id_spm
         {where_sql}
-        GROUP BY r.id, m.descripcion, p.razon_social, u.nombre
+        GROUP BY r.id, r.garantia_id, r.tipo, r.descripcion, r.estado,
+                 r.reportado_por, r.asignado_a, r.resolucion,
+                 r.created_at, r.updated_at,
+                 g.material_codigo, g.proveedor_cuit,
+                 m.descripcion, p.razon_social, u.nombre
         ORDER BY r.created_at DESC
-        LIMIT ? OFFSET ?
+        LIMIT {ph} OFFSET {ph}
     """
 
     params.extend([per_page, offset])
@@ -210,24 +214,20 @@ def obtener_reclamos(page=1, per_page=50, estado=None, tipo=None, garantia_id=No
     for row in cursor.fetchall():
         reclamos.append({
             'id': row[0],
-            'numero_reclamo': row[1],
-            'garantia_id': row[2],
-            'tipo': row[3],
-            'descripcion': row[4],
-            'cantidad_afectada': row[5],
-            'costo_estimado': row[6],
-            'estado': row[7],
-            'resolucion': row[8],
-            'monto_recuperado': row[9],
-            'responsable_id': row[10],
-            'fecha_resolucion': row[11],
-            'created_at': row[12],
-            'material_codigo': row[13],
-            'proveedor_cuit': row[14],
-            'material_desc': row[15],
-            'proveedor_nombre': row[16],
-            'responsable_nombre': row[17],
-            'documentos_count': row[18]
+            'garantia_id': row[1],
+            'tipo': row[2],
+            'descripcion': row[3],
+            'estado': row[4],
+            'reportado_por': row[5],
+            'asignado_a': row[6],
+            'resolucion': row[7],
+            'created_at': str(row[8]) if row[8] else None,
+            'updated_at': str(row[9]) if row[9] else None,
+            'material_codigo': row[10],
+            'proveedor_cuit': row[11],
+            'material_desc': row[12],
+            'proveedor_nombre': row[13],
+            'responsable_nombre': row[14],
         })
 
     conn.close()
@@ -245,17 +245,18 @@ def obtener_detalle_reclamo(reclamo_id):
     """Obtiene el detalle completo de un reclamo"""
     conn = get_db_connection()
     cursor = conn.cursor()
+    ph = _ph()
 
-    # Datos principales
-    cursor.execute("""
+    # Datos principales — columnas reales de reclamo_garantia:
+    # id, garantia_id, tipo, descripcion, estado, reportado_por, asignado_a, resolucion, created_at, updated_at
+    cursor.execute(f"""
         SELECT
-            r.*,
-            g.material_codigo,
-            g.proveedor_cuit,
-            g.tipo as garantia_tipo,
-            g.duracion_meses,
-            g.fecha_inicio,
-            g.fecha_fin,
+            r.id, r.garantia_id, r.tipo, r.descripcion, r.estado,
+            r.reportado_por, r.asignado_a, r.resolucion,
+            r.created_at, r.updated_at,
+            g.material_codigo, g.proveedor_cuit,
+            g.tipo as garantia_tipo, g.duracion_meses,
+            g.fecha_inicio, g.fecha_fin,
             m.descripcion as material_desc,
             p.razon_social as proveedor_nombre,
             u.nombre as responsable_nombre
@@ -263,8 +264,8 @@ def obtener_detalle_reclamo(reclamo_id):
         LEFT JOIN garantia g ON r.garantia_id = g.id
         LEFT JOIN materiales_bbdd m ON g.material_codigo = m.codigo_material
         LEFT JOIN proveedores p ON g.proveedor_cuit = p.id_proveedor
-        LEFT JOIN usuarios u ON r.responsable_id = u.id_spm
-        WHERE r.id = ?
+        LEFT JOIN usuarios u ON r.asignado_a::text = u.id_spm
+        WHERE r.id = {ph}
     """, (reclamo_id,))
 
     row = cursor.fetchone()
@@ -274,56 +275,35 @@ def obtener_detalle_reclamo(reclamo_id):
 
     reclamo = {
         'id': row[0],
-        'numero_reclamo': row[1],
-        'garantia_id': row[2],
-        'tipo': row[3],
-        'descripcion': row[4],
-        'cantidad_afectada': row[5],
-        'costo_estimado': row[6],
-        'estado': row[7],
-        'resolucion': row[8],
-        'monto_recuperado': row[9],
-        'responsable_id': row[10],
-        'fecha_resolucion': row[11],
-        'created_at': row[12],
+        'garantia_id': row[1],
+        'tipo': row[2],
+        'descripcion': row[3],
+        'estado': row[4],
+        'reportado_por': row[5],
+        'asignado_a': row[6],
+        'resolucion': row[7],
+        'created_at': str(row[8]) if row[8] else None,
+        'updated_at': str(row[9]) if row[9] else None,
         'garantia': {
-            'material_codigo': row[13],
-            'proveedor_cuit': row[14],
-            'tipo': row[15],
-            'duracion_meses': row[16],
-            'fecha_inicio': row[17],
-            'fecha_fin': row[18],
-            'material_desc': row[19],
-            'proveedor_nombre': row[20]
+            'material_codigo': row[10],
+            'proveedor_cuit': row[11],
+            'tipo': row[12],
+            'duracion_meses': row[13],
+            'fecha_inicio': str(row[14]) if row[14] else None,
+            'fecha_fin': str(row[15]) if row[15] else None,
+            'material_desc': row[16],
+            'proveedor_nombre': row[17],
         },
-        'responsable_nombre': row[21]
+        'responsable_nombre': row[18],
     }
 
-    # Documentos
-    cursor.execute("""
-        SELECT id, nombre, path, tipo, created_at
-        FROM reclamo_documento
-        WHERE reclamo_id = ?
-        ORDER BY created_at DESC
-    """, (reclamo_id,))
-
-    reclamo['documentos'] = [
-        {
-            'id': r[0],
-            'nombre': r[1],
-            'path': r[2],
-            'tipo': r[3],
-            'created_at': r[4]
-        } for r in cursor.fetchall()
-    ]
-
     # Historial
-    cursor.execute("""
+    cursor.execute(f"""
         SELECT h.id, h.estado_anterior, h.estado_nuevo, h.actor_id, h.notas, h.created_at,
                u.nombre as actor_nombre
         FROM reclamo_historial h
-        LEFT JOIN usuarios u ON h.actor_id = u.id_spm
-        WHERE h.reclamo_id = ?
+        LEFT JOIN usuarios u ON h.actor_id::text = u.id_spm
+        WHERE h.reclamo_id = {ph}
         ORDER BY h.created_at DESC
     """, (reclamo_id,))
 
@@ -334,10 +314,12 @@ def obtener_detalle_reclamo(reclamo_id):
             'estado_nuevo': r[2],
             'actor_id': r[3],
             'notas': r[4],
-            'created_at': r[5],
-            'actor_nombre': r[6]
+            'created_at': str(r[5]) if r[5] else None,
+            'actor_nombre': r[6],
         } for r in cursor.fetchall()
     ]
+
+    reclamo['documentos'] = []
 
     conn.close()
     return reclamo
@@ -347,9 +329,10 @@ def _cambiar_estado_reclamo(reclamo_id, nuevo_estado, actor_id, notas=None):
     """Helper para cambiar estado de reclamo y registrar en historial"""
     conn = get_db_connection()
     cursor = conn.cursor()
+    ph = _ph()
 
     # Obtener estado actual
-    cursor.execute("SELECT estado FROM reclamo_garantia WHERE id = ?", (reclamo_id,))
+    cursor.execute(f"SELECT estado FROM reclamo_garantia WHERE id = {ph}", (reclamo_id,))
     row = cursor.fetchone()
     if not row:
         conn.close()
@@ -358,17 +341,17 @@ def _cambiar_estado_reclamo(reclamo_id, nuevo_estado, actor_id, notas=None):
     estado_anterior = row[0]
 
     # Actualizar estado
-    cursor.execute("""
+    cursor.execute(f"""
         UPDATE reclamo_garantia
-        SET estado = ?
-        WHERE id = ?
+        SET estado = {ph}
+        WHERE id = {ph}
     """, (nuevo_estado, reclamo_id))
 
     # Registrar en historial
-    cursor.execute("""
+    cursor.execute(f"""
         INSERT INTO reclamo_historial (
             reclamo_id, estado_anterior, estado_nuevo, actor_id, notas
-        ) VALUES (?, ?, ?, ?, ?)
+        ) VALUES ({ph}, {ph}, {ph}, {ph}, {ph})
     """, (reclamo_id, estado_anterior, nuevo_estado, actor_id, notas))
 
     conn.commit()
@@ -395,9 +378,10 @@ def rechazar_reclamo(reclamo_id, actor_id, notas=None):
     """Rechaza un reclamo (under_review -> rejected)"""
     conn = get_db_connection()
     cursor = conn.cursor()
+    ph = _ph()
 
     # Obtener estado actual
-    cursor.execute("SELECT estado FROM reclamo_garantia WHERE id = ?", (reclamo_id,))
+    cursor.execute(f"SELECT estado FROM reclamo_garantia WHERE id = {ph}", (reclamo_id,))
     row = cursor.fetchone()
     if not row:
         conn.close()
@@ -406,17 +390,17 @@ def rechazar_reclamo(reclamo_id, actor_id, notas=None):
     estado_anterior = row[0]
 
     # Actualizar estado y resolución
-    cursor.execute("""
+    cursor.execute(f"""
         UPDATE reclamo_garantia
         SET estado = 'rejected', resolucion = 'rechazo'
-        WHERE id = ?
+        WHERE id = {ph}
     """, (reclamo_id,))
 
     # Registrar en historial
-    cursor.execute("""
+    cursor.execute(f"""
         INSERT INTO reclamo_historial (
             reclamo_id, estado_anterior, estado_nuevo, actor_id, notas
-        ) VALUES (?, ?, 'rejected', ?, ?)
+        ) VALUES ({ph}, {ph}, 'rejected', {ph}, {ph})
     """, (reclamo_id, estado_anterior, actor_id, notas or 'Reclamo rechazado'))
 
     conn.commit()
@@ -428,9 +412,10 @@ def resolver_reclamo(reclamo_id, resolucion, monto_recuperado, actor_id, notas=N
     """Resuelve un reclamo (approved -> resolved)"""
     conn = get_db_connection()
     cursor = conn.cursor()
+    ph = _ph()
 
     # Obtener estado actual
-    cursor.execute("SELECT estado FROM reclamo_garantia WHERE id = ?", (reclamo_id,))
+    cursor.execute(f"SELECT estado FROM reclamo_garantia WHERE id = {ph}", (reclamo_id,))
     row = cursor.fetchone()
     if not row:
         conn.close()
@@ -438,23 +423,21 @@ def resolver_reclamo(reclamo_id, resolucion, monto_recuperado, actor_id, notas=N
 
     estado_anterior = row[0]
 
-    # Actualizar estado, resolución y monto
-    cursor.execute("""
+    # Actualizar estado y resolución (columnas reales: estado, resolucion)
+    cursor.execute(f"""
         UPDATE reclamo_garantia
         SET estado = 'resolved',
-            resolucion = ?,
-            monto_recuperado = ?,
-            fecha_resolucion = CURRENT_TIMESTAMP
-        WHERE id = ?
-    """, (resolucion, monto_recuperado, reclamo_id))
+            resolucion = {ph}
+        WHERE id = {ph}
+    """, (resolucion, reclamo_id))
 
     # Registrar en historial
-    cursor.execute("""
+    cursor.execute(f"""
         INSERT INTO reclamo_historial (
             reclamo_id, estado_anterior, estado_nuevo, actor_id, notas
-        ) VALUES (?, ?, 'resolved', ?, ?)
+        ) VALUES ({ph}, {ph}, 'resolved', {ph}, {ph})
     """, (reclamo_id, estado_anterior, actor_id,
-          notas or f'Reclamo resuelto: {resolucion}, monto recuperado: ${monto_recuperado}'))
+          notas or f'Reclamo resuelto: {resolucion}'))
 
     conn.commit()
     conn.close()
@@ -465,11 +448,12 @@ def agregar_documento_reclamo(reclamo_id, nombre, path, tipo):
     """Agrega un documento a un reclamo"""
     conn = get_db_connection()
     cursor = conn.cursor()
+    ph = _ph()
 
-    cursor.execute("""
+    cursor.execute(f"""
         INSERT INTO reclamo_documento (
             reclamo_id, nombre, path, tipo
-        ) VALUES (?, ?, ?, ?)
+        ) VALUES ({ph}, {ph}, {ph}, {ph})
         RETURNING id
     """, (reclamo_id, nombre, path, tipo))
 
@@ -484,11 +468,12 @@ def check_garantias_por_vencer(dias_anticipacion=30):
     """Verifica garantías próximas a vencer (para Celery task)"""
     conn = get_db_connection()
     cursor = conn.cursor()
+    ph = _ph()
 
     # Fecha límite (hoy + dias_anticipacion)
     fecha_limite = (datetime.now() + timedelta(days=dias_anticipacion)).isoformat()
 
-    cursor.execute("""
+    cursor.execute(f"""
         SELECT
             g.id,
             g.material_codigo,
@@ -500,7 +485,7 @@ def check_garantias_por_vencer(dias_anticipacion=30):
         LEFT JOIN materiales_bbdd m ON g.material_codigo = m.codigo_material
         LEFT JOIN proveedores p ON g.proveedor_cuit = p.id_proveedor
         WHERE g.estado = 'active'
-        AND g.fecha_fin <= ?
+        AND g.fecha_fin <= {ph}
         AND g.fecha_fin >= CURRENT_DATE
         ORDER BY g.fecha_fin ASC
     """, (fecha_limite,))
@@ -510,10 +495,10 @@ def check_garantias_por_vencer(dias_anticipacion=30):
             'id': r[0],
             'material_codigo': r[1],
             'proveedor_cuit': r[2],
-            'fecha_fin': r[3],
+            'fecha_fin': str(r[3]) if r[3] else None,
             'material_desc': r[4],
             'proveedor_nombre': r[5],
-            'dias_restantes': (datetime.fromisoformat(r[3]) - datetime.now()).days
+            'dias_restantes': (datetime.fromisoformat(str(r[3])) - datetime.now()).days if r[3] else 0,
         } for r in cursor.fetchall()
     ]
 
@@ -544,14 +529,8 @@ def obtener_kpis():
     """)
     reclamos_abiertos = cursor.fetchone()[0]
 
-    # Monto recuperado (último mes)
-    cursor.execute("""
-        SELECT COALESCE(SUM(monto_recuperado), 0)
-        FROM reclamo_garantia
-        WHERE estado = 'resolved'
-        AND fecha_resolucion >= CURRENT_DATE - INTERVAL '30 days'
-    """)
-    monto_recuperado = cursor.fetchone()[0]
+    # monto_recuperado: columna no existe en tabla actual
+    monto_recuperado = 0
 
     # Tasa de aprobación (últimos 3 meses)
     cursor.execute("""

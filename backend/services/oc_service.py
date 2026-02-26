@@ -11,8 +11,8 @@ Tablas involucradas:
 - orden_compra: cabecera de la OC
 - orden_compra_item: lineas de la OC
 - orden_compra_historial: log de cambios de estado
-- orden_compra_recepcion: recepciones de materiales
-- orden_compra_recepcion_item: items de cada recepcion
+- recepcion: recepciones de materiales
+- recepcion_item: items de cada recepcion
 """
 
 import logging
@@ -96,6 +96,38 @@ def _generar_numero_oc(cursor) -> str:
 # =============================================================================
 
 
+def _generar_numero_recepcion(cursor, numero_oc: str) -> str:
+    """
+    Genera numero unico de recepcion con formato REC-{OC_NUM}-{SEQ}.
+
+    Args:
+        cursor: Cursor de base de datos activo.
+        numero_oc: Numero de la OC asociada.
+
+    Returns:
+        Numero de recepcion formateado (ej: REC-OC-2026-00001-001).
+    """
+    prefix = f"REC-{numero_oc}-"
+    cursor.execute(
+        "SELECT numero_recepcion FROM recepcion "
+        "WHERE numero_recepcion LIKE ? "
+        "ORDER BY numero_recepcion DESC LIMIT 1",
+        (f"{prefix}%",),
+    )
+    row = cursor.fetchone()
+
+    if row:
+        ultimo = row["numero_recepcion"]
+        try:
+            secuencia = int(ultimo.split("-")[-1]) + 1
+        except (ValueError, IndexError):
+            secuencia = 1
+    else:
+        secuencia = 1
+
+    return f"{prefix}{secuencia:03d}"
+
+
 def _calcular_monto_total(items: List[Dict[str, Any]]) -> float:
     """Calcula monto total sumando cantidad * precio_unitario de cada item."""
     total = 0.0
@@ -163,8 +195,8 @@ class OCService:
             proveedor_nombre: Razon social del proveedor.
             centro: Centro de costo destino.
             items: Lista de items, cada uno con:
-                - material_id (str): Codigo del material.
-                - descripcion (str): Descripcion del material.
+                - material_codigo (str): Codigo del material.
+                - material_descripcion (str): Descripcion del material.
                 - cantidad (float): Cantidad solicitada (> 0).
                 - unidad (str): Unidad de medida.
                 - precio_unitario (float): Precio por unidad (>= 0).
@@ -233,15 +265,14 @@ class OCService:
                     cursor,
                     """
                     INSERT INTO orden_compra_item (
-                        orden_compra_id, numero_linea, material_id, descripcion,
-                        cantidad, unidad, precio_unitario, subtotal
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        orden_compra_id, material_codigo, material_descripcion,
+                        cantidad, unidad, precio_unitario, precio_total
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         orden_id,
-                        idx,
-                        item.get("material_id", ""),
-                        item.get("descripcion", ""),
+                        item.get("material_codigo") or item.get("material_id", ""),
+                        item.get("material_descripcion") or item.get("descripcion", ""),
                         cantidad,
                         item.get("unidad", "UN"),
                         precio_unitario,
@@ -275,6 +306,7 @@ class OCService:
         estado: Optional[str] = None,
         centro: Optional[str] = None,
         proveedor: Optional[str] = None,
+        contrato_id: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Lista ordenes de compra con filtros y paginacion.
@@ -311,6 +343,10 @@ class OCService:
             )
             like_val = f"%{proveedor}%"
             params.extend([like_val, like_val])
+
+        if contrato_id:
+            where_clauses.append("oc.contrato_id = ?")
+            params.append(contrato_id)
 
         where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
 
@@ -374,7 +410,7 @@ class OCService:
                 """
                 SELECT * FROM orden_compra_item
                 WHERE orden_compra_id = ?
-                ORDER BY numero_linea
+                ORDER BY id
                 """,
                 (orden_id,),
             )
@@ -494,7 +530,7 @@ class OCService:
             items_recibidos: Lista de items recibidos, cada uno con:
                 - orden_compra_item_id (int): ID del item de la OC.
                 - cantidad_recibida (float): Cantidad recibida (> 0).
-                - estado_calidad (str): 'aceptado', 'rechazado' o 'condicional'.
+                - estado_calidad (str): 'aceptado', 'rechazado' o 'parcial'.
                 - notas (str, optional): Observaciones del item.
             recibido_por: ID del usuario que recibe.
             notas: Notas generales de la recepcion.
@@ -528,14 +564,16 @@ class OCService:
                     f"'recepcion_parcial'."
                 )
 
+            numero_recepcion = _generar_numero_recepcion(cursor, orden["numero_oc"])
+
             recepcion_id = insert_returning_id(
                 cursor,
                 """
-                INSERT INTO orden_compra_recepcion
-                    (orden_compra_id, recibido_por, notas)
-                VALUES (?, ?, ?)
+                INSERT INTO recepcion
+                    (orden_compra_id, numero_recepcion, recibido_por, notas)
+                VALUES (?, ?, ?, ?)
                 """,
-                (orden_id, recibido_por, notas),
+                (orden_id, numero_recepcion, recibido_por, notas),
             )
 
             for item_rec in items_recibidos:
@@ -550,10 +588,10 @@ class OCService:
                         f"mayor a 0"
                     )
 
-                if estado_calidad not in ("aceptado", "rechazado", "condicional"):
+                if estado_calidad not in ("aceptado", "rechazado", "parcial"):
                     raise ValueError(
                         f"Item {oc_item_id}: estado_calidad debe ser "
-                        f"'aceptado', 'rechazado' o 'condicional'"
+                        f"'aceptado', 'rechazado' o 'parcial'"
                     )
 
                 cursor.execute(
@@ -583,7 +621,7 @@ class OCService:
                 insert_returning_id(
                     cursor,
                     """
-                    INSERT INTO orden_compra_recepcion_item
+                    INSERT INTO recepcion_item
                         (recepcion_id, orden_compra_item_id,
                          cantidad_recibida, estado_calidad, notas)
                     VALUES (?, ?, ?, ?, ?)
@@ -819,8 +857,8 @@ class OCService:
         items_oc: List[Dict[str, Any]] = []
         for item in items_solicitud:
             items_oc.append({
-                "material_id": item.get("material_id", ""),
-                "descripcion": item.get("descripcion", ""),
+                "material_codigo": item.get("material_codigo") or item.get("material_id", ""),
+                "material_descripcion": item.get("material_descripcion") or item.get("descripcion", ""),
                 "cantidad": item.get("cantidad", 0),
                 "unidad": item.get("unidad", "UN"),
                 "precio_unitario": item.get("precio_unitario", 0),

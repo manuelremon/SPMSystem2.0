@@ -276,7 +276,7 @@ def obtener_devoluciones(filtros: dict) -> dict:
                 p.nombre as proveedor_nombre,
                 d.tipo, d.estado, d.monto_credito_esperado,
                 d.monto_credito_recibido, d.created_at,
-                oc.numero as orden_compra_numero,
+                oc.numero_oc as orden_compra_numero,
                 COUNT(di.id) as num_items
             FROM devolucion d
             LEFT JOIN proveedores p ON d.proveedor_cuit = p.id_proveedor
@@ -285,7 +285,7 @@ def obtener_devoluciones(filtros: dict) -> dict:
             {where_sql}
             GROUP BY d.id, d.numero_rma, d.proveedor_cuit, p.nombre,
                      d.tipo, d.estado, d.monto_credito_esperado,
-                     d.monto_credito_recibido, d.created_at, oc.numero
+                     d.monto_credito_recibido, d.created_at, oc.numero_oc
             ORDER BY d.created_at DESC
             LIMIT {placeholder} OFFSET {placeholder}
             """,
@@ -344,7 +344,7 @@ def obtener_detalle_devolucion(devolucion_id: int) -> dict:
             SELECT
                 d.id, d.numero_rma, d.proveedor_cuit,
                 p.nombre as proveedor_nombre,
-                d.orden_compra_id, oc.numero as orden_compra_numero,
+                d.orden_compra_id, oc.numero_oc as orden_compra_numero,
                 d.tipo, d.motivo, d.estado,
                 d.monto_credito_esperado, d.monto_credito_recibido,
                 d.fecha_envio, d.fecha_recepcion_proveedor,

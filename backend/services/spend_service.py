@@ -28,7 +28,7 @@ def calcular_gasto_por_categoria(periodo_desde: str = None, periodo_hasta: str =
     cursor = conn.cursor()
 
     try:
-        where_clauses = ["oc.status != 'cancelled'"]
+        where_clauses = ["oc.estado != 'cancelada'"]
         params = []
 
         if periodo_desde:
@@ -95,7 +95,7 @@ def detectar_maverick_spend(periodo: str = None) -> dict:
     cursor = conn.cursor()
 
     try:
-        where_clauses = ["oc.status != 'cancelled'"]
+        where_clauses = ["oc.estado != 'cancelada'"]
         params = []
 
         if periodo:
@@ -133,7 +133,7 @@ def detectar_maverick_spend(periodo: str = None) -> dict:
             SELECT SUM(oci.cantidad * oci.precio_unitario)
             FROM orden_compra oc
             JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
-            WHERE {where_sql} AND oci.contrato_id IS NULL
+            WHERE {where_sql} AND oc.contrato_id IS NULL
             """,
             params
         )
@@ -145,14 +145,14 @@ def detectar_maverick_spend(periodo: str = None) -> dict:
         cursor.execute(
             f"""
             SELECT
-                oc.id, oc.numero, oc.created_at, oc.proveedor_nombre,
+                oc.id, oc.numero_oc, oc.created_at, oc.proveedor_nombre,
                 p.nombre as proveedor_nombre,
                 SUM(oci.cantidad * oci.precio_unitario) as monto
             FROM orden_compra oc
             JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
             LEFT JOIN proveedores p ON oc.proveedor_nombre = p.nombre
-            WHERE {where_sql} AND oci.contrato_id IS NULL
-            GROUP BY oc.id, oc.numero, oc.created_at, oc.proveedor_nombre, p.nombre
+            WHERE {where_sql} AND oc.contrato_id IS NULL
+            GROUP BY oc.id, oc.numero_oc, oc.created_at, oc.proveedor_nombre, p.nombre
             ORDER BY monto DESC
             LIMIT 50
             """,
@@ -208,7 +208,7 @@ def generar_kraljic_matrix() -> list:
             FROM orden_compra oc
             JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
             LEFT JOIN spend_registro sr ON oci.material_codigo = sr.material_codigo
-            WHERE oc.status != 'cancelled'
+            WHERE oc.estado != 'cancelada'
             GROUP BY COALESCE(sr.categoria, 'Sin Categoría')
         """)
 
@@ -288,11 +288,11 @@ def obtener_tendencia_gasto(meses: int = 12) -> list:
                 SELECT
                     TO_CHAR(oc.created_at, 'YYYY-MM') as periodo,
                     SUM(oci.cantidad * oci.precio_unitario) as gasto_total,
-                    SUM(CASE WHEN oci.contrato_id IS NOT NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_contrato,
-                    SUM(CASE WHEN oci.contrato_id IS NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_maverick
+                    SUM(CASE WHEN oc.contrato_id IS NOT NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_contrato,
+                    SUM(CASE WHEN oc.contrato_id IS NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_maverick
                 FROM orden_compra oc
                 JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
-                WHERE oc.created_at >= %s AND oc.status != 'cancelled'
+                WHERE oc.created_at >= %s AND oc.estado != 'cancelada'
                 GROUP BY TO_CHAR(oc.created_at, 'YYYY-MM')
                 ORDER BY periodo
             """, (fecha_inicio,))
@@ -301,11 +301,11 @@ def obtener_tendencia_gasto(meses: int = 12) -> list:
                 SELECT
                     strftime('%Y-%m', oc.created_at) as periodo,
                     SUM(oci.cantidad * oci.precio_unitario) as gasto_total,
-                    SUM(CASE WHEN oci.contrato_id IS NOT NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_contrato,
-                    SUM(CASE WHEN oci.contrato_id IS NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_maverick
+                    SUM(CASE WHEN oc.contrato_id IS NOT NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_contrato,
+                    SUM(CASE WHEN oc.contrato_id IS NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_maverick
                 FROM orden_compra oc
                 JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
-                WHERE oc.created_at >= ? AND oc.status != 'cancelled'
+                WHERE oc.created_at >= ? AND oc.estado != 'cancelada'
                 GROUP BY strftime('%Y-%m', oc.created_at)
                 ORDER BY periodo
             """, (fecha_inicio,))
@@ -357,12 +357,12 @@ def tomar_snapshot_periodo(periodo: str) -> dict:
                 SUM(oci.cantidad * oci.precio_unitario) as gasto_total,
                 COUNT(DISTINCT oc.id) as num_ordenes,
                 COUNT(DISTINCT oc.proveedor_nombre) as num_proveedores,
-                SUM(CASE WHEN oci.contrato_id IS NOT NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_contrato
+                SUM(CASE WHEN oc.contrato_id IS NOT NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_contrato
             FROM orden_compra oc
             JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
             LEFT JOIN spend_registro sr ON oci.material_codigo = sr.material_codigo
             WHERE oc.created_at >= {placeholder} AND oc.created_at < {placeholder}
-            AND oc.status != 'cancelled'
+            AND oc.estado != 'cancelada'
             GROUP BY COALESCE(sr.categoria, 'Sin Categoría')
             """,
             (fecha_inicio, fecha_fin)
@@ -436,39 +436,30 @@ def obtener_tco_material(material_codigo: str) -> dict:
         # Precio de compra promedio (últimas 10 órdenes)
         cursor.execute(
             f"""
-            SELECT AVG(oci.precio_unitario)
-            FROM orden_compra oc
-            JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
-            WHERE oci.material_codigo = {placeholder}
-            AND oc.status != 'cancelled'
-            ORDER BY oc.created_at DESC
-            LIMIT 10
+            SELECT AVG(sub.precio_unitario)
+            FROM (
+                SELECT oci.precio_unitario
+                FROM orden_compra oc
+                JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
+                WHERE oci.material_codigo = {placeholder}
+                AND oc.estado != 'cancelada'
+                ORDER BY oc.created_at DESC
+                LIMIT 10
+            ) sub
             """,
             (material_codigo,)
         )
         precio_compra = cursor.fetchone()[0] or 0
 
-        # Costo de flete promedio (si existe en orden_compra)
-        cursor.execute(
-            f"""
-            SELECT AVG(oc.costo_envio / oci.cantidad)
-            FROM orden_compra oc
-            JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
-            WHERE oci.material_codigo = {placeholder}
-            AND oc.costo_envio > 0
-            AND oci.cantidad > 0
-            """,
-            (material_codigo,)
-        )
-        costo_flete = cursor.fetchone()[0] or 0
+        # Costo de flete: no disponible directamente (orden_compra no tiene costo_envio)
+        costo_flete = 0
 
         # Costo de calidad (NCR) - estimar por defectos
         cursor.execute(
             f"""
             SELECT COUNT(*) as ncr_count
             FROM ncr n
-            JOIN inspeccion_item ii ON n.inspeccion_item_id = ii.id
-            WHERE ii.material_codigo = {placeholder}
+            WHERE n.material_codigo = {placeholder}
             """,
             (material_codigo,)
         )

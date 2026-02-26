@@ -297,10 +297,11 @@ def actualizar_conductor(driver_id: int, data: dict) -> dict:
     updates["updated_at"] = datetime.now().isoformat()
 
     with get_db_transaction() as conn:
-        set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])
+        ph = _ph()
+        set_clause = ", ".join([f"{k} = {ph}" for k in updates.keys()])
         values = list(updates.values()) + [driver_id]
         conn.execute(
-            f"UPDATE fms_drivers SET {set_clause} WHERE id = ?",
+            f"UPDATE fms_drivers SET {set_clause} WHERE id = {ph}",
             values
         )
         logger.info(f"Conductor actualizado: {driver_id}")
@@ -902,23 +903,24 @@ def completar_inspeccion(inspection_id: int, items: list, firma: str, user_id: s
 def listar_inspecciones(filtros: dict = None) -> List[dict]:
     """Lista inspecciones con filtros."""
     filtros = filtros or {}
+    ph = _ph()
     query = "SELECT * FROM fms_inspections WHERE 1=1"
     params = []
 
     if "vehicle_id" in filtros:
-        query += " AND vehicle_id = ?"
+        query += f" AND vehicle_id = {ph}"
         params.append(filtros["vehicle_id"])
 
     if "driver_id" in filtros:
-        query += " AND driver_id = ?"
+        query += f" AND driver_id = {ph}"
         params.append(filtros["driver_id"])
 
     if "tipo" in filtros:
-        query += " AND tipo = ?"
+        query += f" AND tipo = {ph}"
         params.append(filtros["tipo"])
 
     if "estado" in filtros:
-        query += " AND estado = ?"
+        query += f" AND estado = {ph}"
         params.append(filtros["estado"])
 
     query += " ORDER BY created_at DESC"
@@ -1089,3 +1091,27 @@ def list_work_orders(filters: dict = None) -> dict:
 
 def get_fms_kpis() -> dict:
     return obtener_kpis_fms()
+
+
+def get_available_vehicles(filters: dict = None) -> list:
+    filters = filters or {}
+    return obtener_vehiculos_disponibles(
+        peso_min=filters.get("min_capacidad_kg", 0) or 0,
+        vol_min=filters.get("min_capacidad_m3", 0) or 0,
+    )
+
+
+def list_drivers(filters: dict = None) -> list:
+    return listar_conductores(filters)
+
+
+def get_available_drivers() -> list:
+    return obtener_conductores_disponibles()
+
+
+def list_inspections(filters: dict = None) -> list:
+    return listar_inspecciones(filters)
+
+
+def get_expiring_documents(days: int = 30) -> list:
+    return obtener_documentos_por_vencer(days)

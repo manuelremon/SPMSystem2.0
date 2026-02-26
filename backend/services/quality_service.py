@@ -5,7 +5,11 @@ Gestión de inspecciones de calidad y NCRs (Non-Conformance Reports)
 
 from datetime import datetime
 
-from backend.core.db import get_db_connection, get_db_transaction
+from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+
+
+def _ph():
+    return "%s" if is_using_postgresql() else "?"
 
 
 def crear_inspeccion(data, user_id):
@@ -21,22 +25,23 @@ def crear_inspeccion(data, user_id):
     """
     conn = get_db_connection()
     cursor = conn.cursor()
+    ph = _ph()
 
     # Generar número de inspección único: INS-YYYYMMDD-XXX
     fecha_hoy = datetime.now().strftime('%Y%m%d')
-    cursor.execute("""
+    cursor.execute(f"""
         SELECT COUNT(*) FROM inspeccion_entrada
-        WHERE numero_inspeccion LIKE ?
+        WHERE numero_inspeccion LIKE {ph}
     """, (f"INS-{fecha_hoy}-%",))
 
     count = cursor.fetchone()[0]
     numero_inspeccion = f"INS-{fecha_hoy}-{count + 1:03d}"
 
     # Insertar inspección
-    cursor.execute("""
+    cursor.execute(f"""
         INSERT INTO inspeccion_entrada
         (numero_inspeccion, recepcion_id, tipo, inspector_id, notas, resultado)
-        VALUES (?, ?, ?, ?, ?, 'pass')
+        VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, 'pass')
     """, (
         numero_inspeccion,
         data.get('recepcion_id'),
@@ -49,11 +54,11 @@ def crear_inspeccion(data, user_id):
     conn.commit()
 
     # Recuperar inspección creada
-    cursor.execute("""
+    cursor.execute(f"""
         SELECT id, numero_inspeccion, recepcion_id, tipo, inspector_id,
                fecha, resultado, notas, created_at
         FROM inspeccion_entrada
-        WHERE id = ?
+        WHERE id = {ph}
     """, (inspeccion_id,))
 
     row = cursor.fetchone()
@@ -93,12 +98,13 @@ def registrar_resultado_inspeccion(inspeccion_id, items, user_id):
         todos_passed = True
         ncrs_creados = []
 
+        ph = _ph()
         for item in items:
-            cursor.execute("""
+            cursor.execute(f"""
                 INSERT INTO inspeccion_item
                 (inspeccion_id, recepcion_item_id, cantidad_inspeccionada,
                  cantidad_aprobada, cantidad_rechazada, resultado, defectos)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
             """, (
                 inspeccion_id,
                 item.get('recepcion_item_id'),
@@ -136,10 +142,10 @@ def registrar_resultado_inspeccion(inspeccion_id, items, user_id):
             resultado_final = 'partial'
 
         # Actualizar resultado de la inspección
-        cursor.execute("""
+        cursor.execute(f"""
             UPDATE inspeccion_entrada
-            SET resultado = ?
-            WHERE id = ?
+            SET resultado = {ph}
+            WHERE id = {ph}
         """, (resultado_final, inspeccion_id))
 
         conn.commit()
@@ -160,21 +166,22 @@ def registrar_resultado_inspeccion(inspeccion_id, items, user_id):
 
 def _generar_ncr_desde_item(inspeccion_id, item, user_id, cursor):
     """Helper para generar NCR desde un item fallido"""
+    ph = _ph()
     # Generar número NCR
     fecha_hoy = datetime.now().strftime('%Y%m%d')
-    cursor.execute("""
+    cursor.execute(f"""
         SELECT COUNT(*) FROM ncr
-        WHERE numero_ncr LIKE ?
+        WHERE numero_ncr LIKE {ph}
     """, (f"NCR-{fecha_hoy}-%",))
 
     count = cursor.fetchone()[0]
     numero_ncr = f"NCR-{fecha_hoy}-{count + 1:03d}"
 
     # Obtener info del item
-    cursor.execute("""
+    cursor.execute(f"""
         SELECT ri.material_codigo, ri.proveedor_cuit
         FROM recepcion_item ri
-        WHERE ri.id = ?
+        WHERE ri.id = {ph}
     """, (item.get('recepcion_item_id'),))
 
     item_info = cursor.fetchone()
@@ -191,11 +198,11 @@ def _generar_ncr_desde_item(inspeccion_id, item, user_id, cursor):
         severidad = 'minor'
 
     # Insertar NCR
-    cursor.execute("""
+    cursor.execute(f"""
         INSERT INTO ncr
         (numero_ncr, inspeccion_id, proveedor_cuit, material_codigo,
          cantidad_afectada, descripcion, severidad, reportado_por, estado)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open')
+        VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, 'open')
     """, (
         numero_ncr,
         inspeccion_id,
@@ -210,9 +217,9 @@ def _generar_ncr_desde_item(inspeccion_id, item, user_id, cursor):
     ncr_id = cursor.lastrowid
 
     # Insertar historial
-    cursor.execute("""
+    cursor.execute(f"""
         INSERT INTO ncr_historial (ncr_id, estado_anterior, estado_nuevo, actor_id, notas)
-        VALUES (?, NULL, 'open', ?, 'NCR creado automáticamente desde inspección')
+        VALUES ({ph}, NULL, 'open', {ph}, 'NCR creado automáticamente desde inspección')
     """, (ncr_id, user_id))
 
     return {
@@ -242,22 +249,23 @@ def generar_ncr(inspeccion_id, proveedor_cuit, material_codigo, cantidad,
     conn, cursor = get_db_transaction()
 
     try:
+        ph = _ph()
         # Generar número NCR
         fecha_hoy = datetime.now().strftime('%Y%m%d')
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT COUNT(*) FROM ncr
-            WHERE numero_ncr LIKE ?
+            WHERE numero_ncr LIKE {ph}
         """, (f"NCR-{fecha_hoy}-%",))
 
         count = cursor.fetchone()[0]
         numero_ncr = f"NCR-{fecha_hoy}-{count + 1:03d}"
 
         # Insertar NCR
-        cursor.execute("""
+        cursor.execute(f"""
             INSERT INTO ncr
             (numero_ncr, inspeccion_id, proveedor_cuit, material_codigo,
              cantidad_afectada, descripcion, severidad, reportado_por, estado)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open')
+            VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, 'open')
         """, (
             numero_ncr,
             inspeccion_id,
@@ -272,20 +280,20 @@ def generar_ncr(inspeccion_id, proveedor_cuit, material_codigo, cantidad,
         ncr_id = cursor.lastrowid
 
         # Insertar historial
-        cursor.execute("""
+        cursor.execute(f"""
             INSERT INTO ncr_historial (ncr_id, estado_anterior, estado_nuevo, actor_id, notas)
-            VALUES (?, NULL, 'open', ?, 'NCR creado manualmente')
+            VALUES ({ph}, NULL, 'open', {ph}, 'NCR creado manualmente')
         """, (ncr_id, user_id))
 
         conn.commit()
 
         # Recuperar NCR creado
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT id, numero_ncr, inspeccion_id, proveedor_cuit, material_codigo,
                    cantidad_afectada, descripcion, severidad, estado, reportado_por,
                    asignado_a, fecha_resolucion, accion_correctiva, created_at, updated_at
             FROM ncr
-            WHERE id = ?
+            WHERE id = {ph}
         """, (ncr_id,))
 
         row = cursor.fetchone()
@@ -333,20 +341,22 @@ def obtener_inspecciones(filtros=None):
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    ph = _ph()
+
     # Construir query con filtros
     where_clauses = []
     params = []
 
     if filtros.get('resultado'):
-        where_clauses.append("resultado = ?")
+        where_clauses.append(f"resultado = {ph}")
         params.append(filtros['resultado'])
 
     if filtros.get('fecha_desde'):
-        where_clauses.append("fecha >= ?")
+        where_clauses.append(f"fecha >= {ph}")
         params.append(filtros['fecha_desde'])
 
     if filtros.get('fecha_hasta'):
-        where_clauses.append("fecha <= ?")
+        where_clauses.append(f"fecha <= {ph}")
         params.append(filtros['fecha_hasta'])
 
     where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
@@ -365,7 +375,7 @@ def obtener_inspecciones(filtros=None):
         FROM inspeccion_entrada
         WHERE {where_sql}
         ORDER BY fecha DESC
-        LIMIT ? OFFSET ?
+        LIMIT {ph} OFFSET {ph}
     """, params + [per_page, offset])
 
     rows = cursor.fetchall()
@@ -405,12 +415,13 @@ def obtener_detalle_inspeccion(inspeccion_id):
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    ph = _ph()
     # Obtener inspección
-    cursor.execute("""
+    cursor.execute(f"""
         SELECT id, numero_inspeccion, recepcion_id, tipo, inspector_id,
                fecha, resultado, notas, created_at
         FROM inspeccion_entrada
-        WHERE id = ?
+        WHERE id = {ph}
     """, (inspeccion_id,))
 
     row = cursor.fetchone()
@@ -431,11 +442,11 @@ def obtener_detalle_inspeccion(inspeccion_id):
     }
 
     # Obtener items
-    cursor.execute("""
+    cursor.execute(f"""
         SELECT id, recepcion_item_id, cantidad_inspeccionada,
                cantidad_aprobada, cantidad_rechazada, resultado, defectos, created_at
         FROM inspeccion_item
-        WHERE inspeccion_id = ?
+        WHERE inspeccion_id = {ph}
         ORDER BY id
     """, (inspeccion_id,))
 
@@ -478,16 +489,18 @@ def obtener_ncrs(filtros=None):
     where_clauses = []
     params = []
 
+    ph = _ph()
+
     if filtros.get('estado'):
-        where_clauses.append("estado = ?")
+        where_clauses.append(f"estado = {ph}")
         params.append(filtros['estado'])
 
     if filtros.get('severidad'):
-        where_clauses.append("severidad = ?")
+        where_clauses.append(f"severidad = {ph}")
         params.append(filtros['severidad'])
 
     if filtros.get('proveedor'):
-        where_clauses.append("proveedor_cuit = ?")
+        where_clauses.append(f"proveedor_cuit = {ph}")
         params.append(filtros['proveedor'])
 
     where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
@@ -507,7 +520,7 @@ def obtener_ncrs(filtros=None):
         FROM ncr
         WHERE {where_sql}
         ORDER BY created_at DESC
-        LIMIT ? OFFSET ?
+        LIMIT {ph} OFFSET {ph}
     """, params + [per_page, offset])
 
     rows = cursor.fetchall()
@@ -553,13 +566,14 @@ def obtener_detalle_ncr(ncr_id):
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    ph = _ph()
     # Obtener NCR
-    cursor.execute("""
+    cursor.execute(f"""
         SELECT id, numero_ncr, inspeccion_id, proveedor_cuit, material_codigo,
                cantidad_afectada, descripcion, severidad, estado, reportado_por,
                asignado_a, fecha_resolucion, accion_correctiva, created_at, updated_at
         FROM ncr
-        WHERE id = ?
+        WHERE id = {ph}
     """, (ncr_id,))
 
     row = cursor.fetchone()
@@ -586,10 +600,10 @@ def obtener_detalle_ncr(ncr_id):
     }
 
     # Obtener historial
-    cursor.execute("""
+    cursor.execute(f"""
         SELECT id, estado_anterior, estado_nuevo, actor_id, notas, created_at
         FROM ncr_historial
-        WHERE ncr_id = ?
+        WHERE ncr_id = {ph}
         ORDER BY created_at DESC
     """, (ncr_id,))
 
@@ -636,8 +650,9 @@ def cambiar_estado_ncr(ncr_id, nuevo_estado, user_id, notas=None):
     conn, cursor = get_db_transaction()
 
     try:
+        ph = _ph()
         # Obtener estado actual
-        cursor.execute("SELECT estado FROM ncr WHERE id = ?", (ncr_id,))
+        cursor.execute(f"SELECT estado FROM ncr WHERE id = {ph}", (ncr_id,))
         row = cursor.fetchone()
 
         if not row:
@@ -654,7 +669,7 @@ def cambiar_estado_ncr(ncr_id, nuevo_estado, user_id, notas=None):
             )
 
         # Actualizar estado
-        update_fields = ["estado = ?", "updated_at = CURRENT_TIMESTAMP"]
+        update_fields = [f"estado = {ph}", "updated_at = CURRENT_TIMESTAMP"]
         params = [nuevo_estado]
 
         if nuevo_estado == 'resolved':
@@ -663,14 +678,14 @@ def cambiar_estado_ncr(ncr_id, nuevo_estado, user_id, notas=None):
         cursor.execute(f"""
             UPDATE ncr
             SET {', '.join(update_fields)}
-            WHERE id = ?
+            WHERE id = {ph}
         """, params + [ncr_id])
 
         # Insertar historial
-        cursor.execute("""
+        cursor.execute(f"""
             INSERT INTO ncr_historial
             (ncr_id, estado_anterior, estado_nuevo, actor_id, notas)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES ({ph}, {ph}, {ph}, {ph}, {ph})
         """, (ncr_id, estado_actual, nuevo_estado, user_id, notas))
 
         conn.commit()
@@ -702,10 +717,10 @@ def obtener_kpis_calidad():
     # Pass rate de inspecciones (últimos 30 días)
     cursor.execute("""
         SELECT
-            COUNT(CASE WHEN resultado = 'pass' THEN 1 END) * 100.0 / COUNT(*) as pass_rate,
+            COUNT(CASE WHEN resultado = 'pass' THEN 1 END) * 100.0 / GREATEST(COUNT(*), 1) as pass_rate,
             COUNT(*) as total_inspecciones
         FROM inspeccion_entrada
-        WHERE fecha >= datetime('now', '-30 days')
+        WHERE fecha >= CURRENT_DATE - INTERVAL '30 days'
     """)
     row = cursor.fetchone()
     pass_rate = row[0] or 0
@@ -729,7 +744,7 @@ def obtener_kpis_calidad():
     # Tiempo promedio de resolución (en días)
     cursor.execute("""
         SELECT AVG(
-            CAST((julianday(fecha_resolucion) - julianday(created_at)) AS REAL)
+            EXTRACT(DAY FROM fecha_resolucion - created_at)
         ) as avg_days
         FROM ncr
         WHERE estado = 'resolved' OR estado = 'closed'
@@ -740,11 +755,11 @@ def obtener_kpis_calidad():
     conn.close()
 
     return {
-        'pass_rate': round(pass_rate, 2),
+        'pass_rate': round(float(pass_rate), 2),
         'total_inspecciones': total_inspecciones,
         'ncr_por_severidad': ncr_por_severidad,
         'ncrs_abiertos': ncrs_abiertos,
-        'avg_resolution_days': round(avg_resolution_days, 1)
+        'avg_resolution_days': round(float(avg_resolution_days), 1)
     }
 
 
@@ -764,27 +779,30 @@ def calcular_score_calidad_proveedor(proveedor_cuit, periodo_meses=12):
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    ph = _ph()
+
     # Contar NCRs por severidad
-    cursor.execute("""
+    cursor.execute(f"""
         SELECT severidad, COUNT(*) as count
         FROM ncr
-        WHERE proveedor_cuit = ?
-        AND created_at >= datetime('now', ? || ' months')
+        WHERE proveedor_cuit = {ph}
+        AND created_at >= CURRENT_DATE - ({ph} || ' months')::interval
         GROUP BY severidad
-    """, (proveedor_cuit, f'-{periodo_meses}'))
+    """, (proveedor_cuit, str(periodo_meses)))
 
     ncrs = {row[0]: row[1] for row in cursor.fetchall()}
     critical = ncrs.get('critical', 0)
     major = ncrs.get('major', 0)
     minor = ncrs.get('minor', 0)
 
-    # Contar total de recepciones del proveedor
-    cursor.execute("""
+    # Contar total de recepciones del proveedor (via orden_compra)
+    cursor.execute(f"""
         SELECT COUNT(DISTINCT r.id)
         FROM recepcion r
-        WHERE r.proveedor_cuit = ?
-        AND r.fecha >= datetime('now', ? || ' months')
-    """, (proveedor_cuit, f'-{periodo_meses}'))
+        JOIN orden_compra oc ON r.orden_compra_id = oc.id
+        WHERE oc.proveedor_cuit = {ph}
+        AND r.created_at >= CURRENT_DATE - ({ph} || ' months')::interval
+    """, (proveedor_cuit, str(periodo_meses)))
 
     total_recepciones = cursor.fetchone()[0] or 1  # Evitar división por cero
 

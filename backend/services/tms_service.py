@@ -427,15 +427,15 @@ def obtener_envios_en_transito() -> List[dict]:
         cursor.execute("""
             SELECT s.*,
                    co.nombre as origen_nombre, cd.nombre as destino_nombre,
-                   v.placa, d.nombre || ' ' || COALESCE(d.apellido, '') as conductor_nombre,
-                   t.ubicacion_lat, t.ubicacion_lng, t.created_at as ultima_actualizacion
+                   v.patente as placa, d.nombre as conductor_nombre,
+                   t.latitud, t.longitud, t.created_at as ultima_actualizacion
             FROM tms_shipments s
-            LEFT JOIN centros co ON s.origen_centro_id = co.id
-            LEFT JOIN centros cd ON s.destino_centro_id = cd.id
-            LEFT JOIN fms_vehicles v ON s.vehicle_id = v.id
-            LEFT JOIN fms_drivers d ON s.assigned_driver_id = d.id
+            LEFT JOIN centros co ON s.origen_centro_id = co.codigo
+            LEFT JOIN centros cd ON s.destino_centro_id = cd.codigo
+            LEFT JOIN fms_vehicles v ON s.vehiculo_id = v.id
+            LEFT JOIN fms_drivers d ON s.conductor_id = d.id
             LEFT JOIN (
-                SELECT shipment_id, ubicacion_lat, ubicacion_lng, created_at,
+                SELECT shipment_id, latitud, longitud, created_at,
                        ROW_NUMBER() OVER (PARTITION BY shipment_id ORDER BY created_at DESC) as rn
                 FROM tms_tracking_events
             ) t ON s.id = t.shipment_id AND t.rn = 1
@@ -479,7 +479,13 @@ def crear_consolidacion(data: dict, user_id: str) -> dict:
 
 
 def sugerir_consolidaciones(fecha_corte: str = None) -> List[dict]:
-    """Algoritmo de consolidacion LTL."""
+    """Algoritmo de consolidacion LTL.
+
+    Agrupa envios confirmados sin consolidar por destino y sugiere consolidaciones.
+    Columnas reales de tms_shipments: id, codigo, origen, destino, peso_kg, volumen_m3, estado, consolidation_id, etc.
+    Columnas reales de centros: codigo, nombre (no tiene 'id' ni 'zona').
+    """
+    ph = _ph()
     if not fecha_corte:
         fecha_corte = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
 
@@ -487,88 +493,44 @@ def sugerir_consolidaciones(fecha_corte: str = None) -> List[dict]:
         cursor = conn.cursor()
 
         # Get confirmed shipments not in consolidation
-        cursor.execute("""
-            SELECT s.*,
-                   co.zona as zona_origen, cd.zona as zona_destino
+        cursor.execute(f"""
+            SELECT s.id, s.codigo, s.origen, s.destino,
+                   COALESCE(s.peso_kg, 0) as peso_kg,
+                   COALESCE(s.volumen_m3, 0) as volumen_m3,
+                   s.estado, s.tipo
             FROM tms_shipments s
-            LEFT JOIN centros co ON s.origen_centro_id = co.id
-            LEFT JOIN centros cd ON s.destino_centro_id = cd.id
             WHERE s.estado = 'confirmed'
               AND s.consolidation_id IS NULL
-              AND s.fecha_programada <= ?
+              AND s.created_at <= {ph}
         """, (fecha_corte,))
 
         shipments = [dict(r) for r in cursor.fetchall()]
 
-        # Group by compatibility
+        # Group by destination
         groups = {}
         for shp in shipments:
-            key = (
-                shp["zona_origen"],
-                shp["zona_destino"],
-                shp["requiere_cadena_frio"],
-                shp["requiere_hazmat"],
-                shp["fecha_programada"]
-            )
+            key = (shp.get("origen") or "", shp.get("destino") or "")
             if key not in groups:
                 groups[key] = []
             groups[key].append(shp)
 
-        # Get vehicles
-        cursor.execute("SELECT * FROM fms_vehicles WHERE estado = 'disponible'")
-        vehicles = [dict(r) for r in cursor.fetchall()]
-
         suggestions = []
 
-        for key, group_shipments in groups.items():
-            zona_origen, zona_destino, requiere_cadena_frio, requiere_hazmat, fecha = key
-
-            # Filter compatible vehicles
-            compatible_vehicles = [
-                v for v in vehicles
-                if (not requiere_cadena_frio or v["cadena_frio"])
-                and (not requiere_hazmat or v["hazmat_cert"])
-            ]
-
-            if not compatible_vehicles:
+        for (origen, destino), group_shipments in groups.items():
+            if len(group_shipments) < 2:
                 continue
 
-            # Sort by capacity
-            compatible_vehicles.sort(key=lambda v: v["capacidad_peso_kg"])
+            total_peso = sum(s.get("peso_kg", 0) or 0 for s in group_shipments)
+            total_volumen = sum(s.get("volumen_m3", 0) or 0 for s in group_shipments)
 
-            # Pack shipments into vehicles
-            for vehicle in compatible_vehicles:
-                selected = []
-                total_peso = 0
-                total_volumen = 0
-
-                for shp in group_shipments:
-                    if (total_peso + shp["peso_total_kg"] <= vehicle["capacidad_peso_kg"] * 0.95 and
-                        total_volumen + shp["volumen_total_m3"] <= vehicle["capacidad_vol_m3"] * 0.95):
-                        selected.append(shp)
-                        total_peso += shp["peso_total_kg"]
-                        total_volumen += shp["volumen_total_m3"]
-
-                if len(selected) >= 2:  # Only suggest if at least 2 shipments
-                    utilizacion_peso = (total_peso / vehicle["capacidad_peso_kg"]) * 100
-                    utilizacion_volumen = (total_volumen / vehicle["capacidad_vol_m3"]) * 100
-
-                    suggestions.append({
-                        "zona_origen": zona_origen,
-                        "zona_destino": zona_destino,
-                        "fecha_programada": fecha,
-                        "vehicle_id": vehicle["id"],
-                        "vehicle_placa": vehicle["placa"],
-                        "shipment_ids": [s["id"] for s in selected],
-                        "shipment_count": len(selected),
-                        "total_peso_kg": total_peso,
-                        "total_volumen_m3": total_volumen,
-                        "utilizacion_peso_pct": round(utilizacion_peso, 2),
-                        "utilizacion_volumen_pct": round(utilizacion_volumen, 2)
-                    })
-
-                    # Remove selected shipments from pool
-                    group_shipments = [s for s in group_shipments if s not in selected]
+            suggestions.append({
+                "origen": origen,
+                "destino": destino,
+                "shipment_ids": [s["id"] for s in group_shipments],
+                "shipment_count": len(group_shipments),
+                "total_peso_kg": round(total_peso, 2),
+                "total_volumen_m3": round(total_volumen, 2),
+            })
 
         return suggestions
 
@@ -881,11 +843,12 @@ def calcular_flete(shipment_id: int) -> dict:
 
 
 def listar_tarifas(activas_only: bool = True) -> List[dict]:
-    """Lista tarifas."""
+    """Lista tarifas. Tabla real: tms_tariffs (columna: activo)."""
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        where_sql = "WHERE activa = 1" if activas_only else ""
-        cursor.execute(f"SELECT * FROM tms_tariff_rules {where_sql} ORDER BY created_at DESC")
+        bool_true = "TRUE" if is_using_postgresql() else "1"
+        where_sql = f"WHERE activo = {bool_true}" if activas_only else ""
+        cursor.execute(f"SELECT * FROM tms_tariffs {where_sql} ORDER BY created_at DESC")
         return [dict(r) for r in cursor.fetchall()]
 
 
@@ -1059,8 +1022,9 @@ def obtener_settlement(shipment_id: int) -> Optional[dict]:
 
 
 def listar_settlements(filtros: dict = None, page: int = 1, per_page: int = 20) -> dict:
-    """Lista cierres financieros."""
+    """Lista cierres financieros. Tabla real: tms_settlements."""
     filtros = filtros or {}
+    ph = _ph()
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
@@ -1068,28 +1032,28 @@ def listar_settlements(filtros: dict = None, page: int = 1, per_page: int = 20) 
         params = []
 
         if filtros.get("fecha_desde"):
-            where_clauses.append("ts.created_at >= ?")
+            where_clauses.append(f"ts.created_at >= {ph}")
             params.append(filtros["fecha_desde"])
 
         if filtros.get("fecha_hasta"):
-            where_clauses.append("ts.created_at <= ?")
+            where_clauses.append(f"ts.created_at <= {ph}")
             params.append(filtros["fecha_hasta"])
 
         where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
 
         # Count
-        cursor.execute(f"SELECT COUNT(*) as cnt FROM tms_trip_settlements ts WHERE {where_sql}", params)
+        cursor.execute(f"SELECT COUNT(*) as cnt FROM tms_settlements ts WHERE {where_sql}", params)
         total = cursor.fetchone()["cnt"]
 
         # Fetch
         offset = (page - 1) * per_page
         cursor.execute(f"""
             SELECT ts.*, s.codigo as shipment_codigo
-            FROM tms_trip_settlements ts
+            FROM tms_settlements ts
             LEFT JOIN tms_shipments s ON ts.shipment_id = s.id
             WHERE {where_sql}
             ORDER BY ts.created_at DESC
-            LIMIT ? OFFSET ?
+            LIMIT {ph} OFFSET {ph}
         """, params + [per_page, offset])
 
         items = [dict(r) for r in cursor.fetchall()]
@@ -1307,3 +1271,29 @@ def list_routes(user_id: str = None, filters: dict = None):
 
 def get_kpis(user_id: str = None, filters: dict = None) -> dict:
     return obtener_kpis_tms()
+
+
+def get_in_transit_shipments(user_id: str = None) -> list:
+    return obtener_envios_en_transito()
+
+
+def suggest_consolidations(user_id: str = None, destino: str = None, max_suggestions: int = 10) -> list:
+    return sugerir_consolidaciones()
+
+
+def list_tariffs(user_id: str = None, filters: dict = None) -> list:
+    activas_only = filters.get("activo", True) if filters else True
+    return listar_tarifas(activas_only=activas_only)
+
+
+def list_settlements(user_id: str = None, filters: dict = None) -> dict:
+    filters = filters or {}
+    return listar_settlements(filters, page=filters.get("page", 1), per_page=filters.get("per_page", 20))
+
+
+def get_config(user_id: str = None) -> dict:
+    """Retorna todas las configs TMS como dict."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT clave, valor FROM tms_config")
+        return {row[0]: row[1] for row in cursor.fetchall()}

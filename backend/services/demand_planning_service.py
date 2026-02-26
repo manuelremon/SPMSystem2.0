@@ -664,7 +664,7 @@ def obtener_accuracy_kpis() -> dict:
             FROM plan_demanda_consenso pdc
             JOIN plan_demanda pd ON pdc.plan_id = pd.id
             WHERE pd.estado = 'approved'
-            AND pd.periodo_hasta < CURRENT_DATE
+            AND pd.periodo_hasta::date < CURRENT_DATE
         """)
 
         comparaciones = []
@@ -678,9 +678,9 @@ def obtener_accuracy_kpis() -> dict:
             cursor.execute("""
                 SELECT SUM(cantidad) as consumo_real
                 FROM consumo_historico
-                WHERE material_codigo = ?
-                AND fecha >= ? AND fecha <= ?
-            """, (material_codigo, periodo_desde, periodo_hasta))
+                WHERE material = %s
+                AND fecha >= %s AND fecha <= %s
+            """, (material_codigo, str(periodo_desde), str(periodo_hasta)))
 
             result = cursor.fetchone()
             consumo_real = float(result[0]) if result and result[0] else 0

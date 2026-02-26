@@ -38,9 +38,9 @@ def calcular_riesgo_proveedor(proveedor_cuit: str) -> dict:
         # 1. Riesgo de entrega (de evaluaciones)
         cursor.execute(
             f"""
-            SELECT AVG(entrega) as avg_entrega
+            SELECT AVG(entrega_score) as avg_entrega
             FROM proveedor_evaluacion
-            WHERE proveedor_cuit = {placeholder}
+            WHERE proveedor_id = {placeholder}
             """,
             (proveedor_cuit,)
         )
@@ -55,9 +55,7 @@ def calcular_riesgo_proveedor(proveedor_cuit: str) -> dict:
             f"""
             SELECT COUNT(*) as ncr_count
             FROM ncr n
-            JOIN inspeccion_entrada ie ON n.inspeccion_id = ie.id
-            JOIN orden_compra oc ON ie.orden_compra_id = oc.id
-            WHERE oc.proveedor_cuit = {placeholder}
+            WHERE n.proveedor_cuit = {placeholder}
             AND n.estado != 'closed'
             """,
             (proveedor_cuit,)
@@ -131,36 +129,35 @@ def calcular_riesgo_proveedor(proveedor_cuit: str) -> dict:
         materiales_unicos = cursor.fetchall()
         es_fuente_unica = 1 if len(materiales_unicos) > 0 else 0
 
-        # Upsert en proveedor_riesgo
-        if using_pg:
-            cursor.execute("""
+        # Upsert en proveedor_riesgo (SELECT + UPDATE/INSERT pattern)
+        cursor.execute(
+            f"SELECT id FROM proveedor_riesgo WHERE proveedor_cuit = {placeholder}",
+            (proveedor_cuit,)
+        )
+        existing = cursor.fetchone()
+        if existing:
+            cursor.execute(f"""
+                UPDATE proveedor_riesgo
+                SET score_riesgo = {placeholder}, nivel = {placeholder},
+                    riesgo_entrega = {placeholder}, riesgo_calidad = {placeholder},
+                    riesgo_dependencia = {placeholder}, riesgo_financiero = {placeholder},
+                    riesgo_geografico = {placeholder}, es_fuente_unica = {placeholder},
+                    updated_at = NOW()
+                WHERE proveedor_cuit = {placeholder}
+            """, (
+                score_riesgo, nivel,
+                riesgo_entrega, riesgo_calidad, riesgo_dependencia,
+                riesgo_financiero, riesgo_geografico, es_fuente_unica,
+                proveedor_cuit
+            ))
+        else:
+            cursor.execute(f"""
                 INSERT INTO proveedor_riesgo
                 (proveedor_cuit, score_riesgo, nivel, riesgo_entrega, riesgo_calidad,
                  riesgo_dependencia, riesgo_financiero, riesgo_geografico,
                  es_fuente_unica, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                ON CONFLICT (proveedor_cuit) DO UPDATE SET
-                    score_riesgo = EXCLUDED.score_riesgo,
-                    nivel = EXCLUDED.nivel,
-                    riesgo_entrega = EXCLUDED.riesgo_entrega,
-                    riesgo_calidad = EXCLUDED.riesgo_calidad,
-                    riesgo_dependencia = EXCLUDED.riesgo_dependencia,
-                    riesgo_financiero = EXCLUDED.riesgo_financiero,
-                    riesgo_geografico = EXCLUDED.riesgo_geografico,
-                    es_fuente_unica = EXCLUDED.es_fuente_unica,
-                    updated_at = NOW()
-            """, (
-                proveedor_cuit, score_riesgo, nivel,
-                riesgo_entrega, riesgo_calidad, riesgo_dependencia,
-                riesgo_financiero, riesgo_geografico, es_fuente_unica
-            ))
-        else:
-            cursor.execute("""
-                INSERT OR REPLACE INTO proveedor_riesgo
-                (proveedor_cuit, score_riesgo, nivel, riesgo_entrega, riesgo_calidad,
-                 riesgo_dependencia, riesgo_financiero, riesgo_geografico,
-                 es_fuente_unica, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder},
+                        {placeholder}, {placeholder}, {placeholder}, {placeholder}, NOW())
             """, (
                 proveedor_cuit, score_riesgo, nivel,
                 riesgo_entrega, riesgo_calidad, riesgo_dependencia,
@@ -169,22 +166,13 @@ def calcular_riesgo_proveedor(proveedor_cuit: str) -> dict:
 
         # Insertar en historial
         periodo = datetime.now().strftime('%Y%m')
-        if using_pg:
-            cursor.execute("""
-                INSERT INTO proveedor_riesgo_historial
-                (proveedor_cuit, periodo, score_riesgo, nivel, created_at)
-                VALUES (%s, %s, %s, %s, NOW())
-                ON CONFLICT (proveedor_cuit, periodo) DO UPDATE SET
-                    score_riesgo = EXCLUDED.score_riesgo,
-                    nivel = EXCLUDED.nivel,
-                    created_at = NOW()
-            """, (proveedor_cuit, periodo, score_riesgo, nivel))
-        else:
-            cursor.execute("""
-                INSERT OR REPLACE INTO proveedor_riesgo_historial
-                (proveedor_cuit, periodo, score_riesgo, nivel, created_at)
-                VALUES (?, ?, ?, ?, datetime('now'))
-            """, (proveedor_cuit, periodo, score_riesgo, nivel))
+        cursor.execute(f"""
+            INSERT INTO proveedor_riesgo_historial
+            (proveedor_cuit, periodo, score_anterior, score_nuevo,
+             nivel_anterior, nivel_nuevo, created_at)
+            VALUES ({placeholder}, {placeholder}, 0, {placeholder},
+                    'N/A', {placeholder}, NOW())
+        """, (proveedor_cuit, periodo, score_riesgo, nivel))
 
         conn.commit()
 
@@ -483,7 +471,7 @@ def obtener_tendencia_riesgo(proveedor_cuit: str) -> list:
     try:
         cursor.execute(
             f"""
-            SELECT periodo, score_riesgo, nivel, created_at
+            SELECT periodo, score_nuevo, nivel_nuevo, created_at
             FROM proveedor_riesgo_historial
             WHERE proveedor_cuit = {placeholder}
             ORDER BY periodo DESC

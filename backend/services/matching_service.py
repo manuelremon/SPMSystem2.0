@@ -352,7 +352,7 @@ def obtener_facturas(filtros: dict) -> dict:
             SELECT
                 fp.id, fp.numero_factura, fp.fecha_factura, fp.proveedor_cuit,
                 p.nombre as proveedor_nombre, fp.monto_total, fp.moneda, fp.estado,
-                fp.created_at, oc.numero as orden_compra_numero
+                fp.created_at, oc.numero_oc as orden_compra_numero
             FROM factura_proveedor fp
             LEFT JOIN proveedores p ON fp.proveedor_cuit = p.id_proveedor
             LEFT JOIN orden_compra oc ON fp.orden_compra_id = oc.id
@@ -415,7 +415,7 @@ def obtener_detalle_factura(factura_id: int) -> dict:
             SELECT
                 fp.id, fp.numero_factura, fp.fecha_factura, fp.proveedor_cuit,
                 p.nombre as proveedor_nombre, fp.monto_total, fp.moneda, fp.estado,
-                fp.orden_compra_id, oc.numero as orden_compra_numero,
+                fp.orden_compra_id, oc.numero_oc as orden_compra_numero,
                 fp.created_at, fp.registrado_por,
                 u.nombre as registrado_por_nombre
             FROM factura_proveedor fp

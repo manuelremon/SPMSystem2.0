@@ -101,17 +101,17 @@ def auditar_factura(factura_id: int) -> dict:
                 SELECT * FROM freight_tarifa
                 WHERE transportista_cuit = ?
                   AND ruta = ?
-                  AND fecha_vigencia_desde <= ?
-                  AND (fecha_vigencia_hasta IS NULL OR fecha_vigencia_hasta >= ?)
-                ORDER BY fecha_vigencia_desde DESC
+                  AND vigencia_desde <= ?
+                  AND (vigencia_hasta IS NULL OR vigencia_hasta >= ?)
+                ORDER BY vigencia_desde DESC
                 LIMIT 1
             """ if not is_using_postgresql() else """
                 SELECT * FROM freight_tarifa
                 WHERE transportista_cuit = %s
                   AND ruta = %s
-                  AND fecha_vigencia_desde <= %s
-                  AND (fecha_vigencia_hasta IS NULL OR fecha_vigencia_hasta >= %s)
-                ORDER BY fecha_vigencia_desde DESC
+                  AND vigencia_desde <= %s
+                  AND (vigencia_hasta IS NULL OR vigencia_hasta >= %s)
+                ORDER BY vigencia_desde DESC
                 LIMIT 1
             """, (transportista_cuit, ruta, factura_dict['fecha_factura'],
                   factura_dict['fecha_factura']))
@@ -121,17 +121,17 @@ def auditar_factura(factura_id: int) -> dict:
                 SELECT * FROM freight_tarifa
                 WHERE transportista_cuit = ?
                   AND ruta IS NULL
-                  AND fecha_vigencia_desde <= ?
-                  AND (fecha_vigencia_hasta IS NULL OR fecha_vigencia_hasta >= ?)
-                ORDER BY fecha_vigencia_desde DESC
+                  AND vigencia_desde <= ?
+                  AND (vigencia_hasta IS NULL OR vigencia_hasta >= ?)
+                ORDER BY vigencia_desde DESC
                 LIMIT 1
             """ if not is_using_postgresql() else """
                 SELECT * FROM freight_tarifa
                 WHERE transportista_cuit = %s
                   AND ruta IS NULL
-                  AND fecha_vigencia_desde <= %s
-                  AND (fecha_vigencia_hasta IS NULL OR fecha_vigencia_hasta >= %s)
-                ORDER BY fecha_vigencia_desde DESC
+                  AND vigencia_desde <= %s
+                  AND (vigencia_hasta IS NULL OR vigencia_hasta >= %s)
+                ORDER BY vigencia_desde DESC
                 LIMIT 1
             """, (transportista_cuit, factura_dict['fecha_factura'],
                   factura_dict['fecha_factura']))
@@ -557,7 +557,7 @@ def obtener_tarifas(filtros: dict) -> dict:
         cur.execute(f"""
             SELECT * FROM freight_tarifa
             {where_sql}
-            ORDER BY fecha_vigencia_desde DESC
+            ORDER BY vigencia_desde DESC
             LIMIT {"?" if not is_using_postgresql() else "%s"}
             OFFSET {"?" if not is_using_postgresql() else "%s"}
         """, params_with_limit)
@@ -585,8 +585,8 @@ def crear_tarifa(data: dict) -> int:
 
     Args:
         data: Dict con {transportista_cuit, ruta?, tarifa_base,
-                       tarifa_por_km?, tarifa_por_kg?, fecha_vigencia_desde,
-                       fecha_vigencia_hasta?}
+                       tarifa_por_km?, tarifa_por_kg?, vigencia_desde,
+                       vigencia_hasta?}
 
     Returns:
         ID de la tarifa creada
@@ -598,24 +598,24 @@ def crear_tarifa(data: dict) -> int:
             cur.execute("""
                 INSERT INTO freight_tarifa
                     (transportista_cuit, ruta, tarifa_base, tarifa_por_km,
-                     tarifa_por_kg, fecha_vigencia_desde, fecha_vigencia_hasta)
+                     tarifa_por_kg, vigencia_desde, vigencia_hasta)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """, (data['transportista_cuit'], data.get('ruta'),
                   data['tarifa_base'], data.get('tarifa_por_km'),
-                  data.get('tarifa_por_kg'), data['fecha_vigencia_desde'],
-                  data.get('fecha_vigencia_hasta')))
+                  data.get('tarifa_por_kg'), data['vigencia_desde'],
+                  data.get('vigencia_hasta')))
             tarifa_id = cur.fetchone()[0]
         else:
             cur.execute("""
                 INSERT INTO freight_tarifa
                     (transportista_cuit, ruta, tarifa_base, tarifa_por_km,
-                     tarifa_por_kg, fecha_vigencia_desde, fecha_vigencia_hasta)
+                     tarifa_por_kg, vigencia_desde, vigencia_hasta)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (data['transportista_cuit'], data.get('ruta'),
                   data['tarifa_base'], data.get('tarifa_por_km'),
-                  data.get('tarifa_por_kg'), data['fecha_vigencia_desde'],
-                  data.get('fecha_vigencia_hasta')))
+                  data.get('tarifa_por_kg'), data['vigencia_desde'],
+                  data.get('vigencia_hasta')))
             tarifa_id = cur.lastrowid
 
         conn.commit()
@@ -738,8 +738,8 @@ def rendimiento_transportistas() -> list:
                 SUM(CASE WHEN estado = 'disputed' THEN 1 ELSE 0 END) as facturas_disputadas,
                 AVG(diferencia) as diferencia_promedio,
                 AVG(CASE
-                    WHEN monto_esperado > 0
-                    THEN ABS(diferencia) / monto_esperado * 100
+                    WHEN monto_aprobado > 0
+                    THEN ABS(diferencia) / monto_aprobado * 100
                     ELSE 0
                 END) as desviacion_promedio_pct
             FROM factura_flete
@@ -755,8 +755,8 @@ def rendimiento_transportistas() -> list:
                 SUM(CASE WHEN estado = 'disputed' THEN 1 ELSE 0 END) as facturas_disputadas,
                 AVG(diferencia) as diferencia_promedio,
                 AVG(CASE
-                    WHEN monto_esperado > 0
-                    THEN ABS(diferencia) / monto_esperado * 100
+                    WHEN monto_aprobado > 0
+                    THEN ABS(diferencia) / monto_aprobado * 100
                     ELSE 0
                 END) as desviacion_promedio_pct
             FROM factura_flete

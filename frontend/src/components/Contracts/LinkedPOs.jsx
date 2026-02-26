@@ -37,7 +37,7 @@ export default function LinkedPOs({ contractId }) {
       setLoading(true);
       const res = await api.get('/ordenes-compra', { params: { contrato_id: contractId } });
       if (res.data?.ok) {
-        setOcs(res.data.ordenes || res.data.items || []);
+        setOcs(res.data.data?.ordenes || []);
       }
     } catch {
       toast.error(t('contracts_ocs_error', 'Error al cargar ordenes de compra'));

@@ -233,17 +233,19 @@ def obtener_tendencia_calidad_proveedor(proveedor_cuit):
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
+        from backend.core.db import is_using_postgresql
+        ph = "%s" if is_using_postgresql() else "?"
+        cursor.execute(f"""
             SELECT
-                strftime('%Y-%m', created_at) as mes,
+                to_char(created_at, 'YYYY-MM') as mes,
                 severidad,
                 COUNT(*) as count
             FROM ncr
-            WHERE proveedor_cuit = ?
-            AND created_at >= datetime('now', ? || ' months')
-            GROUP BY strftime('%Y-%m', created_at), severidad
+            WHERE proveedor_cuit = {ph}
+            AND created_at >= CURRENT_DATE - ({ph} || ' months')::interval
+            GROUP BY to_char(created_at, 'YYYY-MM'), severidad
             ORDER BY mes
-        """, (proveedor_cuit, f'-{periodo_meses}'))
+        """, (proveedor_cuit, str(periodo_meses)))
 
         tendencia_rows = cursor.fetchall()
         conn.close()

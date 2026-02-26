@@ -544,7 +544,7 @@ def obtener_kpis() -> Dict:
     cursor.execute("""
         SELECT COALESCE(SUM(bultos_total), 0)
         FROM packing_list
-        WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+        WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE)
         AND estado != 'draft'
     """)
     bultos_mes = cursor.fetchone()[0]
@@ -557,7 +557,7 @@ def obtener_kpis() -> Dict:
     cursor.execute("""
         SELECT COALESCE(SUM(peso_total), 0)
         FROM packing_list
-        WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+        WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE)
         AND estado = 'despachado'
     """)
     peso_mes = cursor.fetchone()[0]

@@ -26,7 +26,7 @@ def crear_programa(
     cursor.execute("""
         INSERT INTO programa_descuento
         (nombre, tipo, descuento_base_pct, dias_anticipacion, formula, presupuesto_anual)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s)
         RETURNING id
     """, (nombre, tipo, descuento_base_pct, dias_anticipacion, formula, presupuesto_anual))
 
@@ -47,7 +47,7 @@ def obtener_programas(estado: Optional[str] = None) -> List[Dict]:
             SELECT id, nombre, tipo, descuento_base_pct, dias_anticipacion,
                    formula, estado, presupuesto_anual, utilizado_anual, created_at
             FROM programa_descuento
-            WHERE estado = ?
+            WHERE estado = %s
             ORDER BY created_at DESC
         """, (estado,))
     else:
@@ -117,7 +117,7 @@ def generar_ofertas(programa_id: int, dias_horizonte: int = 30) -> List[int]:
     cursor.execute("""
         SELECT descuento_base_pct, dias_anticipacion, formula, presupuesto_anual, utilizado_anual
         FROM programa_descuento
-        WHERE id = ? AND estado = 'active'
+        WHERE id = %s AND estado = 'active'
     """, (programa_id,))
     programa = cursor.fetchone()
     if not programa:
@@ -127,24 +127,23 @@ def generar_ofertas(programa_id: int, dias_horizonte: int = 30) -> List[int]:
     descuento_base_pct, dias_anticipacion, formula, presupuesto_anual, utilizado_anual = programa
 
     # Obtener facturas elegibles (no pagadas, dentro del horizonte)
-    # Suponiendo que factura_proveedor tiene estado y fecha_vencimiento
     fecha_limite = (datetime.now() + timedelta(days=dias_horizonte)).strftime('%Y-%m-%d')
 
     cursor.execute("""
-        SELECT id, proveedor_cuit, monto_total, fecha_vencimiento
+        SELECT id, proveedor_cuit, monto_total, fecha_vencimiento_pago
         FROM factura_proveedor
         WHERE estado IN ('pendiente', 'aprobada')
-        AND fecha_vencimiento <= ?
+        AND fecha_vencimiento_pago <= %s
         AND id NOT IN (SELECT factura_id FROM oferta_descuento WHERE factura_id IS NOT NULL)
-        ORDER BY fecha_vencimiento ASC
+        ORDER BY fecha_vencimiento_pago ASC
     """, (fecha_limite,))
 
     facturas = cursor.fetchall()
     ofertas_creadas = []
 
     for factura in facturas:
-        factura_id, proveedor_cuit, monto_total, fecha_vencimiento = factura
-        fecha_original = datetime.strptime(fecha_vencimiento, '%Y-%m-%d')
+        factura_id, proveedor_cuit, monto_total, fecha_vencimiento_pago = factura
+        fecha_original = datetime.strptime(str(fecha_vencimiento_pago)[:10], '%Y-%m-%d')
         fecha_anticipado = datetime.now() + timedelta(days=dias_anticipacion if dias_anticipacion else 7)
 
         # Calcular descuento
@@ -164,10 +163,10 @@ def generar_ofertas(programa_id: int, dias_horizonte: int = 30) -> List[int]:
             INSERT INTO oferta_descuento
             (programa_id, factura_id, proveedor_cuit, monto_factura,
              descuento_ofrecido_pct, monto_descuento, fecha_pago_original, fecha_pago_anticipado)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
         """, (programa_id, factura_id, proveedor_cuit, monto_total,
-              descuento_pct, monto_descuento, fecha_vencimiento,
+              descuento_pct, monto_descuento, fecha_vencimiento_pago,
               fecha_anticipado.strftime('%Y-%m-%d')))
 
         ofertas_creadas.append(cursor.fetchone()[0])
@@ -199,11 +198,11 @@ def obtener_ofertas(
     params = []
 
     if estado:
-        query += " AND o.estado = ?"
+        query += " AND o.estado = %s"
         params.append(estado)
 
     if proveedor_cuit:
-        query += " AND o.proveedor_cuit = ?"
+        query += " AND o.proveedor_cuit = %s"
         params.append(proveedor_cuit)
 
     query += " ORDER BY o.created_at DESC"
@@ -241,7 +240,7 @@ def aceptar_oferta(oferta_id: int, usuario_id: int) -> bool:
 
     # Verificar que oferta existe y está pendiente
     cursor.execute("""
-        SELECT estado FROM oferta_descuento WHERE id = ?
+        SELECT estado FROM oferta_descuento WHERE id = %s
     """, (oferta_id,))
     row = cursor.fetchone()
     if not row or row[0] != 'pendiente':
@@ -252,9 +251,9 @@ def aceptar_oferta(oferta_id: int, usuario_id: int) -> bool:
     cursor.execute("""
         UPDATE oferta_descuento
         SET estado = 'aceptada',
-            aceptada_por = ?,
-            fecha_aceptacion = ?
-        WHERE id = ?
+            aceptada_por = %s,
+            fecha_aceptacion = %s
+        WHERE id = %s
     """, (usuario_id, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), oferta_id))
 
     conn.commit()
@@ -271,7 +270,7 @@ def rechazar_oferta(oferta_id: int) -> bool:
     cursor.execute("""
         UPDATE oferta_descuento
         SET estado = 'rechazada'
-        WHERE id = ? AND estado = 'pendiente'
+        WHERE id = %s AND estado = 'pendiente'
     """, (oferta_id,))
 
     rows_affected = cursor.rowcount
@@ -290,7 +289,7 @@ def marcar_pagada(oferta_id: int) -> bool:
     cursor.execute("""
         SELECT programa_id, monto_descuento, estado
         FROM oferta_descuento
-        WHERE id = ?
+        WHERE id = %s
     """, (oferta_id,))
     row = cursor.fetchone()
     if not row or row[2] != 'aceptada':
@@ -303,14 +302,14 @@ def marcar_pagada(oferta_id: int) -> bool:
     cursor.execute("""
         UPDATE oferta_descuento
         SET estado = 'pagada'
-        WHERE id = ?
+        WHERE id = %s
     """, (oferta_id,))
 
     # Actualizar presupuesto utilizado
     cursor.execute("""
         UPDATE programa_descuento
-        SET utilizado_anual = utilizado_anual + ?
-        WHERE id = ?
+        SET utilizado_anual = utilizado_anual + %s
+        WHERE id = %s
     """, (monto_descuento, programa_id))
 
     conn.commit()
@@ -329,7 +328,7 @@ def obtener_terminos_proveedor(proveedor_cuit: Optional[str] = None) -> List[Dic
             SELECT id, proveedor_cuit, termino_estandar_dias, termino_negociado_dias,
                    descuento_pronto_pago_pct, historico_cumplimiento_pct, ultima_revision, created_at
             FROM terminos_pago_proveedor
-            WHERE proveedor_cuit = ?
+            WHERE proveedor_cuit = %s
         """, (proveedor_cuit,))
     else:
         cursor.execute("""
@@ -369,7 +368,7 @@ def actualizar_terminos(
 
     # Verificar si existe
     cursor.execute("""
-        SELECT id FROM terminos_pago_proveedor WHERE proveedor_cuit = ?
+        SELECT id FROM terminos_pago_proveedor WHERE proveedor_cuit = %s
     """, (proveedor_cuit,))
 
     if cursor.fetchone():
@@ -378,18 +377,18 @@ def actualizar_terminos(
         params = []
 
         if termino_estandar_dias is not None:
-            updates.append("termino_estandar_dias = ?")
+            updates.append("termino_estandar_dias = %s")
             params.append(termino_estandar_dias)
 
         if termino_negociado_dias is not None:
-            updates.append("termino_negociado_dias = ?")
+            updates.append("termino_negociado_dias = %s")
             params.append(termino_negociado_dias)
 
         if descuento_pronto_pago_pct is not None:
-            updates.append("descuento_pronto_pago_pct = ?")
+            updates.append("descuento_pronto_pago_pct = %s")
             params.append(descuento_pronto_pago_pct)
 
-        updates.append("ultima_revision = ?")
+        updates.append("ultima_revision = %s")
         params.append(datetime.now().strftime('%Y-%m-%d'))
 
         params.append(proveedor_cuit)
@@ -397,14 +396,14 @@ def actualizar_terminos(
         cursor.execute(f"""
             UPDATE terminos_pago_proveedor
             SET {', '.join(updates)}
-            WHERE proveedor_cuit = ?
+            WHERE proveedor_cuit = %s
         """, params)
     else:
         # Insert
         cursor.execute("""
             INSERT INTO terminos_pago_proveedor
             (proveedor_cuit, termino_estandar_dias, termino_negociado_dias, descuento_pronto_pago_pct, ultima_revision)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
         """, (proveedor_cuit, termino_estandar_dias or 30, termino_negociado_dias,
               descuento_pronto_pago_pct, datetime.now().strftime('%Y-%m-%d')))
 
@@ -428,11 +427,11 @@ def simular_cashflow(
     # Obtener facturas históricas para proyección
     cursor.execute("""
         SELECT
-            TO_CHAR(fecha_emision, 'YYYY-MM') as periodo,
+            TO_CHAR(fecha_factura, 'YYYY-MM') as periodo,
             SUM(monto_total) as monto_mes
         FROM factura_proveedor
-        WHERE fecha_emision >= CURRENT_DATE - INTERVAL '6 months'
-        GROUP BY TO_CHAR(fecha_emision, 'YYYY-MM')
+        WHERE fecha_factura >= CURRENT_DATE - INTERVAL '6 months'
+        GROUP BY TO_CHAR(fecha_factura, 'YYYY-MM')
         ORDER BY periodo DESC
     """)
 
@@ -458,7 +457,7 @@ def simular_cashflow(
         cursor.execute("""
             INSERT INTO cashflow_simulacion
             (escenario, periodo, monto_facturas, monto_descuentos, ahorro_neto, dias_pago_promedio, created_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """, (escenario, periodo, monto_facturas, monto_descuentos, ahorro_neto, dias_pago_promedio, created_by))
 
         simulaciones.append({
@@ -498,12 +497,12 @@ def obtener_kpis() -> Dict:
     pending_offers_count = row[0] or 0
     pending_savings_potential = row[1] or 0
 
-    # DPO promedio (calculado desde facturas pagadas en últimos 90 días)
+    # DPO promedio (calculado desde facturas con fecha_vencimiento en últimos 90 días)
     cursor.execute("""
-        SELECT AVG(EXTRACT(EPOCH FROM (fecha_pago::timestamp - fecha_emision::timestamp)) / 86400) as dpo
+        SELECT AVG(EXTRACT(EPOCH FROM (fecha_vencimiento_pago::timestamp - fecha_factura::timestamp)) / 86400) as dpo
         FROM factura_proveedor
-        WHERE estado = 'pagada'
-        AND fecha_pago >= CURRENT_DATE - INTERVAL '90 days'
+        WHERE fecha_vencimiento_pago IS NOT NULL
+        AND fecha_factura >= CURRENT_DATE - INTERVAL '90 days'
     """)
     avg_dpo = cursor.fetchone()[0] or 30
 

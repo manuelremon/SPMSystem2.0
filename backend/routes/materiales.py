@@ -321,7 +321,7 @@ def get_stats():
             stats["precio_max"] = get_val(row, 1)
 
             # Grupos únicos
-            cur.execute(f"SELECT COUNT(DISTINCT {_COL_GRUPO}) FROM {_TABLA} WHERE {_COL_GRUPO} IS NOT NULL AND {_COL_GRUPO} != ''")
+            cur.execute(f"SELECT COUNT(DISTINCT {_COL_GRUPO}) FROM {_TABLA} WHERE {_COL_GRUPO} IS NOT NULL")
             stats["grupos_unicos"] = get_val(cur.fetchone(), 0)
 
         return jsonify({"ok": True, "data": stats}), 200

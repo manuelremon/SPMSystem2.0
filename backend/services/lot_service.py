@@ -193,12 +193,12 @@ def obtener_lote(lote_id: int) -> Optional[Dict[str, Any]]:
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
-            # Get lote
+            # Get lote — columnas reales: no tiene updated_at
             cursor.execute(f"""
                 SELECT id, numero_lote, material_codigo, proveedor_cuit, orden_compra_id,
                        cantidad_inicial, cantidad_disponible, unidad, fecha_fabricacion,
                        fecha_vencimiento, fecha_recepcion, almacen_id, ubicacion, estado,
-                       bloqueado_razon, created_at, updated_at
+                       bloqueado_razon, created_at
                 FROM lote
                 WHERE id = {ph}
             """, (lote_id,))
@@ -224,7 +224,6 @@ def obtener_lote(lote_id: int) -> Optional[Dict[str, Any]]:
                 'estado': row[13],
                 'bloqueado_razon': row[14],
                 'created_at': row[15].isoformat() if row[15] else None,
-                'updated_at': row[16].isoformat() if row[16] else None
             }
 
             # Get recent movements
@@ -301,9 +300,9 @@ def consumir_lote(lote_id: int, cantidad: float, usuario_id: int,
 
             cursor.execute(f"""
                 UPDATE lote
-                SET cantidad_disponible = {ph}, estado = {ph}, updated_at = {ph}
+                SET cantidad_disponible = {ph}, estado = {ph}
                 WHERE id = {ph}
-            """, (nueva_cantidad, nuevo_estado, datetime.now(), lote_id))
+            """, (nueva_cantidad, nuevo_estado, lote_id))
 
             # Create movement
             cursor.execute(f"""
@@ -342,9 +341,9 @@ def bloquear_lote(lote_id: int, razon: str, usuario_id: int) -> bool:
             # Update lote
             cursor.execute(f"""
                 UPDATE lote
-                SET estado = {ph}, bloqueado_razon = {ph}, updated_at = {ph}
+                SET estado = {ph}, bloqueado_razon = {ph}
                 WHERE id = {ph}
-            """, ('blocked', razon, datetime.now(), lote_id))
+            """, ('blocked', razon, lote_id))
 
             # Create movement
             cursor.execute(f"""
@@ -380,9 +379,9 @@ def desbloquear_lote(lote_id: int, usuario_id: int) -> bool:
             # Update lote
             cursor.execute(f"""
                 UPDATE lote
-                SET estado = {ph}, bloqueado_razon = NULL, updated_at = {ph}
+                SET estado = {ph}, bloqueado_razon = NULL
                 WHERE id = {ph}
-            """, ('available', datetime.now(), lote_id))
+            """, ('available', lote_id))
 
             # Create movement
             cursor.execute(f"""
@@ -421,12 +420,12 @@ def obtener_traceability_forward(lote_id: int, nivel: int = 0) -> List[Dict[str,
             cursor = conn.cursor()
 
             cursor.execute(f"""
-                SELECT g.lote_hijo_id, g.relacion, g.cantidad_utilizada, g.fecha,
+                SELECT g.lote_hijo_id, g.relacion, g.cantidad_utilizada, g.created_at,
                        l.numero_lote, l.material_codigo, l.cantidad_inicial, l.estado
                 FROM lote_genealogia g
                 JOIN lote l ON l.id = g.lote_hijo_id
                 WHERE g.lote_padre_id = {ph}
-                ORDER BY g.fecha
+                ORDER BY g.created_at
             """, (lote_id,))
 
             resultados = []
@@ -473,12 +472,12 @@ def obtener_traceability_backward(lote_id: int, nivel: int = 0) -> List[Dict[str
             cursor = conn.cursor()
 
             cursor.execute(f"""
-                SELECT g.lote_padre_id, g.relacion, g.cantidad_utilizada, g.fecha,
+                SELECT g.lote_padre_id, g.relacion, g.cantidad_utilizada, g.created_at,
                        l.numero_lote, l.material_codigo, l.cantidad_inicial, l.estado
                 FROM lote_genealogia g
                 JOIN lote l ON l.id = g.lote_padre_id
                 WHERE g.lote_hijo_id = {ph}
-                ORDER BY g.fecha
+                ORDER BY g.created_at
             """, (lote_id,))
 
             resultados = []
@@ -524,9 +523,9 @@ def registrar_genealogia(lote_padre_id: int, lote_hijo_id: int,
         with get_db_transaction() as (conn, cursor):
             cursor.execute(f"""
                 INSERT INTO lote_genealogia (
-                    lote_padre_id, lote_hijo_id, relacion, cantidad_utilizada, fecha
-                ) VALUES ({ph}, {ph}, {ph}, {ph}, {ph})
-            """, (lote_padre_id, lote_hijo_id, relacion, cantidad_utilizada, datetime.now()))
+                    lote_padre_id, lote_hijo_id, relacion, cantidad_utilizada
+                ) VALUES ({ph}, {ph}, {ph}, {ph})
+            """, (lote_padre_id, lote_hijo_id, relacion, cantidad_utilizada))
 
             if is_using_postgresql():
                 cursor.execute("SELECT currval(pg_get_serial_sequence('lote_genealogia', 'id'))")
@@ -570,14 +569,14 @@ def crear_recall(data: Dict[str, Any]) -> int:
             # Insert recall
             cursor.execute(f"""
                 INSERT INTO recall (
-                    numero_recall, titulo, severidad, tipo, razon, material_codigo,
-                    proveedor_cuit, responsable_id, plan_accion, costo_estimado,
+                    numero_recall, titulo, severidad, tipo, descripcion, material_codigo,
+                    proveedor_cuit, responsable_id, accion_requerida, cantidad_afectada,
                     estado, fecha_inicio
                 ) VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
             """, (
                 numero_recall, data['titulo'], data['severidad'], data['tipo'],
-                data['razon'], data.get('material_codigo'), data.get('proveedor_cuit'),
-                data['responsable_id'], data.get('plan_accion'), data.get('costo_estimado', 0),
+                data.get('razon', data.get('descripcion')), data.get('material_codigo'), data.get('proveedor_cuit'),
+                data['responsable_id'], data.get('plan_accion', data.get('accion_requerida')), data.get('costo_estimado', data.get('cantidad_afectada', 0)),
                 'active', datetime.now()
             ))
 
@@ -615,9 +614,9 @@ def crear_recall(data: Dict[str, Any]) -> int:
                 # Block lote
                 cursor.execute(f"""
                     UPDATE lote
-                    SET estado = {ph}, bloqueado_razon = {ph}, updated_at = {ph}
+                    SET estado = {ph}, bloqueado_razon = {ph}
                     WHERE id = {ph}
-                """, ('blocked', f"Recall {numero_recall}", datetime.now(), lote_id))
+                """, ('blocked', f"Recall {numero_recall}", lote_id))
 
                 # Create recall_lote
                 cursor.execute(f"""
@@ -632,7 +631,7 @@ def crear_recall(data: Dict[str, Any]) -> int:
                         lote_id, tipo, cantidad, usuario_id, observaciones, fecha
                     ) VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph})
                 """, (lote_id, 'bloqueo', 0, data['responsable_id'],
-                      f"Recall {numero_recall}: {data['razon']}", datetime.now()))
+                      f"Recall {numero_recall}: {data.get('razon', data.get('descripcion', ''))}", datetime.now()))
 
             conn.commit()
             logger.info(f"Recall creado: {numero_recall} - {len(lotes_afectados)} lotes afectados")
@@ -683,14 +682,16 @@ def obtener_recalls(filtros: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
 
             # Get items
             cursor.execute(f"""
-                SELECT r.id, r.numero_recall, r.titulo, r.severidad, r.tipo, r.razon,
+                SELECT r.id, r.numero_recall, r.titulo, r.severidad, r.tipo, r.descripcion,
                        r.material_codigo, r.proveedor_cuit, r.responsable_id, r.estado,
-                       r.fecha_inicio, r.fecha_cierre, r.costo_estimado,
-                       COUNT(rl.id) as lotes_afectados
+                       r.fecha_inicio, r.fecha_cierre, r.cantidad_afectada,
+                       COUNT(rl.id) as lotes_afectados_count
                 FROM recall r
                 LEFT JOIN recall_lote rl ON rl.recall_id = r.id
                 WHERE {where_clause}
-                GROUP BY r.id
+                GROUP BY r.id, r.numero_recall, r.titulo, r.severidad, r.tipo, r.descripcion,
+                         r.material_codigo, r.proveedor_cuit, r.responsable_id, r.estado,
+                         r.fecha_inicio, r.fecha_cierre, r.cantidad_afectada
                 ORDER BY r.fecha_inicio DESC
                 LIMIT {ph} OFFSET {ph}
             """, params + [per_page, offset])
@@ -744,8 +745,8 @@ def obtener_detalle_recall(recall_id: int) -> Optional[Dict[str, Any]]:
 
             # Get recall
             cursor.execute(f"""
-                SELECT id, numero_recall, titulo, severidad, tipo, razon, material_codigo,
-                       proveedor_cuit, responsable_id, plan_accion, costo_estimado,
+                SELECT id, numero_recall, titulo, severidad, tipo, descripcion, material_codigo,
+                       proveedor_cuit, responsable_id, accion_requerida, cantidad_afectada,
                        estado, fecha_inicio, fecha_cierre, created_at
                 FROM recall
                 WHERE id = {ph}
