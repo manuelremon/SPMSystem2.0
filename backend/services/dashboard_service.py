@@ -29,7 +29,6 @@ from backend.core.dashboard_schemas import (
     get_default_sheet_data,
 )
 from backend.core.db import get_db_connection, is_using_postgresql
-from backend.core.query_builder import QueryBuilder
 
 
 class _ConnectionWrapper:

@@ -148,7 +148,7 @@ def obtener_planes(filtros: Optional[Dict[str, Any]] = None, page: int = 1, page
         params_count = []
 
         # Query para datos
-        query = f"""
+        query = """
             SELECT pp.*,
                    u.nombre as responsable_nombre,
                    (SELECT COUNT(*) FROM plan_produccion_item WHERE plan_id = pp.id) as total_items,

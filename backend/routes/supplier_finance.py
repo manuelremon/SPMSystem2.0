@@ -2,7 +2,7 @@
 Rutas para gestión de financiamiento de proveedores.
 Sprint 89: Supplier Finance
 """
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, jsonify, request
 
 from backend.core.helpers import _get_user_id
 from backend.core.roles import require_auth, require_role

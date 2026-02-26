@@ -48,7 +48,7 @@ def _build_desc_query(q_desc: str, q_codigo: str, q_grupo: str, limit: int):
       - Results are sorted: descripcion matches first, then
         descripcion_larga starts-with matches, then by codigo.
     """
-    from backend.core.search_utils import build_description_search, normalize_search_term
+    from backend.core.search_utils import normalize_search_term
 
     normalized = normalize_search_term(q_desc)
     words = [w for w in normalized.split() if len(w) >= 2]
@@ -117,7 +117,7 @@ def _fallback_broad(q_desc: str, q_grupo: str, limit: int) -> list[dict]:
     Only used when the smart query returns 0 results.  Results where
     descripcion_larga starts with the phrase are sorted first.
     """
-    from backend.core.search_utils import build_description_search, normalize_search_term
+    from backend.core.search_utils import normalize_search_term
 
     normalized = normalize_search_term(q_desc)
     words = [w for w in normalized.split() if len(w) >= 2]

@@ -9,7 +9,12 @@ import logging
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id, is_using_postgresql
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    insert_returning_id,
+    is_using_postgresql,
+)
 from backend.core.tms_schemas import (
     INSPECTION_CHECKLIST,
     validar_transicion_wo,
@@ -1008,12 +1013,6 @@ def obtener_kpis_fms() -> dict:
     - Mantenimientos proximos
     """
     bool_true = "TRUE" if is_using_postgresql() else "1"
-    # Use database-compatible date arithmetic
-    if is_using_postgresql():
-        next_7_days_expr = "CURRENT_DATE + INTERVAL '7 days'"
-    else:
-        next_7_days_expr = "date('now', '+7 days')"
-
     with get_db_connection() as conn:
         # Vehiculos por estado
         cursor = conn.execute(f"""

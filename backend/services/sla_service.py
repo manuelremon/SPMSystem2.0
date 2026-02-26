@@ -13,7 +13,12 @@ Gestiona:
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id, is_using_postgresql
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    insert_returning_id,
+    is_using_postgresql,
+)
 
 
 def _ph():
@@ -623,7 +628,6 @@ def listar_configuraciones_sla(activo: Optional[bool] = None) -> List[Dict[str, 
     Returns:
         Lista de configuraciones SLA
     """
-    ph = _ph()
     bool_true = "TRUE" if is_using_postgresql() else "1"
     with get_db_connection() as conn:
         cursor = conn.cursor()

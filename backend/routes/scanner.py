@@ -8,8 +8,8 @@ Endpoints:
   DELETE /api/scanner/session/<id>       (auth) - close session
 """
 
-import io
 import base64
+import io
 
 from flask import Blueprint, g, jsonify, request
 
