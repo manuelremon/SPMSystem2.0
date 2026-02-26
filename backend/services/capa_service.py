@@ -21,91 +21,88 @@ def crear_capa_desde_ncr(ncr_id, data, user_id):
     Returns:
         dict con CAPA creado
     """
-    conn, cursor = get_db_transaction()
+    with get_db_transaction() as (conn, cursor):
+        try:
+            # Verificar que el NCR existe
+            cursor.execute("SELECT id FROM ncr WHERE id = %s", (ncr_id,))
+            if not cursor.fetchone():
+                raise ValueError(f"NCR {ncr_id} no encontrado")
 
-    try:
-        # Verificar que el NCR existe
-        cursor.execute("SELECT id FROM ncr WHERE id = ?", (ncr_id,))
-        if not cursor.fetchone():
-            conn.close()
-            raise ValueError(f"NCR {ncr_id} no encontrado")
+            # Generar número de CAPA único: CAPA-YYYYMMDD-XXX
+            fecha_hoy = datetime.now().strftime('%Y%m%d')
+            cursor.execute("""
+                SELECT COUNT(*) FROM capa
+                WHERE numero_capa LIKE %s
+            """, (f"CAPA-{fecha_hoy}-%",))
 
-        # Generar número de CAPA único: CAPA-YYYYMMDD-XXX
-        fecha_hoy = datetime.now().strftime('%Y%m%d')
-        cursor.execute("""
-            SELECT COUNT(*) FROM capa
-            WHERE numero_capa LIKE ?
-        """, (f"CAPA-{fecha_hoy}-%",))
+            count = cursor.fetchone()[0]
+            numero_capa = f"CAPA-{fecha_hoy}-{count + 1:03d}"
 
-        count = cursor.fetchone()[0]
-        numero_capa = f"CAPA-{fecha_hoy}-{count + 1:03d}"
+            # Insertar CAPA
+            cursor.execute("""
+                INSERT INTO capa
+                (numero_capa, ncr_id, tipo, titulo, descripcion_problema,
+                 accion_propuesta, responsable_id, verificador_id, fecha_objetivo, estado)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending')
+                RETURNING id
+            """, (
+                numero_capa,
+                ncr_id,
+                data.get('tipo', 'corrective'),
+                data['titulo'],
+                data.get('descripcion_problema'),
+                data.get('accion_propuesta'),
+                data.get('responsable_id'),
+                data.get('verificador_id'),
+                data.get('fecha_objetivo')
+            ))
 
-        # Insertar CAPA
-        cursor.execute("""
-            INSERT INTO capa
-            (numero_capa, ncr_id, tipo, titulo, descripcion_problema,
-             accion_propuesta, responsable_id, verificador_id, fecha_objetivo, estado)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-        """, (
-            numero_capa,
-            ncr_id,
-            data.get('tipo', 'corrective'),
-            data['titulo'],
-            data.get('descripcion_problema'),
-            data.get('accion_propuesta'),
-            data.get('responsable_id'),
-            data.get('verificador_id'),
-            data.get('fecha_objetivo')
-        ))
+            capa_id = cursor.fetchone()[0]
 
-        capa_id = cursor.lastrowid
+            # Insertar historial
+            cursor.execute("""
+                INSERT INTO capa_historial
+                (capa_id, estado_anterior, estado_nuevo, actor_id, notas)
+                VALUES (%s, NULL, 'pending', %s, 'CAPA creado desde NCR')
+            """, (capa_id, user_id))
 
-        # Insertar historial
-        cursor.execute("""
-            INSERT INTO capa_historial
-            (capa_id, estado_anterior, estado_nuevo, actor_id, notas)
-            VALUES (?, NULL, 'pending', ?, 'CAPA creado desde NCR')
-        """, (capa_id, user_id))
+            conn.commit()
 
-        conn.commit()
+            # Recuperar CAPA creado
+            cursor.execute("""
+                SELECT id, numero_capa, ncr_id, tipo, titulo, descripcion_problema,
+                       accion_propuesta, accion_implementada, responsable_id, verificador_id,
+                       fecha_objetivo, fecha_implementacion, fecha_verificacion,
+                       estado, efectividad, created_at, updated_at
+                FROM capa
+                WHERE id = %s
+            """, (capa_id,))
 
-        # Recuperar CAPA creado
-        cursor.execute("""
-            SELECT id, numero_capa, ncr_id, tipo, titulo, descripcion_problema,
-                   accion_propuesta, accion_implementada, responsable_id, verificador_id,
-                   fecha_objetivo, fecha_implementacion, fecha_verificacion,
-                   estado, efectividad, created_at, updated_at
-            FROM capa
-            WHERE id = ?
-        """, (capa_id,))
+            row = cursor.fetchone()
 
-        row = cursor.fetchone()
+            return {
+                'id': row[0],
+                'numero_capa': row[1],
+                'ncr_id': row[2],
+                'tipo': row[3],
+                'titulo': row[4],
+                'descripcion_problema': row[5],
+                'accion_propuesta': row[6],
+                'accion_implementada': row[7],
+                'responsable_id': row[8],
+                'verificador_id': row[9],
+                'fecha_objetivo': row[10],
+                'fecha_implementacion': row[11],
+                'fecha_verificacion': row[12],
+                'estado': row[13],
+                'efectividad': row[14],
+                'created_at': row[15],
+                'updated_at': row[16]
+            }
 
-        return {
-            'id': row[0],
-            'numero_capa': row[1],
-            'ncr_id': row[2],
-            'tipo': row[3],
-            'titulo': row[4],
-            'descripcion_problema': row[5],
-            'accion_propuesta': row[6],
-            'accion_implementada': row[7],
-            'responsable_id': row[8],
-            'verificador_id': row[9],
-            'fecha_objetivo': row[10],
-            'fecha_implementacion': row[11],
-            'fecha_verificacion': row[12],
-            'estado': row[13],
-            'efectividad': row[14],
-            'created_at': row[15],
-            'updated_at': row[16]
-        }
-
-    except Exception as e:
-        conn.rollback()
-        raise e
-    finally:
-        conn.close()
+        except Exception:
+            conn.rollback()
+            raise
 
 
 def crear_capa_preventiva(data, user_id):
@@ -120,84 +117,82 @@ def crear_capa_preventiva(data, user_id):
     Returns:
         dict con CAPA creado
     """
-    conn, cursor = get_db_transaction()
+    with get_db_transaction() as (conn, cursor):
+        try:
+            # Generar número de CAPA único: CAPA-YYYYMMDD-XXX
+            fecha_hoy = datetime.now().strftime('%Y%m%d')
+            cursor.execute("""
+                SELECT COUNT(*) FROM capa
+                WHERE numero_capa LIKE %s
+            """, (f"CAPA-{fecha_hoy}-%",))
 
-    try:
-        # Generar número de CAPA único: CAPA-YYYYMMDD-XXX
-        fecha_hoy = datetime.now().strftime('%Y%m%d')
-        cursor.execute("""
-            SELECT COUNT(*) FROM capa
-            WHERE numero_capa LIKE ?
-        """, (f"CAPA-{fecha_hoy}-%",))
+            count = cursor.fetchone()[0]
+            numero_capa = f"CAPA-{fecha_hoy}-{count + 1:03d}"
 
-        count = cursor.fetchone()[0]
-        numero_capa = f"CAPA-{fecha_hoy}-{count + 1:03d}"
+            # Insertar CAPA
+            cursor.execute("""
+                INSERT INTO capa
+                (numero_capa, tipo, titulo, descripcion_problema,
+                 accion_propuesta, responsable_id, verificador_id, fecha_objetivo, estado)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'pending')
+                RETURNING id
+            """, (
+                numero_capa,
+                data.get('tipo', 'preventive'),
+                data['titulo'],
+                data.get('descripcion_problema'),
+                data.get('accion_propuesta'),
+                data.get('responsable_id'),
+                data.get('verificador_id'),
+                data.get('fecha_objetivo')
+            ))
 
-        # Insertar CAPA
-        cursor.execute("""
-            INSERT INTO capa
-            (numero_capa, tipo, titulo, descripcion_problema,
-             accion_propuesta, responsable_id, verificador_id, fecha_objetivo, estado)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-        """, (
-            numero_capa,
-            data.get('tipo', 'preventive'),
-            data['titulo'],
-            data.get('descripcion_problema'),
-            data.get('accion_propuesta'),
-            data.get('responsable_id'),
-            data.get('verificador_id'),
-            data.get('fecha_objetivo')
-        ))
+            capa_id = cursor.fetchone()[0]
 
-        capa_id = cursor.lastrowid
+            # Insertar historial
+            cursor.execute("""
+                INSERT INTO capa_historial
+                (capa_id, estado_anterior, estado_nuevo, actor_id, notas)
+                VALUES (%s, NULL, 'pending', %s, 'CAPA preventivo creado')
+            """, (capa_id, user_id))
 
-        # Insertar historial
-        cursor.execute("""
-            INSERT INTO capa_historial
-            (capa_id, estado_anterior, estado_nuevo, actor_id, notas)
-            VALUES (?, NULL, 'pending', ?, 'CAPA preventivo creado')
-        """, (capa_id, user_id))
+            conn.commit()
 
-        conn.commit()
+            # Recuperar CAPA creado
+            cursor.execute("""
+                SELECT id, numero_capa, ncr_id, tipo, titulo, descripcion_problema,
+                       accion_propuesta, accion_implementada, responsable_id, verificador_id,
+                       fecha_objetivo, fecha_implementacion, fecha_verificacion,
+                       estado, efectividad, created_at, updated_at
+                FROM capa
+                WHERE id = %s
+            """, (capa_id,))
 
-        # Recuperar CAPA creado
-        cursor.execute("""
-            SELECT id, numero_capa, ncr_id, tipo, titulo, descripcion_problema,
-                   accion_propuesta, accion_implementada, responsable_id, verificador_id,
-                   fecha_objetivo, fecha_implementacion, fecha_verificacion,
-                   estado, efectividad, created_at, updated_at
-            FROM capa
-            WHERE id = ?
-        """, (capa_id,))
+            row = cursor.fetchone()
 
-        row = cursor.fetchone()
+            return {
+                'id': row[0],
+                'numero_capa': row[1],
+                'ncr_id': row[2],
+                'tipo': row[3],
+                'titulo': row[4],
+                'descripcion_problema': row[5],
+                'accion_propuesta': row[6],
+                'accion_implementada': row[7],
+                'responsable_id': row[8],
+                'verificador_id': row[9],
+                'fecha_objetivo': row[10],
+                'fecha_implementacion': row[11],
+                'fecha_verificacion': row[12],
+                'estado': row[13],
+                'efectividad': row[14],
+                'created_at': row[15],
+                'updated_at': row[16]
+            }
 
-        return {
-            'id': row[0],
-            'numero_capa': row[1],
-            'ncr_id': row[2],
-            'tipo': row[3],
-            'titulo': row[4],
-            'descripcion_problema': row[5],
-            'accion_propuesta': row[6],
-            'accion_implementada': row[7],
-            'responsable_id': row[8],
-            'verificador_id': row[9],
-            'fecha_objetivo': row[10],
-            'fecha_implementacion': row[11],
-            'fecha_verificacion': row[12],
-            'estado': row[13],
-            'efectividad': row[14],
-            'created_at': row[15],
-            'updated_at': row[16]
-        }
-
-    except Exception as e:
-        conn.rollback()
-        raise e
-    finally:
-        conn.close()
+        except Exception:
+            conn.rollback()
+            raise
 
 
 def obtener_capas(filtros=None):
@@ -223,15 +218,15 @@ def obtener_capas(filtros=None):
     params = []
 
     if filtros.get('tipo'):
-        where_clauses.append("tipo = ?")
+        where_clauses.append("tipo = %s")
         params.append(filtros['tipo'])
 
     if filtros.get('estado'):
-        where_clauses.append("estado = ?")
+        where_clauses.append("estado = %s")
         params.append(filtros['estado'])
 
     if filtros.get('responsable'):
-        where_clauses.append("responsable_id = ?")
+        where_clauses.append("responsable_id = %s")
         params.append(filtros['responsable'])
 
     where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
@@ -252,7 +247,7 @@ def obtener_capas(filtros=None):
         FROM capa
         WHERE {where_sql}
         ORDER BY created_at DESC
-        LIMIT ? OFFSET ?
+        LIMIT %s OFFSET %s
     """, params + [per_page, offset])
 
     rows = cursor.fetchall()
@@ -307,7 +302,7 @@ def obtener_detalle_capa(capa_id):
                fecha_objetivo, fecha_implementacion, fecha_verificacion,
                estado, efectividad, created_at, updated_at
         FROM capa
-        WHERE id = ?
+        WHERE id = %s
     """, (capa_id,))
 
     row = cursor.fetchone()
@@ -339,7 +334,7 @@ def obtener_detalle_capa(capa_id):
     cursor.execute("""
         SELECT id, estado_anterior, estado_nuevo, actor_id, notas, created_at
         FROM capa_historial
-        WHERE capa_id = ?
+        WHERE capa_id = %s
         ORDER BY created_at DESC
     """, (capa_id,))
 
@@ -385,63 +380,58 @@ def cambiar_estado_capa(capa_id, nuevo_estado, user_id, notas=None):
         'closed': []
     }
 
-    conn, cursor = get_db_transaction()
+    with get_db_transaction() as (conn, cursor):
+        try:
+            # Obtener estado actual
+            cursor.execute("SELECT estado FROM capa WHERE id = %s", (capa_id,))
+            row = cursor.fetchone()
 
-    try:
-        # Obtener estado actual
-        cursor.execute("SELECT estado FROM capa WHERE id = ?", (capa_id,))
-        row = cursor.fetchone()
+            if not row:
+                raise ValueError(f"CAPA {capa_id} no encontrado")
 
-        if not row:
-            conn.close()
-            raise ValueError(f"CAPA {capa_id} no encontrado")
+            estado_actual = row[0]
 
-        estado_actual = row[0]
+            # Validar transición
+            if nuevo_estado not in TRANSICIONES_VALIDAS.get(estado_actual, []):
+                raise ValueError(
+                    f"Transición inválida: {estado_actual} -> {nuevo_estado}"
+                )
 
-        # Validar transición
-        if nuevo_estado not in TRANSICIONES_VALIDAS.get(estado_actual, []):
-            conn.close()
-            raise ValueError(
-                f"Transición inválida: {estado_actual} -> {nuevo_estado}"
-            )
+            # Actualizar estado
+            update_fields = ["estado = %s", "updated_at = CURRENT_TIMESTAMP"]
+            params = [nuevo_estado]
 
-        # Actualizar estado
-        update_fields = ["estado = ?", "updated_at = CURRENT_TIMESTAMP"]
-        params = [nuevo_estado]
+            # Actualizar fechas según estado
+            if nuevo_estado == 'implemented':
+                update_fields.append("fecha_implementacion = CURRENT_TIMESTAMP")
+            elif nuevo_estado == 'verified':
+                update_fields.append("fecha_verificacion = CURRENT_TIMESTAMP")
 
-        # Actualizar fechas según estado
-        if nuevo_estado == 'implemented':
-            update_fields.append("fecha_implementacion = CURRENT_TIMESTAMP")
-        elif nuevo_estado == 'verified':
-            update_fields.append("fecha_verificacion = CURRENT_TIMESTAMP")
+            cursor.execute(f"""
+                UPDATE capa
+                SET {', '.join(update_fields)}
+                WHERE id = %s
+            """, params + [capa_id])
 
-        cursor.execute(f"""
-            UPDATE capa
-            SET {', '.join(update_fields)}
-            WHERE id = ?
-        """, params + [capa_id])
+            # Insertar historial
+            cursor.execute("""
+                INSERT INTO capa_historial
+                (capa_id, estado_anterior, estado_nuevo, actor_id, notas)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (capa_id, estado_actual, nuevo_estado, user_id, notas))
 
-        # Insertar historial
-        cursor.execute("""
-            INSERT INTO capa_historial
-            (capa_id, estado_anterior, estado_nuevo, actor_id, notas)
-            VALUES (?, ?, ?, ?, ?)
-        """, (capa_id, estado_actual, nuevo_estado, user_id, notas))
+            conn.commit()
 
-        conn.commit()
+            return {
+                'capa_id': capa_id,
+                'estado_anterior': estado_actual,
+                'estado_nuevo': nuevo_estado,
+                'success': True
+            }
 
-        return {
-            'capa_id': capa_id,
-            'estado_anterior': estado_actual,
-            'estado_nuevo': nuevo_estado,
-            'success': True
-        }
-
-    except Exception as e:
-        conn.rollback()
-        raise e
-    finally:
-        conn.close()
+        except Exception:
+            conn.rollback()
+            raise
 
 
 def verificar_efectividad(capa_id, efectividad, user_id):
@@ -456,55 +446,50 @@ def verificar_efectividad(capa_id, efectividad, user_id):
     Returns:
         dict con resultado
     """
-    conn, cursor = get_db_transaction()
+    with get_db_transaction() as (conn, cursor):
+        try:
+            # Obtener estado actual
+            cursor.execute("SELECT estado FROM capa WHERE id = %s", (capa_id,))
+            row = cursor.fetchone()
 
-    try:
-        # Obtener estado actual
-        cursor.execute("SELECT estado FROM capa WHERE id = ?", (capa_id,))
-        row = cursor.fetchone()
+            if not row:
+                raise ValueError(f"CAPA {capa_id} no encontrado")
 
-        if not row:
-            conn.close()
-            raise ValueError(f"CAPA {capa_id} no encontrado")
+            estado_actual = row[0]
 
-        estado_actual = row[0]
+            if estado_actual != 'implemented':
+                raise ValueError(
+                    f"CAPA debe estar en estado 'implemented' para verificar efectividad. "
+                    f"Estado actual: {estado_actual}"
+                )
 
-        if estado_actual != 'implemented':
-            conn.close()
-            raise ValueError(
-                f"CAPA debe estar en estado 'implemented' para verificar efectividad. "
-                f"Estado actual: {estado_actual}"
-            )
+            # Actualizar efectividad y cambiar a verified
+            cursor.execute("""
+                UPDATE capa
+                SET efectividad = %s,
+                    estado = 'verified',
+                    fecha_verificacion = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (efectividad, capa_id))
 
-        # Actualizar efectividad y cambiar a verified
-        cursor.execute("""
-            UPDATE capa
-            SET efectividad = ?,
-                estado = 'verified',
-                fecha_verificacion = CURRENT_TIMESTAMP,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-        """, (efectividad, capa_id))
+            # Insertar historial
+            cursor.execute("""
+                INSERT INTO capa_historial
+                (capa_id, estado_anterior, estado_nuevo, actor_id, notas)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (capa_id, estado_actual, 'verified', user_id, f"Efectividad verificada: {efectividad}"))
 
-        # Insertar historial
-        cursor.execute("""
-            INSERT INTO capa_historial
-            (capa_id, estado_anterior, estado_nuevo, actor_id, notas)
-            VALUES (?, ?, ?, ?, ?)
-        """, (capa_id, estado_actual, 'verified', user_id, f"Efectividad verificada: {efectividad}"))
+            conn.commit()
 
-        conn.commit()
+            return {
+                'capa_id': capa_id,
+                'estado_anterior': estado_actual,
+                'estado_nuevo': 'verified',
+                'efectividad': efectividad,
+                'success': True
+            }
 
-        return {
-            'capa_id': capa_id,
-            'estado_anterior': estado_actual,
-            'estado_nuevo': 'verified',
-            'efectividad': efectividad,
-            'success': True
-        }
-
-    except Exception as e:
-        conn.rollback()
-        raise e
-    finally:
-        conn.close()
+        except Exception:
+            conn.rollback()
+            raise

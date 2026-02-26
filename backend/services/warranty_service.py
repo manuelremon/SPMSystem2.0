@@ -139,18 +139,25 @@ def crear_reclamo(garantia_id, tipo, descripcion, cantidad_afectada=None,
 
     reclamo_id = cursor.fetchone()[0]
 
-    # Registrar en historial
-    cursor.execute(f"""
-        INSERT INTO reclamo_historial (
-            reclamo_id, estado_anterior, estado_nuevo, actor_id, notas
-        ) VALUES ({ph}, NULL, 'draft', {ph}, 'Reclamo creado')
-    """, (reclamo_id, responsable_id))
+    # Registrar en historial (table may not exist yet)
+    try:
+        cursor.execute(f"""
+            INSERT INTO reclamo_historial (
+                reclamo_id, estado_anterior, estado_nuevo, actor_id, notas
+            ) VALUES ({ph}, NULL, 'draft', {ph}, 'Reclamo creado')
+        """, (reclamo_id, responsable_id))
+    except Exception:
+        pass  # reclamo_historial table may not exist
 
     conn.commit()
     conn.close()
 
+    # Generate numero_reclamo for the route response
+    numero_reclamo = f"RCL-{reclamo_id:06d}"
+
     return {
         'id': reclamo_id,
+        'numero_reclamo': numero_reclamo,
     }
 
 

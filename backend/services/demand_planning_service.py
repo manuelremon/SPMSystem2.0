@@ -41,27 +41,25 @@ def crear_ciclo_planificacion(data: dict, user_id: int) -> int:
         if using_pg:
             cursor.execute("""
                 INSERT INTO plan_demanda
-                (nombre, periodo_desde, periodo_hasta, descripcion, estado, creado_por, created_at)
-                VALUES (%s, %s, %s, %s, 'draft', %s, NOW())
+                (nombre, periodo_desde, periodo_hasta, estado, creado_por, created_at)
+                VALUES (%s, %s, %s, 'draft', %s, NOW())
                 RETURNING id
             """, (
                 data['nombre'],
                 data['periodo_desde'],
                 data['periodo_hasta'],
-                data.get('descripcion'),
                 user_id
             ))
             plan_id = cursor.fetchone()[0]
         else:
             cursor.execute("""
                 INSERT INTO plan_demanda
-                (nombre, periodo_desde, periodo_hasta, descripcion, estado, creado_por, created_at)
-                VALUES (?, ?, ?, ?, 'draft', ?, datetime('now'))
+                (nombre, periodo_desde, periodo_hasta, estado, creado_por, created_at)
+                VALUES (?, ?, ?, 'draft', ?, datetime('now'))
             """, (
                 data['nombre'],
                 data['periodo_desde'],
                 data['periodo_hasta'],
-                data.get('descripcion'),
                 user_id
             ))
             plan_id = cursor.lastrowid
@@ -188,7 +186,7 @@ def obtener_detalle_ciclo(plan_id: int) -> dict:
             f"""
             SELECT
                 pd.id, pd.nombre, pd.periodo_desde, pd.periodo_hasta,
-                pd.descripcion, pd.estado, pd.created_at, pd.creado_por,
+                pd.estado, pd.created_at, pd.creado_por,
                 u.nombre as creado_por_nombre
             FROM plan_demanda pd
             LEFT JOIN usuarios u ON pd.creado_por::text = u.id_spm
@@ -206,11 +204,10 @@ def obtener_detalle_ciclo(plan_id: int) -> dict:
             'nombre': row[1],
             'periodo_desde': row[2],
             'periodo_hasta': row[3],
-            'descripcion': row[4],
-            'estado': row[5],
-            'created_at': row[6],
-            'creado_por': row[7],
-            'creado_por_nombre': row[8]
+            'estado': row[4],
+            'created_at': row[5],
+            'creado_por': row[6],
+            'creado_por_nombre': row[7]
         }
 
         # Obtener entradas agrupadas por material
@@ -222,12 +219,12 @@ def obtener_detalle_ciclo(plan_id: int) -> dict:
                 pde.fuente,
                 pde.cantidad_pronosticada,
                 pde.created_at,
-                pde.creado_por,
-                u.nombre as creado_por_nombre,
+                pde.usuario_id,
+                u.nombre as usuario_nombre,
                 pde.notas
             FROM plan_demanda_entrada pde
             LEFT JOIN catalogo_materiales m ON pde.material_codigo = m.codigo
-            LEFT JOIN usuarios u ON pde.creado_por::text = u.id_spm
+            LEFT JOIN usuarios u ON pde.usuario_id::text = u.id_spm
             WHERE pde.plan_id = {placeholder}
             ORDER BY pde.material_codigo, pde.created_at
             """,
@@ -248,8 +245,8 @@ def obtener_detalle_ciclo(plan_id: int) -> dict:
                 'fuente': row[2],
                 'cantidad_pronosticada': float(row[3]) if row[3] else 0,
                 'created_at': row[4],
-                'creado_por': row[5],
-                'creado_por_nombre': row[6],
+                'usuario_id': row[5],
+                'usuario_nombre': row[6],
                 'notas': row[7]
             })
 
@@ -264,7 +261,6 @@ def obtener_detalle_ciclo(plan_id: int) -> dict:
                 pdc.cantidad_consenso,
                 pdc.aprobado_por,
                 u.nombre as aprobado_por_nombre,
-                pdc.notas,
                 pdc.created_at
             FROM plan_demanda_consenso pdc
             LEFT JOIN catalogo_materiales m ON pdc.material_codigo = m.codigo
@@ -283,8 +279,7 @@ def obtener_detalle_ciclo(plan_id: int) -> dict:
                 'cantidad_consenso': float(row[2]) if row[2] else 0,
                 'aprobado_por': row[3],
                 'aprobado_por_nombre': row[4],
-                'notas': row[5],
-                'created_at': row[6]
+                'created_at': row[5]
             })
 
         plan['consensos'] = consensos
@@ -379,7 +374,7 @@ def agregar_entrada(plan_id: int, data: dict, user_id: int) -> int:
         if using_pg:
             cursor.execute("""
                 INSERT INTO plan_demanda_entrada
-                (plan_id, material_codigo, fuente, cantidad_pronosticada, notas, creado_por, created_at)
+                (plan_id, material_codigo, fuente, cantidad_pronosticada, notas, usuario_id, created_at)
                 VALUES (%s, %s, %s, %s, %s, %s, NOW())
                 RETURNING id
             """, (
@@ -394,7 +389,7 @@ def agregar_entrada(plan_id: int, data: dict, user_id: int) -> int:
         else:
             cursor.execute("""
                 INSERT INTO plan_demanda_entrada
-                (plan_id, material_codigo, fuente, cantidad_pronosticada, notas, creado_por, created_at)
+                (plan_id, material_codigo, fuente, cantidad_pronosticada, notas, usuario_id, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
             """, (
                 plan_id,
@@ -481,7 +476,7 @@ def generar_baseline_ml(plan_id: int) -> dict:
                     cursor.execute("""
                         INSERT INTO plan_demanda_entrada
                         (plan_id, material_codigo, fuente, cantidad_pronosticada,
-                         notas, creado_por, created_at)
+                         notas, usuario_id, created_at)
                         VALUES (%s, %s, 'ml_baseline', %s, 'Generado automáticamente por ML', NULL, NOW())
                         ON CONFLICT (plan_id, material_codigo, fuente) DO UPDATE SET
                             cantidad_pronosticada = EXCLUDED.cantidad_pronosticada,
@@ -505,7 +500,7 @@ def generar_baseline_ml(plan_id: int) -> dict:
                         cursor.execute("""
                             INSERT INTO plan_demanda_entrada
                             (plan_id, material_codigo, fuente, cantidad_pronosticada,
-                             notas, creado_por, created_at)
+                             notas, usuario_id, created_at)
                             VALUES (?, ?, 'ml_baseline', ?, 'Generado automáticamente por ML', NULL, datetime('now'))
                         """, (plan_id, material_codigo, cantidad_pronosticada))
 

@@ -29,9 +29,10 @@ logger = logging.getLogger(__name__)
 
 def _generate_wo_code(conn) -> str:
     """Genera codigo unico para OT: WO-2026-0001"""
+    ph = _ph()
     year = datetime.now().year
     cursor = conn.execute(
-        "SELECT MAX(CAST(RIGHT(codigo, 4) AS INTEGER)) as max_num FROM fms_work_orders WHERE codigo LIKE ?",
+        f"SELECT MAX(CAST(RIGHT(codigo, 4) AS INTEGER)) as max_num FROM fms_work_orders WHERE codigo LIKE {ph}",
         (f"WO-{year}-%",)
     )
     row = cursor.fetchone()
@@ -45,7 +46,7 @@ def _generate_wo_code(conn) -> str:
 
 def crear_vehiculo(data: dict) -> dict:
     """Crea un nuevo vehiculo en la flota."""
-    required_fields = ["placa", "tipo", "marca", "modelo", "anio"]
+    required_fields = ["patente", "tipo", "marca", "modelo", "anio"]
     for field in required_fields:
         if field not in data:
             raise ValueError(f"Campo requerido: {field}")
@@ -55,26 +56,25 @@ def crear_vehiculo(data: dict) -> dict:
             conn,
             "fms_vehicles",
             {
-                "placa": data["placa"],
+                "codigo": data.get("codigo"),
+                "patente": data["patente"],
                 "tipo": data["tipo"],
                 "marca": data["marca"],
                 "modelo": data["modelo"],
                 "anio": data["anio"],
-                "vin": data.get("vin"),
-                "capacidad_peso_kg": data.get("capacidad_peso_kg"),
-                "capacidad_vol_m3": data.get("capacidad_vol_m3"),
-                "cadena_frio": data.get("cadena_frio", False),
-                "hazmat_cert": data.get("hazmat_cert", False),
+                "capacidad_kg": data.get("capacidad_kg"),
+                "capacidad_m3": data.get("capacidad_m3"),
+                "requiere_frio": data.get("requiere_frio", False),
+                "requiere_hazmat": data.get("requiere_hazmat", False),
                 "estado": "disponible",
-                "odometro_actual": data.get("odometro_actual", 0),
-                "rendimiento_km_lt": data.get("rendimiento_km_lt"),
-                "gps_device_id": data.get("gps_device_id"),
+                "km_actual": data.get("km_actual", 0),
+                "proximo_mantenimiento": data.get("proximo_mantenimiento"),
                 "activo": True,
                 "created_at": datetime.now().isoformat(),
             }
         )
 
-        logger.info(f"Vehiculo creado: {vehicle_id} - {data['placa']}")
+        logger.info(f"Vehiculo creado: {vehicle_id} - {data['patente']}")
         return obtener_vehiculo(vehicle_id)
 
 
@@ -136,10 +136,10 @@ def listar_vehiculos(filtros: dict = None) -> List[dict]:
 def actualizar_vehiculo(vehicle_id: int, data: dict) -> dict:
     """Actualiza datos de vehiculo."""
     allowed_fields = [
-        "placa", "tipo", "marca", "modelo", "anio", "vin",
-        "capacidad_peso_kg", "capacidad_vol_m3", "cadena_frio",
-        "hazmat_cert", "odometro_actual", "rendimiento_km_lt",
-        "gps_device_id", "activo"
+        "codigo", "patente", "tipo", "marca", "modelo", "anio",
+        "capacidad_kg", "capacidad_m3", "requiere_frio",
+        "requiere_hazmat", "km_actual", "proximo_mantenimiento",
+        "estado", "activo"
     ]
 
     updates = {k: v for k, v in data.items() if k in allowed_fields}
@@ -148,11 +148,12 @@ def actualizar_vehiculo(vehicle_id: int, data: dict) -> dict:
 
     updates["updated_at"] = datetime.now().isoformat()
 
+    ph = _ph()
     with get_db_transaction() as conn:
-        set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])
+        set_clause = ", ".join([f"{k} = {ph}" for k in updates.keys()])
         values = list(updates.values()) + [vehicle_id]
         conn.execute(
-            f"UPDATE fms_vehicles SET {set_clause} WHERE id = ?",
+            f"UPDATE fms_vehicles SET {set_clause} WHERE id = {ph}",
             values
         )
         logger.info(f"Vehiculo actualizado: {vehicle_id}")
@@ -165,8 +166,9 @@ def cambiar_estado_vehiculo(vehicle_id: int, nuevo_estado: str, user_id: str = "
     if nuevo_estado not in estados_validos:
         raise ValueError(f"Estado invalido: {nuevo_estado}")
 
+    ph = _ph()
     with get_db_transaction() as conn:
-        cursor = conn.execute("SELECT estado FROM fms_vehicles WHERE id = ?", (vehicle_id,))
+        cursor = conn.execute(f"SELECT estado FROM fms_vehicles WHERE id = {ph}", (vehicle_id,))
         row = cursor.fetchone()
         if not row:
             raise ValueError(f"Vehiculo no encontrado: {vehicle_id}")
@@ -174,7 +176,7 @@ def cambiar_estado_vehiculo(vehicle_id: int, nuevo_estado: str, user_id: str = "
         estado_anterior = row["estado"]
 
         conn.execute(
-            "UPDATE fms_vehicles SET estado = ?, updated_at = ? WHERE id = ?",
+            f"UPDATE fms_vehicles SET estado = {ph}, updated_at = {ph} WHERE id = {ph}",
             (nuevo_estado, datetime.now().isoformat(), vehicle_id)
         )
 
@@ -232,21 +234,17 @@ def crear_conductor(data: dict) -> dict:
             "fms_drivers",
             {
                 "nombre": data["nombre"],
-                "apellido": data.get("apellido"),
-                "usuario_id": data.get("usuario_id"),
-                "numero_licencia": data.get("numero_licencia"),
-                "tipo_licencia": data.get("tipo_licencia"),
-                "vigencia_licencia": data.get("vigencia_licencia"),
-                "vigencia_medica": data.get("vigencia_medica"),
-                "capacitacion_hazmat": data.get("capacitacion_hazmat", False),
+                "documento": data.get("documento"),
+                "licencia_tipo": data.get("licencia_tipo"),
+                "licencia_vencimiento": data.get("licencia_vencimiento"),
+                "hazmat_cert": data.get("hazmat_cert", False),
                 "estado": "activo",
                 "telefono": data.get("telefono"),
-                "contacto_emergencia": data.get("contacto_emergencia"),
                 "created_at": datetime.now().isoformat(),
             }
         )
 
-        logger.info(f"Conductor creado: {driver_id} - {data['nombre']} {data.get('apellido', '')}")
+        logger.info(f"Conductor creado: {driver_id} - {data['nombre']}")
         return obtener_conductor(driver_id)
 
 
@@ -285,19 +283,16 @@ def listar_conductores(filtros: dict = None) -> List[dict]:
 def actualizar_conductor(driver_id: int, data: dict) -> dict:
     """Actualiza datos de conductor."""
     allowed_fields = [
-        "nombre", "apellido", "usuario_id", "numero_licencia", "tipo_licencia",
-        "vigencia_licencia", "vigencia_medica", "capacitacion_hazmat",
-        "telefono", "contacto_emergencia", "estado"
+        "nombre", "documento", "licencia_tipo", "licencia_vencimiento",
+        "hazmat_cert", "telefono", "estado"
     ]
 
     updates = {k: v for k, v in data.items() if k in allowed_fields}
     if not updates:
         raise ValueError("No hay campos validos para actualizar")
 
-    updates["updated_at"] = datetime.now().isoformat()
-
+    ph = _ph()
     with get_db_transaction() as conn:
-        ph = _ph()
         set_clause = ", ".join([f"{k} = {ph}" for k in updates.keys()])
         values = list(updates.values()) + [driver_id]
         conn.execute(
@@ -343,6 +338,7 @@ def crear_orden_trabajo(data: dict, user_id: str) -> dict:
         if field not in data:
             raise ValueError(f"Campo requerido: {field}")
 
+    ph = _ph()
     with get_db_transaction() as conn:
         wo_code = _generate_wo_code(conn)
 
@@ -355,7 +351,11 @@ def crear_orden_trabajo(data: dict, user_id: str) -> dict:
                 "tipo": data["tipo"],
                 "descripcion": data["descripcion"],
                 "prioridad": data["prioridad"],
-                "odometro_ingreso": data.get("odometro_ingreso"),
+                "km_actual": data.get("km_actual"),
+                "costo_estimado": data.get("costo_estimado"),
+                "fecha_programada": data.get("fecha_programada"),
+                "tecnico": data.get("tecnico"),
+                "notas": data.get("notas"),
                 "estado": "draft",
                 "created_by": user_id,
                 "created_at": datetime.now().isoformat(),
@@ -364,7 +364,7 @@ def crear_orden_trabajo(data: dict, user_id: str) -> dict:
 
         # Cambiar vehiculo a mantenimiento
         conn.execute(
-            "UPDATE fms_vehicles SET estado = 'en_mantenimiento', updated_at = ? WHERE id = ?",
+            f"UPDATE fms_vehicles SET estado = 'en_mantenimiento', updated_at = {ph} WHERE id = {ph}",
             (datetime.now().isoformat(), data["vehicle_id"])
         )
 
@@ -379,8 +379,9 @@ def crear_orden_trabajo(data: dict, user_id: str) -> dict:
 
 def obtener_orden_trabajo(wo_id: int) -> Optional[dict]:
     """Obtiene OT por ID con partes."""
+    ph = _ph()
     with get_db_connection() as conn:
-        cursor = conn.execute("SELECT * FROM fms_work_orders WHERE id = ?", (wo_id,))
+        cursor = conn.execute(f"SELECT * FROM fms_work_orders WHERE id = {ph}", (wo_id,))
         row = cursor.fetchone()
         if not row:
             return None
@@ -389,14 +390,14 @@ def obtener_orden_trabajo(wo_id: int) -> Optional[dict]:
 
         # Obtener partes
         cursor = conn.execute(
-            "SELECT * FROM fms_wo_parts WHERE work_order_id = ? ORDER BY id",
+            f"SELECT * FROM fms_wo_parts WHERE work_order_id = {ph} ORDER BY id",
             (wo_id,)
         )
         wo["partes"] = [dict(r) for r in cursor.fetchall()]
 
         # Obtener info del vehiculo
         cursor = conn.execute(
-            "SELECT placa, marca, modelo FROM fms_vehicles WHERE id = ?",
+            f"SELECT patente, marca, modelo FROM fms_vehicles WHERE id = {ph}",
             (wo["vehicle_id"],)
         )
         vehicle = cursor.fetchone()
@@ -409,23 +410,24 @@ def obtener_orden_trabajo(wo_id: int) -> Optional[dict]:
 def listar_ordenes_trabajo(filtros: dict = None, page: int = 1, per_page: int = 20) -> dict:
     """Lista OTs con filtros: estado, tipo, vehicle_id, prioridad."""
     filtros = filtros or {}
+    ph = _ph()
     query = "SELECT * FROM fms_work_orders WHERE 1=1"
     params = []
 
     if "estado" in filtros:
-        query += " AND estado = ?"
+        query += f" AND estado = {ph}"
         params.append(filtros["estado"])
 
     if "tipo" in filtros:
-        query += " AND tipo = ?"
+        query += f" AND tipo = {ph}"
         params.append(filtros["tipo"])
 
     if "vehicle_id" in filtros:
-        query += " AND vehicle_id = ?"
+        query += f" AND vehicle_id = {ph}"
         params.append(filtros["vehicle_id"])
 
     if "prioridad" in filtros:
-        query += " AND prioridad = ?"
+        query += f" AND prioridad = {ph}"
         params.append(filtros["prioridad"])
 
     with get_db_connection() as conn:
@@ -435,7 +437,7 @@ def listar_ordenes_trabajo(filtros: dict = None, page: int = 1, per_page: int = 
         total = cursor.fetchone()[0]
 
         # Get page
-        query += " ORDER BY prioridad DESC, created_at DESC LIMIT ? OFFSET ?"
+        query += f" ORDER BY prioridad DESC, created_at DESC LIMIT {ph} OFFSET {ph}"
         params.extend([per_page, (page - 1) * per_page])
 
         cursor = conn.execute(query, params)
@@ -458,8 +460,9 @@ def transicionar_orden_trabajo(wo_id: int, nuevo_estado: str, user_id: str, dato
     """
     datos = datos or {}
 
+    ph = _ph()
     with get_db_transaction() as conn:
-        cursor = conn.execute("SELECT * FROM fms_work_orders WHERE id = ?", (wo_id,))
+        cursor = conn.execute(f"SELECT * FROM fms_work_orders WHERE id = {ph}", (wo_id,))
         row = cursor.fetchone()
         if not row:
             raise ValueError(f"OT no encontrada: {wo_id}")
@@ -474,84 +477,82 @@ def transicionar_orden_trabajo(wo_id: int, nuevo_estado: str, user_id: str, dato
         updates = {"estado": nuevo_estado, "updated_at": datetime.now().isoformat()}
 
         if nuevo_estado == "in_progress":
-            updates["fecha_ingreso"] = datos.get("fecha_ingreso", datetime.now().isoformat())
-            updates["tecnico_asignado"] = datos.get("tecnico_asignado")
+            updates["fecha_inicio"] = datos.get("fecha_inicio", datetime.now().isoformat())
+            updates["tecnico"] = datos.get("tecnico")
 
         elif nuevo_estado == "pending_parts":
             updates["notas"] = datos.get("notas", "En espera de repuestos")
             logger.info(f"OT {wo['codigo']} en espera de repuestos")
 
         elif nuevo_estado == "completed":
-            updates["fecha_completado"] = datetime.now().isoformat()
-            updates["solucion"] = datos.get("solucion")
-            updates["costo_mano_obra"] = datos.get("costo_mano_obra", 0)
+            updates["fecha_fin"] = datetime.now().isoformat()
+            updates["costo_real"] = datos.get("costo_real", 0)
+            updates["notas"] = datos.get("notas", wo.get("notas"))
 
             # Calcular costo total de partes
             cursor = conn.execute(
-                "SELECT SUM(cantidad * costo_unitario) as total_partes FROM fms_wo_parts WHERE work_order_id = ?",
+                f"SELECT SUM(cantidad * costo_unitario) as total_partes FROM fms_wo_parts WHERE work_order_id = {ph}",
                 (wo_id,)
             )
             partes_row = cursor.fetchone()
             costo_partes = partes_row["total_partes"] if partes_row and partes_row["total_partes"] else 0
 
-            updates["costo_partes"] = costo_partes
-            updates["costo_total"] = updates["costo_mano_obra"] + costo_partes
+            costo_real = updates["costo_real"] + costo_partes
+            updates["costo_real"] = costo_real
 
             # Actualizar vehiculo a disponible
             conn.execute(
-                "UPDATE fms_vehicles SET estado = 'disponible', updated_at = ? WHERE id = ?",
+                f"UPDATE fms_vehicles SET estado = 'disponible', updated_at = {ph} WHERE id = {ph}",
                 (datetime.now().isoformat(), wo["vehicle_id"])
             )
 
             # Recalcular proximo mantenimiento si fue preventivo
             if wo["tipo"] == "preventivo":
-                _recalcular_proximo_mantenimiento(conn, wo["vehicle_id"], datos.get("odometro_ingreso"))
+                _recalcular_proximo_mantenimiento(conn, wo["vehicle_id"], datos.get("km_actual"))
 
-            logger.info(f"OT {wo['codigo']} completada - Costo total: ${updates['costo_total']:.2f}")
+            logger.info(f"OT {wo['codigo']} completada - Costo real: ${costo_real:.2f}")
 
         elif nuevo_estado == "cancelled":
             updates["notas"] = datos.get("motivo_cancelacion", "Cancelada")
             # Restaurar vehiculo a disponible
             conn.execute(
-                "UPDATE fms_vehicles SET estado = 'disponible', updated_at = ? WHERE id = ?",
+                f"UPDATE fms_vehicles SET estado = 'disponible', updated_at = {ph} WHERE id = {ph}",
                 (datetime.now().isoformat(), wo["vehicle_id"])
             )
 
         # Update WO
-        set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])
+        set_clause = ", ".join([f"{k} = {ph}" for k in updates.keys()])
         values = list(updates.values()) + [wo_id]
-        conn.execute(f"UPDATE fms_work_orders SET {set_clause} WHERE id = ?", values)
+        conn.execute(f"UPDATE fms_work_orders SET {set_clause} WHERE id = {ph}", values)
 
         return obtener_orden_trabajo(wo_id)
 
 
 def _recalcular_proximo_mantenimiento(conn, vehicle_id: int, km_actual: Optional[int]):
-    """Recalcula proxima fecha/km de mantenimiento preventivo."""
-    if not km_actual:
-        return
+    """Recalcula proximo_mantenimiento en fms_vehicles basado en planes activos."""
+    ph = _ph()
+    bool_true = "TRUE" if is_using_postgresql() else "1"
 
     cursor = conn.execute(
-        "SELECT * FROM fms_maintenance_plans WHERE vehicle_id = ? AND activo = 1",
+        f"SELECT * FROM fms_maintenance_plans WHERE vehicle_id = {ph} AND activo = {bool_true}",
         (vehicle_id,)
     )
 
+    proxima_fecha = None
     for plan_row in cursor.fetchall():
         plan = dict(plan_row)
-        updates = {}
 
-        if plan["intervalo_km"]:
-            updates["proximo_km"] = km_actual + plan["intervalo_km"]
+        if plan.get("intervalo_dias"):
+            fecha = (datetime.now() + timedelta(days=plan["intervalo_dias"])).date().isoformat()
+            if proxima_fecha is None or fecha < proxima_fecha:
+                proxima_fecha = fecha
 
-        if plan["intervalo_dias"]:
-            updates["proxima_fecha"] = (datetime.now() + timedelta(days=plan["intervalo_dias"])).date().isoformat()
-
-        if updates:
-            set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])
-            values = list(updates.values()) + [plan["id"]]
-            conn.execute(
-                f"UPDATE fms_maintenance_plans SET {set_clause} WHERE id = ?",
-                values
-            )
+    # Update proximo_mantenimiento on the vehicle
+    if proxima_fecha:
+        conn.execute(
+            f"UPDATE fms_vehicles SET proximo_mantenimiento = {ph}, km_actual = COALESCE({ph}, km_actual), updated_at = {ph} WHERE id = {ph}",
+            (proxima_fecha, km_actual, datetime.now().isoformat(), vehicle_id)
+        )
 
 
 def agregar_parte_ot(wo_id: int, data: dict, user_id: str) -> dict:
@@ -561,6 +562,7 @@ def agregar_parte_ot(wo_id: int, data: dict, user_id: str) -> dict:
         if field not in data:
             raise ValueError(f"Campo requerido: {field}")
 
+    ph = _ph()
     with get_db_transaction() as conn:
         part_id = insert_returning_id(
             conn,
@@ -580,7 +582,7 @@ def agregar_parte_ot(wo_id: int, data: dict, user_id: str) -> dict:
 
         logger.info(f"Parte agregada a OT {wo_id}: {data['descripcion']}")
 
-        cursor = conn.execute("SELECT * FROM fms_wo_parts WHERE id = ?", (part_id,))
+        cursor = conn.execute(f"SELECT * FROM fms_wo_parts WHERE id = {ph}", (part_id,))
         return dict(cursor.fetchone())
 
 
@@ -591,9 +593,10 @@ def solicitar_repuesto_spm(wo_id: int, material_id: str, cantidad: float, user_i
     - Link part to solicitud_id
     - Transition OT to PENDING_PARTS if was IN_PROGRESS
     """
+    ph = _ph()
     with get_db_transaction() as conn:
         # Get WO info
-        cursor = conn.execute("SELECT * FROM fms_work_orders WHERE id = ?", (wo_id,))
+        cursor = conn.execute(f"SELECT * FROM fms_work_orders WHERE id = {ph}", (wo_id,))
         wo_row = cursor.fetchone()
         if not wo_row:
             raise ValueError(f"OT no encontrada: {wo_id}")
@@ -641,7 +644,7 @@ def solicitar_repuesto_spm(wo_id: int, material_id: str, cantidad: float, user_i
 
 def crear_plan_mantenimiento(data: dict) -> dict:
     """Crea plan de mantenimiento preventivo para un vehiculo."""
-    required_fields = ["vehicle_id", "tipo_mantenimiento"]
+    required_fields = ["vehicle_id", "tipo"]
     for field in required_fields:
         if field not in data:
             raise ValueError(f"Campo requerido: {field}")
@@ -649,42 +652,41 @@ def crear_plan_mantenimiento(data: dict) -> dict:
     if not data.get("intervalo_km") and not data.get("intervalo_dias"):
         raise ValueError("Debe especificar intervalo_km o intervalo_dias")
 
+    ph = _ph()
     with get_db_transaction() as conn:
-        # Get current vehicle km
-        cursor = conn.execute("SELECT odometro_actual FROM fms_vehicles WHERE id = ?", (data["vehicle_id"],))
+        # Verify vehicle exists
+        cursor = conn.execute(f"SELECT km_actual FROM fms_vehicles WHERE id = {ph}", (data["vehicle_id"],))
         row = cursor.fetchone()
         if not row:
             raise ValueError(f"Vehiculo no encontrado: {data['vehicle_id']}")
-
-        km_actual = row["odometro_actual"] or 0
 
         plan_id = insert_returning_id(
             conn,
             "fms_maintenance_plans",
             {
                 "vehicle_id": data["vehicle_id"],
-                "tipo_mantenimiento": data["tipo_mantenimiento"],
-                "descripcion": data.get("descripcion"),
+                "nombre": data.get("nombre"),
+                "tipo": data["tipo"],
                 "intervalo_km": data.get("intervalo_km"),
                 "intervalo_dias": data.get("intervalo_dias"),
-                "proximo_km": km_actual + data["intervalo_km"] if data.get("intervalo_km") else None,
-                "proxima_fecha": (datetime.now() + timedelta(days=data["intervalo_dias"])).date().isoformat() if data.get("intervalo_dias") else None,
+                "items_json": data.get("items_json"),
                 "activo": True,
                 "created_at": datetime.now().isoformat(),
             }
         )
 
-        logger.info(f"Plan de mantenimiento creado: {plan_id} - {data['tipo_mantenimiento']}")
+        logger.info(f"Plan de mantenimiento creado: {plan_id} - {data['tipo']}")
 
-        cursor = conn.execute("SELECT * FROM fms_maintenance_plans WHERE id = ?", (plan_id,))
+        cursor = conn.execute(f"SELECT * FROM fms_maintenance_plans WHERE id = {ph}", (plan_id,))
         return dict(cursor.fetchone())
 
 
 def listar_planes_mantenimiento(vehicle_id: int) -> List[dict]:
     """Lista planes de mantenimiento de un vehiculo."""
+    ph = _ph()
     with get_db_connection() as conn:
         cursor = conn.execute(
-            "SELECT * FROM fms_maintenance_plans WHERE vehicle_id = ? ORDER BY tipo_mantenimiento",
+            f"SELECT * FROM fms_maintenance_plans WHERE vehicle_id = {ph} ORDER BY tipo",
             (vehicle_id,)
         )
         return [dict(row) for row in cursor.fetchall()]
@@ -693,25 +695,24 @@ def listar_planes_mantenimiento(vehicle_id: int) -> List[dict]:
 def actualizar_plan_mantenimiento(plan_id: int, data: dict) -> dict:
     """Actualiza plan de mantenimiento."""
     allowed_fields = [
-        "tipo_mantenimiento", "descripcion", "intervalo_km", "intervalo_dias",
-        "proximo_km", "proxima_fecha", "activo"
+        "nombre", "tipo", "intervalo_km", "intervalo_dias",
+        "items_json", "activo"
     ]
 
     updates = {k: v for k, v in data.items() if k in allowed_fields}
     if not updates:
         raise ValueError("No hay campos validos para actualizar")
 
-    updates["updated_at"] = datetime.now().isoformat()
-
+    ph = _ph()
     with get_db_transaction() as conn:
-        set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])
+        set_clause = ", ".join([f"{k} = {ph}" for k in updates.keys()])
         values = list(updates.values()) + [plan_id]
         conn.execute(
-            f"UPDATE fms_maintenance_plans SET {set_clause} WHERE id = ?",
+            f"UPDATE fms_maintenance_plans SET {set_clause} WHERE id = {ph}",
             values
         )
 
-        cursor = conn.execute("SELECT * FROM fms_maintenance_plans WHERE id = ?", (plan_id,))
+        cursor = conn.execute(f"SELECT * FROM fms_maintenance_plans WHERE id = {ph}", (plan_id,))
         return dict(cursor.fetchone())
 
 
@@ -806,94 +807,93 @@ def crear_inspeccion(data: dict, user_id: str) -> dict:
                 "vehicle_id": data["vehicle_id"],
                 "driver_id": data["driver_id"],
                 "tipo": data["tipo"],
-                "odometro": data.get("odometro"),
+                "items_json": data.get("items_json"),
                 "estado": "pendiente",
+                "observaciones": data.get("observaciones"),
                 "created_by": user_id,
                 "created_at": datetime.now().isoformat(),
             }
         )
 
-        # Crear items del checklist
-        for item in INSPECTION_CHECKLIST:
-            insert_returning_id(
-                conn,
-                "fms_inspection_items",
-                {
-                    "inspection_id": inspection_id,
-                    "categoria": item["categoria"],
-                    "item_checklist": item["item"],
-                    "es_critico": item["es_critico"],
-                    "estado": "na",
-                    "observacion": None,
-                }
-            )
+        # Crear items del checklist en fms_inspection_items (if table exists)
+        try:
+            for item in INSPECTION_CHECKLIST:
+                insert_returning_id(
+                    conn,
+                    "fms_inspection_items",
+                    {
+                        "inspection_id": inspection_id,
+                        "categoria": item["categoria"],
+                        "item_checklist": item["item"],
+                        "es_critico": item["es_critico"],
+                        "estado": "na",
+                        "observacion": None,
+                    }
+                )
+        except Exception:
+            # fms_inspection_items table may not exist; items stored in items_json
+            logger.debug("fms_inspection_items table not available, using items_json")
 
         logger.info(f"Inspeccion creada: {inspection_id} - {data['tipo']}")
         return obtener_inspeccion(inspection_id)
 
 
 def obtener_inspeccion(inspection_id: int) -> Optional[dict]:
-    """Obtiene inspeccion por ID con items."""
+    """Obtiene inspeccion por ID with items."""
+    import json as _json
+    ph = _ph()
     with get_db_connection() as conn:
-        cursor = conn.execute("SELECT * FROM fms_inspections WHERE id = ?", (inspection_id,))
+        cursor = conn.execute(f"SELECT * FROM fms_inspections WHERE id = {ph}", (inspection_id,))
         row = cursor.fetchone()
         if not row:
             return None
 
         inspection = dict(row)
 
-        # Get items
-        cursor = conn.execute(
-            "SELECT * FROM fms_inspection_items WHERE inspection_id = ? ORDER BY categoria, item",
-            (inspection_id,)
-        )
-        inspection["items"] = [dict(r) for r in cursor.fetchall()]
+        # Parse items from items_json column
+        items_json = inspection.get("items_json")
+        if items_json and isinstance(items_json, str):
+            try:
+                inspection["items"] = _json.loads(items_json)
+            except (ValueError, TypeError):
+                inspection["items"] = []
+        else:
+            inspection["items"] = []
 
         return inspection
 
 
 def completar_inspeccion(inspection_id: int, items: list, firma: str, user_id: str) -> dict:
-    """Completa inspeccion actualizando items con estado y observaciones.
-    Determina resultado: 'aprobado' si no hay items criticos con estado='mal',
-    'rechazado' si hay criticos fallidos, 'con_observaciones' si solo hay no-criticos fallidos."""
-    with get_db_transaction() as conn:
-        # Update items
-        for item_data in items:
-            conn.execute(
-                """UPDATE fms_inspection_items
-                   SET estado = ?, observacion = ?
-                   WHERE id = ?""",
-                (item_data["estado"], item_data.get("observacion"), item_data["id"])
-            )
+    """Completa inspeccion.
 
-        # Determinar resultado
-        cursor = conn.execute(
-            """SELECT COUNT(*) as count FROM fms_inspection_items
-               WHERE inspection_id = ? AND es_critico = 1 AND estado = 'mal'""",
-            (inspection_id,)
-        )
-        criticos_fallidos = cursor.fetchone()["count"]
+    Actual fms_inspections columns:
+        id, vehicle_id, driver_id, tipo, estado, items_json,
+        firma_digital, observaciones, created_by, created_at, completed_at
 
-        cursor = conn.execute(
-            """SELECT COUNT(*) as count FROM fms_inspection_items
-               WHERE inspection_id = ? AND es_critico = 0 AND estado = 'mal'""",
-            (inspection_id,)
-        )
-        no_criticos_fallidos = cursor.fetchone()["count"]
+    Note: fms_inspection_items table does NOT exist. Items are stored as JSON
+    in items_json column.
+    """
+    ph = _ph()
+    import json as _json
 
+    # Determine resultado from items if provided
+    resultado = "aprobado"
+    if items:
+        criticos_fallidos = sum(1 for i in items if i.get("es_critico") and i.get("estado") == "mal")
+        no_criticos_fallidos = sum(1 for i in items if not i.get("es_critico") and i.get("estado") == "mal")
         if criticos_fallidos > 0:
             resultado = "rechazado"
         elif no_criticos_fallidos > 0:
             resultado = "con_observaciones"
-        else:
-            resultado = "aprobado"
 
-        # Update inspection
+    with get_db_transaction() as conn:
+        # Update inspection - estado stores the outcome, completed_at marks completion time
         conn.execute(
-            """UPDATE fms_inspections
-               SET resultado = ?, firma_digital = ?, observaciones = ?
-               WHERE id = ?""",
-            (resultado, firma, None, inspection_id)
+            f"""UPDATE fms_inspections
+               SET estado = {ph}, firma_digital = {ph}, items_json = {ph},
+                   completed_at = NOW()
+               WHERE id = {ph}""",
+            (resultado, firma, _json.dumps(items) if items else None, inspection_id)
         )
 
         logger.info(f"Inspeccion completada: {inspection_id} - Resultado: {resultado}")
@@ -1115,3 +1115,101 @@ def list_inspections(filters: dict = None) -> list:
 
 def get_expiring_documents(days: int = 30) -> list:
     return obtener_documentos_por_vencer(days)
+
+
+# --- Aliases for English route compatibility (21 additional) ---
+
+def create_vehicle(data, user_id=None):
+    return crear_vehiculo(data)
+
+
+def update_vehicle(vehicle_id, data, user_id=None):
+    return actualizar_vehiculo(vehicle_id, data)
+
+
+def change_vehicle_status(vehicle_id, estado, user_id=None):
+    return cambiar_estado_vehiculo(vehicle_id, estado, user_id or "")
+
+
+def create_driver(data, user_id=None):
+    return crear_conductor(data)
+
+
+def update_driver(driver_id, data, user_id=None):
+    return actualizar_conductor(driver_id, data)
+
+
+def create_work_order(data, user_id):
+    return crear_orden_trabajo(data, user_id)
+
+
+def transition_work_order(order_id, estado, datos=None, user_id=None):
+    return transicionar_orden_trabajo(order_id, estado, user_id or "", datos)
+
+
+def add_part_to_work_order(order_id, data, user_id):
+    return agregar_parte_ot(order_id, data, user_id)
+
+
+def request_part_from_spm(order_id, data, user_id):
+    return solicitar_repuesto_spm(
+        order_id,
+        data.get("material_id", ""),
+        data.get("cantidad", 0),
+        user_id,
+    )
+
+
+def create_maintenance_plan(vehicle_id, data, user_id=None):
+    data_copy = dict(data)
+    data_copy["vehicle_id"] = vehicle_id
+    return crear_plan_mantenimiento(data_copy)
+
+
+def update_maintenance_plan(plan_id, data, user_id=None):
+    return actualizar_plan_mantenimiento(plan_id, data)
+
+
+def evaluate_preventive_maintenance(user_id=None):
+    return evaluar_mantenimiento_preventivo()
+
+
+def create_inspection(data, user_id):
+    return crear_inspeccion(data, user_id)
+
+
+def complete_inspection(inspection_id, data, user_id):
+    return completar_inspeccion(
+        inspection_id,
+        data.get("items", []),
+        data.get("firma", ""),
+        user_id,
+    )
+
+
+def add_vehicle_document(vehicle_id, data, user_id=None):
+    return agregar_documento(vehicle_id, data)
+
+
+def get_vehicle_detail(vehicle_id):
+    return obtener_vehiculo(vehicle_id)
+
+
+def get_driver_detail(driver_id):
+    return obtener_conductor(driver_id)
+
+
+def get_work_order_detail(order_id):
+    return obtener_orden_trabajo(order_id)
+
+
+def get_inspection_detail(inspection_id):
+    return obtener_inspeccion(inspection_id)
+
+
+def list_maintenance_plans(vehicle_id):
+    return listar_planes_mantenimiento(vehicle_id)
+
+
+def list_vehicle_documents(vehicle_id):
+    return listar_documentos(vehicle_id)

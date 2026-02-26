@@ -2,8 +2,9 @@
 Packaging Routes
 API para gestión de empaque, packing lists y etiquetas de envío
 """
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, jsonify, request
 
+from backend.core.helpers import _get_user_id
 from backend.core.roles import require_auth
 from backend.services import packaging_service
 
@@ -96,7 +97,7 @@ def create_packing_list():
     """Crear packing list"""
     try:
         datos = request.get_json()
-        usuario_id = g.user['id']
+        usuario_id = _get_user_id()
 
         packing = packaging_service.crear_packing_list(datos, usuario_id)
 

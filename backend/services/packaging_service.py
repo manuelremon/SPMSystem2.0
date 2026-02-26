@@ -16,7 +16,8 @@ def crear_template(datos: Dict) -> Dict:
     cursor.execute("""
         INSERT INTO packaging_template
         (nombre, tipo, largo, ancho, alto, peso_max, unidad_medida, material_empaque, costo_unitario, estado)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id
     """, (
         datos['nombre'],
         datos['tipo'],
@@ -30,10 +31,10 @@ def crear_template(datos: Dict) -> Dict:
         datos.get('estado', 'active')
     ))
 
-    template_id = cursor.lastrowid
+    template_id = cursor.fetchone()[0]
     conn.commit()
 
-    cursor.execute("SELECT * FROM packaging_template WHERE id = ?", (template_id,))
+    cursor.execute("SELECT * FROM packaging_template WHERE id = %s", (template_id,))
     template = dict(zip([d[0] for d in cursor.description], cursor.fetchone()))
 
     conn.close()
@@ -45,11 +46,11 @@ def obtener_templates(tipo: Optional[str] = None, estado: str = 'active') -> Lis
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    query = "SELECT * FROM packaging_template WHERE estado = ?"
+    query = "SELECT * FROM packaging_template WHERE estado = %s"
     params = [estado]
 
     if tipo:
-        query += " AND tipo = ?"
+        query += " AND tipo = %s"
         params.append(tipo)
 
     query += " ORDER BY tipo, nombre"
@@ -70,7 +71,7 @@ def _generar_numero_packing() -> str:
     year = datetime.now().year
     cursor.execute("""
         SELECT numero FROM packing_list
-        WHERE numero LIKE ?
+        WHERE numero LIKE %s
         ORDER BY numero DESC LIMIT 1
     """, (f"PL-{year}-%",))
 
@@ -95,7 +96,8 @@ def crear_packing_list(datos: Dict, usuario_id: int) -> Dict:
     cursor.execute("""
         INSERT INTO packing_list
         (numero, envio_id, orden_compra_id, notas, created_by)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s)
+        RETURNING id
     """, (
         numero,
         datos.get('envio_id'),
@@ -104,10 +106,10 @@ def crear_packing_list(datos: Dict, usuario_id: int) -> Dict:
         usuario_id
     ))
 
-    packing_id = cursor.lastrowid
+    packing_id = cursor.fetchone()[0]
     conn.commit()
 
-    cursor.execute("SELECT * FROM packing_list WHERE id = ?", (packing_id,))
+    cursor.execute("SELECT * FROM packing_list WHERE id = %s", (packing_id,))
     packing = dict(zip([d[0] for d in cursor.description], cursor.fetchone()))
 
     conn.close()
@@ -123,11 +125,11 @@ def obtener_packing_lists(estado: Optional[str] = None, orden_compra_id: Optiona
     params = []
 
     if estado:
-        query += " AND estado = ?"
+        query += " AND estado = %s"
         params.append(estado)
 
     if orden_compra_id:
-        query += " AND orden_compra_id = ?"
+        query += " AND orden_compra_id = %s"
         params.append(orden_compra_id)
 
     query += " ORDER BY created_at DESC"
@@ -146,7 +148,7 @@ def obtener_detalle_packing(packing_id: int) -> Dict:
     cursor = conn.cursor()
 
     # Packing list
-    cursor.execute("SELECT * FROM packing_list WHERE id = ?", (packing_id,))
+    cursor.execute("SELECT * FROM packing_list WHERE id = %s", (packing_id,))
     row = cursor.fetchone()
     if not row:
         conn.close()
@@ -163,7 +165,7 @@ def obtener_detalle_packing(packing_id: int) -> Dict:
             pt.tipo as template_tipo
         FROM packing_item pi
         LEFT JOIN packaging_template pt ON pi.template_id = pt.id
-        WHERE pi.packing_list_id = ?
+        WHERE pi.packing_list_id = %s
         ORDER BY pi.bulto_numero, pi.id
     """, (packing_id,))
 
@@ -173,7 +175,7 @@ def obtener_detalle_packing(packing_id: int) -> Dict:
     # Etiquetas
     cursor.execute("""
         SELECT * FROM shipping_label
-        WHERE packing_list_id = ?
+        WHERE packing_list_id = %s
         ORDER BY bulto_numero
     """, (packing_id,))
 
@@ -190,7 +192,7 @@ def agregar_item(packing_id: int, datos: Dict) -> Dict:
     cursor = conn.cursor()
 
     # Verificar que esté en draft
-    cursor.execute("SELECT estado FROM packing_list WHERE id = ?", (packing_id,))
+    cursor.execute("SELECT estado FROM packing_list WHERE id = %s", (packing_id,))
     row = cursor.fetchone()
     if not row or row[0] != 'draft':
         conn.close()
@@ -200,7 +202,8 @@ def agregar_item(packing_id: int, datos: Dict) -> Dict:
     cursor.execute("""
         INSERT INTO packing_item
         (packing_list_id, material_codigo, cantidad, lote_id, template_id, bulto_numero, peso_item, notas)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id
     """, (
         packing_id,
         datos['material_codigo'],
@@ -212,7 +215,7 @@ def agregar_item(packing_id: int, datos: Dict) -> Dict:
         datos.get('notas')
     ))
 
-    item_id = cursor.lastrowid
+    item_id = cursor.fetchone()[0]
 
     # Recalcular totales
     cursor.execute("""
@@ -220,7 +223,7 @@ def agregar_item(packing_id: int, datos: Dict) -> Dict:
             COALESCE(SUM(peso_item), 0) as peso_total,
             COUNT(DISTINCT bulto_numero) as bultos_total
         FROM packing_item
-        WHERE packing_list_id = ? AND bulto_numero IS NOT NULL
+        WHERE packing_list_id = %s AND bulto_numero IS NOT NULL
     """, (packing_id,))
 
     totales = cursor.fetchone()
@@ -229,13 +232,13 @@ def agregar_item(packing_id: int, datos: Dict) -> Dict:
 
     cursor.execute("""
         UPDATE packing_list
-        SET peso_total = ?, bultos_total = ?
-        WHERE id = ?
+        SET peso_total = %s, bultos_total = %s
+        WHERE id = %s
     """, (peso_total, bultos_total, packing_id))
 
     conn.commit()
 
-    cursor.execute("SELECT * FROM packing_item WHERE id = ?", (item_id,))
+    cursor.execute("SELECT * FROM packing_item WHERE id = %s", (item_id,))
     item = dict(zip([d[0] for d in cursor.description], cursor.fetchone()))
 
     conn.close()
@@ -248,7 +251,7 @@ def eliminar_item(packing_id: int, item_id: int) -> bool:
     cursor = conn.cursor()
 
     # Verificar que esté en draft
-    cursor.execute("SELECT estado FROM packing_list WHERE id = ?", (packing_id,))
+    cursor.execute("SELECT estado FROM packing_list WHERE id = %s", (packing_id,))
     row = cursor.fetchone()
     if not row or row[0] != 'draft':
         conn.close()
@@ -256,7 +259,7 @@ def eliminar_item(packing_id: int, item_id: int) -> bool:
 
     cursor.execute("""
         DELETE FROM packing_item
-        WHERE id = ? AND packing_list_id = ?
+        WHERE id = %s AND packing_list_id = %s
     """, (item_id, packing_id))
 
     # Recalcular totales
@@ -265,7 +268,7 @@ def eliminar_item(packing_id: int, item_id: int) -> bool:
             COALESCE(SUM(peso_item), 0) as peso_total,
             COUNT(DISTINCT bulto_numero) as bultos_total
         FROM packing_item
-        WHERE packing_list_id = ? AND bulto_numero IS NOT NULL
+        WHERE packing_list_id = %s AND bulto_numero IS NOT NULL
     """, (packing_id,))
 
     totales = cursor.fetchone()
@@ -274,8 +277,8 @@ def eliminar_item(packing_id: int, item_id: int) -> bool:
 
     cursor.execute("""
         UPDATE packing_list
-        SET peso_total = ?, bultos_total = ?
-        WHERE id = ?
+        SET peso_total = %s, bultos_total = %s
+        WHERE id = %s
     """, (peso_total, bultos_total, packing_id))
 
     conn.commit()
@@ -300,7 +303,7 @@ def optimizar_empaque(packing_id: int) -> Dict:
             pt.peso_max
         FROM packing_item pi
         LEFT JOIN packaging_template pt ON pi.template_id = pt.id
-        WHERE pi.packing_list_id = ? AND pi.bulto_numero IS NULL
+        WHERE pi.packing_list_id = %s AND pi.bulto_numero IS NULL
         ORDER BY pi.peso_item DESC
     """, (packing_id,))
 
@@ -318,7 +321,7 @@ def optimizar_empaque(packing_id: int) -> Dict:
         SELECT pt.peso_max
         FROM packaging_template pt
         INNER JOIN packing_item pi ON pi.template_id = pt.id
-        WHERE pi.packing_list_id = ?
+        WHERE pi.packing_list_id = %s
         GROUP BY pt.peso_max
         ORDER BY COUNT(*) DESC
         LIMIT 1
@@ -334,14 +337,17 @@ def optimizar_empaque(packing_id: int) -> Dict:
     # Obtener max bulto_numero existente
     cursor.execute("""
         SELECT MAX(bulto_numero) FROM packing_item
-        WHERE packing_list_id = ?
+        WHERE packing_list_id = %s
     """, (packing_id,))
     max_bulto = cursor.fetchone()[0]
     if max_bulto:
         bulto_numero = max_bulto + 1
 
-    for item_id, peso_item, template_id, peso_max in items:
-        peso_item = peso_item or 0
+    for item_row in items:
+        item_id = item_row[0]
+        peso_item = item_row[1] or 0
+        # item_row[2] is template_id (not needed here)
+        peso_max = item_row[3]
         limite_peso = peso_max or peso_max_default
 
         # Buscar bulto con capacidad
@@ -364,8 +370,8 @@ def optimizar_empaque(packing_id: int) -> Dict:
         for item_id in item_ids:
             cursor.execute("""
                 UPDATE packing_item
-                SET bulto_numero = ?
-                WHERE id = ?
+                SET bulto_numero = %s
+                WHERE id = %s
             """, (bulto_numero, item_id))
             items_asignados += 1
 
@@ -378,14 +384,14 @@ def optimizar_empaque(packing_id: int) -> Dict:
             COALESCE(SUM(peso_item), 0) as peso_total,
             COUNT(DISTINCT bulto_numero) as bultos_total
         FROM packing_item
-        WHERE packing_list_id = ? AND bulto_numero IS NOT NULL
+        WHERE packing_list_id = %s AND bulto_numero IS NOT NULL
     """, (packing_id,))
 
     totales = cursor.fetchone()
     cursor.execute("""
         UPDATE packing_list
-        SET peso_total = ?, bultos_total = ?
-        WHERE id = ?
+        SET peso_total = %s, bultos_total = %s
+        WHERE id = %s
     """, (totales[0], totales[1], packing_id))
 
     conn.commit()
@@ -403,7 +409,7 @@ def empacar(packing_id: int) -> Dict:
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT estado FROM packing_list WHERE id = ?", (packing_id,))
+    cursor.execute("SELECT estado FROM packing_list WHERE id = %s", (packing_id,))
     row = cursor.fetchone()
     if not row:
         conn.close()
@@ -416,12 +422,12 @@ def empacar(packing_id: int) -> Dict:
     cursor.execute("""
         UPDATE packing_list
         SET estado = 'empacado'
-        WHERE id = ?
+        WHERE id = %s
     """, (packing_id,))
 
     conn.commit()
 
-    cursor.execute("SELECT * FROM packing_list WHERE id = ?", (packing_id,))
+    cursor.execute("SELECT * FROM packing_list WHERE id = %s", (packing_id,))
     packing = dict(zip([d[0] for d in cursor.description], cursor.fetchone()))
 
     conn.close()
@@ -433,7 +439,7 @@ def despachar(packing_id: int) -> Dict:
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT estado FROM packing_list WHERE id = ?", (packing_id,))
+    cursor.execute("SELECT estado FROM packing_list WHERE id = %s", (packing_id,))
     row = cursor.fetchone()
     if not row:
         conn.close()
@@ -446,12 +452,12 @@ def despachar(packing_id: int) -> Dict:
     cursor.execute("""
         UPDATE packing_list
         SET estado = 'despachado'
-        WHERE id = ?
+        WHERE id = %s
     """, (packing_id,))
 
     conn.commit()
 
-    cursor.execute("SELECT * FROM packing_list WHERE id = ?", (packing_id,))
+    cursor.execute("SELECT * FROM packing_list WHERE id = %s", (packing_id,))
     packing = dict(zip([d[0] for d in cursor.description], cursor.fetchone()))
 
     conn.close()
@@ -465,20 +471,21 @@ def generar_etiqueta(packing_id: int, bulto_numero: int, tipo: str = 'shipping',
 
     # Obtener datos del packing
     cursor.execute("""
-        SELECT numero, peso_total FROM packing_list WHERE id = ?
+        SELECT numero, peso_total FROM packing_list WHERE id = %s
     """, (packing_id,))
     row = cursor.fetchone()
     if not row:
         conn.close()
         raise ValueError("Packing list no encontrado")
 
-    numero_packing, peso_total = row
+    numero_packing = row[0]
+    # row[1] is peso_total (not needed for label generation)
 
     # Obtener items del bulto
     cursor.execute("""
         SELECT material_codigo, cantidad, peso_item
         FROM packing_item
-        WHERE packing_list_id = ? AND bulto_numero = ?
+        WHERE packing_list_id = %s AND bulto_numero = %s
     """, (packing_id, bulto_numero))
 
     items = cursor.fetchall()
@@ -489,7 +496,10 @@ def generar_etiqueta(packing_id: int, bulto_numero: int, tipo: str = 'shipping',
     # Generar contenido de etiqueta
     contenido_items = []
     peso_bulto = 0
-    for material_codigo, cantidad, peso_item in items:
+    for item_row in items:
+        material_codigo = item_row[0]
+        cantidad = item_row[1]
+        peso_item = item_row[2]
         contenido_items.append(f"{material_codigo}: {cantidad} unidades")
         peso_bulto += (peso_item or 0)
 
@@ -508,7 +518,8 @@ def generar_etiqueta(packing_id: int, bulto_numero: int, tipo: str = 'shipping',
     cursor.execute("""
         INSERT INTO shipping_label
         (packing_list_id, bulto_numero, tipo, contenido, formato, url_label)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        RETURNING id
     """, (
         packing_id,
         bulto_numero,
@@ -518,10 +529,10 @@ def generar_etiqueta(packing_id: int, bulto_numero: int, tipo: str = 'shipping',
         url_label
     ))
 
-    label_id = cursor.lastrowid
+    label_id = cursor.fetchone()[0]
     conn.commit()
 
-    cursor.execute("SELECT * FROM shipping_label WHERE id = ?", (label_id,))
+    cursor.execute("SELECT * FROM shipping_label WHERE id = %s", (label_id,))
     label = dict(zip([d[0] for d in cursor.description], cursor.fetchone()))
 
     conn.close()

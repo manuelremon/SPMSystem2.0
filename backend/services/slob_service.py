@@ -47,8 +47,8 @@ def generar_snapshot_aging():
             SELECT
                 s.material as material_codigo,
                 s.almacen,
-                s.cantidad,
-                s.precio_unitario * s.cantidad as valor,
+                s.stock as cantidad,
+                s.stock_valorizado as valor,
                 um.fecha_ultimo_movimiento,
                 CASE
                     WHEN um.fecha_ultimo_movimiento IS NULL THEN 365
@@ -57,7 +57,7 @@ def generar_snapshot_aging():
             FROM stock s
             LEFT JOIN ultimo_movimiento um
                 ON s.material = um.material AND s.almacen = um.almacen
-            WHERE s.cantidad > 0
+            WHERE s.stock > 0
             """
         else:
             query = """
@@ -72,8 +72,8 @@ def generar_snapshot_aging():
             SELECT
                 s.material as material_codigo,
                 s.almacen,
-                s.cantidad,
-                s.precio_unitario * s.cantidad as valor,
+                s.stock as cantidad,
+                s.stock_valorizado as valor,
                 um.fecha_ultimo_movimiento,
                 CASE
                     WHEN um.fecha_ultimo_movimiento IS NULL THEN 365
@@ -82,7 +82,7 @@ def generar_snapshot_aging():
             FROM stock s
             LEFT JOIN ultimo_movimiento um
                 ON s.material = um.material AND s.almacen = um.almacen
-            WHERE s.cantidad > 0
+            WHERE s.stock > 0
             """
 
         cursor.execute(query)
@@ -122,7 +122,7 @@ def generar_snapshot_aging():
                 material_codigo, almacen, cantidad, valor,
                 fecha_ultimo_movimiento, dias_sin_movimiento,
                 categoria_aging, es_slob
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """, (material_codigo, almacen, cantidad, valor,
                   fecha_ultimo_mov, dias, categoria, es_slob))
 
@@ -168,19 +168,19 @@ def obtener_inventario_aging(filtros=None):
     params = []
 
     if filtros.get('categoria'):
-        where_clauses.append("categoria_aging = ?")
+        where_clauses.append("categoria_aging = %s")
         params.append(filtros['categoria'])
 
     if filtros.get('almacen'):
-        where_clauses.append("almacen = ?")
+        where_clauses.append("almacen = %s")
         params.append(filtros['almacen'])
 
     if filtros.get('material'):
-        where_clauses.append("material_codigo LIKE ?")
+        where_clauses.append("material_codigo LIKE %s")
         params.append(f"%{filtros['material']}%")
 
     if filtros.get('es_slob') is not None:
-        where_clauses.append("es_slob = ?")
+        where_clauses.append("es_slob = %s")
         params.append(1 if filtros['es_slob'] else 0)
 
     where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
@@ -198,7 +198,7 @@ def obtener_inventario_aging(filtros=None):
     LEFT JOIN materiales_bbdd m ON ia.material_codigo = m.codigo_material
     WHERE {where_sql}
     ORDER BY ia.dias_sin_movimiento DESC, ia.valor DESC
-    LIMIT ? OFFSET ?
+    LIMIT %s OFFSET %s
     """
 
     cursor.execute(query, params + [per_page, offset])
@@ -350,7 +350,8 @@ def proponer_disposicion(data, user_id):
     INSERT INTO slob_disposicion (
         material_codigo, almacen, cantidad, tipo_disposicion,
         notas, propuesto_por
-    ) VALUES (?, ?, ?, ?, ?, ?)
+    ) VALUES (%s, %s, %s, %s, %s, %s)
+    RETURNING id
     """, (
         data['material_codigo'],
         data['almacen'],
@@ -360,12 +361,12 @@ def proponer_disposicion(data, user_id):
         user_id
     ))
 
-    disp_id = cursor.lastrowid
+    disp_id = cursor.fetchone()[0]
     conn.commit()
 
     # Obtener disposición creada
     cursor.execute("""
-    SELECT * FROM slob_disposicion WHERE id = ?
+    SELECT * FROM slob_disposicion WHERE id = %s
     """, (disp_id,))
 
     row = cursor.fetchone()
@@ -403,7 +404,7 @@ def aprobar_disposicion(disp_id, user_id):
 
     # Verificar que existe y está en estado proposed
     cursor.execute("""
-    SELECT estado FROM slob_disposicion WHERE id = ?
+    SELECT estado FROM slob_disposicion WHERE id = %s
     """, (disp_id,))
 
     row = cursor.fetchone()
@@ -418,8 +419,8 @@ def aprobar_disposicion(disp_id, user_id):
     # Actualizar estado
     cursor.execute("""
     UPDATE slob_disposicion
-    SET estado = 'approved', aprobado_por = ?
-    WHERE id = ?
+    SET estado = 'approved', aprobado_por = %s
+    WHERE id = %s
     """, (user_id, disp_id))
 
     conn.commit()
@@ -439,14 +440,12 @@ def completar_disposicion(disp_id, costo_recuperado):
     Returns:
         dict: {success: bool, message: str}
     """
-    is_pg = settings.DATABASE_URL and settings.DATABASE_URL.startswith("postgresql")
-
     conn = get_db_connection()
     cursor = conn.cursor()
 
     # Verificar que existe y está en estado approved
     cursor.execute("""
-    SELECT estado FROM slob_disposicion WHERE id = ?
+    SELECT estado FROM slob_disposicion WHERE id = %s
     """, (disp_id,))
 
     row = cursor.fetchone()
@@ -459,22 +458,13 @@ def completar_disposicion(disp_id, costo_recuperado):
         return {'success': False, 'message': f'Disposición en estado {row[0]}, debe estar aprobada'}
 
     # Actualizar estado
-    if is_pg:
-        cursor.execute("""
-        UPDATE slob_disposicion
-        SET estado = 'completed',
-            costo_recuperado = ?,
-            completado_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-        """, (costo_recuperado, disp_id))
-    else:
-        cursor.execute("""
-        UPDATE slob_disposicion
-        SET estado = 'completed',
-            costo_recuperado = ?,
-            completado_at = datetime('now')
-        WHERE id = ?
-        """, (costo_recuperado, disp_id))
+    cursor.execute("""
+    UPDATE slob_disposicion
+    SET estado = 'completed',
+        costo_recuperado = %s,
+        completado_at = CURRENT_TIMESTAMP
+    WHERE id = %s
+    """, (costo_recuperado, disp_id))
 
     conn.commit()
     conn.close()
@@ -511,15 +501,15 @@ def obtener_disposiciones(filtros=None):
     params = []
 
     if filtros.get('estado'):
-        where_clauses.append("sd.estado = ?")
+        where_clauses.append("sd.estado = %s")
         params.append(filtros['estado'])
 
     if filtros.get('tipo_disposicion'):
-        where_clauses.append("sd.tipo_disposicion = ?")
+        where_clauses.append("sd.tipo_disposicion = %s")
         params.append(filtros['tipo_disposicion'])
 
     if filtros.get('material'):
-        where_clauses.append("sd.material_codigo LIKE ?")
+        where_clauses.append("sd.material_codigo LIKE %s")
         params.append(f"%{filtros['material']}%")
 
     where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
@@ -541,7 +531,7 @@ def obtener_disposiciones(filtros=None):
     LEFT JOIN materiales_bbdd m ON sd.material_codigo = m.codigo_material
     WHERE {where_sql}
     ORDER BY sd.created_at DESC
-    LIMIT ? OFFSET ?
+    LIMIT %s OFFSET %s
     """
 
     cursor.execute(query, params + [per_page, offset])

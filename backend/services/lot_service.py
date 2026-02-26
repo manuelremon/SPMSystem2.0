@@ -27,6 +27,15 @@ def crear_lote(data: Dict[str, Any]) -> int:
     try:
         ph = '%s' if is_using_postgresql() else '?'
 
+        # Accept both 'cantidad_inicial' and 'cantidad'
+        cantidad_inicial = data.get('cantidad_inicial') or data.get('cantidad')
+        if cantidad_inicial is None:
+            raise ValueError("cantidad_inicial o cantidad es requerido")
+
+        # Provide defaults for optional required fields
+        unidad = data.get('unidad', 'UN')
+        almacen_id = data.get('almacen_id', 1)
+
         with get_db_transaction() as (conn, cursor):
             # Insert lote
             sql = f"""
@@ -45,13 +54,13 @@ def crear_lote(data: Dict[str, Any]) -> int:
                 data['material_codigo'],
                 data.get('proveedor_cuit'),
                 data.get('orden_compra_id'),
-                data['cantidad_inicial'],
-                data['cantidad_inicial'],  # cantidad_disponible = cantidad_inicial
-                data['unidad'],
+                cantidad_inicial,
+                cantidad_inicial,  # cantidad_disponible = cantidad_inicial
+                unidad,
                 data.get('fecha_fabricacion'),
                 data.get('fecha_vencimiento'),
                 data.get('fecha_recepcion', datetime.now().date()),
-                data['almacen_id'],
+                almacen_id,
                 data.get('ubicacion'),
                 'available'
             ))
@@ -64,11 +73,13 @@ def crear_lote(data: Dict[str, Any]) -> int:
                 lote_id = cursor.lastrowid
 
             # Create recepcion movement
+            # PG schema: lote_movimiento(id, lote_id, tipo, cantidad, almacen_origen,
+            #   almacen_destino, referencia, usuario_id, created_at)
             cursor.execute(f"""
                 INSERT INTO lote_movimiento (
-                    lote_id, tipo, cantidad, usuario_id, fecha
-                ) VALUES ({ph}, {ph}, {ph}, {ph}, {ph})
-            """, (lote_id, 'recepcion', data['cantidad_inicial'], data.get('usuario_id'), datetime.now()))
+                    lote_id, tipo, cantidad, usuario_id
+                ) VALUES ({ph}, {ph}, {ph}, {ph})
+            """, (lote_id, 'recepcion', cantidad_inicial, data.get('usuario_id')))
 
             conn.commit()
             logger.info(f"Lote creado: {lote_id} - {data['numero_lote']}")
@@ -227,12 +238,14 @@ def obtener_lote(lote_id: int) -> Optional[Dict[str, Any]]:
             }
 
             # Get recent movements
+            # PG schema: lote_movimiento(id, lote_id, tipo, cantidad, almacen_origen,
+            #   almacen_destino, referencia, usuario_id, created_at)
             cursor.execute(f"""
-                SELECT id, tipo, cantidad, usuario_id, solicitud_id, destino,
-                       observaciones, fecha
+                SELECT id, tipo, cantidad, usuario_id,
+                       almacen_destino, referencia, created_at
                 FROM lote_movimiento
                 WHERE lote_id = {ph}
-                ORDER BY fecha DESC
+                ORDER BY created_at DESC
                 LIMIT 20
             """, (lote_id,))
 
@@ -243,10 +256,9 @@ def obtener_lote(lote_id: int) -> Optional[Dict[str, Any]]:
                     'tipo': mov_row[1],
                     'cantidad': float(mov_row[2]) if mov_row[2] else 0,
                     'usuario_id': mov_row[3],
-                    'solicitud_id': mov_row[4],
-                    'destino': mov_row[5],
-                    'observaciones': mov_row[6],
-                    'fecha': mov_row[7].isoformat() if mov_row[7] else None
+                    'destino_ubicacion': mov_row[4],
+                    'observaciones': mov_row[5],
+                    'created_at': mov_row[6].isoformat() if mov_row[6] else None
                 })
 
             lote['movimientos'] = movimientos
@@ -305,13 +317,15 @@ def consumir_lote(lote_id: int, cantidad: float, usuario_id: int,
             """, (nueva_cantidad, nuevo_estado, lote_id))
 
             # Create movement
+            # PG schema: lote_movimiento(lote_id, tipo, cantidad, almacen_destino,
+            #   referencia, usuario_id)
             cursor.execute(f"""
                 INSERT INTO lote_movimiento (
-                    lote_id, tipo, cantidad, usuario_id, solicitud_id, destino,
-                    observaciones, fecha
-                ) VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
-            """, (lote_id, 'consumo', cantidad, usuario_id, solicitud_id, destino,
-                  observaciones, datetime.now()))
+                    lote_id, tipo, cantidad, usuario_id,
+                    almacen_destino, referencia
+                ) VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph})
+            """, (lote_id, 'consumo', cantidad, usuario_id, destino,
+                  observaciones))
 
             conn.commit()
             logger.info(f"Lote {lote_id} consumido: {cantidad} unidades")
@@ -348,9 +362,9 @@ def bloquear_lote(lote_id: int, razon: str, usuario_id: int) -> bool:
             # Create movement
             cursor.execute(f"""
                 INSERT INTO lote_movimiento (
-                    lote_id, tipo, cantidad, usuario_id, observaciones, fecha
-                ) VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph})
-            """, (lote_id, 'bloqueo', 0, usuario_id, razon, datetime.now()))
+                    lote_id, tipo, cantidad, usuario_id, referencia
+                ) VALUES ({ph}, {ph}, {ph}, {ph}, {ph})
+            """, (lote_id, 'bloqueo', 0, usuario_id, razon))
 
             conn.commit()
             logger.info(f"Lote {lote_id} bloqueado: {razon}")
@@ -386,9 +400,9 @@ def desbloquear_lote(lote_id: int, usuario_id: int) -> bool:
             # Create movement
             cursor.execute(f"""
                 INSERT INTO lote_movimiento (
-                    lote_id, tipo, cantidad, usuario_id, fecha
-                ) VALUES ({ph}, {ph}, {ph}, {ph}, {ph})
-            """, (lote_id, 'desbloqueo', 0, usuario_id, datetime.now()))
+                    lote_id, tipo, cantidad, usuario_id
+                ) VALUES ({ph}, {ph}, {ph}, {ph})
+            """, (lote_id, 'desbloqueo', 0, usuario_id))
 
             conn.commit()
             logger.info(f"Lote {lote_id} desbloqueado")
@@ -566,18 +580,31 @@ def crear_recall(data: Dict[str, Any]) -> int:
             count = cursor.fetchone()[0] + 1
             numero_recall = f"RCL-{year}-{count:04d}"
 
-            # Insert recall
+            # Insert recall — all fields have safe defaults for flexible callers
+            titulo = data.get('titulo', f'Recall {numero_recall}')
+            # PG recall.severidad values: 'low', 'medium', 'high', 'critical'
+            # (no Spanish translations in PG schema)
+            raw_severidad = data.get('severidad', 'medium')
+            severidad = raw_severidad
+            tipo = data.get('tipo', 'voluntary')
+            descripcion = data.get('descripcion', data.get('razon', data.get('motivo', '')))
+            responsable_id = data.get('responsable_id', 0)
+
+            # PG schema: recall(id, numero_recall, titulo, descripcion, tipo, severidad,
+            #   estado, material_codigo, proveedor_cuit, lotes_afectados,
+            #   cantidad_afectada, responsable_id, fecha_inicio, fecha_cierre,
+            #   accion_requerida, created_at, updated_at)
             cursor.execute(f"""
                 INSERT INTO recall (
-                    numero_recall, titulo, severidad, tipo, descripcion, material_codigo,
-                    proveedor_cuit, responsable_id, accion_requerida, cantidad_afectada,
+                    numero_recall, titulo, descripcion, tipo, severidad, material_codigo,
+                    proveedor_cuit, responsable_id, accion_requerida,
                     estado, fecha_inicio
-                ) VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
+                ) VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
             """, (
-                numero_recall, data['titulo'], data['severidad'], data['tipo'],
-                data.get('razon', data.get('descripcion')), data.get('material_codigo'), data.get('proveedor_cuit'),
-                data['responsable_id'], data.get('plan_accion', data.get('accion_requerida')), data.get('costo_estimado', data.get('cantidad_afectada', 0)),
-                'active', datetime.now()
+                numero_recall, titulo, descripcion, tipo,
+                severidad, data.get('material_codigo'), data.get('proveedor_cuit'),
+                responsable_id, data.get('accion_requerida', data.get('plan_accion', '')),
+                'initiated', datetime.now()
             ))
 
             if is_using_postgresql():
@@ -628,10 +655,10 @@ def crear_recall(data: Dict[str, Any]) -> int:
                 # Create movement
                 cursor.execute(f"""
                     INSERT INTO lote_movimiento (
-                        lote_id, tipo, cantidad, usuario_id, observaciones, fecha
-                    ) VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph})
-                """, (lote_id, 'bloqueo', 0, data['responsable_id'],
-                      f"Recall {numero_recall}: {data.get('razon', data.get('descripcion', ''))}", datetime.now()))
+                        lote_id, tipo, cantidad, usuario_id, referencia
+                    ) VALUES ({ph}, {ph}, {ph}, {ph}, {ph})
+                """, (lote_id, 'bloqueo', 0, responsable_id,
+                      f"Recall {numero_recall}: {descripcion}"))
 
             conn.commit()
             logger.info(f"Recall creado: {numero_recall} - {len(lotes_afectados)} lotes afectados")
@@ -681,17 +708,21 @@ def obtener_recalls(filtros: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
             total = cursor.fetchone()[0]
 
             # Get items
+            # PG schema: recall(id, numero_recall, titulo, descripcion, tipo, severidad,
+            #   estado, material_codigo, proveedor_cuit, lotes_afectados,
+            #   cantidad_afectada, responsable_id, fecha_inicio, fecha_cierre,
+            #   accion_requerida, created_at, updated_at)
             cursor.execute(f"""
                 SELECT r.id, r.numero_recall, r.titulo, r.severidad, r.tipo, r.descripcion,
                        r.material_codigo, r.proveedor_cuit, r.responsable_id, r.estado,
-                       r.fecha_inicio, r.fecha_cierre, r.cantidad_afectada,
+                       r.fecha_inicio, r.fecha_cierre,
                        COUNT(rl.id) as lotes_afectados_count
                 FROM recall r
                 LEFT JOIN recall_lote rl ON rl.recall_id = r.id
                 WHERE {where_clause}
                 GROUP BY r.id, r.numero_recall, r.titulo, r.severidad, r.tipo, r.descripcion,
                          r.material_codigo, r.proveedor_cuit, r.responsable_id, r.estado,
-                         r.fecha_inicio, r.fecha_cierre, r.cantidad_afectada
+                         r.fecha_inicio, r.fecha_cierre
                 ORDER BY r.fecha_inicio DESC
                 LIMIT {ph} OFFSET {ph}
             """, params + [per_page, offset])
@@ -711,8 +742,8 @@ def obtener_recalls(filtros: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
                     'estado': row[9],
                     'fecha_inicio': row[10].isoformat() if row[10] else None,
                     'fecha_cierre': row[11].isoformat() if row[11] else None,
-                    'costo_estimado': float(row[12]) if row[12] else 0,
-                    'lotes_afectados': row[13]
+                    'costo_estimado': 0,
+                    'lotes_afectados': row[12]
                 })
 
             return {
@@ -744,9 +775,13 @@ def obtener_detalle_recall(recall_id: int) -> Optional[Dict[str, Any]]:
             cursor = conn.cursor()
 
             # Get recall
+            # PG schema: recall(id, numero_recall, titulo, descripcion, tipo, severidad,
+            #   estado, material_codigo, proveedor_cuit, lotes_afectados,
+            #   cantidad_afectada, responsable_id, fecha_inicio, fecha_cierre,
+            #   accion_requerida, created_at, updated_at)
             cursor.execute(f"""
                 SELECT id, numero_recall, titulo, severidad, tipo, descripcion, material_codigo,
-                       proveedor_cuit, responsable_id, accion_requerida, cantidad_afectada,
+                       proveedor_cuit, responsable_id, accion_requerida,
                        estado, fecha_inicio, fecha_cierre, created_at
                 FROM recall
                 WHERE id = {ph}
@@ -767,11 +802,11 @@ def obtener_detalle_recall(recall_id: int) -> Optional[Dict[str, Any]]:
                 'proveedor_cuit': row[7],
                 'responsable_id': row[8],
                 'plan_accion': row[9],
-                'costo_estimado': float(row[10]) if row[10] else 0,
-                'estado': row[11],
-                'fecha_inicio': row[12].isoformat() if row[12] else None,
-                'fecha_cierre': row[13].isoformat() if row[13] else None,
-                'created_at': row[14].isoformat() if row[14] else None
+                'costo_estimado': 0,
+                'estado': row[10],
+                'fecha_inicio': row[11].isoformat() if row[11] else None,
+                'fecha_cierre': row[12].isoformat() if row[12] else None,
+                'created_at': row[13].isoformat() if row[13] else None
             }
 
             # Get affected lotes

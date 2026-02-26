@@ -41,14 +41,14 @@ def error_response(code: str, message: str, status: int = 400) -> tuple:
     return jsonify({"ok": False, "error": {"code": code, "message": message}}), status
 
 
-def success_response(data: Any = None, message: str = None) -> tuple:
+def success_response(data: Any = None, message: str = None, status: int = 200) -> tuple:
     """Patron de respuesta exitosa estandar."""
     response = {"ok": True}
     if data is not None:
         response["data"] = data
     if message:
         response["message"] = message
-    return jsonify(response), 200
+    return jsonify(response), status
 
 
 # ============================================================================
@@ -114,7 +114,7 @@ def create_shipment():
             return error_response("no_items", "El envio debe tener al menos un item")
 
         shipment = service.create_shipment(user_id, data)
-        return success_response(shipment, "Envio creado exitosamente"), 201
+        return success_response(shipment, "Envio creado exitosamente", status=201)
 
     except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
@@ -323,7 +323,7 @@ def register_tracking(shipment_id: int):
             return error_response("missing_data", "Tipo de evento requerido")
 
         event = service.register_tracking(shipment_id, user_id, data)
-        return success_response(event, "Evento registrado exitosamente"), 201
+        return success_response(event, "Evento registrado exitosamente", status=201)
 
     except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
@@ -403,7 +403,7 @@ def create_consolidation():
                 return error_response("missing_field", f"Campo requerido: {field}")
 
         consolidation = service.create_consolidation(user_id, data)
-        return success_response(consolidation, "Consolidacion creada exitosamente"), 201
+        return success_response(consolidation, "Consolidacion creada exitosamente", status=201)
 
     except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
@@ -558,7 +558,7 @@ def create_route():
                 return error_response("missing_field", f"Campo requerido: {field}")
 
         route = service.create_route(user_id, data)
-        return success_response(route, "Ruta creada exitosamente"), 201
+        return success_response(route, "Ruta creada exitosamente", status=201)
 
     except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
@@ -663,7 +663,7 @@ def register_cost(shipment_id: int):
                 return error_response("missing_field", f"Campo requerido: {field}")
 
         cost = service.register_cost(shipment_id, user_id, data)
-        return success_response(cost, "Costo registrado exitosamente"), 201
+        return success_response(cost, "Costo registrado exitosamente", status=201)
 
     except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
@@ -719,7 +719,7 @@ def create_tariff():
                 return error_response("missing_field", f"Campo requerido: {field}")
 
         tariff = service.create_tariff(user_id, data)
-        return success_response(tariff, "Tarifa creada exitosamente"), 201
+        return success_response(tariff, "Tarifa creada exitosamente", status=201)
 
     except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
@@ -805,7 +805,7 @@ def settle_shipment(shipment_id: int):
         if not settlement:
             return error_response("settle_failed", "No se pudo crear liquidacion", 400)
 
-        return success_response(settlement, "Liquidacion creada exitosamente"), 201
+        return success_response(settlement, "Liquidacion creada exitosamente", status=201)
 
     except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)
@@ -880,7 +880,7 @@ def register_fuel():
                 return error_response("missing_field", f"Campo requerido: {field}")
 
         fuel_record = service.register_fuel(user_id, data)
-        return success_response(fuel_record, "Combustible registrado exitosamente"), 201
+        return success_response(fuel_record, "Combustible registrado exitosamente", status=201)
 
     except (KeyError, ValueError, TypeError):
         return error_response("validation_error", "Datos de entrada inválidos", 400)

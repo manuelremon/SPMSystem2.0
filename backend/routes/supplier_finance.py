@@ -4,6 +4,7 @@ Sprint 89: Supplier Finance
 """
 from flask import Blueprint, g, jsonify, request
 
+from backend.core.helpers import _get_user_id
 from backend.core.roles import require_auth, require_role
 from backend.services import supplier_finance_service as sf_service
 
@@ -84,7 +85,7 @@ def get_offers():
 def accept_offer(oferta_id):
     """Aceptar oferta de descuento."""
     try:
-        success = sf_service.aceptar_oferta(oferta_id, g.user['id'])
+        success = sf_service.aceptar_oferta(oferta_id, _get_user_id())
         if success:
             return jsonify({'ok': True, 'message': 'Oferta aceptada exitosamente'}), 200
         else:
@@ -167,7 +168,7 @@ def simulate_cashflow():
             dias_anticipacion=data['dias_anticipacion'],
             descuento_pct=data['descuento_pct'],
             porcentaje_facturas_elegibles=data['porcentaje_facturas_elegibles'],
-            created_by=g.user['id']
+            created_by=_get_user_id()
         )
         return jsonify({'ok': True, 'simulaciones': simulaciones}), 201
     except KeyError as e:

@@ -38,19 +38,34 @@ def crear_inspeccion(data, user_id):
     numero_inspeccion = f"INS-{fecha_hoy}-{count + 1:03d}"
 
     # Insertar inspección
-    cursor.execute(f"""
-        INSERT INTO inspeccion_entrada
-        (numero_inspeccion, recepcion_id, tipo, inspector_id, notas, resultado)
-        VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, 'pass')
-    """, (
-        numero_inspeccion,
-        data.get('recepcion_id'),
-        data.get('tipo', 'sample'),
-        user_id,
-        data.get('notas')
-    ))
+    if is_using_postgresql():
+        cursor.execute(f"""
+            INSERT INTO inspeccion_entrada
+            (numero_inspeccion, recepcion_id, tipo, inspector_id, notas, resultado)
+            VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, 'pass')
+            RETURNING id
+        """, (
+            numero_inspeccion,
+            data.get('recepcion_id'),
+            data.get('tipo', 'sample'),
+            user_id,
+            data.get('notas')
+        ))
+        inspeccion_id = cursor.fetchone()[0]
+    else:
+        cursor.execute(f"""
+            INSERT INTO inspeccion_entrada
+            (numero_inspeccion, recepcion_id, tipo, inspector_id, notas, resultado)
+            VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, 'pass')
+        """, (
+            numero_inspeccion,
+            data.get('recepcion_id'),
+            data.get('tipo', 'sample'),
+            user_id,
+            data.get('notas')
+        ))
+        inspeccion_id = cursor.lastrowid
 
-    inspeccion_id = cursor.lastrowid
     conn.commit()
 
     # Recuperar inspección creada
@@ -63,6 +78,9 @@ def crear_inspeccion(data, user_id):
 
     row = cursor.fetchone()
     conn.close()
+
+    if not row:
+        return {'id': inspeccion_id, 'numero_inspeccion': numero_inspeccion}
 
     return {
         'id': row[0],
@@ -90,78 +108,75 @@ def registrar_resultado_inspeccion(inspeccion_id, items, user_id):
     Returns:
         dict con resultado final de la inspección
     """
-    conn, cursor = get_db_transaction()
+    with get_db_transaction() as (conn, cursor):
+        try:
+            # Insertar o actualizar items inspeccionados
+            tiene_fallas = False
+            todos_passed = True
+            ncrs_creados = []
 
-    try:
-        # Insertar o actualizar items inspeccionados
-        tiene_fallas = False
-        todos_passed = True
-        ncrs_creados = []
+            ph = _ph()
+            for item in items:
+                cursor.execute(f"""
+                    INSERT INTO inspeccion_item
+                    (inspeccion_id, recepcion_item_id, cantidad_inspeccionada,
+                     cantidad_aprobada, cantidad_rechazada, resultado, defectos)
+                    VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
+                """, (
+                    inspeccion_id,
+                    item.get('recepcion_item_id'),
+                    item.get('cantidad_inspeccionada'),
+                    item.get('cantidad_aprobada', 0),
+                    item.get('cantidad_rechazada', 0),
+                    item.get('resultado', 'pass'),
+                    item.get('defectos')
+                ))
 
-        ph = _ph()
-        for item in items:
+                resultado = item.get('resultado', 'pass')
+                if resultado == 'fail':
+                    tiene_fallas = True
+                    todos_passed = False
+
+                    # Auto-crear NCR para items fallidos
+                    if item.get('cantidad_rechazada', 0) > 0:
+                        ncr = _generar_ncr_desde_item(
+                            inspeccion_id,
+                            item,
+                            user_id,
+                            cursor
+                        )
+                        ncrs_creados.append(ncr)
+
+                elif resultado == 'partial':
+                    todos_passed = False
+
+            # Determinar resultado final de la inspección
+            if todos_passed:
+                resultado_final = 'pass'
+            elif tiene_fallas:
+                resultado_final = 'fail'
+            else:
+                resultado_final = 'partial'
+
+            # Actualizar resultado de la inspección
             cursor.execute(f"""
-                INSERT INTO inspeccion_item
-                (inspeccion_id, recepcion_item_id, cantidad_inspeccionada,
-                 cantidad_aprobada, cantidad_rechazada, resultado, defectos)
-                VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
-            """, (
-                inspeccion_id,
-                item.get('recepcion_item_id'),
-                item.get('cantidad_inspeccionada'),
-                item.get('cantidad_aprobada', 0),
-                item.get('cantidad_rechazada', 0),
-                item.get('resultado', 'pass'),
-                item.get('defectos')
-            ))
+                UPDATE inspeccion_entrada
+                SET resultado = {ph}
+                WHERE id = {ph}
+            """, (resultado_final, inspeccion_id))
 
-            resultado = item.get('resultado', 'pass')
-            if resultado == 'fail':
-                tiene_fallas = True
-                todos_passed = False
+            conn.commit()
 
-                # Auto-crear NCR para items fallidos
-                if item.get('cantidad_rechazada', 0) > 0:
-                    ncr = _generar_ncr_desde_item(
-                        inspeccion_id,
-                        item,
-                        user_id,
-                        cursor
-                    )
-                    ncrs_creados.append(ncr)
+            return {
+                'inspeccion_id': inspeccion_id,
+                'resultado': resultado_final,
+                'items_procesados': len(items),
+                'ncrs_creados': ncrs_creados
+            }
 
-            elif resultado == 'partial':
-                todos_passed = False
-
-        # Determinar resultado final de la inspección
-        if todos_passed:
-            resultado_final = 'pass'
-        elif tiene_fallas:
-            resultado_final = 'fail'
-        else:
-            resultado_final = 'partial'
-
-        # Actualizar resultado de la inspección
-        cursor.execute(f"""
-            UPDATE inspeccion_entrada
-            SET resultado = {ph}
-            WHERE id = {ph}
-        """, (resultado_final, inspeccion_id))
-
-        conn.commit()
-
-        return {
-            'inspeccion_id': inspeccion_id,
-            'resultado': resultado_final,
-            'items_procesados': len(items),
-            'ncrs_creados': ncrs_creados
-        }
-
-    except Exception as e:
-        conn.rollback()
-        raise e
-    finally:
-        conn.close()
+        except Exception:
+            conn.rollback()
+            raise
 
 
 def _generar_ncr_desde_item(inspeccion_id, item, user_id, cursor):
@@ -198,23 +213,41 @@ def _generar_ncr_desde_item(inspeccion_id, item, user_id, cursor):
         severidad = 'minor'
 
     # Insertar NCR
-    cursor.execute(f"""
-        INSERT INTO ncr
-        (numero_ncr, inspeccion_id, proveedor_cuit, material_codigo,
-         cantidad_afectada, descripcion, severidad, reportado_por, estado)
-        VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, 'open')
-    """, (
-        numero_ncr,
-        inspeccion_id,
-        proveedor_cuit,
-        material_codigo,
-        item.get('cantidad_rechazada'),
-        f"Defectos encontrados: {item.get('defectos', 'No especificado')}",
-        severidad,
-        user_id
-    ))
-
-    ncr_id = cursor.lastrowid
+    if is_using_postgresql():
+        cursor.execute(f"""
+            INSERT INTO ncr
+            (numero_ncr, inspeccion_id, proveedor_cuit, material_codigo,
+             cantidad_afectada, descripcion, severidad, reportado_por, estado)
+            VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, 'open')
+            RETURNING id
+        """, (
+            numero_ncr,
+            inspeccion_id,
+            proveedor_cuit,
+            material_codigo,
+            item.get('cantidad_rechazada'),
+            f"Defectos encontrados: {item.get('defectos', 'No especificado')}",
+            severidad,
+            user_id
+        ))
+        ncr_id = cursor.fetchone()[0]
+    else:
+        cursor.execute(f"""
+            INSERT INTO ncr
+            (numero_ncr, inspeccion_id, proveedor_cuit, material_codigo,
+             cantidad_afectada, descripcion, severidad, reportado_por, estado)
+            VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, 'open')
+        """, (
+            numero_ncr,
+            inspeccion_id,
+            proveedor_cuit,
+            material_codigo,
+            item.get('cantidad_rechazada'),
+            f"Defectos encontrados: {item.get('defectos', 'No especificado')}",
+            severidad,
+            user_id
+        ))
+        ncr_id = cursor.lastrowid
 
     # Insertar historial
     cursor.execute(f"""
@@ -246,81 +279,104 @@ def generar_ncr(inspeccion_id, proveedor_cuit, material_codigo, cantidad,
     Returns:
         dict con NCR creado
     """
-    conn, cursor = get_db_transaction()
+    with get_db_transaction() as (conn, cursor):
+        try:
+            ph = _ph()
+            # Generar número NCR
+            fecha_hoy = datetime.now().strftime('%Y%m%d')
+            cursor.execute(f"""
+                SELECT COUNT(*) FROM ncr
+                WHERE numero_ncr LIKE {ph}
+            """, (f"NCR-{fecha_hoy}-%",))
 
-    try:
-        ph = _ph()
-        # Generar número NCR
-        fecha_hoy = datetime.now().strftime('%Y%m%d')
-        cursor.execute(f"""
-            SELECT COUNT(*) FROM ncr
-            WHERE numero_ncr LIKE {ph}
-        """, (f"NCR-{fecha_hoy}-%",))
+            count = cursor.fetchone()[0]
+            numero_ncr = f"NCR-{fecha_hoy}-{count + 1:03d}"
 
-        count = cursor.fetchone()[0]
-        numero_ncr = f"NCR-{fecha_hoy}-{count + 1:03d}"
+            # Insertar NCR
+            if is_using_postgresql():
+                cursor.execute(f"""
+                    INSERT INTO ncr
+                    (numero_ncr, inspeccion_id, proveedor_cuit, material_codigo,
+                     cantidad_afectada, descripcion, severidad, reportado_por, estado)
+                    VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, 'open')
+                    RETURNING id
+                """, (
+                    numero_ncr,
+                    inspeccion_id,
+                    proveedor_cuit,
+                    material_codigo,
+                    cantidad,
+                    descripcion,
+                    severidad,
+                    user_id
+                ))
+                ncr_id = cursor.fetchone()[0]
+            else:
+                cursor.execute(f"""
+                    INSERT INTO ncr
+                    (numero_ncr, inspeccion_id, proveedor_cuit, material_codigo,
+                     cantidad_afectada, descripcion, severidad, reportado_por, estado)
+                    VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, 'open')
+                """, (
+                    numero_ncr,
+                    inspeccion_id,
+                    proveedor_cuit,
+                    material_codigo,
+                    cantidad,
+                    descripcion,
+                    severidad,
+                    user_id
+                ))
+                ncr_id = cursor.lastrowid
 
-        # Insertar NCR
-        cursor.execute(f"""
-            INSERT INTO ncr
-            (numero_ncr, inspeccion_id, proveedor_cuit, material_codigo,
-             cantidad_afectada, descripcion, severidad, reportado_por, estado)
-            VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, 'open')
-        """, (
-            numero_ncr,
-            inspeccion_id,
-            proveedor_cuit,
-            material_codigo,
-            cantidad,
-            descripcion,
-            severidad,
-            user_id
-        ))
+            # Insertar historial
+            cursor.execute(f"""
+                INSERT INTO ncr_historial (ncr_id, estado_anterior, estado_nuevo, actor_id, notas)
+                VALUES ({ph}, NULL, 'open', {ph}, 'NCR creado manualmente')
+            """, (ncr_id, user_id))
 
-        ncr_id = cursor.lastrowid
+            conn.commit()
 
-        # Insertar historial
-        cursor.execute(f"""
-            INSERT INTO ncr_historial (ncr_id, estado_anterior, estado_nuevo, actor_id, notas)
-            VALUES ({ph}, NULL, 'open', {ph}, 'NCR creado manualmente')
-        """, (ncr_id, user_id))
+            # Recuperar NCR creado
+            cursor.execute(f"""
+                SELECT id, numero_ncr, inspeccion_id, proveedor_cuit, material_codigo,
+                       cantidad_afectada, descripcion, severidad, estado, reportado_por,
+                       asignado_a, fecha_resolucion, accion_correctiva, created_at, updated_at
+                FROM ncr
+                WHERE id = {ph}
+            """, (ncr_id,))
 
-        conn.commit()
+            row = cursor.fetchone()
 
-        # Recuperar NCR creado
-        cursor.execute(f"""
-            SELECT id, numero_ncr, inspeccion_id, proveedor_cuit, material_codigo,
-                   cantidad_afectada, descripcion, severidad, estado, reportado_por,
-                   asignado_a, fecha_resolucion, accion_correctiva, created_at, updated_at
-            FROM ncr
-            WHERE id = {ph}
-        """, (ncr_id,))
+            if not row:
+                return {
+                    'id': ncr_id,
+                    'numero_ncr': numero_ncr,
+                    'severidad': severidad,
+                    'estado': 'open'
+                }
 
-        row = cursor.fetchone()
+            return {
+                'id': row[0],
+                'numero_ncr': row[1],
+                'inspeccion_id': row[2],
+                'proveedor_cuit': row[3],
+                'material_codigo': row[4],
+                'cantidad_afectada': row[5],
+                'descripcion': row[6],
+                'severidad': row[7],
+                'estado': row[8],
+                'reportado_por': row[9],
+                'asignado_a': row[10],
+                'fecha_resolucion': row[11],
+                'accion_correctiva': row[12],
+                'created_at': row[13],
+                'updated_at': row[14]
+            }
 
-        return {
-            'id': row[0],
-            'numero_ncr': row[1],
-            'inspeccion_id': row[2],
-            'proveedor_cuit': row[3],
-            'material_codigo': row[4],
-            'cantidad_afectada': row[5],
-            'descripcion': row[6],
-            'severidad': row[7],
-            'estado': row[8],
-            'reportado_por': row[9],
-            'asignado_a': row[10],
-            'fecha_resolucion': row[11],
-            'accion_correctiva': row[12],
-            'created_at': row[13],
-            'updated_at': row[14]
-        }
-
-    except Exception as e:
-        conn.rollback()
-        raise e
-    finally:
-        conn.close()
+        except Exception:
+            conn.rollback()
+            raise
 
 
 def obtener_inspecciones(filtros=None):
@@ -647,61 +703,56 @@ def cambiar_estado_ncr(ncr_id, nuevo_estado, user_id, notas=None):
         'closed': []
     }
 
-    conn, cursor = get_db_transaction()
+    with get_db_transaction() as (conn, cursor):
+        try:
+            ph = _ph()
+            # Obtener estado actual
+            cursor.execute(f"SELECT estado FROM ncr WHERE id = {ph}", (ncr_id,))
+            row = cursor.fetchone()
 
-    try:
-        ph = _ph()
-        # Obtener estado actual
-        cursor.execute(f"SELECT estado FROM ncr WHERE id = {ph}", (ncr_id,))
-        row = cursor.fetchone()
+            if not row:
+                raise ValueError(f"NCR {ncr_id} no encontrado")
 
-        if not row:
-            conn.close()
-            raise ValueError(f"NCR {ncr_id} no encontrado")
+            estado_actual = row[0]
 
-        estado_actual = row[0]
+            # Validar transición
+            if nuevo_estado not in TRANSICIONES_VALIDAS.get(estado_actual, []):
+                raise ValueError(
+                    f"Transición inválida: {estado_actual} -> {nuevo_estado}"
+                )
 
-        # Validar transición
-        if nuevo_estado not in TRANSICIONES_VALIDAS.get(estado_actual, []):
-            conn.close()
-            raise ValueError(
-                f"Transición inválida: {estado_actual} -> {nuevo_estado}"
-            )
+            # Actualizar estado
+            update_fields = [f"estado = {ph}", "updated_at = CURRENT_TIMESTAMP"]
+            params = [nuevo_estado]
 
-        # Actualizar estado
-        update_fields = [f"estado = {ph}", "updated_at = CURRENT_TIMESTAMP"]
-        params = [nuevo_estado]
+            if nuevo_estado == 'resolved':
+                update_fields.append("fecha_resolucion = CURRENT_TIMESTAMP")
 
-        if nuevo_estado == 'resolved':
-            update_fields.append("fecha_resolucion = CURRENT_TIMESTAMP")
+            cursor.execute(f"""
+                UPDATE ncr
+                SET {', '.join(update_fields)}
+                WHERE id = {ph}
+            """, params + [ncr_id])
 
-        cursor.execute(f"""
-            UPDATE ncr
-            SET {', '.join(update_fields)}
-            WHERE id = {ph}
-        """, params + [ncr_id])
+            # Insertar historial
+            cursor.execute(f"""
+                INSERT INTO ncr_historial
+                (ncr_id, estado_anterior, estado_nuevo, actor_id, notas)
+                VALUES ({ph}, {ph}, {ph}, {ph}, {ph})
+            """, (ncr_id, estado_actual, nuevo_estado, user_id, notas))
 
-        # Insertar historial
-        cursor.execute(f"""
-            INSERT INTO ncr_historial
-            (ncr_id, estado_anterior, estado_nuevo, actor_id, notas)
-            VALUES ({ph}, {ph}, {ph}, {ph}, {ph})
-        """, (ncr_id, estado_actual, nuevo_estado, user_id, notas))
+            conn.commit()
 
-        conn.commit()
+            return {
+                'ncr_id': ncr_id,
+                'estado_anterior': estado_actual,
+                'estado_nuevo': nuevo_estado,
+                'success': True
+            }
 
-        return {
-            'ncr_id': ncr_id,
-            'estado_anterior': estado_actual,
-            'estado_nuevo': nuevo_estado,
-            'success': True
-        }
-
-    except Exception as e:
-        conn.rollback()
-        raise e
-    finally:
-        conn.close()
+        except Exception:
+            conn.rollback()
+            raise
 
 
 def obtener_kpis_calidad():

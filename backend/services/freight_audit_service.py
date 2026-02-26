@@ -5,12 +5,13 @@ Este módulo gestiona facturas de flete, auditoría automática vs tarifas,
 aprobaciones, disputas y análisis de rendimiento de transportistas.
 """
 
+from datetime import datetime
 from typing import Optional
 
 from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
 
 
-def registrar_factura_flete(data: dict) -> int:
+def registrar_factura_flete(data: dict) -> dict:
     """
     Registra una factura de flete.
 
@@ -19,35 +20,40 @@ def registrar_factura_flete(data: dict) -> int:
                        monto_facturado, fecha_factura, moneda?, items?}
 
     Returns:
-        ID de la factura creada
+        Dict con {id, numero_factura} de la factura creada
     """
     conn, cur = get_db_transaction()
 
     try:
+        # Accept both 'monto' and 'monto_facturado' from the route
+        monto = data.get('monto_facturado') or data.get('monto')
+        if monto is None:
+            raise ValueError("monto_facturado o monto es requerido")
+
         if is_using_postgresql():
             cur.execute("""
                 INSERT INTO factura_flete
                     (numero_factura, transportista_cuit, envio_id,
-                     monto_facturado, fecha_factura, moneda, estado)
-                VALUES (%s, %s, %s, %s, %s, %s, 'pending')
+                     monto_facturado, fecha_factura, estado)
+                VALUES (%s, %s, %s, %s, %s, 'pending')
                 RETURNING id
             """, (data['numero_factura'], data['transportista_cuit'],
-                  data.get('envio_id'), data['monto_facturado'],
-                  data['fecha_factura'], data.get('moneda', 'USD')))
+                  data.get('envio_id'), monto,
+                  data.get('fecha_factura', datetime.now().strftime('%Y-%m-%d'))))
             factura_id = cur.fetchone()[0]
         else:
             cur.execute("""
                 INSERT INTO factura_flete
                     (numero_factura, transportista_cuit, envio_id,
-                     monto_facturado, fecha_factura, moneda, estado)
-                VALUES (?, ?, ?, ?, ?, ?, 'pending')
+                     monto_facturado, fecha_factura, estado)
+                VALUES (?, ?, ?, ?, ?, 'pending')
             """, (data['numero_factura'], data['transportista_cuit'],
-                  data.get('envio_id'), data['monto_facturado'],
-                  data['fecha_factura'], data.get('moneda', 'USD')))
+                  data.get('envio_id'), monto,
+                  data.get('fecha_factura', datetime.now().strftime('%Y-%m-%d'))))
             factura_id = cur.lastrowid
 
         conn.commit()
-        return factura_id
+        return {'id': factura_id, 'numero_factura': data['numero_factura']}
     except Exception as e:
         conn.rollback()
         raise e
@@ -72,15 +78,25 @@ def auditar_factura(factura_id: int) -> dict:
 
     try:
         # Obtener factura y envío
+        # tms_shipments has origen_centro/destino_centro (not ruta/distancia_km)
+        # distancia_km lives on tms_routes, joined via tms_shipments.route_id
         cur.execute("""
-            SELECT ff.*, e.ruta, e.distancia_km, e.peso_kg
+            SELECT ff.*,
+                   COALESCE(e.origen_centro || ' - ' || e.destino_centro, NULL) as ruta,
+                   r.distancia_km,
+                   e.peso_kg
             FROM factura_flete ff
-            LEFT JOIN envio e ON ff.envio_id = e.id
+            LEFT JOIN tms_shipments e ON ff.envio_id = e.id
+            LEFT JOIN tms_routes r ON e.route_id = r.id
             WHERE ff.id = ?
         """ if not is_using_postgresql() else """
-            SELECT ff.*, e.ruta, e.distancia_km, e.peso_kg
+            SELECT ff.*,
+                   COALESCE(e.origen_centro || ' - ' || e.destino_centro, NULL) as ruta,
+                   r.distancia_km,
+                   e.peso_kg
             FROM factura_flete ff
-            LEFT JOIN envio e ON ff.envio_id = e.id
+            LEFT JOIN tms_shipments e ON ff.envio_id = e.id
+            LEFT JOIN tms_routes r ON e.route_id = r.id
             WHERE ff.id = %s
         """, (factura_id,))
 
@@ -95,12 +111,21 @@ def auditar_factura(factura_id: int) -> dict:
         peso_kg = float(factura_dict.get('peso_kg') or 0)
         monto_facturado = float(factura_dict['monto_facturado'])
 
+        # Parse ruta into origen/destino for freight_tarifa lookup
+        ruta_origen = None
+        ruta_destino = None
+        if ruta and ' - ' in ruta:
+            parts = ruta.split(' - ', 1)
+            ruta_origen = parts[0].strip()
+            ruta_destino = parts[1].strip()
+
         # Buscar tarifa correspondiente
-        if ruta:
+        if ruta_origen and ruta_destino:
             cur.execute("""
                 SELECT * FROM freight_tarifa
                 WHERE transportista_cuit = ?
-                  AND ruta = ?
+                  AND ruta_origen = ?
+                  AND ruta_destino = ?
                   AND vigencia_desde <= ?
                   AND (vigencia_hasta IS NULL OR vigencia_hasta >= ?)
                 ORDER BY vigencia_desde DESC
@@ -108,19 +133,22 @@ def auditar_factura(factura_id: int) -> dict:
             """ if not is_using_postgresql() else """
                 SELECT * FROM freight_tarifa
                 WHERE transportista_cuit = %s
-                  AND ruta = %s
+                  AND ruta_origen = %s
+                  AND ruta_destino = %s
                   AND vigencia_desde <= %s
                   AND (vigencia_hasta IS NULL OR vigencia_hasta >= %s)
                 ORDER BY vigencia_desde DESC
                 LIMIT 1
-            """, (transportista_cuit, ruta, factura_dict['fecha_factura'],
+            """, (transportista_cuit, ruta_origen, ruta_destino,
+                  factura_dict['fecha_factura'],
                   factura_dict['fecha_factura']))
         else:
             # Buscar tarifa general del transportista
             cur.execute("""
                 SELECT * FROM freight_tarifa
                 WHERE transportista_cuit = ?
-                  AND ruta IS NULL
+                  AND ruta_origen IS NULL
+                  AND ruta_destino IS NULL
                   AND vigencia_desde <= ?
                   AND (vigencia_hasta IS NULL OR vigencia_hasta >= ?)
                 ORDER BY vigencia_desde DESC
@@ -128,7 +156,8 @@ def auditar_factura(factura_id: int) -> dict:
             """ if not is_using_postgresql() else """
                 SELECT * FROM freight_tarifa
                 WHERE transportista_cuit = %s
-                  AND ruta IS NULL
+                  AND ruta_origen IS NULL
+                  AND ruta_destino IS NULL
                   AND vigencia_desde <= %s
                   AND (vigencia_hasta IS NULL OR vigencia_hasta >= %s)
                 ORDER BY vigencia_desde DESC
@@ -151,8 +180,8 @@ def auditar_factura(factura_id: int) -> dict:
 
                 cur.execute("""
                     INSERT INTO freight_audit_detalle
-                        (factura_id, concepto, monto_esperado, monto_facturado, observacion)
-                    VALUES (%s, 'Sin tarifa', NULL, %s, 'No se encontró tarifa aplicable')
+                        (factura_flete_id, concepto, monto_esperado, monto_facturado)
+                    VALUES (%s, 'Sin tarifa', NULL, %s)
                 """, (factura_id, monto_facturado))
             else:
                 cur.execute("""
@@ -165,8 +194,8 @@ def auditar_factura(factura_id: int) -> dict:
 
                 cur.execute("""
                     INSERT INTO freight_audit_detalle
-                        (factura_id, concepto, monto_esperado, monto_facturado, observacion)
-                    VALUES (?, 'Sin tarifa', NULL, ?, 'No se encontró tarifa aplicable')
+                        (factura_flete_id, concepto, monto_esperado, monto_facturado)
+                    VALUES (?, 'Sin tarifa', NULL, ?)
                 """, (factura_id, monto_facturado))
 
             conn.commit()
@@ -224,15 +253,15 @@ def auditar_factura(factura_id: int) -> dict:
             if is_using_postgresql():
                 cur.execute("""
                     INSERT INTO freight_audit_detalle
-                        (factura_id, concepto, monto_esperado, monto_facturado, observacion)
-                    VALUES (%s, %s, %s, %s, NULL)
+                        (factura_flete_id, concepto, monto_esperado, monto_facturado)
+                    VALUES (%s, %s, %s, %s)
                 """, (factura_id, detalle['concepto'], detalle['monto_esperado'],
                       detalle['monto_facturado']))
             else:
                 cur.execute("""
                     INSERT INTO freight_audit_detalle
-                        (factura_id, concepto, monto_esperado, monto_facturado, observacion)
-                    VALUES (?, ?, ?, ?, NULL)
+                        (factura_flete_id, concepto, monto_esperado, monto_facturado)
+                    VALUES (?, ?, ?, ?)
                 """, (factura_id, detalle['concepto'], detalle['monto_esperado'],
                       detalle['monto_facturado']))
 
@@ -242,35 +271,35 @@ def auditar_factura(factura_id: int) -> dict:
             if is_using_postgresql():
                 cur.execute("""
                     INSERT INTO freight_audit_detalle
-                        (factura_id, concepto, monto_esperado, monto_facturado, observacion)
-                    VALUES (%s, 'Diferencia total', %s, %s, %s)
-                """, (factura_id, monto_esperado, monto_facturado, observacion))
+                        (factura_flete_id, concepto, monto_esperado, monto_facturado)
+                    VALUES (%s, %s, %s, %s)
+                """, (factura_id, f'Diferencia total: {observacion}',
+                      monto_esperado, monto_facturado))
             else:
                 cur.execute("""
                     INSERT INTO freight_audit_detalle
-                        (factura_id, concepto, monto_esperado, monto_facturado, observacion)
-                    VALUES (?, 'Diferencia total', ?, ?, ?)
-                """, (factura_id, monto_esperado, monto_facturado, observacion))
+                        (factura_flete_id, concepto, monto_esperado, monto_facturado)
+                    VALUES (?, ?, ?, ?)
+                """, (factura_id, f'Diferencia total: {observacion}',
+                      monto_esperado, monto_facturado))
 
-        # Actualizar factura
+        # Actualizar factura (factura_flete has diferencia but not monto_esperado)
         if is_using_postgresql():
             cur.execute("""
                 UPDATE factura_flete
                 SET estado = 'audited',
-                    monto_esperado = %s,
                     diferencia = %s,
                     updated_at = NOW()
                 WHERE id = %s
-            """, (monto_esperado, diferencia, factura_id))
+            """, (diferencia, factura_id))
         else:
             cur.execute("""
                 UPDATE factura_flete
                 SET estado = 'audited',
-                    monto_esperado = ?,
                     diferencia = ?,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
-            """, (monto_esperado, diferencia, factura_id))
+            """, (diferencia, factura_id))
 
         conn.commit()
 
@@ -324,23 +353,19 @@ def aprobar_factura(factura_id: int, user_id: int, monto_aprobado: Optional[floa
                 UPDATE factura_flete
                 SET estado = 'approved',
                     monto_aprobado = %s,
-                    aprobado_por = %s,
-                    fecha_aprobacion = NOW(),
                     updated_at = NOW()
                 WHERE id = %s
                 RETURNING *
-            """, (monto_aprobado, user_id, factura_id))
+            """, (monto_aprobado, factura_id))
             row = cur.fetchone()
         else:
             cur.execute("""
                 UPDATE factura_flete
                 SET estado = 'approved',
                     monto_aprobado = ?,
-                    aprobado_por = ?,
-                    fecha_aprobacion = CURRENT_TIMESTAMP,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
-            """, (monto_aprobado, user_id, factura_id))
+            """, (monto_aprobado, factura_id))
 
             cur.execute("SELECT * FROM factura_flete WHERE id = ?", (factura_id,))
             row = cur.fetchone()
@@ -504,11 +529,11 @@ def obtener_detalle_factura_flete(factura_id: int) -> dict:
         # Obtener detalles de auditoría
         cur.execute("""
             SELECT * FROM freight_audit_detalle
-            WHERE factura_id = ?
+            WHERE factura_flete_id = ?
             ORDER BY id
         """ if not is_using_postgresql() else """
             SELECT * FROM freight_audit_detalle
-            WHERE factura_id = %s
+            WHERE factura_flete_id = %s
             ORDER BY id
         """, (factura_id,))
 
@@ -579,7 +604,7 @@ def obtener_tarifas(filtros: dict) -> dict:
         conn.close()
 
 
-def crear_tarifa(data: dict) -> int:
+def crear_tarifa(data: dict) -> dict:
     """
     Crea una tarifa de flete.
 
@@ -589,37 +614,52 @@ def crear_tarifa(data: dict) -> int:
                        vigencia_hasta?}
 
     Returns:
-        ID de la tarifa creada
+        Dict con {id} de la tarifa creada
     """
     conn, cur = get_db_transaction()
 
     try:
+        # Accept both 'vigencia_desde'/'vigencia_hasta' and 'fecha_desde'/'fecha_hasta'
+        vigencia_desde = data.get('vigencia_desde') or data.get('fecha_desde') or datetime.now().strftime('%Y-%m-%d')
+        vigencia_hasta = data.get('vigencia_hasta') or data.get('fecha_hasta')
+
+        # Accept 'ruta_origen'/'ruta_destino' or parse from 'ruta'
+        ruta_origen = data.get('ruta_origen')
+        ruta_destino = data.get('ruta_destino')
+        if not ruta_origen and data.get('ruta'):
+            # Parse combined "origen - destino" format
+            ruta = data['ruta']
+            if ' - ' in ruta:
+                parts = ruta.split(' - ', 1)
+                ruta_origen = parts[0].strip()
+                ruta_destino = parts[1].strip()
+
         if is_using_postgresql():
             cur.execute("""
                 INSERT INTO freight_tarifa
-                    (transportista_cuit, ruta, tarifa_base, tarifa_por_km,
-                     tarifa_por_kg, vigencia_desde, vigencia_hasta)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    (transportista_cuit, ruta_origen, ruta_destino, tarifa_base,
+                     tarifa_por_km, tarifa_por_kg, vigencia_desde, vigencia_hasta)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
-            """, (data['transportista_cuit'], data.get('ruta'),
+            """, (data['transportista_cuit'], ruta_origen, ruta_destino,
                   data['tarifa_base'], data.get('tarifa_por_km'),
-                  data.get('tarifa_por_kg'), data['vigencia_desde'],
-                  data.get('vigencia_hasta')))
+                  data.get('tarifa_por_kg'), vigencia_desde,
+                  vigencia_hasta))
             tarifa_id = cur.fetchone()[0]
         else:
             cur.execute("""
                 INSERT INTO freight_tarifa
-                    (transportista_cuit, ruta, tarifa_base, tarifa_por_km,
-                     tarifa_por_kg, vigencia_desde, vigencia_hasta)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (data['transportista_cuit'], data.get('ruta'),
+                    (transportista_cuit, ruta_origen, ruta_destino, tarifa_base,
+                     tarifa_por_km, tarifa_por_kg, vigencia_desde, vigencia_hasta)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (data['transportista_cuit'], ruta_origen, ruta_destino,
                   data['tarifa_base'], data.get('tarifa_por_km'),
-                  data.get('tarifa_por_kg'), data['vigencia_desde'],
-                  data.get('vigencia_hasta')))
+                  data.get('tarifa_por_kg'), vigencia_desde,
+                  vigencia_hasta))
             tarifa_id = cur.lastrowid
 
         conn.commit()
-        return tarifa_id
+        return {'id': tarifa_id}
     except Exception as e:
         conn.rollback()
         raise e

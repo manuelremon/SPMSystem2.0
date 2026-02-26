@@ -2,8 +2,9 @@
 Rutas para gestión de garantías y reclamos
 Fecha: 2026-02-15
 """
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, jsonify, request
 
+from backend.core.helpers import _get_user_id
 from backend.core.roles import require_auth
 from backend.services import warranty_service
 
@@ -111,7 +112,7 @@ def create_reclamo():
             descripcion=data['descripcion'],
             cantidad_afectada=data.get('cantidad_afectada'),
             costo_estimado=data.get('costo_estimado'),
-            responsable_id=g.user.get('id')
+            responsable_id=_get_user_id()
         )
 
         return jsonify({
@@ -145,7 +146,7 @@ def get_reclamo_detalle(reclamo_id):
 def submit_reclamo(reclamo_id):
     """PUT /api/warranty/claims/<id>/submit - Envía un reclamo"""
     try:
-        success = warranty_service.enviar_reclamo(reclamo_id, g.user.get('id'))
+        success = warranty_service.enviar_reclamo(reclamo_id, _get_user_id())
 
         if not success:
             return jsonify({'error': 'No se pudo enviar el reclamo'}), 400
@@ -164,7 +165,7 @@ def review_reclamo(reclamo_id):
         data = request.get_json() or {}
         notas = data.get('notas')
 
-        success = warranty_service.revisar_reclamo(reclamo_id, g.user.get('id'), notas)
+        success = warranty_service.revisar_reclamo(reclamo_id, _get_user_id(), notas)
 
         if not success:
             return jsonify({'error': 'No se pudo revisar el reclamo'}), 400
@@ -183,7 +184,7 @@ def approve_reclamo(reclamo_id):
         data = request.get_json() or {}
         notas = data.get('notas')
 
-        success = warranty_service.aprobar_reclamo(reclamo_id, g.user.get('id'), notas)
+        success = warranty_service.aprobar_reclamo(reclamo_id, _get_user_id(), notas)
 
         if not success:
             return jsonify({'error': 'No se pudo aprobar el reclamo'}), 400
@@ -202,7 +203,7 @@ def reject_reclamo(reclamo_id):
         data = request.get_json() or {}
         notas = data.get('notas')
 
-        success = warranty_service.rechazar_reclamo(reclamo_id, g.user.get('id'), notas)
+        success = warranty_service.rechazar_reclamo(reclamo_id, _get_user_id(), notas)
 
         if not success:
             return jsonify({'error': 'No se pudo rechazar el reclamo'}), 400
@@ -230,7 +231,7 @@ def resolve_reclamo(reclamo_id):
             reclamo_id=reclamo_id,
             resolucion=data['resolucion'],
             monto_recuperado=data['monto_recuperado'],
-            actor_id=g.user.get('id'),
+            actor_id=_get_user_id(),
             notas=data.get('notas')
         )
 

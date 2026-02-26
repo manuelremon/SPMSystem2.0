@@ -12,8 +12,9 @@ Endpoints:
 - PUT /api/slob/disposition/<id>/complete - Completar disposición
 """
 
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, jsonify, request
 
+from backend.core.helpers import _get_user_id
 from backend.core.roles import require_admin, require_auth
 from backend.services import slob_service
 
@@ -144,7 +145,7 @@ def propose_disposition():
         if not isinstance(data['cantidad'], (int, float)) or data['cantidad'] <= 0:
             return jsonify({'error': 'Cantidad debe ser mayor a 0'}), 400
 
-        user_id = g.user.get('id')
+        user_id = _get_user_id()
         disposicion = slob_service.proponer_disposicion(data, user_id)
 
         return jsonify(disposicion), 201
@@ -207,7 +208,7 @@ def approve_disposition(disp_id):
         500: {error: str}
     """
     try:
-        user_id = g.user.get('id')
+        user_id = _get_user_id()
         resultado = slob_service.aprobar_disposicion(disp_id, user_id)
 
         if resultado['success']:

@@ -605,6 +605,11 @@ class DualModeTransaction:
             self._conn.close()
         return False
 
+    def __iter__(self):
+        """Support direct unpacking: conn, cursor = get_db_transaction()"""
+        cur = self._conn.cursor()
+        return iter((self._conn, cur))
+
     def __getattr__(self, name):
         return getattr(self._conn, name)
 

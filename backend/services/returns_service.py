@@ -69,6 +69,10 @@ def crear_devolucion(data: dict, user_id: int) -> int:
         count = cursor.fetchone()[0] + 1
         numero_rma = f"RMA-{fecha_str}-{count:04d}"
 
+        # Accept both 'tipo' and 'motivo' with fallbacks
+        tipo = data.get('tipo', 'otro')
+        motivo = data.get('motivo', data.get('descripcion', ''))
+
         # Insertar devolución
         if using_pg:
             cursor.execute("""
@@ -81,8 +85,8 @@ def crear_devolucion(data: dict, user_id: int) -> int:
                 numero_rma,
                 data['proveedor_cuit'],
                 data.get('orden_compra_id'),
-                data['tipo'],
-                data['motivo'],
+                tipo,
+                motivo,
                 user_id
             ))
             devolucion_id = cursor.fetchone()[0]
@@ -96,8 +100,8 @@ def crear_devolucion(data: dict, user_id: int) -> int:
                 numero_rma,
                 data['proveedor_cuit'],
                 data.get('orden_compra_id'),
-                data['tipo'],
-                data['motivo'],
+                tipo,
+                motivo,
                 user_id
             ))
             devolucion_id = cursor.lastrowid
@@ -131,14 +135,14 @@ def crear_devolucion(data: dict, user_id: int) -> int:
         if using_pg:
             cursor.execute("""
                 INSERT INTO devolucion_historial
-                (devolucion_id, estado, user_id, notas, created_at)
-                VALUES (%s, 'draft', %s, 'Devolución creada', NOW())
+                (devolucion_id, estado_anterior, estado_nuevo, actor_id, notas, created_at)
+                VALUES (%s, NULL, 'draft', %s, 'Devolución creada', NOW())
             """, (devolucion_id, user_id))
         else:
             cursor.execute("""
                 INSERT INTO devolucion_historial
-                (devolucion_id, estado, user_id, notas, created_at)
-                VALUES (?, 'draft', ?, 'Devolución creada', datetime('now'))
+                (devolucion_id, estado_anterior, estado_nuevo, actor_id, notas, created_at)
+                VALUES (?, NULL, 'draft', ?, 'Devolución creada', datetime('now'))
             """, (devolucion_id, user_id))
 
         conn.commit()
@@ -164,16 +168,16 @@ def crear_desde_ncr(ncr_id: int, user_id: int) -> int:
 
     try:
         # Obtener datos del NCR
+        # NCR columns: id, numero_ncr, inspeccion_id, proveedor_cuit, material_codigo,
+        #              cantidad_afectada, descripcion, severidad, estado, ...
+        # inspeccion_entrada does NOT have orden_compra_id, so select NULL
         cursor.execute(
             f"""
             SELECT
-                n.id, n.descripcion,
-                ie.orden_compra_id, oc.proveedor_cuit,
-                ii.material_codigo, ii.cantidad_recibida
+                n.id, n.descripcion, n.proveedor_cuit,
+                n.material_codigo, n.cantidad_afectada,
+                NULL as orden_compra_id
             FROM ncr n
-            JOIN inspeccion_item ii ON n.inspeccion_item_id = ii.id
-            JOIN inspeccion_entrada ie ON ii.inspeccion_id = ie.id
-            JOIN orden_compra oc ON ie.orden_compra_id = oc.id
             WHERE n.id = {placeholder}
             """,
             (ncr_id,)
@@ -185,10 +189,10 @@ def crear_desde_ncr(ncr_id: int, user_id: int) -> int:
 
         row[0]
         descripcion = row[1]
-        orden_compra_id = row[2]
-        proveedor_cuit = row[3]
-        material_codigo = row[4]
-        cantidad = row[5]
+        proveedor_cuit = row[2]
+        material_codigo = row[3]
+        cantidad = row[4]
+        orden_compra_id = row[5]
 
         # Crear devolución
         data = {
@@ -411,10 +415,11 @@ def obtener_detalle_devolucion(devolucion_id: int) -> dict:
         cursor.execute(
             f"""
             SELECT
-                dh.estado, dh.user_id, u.nombre as user_nombre,
+                dh.estado_anterior, dh.estado_nuevo, dh.actor_id,
+                u.nombre as actor_nombre,
                 dh.notas, dh.created_at
             FROM devolucion_historial dh
-            LEFT JOIN usuarios u ON dh.user_id = u.id_spm
+            LEFT JOIN usuarios u ON dh.actor_id::text = u.id_spm
             WHERE dh.devolucion_id = {placeholder}
             ORDER BY dh.created_at ASC
             """,
@@ -424,11 +429,12 @@ def obtener_detalle_devolucion(devolucion_id: int) -> dict:
         historial = []
         for row in cursor.fetchall():
             historial.append({
-                'estado': row[0],
-                'user_id': row[1],
-                'user_nombre': row[2],
-                'notas': row[3],
-                'created_at': row[4]
+                'estado_anterior': row[0],
+                'estado_nuevo': row[1],
+                'actor_id': row[2],
+                'actor_nombre': row[3],
+                'notas': row[4],
+                'created_at': row[5]
             })
 
         devolucion['historial'] = historial
@@ -502,15 +508,15 @@ def cambiar_estado(devolucion_id: int, nuevo_estado: str, user_id: int, notas: s
         if using_pg:
             cursor.execute("""
                 INSERT INTO devolucion_historial
-                (devolucion_id, estado, user_id, notas, created_at)
-                VALUES (%s, %s, %s, %s, NOW())
-            """, (devolucion_id, nuevo_estado, user_id, notas))
+                (devolucion_id, estado_anterior, estado_nuevo, actor_id, notas, created_at)
+                VALUES (%s, %s, %s, %s, %s, NOW())
+            """, (devolucion_id, estado_actual, nuevo_estado, user_id, notas))
         else:
             cursor.execute("""
                 INSERT INTO devolucion_historial
-                (devolucion_id, estado, user_id, notas, created_at)
-                VALUES (?, ?, ?, ?, datetime('now'))
-            """, (devolucion_id, nuevo_estado, user_id, notas))
+                (devolucion_id, estado_anterior, estado_nuevo, actor_id, notas, created_at)
+                VALUES (?, ?, ?, ?, ?, datetime('now'))
+            """, (devolucion_id, estado_actual, nuevo_estado, user_id, notas))
 
         conn.commit()
 
@@ -578,15 +584,15 @@ def registrar_credito(devolucion_id: int, monto: float, user_id: int) -> dict:
             if using_pg:
                 cursor.execute("""
                     INSERT INTO devolucion_historial
-                    (devolucion_id, estado, user_id, notas, created_at)
-                    VALUES (%s, 'credit_issued', %s, %s, NOW())
-                """, (devolucion_id, user_id, f"Crédito registrado: ${monto:.2f}"))
+                    (devolucion_id, estado_anterior, estado_nuevo, actor_id, notas, created_at)
+                    VALUES (%s, %s, 'credit_issued', %s, %s, NOW())
+                """, (devolucion_id, estado_actual, user_id, f"Crédito registrado: ${monto:.2f}"))
             else:
                 cursor.execute("""
                     INSERT INTO devolucion_historial
-                    (devolucion_id, estado, user_id, notas, created_at)
-                    VALUES (?, 'credit_issued', ?, ?, datetime('now'))
-                """, (devolucion_id, user_id, f"Crédito registrado: ${monto:.2f}"))
+                    (devolucion_id, estado_anterior, estado_nuevo, actor_id, notas, created_at)
+                    VALUES (?, ?, 'credit_issued', ?, ?, datetime('now'))
+                """, (devolucion_id, estado_actual, user_id, f"Crédito registrado: ${monto:.2f}"))
 
         conn.commit()
 

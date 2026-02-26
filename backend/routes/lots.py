@@ -39,8 +39,10 @@ def crear_lote():
     """Crear nuevo lote."""
     try:
         data = request.get_json()
-        lote = lot_service.crear_lote(data)
-        return jsonify(lote), 201
+        user_id = _get_user_id()
+        data['usuario_id'] = user_id
+        lote_id = lot_service.crear_lote(data)
+        return jsonify({'id': lote_id}), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -80,9 +82,9 @@ def bloquear_lote(id):
     try:
         user_id = _get_user_id()
         data = request.get_json()
-        razon = data['razon']
+        razon = data.get('razon') or data.get('motivo') or data.get('reason', '')
         resultado = lot_service.bloquear_lote(id, razon, user_id)
-        return jsonify(resultado), 200
+        return jsonify({'success': resultado}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -127,8 +129,13 @@ def registrar_genealogia():
     """Registrar genealogía de lotes."""
     try:
         data = request.get_json()
-        genealogia = lot_service.registrar_genealogia(data)
-        return jsonify(genealogia), 201
+        genealogia_id = lot_service.registrar_genealogia(
+            lote_padre_id=data['lote_padre_id'],
+            lote_hijo_id=data['lote_hijo_id'],
+            relacion=data.get('relacion', 'component'),
+            cantidad_utilizada=data.get('cantidad_utilizada', 0)
+        )
+        return jsonify({'id': genealogia_id}), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -158,8 +165,10 @@ def crear_recall():
     """Crear nuevo recall."""
     try:
         data = request.get_json()
-        recall = lot_service.crear_recall(data)
-        return jsonify(recall), 201
+        user_id = _get_user_id()
+        data['responsable_id'] = data.get('responsable_id') or user_id
+        recall_id = lot_service.crear_recall(data)
+        return jsonify({'id': recall_id}), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

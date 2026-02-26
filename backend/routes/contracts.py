@@ -210,7 +210,7 @@ def cambiar_estado_contrato(contrato_id):
         user_id = _get_user_id()
 
         if 'estado' not in data:
-            raise ValidationError("Campo 'estado' es requerido")
+            raise ValidationError("estado", "Campo requerido")
 
         contract_service.cambiar_estado_contrato(
             contrato_id,
@@ -261,7 +261,7 @@ def agregar_items(contrato_id):
         data = request.get_json()
 
         if 'items' not in data or not isinstance(data['items'], list):
-            raise ValidationError("Se requiere un array 'items'")
+            raise ValidationError("items", "Se requiere un array 'items'")
 
         contract_service.agregar_items_contrato(contrato_id, data['items'])
 
@@ -363,7 +363,7 @@ def buscar_precio_contractual():
         fecha = request.args.get('fecha')
 
         if not material_codigo or not proveedor_cuit:
-            raise ValidationError("Se requieren los parámetros 'material' y 'proveedor'")
+            raise ValidationError("params", "Se requieren los parámetros 'material' y 'proveedor'")
 
         precio = contract_service.obtener_precio_contractual(
             material_codigo,
@@ -405,14 +405,14 @@ def subir_documento(contrato_id):
     """
     try:
         if 'file' not in request.files:
-            raise ValidationError("No se envió ningún archivo")
+            raise ValidationError("file", "No se envió ningún archivo")
 
         archivo = request.files['file']
         tipo = request.form.get('tipo', 'other')
         user_id = _get_user_id()
 
         if archivo.filename == '':
-            raise ValidationError("Nombre de archivo vacío")
+            raise ValidationError("file", "Nombre de archivo vacío")
 
         doc_id = contract_service.subir_documento(contrato_id, archivo, tipo, user_id)
 
