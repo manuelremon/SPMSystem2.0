@@ -481,10 +481,10 @@ def _get_current_user_info():
         return None, None
     with get_db_connection() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT id, nombre FROM usuario WHERE id = ?", (user_id,))
+        cur.execute("SELECT id_spm, nombre FROM usuario WHERE id_spm = ?", (user_id,))
         row = cur.fetchone()
         if row:
-            return row["id"], row["nombre"]
+            return row["id_spm"], row["nombre"]
     return user_id, "Sistema"
 
 
