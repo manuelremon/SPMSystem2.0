@@ -61,15 +61,16 @@ class MrpRepository:
                     if "material" in columns or "codigo" in columns:
                         material_col = "material" if "material" in columns else "codigo"
                         centro_col = "centro" if "centro" in columns else None
+                        ph = "%s" if is_using_postgresql() else "?"
 
                         if centro_col:
                             cur.execute(
-                                f"SELECT * FROM {table} WHERE {material_col} = ? AND {centro_col} = ?",
+                                f"SELECT * FROM {table} WHERE {material_col} = {ph} AND {centro_col} = {ph}",
                                 (codigo_material, centro),
                             )
                         else:
                             cur.execute(
-                                f"SELECT * FROM {table} WHERE {material_col} = ?",
+                                f"SELECT * FROM {table} WHERE {material_col} = {ph}",
                                 (codigo_material,),
                             )
 
@@ -144,10 +145,11 @@ class MrpRepository:
 
                     if "material" in columns or "codigo" in columns:
                         material_col = "material" if "material" in columns else "codigo"
+                        ph = "%s" if is_using_postgresql() else "?"
                         cur.execute(
                             f"""
                             SELECT * FROM {table}
-                            WHERE {material_col} = ?
+                            WHERE {material_col} = {ph}
                             ORDER BY fecha_entrega
                             LIMIT 10
                         """,
@@ -207,12 +209,13 @@ class MrpRepository:
 
                     if "material" in columns or "codigo" in columns:
                         material_col = "material" if "material" in columns else "codigo"
+                        ph = "%s" if is_using_postgresql() else "?"
                         cur.execute(
                             f"""
                             SELECT AVG(cantidad) as promedio, SUM(cantidad) as total,
                                    COUNT(*) as registros
                             FROM {table}
-                            WHERE {material_col} = ?
+                            WHERE {material_col} = {ph}
                         """,
                             (codigo_material,),
                         )

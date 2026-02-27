@@ -291,13 +291,13 @@ def obtener_pos_proveedor(proveedor_cuit: str) -> list:
         cursor.execute(
             f"""
             SELECT
-                id, numero, status, subtotal, moneda, created_at,
-                proveedor_nombre, proveedor_email
+                id, numero_oc, estado, monto_total, moneda, created_at,
+                proveedor_nombre, proveedor_cuit
             FROM orden_compra
-            WHERE proveedor_email = {placeholder} OR proveedor_nombre = {placeholder}
+            WHERE proveedor_cuit = {placeholder}
             ORDER BY created_at DESC
             """,
-            (proveedor_cuit, proveedor_cuit)
+            (proveedor_cuit,)
         )
 
         ordenes = []
@@ -499,9 +499,9 @@ def obtener_asns(proveedor_cuit: str = None, estado: str = None) -> list:
             f"""
             SELECT
                 a.id, a.numero_asn, a.proveedor_cuit, p.nombre as proveedor_nombre,
-                a.orden_compra_id, oc.numero as orden_compra_numero,
-                a.fecha_envio, a.fecha_entrega_estimada, a.transportista,
-                a.guia_rastreo, a.estado, a.created_at
+                a.orden_compra_id, oc.numero_oc as orden_compra_numero,
+                a.fecha_envio_estimada, a.fecha_envio_estimada, a.transportista,
+                a.guia_despacho, a.estado, a.created_at
             FROM asn a
             LEFT JOIN proveedores p ON a.proveedor_cuit = p.id_proveedor
             LEFT JOIN orden_compra oc ON a.orden_compra_id = oc.id
@@ -556,9 +556,9 @@ def obtener_detalle_asn(asn_id: int) -> dict:
             f"""
             SELECT
                 a.id, a.numero_asn, a.proveedor_cuit, p.nombre as proveedor_nombre,
-                a.orden_compra_id, oc.numero as orden_compra_numero,
-                a.fecha_envio, a.fecha_entrega_estimada, a.transportista,
-                a.guia_rastreo, a.estado, a.created_at
+                a.orden_compra_id, oc.numero_oc as orden_compra_numero,
+                a.fecha_envio_estimada, a.fecha_envio_estimada, a.transportista,
+                a.guia_despacho, a.estado, a.created_at
             FROM asn a
             LEFT JOIN proveedores p ON a.proveedor_cuit = p.id_proveedor
             LEFT JOIN orden_compra oc ON a.orden_compra_id = oc.id
@@ -639,15 +639,15 @@ def compartir_forecast(proveedor_cuit: str, materiales: list, periodos: list, co
                 if using_pg:
                     cursor.execute("""
                         INSERT INTO forecast_compartido
-                        (proveedor_cuit, material_codigo, periodo, cantidad_proyectada,
-                         compartido_por, visto, created_at)
+                        (proveedor_cuit, material_codigo, periodo, cantidad_forecast,
+                         compartido_por, visto_por_proveedor, created_at)
                         VALUES (%s, %s, %s, %s, %s, %s, NOW())
                     """, (proveedor_cuit, material_codigo, periodo, cantidad_proyectada, compartido_por, False))
                 else:
                     cursor.execute("""
                         INSERT INTO forecast_compartido
-                        (proveedor_cuit, material_codigo, periodo, cantidad_proyectada,
-                         compartido_por, visto, created_at)
+                        (proveedor_cuit, material_codigo, periodo, cantidad_forecast,
+                         compartido_por, visto_por_proveedor, created_at)
                         VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
                     """, (proveedor_cuit, material_codigo, periodo, cantidad_proyectada, compartido_por, 0))
 
@@ -676,11 +676,11 @@ def obtener_forecasts_compartidos(proveedor_cuit: str) -> list:
             f"""
             SELECT
                 fc.id, fc.material_codigo, m.descripcion as material_descripcion,
-                fc.periodo, fc.cantidad_proyectada, fc.visto,
+                fc.periodo, fc.cantidad_forecast, fc.visto_por_proveedor,
                 fc.compartido_por, u.nombre as compartido_por_nombre, fc.created_at
             FROM forecast_compartido fc
             LEFT JOIN catalogo_materiales m ON fc.material_codigo = m.codigo
-            LEFT JOIN usuarios u ON fc.compartido_por = u.id_spm
+            LEFT JOIN usuario u ON fc.compartido_por::text = u.id_spm
             WHERE fc.proveedor_cuit = {placeholder}
             ORDER BY fc.periodo DESC
             """,
@@ -751,7 +751,7 @@ def obtener_dashboard_portal(proveedor_cuit: str) -> dict:
             f"""
             SELECT COUNT(*) FROM forecast_compartido
             WHERE proveedor_cuit = {placeholder}
-            AND visto = {'FALSE' if using_pg else '0'}
+            AND visto_por_proveedor = 0
             """,
             (proveedor_cuit,)
         )
@@ -783,7 +783,7 @@ def obtener_actividad_proveedores() -> list:
                 pal.id, pal.usuario_id, ppu.nombre as usuario_nombre,
                 ppu.proveedor_cuit, p.nombre as proveedor_nombre,
                 pal.accion, pal.entidad_tipo, pal.entidad_id,
-                pal.ip, pal.created_at
+                pal.ip_address, pal.created_at
             FROM portal_acceso_log pal
             LEFT JOIN portal_proveedor_usuario ppu ON pal.usuario_id = ppu.id
             LEFT JOIN proveedores p ON ppu.proveedor_cuit = p.id_proveedor

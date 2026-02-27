@@ -485,10 +485,10 @@ def _detectar_ciclo_delegacion(delegado_id: str, aprobador_original_id: str) -> 
             cursor.execute(
                 """
                 SELECT delegado_id FROM aprobadores_delegados
-                WHERE aprobador_original_id = ?
+                WHERE aprobador_original_id = %s
                     AND activo = TRUE
-                    AND fecha_inicio <= ?
-                    AND fecha_fin >= ?
+                    AND fecha_inicio <= %s
+                    AND fecha_fin >= %s
             """,
                 (actual, now, now),
             )
@@ -572,10 +572,10 @@ def obtener_delegacion_activa(aprobador_id: str) -> Optional[Dict[str, Any]]:
         cursor.execute(
             """
             SELECT * FROM aprobadores_delegados
-            WHERE aprobador_original_id = ?
+            WHERE aprobador_original_id = %s
                 AND activo = TRUE
-                AND fecha_inicio <= ?
-                AND fecha_fin >= ?
+                AND fecha_inicio <= %s
+                AND fecha_fin >= %s
             ORDER BY fecha_fin DESC
             LIMIT 1
         """,
@@ -606,10 +606,10 @@ def obtener_delegaciones_como_delegado(delegado_id: str) -> List[Dict[str, Any]]
             SELECT d.*, u.rol as rol_original, u.posicion as posicion_original
             FROM aprobadores_delegados d
             JOIN usuario u ON d.aprobador_original_id = u.id_spm
-            WHERE d.delegado_id = ?
-                AND d.activo = TRUE
-                AND d.fecha_inicio <= ?
-                AND d.fecha_fin >= ?
+            WHERE d.delegado_id = %s
+                AND d.activo = 1
+                AND d.fecha_inicio <= %s
+                AND d.fecha_fin >= %s
             ORDER BY d.fecha_fin DESC
         """,
             (delegado_id, now, now),
@@ -716,14 +716,14 @@ def listar_reglas(solo_activas: bool = True) -> List[Dict[str, Any]]:
                 """
                 SELECT * FROM reglas_aprobacion
                 WHERE activo = TRUE
-                ORDER BY nivel_aprobacion, monto_minimo_usd
+                ORDER BY niveles_requeridos, monto_minimo
             """
             )
         else:
             cursor.execute(
                 """
                 SELECT * FROM reglas_aprobacion
-                ORDER BY nivel_aprobacion, monto_minimo_usd
+                ORDER BY niveles_requeridos, monto_minimo
             """
             )
 

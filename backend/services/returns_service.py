@@ -343,6 +343,7 @@ def obtener_detalle_devolucion(devolucion_id: int) -> dict:
 
     try:
         # Obtener devolución
+        # Note: devolucion table does not have fecha_envio / fecha_recepcion_proveedor columns
         cursor.execute(
             f"""
             SELECT
@@ -351,13 +352,12 @@ def obtener_detalle_devolucion(devolucion_id: int) -> dict:
                 d.orden_compra_id, oc.numero_oc as orden_compra_numero,
                 d.tipo, d.motivo, d.estado,
                 d.monto_credito_esperado, d.monto_credito_recibido,
-                d.fecha_envio, d.fecha_recepcion_proveedor,
                 d.created_at, d.creado_por,
                 u.nombre as creado_por_nombre
             FROM devolucion d
             LEFT JOIN proveedores p ON d.proveedor_cuit = p.id_proveedor
             LEFT JOIN orden_compra oc ON d.orden_compra_id = oc.id
-            LEFT JOIN usuarios u ON d.creado_por = u.id_spm
+            LEFT JOIN usuarios u ON d.creado_por::text = u.id_spm
             WHERE d.id = {placeholder}
             """,
             (devolucion_id,)
@@ -379,11 +379,11 @@ def obtener_detalle_devolucion(devolucion_id: int) -> dict:
             'estado': row[8],
             'monto_credito_esperado': float(row[9]) if row[9] else 0,
             'monto_credito_recibido': float(row[10]) if row[10] else 0,
-            'fecha_envio': row[11],
-            'fecha_recepcion_proveedor': row[12],
-            'created_at': row[13],
-            'creado_por': row[14],
-            'creado_por_nombre': row[15]
+            'fecha_envio': None,
+            'fecha_recepcion_proveedor': None,
+            'created_at': row[11],
+            'creado_por': row[12],
+            'creado_por_nombre': row[13]
         }
 
         # Obtener items
@@ -480,21 +480,9 @@ def cambiar_estado(devolucion_id: int, nuevo_estado: str, user_id: int, notas: s
                 f"Estados permitidos: {ESTADOS_VALIDOS.get(estado_actual, [])}"
             )
 
-        # Actualizar fechas según estado
+        # Actualizar estado (fecha_envio / fecha_recepcion_proveedor columns don't exist in schema)
         updates = [f"estado = {placeholder}"]
         params = [nuevo_estado]
-
-        if nuevo_estado == 'in_transit':
-            if using_pg:
-                updates.append("fecha_envio = NOW()")
-            else:
-                updates.append("fecha_envio = datetime('now')")
-
-        if nuevo_estado == 'received_by_supplier':
-            if using_pg:
-                updates.append("fecha_recepcion_proveedor = NOW()")
-            else:
-                updates.append("fecha_recepcion_proveedor = datetime('now')")
 
         params.append(devolucion_id)
 
@@ -523,7 +511,7 @@ def cambiar_estado(devolucion_id: int, nuevo_estado: str, user_id: int, notas: s
         # Obtener devolución actualizada
         cursor.execute(
             f"""
-            SELECT id, numero_rma, estado, fecha_envio, fecha_recepcion_proveedor
+            SELECT id, numero_rma, estado
             FROM devolucion
             WHERE id = {placeholder}
             """,
@@ -535,8 +523,8 @@ def cambiar_estado(devolucion_id: int, nuevo_estado: str, user_id: int, notas: s
             'id': row[0],
             'numero_rma': row[1],
             'estado': row[2],
-            'fecha_envio': row[3],
-            'fecha_recepcion_proveedor': row[4]
+            'fecha_envio': None,
+            'fecha_recepcion_proveedor': None
         }
 
 

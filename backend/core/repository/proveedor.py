@@ -39,6 +39,7 @@ class ProveedorPreciosRepository:
     @staticmethod
     def get_precio_vigente(cuit: str, codigo_material: str) -> Optional[Dict[str, Any]]:
         """Obtiene precio negociado vigente para proveedor/material"""
+        ph = "%s" if is_using_postgresql() else "?"
         conn = _connect()
         try:
             cur = conn.cursor()
@@ -48,7 +49,7 @@ class ProveedorPreciosRepository:
                        fecha_vigencia_desde, fecha_vigencia_hasta, condicion_pago,
                        cantidad_minima, notas
                 FROM proveedor_precio_negociado
-                WHERE cuit_proveedor = ? AND codigo_material = ? AND activo = TRUE
+                WHERE cuit_proveedor = {ph} AND codigo_material = {ph} AND activo = TRUE
                   AND fecha_vigencia_desde <= {sql_current_date()}
                   AND (fecha_vigencia_hasta IS NULL OR fecha_vigencia_hasta >= {sql_current_date()})
                 ORDER BY fecha_vigencia_desde DESC
@@ -64,6 +65,7 @@ class ProveedorPreciosRepository:
     @staticmethod
     def get_mejores_precios(codigo_material: str, limit: int = 5) -> List[Dict[str, Any]]:
         """Top proveedores con mejor precio para un material"""
+        ph = "%s" if is_using_postgresql() else "?"
         conn = _connect()
         try:
             cur = conn.cursor()
@@ -73,11 +75,11 @@ class ProveedorPreciosRepository:
                        p.condicion_pago, p.cantidad_minima, pe.nombre as proveedor_nombre
                 FROM proveedor_precio_negociado p
                 LEFT JOIN proveedor_externo pe ON p.cuit_proveedor = pe.cuit
-                WHERE p.codigo_material = ? AND p.activo = TRUE
+                WHERE p.codigo_material = {ph} AND p.activo = TRUE
                   AND p.fecha_vigencia_desde <= {sql_current_date()}
                   AND (p.fecha_vigencia_hasta IS NULL OR p.fecha_vigencia_hasta >= {sql_current_date()})
                 ORDER BY p.precio_usd ASC
-                LIMIT ?
+                LIMIT {ph}
             """,
                 (codigo_material, limit),
             )
@@ -130,22 +132,24 @@ class ProveedorPreciosRepository:
             conn.close()
 
     @staticmethod
-    def listar_por_proveedor(cuit: str) -> List[Dict[str, Any]]:
+    def listar_por_proveedor(cuit: str, solo_activos: bool = True) -> List[Dict[str, Any]]:
         """Lista todos los precios de un proveedor"""
+        ph = "%s" if is_using_postgresql() else "?"
         conn = _connect()
         try:
             cur = conn.cursor()
-            cur.execute(
-                """
+            base_sql = f"""
                 SELECT id, cuit_proveedor, codigo_material, precio_usd, moneda,
                        fecha_vigencia_desde, fecha_vigencia_hasta, condicion_pago,
                        cantidad_minima, notas, activo
                 FROM proveedor_precio_negociado
-                WHERE cuit_proveedor = ?
-                ORDER BY codigo_material, fecha_vigencia_desde DESC
-            """,
-                (cuit,),
-            )
+                WHERE cuit_proveedor = {ph}
+            """
+            params: list = [cuit]
+            if solo_activos:
+                base_sql += f" AND activo = TRUE"
+            base_sql += " ORDER BY codigo_material, fecha_vigencia_desde DESC"
+            cur.execute(base_sql, params)
             return [dict(row) for row in cur.fetchall()]
         finally:
             conn.close()

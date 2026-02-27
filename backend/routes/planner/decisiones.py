@@ -358,7 +358,7 @@ def obtener_detalle_mrp(solicitud_id, item_idx):
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT centro, data_json FROM solicitud WHERE id=?",
+                "SELECT centro, data_json FROM solicitud WHERE id=%s",
                 (solicitud_id,),
             )
             row = cur.fetchone()

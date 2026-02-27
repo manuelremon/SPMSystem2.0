@@ -156,7 +156,7 @@ def update_password():
     try:
         with get_db_transaction() as conn:
             cur = conn.cursor()
-            cur.execute("UPDATE usuario SET contrasena=? WHERE id_spm=?", (password_hash, user_id))
+            cur.execute("UPDATE usuario SET contrasena=%s WHERE id_spm=%s", (password_hash, user_id))
             affected = cur.rowcount
 
         if affected == 0:
@@ -218,11 +218,11 @@ def update_contacto():
     values = []
 
     if telefono:
-        updates.append("telefono=?")
+        updates.append("telefono=%s")
         values.append(telefono)
 
     if mail_respaldo:
-        updates.append("mail_respaldo=?")
+        updates.append("mail_respaldo=%s")
         values.append(mail_respaldo)
 
     values.append(user_id)
@@ -230,7 +230,7 @@ def update_contacto():
     try:
         with get_db_transaction() as conn:
             cur = conn.cursor()
-            query = f"UPDATE usuario SET {', '.join(updates)} WHERE id_spm=?"
+            query = f"UPDATE usuario SET {', '.join(updates)} WHERE id_spm=%s"
             cur.execute(query, values)
             affected = cur.rowcount
 
@@ -308,12 +308,12 @@ def solicitar_cambio_perfil():
             request_id = insert_returning_id(
                 cur,
                 """INSERT INTO usuario_solicitud_perfil
-                   (usuario_id, tipo_cambio, valor_nuevo, estado, created_at, resolved_at)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
+                   (usuario_id, tipo, payload, estado, created_at, updated_at)
+                   VALUES (%s, %s, %s, %s, %s, %s)""",
                 (user_id, "cambio_perfil", payload_json, "pendiente", now, now),
             )
 
-            cur.execute("SELECT nombre, apellido FROM usuario WHERE id_spm=?", (user_id,))
+            cur.execute("SELECT nombre, apellido FROM usuario WHERE id_spm=%s", (user_id,))
             solicitante = cur.fetchone()
             nombre_solicitante = f"{solicitante[0]} {solicitante[1]}" if solicitante else user_id
 
@@ -328,7 +328,7 @@ def solicitar_cambio_perfil():
                 admin_id = admin[0]
                 cur.execute(
                     """INSERT INTO notificacion (destinatario_id, solicitud_id, mensaje, leido, created_at)
-                       VALUES (?, ?, ?, 0, ?)""",
+                       VALUES (%s, %s, %s, 0, %s)""",
                     (admin_id, request_id, mensaje, now),
                 )
 
@@ -372,9 +372,9 @@ def listar_cambios_perfil():
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                """SELECT id, tipo_cambio, valor_nuevo, estado, created_at, resolved_at
+                """SELECT id, tipo, payload, estado, created_at, updated_at
                    FROM usuario_solicitud_perfil
-                   WHERE usuario_id=?
+                   WHERE usuario_id=%s
                    ORDER BY created_at DESC
                    LIMIT 50""",
                 (user_id,),
@@ -386,9 +386,9 @@ def listar_cambios_perfil():
         for row in rows:
             row_dict = dict(row)
 
-            # Parse valor_nuevo JSON
+            # Parse payload JSON (column renamed from valor_nuevo to payload)
             try:
-                payload = json.loads(row_dict.get("valor_nuevo", "{}"))
+                payload = json.loads(row_dict.get("payload", "{}"))
             except (json.JSONDecodeError, TypeError):
                 payload = {}
 
@@ -398,13 +398,14 @@ def listar_cambios_perfil():
             # Formatear fecha
             fecha_str = row_dict.get("created_at", "")
             try:
-                if "T" in fecha_str:
-                    fecha_dt = datetime.fromisoformat(fecha_str.replace("Z", ""))
+                fecha_str_s = str(fecha_str) if fecha_str else ""
+                if "T" in fecha_str_s:
+                    fecha_dt = datetime.fromisoformat(fecha_str_s.replace("Z", ""))
                     fecha_formateada = fecha_dt.strftime("%d/%m/%Y %H:%M")
                 else:
-                    fecha_formateada = fecha_str
+                    fecha_formateada = fecha_str_s
             except (ValueError, TypeError):
-                fecha_formateada = fecha_str
+                fecha_formateada = str(fecha_str) if fecha_str else ""
 
             solicitudes.append(
                 {
@@ -412,7 +413,7 @@ def listar_cambios_perfil():
                     "fecha": fecha_formateada,
                     "campos": campos,
                     "estado": row_dict.get("estado", "pendiente"),
-                    "comentario": "",  # TODO: agregar campo comentario a la tabla si se necesita
+                    "comentario": "",
                     "detalles": payload,
                 }
             )
@@ -446,7 +447,7 @@ def cancelar_solicitud_cambio(request_id: int):
         # Verificar que la solicitud existe y pertenece al usuario
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT * FROM usuario_solicitud_perfil WHERE id=?", (request_id,))
+            cur.execute("SELECT * FROM usuario_solicitud_perfil WHERE id=%s", (request_id,))
             req = cur.fetchone()
 
         if not req:
@@ -471,7 +472,7 @@ def cancelar_solicitud_cambio(request_id: int):
         with get_db_transaction() as conn:
             cur = conn.cursor()
             cur.execute(
-                "UPDATE usuario_solicitud_perfil SET estado=?, resolved_at=? WHERE id=?",
+                "UPDATE usuario_solicitud_perfil SET estado=%s, updated_at=%s WHERE id=%s",
                 ("cancelado", now, request_id),
             )
 
@@ -512,7 +513,7 @@ def enviar_mensaje_solicitud(request_id: int):
         # Verificar que la solicitud existe y pertenece al usuario
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT * FROM usuario_solicitud_perfil WHERE id=?", (request_id,))
+            cur.execute("SELECT * FROM usuario_solicitud_perfil WHERE id=%s", (request_id,))
             req = cur.fetchone()
 
             if not req:
@@ -550,12 +551,12 @@ def enviar_mensaje_solicitud(request_id: int):
             mensaje_id = insert_returning_id(
                 cur,
                 """INSERT INTO mensaje (remitente_id, destinatario_id, asunto, mensaje, leido, created_at)
-                   VALUES (?, ?, ?, ?, 0, ?)""",
+                   VALUES (%s, %s, %s, %s, 0, %s)""",
                 (user_id, destinatario_id, asunto, mensaje, now),
             )
 
             # Obtener nombre del remitente para la notificación
-            cur.execute("SELECT nombre, apellido FROM usuario WHERE id_spm=?", (user_id,))
+            cur.execute("SELECT nombre, apellido FROM usuario WHERE id_spm=%s", (user_id,))
             remitente = cur.fetchone()
             nombre_remitente = f"{remitente[0]} {remitente[1]}" if remitente else user_id
 
@@ -608,8 +609,8 @@ def admin_listar_profile_requests():
     try:
         query = """
             SELECT
-                upr.id, upr.usuario_id, upr.tipo_cambio, upr.valor_nuevo,
-                upr.estado, upr.created_at, upr.resolved_at,
+                upr.id, upr.usuario_id, upr.tipo, upr.payload,
+                upr.estado, upr.created_at, upr.updated_at,
                 u.nombre, u.apellido, u.mail, u.posicion, u.sector
             FROM usuario_solicitud_perfil upr
             JOIN usuario u ON upr.usuario_id = u.id_spm
@@ -617,7 +618,7 @@ def admin_listar_profile_requests():
         params = []
 
         if estado_filter:
-            query += " WHERE upr.estado = ?"
+            query += " WHERE upr.estado = %s"
             params.append(estado_filter)
 
         query += " ORDER BY upr.created_at DESC LIMIT 100"
@@ -631,13 +632,13 @@ def admin_listar_profile_requests():
         for row in rows:
             row_dict = dict(row)
 
-            # Parse valor_nuevo as JSON payload
-            valor_nuevo = row_dict.get("valor_nuevo", "")
-            tipo_cambio = row_dict.get("tipo_cambio", "")
+            # Parse payload JSON
+            payload_raw = row_dict.get("payload", "")
+            tipo = row_dict.get("tipo", "")
             try:
-                payload = json.loads(valor_nuevo) if valor_nuevo else {}
+                payload = json.loads(payload_raw) if payload_raw else {}
             except (json.JSONDecodeError, TypeError):
-                payload = {tipo_cambio: valor_nuevo} if tipo_cambio else {}
+                payload = {tipo: payload_raw} if tipo else {}
 
             requests.append(
                 {
@@ -649,11 +650,11 @@ def admin_listar_profile_requests():
                         "posicion": row_dict.get("posicion", ""),
                         "sector": row_dict.get("sector", ""),
                     },
-                    "tipo": tipo_cambio,
+                    "tipo": tipo,
                     "cambios_solicitados": payload,
                     "estado": row_dict.get("estado"),
                     "created_at": row_dict.get("created_at"),
-                    "updated_at": row_dict.get("resolved_at"),
+                    "updated_at": row_dict.get("updated_at"),
                 }
             )
 
@@ -680,7 +681,7 @@ def admin_get_profile_request(request_id: int):
                     u.centros, u.almacenes, u.jefe, u.gerente1, u.gerente2
                 FROM usuario_solicitud_perfil upr
                 JOIN usuario u ON upr.usuario_id = u.id_spm
-                WHERE upr.id = ?
+                WHERE upr.id = %s
             """,
                 (request_id,),
             )
@@ -691,10 +692,13 @@ def admin_get_profile_request(request_id: int):
 
         row_dict = dict(row)
 
-        # Parse valor_nuevo as payload (tabla tiene tipo_cambio y valor_nuevo, no payload)
-        tipo_cambio = row_dict.get("tipo_cambio", "")
-        valor_nuevo = row_dict.get("valor_nuevo", "")
-        payload = {tipo_cambio: valor_nuevo} if tipo_cambio else {}
+        # Parse payload JSON (columns are tipo and payload, not tipo_cambio/valor_nuevo)
+        tipo = row_dict.get("tipo", "")
+        payload_raw = row_dict.get("payload", "")
+        try:
+            payload = json.loads(payload_raw) if payload_raw else {}
+        except (json.JSONDecodeError, TypeError):
+            payload = {tipo: payload_raw} if tipo else {}
 
         # Obtener valores actuales vs solicitados
         current_values = {}
@@ -714,7 +718,7 @@ def admin_get_profile_request(request_id: int):
         }
 
         for key, db_field in field_mapping.items():
-            if key in payload or key == tipo_cambio:
+            if key in payload or key == tipo:
                 current_val = row_dict.get(db_field, "")
                 # Parse JSON si es necesario
                 if isinstance(current_val, str) and current_val.startswith("["):
@@ -723,7 +727,7 @@ def admin_get_profile_request(request_id: int):
                     except (json.JSONDecodeError, TypeError):
                         pass
                 current_values[db_field] = current_val
-                requested_values[db_field] = payload[key]
+                requested_values[db_field] = payload.get(key)
 
         result = {
             "id": row_dict.get("id"),
@@ -734,6 +738,7 @@ def admin_get_profile_request(request_id: int):
                 "posicion": row_dict.get("posicion", ""),
                 "sector": row_dict.get("sector", ""),
             },
+            "tipo": tipo,
             "estado": row_dict.get("estado"),
             "created_at": row_dict.get("created_at"),
             "current_values": current_values,
@@ -766,7 +771,7 @@ def admin_aprobar_profile_request(request_id: int):
             cur = conn.cursor()
 
             # Obtener la solicitud
-            cur.execute("SELECT * FROM usuario_solicitud_perfil WHERE id=?", (request_id,))
+            cur.execute("SELECT * FROM usuario_solicitud_perfil WHERE id=%s", (request_id,))
             req = cur.fetchone()
 
             if not req:
@@ -781,12 +786,12 @@ def admin_aprobar_profile_request(request_id: int):
             usuario_id = req["usuario_id"]
 
             # Obtener datos actuales del usuario para poder AGREGAR centros/almacenes
-            cur.execute("SELECT centros, almacenes FROM usuario WHERE id_spm=?", (usuario_id,))
+            cur.execute("SELECT centros, almacenes FROM usuario WHERE id_spm=%s", (usuario_id,))
             usuario_actual = cur.fetchone()
 
-        # Parse payload y preparar cambios
+        # Parse payload y preparar cambios (column is now 'payload', not 'valor_nuevo')
         try:
-            payload = json.loads(req["valor_nuevo"])
+            payload = json.loads(req["payload"])
         except (json.JSONDecodeError, TypeError):
             payload = {}
 
@@ -811,7 +816,7 @@ def admin_aprobar_profile_request(request_id: int):
 
         for payload_key, db_column in simple_fields.items():
             if payload_key in payload and payload[payload_key]:
-                updates.append(f"{db_column}=?")
+                updates.append(f"{db_column}=%s")
                 values.append(payload[payload_key])
 
         # Campos que se AGREGAN a los existentes (centros y almacenes)
@@ -819,14 +824,14 @@ def admin_aprobar_profile_request(request_id: int):
             nuevos_centros = payload["centros_nuevos"]
             if isinstance(nuevos_centros, list):
                 todos_centros = list(set(centros_actuales + nuevos_centros))
-                updates.append("centros=?")
+                updates.append("centros=%s")
                 values.append(",".join(str(c) for c in todos_centros))
 
         if "almacenes_nuevos" in payload and payload["almacenes_nuevos"]:
             nuevos_almacenes = payload["almacenes_nuevos"]
             if isinstance(nuevos_almacenes, list):
                 todos_almacenes = list(set(almacenes_actuales + nuevos_almacenes))
-                updates.append("almacenes=?")
+                updates.append("almacenes=%s")
                 values.append(",".join(str(a) for a in todos_almacenes))
 
         # Fase 2: Escrituras en transacción
@@ -836,13 +841,13 @@ def admin_aprobar_profile_request(request_id: int):
             # Aplicar cambios al usuario
             if updates:
                 values.append(usuario_id)
-                update_query = f"UPDATE usuario SET {', '.join(updates)} WHERE id_spm=?"
+                update_query = f"UPDATE usuario SET {', '.join(updates)} WHERE id_spm=%s"
                 cur.execute(update_query, values)
                 logger.info(f"Cambios aplicados a usuario {usuario_id}: {updates}")
 
             # Actualizar estado de la solicitud
             cur.execute(
-                "UPDATE usuario_solicitud_perfil SET estado=?, resolved_at=? WHERE id=?",
+                "UPDATE usuario_solicitud_perfil SET estado=%s, updated_at=%s WHERE id=%s",
                 ("aprobado", now, request_id),
             )
 
@@ -853,7 +858,7 @@ def admin_aprobar_profile_request(request_id: int):
 
             cur.execute(
                 """INSERT INTO notificacion (destinatario_id, solicitud_id, mensaje, tipo, leido, created_at)
-                   VALUES (?, ?, ?, ?, 0, ?)""",
+                   VALUES (%s, %s, %s, %s, 0, %s)""",
                 (usuario_id, request_id, mensaje, "profile_approved", now),
             )
 
@@ -897,7 +902,7 @@ def admin_rechazar_profile_request(request_id: int):
         # Fase 1: Lectura para validar
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT * FROM usuario_solicitud_perfil WHERE id=?", (request_id,))
+            cur.execute("SELECT * FROM usuario_solicitud_perfil WHERE id=%s", (request_id,))
             req = cur.fetchone()
 
         if not req:
@@ -919,14 +924,14 @@ def admin_rechazar_profile_request(request_id: int):
 
             # Actualizar estado
             cur.execute(
-                "UPDATE usuario_solicitud_perfil SET estado=?, resolved_at=? WHERE id=?",
+                "UPDATE usuario_solicitud_perfil SET estado=%s, updated_at=%s WHERE id=%s",
                 ("rechazado", now, request_id),
             )
 
             # Crear notificación para el solicitante
             cur.execute(
                 """INSERT INTO notificacion (destinatario_id, solicitud_id, mensaje, tipo, leido, created_at)
-                   VALUES (?, ?, ?, ?, 0, ?)""",
+                   VALUES (%s, %s, %s, %s, 0, %s)""",
                 (usuario_id, request_id, mensaje, "profile_rejected", now),
             )
 
@@ -965,7 +970,7 @@ def admin_enviar_mensaje_profile_request(request_id: int):
                 SELECT upr.*, u.nombre, u.apellido
                 FROM usuario_solicitud_perfil upr
                 JOIN usuario u ON upr.usuario_id = u.id_spm
-                WHERE upr.id = ?
+                WHERE upr.id = %s
             """,
                 (request_id,),
             )
@@ -984,7 +989,7 @@ def admin_enviar_mensaje_profile_request(request_id: int):
             mensaje_id = insert_returning_id(
                 cur,
                 """INSERT INTO mensaje (remitente_id, destinatario_id, asunto, mensaje, leido, created_at)
-                   VALUES (?, ?, ?, ?, 0, ?)""",
+                   VALUES (%s, %s, %s, %s, 0, %s)""",
                 (user_id, destinatario_id, asunto, mensaje, now),
             )
 
@@ -1021,7 +1026,7 @@ def get_notification_preferences():
                 """SELECT push_enabled, sound_enabled, notif_solicitudes, notif_aprobaciones,
                           notif_mensajes, notif_presupuestos, notif_mrp, notif_sla
                    FROM usuario_preferencia_notificacion
-                   WHERE user_id = ?""",
+                   WHERE user_id = %s""",
                 (str(user_id),),
             )
             row = cur.fetchone()
@@ -1038,11 +1043,11 @@ def get_notification_preferences():
                 "notif_sla": row[7],
             }
         else:
-            # Si no hay preferencias, crear con valores por defecto
+            # Si no hay preferencias, crear con valores por defecto (PG syntax)
             with get_db_transaction() as conn:
                 cur = conn.cursor()
                 cur.execute(
-                    "INSERT OR IGNORE INTO usuario_preferencia_notificacion (user_id) VALUES (?)",
+                    "INSERT INTO usuario_preferencia_notificacion (user_id) VALUES (%s) ON CONFLICT (user_id) DO NOTHING",
                     (str(user_id),),
                 )
 
@@ -1118,14 +1123,14 @@ def update_notification_preferences():
 
     for camel_key, snake_key in field_mapping.items():
         if camel_key in data:
-            updates.append(f"{snake_key} = ?")
+            updates.append(f"{snake_key} = %s")
             values.append(1 if data[camel_key] else 0)
 
     if not updates:
         return jsonify({"ok": False, "error": {"message": "No hay preferencias para actualizar"}}), 400
 
     # Agregar updated_at
-    updates.append("updated_at = ?")
+    updates.append("updated_at = %s")
     values.append(datetime.utcnow().isoformat())
     values.append(str(user_id))
 
@@ -1135,12 +1140,12 @@ def update_notification_preferences():
 
             # Primero intentar INSERT si no existe
             cur.execute(
-                "INSERT INTO usuario_preferencia_notificacion (user_id) VALUES (?) ON CONFLICT (user_id) DO NOTHING",
+                "INSERT INTO usuario_preferencia_notificacion (user_id) VALUES (%s) ON CONFLICT (user_id) DO NOTHING",
                 (str(user_id),),
             )
 
             # Luego UPDATE
-            query = f"UPDATE usuario_preferencia_notificacion SET {', '.join(updates)} WHERE user_id = ?"
+            query = f"UPDATE usuario_preferencia_notificacion SET {', '.join(updates)} WHERE user_id = %s"
             cur.execute(query, values)
 
         logger.info(f"Preferencias de notificacion actualizadas para usuario {user_id}")

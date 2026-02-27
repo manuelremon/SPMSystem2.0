@@ -23,7 +23,7 @@ scanner_bp = Blueprint("scanner", __name__, url_prefix="/api/scanner")
 @require_auth
 def create_session():
     """Create a new scanner pairing session and return a QR code."""
-    user_id = g.user["id"]
+    user_id = g.user["id_spm"]
     result = scanner_service.create_session(user_id)
 
     # Build the scan URL that the mobile will open
@@ -72,7 +72,7 @@ def submit_code(session_id):
 @require_auth
 def poll_codes(session_id):
     """PC polls for codes submitted by the mobile device."""
-    user_id = g.user["id"]
+    user_id = g.user["id_spm"]
     result = scanner_service.poll_codes(session_id, user_id)
     if not result["ok"]:
         status = 404 if result["error"] == "session_not_found" else 403
@@ -85,7 +85,7 @@ def poll_codes(session_id):
 @require_auth
 def delete_session(session_id):
     """Close/delete a scanner session."""
-    user_id = g.user["id"]
+    user_id = g.user["id_spm"]
     result = scanner_service.delete_session(session_id, user_id)
     if not result["ok"]:
         status = 404 if result["error"] == "session_not_found" else 403

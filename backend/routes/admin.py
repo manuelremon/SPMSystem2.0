@@ -957,7 +957,7 @@ def admin_proveedores_externos_mod(cuit):
         with get_db_connection() as conn:
             cur = conn.cursor()
             # Datos principales
-            cur.execute("SELECT cuit, nombre, direccion, localidad, pais, origen, lead_time_dias, rubro, calificacion, activo, notas, created_at, updated_at, provee_grupo_de_articulos FROM proveedor_externo WHERE cuit = ?", (cuit,))
+            cur.execute("SELECT cuit, nombre, direccion, localidad, pais, origen, lead_time_dias, rubro, calificacion, activo, notas, created_at, updated_at FROM proveedor_externo WHERE cuit = %s", (cuit,))
             prov = cur.fetchone()
             if not prov:
                 return jsonify({"ok": False, "error": "Proveedor no encontrado"}), 404
@@ -966,20 +966,20 @@ def admin_proveedores_externos_mod(cuit):
 
             # Contactos
             cur.execute(
-                "SELECT id, cuit_proveedor, nombre, apellido, cargo, es_principal, created_at FROM proveedor_externo_contacto WHERE cuit_proveedor = ? ORDER BY es_principal DESC",
+                "SELECT id, cuit_proveedor, nombre, apellido, cargo, es_principal, created_at FROM proveedor_externo_contacto WHERE cuit_proveedor = %s ORDER BY es_principal DESC",
                 (cuit,),
             )
             result["contactos"] = [dict(r) for r in cur.fetchall()]
 
             # Emails
             cur.execute(
-                "SELECT id, cuit_proveedor, email, tipo, es_principal, created_at FROM proveedor_externo_email WHERE cuit_proveedor = ? ORDER BY es_principal DESC",
+                "SELECT id, cuit_proveedor, email, tipo, es_principal, created_at FROM proveedor_externo_email WHERE cuit_proveedor = %s ORDER BY es_principal DESC",
                 (cuit,),
             )
             result["emails"] = [dict(r) for r in cur.fetchall()]
 
             # Teléfonos
-            cur.execute("SELECT id, cuit_proveedor, telefono, tipo, created_at FROM proveedor_externo_telefono WHERE cuit_proveedor = ?", (cuit,))
+            cur.execute("SELECT id, cuit_proveedor, telefono, tipo, created_at FROM proveedor_externo_telefono WHERE cuit_proveedor = %s", (cuit,))
             result["telefonos"] = [dict(r) for r in cur.fetchall()]
 
         return jsonify(result), 200
@@ -991,10 +991,10 @@ def admin_proveedores_externos_mod(cuit):
             cur.execute(
                 """
                 UPDATE proveedor_externo
-                SET nombre = ?, direccion = ?, localidad = ?, pais = ?,
-                    origen = ?, lead_time_dias = ?, rubro = ?,
-                    calificacion = ?, activo = ?, notas = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE cuit = ?
+                SET nombre = %s, direccion = %s, localidad = %s, pais = %s,
+                    origen = %s, lead_time_dias = %s, rubro = %s,
+                    calificacion = %s, activo = %s, notas = %s, updated_at = CURRENT_TIMESTAMP
+                WHERE cuit = %s
                 """,
                 (
                     data.get("nombre"),
@@ -1012,7 +1012,7 @@ def admin_proveedores_externos_mod(cuit):
             )
         else:  # DELETE
             cur.execute(
-                "UPDATE proveedor_externo SET activo = FALSE, updated_at = CURRENT_TIMESTAMP WHERE cuit = ?",
+                "UPDATE proveedor_externo SET activo = FALSE, updated_at = CURRENT_TIMESTAMP WHERE cuit = %s",
                 (cuit,),
             )
 

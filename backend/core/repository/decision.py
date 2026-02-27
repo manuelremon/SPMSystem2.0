@@ -15,15 +15,16 @@ class DecisionAbastecimientoRepository:
     def get_decision(solicitud_id: int, item_index: int) -> Optional[Dict[str, Any]]:
         """Obtiene decisión de abastecimiento para un item"""
         conn = _connect()
+        ph = "%s" if is_using_postgresql() else "?"
         try:
             cur = conn.cursor()
             cur.execute(
-                """
+                f"""
                 SELECT id, solicitud_id, item_index, cantidad_solicitada,
                        cantidad_total_asignada, estado, comentario, planner_id,
                        created_at, updated_at
                 FROM decision_abastecimiento
-                WHERE solicitud_id = ? AND item_index = ?
+                WHERE solicitud_id = {ph} AND item_index = {ph}
             """,
                 (solicitud_id, item_index),
             )
@@ -42,16 +43,17 @@ class DecisionAbastecimientoRepository:
     def get_fuentes(decision_id: int) -> List[Dict[str, Any]]:
         """Obtiene fuentes de una decisión"""
         conn = _connect()
+        ph = "%s" if is_using_postgresql() else "?"
         try:
             cur = conn.cursor()
             cur.execute(
-                """
+                f"""
                 SELECT id, decision_id, tipo_fuente, centro_origen, almacen_origen,
                        cuit_proveedor, proveedor_nombre, codigo_material_equiv,
                        tipo_equivalencia, cantidad_asignada, precio_unitario,
                        precio_es_negociado, plazo_dias, score_opcion, orden_prioridad, notas
                 FROM decision_abastecimiento_fuentes
-                WHERE decision_id = ?
+                WHERE decision_id = {ph}
                 ORDER BY orden_prioridad
             """,
                 (decision_id,),
@@ -64,11 +66,12 @@ class DecisionAbastecimientoRepository:
     def get_decisiones_solicitud(solicitud_id: int) -> List[Dict[str, Any]]:
         """Obtiene todas las decisiones de una solicitud con sus fuentes (optimizado con JOIN)"""
         conn = _connect()
+        ph = "%s" if is_using_postgresql() else "?"
         try:
             cur = conn.cursor()
             # Query optimizada: obtiene decisiones y fuentes en una sola consulta
             cur.execute(
-                """
+                f"""
                 SELECT
                     d.id, d.solicitud_id, d.item_index, d.cantidad_solicitada,
                     d.cantidad_total_asignada, d.estado, d.comentario, d.planner_id,
@@ -80,7 +83,7 @@ class DecisionAbastecimientoRepository:
                     f.orden_prioridad, f.notas
                 FROM decision_abastecimiento d
                 LEFT JOIN decision_abastecimiento_fuentes f ON d.id = f.decision_id
-                WHERE d.solicitud_id = ?
+                WHERE d.solicitud_id = {ph}
                 ORDER BY d.item_index, f.orden_prioridad
             """,
                 (solicitud_id,),
@@ -144,13 +147,14 @@ class DecisionAbastecimientoRepository:
     ) -> int:
         """Crea o actualiza cabecera de decisión (UPSERT)"""
         conn = _connect()
+        ph = "%s" if is_using_postgresql() else "?"
         try:
             cur = conn.cursor()
             cur.execute(
-                """
+                f"""
                 INSERT INTO decision_abastecimiento
                 (solicitud_id, item_index, cantidad_solicitada, planner_id, comentario)
-                VALUES (?, ?, ?, ?, ?)
+                VALUES ({ph}, {ph}, {ph}, {ph}, {ph})
                 ON CONFLICT(solicitud_id, item_index) DO UPDATE SET
                     cantidad_solicitada = excluded.cantidad_solicitada,
                     comentario = COALESCE(excluded.comentario, decision_abastecimiento.comentario),
@@ -162,9 +166,9 @@ class DecisionAbastecimientoRepository:
 
             # Obtener ID
             cur.execute(
-                """
+                f"""
                 SELECT id FROM decision_abastecimiento
-                WHERE solicitud_id = ? AND item_index = ?
+                WHERE solicitud_id = {ph} AND item_index = {ph}
             """,
                 (solicitud_id, item_index),
             )
@@ -192,15 +196,16 @@ class DecisionAbastecimientoRepository:
     ) -> int:
         """Agrega una fuente a la decisión"""
         conn = _connect()
+        ph = "%s" if is_using_postgresql() else "?"
         try:
             cur = conn.cursor()
-            sql = """
+            sql = f"""
                 INSERT INTO decision_abastecimiento_fuentes
                 (decision_id, tipo_fuente, cantidad_asignada, centro_origen, almacen_origen,
                  cuit_proveedor, proveedor_nombre, codigo_material_equiv, tipo_equivalencia,
                  precio_unitario, precio_es_negociado, plazo_dias, score_opcion,
                  orden_prioridad, notas)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
             """
             params = (
                 decision_id,
@@ -220,7 +225,7 @@ class DecisionAbastecimientoRepository:
                 notas,
             )
             if is_using_postgresql():
-                sql = sql.replace("?", "%s") + " RETURNING id"
+                sql = sql + " RETURNING id"
                 cur.execute(sql, params)
                 row = cur.fetchone()
                 new_id = row["id"] if isinstance(row, dict) else row[0]
@@ -240,11 +245,12 @@ class DecisionAbastecimientoRepository:
     def eliminar_fuente(fuente_id: int) -> bool:
         """Elimina una fuente de la decisión"""
         conn = _connect()
+        ph = "%s" if is_using_postgresql() else "?"
         try:
             cur = conn.cursor()
             # Obtener decision_id antes de eliminar
             cur.execute(
-                "SELECT decision_id FROM decision_abastecimiento_fuentes WHERE id = ?",
+                f"SELECT decision_id FROM decision_abastecimiento_fuentes WHERE id = {ph}",
                 (fuente_id,),
             )
             row = cur.fetchone()
@@ -253,7 +259,10 @@ class DecisionAbastecimientoRepository:
 
             decision_id = row["decision_id"]
 
-            cur.execute("DELETE FROM decision_abastecimiento_fuentes WHERE id = ?", (fuente_id,))
+            cur.execute(
+                f"DELETE FROM decision_abastecimiento_fuentes WHERE id = {ph}",
+                (fuente_id,),
+            )
             conn.commit()
 
             # Actualizar totales
@@ -267,11 +276,12 @@ class DecisionAbastecimientoRepository:
     def actualizar_cantidad_fuente(fuente_id: int, nueva_cantidad: float) -> bool:
         """Actualiza la cantidad asignada a una fuente"""
         conn = _connect()
+        ph = "%s" if is_using_postgresql() else "?"
         try:
             cur = conn.cursor()
             # Obtener decision_id
             cur.execute(
-                "SELECT decision_id FROM decision_abastecimiento_fuentes WHERE id = ?",
+                f"SELECT decision_id FROM decision_abastecimiento_fuentes WHERE id = {ph}",
                 (fuente_id,),
             )
             row = cur.fetchone()
@@ -281,7 +291,7 @@ class DecisionAbastecimientoRepository:
             decision_id = row["decision_id"]
 
             cur.execute(
-                "UPDATE decision_abastecimiento_fuentes SET cantidad_asignada = ? WHERE id = ?",
+                f"UPDATE decision_abastecimiento_fuentes SET cantidad_asignada = {ph} WHERE id = {ph}",
                 (nueva_cantidad, fuente_id),
             )
             conn.commit()
@@ -297,13 +307,14 @@ class DecisionAbastecimientoRepository:
     def _actualizar_totales(decision_id: int):
         """Actualiza cantidad total y estado de la decisión"""
         conn = _connect()
+        ph = "%s" if is_using_postgresql() else "?"
         try:
             cur = conn.cursor()
             # Calcular total asignado
             cur.execute(
-                """
+                f"""
                 SELECT COALESCE(SUM(cantidad_asignada), 0) as total
-                FROM decision_abastecimiento_fuentes WHERE decision_id = ?
+                FROM decision_abastecimiento_fuentes WHERE decision_id = {ph}
             """,
                 (decision_id,),
             )
@@ -311,7 +322,7 @@ class DecisionAbastecimientoRepository:
 
             # Obtener cantidad solicitada
             cur.execute(
-                "SELECT cantidad_solicitada FROM decision_abastecimiento WHERE id = ?",
+                f"SELECT cantidad_solicitada FROM decision_abastecimiento WHERE id = {ph}",
                 (decision_id,),
             )
             row = cur.fetchone()
@@ -330,10 +341,10 @@ class DecisionAbastecimientoRepository:
 
             # Actualizar cabecera
             cur.execute(
-                """
+                f"""
                 UPDATE decision_abastecimiento
-                SET cantidad_total_asignada = ?, estado = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
+                SET cantidad_total_asignada = {ph}, estado = {ph}, updated_at = CURRENT_TIMESTAMP
+                WHERE id = {ph}
             """,
                 (total, estado, decision_id),
             )
@@ -345,13 +356,14 @@ class DecisionAbastecimientoRepository:
     def confirmar_decision(decision_id: int) -> bool:
         """Marca la decisión como confirmada"""
         conn = _connect()
+        ph = "%s" if is_using_postgresql() else "?"
         try:
             cur = conn.cursor()
             cur.execute(
-                """
+                f"""
                 UPDATE decision_abastecimiento
                 SET estado = 'confirmado', updated_at = CURRENT_TIMESTAMP
-                WHERE id = ? AND estado = 'completo'
+                WHERE id = {ph} AND estado = 'completo'
             """,
                 (decision_id,),
             )
@@ -364,10 +376,11 @@ class DecisionAbastecimientoRepository:
     def limpiar_fuentes(decision_id: int) -> bool:
         """Elimina todas las fuentes de una decisión"""
         conn = _connect()
+        ph = "%s" if is_using_postgresql() else "?"
         try:
             cur = conn.cursor()
             cur.execute(
-                "DELETE FROM decision_abastecimiento_fuentes WHERE decision_id = ?",
+                f"DELETE FROM decision_abastecimiento_fuentes WHERE decision_id = {ph}",
                 (decision_id,),
             )
             conn.commit()

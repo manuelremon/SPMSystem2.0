@@ -57,7 +57,7 @@ def get_plan_compras(centro):
                     m.categoria_abc,
                     m.critico
                 FROM materiales_mrp m
-                WHERE m.centro = ?
+                WHERE m.centro = %s
                   AND UPPER(COALESCE(m.categoria_abc, 'C')) IN ('A', 'B')
                   AND m.stock_actual < m.punto_pedido
                 ORDER BY
@@ -65,7 +65,7 @@ def get_plan_compras(centro):
                          WHEN m.stock_actual < COALESCE(m.stock_seguridad, 0) THEN 1
                          ELSE 2 END,
                     m.codigo_material
-                LIMIT ?
+                LIMIT %s
             """, (centro, limite))
             materiales = cur.fetchall()
 
@@ -114,15 +114,15 @@ def get_plan_compras(centro):
                     FROM sap_purchase_orders p
                     INNER JOIN sap_solpeds s
                         ON p.solped_id = s.solped_id AND p.solped_posicion = s.posicion
-                    WHERE s.material_codigo = ?
+                    WHERE s.material_codigo = %s
                       AND p.fecha_recepcion IS NOT NULL
                       AND p.proveedor_nombre IS NOT NULL
                     GROUP BY p.proveedor_cuit, p.proveedor_nombre
                     HAVING COUNT(*) >= 2
-                    ORDER BY (CAST(SUM(CASE
+                    ORDER BY (SUM(CASE
                         WHEN p.fecha_recepcion <= s.fecha_entrega_solicitada
                          AND p.cantidad_recepcionada >= p.cantidad_pedida
-                        THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*)) DESC
+                        THEN 1 ELSE 0 END)::float / COUNT(*)) DESC
                     LIMIT 1
                 """, (codigo,))
                 best_provider = cur.fetchone()

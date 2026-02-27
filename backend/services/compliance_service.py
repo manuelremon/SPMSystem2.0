@@ -457,24 +457,24 @@ def calcular_rebates(programa_id: int) -> dict:
             califica = True
 
         # Insertar cálculo
+        # Map periodo_inicio/fin to the 'periodo' column (schema: periodo TEXT)
+        periodo_str = f"{programa['periodo_inicio']}_{programa['periodo_fin']}"
         if is_using_postgresql():
             cur.execute("""
                 INSERT INTO rebate_calculo
-                    (programa_id, periodo_inicio, periodo_fin, total_comprado,
-                     monto_rebate, estado, fecha_calculo)
-                VALUES (%s, %s, %s, %s, %s, 'calculated', NOW())
+                    (programa_id, periodo, monto_base, cantidad_comprada,
+                     monto_rebate, estado)
+                VALUES (%s, %s, %s, %s, %s, 'calculated')
                 RETURNING id
-            """, (programa_id, programa['periodo_inicio'], programa['periodo_fin'],
-                  total_comprado, monto_rebate))
+            """, (programa_id, periodo_str, total_comprado, cantidad_total, monto_rebate))
             calculo_id = cur.fetchone()[0]
         else:
             cur.execute("""
                 INSERT INTO rebate_calculo
-                    (programa_id, periodo_inicio, periodo_fin, total_comprado,
-                     monto_rebate, estado, fecha_calculo)
-                VALUES (?, ?, ?, ?, ?, 'calculated', CURRENT_TIMESTAMP)
-            """, (programa_id, programa['periodo_inicio'], programa['periodo_fin'],
-                  total_comprado, monto_rebate))
+                    (programa_id, periodo, monto_base, cantidad_comprada,
+                     monto_rebate, estado)
+                VALUES (?, ?, ?, ?, ?, 'calculated')
+            """, (programa_id, periodo_str, total_comprado, cantidad_total, monto_rebate))
             calculo_id = cur.lastrowid
 
         conn.commit()
@@ -535,7 +535,7 @@ def obtener_claims(filtros: dict) -> dict:
         cur.execute(f"""
             SELECT * FROM rebate_calculo
             {where_sql}
-            ORDER BY fecha_calculo DESC
+            ORDER BY created_at DESC
             LIMIT {"?" if not is_using_postgresql() else "%s"}
             OFFSET {"?" if not is_using_postgresql() else "%s"}
         """, params_with_limit)
@@ -575,8 +575,7 @@ def cambiar_estado_claim(calculo_id: int, nuevo_estado: str, user_id: int) -> di
         if is_using_postgresql():
             cur.execute("""
                 UPDATE rebate_calculo
-                SET estado = %s,
-                    updated_at = NOW()
+                SET estado = %s
                 WHERE id = %s
                 RETURNING *
             """, (nuevo_estado, calculo_id))
@@ -584,8 +583,7 @@ def cambiar_estado_claim(calculo_id: int, nuevo_estado: str, user_id: int) -> di
         else:
             cur.execute("""
                 UPDATE rebate_calculo
-                SET estado = ?,
-                    updated_at = CURRENT_TIMESTAMP
+                SET estado = ?
                 WHERE id = ?
             """, (nuevo_estado, calculo_id))
 

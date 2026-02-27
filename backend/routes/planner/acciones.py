@@ -12,7 +12,7 @@ import traceback
 
 from flask import jsonify, request
 
-from backend.core.db import get_db_connection
+from backend.core.db import get_db_connection, is_using_postgresql
 from backend.core.errors import error_internal, error_not_found
 from backend.core.repository import DecisionAbastecimientoRepository
 from backend.core.roles import require_auth
@@ -61,10 +61,11 @@ def ejecutar_acciones_post_tratamiento(solicitud_id):
         from backend.services.notification_service import NotificationService
 
         # Obtener datos de la solicitud
+        ph = "%s" if is_using_postgresql() else "?"
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT centro, id_usuario, data_json FROM solicitud WHERE id=?",
+                f"SELECT centro, id_usuario, data_json FROM solicitud WHERE id={ph}",
                 (solicitud_id,),
             )
             sol_row = cur.fetchone()
@@ -334,10 +335,11 @@ def obtener_estado_acciones(solicitud_id):
 
     try:
         # Obtener datos de la solicitud
+        ph = "%s" if is_using_postgresql() else "?"
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT data_json FROM solicitud WHERE id=?",
+                f"SELECT data_json FROM solicitud WHERE id={ph}",
                 (solicitud_id,),
             )
             sol_row = cur.fetchone()

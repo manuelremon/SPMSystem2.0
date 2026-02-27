@@ -519,7 +519,7 @@ def obtener_precio_contractual(material_codigo: str, proveedor_cuit: str, fecha:
               AND c.estado = 'active'
               AND c.deleted = 0
               AND ci.material_codigo = %s
-              AND ci.activo = TRUE
+              AND ci.activo = 1
               AND (ci.fecha_vigencia_desde IS NULL OR ci.fecha_vigencia_desde <= %s)
               AND (ci.fecha_vigencia_hasta IS NULL OR ci.fecha_vigencia_hasta >= %s)
             ORDER BY ci.created_at DESC
@@ -547,7 +547,7 @@ def actualizar_cantidad_consumida(contrato_id: int, material_codigo: str, cantid
         cursor.execute("""
             UPDATE contrato_item
             SET cantidad_consumida = cantidad_consumida + %s
-            WHERE contrato_id = %s AND material_codigo = %s AND activo = TRUE
+            WHERE contrato_id = %s AND material_codigo = %s AND activo = 1
         """, (cantidad, contrato_id, material_codigo))
 
         conn.commit()
@@ -613,7 +613,7 @@ def obtener_documentos(contrato_id: int) -> List[Dict[str, Any]]:
         cursor.execute("""
             SELECT d.*, u.nombre as subido_por_nombre
             FROM contrato_documento d
-            LEFT JOIN usuarios u ON d.subido_por = u.id_spm
+            LEFT JOIN usuarios u ON d.subido_por::text = u.id_spm
             WHERE d.contrato_id = %s
             ORDER BY d.created_at DESC
         """, (contrato_id,))

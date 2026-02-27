@@ -1307,7 +1307,7 @@ def get_table_stats(table: str):
 
                 # Estadisticas de filas
                 cur.execute("""
-                    SELECT reltuples::bigint as estimated_rows,
+                    SELECT n_live_tup as estimated_rows,
                            n_live_tup, n_dead_tup,
                            last_vacuum, last_autovacuum,
                            last_analyze, last_autoanalyze

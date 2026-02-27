@@ -281,14 +281,16 @@ def export_kpis():
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
-            # Calcular KPIs
+            # Calcular KPIs - use %s for PostgreSQL, status column (not estado)
+            from backend.core.db import is_using_postgresql
+            ph = "%s" if is_using_postgresql() else "?"
             fecha_filtro = ""
             params = []
             if periodo_inicio:
-                fecha_filtro += " AND created_at >= ?"
+                fecha_filtro += f" AND created_at >= {ph}"
                 params.append(periodo_inicio)
             if periodo_fin:
-                fecha_filtro += " AND created_at <= ?"
+                fecha_filtro += f" AND created_at <= {ph}"
                 params.append(periodo_fin)
 
             # Total solicitudes
@@ -298,28 +300,36 @@ def export_kpis():
             """,
                 params,
             )
-            total = cursor.fetchone()["total"] or 0
+            total_row = cursor.fetchone()
+            total = (total_row["total"] if isinstance(total_row, dict) else total_row[0]) or 0
 
-            # Por estado
+            # Por estado (column is 'status' in solicitud table)
             cursor.execute(
                 f"""
-                SELECT estado, COUNT(*) as cantidad
+                SELECT status as estado, COUNT(*) as cantidad
                 FROM solicitud WHERE 1=1 {fecha_filtro}
-                GROUP BY estado
+                GROUP BY status
             """,
                 params,
             )
-            por_estado = {row["estado"]: row["cantidad"] for row in cursor.fetchall()}
+            por_estado = {}
+            for row in cursor.fetchall():
+                if isinstance(row, dict):
+                    por_estado[row["estado"]] = row["cantidad"]
+                else:
+                    por_estado[row[0]] = row[1]
 
             # Monto total aprobado
+            approved_params = [*params]
             cursor.execute(
                 f"""
                 SELECT SUM(total_monto) as monto
-                FROM solicitud WHERE estado = 'approved' {fecha_filtro}
+                FROM solicitud WHERE status = 'approved' {fecha_filtro}
             """,
-                params,
+                approved_params,
             )
-            monto_aprobado = cursor.fetchone()["monto"] or 0
+            monto_row = cursor.fetchone()
+            monto_aprobado = (monto_row["monto"] if isinstance(monto_row, dict) else monto_row[0]) or 0
 
         kpis = {
             "solicitudes_totales": total,

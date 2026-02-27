@@ -99,9 +99,9 @@ def get_business_metrics():
 
         # Solicitudes por estado
         cur.execute("""
-            SELECT estado, COUNT(*) as cnt
+            SELECT status as estado, COUNT(*) as cnt
             FROM solicitud
-            GROUP BY estado
+            GROUP BY status
         """)
         rows = cur.fetchall()
         solicitudes_por_estado = {}
@@ -121,7 +121,7 @@ def get_business_metrics():
         # Aprobaciones pendientes
         cur.execute("""
             SELECT COUNT(*) as cnt FROM solicitud
-            WHERE estado IN ('Enviada', 'En Revisión', 'En Revision')
+            WHERE status IN ('Enviada', 'En Revisión', 'En Revision')
         """)
         row = cur.fetchone()
         pendientes = row["cnt"] if isinstance(row, dict) else row[0]
@@ -129,9 +129,9 @@ def get_business_metrics():
         # Usuarios activos (login últimas 24h) - desde audit_trail
         try:
             cur.execute(f"""
-                SELECT COUNT(DISTINCT user_id) as cnt FROM audit_trail
-                WHERE action = 'login'
-                AND timestamp > {date_1day_ago}
+                SELECT COUNT(DISTINCT actor_id) as cnt FROM audit_trail
+                WHERE accion = 'login'
+                AND created_at > {date_1day_ago}
             """)
             row = cur.fetchone()
             usuarios_activos = row["cnt"] if isinstance(row, dict) else row[0]
@@ -140,7 +140,7 @@ def get_business_metrics():
             usuarios_activos = 0
 
         # Total usuarios activos
-        cur.execute("SELECT COUNT(*) as cnt FROM usuario WHERE activo = TRUE")
+        cur.execute("SELECT COUNT(*) as cnt FROM usuario WHERE estado_registro = 'activo'")
         row = cur.fetchone()
         total_usuarios = row["cnt"] if isinstance(row, dict) else row[0]
 
@@ -498,7 +498,7 @@ def get_metrics_history():
                 cur.execute(f"""
                     SELECT metric_type, timestamp, metric_value
                     FROM metrics_history
-                    WHERE metric_type = ?
+                    WHERE metric_type = %s
                     AND {time_filter}
                     ORDER BY timestamp ASC
                 """, (metric_type,))
@@ -620,7 +620,7 @@ def acknowledge_alert(alert_id):
     Returns:
         Confirmación de reconocimiento
     """
-    user_id = g.user.get("id") if hasattr(g, "user") and g.user else None
+    user_id = g.user.get("id_spm") if hasattr(g, "user") and g.user else None
 
     # SQL helper para timestamp actual
     now_sql = "NOW()" if is_using_postgresql() else "datetime('now')"
@@ -630,7 +630,7 @@ def acknowledge_alert(alert_id):
             cur = conn.cursor()
 
             # Verificar que la alerta existe
-            cur.execute("SELECT id, acknowledged FROM system_alerts WHERE id = ?", (alert_id,))
+            cur.execute("SELECT id, acknowledged FROM system_alerts WHERE id = %s", (alert_id,))
             row = cur.fetchone()
 
             if not row:
@@ -650,9 +650,9 @@ def acknowledge_alert(alert_id):
             cur.execute(f"""
                 UPDATE system_alerts
                 SET acknowledged = TRUE,
-                    acknowledged_by = ?,
+                    acknowledged_by = %s,
                     acknowledged_at = {now_sql}
-                WHERE id = ?
+                WHERE id = %s
             """, (user_id, alert_id))
 
         return jsonify({
@@ -680,7 +680,7 @@ def acknowledge_all_alerts():
     Returns:
         Número de alertas reconocidas
     """
-    user_id = g.user.get("id") if hasattr(g, "user") and g.user else None
+    user_id = g.user.get("id_spm") if hasattr(g, "user") and g.user else None
     now_sql = "NOW()" if is_using_postgresql() else "datetime('now')"
 
     try:
@@ -690,7 +690,7 @@ def acknowledge_all_alerts():
             cur.execute(f"""
                 UPDATE system_alerts
                 SET acknowledged = TRUE,
-                    acknowledged_by = ?,
+                    acknowledged_by = %s,
                     acknowledged_at = {now_sql}
                 WHERE acknowledged = FALSE
             """, (user_id,))

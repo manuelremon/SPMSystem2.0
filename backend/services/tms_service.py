@@ -1276,12 +1276,12 @@ def obtener_kpis_tms() -> dict:
         row = cursor.fetchone()
         avg_peso = (row["avg_peso"] if isinstance(row, dict) else row[0]) or 0
 
-        # Average settlement margin from tms_settlements — actual columns: monto_base, monto_final
+        # Average settlement margin from tms_settlements — actual columns: total_costos, total_cobrado, diferencia
         cursor.execute("""
             SELECT AVG(
                 CASE
-                    WHEN monto_final > 0
-                    THEN (monto_final - monto_base) / monto_final * 100
+                    WHEN total_cobrado > 0
+                    THEN diferencia::numeric / total_cobrado * 100
                     ELSE 0
                 END
             ) as avg_margin

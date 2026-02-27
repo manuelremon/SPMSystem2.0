@@ -83,7 +83,7 @@ def _get_current_user() -> Dict[str, Any] | None:
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT id_spm, nombre, apellido FROM usuario WHERE id_spm=?", (str(user_id),)
+                "SELECT id_spm, nombre, apellido FROM usuario WHERE id_spm=%s", (str(user_id),)
             )
             row = cur.fetchone()
 
@@ -128,10 +128,10 @@ def get_rankings():
                     SUM(correct_answers) as total_correct,
                     SUM(total_questions) as total_questions
                 FROM trivia_score
-                WHERE game_mode = ?
+                WHERE game_mode = %s
                 GROUP BY user_id, user_name, game_mode
                 ORDER BY total_score DESC
-                LIMIT ?
+                LIMIT %s
             """,
                 (game_mode, limit),
             )
@@ -150,7 +150,7 @@ def get_rankings():
                 FROM trivia_score
                 GROUP BY user_id, user_name
                 ORDER BY total_score DESC
-                LIMIT ?
+                LIMIT %s
             """,
                 (limit,),
             )
@@ -165,7 +165,7 @@ def get_rankings():
                     COALESCE(SUM(score), 0) as total_score,
                     COUNT(*) as games_played
                 FROM trivia_score
-                WHERE user_id = ?
+                WHERE user_id = %s
             """,
                 (str(user["id"]),),
             )
@@ -286,7 +286,7 @@ def save_score():
         cur.execute(
             """
             INSERT INTO trivia_score (user_id, user_name, game_mode, score, correct_answers, total_questions, time_spent, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """,
             (
                 str(user["id"]),
@@ -307,10 +307,10 @@ def save_score():
                 SELECT user_id, SUM(score) as total_score
                 FROM trivia_score
                 GROUP BY user_id
-                HAVING total_score > (
-                    SELECT COALESCE(SUM(score), 0) FROM trivia_score WHERE user_id = ?
+                HAVING SUM(score) > (
+                    SELECT COALESCE(SUM(score), 0) FROM trivia_score WHERE user_id = %s
                 )
-            )
+            ) sub_rank
         """,
             (str(user["id"]),),
         )
@@ -321,7 +321,7 @@ def save_score():
             """
             SELECT SUM(score) as total_score, COUNT(*) as games_played
             FROM trivia_score
-            WHERE user_id = ?
+            WHERE user_id = %s
         """,
             (str(user["id"]),),
         )
@@ -375,7 +375,7 @@ def get_my_stats():
                 SUM(total_questions) as total_questions,
                 AVG(score) as avg_score
             FROM trivia_score
-            WHERE user_id = ?
+            WHERE user_id = %s
         """,
             (str(user["id"]),),
         )
@@ -392,7 +392,7 @@ def get_my_stats():
                 SUM(correct_answers) as total_correct,
                 SUM(total_questions) as total_questions
             FROM trivia_score
-            WHERE user_id = ?
+            WHERE user_id = %s
             GROUP BY game_mode
         """,
             (str(user["id"]),),
@@ -406,10 +406,10 @@ def get_my_stats():
                 SELECT user_id, SUM(score) as total_score
                 FROM trivia_score
                 GROUP BY user_id
-                HAVING total_score > (
-                    SELECT COALESCE(SUM(score), 0) FROM trivia_score WHERE user_id = ?
+                HAVING SUM(score) > (
+                    SELECT COALESCE(SUM(score), 0) FROM trivia_score WHERE user_id = %s
                 )
-            )
+            ) sub_rank
         """,
             (str(user["id"]),),
         )

@@ -646,15 +646,15 @@ def obtener_insights_dashboard() -> dict:
         # 2. Alertas de riesgo (proveedores de alto riesgo con OCs activas)
         cursor.execute("""
             SELECT DISTINCT
-                p.id_proveedor, p.nombre, pr.risk_score_compuesto,
+                p.id_proveedor, p.nombre, pr.score_riesgo,
                 COUNT(DISTINCT oc.id) as ocs_activas
             FROM proveedores p
             JOIN proveedor_riesgo pr ON p.id_proveedor = pr.proveedor_cuit
             JOIN orden_compra oc ON p.id_proveedor = oc.proveedor_cuit
-            WHERE pr.risk_score_compuesto >= 70
+            WHERE pr.score_riesgo >= 70
             AND oc.estado IN ('submitted', 'approved')
-            GROUP BY p.id_proveedor, p.nombre, pr.risk_score_compuesto
-            ORDER BY pr.risk_score_compuesto DESC
+            GROUP BY p.id_proveedor, p.nombre, pr.score_riesgo
+            ORDER BY pr.score_riesgo DESC
             LIMIT 5
         """)
 
@@ -722,22 +722,22 @@ def analizar_patron_gasto(periodo: str = None) -> dict:
                 cursor.execute("SELECT strftime('%Y-%m', date('now', '-1 month'))")
             periodo = cursor.fetchone()[0]
 
-        # Top categorías de gasto
+        # Top categorías de gasto por proveedor (orden_compra has no categoria_spend_id)
         if using_pg:
             cursor.execute("""
-                SELECT sc.nombre as categoria, SUM(oc.monto_total) as gasto_total
+                SELECT oc.proveedor_nombre as categoria, SUM(oc.monto_total) as gasto_total
                 FROM orden_compra oc
-                LEFT JOIN spend_categoria sc ON oc.categoria_spend_id = sc.id
-                WHERE DATE_TRUNC('month', oc.fecha_emision) = %s
-                GROUP BY sc.nombre ORDER BY gasto_total DESC LIMIT 5
+                WHERE TO_CHAR(oc.fecha_emision, 'YYYY-MM') = %s
+                AND oc.estado IN ('completada', 'aprobada', 'completed', 'approved')
+                GROUP BY oc.proveedor_nombre ORDER BY gasto_total DESC LIMIT 5
             """, (periodo,))
         else:
             cursor.execute("""
-                SELECT sc.nombre as categoria, SUM(oc.monto_total) as gasto_total
+                SELECT oc.proveedor_nombre as categoria, SUM(oc.monto_total) as gasto_total
                 FROM orden_compra oc
-                LEFT JOIN spend_categoria sc ON oc.categoria_spend_id = sc.id
                 WHERE strftime('%Y-%m', oc.fecha_emision) = ?
-                GROUP BY sc.nombre ORDER BY gasto_total DESC LIMIT 5
+                AND oc.estado IN ('completada', 'aprobada', 'completed', 'approved')
+                GROUP BY oc.proveedor_nombre ORDER BY gasto_total DESC LIMIT 5
             """, (periodo,))
 
         top_categorias = []
@@ -752,7 +752,7 @@ def analizar_patron_gasto(periodo: str = None) -> dict:
             cursor.execute("""
                 SELECT COUNT(*), COALESCE(SUM(monto_total), 0)
                 FROM orden_compra WHERE contrato_id IS NULL
-                AND DATE_TRUNC('month', fecha_emision) = %s
+                AND TO_CHAR(fecha_emision, 'YYYY-MM') = %s
             """, (periodo,))
         else:
             cursor.execute("""

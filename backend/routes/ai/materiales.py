@@ -449,31 +449,35 @@ def abc_analysis():
             where_parts = []
             params = []
 
-            # Date filter
-            where_parts.append("fecha >= date('now', '-' || ? || ' months')")
+            # Date filter - use PG-compatible interval arithmetic
+            where_parts.append("fecha >= CURRENT_DATE - (%s * INTERVAL '1 month')")
             params.append(periodo_meses)
 
             if centro:
-                where_parts.append("centro = ?")
+                where_parts.append("centro = %s")
                 params.append(centro)
 
             if sector:
-                where_parts.append("sector = ?")
+                where_parts.append("sector = %s")
                 params.append(sector)
 
             where_clause = " AND ".join(where_parts)
 
             # Query total value consumed per material
             # Use cantidad as proxy for value (precio_unitario may not be available)
+            # Note: PG GROUP BY strict mode - cannot use alias in HAVING, use subquery
             cur.execute(f"""
-                SELECT
-                    material,
-                    MAX(descripcion) as descripcion,
-                    SUM(cantidad) as valor_total
-                FROM consumo_historico
-                WHERE {where_clause}
-                GROUP BY material
-                HAVING valor_total > 0
+                SELECT material, descripcion, valor_total
+                FROM (
+                    SELECT
+                        material,
+                        MAX(descripcion) as descripcion,
+                        SUM(cantidad) as valor_total
+                    FROM consumo_historico
+                    WHERE {where_clause}
+                    GROUP BY material
+                ) sub
+                WHERE valor_total > 0
                 ORDER BY valor_total DESC
             """, params)
 
@@ -493,13 +497,17 @@ def abc_analysis():
                 })
 
             # Calculate cumulative percentage and classify
-            total_valor = sum(r[2] for r in rows)
+            # Use dict key access for DictRow compatibility
+            total_valor = sum(float(r["valor_total"] or 0) for r in rows)
             acumulado = 0.0
             data = []
             items_a = items_b = items_c = 0
             valor_a = 0.0
 
-            for material, descripcion, valor in rows:
+            for row in rows:
+                material = row["material"]
+                descripcion = row["descripcion"]
+                valor = float(row["valor_total"] or 0)
                 acumulado += valor
                 pct_acumulado = (acumulado / total_valor) * 100 if total_valor > 0 else 0
 

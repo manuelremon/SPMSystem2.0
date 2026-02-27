@@ -72,17 +72,17 @@ def obtener_mis_consultas_pendientes():
                   AND f.tipo_fuente IN ('stock', 'transferencia', 'equivalencia')
                   AND d.estado = 'esperando_confirmacion'
                   AND (
-                      ca.responsable_id = ?
+                      ca.responsable_id = %s
                       OR EXISTS (
                           SELECT 1 FROM usuario u2
-                          WHERE u2.id_spm = ?
+                          WHERE u2.id_spm = %s
                           AND u2.centros LIKE '%%' || f.centro_origen || '%%'
                           AND (u2.rol LIKE '%%coordinador%%' OR u2.rol LIKE '%%jefe%%')
                       )
                       OR EXISTS (
                           SELECT 1 FROM proveedor_interno pi
                           JOIN usuario u3 ON pi.referente_email = u3.mail
-                          WHERE u3.id_spm = ?
+                          WHERE u3.id_spm = %s
                           AND pi.centro = f.centro_origen
                           AND pi.almacen = f.almacen_origen
                       )
@@ -156,7 +156,7 @@ def responder_consulta_stock(fuente_id):
                 FROM decision_abastecimiento_fuentes f
                 JOIN decision_abastecimiento d ON d.id = f.decision_id
                 JOIN solicitud s ON s.id = d.solicitud_id
-                WHERE f.id = ?
+                WHERE f.id = %s
                 """,
                 (fuente_id,),
             )
@@ -190,13 +190,13 @@ def responder_consulta_stock(fuente_id):
             cur.execute(
                 """
                 UPDATE decision_abastecimiento_fuentes
-                SET estado_consulta = ?,
-                    cantidad_confirmada = ?,
-                    fecha_disponibilidad = ?,
-                    respuesta_comentario = ?,
-                    respondido_por = ?,
+                SET estado_consulta = %s,
+                    cantidad_confirmada = %s,
+                    fecha_disponibilidad = %s,
+                    respuesta_comentario = %s,
+                    respondido_por = %s,
                     respondido_at = CURRENT_TIMESTAMP
-                WHERE id = ?
+                WHERE id = %s
                 """,
                 (
                     nuevo_estado,
@@ -215,7 +215,7 @@ def responder_consulta_stock(fuente_id):
                        SUM(CASE WHEN estado_consulta IN ('confirmado', 'parcial') THEN 1 ELSE 0 END) as confirmadas,
                        SUM(CASE WHEN estado_consulta = 'rechazado' THEN 1 ELSE 0 END) as rechazadas
                 FROM decision_abastecimiento_fuentes
-                WHERE decision_id = ?
+                WHERE decision_id = %s
                 """,
                 (fuente["decision_id"],),
             )
@@ -231,8 +231,8 @@ def responder_consulta_stock(fuente_id):
                 cur.execute(
                     """
                     UPDATE decision_abastecimiento
-                    SET estado = ?, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = ?
+                    SET estado = %s, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
                     """,
                     (nuevo_estado_decision, fuente["decision_id"]),
                 )
@@ -320,7 +320,7 @@ def responder_consulta_referente(decision_id):
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT id, solicitud_id, estado, item_index FROM decision_abastecimiento WHERE id=?",
+                "SELECT id, solicitud_id, estado, item_index FROM decision_abastecimiento WHERE id=%s",
                 (decision_id,),
             )
             decision = cur.fetchone()
@@ -342,8 +342,8 @@ def responder_consulta_referente(decision_id):
             cur.execute(
                 """
                 UPDATE decision_abastecimiento
-                SET estado = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
+                SET estado = %s, updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
                 """,
                 (nuevo_estado, decision_id),
             )
