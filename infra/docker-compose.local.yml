@@ -1,0 +1,149 @@
+# SPM v3.0 - Docker Compose LOCAL (PC como servidor)
+# Usa Cloudflare Tunnel para HTTPS
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: spm-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - spm-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: spm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-spm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?error}
+      POSTGRES_DB: ${POSTGRES_DB:-spm_production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-spm}"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - spm-network
+
+  backend:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.prod
+    container_name: spm-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-spm}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-spm_production}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_ENABLED: "true"
+      SECRET_KEY: ${SECRET_KEY:?error}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?error}
+      FLASK_ENV: production
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_EMAIL: ${VAPID_EMAIL:-}
+      DISABLE_RATE_LIMIT: ${DISABLE_RATE_LIMIT:-0}
+      GOOGLE_AI_API_KEY: ${GOOGLE_AI_API_KEY:-}
+    volumes:
+      - spm_uploads:/app/uploads
+      - spm_logs:/app/logs
+      - spm_vapid:/app/data/vapid
+    networks:
+      - spm-network
+    expose:
+      - "5000"
+
+  celery-worker:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.prod
+    container_name: spm-celery-worker
+    restart: unless-stopped
+    command: celery -A backend.core.celery_app worker --loglevel=info --concurrency=2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-spm}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-spm_production}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_ENABLED: "true"
+      SECRET_KEY: ${SECRET_KEY:?error}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?error}
+      FLASK_ENV: production
+      GOOGLE_AI_API_KEY: ${GOOGLE_AI_API_KEY:-}
+    volumes:
+      - spm_logs:/app/logs
+    networks:
+      - spm-network
+
+  celery-beat:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.prod
+    container_name: spm-celery-beat
+    restart: unless-stopped
+    command: celery -A backend.core.celery_app beat --loglevel=info
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgresql://${POSTGRES_USER:-spm}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-spm_production}
+      CELERY_ENABLED: "true"
+      SECRET_KEY: ${SECRET_KEY:?error}
+      FLASK_ENV: production
+    volumes:
+      - spm_logs:/app/logs
+    networks:
+      - spm-network
+
+  # Nginx SIN SSL (Cloudflare Tunnel provee HTTPS)
+  nginx:
+    image: nginx:alpine
+    container_name: spm-nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx/default-local.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../frontend/dist:/usr/share/nginx/html:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - spm-network
+
+volumes:
+  redis_data:
+    name: spm_redis_data
+  postgres_data:
+    name: spm_postgres_data
+  spm_uploads:
+    name: spm_uploads
+  spm_logs:
+    name: spm_logs
+  spm_vapid:
+    name: spm_vapid
+
+networks:
+  spm-network:
+    driver: bridge
+    name: spm_network
