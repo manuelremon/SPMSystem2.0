@@ -7,7 +7,7 @@
  * Sprint 71
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -33,31 +33,33 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 
 const SEVERIDAD_COLORS = {
-  critical: 'error',
-  high: 'warning',
-  medium: 'default',
-  low: 'info',
+  critica: 'error',
+  alta: 'warning',
+  media: 'default',
+  baja: 'info',
 };
 
 const SEVERIDAD_LABELS = {
-  critical: 'Critica',
-  high: 'Alta',
-  medium: 'Media',
-  low: 'Baja',
+  critica: 'Critica',
+  alta: 'Alta',
+  media: 'Media',
+  baja: 'Baja',
 };
 
 const ESTADO_COLORS = {
-  active: 'error',
-  in_progress: 'warning',
+  draft: 'info',
+  initiated: 'error',
+  en_proceso: 'warning',
   completed: 'success',
-  cancelled: 'default',
+  cerrado: 'default',
 };
 
 const ESTADO_LABELS = {
-  active: 'Activo',
-  in_progress: 'En Progreso',
+  draft: 'Borrador',
+  initiated: 'Iniciado',
+  en_proceso: 'En Proceso',
   completed: 'Completado',
-  cancelled: 'Cancelado',
+  cerrado: 'Cerrado',
 };
 
 const RECUPERACION_COLORS = {
@@ -79,41 +81,52 @@ export default function RecallDetail() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
 
   const [recall, setRecall] = useState(null);
   const [loading, setLoading] = useState(true);
   const [recovering, setRecovering] = useState({});
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = useCallback(() => setReloadTick((n) => n + 1), []);
 
-  const fetchRecall = useCallback(async () => {
-    try {
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
       setLoading(true);
-      const res = await api.get(`/lots/recalls/${id}`);
-      if (res.data?.ok) {
-        setRecall(res.data.recall || res.data);
+      try {
+        const res = await api.get(`/lots/recalls/${id}`);
+        if (!cancelled && res.data?.ok) {
+          // Response is flat (no recall wrapper), remove 'ok' key from the recall object
+          const data = { ...res.data };
+          delete data.ok;
+          setRecall(data);
+        }
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('recall_error_detail', 'Error al cargar recall'));
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch {
-      toast.error(t('recall_error_detail', 'Error al cargar recall'));
-    } finally {
-      setLoading(false);
-    }
-  }, [id, t, toast]);
-
-  useEffect(() => { fetchRecall(); }, [fetchRecall]);
+    })();
+    return () => { cancelled = true; };
+  }, [id, reloadTick]);
 
   const handleRecover = useCallback(async (loteId) => {
     setRecovering((prev) => ({ ...prev, [loteId]: true }));
     try {
       const res = await api.put(`/lots/recalls/${id}/lotes/${loteId}/recover`);
       if (res.data?.ok) {
-        toast.success(t('recall_lote_recovered', 'Lote marcado como recuperado'));
-        fetchRecall();
+        toastRef.current.success(tRef.current('recall_lote_recovered', 'Lote marcado como recuperado'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('recall_error_recover', 'Error al recuperar lote'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('recall_error_recover', 'Error al recuperar lote'));
     } finally {
       setRecovering((prev) => ({ ...prev, [loteId]: false }));
     }
-  }, [id, fetchRecall, t, toast]);
+  }, [id, reload]);
 
   const loteColumnDefs = useMemo(() => [
     { field: 'numero_lote', headerName: t('recall_col_lote', 'Numero Lote'), flex: 1, minWidth: 140 },
@@ -181,16 +194,16 @@ export default function RecallDetail() {
     return (
       <Box sx={{ p: 4 }}>
         <Alert severity="error">{t('recall_not_found', 'Recall no encontrado')}</Alert>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/operations/lots')} sx={{ mt: 2 }}>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/operations/recalls')} sx={{ mt: 2 }}>
           {t('common_volver', 'Volver')}
         </Button>
       </Box>
     );
   }
 
-  const estado = recall.estado || 'active';
-  const severidad = recall.severidad || 'medium';
-  const lotesAfectados = recall.lotes_afectados || recall.lotes || [];
+  const estado = recall.estado || 'draft';
+  const severidad = recall.severidad || 'alta';
+  const lotesAfectados = recall.lotes || [];
   const cantidadTotal = recall.cantidad_total_afectada ?? lotesAfectados.reduce((sum, l) => sum + (l.cantidad_afectada || 0), 0);
   const totalLotes = lotesAfectados.length;
   const recoveredCount = recall.recovered_count ?? lotesAfectados.filter((l) => l.estado_recuperacion === 'recovered').length;
@@ -198,7 +211,7 @@ export default function RecallDetail() {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Back */}
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/operations/lots')} color="inherit" sx={{ alignSelf: 'flex-start' }}>
+      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/operations/recalls')} color="inherit" sx={{ alignSelf: 'flex-start' }}>
         {t('common_volver', 'Volver')}
       </Button>
 
@@ -209,7 +222,7 @@ export default function RecallDetail() {
             <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
               <ReportProblemIcon sx={{ color: 'error.main' }} />
               <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                {recall.numero || `RECALL-${recall.id}`}
+                {recall.numero_recall || `RECALL-${recall.id}`}
               </Typography>
               <Chip
                 size="small"

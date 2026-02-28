@@ -248,7 +248,6 @@ def aprobar_transferencia(transferencia_id: int, user_id: int) -> dict:
                 UPDATE transferencia_inventario
                 SET estado = 'approved',
                     aprobado_por = %s,
-                    fecha_aprobacion = NOW(),
                     updated_at = NOW()
                 WHERE id = %s
                 RETURNING *
@@ -259,7 +258,6 @@ def aprobar_transferencia(transferencia_id: int, user_id: int) -> dict:
                 UPDATE transferencia_inventario
                 SET estado = 'approved',
                     aprobado_por = ?,
-                    fecha_aprobacion = CURRENT_TIMESTAMP,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             """, (user_id, transferencia_id))

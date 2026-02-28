@@ -6,7 +6,7 @@
  * Sprint 71
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -114,6 +114,10 @@ const INITIAL_FORM = {
 export default function ECOList() {
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
   const navigate = useNavigate();
 
   const [ecos, setEcos] = useState([]);
@@ -125,44 +129,40 @@ export default function ECOList() {
     prioridad: '',
     material: '',
   });
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
   // Create dialog
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchECOs = useCallback(async () => {
-    try {
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
       setLoading(true);
-      const params = { page: 1, per_page: 200 };
-      if (filters.estado) params.estado = filters.estado;
-      if (filters.tipo) params.tipo = filters.tipo;
-      if (filters.prioridad) params.prioridad = filters.prioridad;
-      if (filters.material) params.material = filters.material;
-      const res = await api.get('/eco', { params });
-      if (res.data?.ok) {
-        setEcos(res.data.ecos || res.data.items || []);
+      try {
+        const params = { page: 1, per_page: 200 };
+        if (filters.estado) params.estado = filters.estado;
+        if (filters.tipo) params.tipo = filters.tipo;
+        if (filters.prioridad) params.prioridad = filters.prioridad;
+        if (filters.material) params.material = filters.material;
+        const [ecoRes, kpiRes] = await Promise.all([
+          api.get('/eco', { params }),
+          api.get('/eco/kpis')
+        ]);
+        if (cancelled) return;
+        if (ecoRes.data?.ok) setEcos(ecoRes.data.ecos || ecoRes.data.items || []);
+        if (kpiRes.data?.ok) setKpis(kpiRes.data.kpis || kpiRes.data);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('eco_error_load', 'Error al cargar ECOs'));
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch {
-      toast.error(t('eco_error_load', 'Error al cargar ECOs'));
-    } finally {
-      setLoading(false);
-    }
-  }, [filters, t, toast]);
-
-  const fetchKPIs = useCallback(async () => {
-    try {
-      const res = await api.get('/eco/kpis');
-      if (res.data?.ok) {
-        setKpis(res.data.kpis || res.data);
-      }
-    } catch {
-      // Non-critical
-    }
-  }, []);
-
-  useEffect(() => { fetchECOs(); }, [fetchECOs]);
-  useEffect(() => { fetchKPIs(); }, [fetchKPIs]);
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [filters, reloadTick]);
 
   const handleFilterChange = useCallback((field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
@@ -174,7 +174,7 @@ export default function ECOList() {
 
   const handleCreate = useCallback(async () => {
     if (!form.titulo.trim()) {
-      toast.warning(t('eco_required_titulo', 'Complete el titulo'));
+      toastRef.current.warning(tRef.current('eco_required_titulo', 'Complete el titulo'));
       return;
     }
     setSubmitting(true);
@@ -185,18 +185,17 @@ export default function ECOList() {
       };
       const res = await api.post('/eco', payload);
       if (res.data?.ok) {
-        toast.success(t('eco_created', 'ECO creada'));
+        toastRef.current.success(tRef.current('eco_created', 'ECO creada'));
         setDialogOpen(false);
         setForm(INITIAL_FORM);
-        fetchECOs();
-        fetchKPIs();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('eco_error_create', 'Error al crear ECO'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('eco_error_create', 'Error al crear ECO'));
     } finally {
       setSubmitting(false);
     }
-  }, [form, t, toast, fetchECOs, fetchKPIs]);
+  }, [form]);
 
   const columnDefs = useMemo(() => [
     { field: 'numero_eco', headerName: t('eco_col_numero', 'N. ECO'), width: 130 },

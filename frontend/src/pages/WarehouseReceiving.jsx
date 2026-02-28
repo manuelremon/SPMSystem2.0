@@ -5,7 +5,7 @@
  * dock assignment dialog, and times registration.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
@@ -32,11 +32,17 @@ import DockBoard from '../components/DockBoard';
 export default function WarehouseReceiving() {
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
 
   const [docks, setDocks] = useState([]);
   const [kpis, setKpis] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
   // Assign dialog
   const [assignOpen, setAssignOpen] = useState(false);
@@ -52,79 +58,71 @@ export default function WarehouseReceiving() {
   const [newDockOpen, setNewDockOpen] = useState(false);
   const [newDockForm, setNewDockForm] = useState({ numero_dock: '', almacen: '', capacidad_pallets: '' });
 
-  const fetchDocks = useCallback(async () => {
-    try {
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
       setLoading(true);
-      const res = await api.get('/warehouse/docks');
-      if (res.data?.ok) {
-        setDocks(res.data.docks || res.data.items || []);
+      try {
+        const [docksRes, kpiRes] = await Promise.all([
+          api.get('/warehouse/docks'),
+          api.get('/warehouse/kpis'),
+        ]);
+        if (cancelled) return;
+        if (docksRes.data?.ok) setDocks(docksRes.data.docks || docksRes.data.items || []);
+        if (kpiRes.data?.ok) setKpis(kpiRes.data);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('warehouse_error_docks', 'Error al cargar docks'));
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch {
-      toast.error(t('warehouse_error_docks', 'Error al cargar docks'));
-    } finally {
-      setLoading(false);
-    }
-  }, [t, toast]);
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [reloadTick]);
 
-  const fetchKpis = useCallback(async () => {
-    try {
-      const res = await api.get('/warehouse/kpis');
-      if (res.data?.ok) {
-        setKpis(res.data);
-      }
-    } catch {
-      // Non-critical
-    }
-  }, []);
-
-  useEffect(() => { fetchDocks(); }, [fetchDocks]);
-  useEffect(() => { fetchKpis(); }, [fetchKpis]);
-
-  const handleAssign = useCallback(async () => {
+  const handleAssign = async () => {
     if (!recepcionId) {
-      toast.warning(t('warehouse_recepcion_required', 'Ingrese ID de recepcion'));
+      toastRef.current.warning(tRef.current('warehouse_recepcion_required', 'Ingrese ID de recepcion'));
       return;
     }
     setProcessing(true);
     try {
       const res = await api.post(`/warehouse/docks/${assignDockId}/assign/${recepcionId}`);
       if (res.data?.ok) {
-        toast.success(t('warehouse_assigned', 'Dock asignado'));
+        toastRef.current.success(tRef.current('warehouse_assigned', 'Dock asignado'));
         setAssignOpen(false);
         setRecepcionId('');
         setAssignDockId(null);
-        fetchDocks();
-        fetchKpis();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('warehouse_error_assign', 'Error al asignar dock'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('warehouse_error_assign', 'Error al asignar dock'));
     } finally {
       setProcessing(false);
     }
-  }, [assignDockId, recepcionId, fetchDocks, fetchKpis, t, toast]);
+  };
 
-  const handleUpdateTimes = useCallback(async () => {
+  const handleUpdateTimes = async () => {
     setProcessing(true);
     try {
       const res = await api.put(`/warehouse/docks/${timesDockId}/times`, timesForm);
       if (res.data?.ok) {
-        toast.success(t('warehouse_times_updated', 'Tiempos actualizados'));
+        toastRef.current.success(tRef.current('warehouse_times_updated', 'Tiempos actualizados'));
         setTimesOpen(false);
         setTimesForm({ inicio_descarga: '', fin_descarga: '' });
         setTimesDockId(null);
-        fetchDocks();
-        fetchKpis();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('warehouse_error_times', 'Error al actualizar tiempos'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('warehouse_error_times', 'Error al actualizar tiempos'));
     } finally {
       setProcessing(false);
     }
-  }, [timesDockId, timesForm, fetchDocks, fetchKpis, t, toast]);
+  };
 
-  const handleCreateDock = useCallback(async () => {
+  const handleCreateDock = async () => {
     if (!newDockForm.numero_dock || !newDockForm.almacen) {
-      toast.warning(t('warehouse_dock_required', 'Complete numero y almacen'));
+      toastRef.current.warning(tRef.current('warehouse_dock_required', 'Complete numero y almacen'));
       return;
     }
     setProcessing(true);
@@ -134,17 +132,17 @@ export default function WarehouseReceiving() {
         capacidad_pallets: newDockForm.capacidad_pallets ? Number(newDockForm.capacidad_pallets) : null,
       });
       if (res.data?.ok) {
-        toast.success(t('warehouse_dock_created', 'Dock creado'));
+        toastRef.current.success(tRef.current('warehouse_dock_created', 'Dock creado'));
         setNewDockOpen(false);
         setNewDockForm({ numero_dock: '', almacen: '', capacidad_pallets: '' });
-        fetchDocks();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('warehouse_error_create_dock', 'Error al crear dock'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('warehouse_error_create_dock', 'Error al crear dock'));
     } finally {
       setProcessing(false);
     }
-  }, [newDockForm, fetchDocks, t, toast]);
+  };
 
   const handleDockAssign = useCallback((dock) => {
     setAssignDockId(dock.id);

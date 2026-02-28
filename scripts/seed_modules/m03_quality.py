@@ -49,9 +49,9 @@ NCR_ESTADOS = ["abierta", "en_investigacion", "accion_correctiva", "cerrada", "r
 CAPA_TIPOS = ["correctiva", "preventiva"]
 CAPA_ESTADOS = ["draft", "open", "implementing", "verification", "closed", "cancelled"]
 
-RECALL_SEVERIDADES = ["low", "medium", "high"]
-RECALL_TIPOS = ["voluntary", "mandatory"]
-RECALL_ESTADOS = ["initiated", "in_progress", "completed", "closed"]
+RECALL_SEVERIDADES = ["baja", "media", "alta", "critica"]
+RECALL_TIPOS = ["voluntario", "mandatorio"]
+RECALL_ESTADOS = ["initiated", "en_proceso", "completed", "cerrado"]
 ESTADOS_RECUPERACION = ["pending", "identified", "retrieved", "disposed"]
 
 # NCR state machine transitions (ordered by workflow)
@@ -378,7 +378,13 @@ class QualitySeed(SeedModule):
     # recall_lote  (~15 records, 3 per recall)
     # ------------------------------------------------------------------
     def _seed_recall_lotes(self, recall_ids):
+        # Get real lote IDs for assignment
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT id FROM lote ORDER BY id")
+        lote_ids = [r[0] for r in cursor.fetchall()]
+
         count = 0
+        lote_idx = 0
         for recall_id in recall_ids:
             for _ in range(3):
                 estado_recuperacion = pick(ESTADOS_RECUPERACION)
@@ -386,9 +392,12 @@ class QualitySeed(SeedModule):
                 if estado_recuperacion == "recuperado":
                     fecha_recuperacion = rand_past_date(days_min=1, days_max=45)
 
+                assigned_lote_id = lote_ids[lote_idx % len(lote_ids)] if lote_ids else None
+                lote_idx += 1
+
                 row = {
                     "recall_id": recall_id,
-                    "lote_id": None,
+                    "lote_id": assigned_lote_id,
                     "cantidad_afectada": round(random.uniform(1, 1000), 2),
                     "ubicacion_actual": f"{self.refs.rand_centro()} / {self.refs.rand_almacen()}",
                     "estado_recuperacion": estado_recuperacion,

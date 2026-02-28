@@ -6,7 +6,7 @@
  * Sprint 61
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
@@ -42,35 +42,40 @@ const INITIAL_FORM = {
 export default function FreightTariffs() {
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
 
   const [tariffs, setTariffs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterCuit, setFilterCuit] = useState('');
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
   // Create dialog
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchTariffs = useCallback(async () => {
-    try {
-      setLoading(true);
-      const params = {};
-      if (filterCuit) params.transportista_cuit = filterCuit;
-      const res = await api.get('/freight/tariffs', { params });
-      if (res.data?.ok) {
-        setTariffs(res.data.tariffs || res.data.items || []);
-      }
-    } catch {
-      toast.error(t('tariff_error_load', 'Error al cargar tarifas'));
-    } finally {
-      setLoading(false);
-    }
-  }, [filterCuit, t, toast]);
-
   useEffect(() => {
-    fetchTariffs();
-  }, [fetchTariffs]);
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const params = {};
+        if (filterCuit) params.transportista_cuit = filterCuit;
+        const res = await api.get('/freight/tariffs', { params });
+        if (!cancelled && res.data?.ok) setTariffs(res.data.tariffs || res.data.items || []);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('tariff_error_load', 'Error al cargar tarifas'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [filterCuit, reloadTick]);
 
   const handleFormChange = useCallback((field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -78,7 +83,7 @@ export default function FreightTariffs() {
 
   const handleSubmit = useCallback(async () => {
     if (!form.transportista_cuit.trim() || !form.ruta_origen.trim() || !form.ruta_destino.trim()) {
-      toast.warning(t('tariff_required', 'Complete transportista, origen y destino'));
+      toastRef.current.warning(tRef.current('tariff_required', 'Complete transportista, origen y destino'));
       return;
     }
     setSubmitting(true);
@@ -91,17 +96,17 @@ export default function FreightTariffs() {
       };
       const res = await api.post('/freight/tariffs', payload);
       if (res.data?.ok) {
-        toast.success(t('tariff_created', 'Tarifa registrada'));
+        toastRef.current.success(tRef.current('tariff_created', 'Tarifa registrada'));
         setDialogOpen(false);
         setForm(INITIAL_FORM);
-        fetchTariffs();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('tariff_error_create', 'Error al registrar tarifa'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('tariff_error_create', 'Error al registrar tarifa'));
     } finally {
       setSubmitting(false);
     }
-  }, [form, t, toast, fetchTariffs]);
+  }, [form]);
 
   const columnDefs = useMemo(() => [
     { field: 'transportista_cuit', headerName: t('tariff_transportista', 'Transportista CUIT'), flex: 1, minWidth: 150 },

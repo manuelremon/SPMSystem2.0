@@ -5,7 +5,7 @@
  * and paginated table. Allows creating new returns or from NCR.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -77,6 +77,11 @@ const TIPO_COLORS = {
 export default function ReturnsList() {
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
+
   const navigate = useNavigate();
 
   const [returns, setReturns] = useState([]);
@@ -84,43 +89,39 @@ export default function ReturnsList() {
   const [kpis, setKpis] = useState(null);
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({ estado: '', tipo: '', proveedor_cuit: '' });
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
   // NCR dialog
   const [ncrOpen, setNcrOpen] = useState(false);
   const [ncrId, setNcrId] = useState('');
   const [creatingFromNcr, setCreatingFromNcr] = useState(false);
 
-  const fetchReturns = useCallback(async () => {
-    try {
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
       setLoading(true);
-      const params = { page, per_page: 20 };
-      if (filters.estado) params.estado = filters.estado;
-      if (filters.tipo) params.tipo = filters.tipo;
-      if (filters.proveedor_cuit) params.proveedor_cuit = filters.proveedor_cuit;
-      const res = await api.get('/returns', { params });
-      if (res.data?.ok) {
-        setReturns(res.data.returns || res.data.items || []);
+      try {
+        const params = { page, per_page: 20 };
+        if (filters.estado) params.estado = filters.estado;
+        if (filters.tipo) params.tipo = filters.tipo;
+        if (filters.proveedor_cuit) params.proveedor_cuit = filters.proveedor_cuit;
+        const [retRes, kpiRes] = await Promise.all([
+          api.get('/returns', { params }),
+          api.get('/returns/kpis')
+        ]);
+        if (cancelled) return;
+        if (retRes.data?.ok) setReturns(retRes.data.returns || retRes.data.items || []);
+        if (kpiRes.data?.ok) setKpis(kpiRes.data);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('returns_error_load', 'Error al cargar devoluciones'));
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch {
-      toast.error(t('returns_error_load', 'Error al cargar devoluciones'));
-    } finally {
-      setLoading(false);
-    }
-  }, [page, filters, t, toast]);
-
-  const fetchKpis = useCallback(async () => {
-    try {
-      const res = await api.get('/returns/kpis');
-      if (res.data?.ok) {
-        setKpis(res.data);
-      }
-    } catch {
-      // Non-critical
-    }
-  }, []);
-
-  useEffect(() => { fetchReturns(); }, [fetchReturns]);
-  useEffect(() => { fetchKpis(); }, [fetchKpis]);
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [page, filters, reloadTick]);
 
   const handleFilterChange = useCallback((field, value) => {
     setFilters(prev => ({ ...prev, [field]: value }));
@@ -129,24 +130,24 @@ export default function ReturnsList() {
 
   const handleCreateFromNcr = useCallback(async () => {
     if (!ncrId) {
-      toast.warning(t('returns_ncr_required', 'Ingrese ID de NCR'));
+      toastRef.current.warning(tRef.current('returns_ncr_required', 'Ingrese ID de NCR'));
       return;
     }
     setCreatingFromNcr(true);
     try {
       const res = await api.post('/returns/from-ncr', { ncr_id: Number(ncrId) });
       if (res.data?.ok) {
-        toast.success(t('returns_created_ncr', 'Devolucion creada desde NCR'));
+        toastRef.current.success(tRef.current('returns_created_ncr', 'Devolucion creada desde NCR'));
         setNcrOpen(false);
         setNcrId('');
-        fetchReturns();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('returns_error_ncr', 'Error al crear desde NCR'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('returns_error_ncr', 'Error al crear desde NCR'));
     } finally {
       setCreatingFromNcr(false);
     }
-  }, [ncrId, fetchReturns, t, toast]);
+  }, [ncrId]);
 
   const columnDefs = useMemo(() => [
     { field: 'numero_rma', headerName: t('returns_numero', 'N. RMA'), flex: 1, minWidth: 140 },

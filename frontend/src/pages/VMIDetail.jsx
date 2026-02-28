@@ -6,7 +6,7 @@
  * Sprint 71
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -43,37 +43,40 @@ import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 
 const ESTADO_COLORS = {
   active: 'success',
-  paused: 'warning',
+  suspended: 'warning',
   draft: 'default',
-  closed: 'error',
+  terminated: 'error',
 };
 
 const ESTADO_LABELS = {
   active: 'Activo',
-  paused: 'Pausado',
+  suspended: 'Suspendido',
   draft: 'Borrador',
-  closed: 'Cerrado',
+  terminated: 'Terminado',
 };
 
 const REPO_ESTADO_COLORS = {
-  pending: 'warning',
+  suggested: 'warning',
   approved: 'success',
   rejected: 'error',
-  completed: 'info',
+  in_progress: 'info',
+  delivered: 'default',
+  cancelled: 'error',
 };
 
 const REPO_ESTADO_LABELS = {
-  pending: 'Pendiente',
+  suggested: 'Sugerida',
   approved: 'Aprobada',
   rejected: 'Rechazada',
-  completed: 'Completada',
+  in_progress: 'En Proceso',
+  delivered: 'Entregada',
+  cancelled: 'Cancelada',
 };
 
 const ALERTA_COLORS = {
   ok: 'success',
-  low: 'warning',
-  critical: 'error',
-  overstock: 'info',
+  reposicion_sugerida: 'warning',
+  stock_bajo: 'error',
 };
 
 export default function VMIDetail() {
@@ -99,21 +102,37 @@ export default function VMIDetail() {
   // Repo action processing
   const [processingRepo, setProcessingRepo] = useState({});
 
-  const fetchPrograma = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await api.get(`/vmi/programas/${id}`);
-      if (res.data?.ok) {
-        setPrograma(res.data.programa || res.data);
-      }
-    } catch {
-      toast.error(t('vmi_error_detail', 'Error al cargar programa VMI'));
-    } finally {
-      setLoading(false);
-    }
-  }, [id, t, toast]);
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
+  const tRef = useRef(t);
+  tRef.current = t;
 
-  useEffect(() => { fetchPrograma(); }, [fetchPrograma]);
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = useCallback(() => setReloadTick((n) => n + 1), []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadPrograma() {
+      setLoading(true);
+      try {
+        const { data } = await api.get(`/vmi/programas/${id}`);
+        if (!cancelled && data?.ok) {
+          const prog = data.programa || {};
+          prog.inventario = data.inventario || [];
+          prog.reposiciones = data.reposiciones || [];
+          prog.kpis = data.kpis || [];
+          prog.inventario_actual = data.inventario_actual || {};
+          setPrograma(prog);
+        }
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('vmi_error_detail', 'Error al cargar programa VMI'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    loadPrograma();
+    return () => { cancelled = true; };
+  }, [id, reloadTick]);
 
   const handleInventorySubmit = useCallback(async () => {
     setSubmitting(true);
@@ -125,36 +144,36 @@ export default function VMIDetail() {
       if (inventoryForm.consumo_diario) payload.consumo_diario = Number(inventoryForm.consumo_diario);
       const res = await api.post(`/vmi/programas/${id}/inventario`, payload);
       if (res.data?.ok) {
-        toast.success(t('vmi_inventory_updated', 'Inventario actualizado'));
+        toastRef.current.success(tRef.current('vmi_inventory_updated', 'Inventario actualizado'));
         setInventoryDialogOpen(false);
         setInventoryForm({ stock_disponible: '', reservado: '', en_transito: '', consumo_diario: '' });
-        fetchPrograma();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('vmi_error_inventory', 'Error al actualizar inventario'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('vmi_error_inventory', 'Error al actualizar inventario'));
     } finally {
       setSubmitting(false);
     }
-  }, [id, inventoryForm, fetchPrograma, t, toast]);
+  }, [id, inventoryForm, reload]);
 
   const handleRepoAction = useCallback(async (repoId, action) => {
     setProcessingRepo((prev) => ({ ...prev, [repoId]: action }));
     try {
       const res = await api.put(`/vmi/reposiciones/${repoId}/${action}`);
       if (res.data?.ok) {
-        toast.success(
+        toastRef.current.success(
           action === 'approve'
-            ? t('vmi_repo_approved', 'Reposicion aprobada')
-            : t('vmi_repo_rejected', 'Reposicion rechazada')
+            ? tRef.current('vmi_repo_approved', 'Reposicion aprobada')
+            : tRef.current('vmi_repo_rejected', 'Reposicion rechazada')
         );
-        fetchPrograma();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('vmi_error_repo_action', 'Error al procesar reposicion'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('vmi_error_repo_action', 'Error al procesar reposicion'));
     } finally {
       setProcessingRepo((prev) => ({ ...prev, [repoId]: null }));
     }
-  }, [fetchPrograma, t, toast]);
+  }, [reload]);
 
   const inventarioColumnDefs = useMemo(() => [
     {
@@ -164,11 +183,11 @@ export default function VMIDetail() {
       valueFormatter: (p) => formatDate(p.value),
     },
     { field: 'stock_disponible', headerName: t('vmi_col_stock', 'Stock Disponible'), width: 140, type: 'numericColumn' },
-    { field: 'reservado', headerName: t('vmi_col_reservado', 'Reservado'), width: 110, type: 'numericColumn' },
-    { field: 'en_transito', headerName: t('vmi_col_transito', 'En Transito'), width: 120, type: 'numericColumn' },
-    { field: 'consumo_diario', headerName: t('vmi_col_consumo', 'Consumo Diario'), width: 130, type: 'numericColumn' },
+    { field: 'stock_reservado', headerName: t('vmi_col_reservado', 'Reservado'), width: 110, type: 'numericColumn' },
+    { field: 'stock_en_transito', headerName: t('vmi_col_transito', 'En Transito'), width: 120, type: 'numericColumn' },
+    { field: 'consumo_diario_promedio', headerName: t('vmi_col_consumo', 'Consumo Diario'), width: 130, type: 'numericColumn' },
     { field: 'dias_inventario', headerName: t('vmi_col_dias', 'Dias Inventario'), width: 130, type: 'numericColumn' },
-    { field: 'proyectado_7d', headerName: t('vmi_col_proyectado', 'Proyectado 7d'), width: 130, type: 'numericColumn' },
+    { field: 'stock_proyectado_7d', headerName: t('vmi_col_proyectado', 'Proyectado 7d'), width: 130, type: 'numericColumn' },
     {
       field: 'alerta',
       headerName: t('vmi_col_alerta', 'Alerta'),
@@ -204,7 +223,7 @@ export default function VMIDetail() {
       filter: false,
       cellRenderer: (p) => {
         const row = p.data;
-        if (!row || row.estado !== 'pending') return null;
+        if (!row || row.estado !== 'suggested') return null;
         const isProcessing = processingRepo[row.id];
         return (
           <Stack direction="row" gap={0.5} alignItems="center" sx={{ height: '100%' }}>
@@ -239,11 +258,14 @@ export default function VMIDetail() {
     { field: 'fill_rate', headerName: t('vmi_col_fill_rate', 'Fill Rate (%)'), width: 130, type: 'numericColumn',
       valueFormatter: (p) => p.value != null ? `${Number(p.value).toFixed(1)}%` : '-',
     },
-    { field: 'stockout_days', headerName: t('vmi_col_stockout', 'Dias Stockout'), width: 130, type: 'numericColumn' },
-    { field: 'turnover', headerName: t('vmi_col_turnover', 'Rotacion'), width: 120, type: 'numericColumn',
+    { field: 'dias_stockout', headerName: t('vmi_col_stockout', 'Dias Stockout'), width: 130, type: 'numericColumn' },
+    { field: 'inventory_turnover', headerName: t('vmi_col_turnover', 'Rotacion'), width: 120, type: 'numericColumn',
       valueFormatter: (p) => p.value != null ? Number(p.value).toFixed(2) : '-',
     },
-    { field: 'reposiciones_count', headerName: t('vmi_col_repos', 'Reposiciones'), width: 120, type: 'numericColumn' },
+    { field: 'lead_time_avg', headerName: t('vmi_col_lead_time', 'Lead Time Prom.'), width: 130, type: 'numericColumn' },
+    { field: 'costo_almacenamiento', headerName: t('vmi_col_costo', 'Costo Almac.'), width: 130, type: 'numericColumn',
+      valueFormatter: (p) => p.value != null ? `$${Number(p.value).toLocaleString()}` : '-',
+    },
   ], [t]);
 
   if (loading) {
@@ -293,9 +315,9 @@ export default function VMIDetail() {
               <Chip size="small" label={programa.tipo_reposicion || '-'} variant="outlined" />
             </Stack>
             <Stack spacing={0.5} sx={{ color: 'text.secondary' }}>
-              <Typography variant="body2">{t('vmi_proveedor', 'Proveedor')}: <strong>{programa.proveedor_nombre || programa.proveedor_id}</strong></Typography>
+              <Typography variant="body2">{t('vmi_proveedor', 'Proveedor')}: <strong>{programa.proveedor_nombre || programa.proveedor_cuit}</strong></Typography>
               <Typography variant="body2">{t('vmi_material', 'Material')}: <strong>{programa.material_codigo}</strong></Typography>
-              <Typography variant="body2">{t('vmi_centro', 'Centro')}: <strong>{programa.centro}</strong></Typography>
+              <Typography variant="body2">{t('vmi_centro', 'Centro')}: <strong>{programa.centro_id}</strong></Typography>
             </Stack>
           </Box>
           <Button
@@ -328,10 +350,10 @@ export default function VMIDetail() {
           <Stack direction={{ xs: 'column', md: 'row' }} gap={3}>
             <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'action.hover', borderRadius: 2 }}>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('vmi_parametros', 'Parametros')}</Typography>
-              <Typography variant="body2">{t('vmi_col_min', 'Stock Minimo')}: <strong>{programa.stock_minimo ?? '-'}</strong></Typography>
-              <Typography variant="body2">{t('vmi_col_max', 'Stock Maximo')}: <strong>{programa.stock_maximo ?? '-'}</strong></Typography>
+              <Typography variant="body2">{t('vmi_col_min', 'Stock Minimo')}: <strong>{programa.min_stock ?? '-'}</strong></Typography>
+              <Typography variant="body2">{t('vmi_col_max', 'Stock Maximo')}: <strong>{programa.max_stock ?? '-'}</strong></Typography>
               <Typography variant="body2">{t('vmi_col_rop', 'Punto de Pedido')}: <strong>{programa.punto_pedido ?? '-'}</strong></Typography>
-              <Typography variant="body2">{t('vmi_lead_time', 'Lead Time')}: <strong>{programa.lead_time_dias ?? '-'} {t('vmi_dias', 'dias')}</strong></Typography>
+              <Typography variant="body2">{t('vmi_lead_time', 'Frecuencia')}: <strong>{programa.frecuencia_dias ?? '-'} {t('vmi_dias', 'dias')}</strong></Typography>
             </Paper>
             <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'action.hover', borderRadius: 2 }}>
               <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
@@ -339,9 +361,9 @@ export default function VMIDetail() {
                 <Typography variant="subtitle2">{t('vmi_snapshot', 'Inventario Actual')}</Typography>
               </Stack>
               <Typography variant="body2">{t('vmi_col_stock', 'Stock Disponible')}: <strong>{snapshot.stock_disponible ?? '-'}</strong></Typography>
-              <Typography variant="body2">{t('vmi_col_reservado', 'Reservado')}: <strong>{snapshot.reservado ?? '-'}</strong></Typography>
-              <Typography variant="body2">{t('vmi_col_transito', 'En Transito')}: <strong>{snapshot.en_transito ?? '-'}</strong></Typography>
-              <Typography variant="body2">{t('vmi_col_consumo', 'Consumo Diario')}: <strong>{snapshot.consumo_diario ?? '-'}</strong></Typography>
+              <Typography variant="body2">{t('vmi_col_reservado', 'Reservado')}: <strong>{snapshot.stock_reservado ?? '-'}</strong></Typography>
+              <Typography variant="body2">{t('vmi_col_transito', 'En Transito')}: <strong>{snapshot.stock_en_transito ?? '-'}</strong></Typography>
+              <Typography variant="body2">{t('vmi_col_consumo', 'Consumo Diario')}: <strong>{snapshot.consumo_diario_promedio ?? '-'}</strong></Typography>
               {snapshot.alerta && (
                 <Stack direction="row" alignItems="center" gap={0.5} sx={{ mt: 1 }}>
                   <WarningAmberIcon fontSize="small" color="warning" />

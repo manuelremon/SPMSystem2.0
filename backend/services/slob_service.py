@@ -33,10 +33,20 @@ def generar_snapshot_aging():
         cursor.execute("DELETE FROM inventario_aging")
 
         # Query para obtener stock con último movimiento
-        # Nota: Asumimos que consumo_historico tiene fecha_movimiento
+        # Nota: stock puede tener duplicados por material+almacen, se agrupan con SUM
         if is_pg:
             query = """
-            WITH ultimo_movimiento AS (
+            WITH stock_agrupado AS (
+                SELECT
+                    material,
+                    almacen,
+                    SUM(stock) as cantidad,
+                    SUM(stock_valorizado) as valor
+                FROM stock
+                WHERE stock > 0
+                GROUP BY material, almacen
+            ),
+            ultimo_movimiento AS (
                 SELECT
                     material,
                     almacen,
@@ -47,21 +57,30 @@ def generar_snapshot_aging():
             SELECT
                 s.material as material_codigo,
                 s.almacen,
-                s.stock as cantidad,
-                s.stock_valorizado as valor,
+                s.cantidad,
+                s.valor,
                 um.fecha_ultimo_movimiento,
                 CASE
                     WHEN um.fecha_ultimo_movimiento IS NULL THEN 365
                     ELSE EXTRACT(DAY FROM CURRENT_TIMESTAMP - um.fecha_ultimo_movimiento::TIMESTAMP)
                 END as dias_sin_movimiento
-            FROM stock s
+            FROM stock_agrupado s
             LEFT JOIN ultimo_movimiento um
                 ON s.material = um.material AND s.almacen = um.almacen
-            WHERE s.stock > 0
             """
         else:
             query = """
-            WITH ultimo_movimiento AS (
+            WITH stock_agrupado AS (
+                SELECT
+                    material,
+                    almacen,
+                    SUM(stock) as cantidad,
+                    SUM(stock_valorizado) as valor
+                FROM stock
+                WHERE stock > 0
+                GROUP BY material, almacen
+            ),
+            ultimo_movimiento AS (
                 SELECT
                     material,
                     almacen,
@@ -72,17 +91,16 @@ def generar_snapshot_aging():
             SELECT
                 s.material as material_codigo,
                 s.almacen,
-                s.stock as cantidad,
-                s.stock_valorizado as valor,
+                s.cantidad,
+                s.valor,
                 um.fecha_ultimo_movimiento,
                 CASE
                     WHEN um.fecha_ultimo_movimiento IS NULL THEN 365
                     ELSE CAST((julianday('now') - julianday(um.fecha_ultimo_movimiento)) AS INTEGER)
                 END as dias_sin_movimiento
-            FROM stock s
+            FROM stock_agrupado s
             LEFT JOIN ultimo_movimiento um
                 ON s.material = um.material AND s.almacen = um.almacen
-            WHERE s.stock > 0
             """
 
         cursor.execute(query)
@@ -189,13 +207,15 @@ def obtener_inventario_aging(filtros=None):
     cursor.execute(f"SELECT COUNT(*) FROM inventario_aging WHERE {where_sql}", params)
     total = cursor.fetchone()[0]
 
-    # Get paginated results
+    # Get paginated results — use subquery for descripcion to avoid JOIN duplicates
     query = f"""
     SELECT
-        ia.*,
-        m.descripcion as material_descripcion
+        ia.id, ia.material_codigo, ia.almacen, ia.cantidad, ia.valor,
+        ia.fecha_ultimo_movimiento, ia.dias_sin_movimiento,
+        ia.categoria_aging, ia.es_slob, ia.snapshot_date,
+        (SELECT m.descripcion FROM materiales_bbdd m
+         WHERE m.codigo_material = ia.material_codigo LIMIT 1) as material_descripcion
     FROM inventario_aging ia
-    LEFT JOIN materiales_bbdd m ON ia.material_codigo = m.codigo_material
     WHERE {where_sql}
     ORDER BY ia.dias_sin_movimiento DESC, ia.valor DESC
     LIMIT %s OFFSET %s
@@ -518,17 +538,16 @@ def obtener_disposiciones(filtros=None):
     cursor.execute(f"SELECT COUNT(*) FROM slob_disposicion sd WHERE {where_sql}", params)
     total = cursor.fetchone()[0]
 
-    # Get paginated results
+    # Get paginated results — use subqueries to avoid JOIN duplicates
     query = f"""
     SELECT
-        sd.*,
-        u1.nombre as propuesto_por_nombre,
-        u2.nombre as aprobado_por_nombre,
-        m.descripcion as material_descripcion
+        sd.id, sd.material_codigo, sd.almacen, sd.cantidad,
+        sd.tipo_disposicion, sd.estado, sd.notas, sd.costo_recuperado,
+        sd.propuesto_por, sd.aprobado_por, sd.completado_at, sd.created_at,
+        (SELECT u.nombre FROM usuarios u WHERE u.id_spm = sd.propuesto_por::text LIMIT 1) as propuesto_por_nombre,
+        (SELECT u.nombre FROM usuarios u WHERE u.id_spm = sd.aprobado_por::text LIMIT 1) as aprobado_por_nombre,
+        (SELECT m.descripcion FROM materiales_bbdd m WHERE m.codigo_material = sd.material_codigo LIMIT 1) as material_descripcion
     FROM slob_disposicion sd
-    LEFT JOIN usuarios u1 ON sd.propuesto_por::text = u1.id_spm
-    LEFT JOIN usuarios u2 ON sd.aprobado_por::text = u2.id_spm
-    LEFT JOIN materiales_bbdd m ON sd.material_codigo = m.codigo_material
     WHERE {where_sql}
     ORDER BY sd.created_at DESC
     LIMIT %s OFFSET %s

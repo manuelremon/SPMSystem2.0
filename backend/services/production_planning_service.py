@@ -18,30 +18,44 @@ def crear_work_center(data: Dict[str, Any]) -> int:
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
-        cursor.execute(f"""
-            INSERT INTO work_center
-            (nombre, codigo, tipo, capacidad_diaria, unidad, turnos, eficiencia_pct, costo_hora, estado, ubicacion)
-            VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
-        """, (
-            data['nombre'],
-            data['codigo'],
-            data.get('tipo'),
-            data.get('capacidad_diaria'),
-            data.get('unidad', 'horas'),
-            data.get('turnos', 1),
-            data.get('eficiencia_pct', 85),
-            data.get('costo_hora'),
-            data.get('estado', 'active'),
-            data.get('ubicacion')
-        ))
-
         if is_using_postgresql():
+            cursor.execute(f"""
+                INSERT INTO work_center
+                (nombre, codigo, tipo, capacidad_diaria, unidad, turnos, eficiencia_pct, costo_hora, estado, ubicacion)
+                VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
+                RETURNING id
+            """, (
+                data['nombre'],
+                data['codigo'],
+                data.get('tipo'),
+                data.get('capacidad_diaria'),
+                data.get('unidad', 'horas'),
+                data.get('turnos', 1),
+                data.get('eficiencia_pct', 85),
+                data.get('costo_hora'),
+                data.get('estado', 'active'),
+                data.get('ubicacion')
+            ))
             row = cursor.fetchone()
-            wc_id = (row['id'] if isinstance(row, dict) else row[0]) if row else None
+            return (row['id'] if isinstance(row, dict) else row[0]) if row else None
         else:
-            wc_id = cursor.lastrowid
-
-        return wc_id
+            cursor.execute(f"""
+                INSERT INTO work_center
+                (nombre, codigo, tipo, capacidad_diaria, unidad, turnos, eficiencia_pct, costo_hora, estado, ubicacion)
+                VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
+            """, (
+                data['nombre'],
+                data['codigo'],
+                data.get('tipo'),
+                data.get('capacidad_diaria'),
+                data.get('unidad', 'horas'),
+                data.get('turnos', 1),
+                data.get('eficiencia_pct', 85),
+                data.get('costo_hora'),
+                data.get('estado', 'active'),
+                data.get('ubicacion')
+            ))
+            return cursor.lastrowid
 
 
 def obtener_work_centers(filtros: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
@@ -256,10 +270,19 @@ def obtener_detalle_plan(plan_id: int) -> Optional[Dict[str, Any]]:
 
 
 def agregar_item_plan(plan_id: int, data: Dict[str, Any]) -> int:
-    """Agregar un item a un plan de produccion"""
+    """Agregar un item a un plan de produccion (solo en estado draft)"""
     ph = _ph()
     with get_db_connection() as conn:
         cursor = conn.cursor()
+
+        # Verify plan is in draft state
+        cursor.execute(f"SELECT estado FROM plan_produccion WHERE id = {ph}", (plan_id,))
+        plan = cursor.fetchone()
+        if not plan:
+            raise ValueError("Plan no encontrado")
+        plan_estado = plan['estado'] if isinstance(plan, dict) else plan[0]
+        if plan_estado != 'draft':
+            raise ValueError("Solo se pueden agregar items a planes en estado draft")
 
         if is_using_postgresql():
             cursor.execute(f"""
@@ -466,11 +489,25 @@ def reportar_produccion(item_id: int, cantidad_producida: float, notas: Optional
 
         cursor.execute(update_query, params)
 
+        # Update capacity utilization
         cursor.execute(f"""
             UPDATE produccion_capacidad
             SET capacidad_utilizada = capacidad_utilizada + {ph}
             WHERE work_center_id = {ph} AND fecha = {ph}
         """, (cantidad_producida, item_d['work_center_id'], item_d['fecha_programada']))
+
+        # Transition plan from publicado to en_ejecucion on first production report
+        cursor.execute(f"""
+            SELECT plan_id FROM plan_produccion_item WHERE id = {ph}
+        """, (item_id,))
+        plan_row = cursor.fetchone()
+        if plan_row:
+            pid = plan_row['plan_id'] if isinstance(plan_row, dict) else plan_row[0]
+            cursor.execute(f"""
+                UPDATE plan_produccion
+                SET estado = 'en_ejecucion', updated_at = CURRENT_TIMESTAMP
+                WHERE id = {ph} AND estado = 'publicado'
+            """, (pid,))
 
         return True
 
@@ -480,6 +517,15 @@ def completar_plan(plan_id: int) -> bool:
     ph = _ph()
     with get_db_connection() as conn:
         cursor = conn.cursor()
+
+        # Verify plan exists and is in a completable state
+        cursor.execute(f"SELECT estado FROM plan_produccion WHERE id = {ph}", (plan_id,))
+        plan = cursor.fetchone()
+        if not plan:
+            return False
+        plan_estado = plan['estado'] if isinstance(plan, dict) else plan[0]
+        if plan_estado not in ('publicado', 'en_ejecucion'):
+            return False
 
         cursor.execute(f"""
             SELECT COUNT(*) as total,

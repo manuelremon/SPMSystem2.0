@@ -7,7 +7,7 @@
  * Sprint 71
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -110,9 +110,15 @@ export default function CycleCounting() {
   const { t } = useI18n();
   const toast = useToast();
   const navigate = useNavigate();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
 
   const [tabValue, setTabValue] = useState(0);
   const [kpis, setKpis] = useState(null);
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
   // Programs state
   const [programs, setPrograms] = useState([]);
@@ -130,69 +136,66 @@ export default function CycleCounting() {
   const [countForm, setCountForm] = useState(INITIAL_COUNT_FORM);
   const [countSubmitting, setCountSubmitting] = useState(false);
 
-  const fetchKPIs = useCallback(async () => {
-    try {
-      const res = await api.get('/cycle-count/kpis');
-      if (res.data?.ok) {
-        setKpis(res.data.kpis || res.data);
-      }
-    } catch {
-      // Non-critical
-    }
-  }, []);
-
-  const fetchPrograms = useCallback(async () => {
-    try {
-      setProgramsLoading(true);
-      const params = { page: 1, per_page: 200 };
-      if (programFilters.estado) params.estado = programFilters.estado;
-      const res = await api.get('/cycle-count/programs', { params });
-      if (res.data?.ok) {
-        setPrograms(res.data.programs || res.data.items || []);
-      }
-    } catch {
-      toast.error(t('cc_error_load_programs', 'Error al cargar programas'));
-    } finally {
-      setProgramsLoading(false);
-    }
-  }, [programFilters, t, toast]);
-
-  const fetchCounts = useCallback(async () => {
-    try {
-      setCountsLoading(true);
-      const params = { page: 1, per_page: 200 };
-      if (countFilters.estado) params.estado = countFilters.estado;
-      if (countFilters.almacen_id) params.almacen_id = countFilters.almacen_id;
-      if (countFilters.tipo) params.tipo = countFilters.tipo;
-      const res = await api.get('/cycle-count/counts', { params });
-      if (res.data?.ok) {
-        setCounts(res.data.counts || res.data.items || []);
-      }
-    } catch {
-      toast.error(t('cc_error_load_counts', 'Error al cargar conteos'));
-    } finally {
-      setCountsLoading(false);
-    }
-  }, [countFilters, t, toast]);
-
-  useEffect(() => { fetchKPIs(); }, [fetchKPIs]);
-
+  // Load KPIs
   useEffect(() => {
-    if (tabValue === 0) {
-      fetchPrograms();
-    } else {
-      fetchCounts();
-    }
-  }, [tabValue, fetchPrograms, fetchCounts]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api.get('/cycle-count/kpis');
+        if (!cancelled && res.data?.ok) setKpis(res.data.kpis || res.data);
+      } catch { /* non-critical */ }
+    })();
+    return () => { cancelled = true; };
+  }, [reloadTick]);
+
+  // Load tab data
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (tabValue === 0) {
+        setProgramsLoading(true);
+        try {
+          const params = { page: 1, per_page: 200 };
+          if (programFilters.estado) params.estado = programFilters.estado;
+          const res = await api.get('/cycle-count/programs', { params });
+          if (!cancelled && res.data?.ok) {
+            setPrograms(res.data.programs || res.data.items || []);
+          }
+        } catch {
+          if (!cancelled) toastRef.current.error(tRef.current('cc_error_load_programs', 'Error al cargar programas'));
+        } finally {
+          if (!cancelled) setProgramsLoading(false);
+        }
+      } else {
+        setCountsLoading(true);
+        try {
+          const params = { page: 1, per_page: 200 };
+          if (countFilters.estado) params.estado = countFilters.estado;
+          if (countFilters.almacen_id) params.almacen_id = countFilters.almacen_id;
+          if (countFilters.tipo) params.tipo = countFilters.tipo;
+          const res = await api.get('/cycle-count/counts', { params });
+          if (!cancelled && res.data?.ok) {
+            setCounts(res.data.counts || res.data.items || []);
+          }
+        } catch {
+          if (!cancelled) toastRef.current.error(tRef.current('cc_error_load_counts', 'Error al cargar conteos'));
+        } finally {
+          if (!cancelled) setCountsLoading(false);
+        }
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [tabValue, programFilters, countFilters, reloadTick]);
 
   // Program form handlers
   const handleProgramFormChange = useCallback((field, value) => {
     setProgramForm((prev) => ({ ...prev, [field]: value }));
   }, []);
 
-  const handleCreateProgram = useCallback(async () => {
+  const handleCreateProgram = async () => {
     if (!programForm.nombre.trim() || !programForm.almacen_id.trim()) {
-      toast.warning(t('cc_required_program', 'Complete nombre y almacen'));
+      toastRef.current.warning(tRef.current('cc_required_program', 'Complete nombre y almacen'));
       return;
     }
     setProgramSubmitting(true);
@@ -205,27 +208,26 @@ export default function CycleCounting() {
       };
       const res = await api.post('/cycle-count/programs', payload);
       if (res.data?.ok) {
-        toast.success(t('cc_program_created', 'Programa creado'));
+        toastRef.current.success(tRef.current('cc_program_created', 'Programa creado'));
         setProgramDialogOpen(false);
         setProgramForm(INITIAL_PROGRAM_FORM);
-        fetchPrograms();
-        fetchKPIs();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('cc_error_create_program', 'Error al crear programa'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('cc_error_create_program', 'Error al crear programa'));
     } finally {
       setProgramSubmitting(false);
     }
-  }, [programForm, t, toast, fetchPrograms, fetchKPIs]);
+  };
 
   // Count form handlers
   const handleCountFormChange = useCallback((field, value) => {
     setCountForm((prev) => ({ ...prev, [field]: value }));
   }, []);
 
-  const handleGenerateCount = useCallback(async () => {
+  const handleGenerateCount = async () => {
     if (!countForm.tipo || !countForm.almacen_id.trim()) {
-      toast.warning(t('cc_required_count', 'Seleccione tipo y almacen'));
+      toastRef.current.warning(tRef.current('cc_required_count', 'Seleccione tipo y almacen'));
       return;
     }
     setCountSubmitting(true);
@@ -234,18 +236,17 @@ export default function CycleCounting() {
       if (!payload.programa_id) delete payload.programa_id;
       const res = await api.post('/cycle-count/counts/generate', payload);
       if (res.data?.ok) {
-        toast.success(t('cc_count_generated', 'Conteo generado'));
+        toastRef.current.success(tRef.current('cc_count_generated', 'Conteo generado'));
         setCountDialogOpen(false);
         setCountForm(INITIAL_COUNT_FORM);
-        fetchCounts();
-        fetchKPIs();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('cc_error_generate', 'Error al generar conteo'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('cc_error_generate', 'Error al generar conteo'));
     } finally {
       setCountSubmitting(false);
     }
-  }, [countForm, t, toast, fetchCounts, fetchKPIs]);
+  };
 
   const programColumnDefs = useMemo(() => [
     { field: 'nombre', headerName: t('cc_prog_nombre', 'Nombre'), flex: 2, minWidth: 180 },

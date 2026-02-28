@@ -6,7 +6,7 @@
  * Sprint 59
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -63,6 +63,10 @@ const SEVERIDAD_OPTIONS = [
 export default function NCRList() {
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
   const navigate = useNavigate();
 
   const [ncrs, setNcrs] = useState([]);
@@ -71,27 +75,26 @@ export default function NCRList() {
   const [severidadFilter, setSeveridadFilter] = useState('');
   const [proveedorFilter, setProveedorFilter] = useState('');
 
-  const fetchNCRs = useCallback(async () => {
-    try {
-      setLoading(true);
-      const params = {};
-      if (estadoFilter) params.estado = estadoFilter;
-      if (severidadFilter) params.severidad = severidadFilter;
-      if (proveedorFilter.trim()) params.proveedor = proveedorFilter.trim();
-      const res = await api.get('/quality/ncr', { params });
-      if (res.data?.ok) {
-        setNcrs(res.data.ncrs || []);
-      }
-    } catch {
-      toast.error(t('ncr_error_cargar', 'Error al cargar NCRs'));
-    } finally {
-      setLoading(false);
-    }
-  }, [estadoFilter, severidadFilter, proveedorFilter, t, toast]);
-
   useEffect(() => {
-    fetchNCRs();
-  }, [fetchNCRs]);
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const params = {};
+        if (estadoFilter) params.estado = estadoFilter;
+        if (severidadFilter) params.severidad = severidadFilter;
+        if (proveedorFilter.trim()) params.proveedor = proveedorFilter.trim();
+        const res = await api.get('/quality/ncr', { params });
+        if (!cancelled && res.data?.ok) setNcrs(res.data.ncrs || []);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('ncr_error_cargar', 'Error al cargar NCRs'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [estadoFilter, severidadFilter, proveedorFilter]);
 
   const columnDefs = useMemo(() => [
     {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Card,
@@ -22,9 +22,16 @@ import { Add, Calculate, LocalShipping, Gavel, TrendingDown } from '@mui/icons-m
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import api from '../services/api';
 import { useI18n } from '../context/i18n';
+import { useToast } from '../hooks/useToast';
 
 const CustomsOperations = () => {
   const { t } = useI18n();
+  const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
+
   const [tabIndex, setTabIndex] = useState(0);
   const [kpis, setKpis] = useState(null);
   const [operaciones, setOperaciones] = useState([]);
@@ -33,6 +40,8 @@ const CustomsOperations = () => {
   const [createOperacionOpen, setCreateOperacionOpen] = useState(false);
   const [createAcuerdoOpen, setCreateAcuerdoOpen] = useState(false);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
   // Form states
   const [operacionForm, setOperacionForm] = useState({
@@ -68,30 +77,32 @@ const CustomsOperations = () => {
   const [calculatorResult, setCalculatorResult] = useState(null);
 
   useEffect(() => {
+    let cancelled = false;
+    const cargarDatos = async () => {
+      setLoading(true);
+      try {
+        const [kpisRes, operacionesRes, acuerdosRes] = await Promise.all([
+          api.get('/customs/kpis'),
+          api.get('/customs/operations'),
+          api.get('/customs/agreements')
+        ]);
+        if (cancelled) return;
+        if (kpisRes.data?.ok) setKpis(kpisRes.data.kpis || kpisRes.data);
+        if (operacionesRes.data?.ok) setOperaciones(operacionesRes.data.operaciones || []);
+        if (acuerdosRes.data?.ok) setAcuerdos(acuerdosRes.data.acuerdos || acuerdosRes.data || []);
+      } catch (error) {
+        if (!cancelled) toastRef.current.error(tRef.current('customs_error_load', 'Error al cargar datos de aduanas'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
     cargarDatos();
-  }, []);
-
-  const cargarDatos = async () => {
-    setLoading(true);
-    try {
-      const [kpisRes, operacionesRes, acuerdosRes] = await Promise.all([
-        api.get('/api/customs/kpis'),
-        api.get('/api/customs/operations'),
-        api.get('/api/customs/agreements')
-      ]);
-
-      setKpis(kpisRes.data);
-      setOperaciones(operacionesRes.data.operaciones || []);
-      setAcuerdos(acuerdosRes.data || []);
-    } catch (error) {
-    } finally {
-      setLoading(false);
-    }
-  };
+    return () => { cancelled = true; };
+  }, [reloadTick]);
 
   const handleCreateOperacion = async () => {
     try {
-      await api.post('/api/customs/operations', {
+      await api.post('/customs/operations', {
         ...operacionForm,
         valor_fob: parseFloat(operacionForm.valor_fob),
         flete: parseFloat(operacionForm.flete),
@@ -110,15 +121,15 @@ const CustomsOperations = () => {
         moneda: 'USD',
         notas: ''
       });
-      cargarDatos();
+      reload();
     } catch (error) {
-      alert(t('customs_error_create_operation', 'Error al crear operación'));
+      toastRef.current.error(tRef.current('customs_error_create_operation', 'Error al crear operación'));
     }
   };
 
   const handleCreateAcuerdo = async () => {
     try {
-      await api.post('/api/customs/agreements', {
+      await api.post('/customs/agreements', {
         ...acuerdoForm,
         preferencia_arancelaria_pct: parseFloat(acuerdoForm.preferencia_arancelaria_pct)
       });
@@ -133,15 +144,15 @@ const CustomsOperations = () => {
         fecha_vigencia_hasta: '',
         requisitos_origen: ''
       });
-      cargarDatos();
+      reload();
     } catch (error) {
-      alert(t('customs_error_create_agreement', 'Error al crear acuerdo'));
+      toastRef.current.error(tRef.current('customs_error_create_agreement', 'Error al crear acuerdo'));
     }
   };
 
   const handleCalculateDuties = async () => {
     try {
-      const response = await api.post('/api/customs/calculate-duties', {
+      const response = await api.post('/customs/calculate-duties', {
         valor_fob: parseFloat(calculatorForm.valor_fob),
         flete: parseFloat(calculatorForm.flete),
         seguro: parseFloat(calculatorForm.seguro),
@@ -151,17 +162,18 @@ const CustomsOperations = () => {
 
       setCalculatorResult(response.data);
     } catch (error) {
-      alert(t('customs_error_calculate', 'Error al calcular tributos'));
+      toastRef.current.error(tRef.current('customs_error_calculate', 'Error al calcular tributos'));
     }
   };
 
   const handleUpdateEstado = async (operacionId, nuevoEstado) => {
     try {
-      await api.put(`/api/customs/operations/${operacionId}`, {
+      await api.put(`/customs/operations/${operacionId}`, {
         estado: nuevoEstado
       });
-      cargarDatos();
+      reload();
     } catch (error) {
+      toastRef.current.error(tRef.current('customs_error_update_status', 'Error al actualizar estado'));
     }
   };
 

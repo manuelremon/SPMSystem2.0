@@ -6,7 +6,7 @@
  * Sprint 71
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -50,31 +50,29 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 
 const ESTADO_COLORS = {
-  available: 'success',
-  blocked: 'error',
-  consumed: 'default',
-  expired: 'warning',
-  in_inspection: 'info',
+  disponible: 'success',
+  bloqueado: 'error',
+  reservado: 'info',
+  agotado: 'default',
 };
 
 const ESTADO_LABELS = {
-  available: 'Disponible',
-  blocked: 'Bloqueado',
-  consumed: 'Consumido',
-  expired: 'Vencido',
-  in_inspection: 'En Inspeccion',
+  disponible: 'Disponible',
+  bloqueado: 'Bloqueado',
+  reservado: 'Reservado',
+  agotado: 'Agotado',
 };
 
 const CALIDAD_COLORS = {
-  approved: 'success',
-  pending: 'warning',
-  rejected: 'error',
+  aprobado: 'success',
+  pendiente: 'warning',
+  rechazado: 'error',
 };
 
 const CALIDAD_LABELS = {
-  approved: 'Aprobado',
-  pending: 'Pendiente',
-  rejected: 'Rechazado',
+  aprobado: 'Aprobado',
+  pendiente: 'Pendiente',
+  rechazado: 'Rechazado',
 };
 
 const MOV_TIPO_COLORS = {
@@ -136,10 +134,16 @@ export default function LotDetail() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
 
   const [lote, setLote] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tabValue, setTabValue] = useState(0);
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = useCallback(() => setReloadTick((n) => n + 1), []);
 
   // Traceability data
   const [forwardTrace, setForwardTrace] = useState([]);
@@ -157,54 +161,54 @@ export default function LotDetail() {
   const [blockReason, setBlockReason] = useState('');
   const [blocking, setBlocking] = useState(false);
 
-  const fetchLote = useCallback(async () => {
-    try {
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
       setLoading(true);
-      const res = await api.get(`/lots/${id}`);
-      if (res.data?.ok) {
-        setLote(res.data.lote || res.data);
+      try {
+        const res = await api.get(`/lots/${id}`);
+        if (!cancelled && res.data?.ok) setLote(res.data.lote || res.data);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('lot_error_detail', 'Error al cargar lote'));
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch {
-      toast.error(t('lot_error_detail', 'Error al cargar lote'));
-    } finally {
-      setLoading(false);
-    }
-  }, [id, t, toast]);
-
-  const fetchForwardTrace = useCallback(async () => {
-    setLoadingForward(true);
-    try {
-      const res = await api.get(`/lots/${id}/traceability/forward`);
-      if (res.data?.ok) {
-        setForwardTrace(res.data.nodes || res.data.traceability || []);
-      }
-    } catch {
-      toast.error(t('lot_error_forward', 'Error al cargar trazabilidad forward'));
-    } finally {
-      setLoadingForward(false);
-    }
-  }, [id, t, toast]);
-
-  const fetchBackwardTrace = useCallback(async () => {
-    setLoadingBackward(true);
-    try {
-      const res = await api.get(`/lots/${id}/traceability/backward`);
-      if (res.data?.ok) {
-        setBackwardTrace(res.data.nodes || res.data.traceability || []);
-      }
-    } catch {
-      toast.error(t('lot_error_backward', 'Error al cargar trazabilidad backward'));
-    } finally {
-      setLoadingBackward(false);
-    }
-  }, [id, t, toast]);
-
-  useEffect(() => { fetchLote(); }, [fetchLote]);
+    })();
+    return () => { cancelled = true; };
+  }, [id, reloadTick]);
 
   useEffect(() => {
-    if (tabValue === 2) fetchForwardTrace();
-    if (tabValue === 3) fetchBackwardTrace();
-  }, [tabValue, fetchForwardTrace, fetchBackwardTrace]);
+    if (tabValue === 2) {
+      let cancelled = false;
+      (async () => {
+        setLoadingForward(true);
+        try {
+          const res = await api.get(`/lots/${id}/traceability/forward`);
+          if (!cancelled) setForwardTrace(res.data?.ok ? (res.data.nodes || res.data.traceability || []) : []);
+        } catch {
+          if (!cancelled) toastRef.current.error(tRef.current('lot_error_forward', 'Error al cargar trazabilidad forward'));
+        } finally {
+          if (!cancelled) setLoadingForward(false);
+        }
+      })();
+      return () => { cancelled = true; };
+    }
+    if (tabValue === 3) {
+      let cancelled = false;
+      (async () => {
+        setLoadingBackward(true);
+        try {
+          const res = await api.get(`/lots/${id}/traceability/backward`);
+          if (!cancelled) setBackwardTrace(res.data?.ok ? (res.data.nodes || res.data.traceability || []) : []);
+        } catch {
+          if (!cancelled) toastRef.current.error(tRef.current('lot_error_backward', 'Error al cargar trazabilidad backward'));
+        } finally {
+          if (!cancelled) setLoadingBackward(false);
+        }
+      })();
+      return () => { cancelled = true; };
+    }
+  }, [id, tabValue]);
 
   // Consume
   const handleConsume = useCallback(async () => {
@@ -213,38 +217,38 @@ export default function LotDetail() {
     try {
       const res = await api.post(`/lots/${id}/consume`, { cantidad: Number(consumeQty) });
       if (res.data?.ok) {
-        toast.success(t('lot_consumed', 'Consumo registrado'));
+        toastRef.current.success(tRef.current('lot_consumed', 'Consumo registrado'));
         setConsumeOpen(false);
         setConsumeQty('');
-        fetchLote();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('lot_error_consume', 'Error al consumir'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('lot_error_consume', 'Error al consumir'));
     } finally {
       setConsuming(false);
     }
-  }, [id, consumeQty, fetchLote, t, toast]);
+  }, [id, consumeQty, reload]);
 
   // Block/Unblock
   const handleBlockToggle = useCallback(async () => {
     setBlocking(true);
     try {
-      const isBlocked = lote?.estado === 'blocked';
+      const isBlocked = lote?.estado === 'bloqueado';
       const endpoint = isBlocked ? `/lots/${id}/unblock` : `/lots/${id}/block`;
       const payload = isBlocked ? {} : { razon: blockReason };
       const res = await api.put(endpoint, payload);
       if (res.data?.ok) {
-        toast.success(isBlocked ? t('lot_unblocked', 'Lote desbloqueado') : t('lot_blocked', 'Lote bloqueado'));
+        toastRef.current.success(isBlocked ? tRef.current('lot_unblocked', 'Lote desbloqueado') : tRef.current('lot_blocked', 'Lote bloqueado'));
         setBlockOpen(false);
         setBlockReason('');
-        fetchLote();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('lot_error_block', 'Error al bloquear/desbloquear'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('lot_error_block', 'Error al bloquear/desbloquear'));
     } finally {
       setBlocking(false);
     }
-  }, [id, lote, blockReason, fetchLote, t, toast]);
+  }, [id, lote, blockReason, reload]);
 
   const movimientoColumnDefs = useMemo(() => [
     {
@@ -289,10 +293,10 @@ export default function LotDetail() {
     );
   }
 
-  const estado = lote.estado || 'available';
+  const estado = lote.estado || 'disponible';
   const calidad = lote.calidad || null;
   const movimientos = lote.movimientos || [];
-  const isBlocked = estado === 'blocked';
+  const isBlocked = estado === 'bloqueado';
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -317,13 +321,13 @@ export default function LotDetail() {
             </Stack>
             <Stack spacing={0.5} sx={{ color: 'text.secondary' }}>
               <Typography variant="body2">{t('lot_material', 'Material')}: <strong>{lote.material_codigo}</strong> {lote.material_descripcion && `- ${lote.material_descripcion}`}</Typography>
-              <Typography variant="body2">{t('lot_proveedor', 'Proveedor')}: <strong>{lote.proveedor_nombre || lote.proveedor_id || '-'}</strong></Typography>
+              <Typography variant="body2">{t('lot_proveedor', 'Proveedor')}: <strong>{lote.proveedor_nombre || lote.proveedor_cuit || '-'}</strong></Typography>
               <Typography variant="body2">{t('lot_vencimiento', 'Vencimiento')}: <strong>{formatDate(lote.fecha_vencimiento) || '-'}</strong></Typography>
             </Stack>
           </Box>
 
           <Stack direction="row" gap={1} flexWrap="wrap">
-            {estado === 'available' && (
+            {estado === 'disponible' && (
               <Button
                 variant="outlined"
                 size="small"
@@ -375,8 +379,8 @@ export default function LotDetail() {
               <Stack spacing={0.5}>
                 <Typography variant="body2">{t('lot_col_numero', 'Numero Lote')}: <strong>{lote.numero_lote}</strong></Typography>
                 <Typography variant="body2">{t('lot_col_material', 'Material')}: <strong>{lote.material_codigo}</strong></Typography>
-                <Typography variant="body2">{t('lot_col_proveedor', 'Proveedor')}: <strong>{lote.proveedor_nombre || lote.proveedor_id || '-'}</strong></Typography>
-                <Typography variant="body2">{t('lot_col_almacen', 'Almacen')}: <strong>{lote.almacen || '-'}</strong></Typography>
+                <Typography variant="body2">{t('lot_col_proveedor', 'Proveedor')}: <strong>{lote.proveedor_nombre || lote.proveedor_cuit || '-'}</strong></Typography>
+                <Typography variant="body2">{t('lot_col_almacen', 'Almacen')}: <strong>{lote.almacen || lote.almacen_id || '-'}</strong></Typography>
                 <Typography variant="body2">{t('lot_col_ubicacion', 'Ubicacion')}: <strong>{lote.ubicacion || '-'}</strong></Typography>
               </Stack>
             </Paper>
@@ -397,8 +401,8 @@ export default function LotDetail() {
                 {lote.fecha_bloqueo && (
                   <Typography variant="body2">{t('lot_fecha_bloqueo', 'Bloqueado')}: <strong>{formatDate(lote.fecha_bloqueo)}</strong></Typography>
                 )}
-                {lote.razon_bloqueo && (
-                  <Typography variant="body2" color="error.main">{t('lot_razon_bloqueo', 'Razon')}: {lote.razon_bloqueo}</Typography>
+                {lote.bloqueado_razon && (
+                  <Typography variant="body2" color="error.main">{t('lot_razon_bloqueo', 'Razon')}: {lote.bloqueado_razon}</Typography>
                 )}
               </Stack>
             </Paper>

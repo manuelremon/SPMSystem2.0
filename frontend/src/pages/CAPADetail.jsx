@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -28,7 +28,12 @@ export default function CAPADetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t } = useI18n();
-  const { showSuccess, showError } = useToast();
+  const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
+
   const [capa, setCapa] = useState(null);
   const [historial, setHistorial] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,21 +42,28 @@ export default function CAPADetail() {
   const [implementacion, setImplementacion] = useState('');
   const [verifyModal, setVerifyModal] = useState(false);
   const [efectividad, setEfectividad] = useState('');
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
-  const fetchDetail = useCallback(async () => {
-    try {
-      const { data } = await api.get(`/quality/capa/${id}`);
-      setCapa(data.capa || data);
-      setHistorial(data.historial || []);
-      setImplementacion(data.capa?.accion_implementada || '');
-    } catch {
-      showError(t('capa_error_loading', 'Error al cargar CAPA'));
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => { fetchDetail(); }, [fetchDetail]);
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const { data } = await api.get(`/quality/capa/${id}`);
+        if (cancelled) return;
+        setCapa(data.capa || data);
+        setHistorial(data.historial || []);
+        setImplementacion(data.capa?.accion_implementada || '');
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('capa_error_loading', 'Error al cargar CAPA'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [id, reloadTick]);
 
   const handleStatusChange = async () => {
     try {
@@ -60,23 +72,23 @@ export default function CAPADetail() {
         notas: statusNotes,
         accion_implementada: statusModal === 'implemented' ? implementacion : undefined,
       });
-      showSuccess(t('capa_status_updated', 'Estado actualizado'));
+      toastRef.current.success(tRef.current('capa_status_updated', 'Estado actualizado'));
       setStatusModal(null);
       setStatusNotes('');
-      fetchDetail();
+      reload();
     } catch {
-      showError(t('capa_error_status', 'Error al cambiar estado'));
+      toastRef.current.error(tRef.current('capa_error_status', 'Error al cambiar estado'));
     }
   };
 
   const handleVerify = async () => {
     try {
       await api.put(`/quality/capa/${id}/verify`, { efectividad });
-      showSuccess(t('capa_verified', 'Efectividad verificada'));
+      toastRef.current.success(tRef.current('capa_verified', 'Efectividad verificada'));
       setVerifyModal(false);
-      fetchDetail();
+      reload();
     } catch {
-      showError(t('capa_error_verify', 'Error al verificar'));
+      toastRef.current.error(tRef.current('capa_error_verify', 'Error al verificar'));
     }
   };
 

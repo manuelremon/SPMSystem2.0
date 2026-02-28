@@ -32,40 +32,41 @@ import VerifiedIcon from '@mui/icons-material/Verified';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 
 const ESTADO_COLORS = {
-  draft: 'default',
-  released: 'info',
-  allocated: 'warning',
-  in_progress: 'primary',
-  completed: 'success',
-  cancelled: 'error',
+  pendiente: 'default',
+  asignado: 'info',
+  parcial: 'warning',
+  en_proceso: 'primary',
+  completado: 'success',
+  cancelado: 'error',
 };
 
 const ESTADO_LABELS = {
-  draft: 'Borrador',
-  released: 'Liberada',
-  allocated: 'Asignada',
-  in_progress: 'En Proceso',
-  completed: 'Completada',
-  cancelled: 'Cancelada',
+  pendiente: 'Pendiente',
+  asignado: 'Asignado',
+  parcial: 'Parcial',
+  en_proceso: 'En Proceso',
+  completado: 'Completado',
+  cancelado: 'Cancelado',
 };
 
 const PRIORIDAD_COLORS = {
-  low: 'default',
-  medium: 'info',
-  high: 'warning',
-  urgent: 'error',
+  baja: 'default',
+  media: 'info',
+  alta: 'warning',
+  critica: 'error',
 };
 
 const PRIORIDAD_LABELS = {
-  low: 'Baja',
-  medium: 'Media',
-  high: 'Alta',
-  urgent: 'Urgente',
+  baja: 'Baja',
+  media: 'Media',
+  alta: 'Alta',
+  critica: 'Critica',
 };
 
 const COMPONENT_ESTADO_COLORS = {
   pending: 'default',
-  allocated: 'warning',
+  allocated: 'info',
+  picked: 'warning',
   consumed: 'success',
   short: 'error',
 };
@@ -73,6 +74,7 @@ const COMPONENT_ESTADO_COLORS = {
 const COMPONENT_ESTADO_LABELS = {
   pending: 'Pendiente',
   allocated: 'Asignado',
+  picked: 'Recogido',
   consumed: 'Consumido',
   short: 'Faltante',
 };
@@ -222,8 +224,8 @@ export default function KitOrderDetail() {
     );
   }
 
-  const estado = order.estado || 'draft';
-  const componentes = order.componentes || order.items || [];
+  const estado = order.estado || 'pendiente';
+  const componentes = order.asignaciones || order.componentes || order.items || [];
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -269,7 +271,7 @@ export default function KitOrderDetail() {
           </Box>
 
           <Stack direction="row" gap={1} flexWrap="wrap">
-            {estado === 'draft' && (
+            {estado === 'pendiente' && (
               <>
                 <Button
                   variant="outlined"
@@ -291,7 +293,7 @@ export default function KitOrderDetail() {
                 </Button>
               </>
             )}
-            {(estado === 'released' || estado === 'allocated') && (
+            {(estado === 'asignado' || estado === 'parcial') && (
               <Button
                 variant="contained"
                 size="small"
@@ -303,7 +305,7 @@ export default function KitOrderDetail() {
                 {t('kit_start', 'Iniciar Produccion')}
               </Button>
             )}
-            {estado === 'in_progress' && (
+            {estado === 'en_proceso' && (
               <Button
                 variant="contained"
                 size="small"
@@ -348,11 +350,12 @@ export default function KitOrderDetail() {
           <Typography variant="subtitle2" sx={{ mb: 2 }}>{t('kit_availability', 'Disponibilidad de Componentes')}</Typography>
           <Stack direction="row" gap={1} flexWrap="wrap">
             {availability.map((comp, idx) => {
-              const sufficient = comp.disponible >= comp.requerida;
+              const requerido = comp.requerido ?? comp.requerida ?? 0;
+              const sufficient = comp.suficiente ?? (comp.disponible >= requerido);
               return (
                 <Chip
                   key={idx}
-                  label={`${comp.material_codigo}: ${comp.disponible}/${comp.requerida}`}
+                  label={`${comp.material_codigo}: ${comp.disponible}/${requerido}`}
                   color={sufficient ? 'success' : 'error'}
                   variant="outlined"
                   size="small"

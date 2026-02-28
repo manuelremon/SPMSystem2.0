@@ -6,7 +6,7 @@
  * and approval. Includes ForecastComparisonChart visualization.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -46,9 +46,10 @@ const ESTADO_COLORS = {
   draft: 'default',
   collecting: 'info',
   review: 'warning',
-  consensus: 'info',
+  consensus: 'secondary',
   approved: 'success',
   closed: 'default',
+  cancelled: 'error',
 };
 
 const ESTADO_LABELS = {
@@ -58,6 +59,7 @@ const ESTADO_LABELS = {
   consensus: 'Consenso',
   approved: 'Aprobado',
   closed: 'Cerrado',
+  cancelled: 'Cancelado',
 };
 
 const STATUS_TRANSITIONS = [
@@ -87,6 +89,10 @@ export default function DemandPlanDetail() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
 
   const [cycle, setCycle] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -94,6 +100,8 @@ export default function DemandPlanDetail() {
   const [entries, setEntries] = useState([]);
   const [consensus, setConsensus] = useState([]);
   const [processing, setProcessing] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
   // Entry dialog state
   const [entryOpen, setEntryOpen] = useState(false);
@@ -104,28 +112,47 @@ export default function DemandPlanDetail() {
   const [statusOpen, setStatusOpen] = useState(false);
   const [targetStatus, setTargetStatus] = useState('');
 
-  const fetchCycle = useCallback(async () => {
-    try {
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
       setLoading(true);
-      const res = await api.get(`/demand-planning/cycles/${id}`);
-      if (res.data?.ok) {
-        const data = res.data.cycle || res.data;
-        setCycle(data);
-        setEntries(data.entries || data.entradas || []);
-        setConsensus(data.consensus || data.consenso || []);
+      try {
+        const res = await api.get(`/demand-planning/cycles/${id}`);
+        if (cancelled) return;
+        if (res.data?.ok) {
+          const data = res.data;
+          setCycle(data);
+          const rawEntradas = data.entradas || [];
+          const flat = [];
+          for (const mat of rawEntradas) {
+            for (const e of (mat.entradas || [])) {
+              flat.push({
+                material_codigo: mat.material_codigo,
+                material_descripcion: mat.material_descripcion,
+                fuente: e.fuente,
+                cantidad_pronosticada: e.cantidad_pronosticada,
+                usuario: e.usuario_nombre,
+                notas: e.notas,
+                created_at: e.created_at,
+              });
+            }
+          }
+          setEntries(flat);
+          setConsensus(data.consensos || []);
+        }
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('demand_error_detail', 'Error al cargar ciclo'));
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch {
-      toast.error(t('demand_error_detail', 'Error al cargar ciclo'));
-    } finally {
-      setLoading(false);
-    }
-  }, [id, t, toast]);
-
-  useEffect(() => { fetchCycle(); }, [fetchCycle]);
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [id, reloadTick]);
 
   const handleAddEntry = useCallback(async () => {
     if (!entryForm.material_codigo || !entryForm.cantidad_pronosticada) {
-      toast.warning(t('demand_entry_required', 'Complete material y cantidad'));
+      toastRef.current.warning(tRef.current('demand_entry_required', 'Complete material y cantidad'));
       return;
     }
     setSavingEntry(true);
@@ -137,47 +164,47 @@ export default function DemandPlanDetail() {
         confianza: entryForm.confianza ? Number(entryForm.confianza) : null,
       });
       if (res.data?.ok) {
-        toast.success(t('demand_entry_added', 'Entrada agregada'));
+        toastRef.current.success(tRef.current('demand_entry_added', 'Entrada agregada'));
         setEntryOpen(false);
         setEntryForm(INITIAL_ENTRY);
-        fetchCycle();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('demand_error_entry', 'Error al agregar entrada'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('demand_error_entry', 'Error al agregar entrada'));
     } finally {
       setSavingEntry(false);
     }
-  }, [id, entryForm, fetchCycle, t, toast]);
+  }, [id, entryForm]);
 
   const handleGenerateBaseline = useCallback(async () => {
     setProcessing(true);
     try {
       const res = await api.post(`/demand-planning/cycles/${id}/baseline`);
       if (res.data?.ok) {
-        toast.success(t('demand_baseline_ok', 'Baseline ML generado'));
-        fetchCycle();
+        toastRef.current.success(tRef.current('demand_baseline_ok', 'Baseline ML generado'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('demand_error_baseline', 'Error al generar baseline'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('demand_error_baseline', 'Error al generar baseline'));
     } finally {
       setProcessing(false);
     }
-  }, [id, fetchCycle, t, toast]);
+  }, [id]);
 
   const handleCalculateConsensus = useCallback(async () => {
     setProcessing(true);
     try {
       const res = await api.post(`/demand-planning/cycles/${id}/consensus`);
       if (res.data?.ok) {
-        toast.success(t('demand_consensus_ok', 'Consenso calculado'));
-        fetchCycle();
+        toastRef.current.success(tRef.current('demand_consensus_ok', 'Consenso calculado'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('demand_error_consensus', 'Error al calcular consenso'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('demand_error_consensus', 'Error al calcular consenso'));
     } finally {
       setProcessing(false);
     }
-  }, [id, fetchCycle, t, toast]);
+  }, [id]);
 
   const handleStatusChange = useCallback(async () => {
     if (!targetStatus) return;
@@ -185,36 +212,35 @@ export default function DemandPlanDetail() {
     try {
       const res = await api.put(`/demand-planning/cycles/${id}/status`, { estado: targetStatus });
       if (res.data?.ok) {
-        toast.success(t('demand_status_updated', 'Estado actualizado'));
+        toastRef.current.success(tRef.current('demand_status_updated', 'Estado actualizado'));
         setStatusOpen(false);
         setTargetStatus('');
-        fetchCycle();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('demand_error_status', 'Error al cambiar estado'));
+      setStatusOpen(false);
+      setTargetStatus('');
+      toastRef.current.error(err.response?.data?.error || tRef.current('demand_error_status', 'Error al cambiar estado'));
     } finally {
       setProcessing(false);
     }
-  }, [id, targetStatus, fetchCycle, t, toast]);
+  }, [id, targetStatus]);
 
   const entryColumns = useMemo(() => [
-    { field: 'material_codigo', headerName: t('demand_material', 'Material'), flex: 1, minWidth: 140 },
+    { field: 'material_codigo', headerName: t('demand_material', 'Material'), width: 150 },
+    { field: 'material_descripcion', headerName: t('demand_descripcion', 'Descripcion'), flex: 1, minWidth: 180 },
     { field: 'fuente', headerName: t('demand_fuente', 'Fuente'), width: 130,
       cellRenderer: (p) => <Chip size="small" label={FUENTE_OPTIONS.find(o => o.value === p.value)?.label || p.value} variant="outlined" />,
     },
     { field: 'cantidad_pronosticada', headerName: t('demand_cantidad', 'Cantidad'), width: 130, type: 'numericColumn' },
-    { field: 'confianza', headerName: t('demand_confianza', 'Confianza'), width: 110,
-      valueFormatter: (p) => p.value != null ? `${(p.value * 100).toFixed(0)}%` : '-',
-    },
     { field: 'usuario', headerName: t('demand_usuario', 'Usuario'), width: 140 },
   ], [t]);
 
   const consensusColumns = useMemo(() => [
-    { field: 'material_codigo', headerName: t('demand_material', 'Material'), flex: 1, minWidth: 140 },
+    { field: 'material_codigo', headerName: t('demand_material', 'Material'), width: 150 },
+    { field: 'material_descripcion', headerName: t('demand_descripcion', 'Descripcion'), flex: 1, minWidth: 180 },
     { field: 'cantidad_consenso', headerName: t('demand_consenso', 'Consenso'), width: 130, type: 'numericColumn' },
-    { field: 'cantidad_ml_baseline', headerName: t('demand_ml_baseline', 'ML Baseline'), width: 130, type: 'numericColumn' },
-    { field: 'cantidad_promedio_entradas', headerName: t('demand_promedio', 'Promedio Entradas'), width: 150, type: 'numericColumn' },
-    { field: 'ajuste_manual', headerName: t('demand_ajuste', 'Ajuste Manual'), width: 130, type: 'numericColumn' },
+    { field: 'aprobado_por_nombre', headerName: t('demand_aprobado_por', 'Aprobado por'), width: 140 },
   ], [t]);
 
   if (loading) {

@@ -6,7 +6,7 @@
  * Sprint 59
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -46,6 +46,10 @@ const ESTADO_COLORS = {
 export default function NCRDetail() {
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
   const navigate = useNavigate();
   const { id } = useParams();
 
@@ -54,48 +58,52 @@ export default function NCRDetail() {
   const [actionLoading, setActionLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [creatingCAPA, setCreatingCAPA] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
   // Editable fields
   const [asignarA, setAsignarA] = useState('');
   const [notas, setNotas] = useState('');
   const [accionCorrectiva, setAccionCorrectiva] = useState('');
 
-  const fetchNCR = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await api.get(`/quality/ncr/${id}`);
-      if (res.data?.ok) {
-        const data = res.data.ncr;
-        setNcr(data);
-        setAsignarA(data.asignar_a || '');
-        setNotas(data.notas || '');
-        setAccionCorrectiva(data.accion_correctiva || '');
-      }
-    } catch {
-      toast.error(t('ncr_error_cargar_detalle', 'Error al cargar detalle de NCR'));
-    } finally {
-      setLoading(false);
-    }
-  }, [id, t, toast]);
-
   useEffect(() => {
-    fetchNCR();
-  }, [fetchNCR]);
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await api.get(`/quality/ncr/${id}`);
+        if (cancelled) return;
+        if (res.data?.ok) {
+          const data = res.data.ncr;
+          setNcr(data);
+          setAsignarA(data.asignar_a || '');
+          setNotas(data.notas || '');
+          setAccionCorrectiva(data.accion_correctiva || '');
+        }
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('ncr_error_cargar_detalle', 'Error al cargar detalle de NCR'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [id, reloadTick]);
 
   const handleAction = useCallback(async (action) => {
     setActionLoading(true);
     try {
       const res = await api.post(`/quality/ncr/${id}/${action}`);
       if (res.data?.ok) {
-        toast.success(t(`ncr_action_${action}_ok`, `Accion "${action}" ejecutada`));
-        fetchNCR();
+        toastRef.current.success(tRef.current(`ncr_action_${action}_ok`, `Accion "${action}" ejecutada`));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('ncr_error_accion', 'Error al ejecutar accion'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('ncr_error_accion', 'Error al ejecutar accion'));
     } finally {
       setActionLoading(false);
     }
-  }, [id, fetchNCR, t, toast]);
+  }, [id]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -106,30 +114,30 @@ export default function NCRDetail() {
         accion_correctiva: accionCorrectiva.trim(),
       });
       if (res.data?.ok) {
-        toast.success(t('ncr_guardado', 'NCR actualizado'));
-        fetchNCR();
+        toastRef.current.success(tRef.current('ncr_guardado', 'NCR actualizado'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('ncr_error_guardar', 'Error al guardar'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('ncr_error_guardar', 'Error al guardar'));
     } finally {
       setSaving(false);
     }
-  }, [id, asignarA, notas, accionCorrectiva, fetchNCR, t, toast]);
+  }, [id, asignarA, notas, accionCorrectiva]);
 
   const handleCreateCAPA = useCallback(async () => {
     setCreatingCAPA(true);
     try {
       const res = await api.post(`/quality/ncr/${id}/capa`);
       if (res.data?.ok) {
-        toast.success(t('ncr_capa_creado', 'CAPA creado exitosamente'));
+        toastRef.current.success(tRef.current('ncr_capa_creado', 'CAPA creado exitosamente'));
         navigate(`/quality/capa/${res.data.capa_id}`);
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('ncr_error_capa', 'Error al crear CAPA'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('ncr_error_capa', 'Error al crear CAPA'));
     } finally {
       setCreatingCAPA(false);
     }
-  }, [id, navigate, t, toast]);
+  }, [id, navigate]);
 
   if (loading) {
     return (

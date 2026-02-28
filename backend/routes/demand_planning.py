@@ -63,6 +63,7 @@ def obtener_detalle_ciclo(id):
         resultado = demand_planning_service.obtener_detalle_ciclo(id)
         if not resultado:
             return jsonify({'ok': False, 'error': 'Ciclo no encontrado'}), 404
+        resultado['ok'] = True
         return jsonify(resultado), 200
     except Exception as e:
         return safe_error_response(e, logger, context="obtener_detalle_ciclo")
@@ -79,6 +80,7 @@ def cambiar_estado_ciclo(id):
 
         user_id = _get_user_id()
         resultado = demand_planning_service.cambiar_estado_ciclo(id, data['estado'], user_id)
+        resultado['ok'] = True
         return jsonify(resultado), 200
     except ValueError as e:
         return jsonify({'ok': False, 'error': str(e)}), 400
@@ -96,8 +98,8 @@ def agregar_entrada(id):
             return jsonify({'ok': False, 'error': 'No se proporcionaron datos'}), 400
 
         user_id = _get_user_id()
-        resultado = demand_planning_service.agregar_entrada(id, data, user_id)
-        return jsonify(resultado), 201
+        entrada_id = demand_planning_service.agregar_entrada(id, data, user_id)
+        return jsonify({'ok': True, 'id': entrada_id}), 201
     except ValueError as e:
         return jsonify({'ok': False, 'error': str(e)}), 400
     except Exception as e:
@@ -110,6 +112,7 @@ def generar_baseline(id):
     """Generar baseline estadistico con ML para ciclo."""
     try:
         resultado = demand_planning_service.generar_baseline_ml(id)
+        resultado['ok'] = True
         return jsonify(resultado), 200
     except ValueError as e:
         return jsonify({'ok': False, 'error': str(e)}), 400
@@ -123,6 +126,7 @@ def calcular_consenso(id):
     """Calcular demand consensus entre stakeholders."""
     try:
         resultado = demand_planning_service.calcular_consenso(id)
+        resultado['ok'] = True
         return jsonify(resultado), 200
     except ValueError as e:
         return jsonify({'ok': False, 'error': str(e)}), 400

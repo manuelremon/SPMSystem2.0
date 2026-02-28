@@ -6,7 +6,7 @@
  * Sprint 58
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -48,6 +48,10 @@ const TIPO_OPTIONS = [
 export default function QualityInspections() {
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
   const navigate = useNavigate();
 
   const [inspections, setInspections] = useState([]);
@@ -55,48 +59,42 @@ export default function QualityInspections() {
   const [kpis, setKpis] = useState(null);
   const [tipoFilter, setTipoFilter] = useState('');
   const [resultadoFilter, setResultadoFilter] = useState('');
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
   // New inspection modal
   const [createOpen, setCreateOpen] = useState(false);
   const [newForm, setNewForm] = useState({ recepcion_id: '', tipo: 'recepcion' });
   const [creating, setCreating] = useState(false);
 
-  const fetchInspections = useCallback(async () => {
-    try {
-      setLoading(true);
-      const params = {};
-      if (tipoFilter) params.tipo = tipoFilter;
-      if (resultadoFilter) params.resultado = resultadoFilter;
-      const res = await api.get('/quality/inspections', { params });
-      if (res.data?.ok) {
-        setInspections(res.data.inspections || []);
-      }
-    } catch {
-      toast.error(t('quality_error_cargar', 'Error al cargar inspecciones'));
-    } finally {
-      setLoading(false);
-    }
-  }, [tipoFilter, resultadoFilter, t, toast]);
-
-  const fetchKPIs = useCallback(async () => {
-    try {
-      const res = await api.get('/quality/kpis');
-      if (res.data?.ok) {
-        setKpis(res.data.kpis);
-      }
-    } catch {
-      // KPIs are non-critical
-    }
-  }, []);
-
   useEffect(() => {
-    fetchInspections();
-    fetchKPIs();
-  }, [fetchInspections, fetchKPIs]);
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const params = {};
+        if (tipoFilter) params.tipo = tipoFilter;
+        if (resultadoFilter) params.resultado = resultadoFilter;
+        const [inspRes, kpiRes] = await Promise.all([
+          api.get('/quality/inspections', { params }),
+          api.get('/quality/kpis')
+        ]);
+        if (cancelled) return;
+        if (inspRes.data?.ok) setInspections(inspRes.data.inspections || []);
+        if (kpiRes.data?.ok) setKpis(kpiRes.data.kpis);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('quality_error_cargar', 'Error al cargar inspecciones'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [tipoFilter, resultadoFilter, reloadTick]);
 
   const handleCreate = useCallback(async () => {
     if (!newForm.recepcion_id.trim()) {
-      toast.warning(t('quality_recepcion_requerida', 'El ID de recepcion es requerido'));
+      toastRef.current.warning(tRef.current('quality_recepcion_requerida', 'El ID de recepcion es requerido'));
       return;
     }
     setCreating(true);
@@ -106,17 +104,17 @@ export default function QualityInspections() {
         tipo: newForm.tipo,
       });
       if (res.data?.ok) {
-        toast.success(t('quality_inspeccion_creada', 'Inspeccion creada'));
+        toastRef.current.success(tRef.current('quality_inspeccion_creada', 'Inspeccion creada'));
         setCreateOpen(false);
         setNewForm({ recepcion_id: '', tipo: 'recepcion' });
         navigate(`/quality/inspections/${res.data.inspection_id}`);
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('quality_error_crear', 'Error al crear inspeccion'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('quality_error_crear', 'Error al crear inspeccion'));
     } finally {
       setCreating(false);
     }
-  }, [newForm, navigate, t, toast]);
+  }, [newForm, navigate]);
 
   const columnDefs = useMemo(() => [
     {

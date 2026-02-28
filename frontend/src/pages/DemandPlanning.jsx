@@ -5,7 +5,7 @@
  * filters, and paginated table. Allows creating new cycles.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -43,15 +43,17 @@ const ESTADO_OPTIONS = [
   { value: 'consensus', label: 'Consenso' },
   { value: 'approved', label: 'Aprobado' },
   { value: 'closed', label: 'Cerrado' },
+  { value: 'cancelled', label: 'Cancelado' },
 ];
 
 const ESTADO_COLORS = {
   draft: 'default',
   collecting: 'info',
   review: 'warning',
-  consensus: 'info',
+  consensus: 'secondary',
   approved: 'success',
   closed: 'default',
+  cancelled: 'error',
 };
 
 const INITIAL_FORM = {
@@ -63,6 +65,10 @@ const INITIAL_FORM = {
 export default function DemandPlanning() {
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
   const navigate = useNavigate();
 
   const [cycles, setCycles] = useState([]);
@@ -73,62 +79,58 @@ export default function DemandPlanning() {
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState(INITIAL_FORM);
   const [saving, setSaving] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
-  const fetchCycles = useCallback(async () => {
-    try {
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
       setLoading(true);
-      const params = { page, per_page: 20 };
-      if (filters.estado) params.estado = filters.estado;
-      const res = await api.get('/demand-planning/cycles', { params });
-      if (res.data?.ok) {
-        setCycles(res.data.cycles || res.data.items || []);
+      try {
+        const params = { page, per_page: 20 };
+        if (filters.estado) params.estado = filters.estado;
+        const [cyclesRes, kpiRes] = await Promise.all([
+          api.get('/demand-planning/cycles', { params }),
+          api.get('/demand-planning/accuracy'),
+        ]);
+        if (cancelled) return;
+        if (cyclesRes.data?.ok) setCycles(cyclesRes.data.items || []);
+        if (kpiRes.data?.ok) setKpis(kpiRes.data);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('demand_error_load', 'Error al cargar ciclos de demanda'));
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch {
-      toast.error(t('demand_error_load', 'Error al cargar ciclos de demanda'));
-    } finally {
-      setLoading(false);
-    }
-  }, [page, filters, t, toast]);
-
-  const fetchKpis = useCallback(async () => {
-    try {
-      const res = await api.get('/demand-planning/accuracy');
-      if (res.data?.ok) {
-        setKpis(res.data);
-      }
-    } catch {
-      // KPIs are non-critical
-    }
-  }, []);
-
-  useEffect(() => { fetchCycles(); }, [fetchCycles]);
-  useEffect(() => { fetchKpis(); }, [fetchKpis]);
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [page, filters, reloadTick]);
 
   const handleFilterChange = useCallback((field, value) => {
     setFilters(prev => ({ ...prev, [field]: value }));
     setPage(1);
   }, []);
 
-  const handleCreate = useCallback(async () => {
+  const handleCreate = async () => {
     if (!form.nombre || !form.periodo_desde || !form.periodo_hasta) {
-      toast.warning(t('demand_form_required', 'Complete todos los campos'));
+      toastRef.current.warning(tRef.current('demand_form_required', 'Complete todos los campos'));
       return;
     }
     setSaving(true);
     try {
       const res = await api.post('/demand-planning/cycles', form);
       if (res.data?.ok) {
-        toast.success(t('demand_created', 'Ciclo creado exitosamente'));
+        toastRef.current.success(tRef.current('demand_created', 'Ciclo creado exitosamente'));
         setCreateOpen(false);
         setForm(INITIAL_FORM);
-        fetchCycles();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('demand_error_create', 'Error al crear ciclo'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('demand_error_create', 'Error al crear ciclo'));
     } finally {
       setSaving(false);
     }
-  }, [form, fetchCycles, t, toast]);
+  };
 
   const columnDefs = useMemo(() => [
     { field: 'nombre', headerName: t('demand_nombre', 'Nombre'), flex: 2, minWidth: 200 },
@@ -150,6 +152,8 @@ export default function DemandPlanning() {
         />
       ),
     },
+    { field: 'num_entradas', headerName: t('demand_entradas', 'Entradas'), width: 100 },
+    { field: 'creado_por_nombre', headerName: t('demand_creado_por', 'Creado por'), width: 140 },
   ], [t]);
 
   const KpiCard = ({ icon, label, value, unit, color }) => (

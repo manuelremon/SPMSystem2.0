@@ -5,7 +5,7 @@
  * Sprint 83
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -45,9 +45,14 @@ export default function ConsignmentPrograms() {
   const { t } = useI18n();
   const toast = useToast();
   const navigate = useNavigate();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
 
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reloadTick, setReloadTick] = useState(0);
   const [kpis, setKpis] = useState({
     total_consigned_value: 0,
     month_consumption: 0,
@@ -65,41 +70,33 @@ export default function ConsignmentPrograms() {
     porcentaje_margen: '',
   });
 
-  const fetchPrograms = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/consignment/programs', {
-        params: { per_page: 100 },
-      });
-      if (res.data?.ok) {
-        setPrograms(res.data.items || []);
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.error || t('consign_error_load', 'Error al cargar programas'));
-    } finally {
-      setLoading(false);
-    }
-  }, [t, toast]);
-
-  const fetchKpis = useCallback(async () => {
-    try {
-      const res = await api.get('/consignment/kpis');
-      if (res.data?.ok) {
-        setKpis(res.data.kpis || {});
-      }
-    } catch {
-      // Non-critical
-    }
-  }, []);
+  const reload = useCallback(() => setReloadTick((n) => n + 1), []);
 
   useEffect(() => {
-    fetchPrograms();
-    fetchKpis();
-  }, [fetchPrograms, fetchKpis]);
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [progRes, kpiRes] = await Promise.all([
+          api.get('/consignment/programs', { params: { per_page: 100 } }),
+          api.get('/consignment/kpis'),
+        ]);
+        if (cancelled) return;
+        if (progRes.data?.ok) setPrograms(progRes.data.items || []);
+        if (kpiRes.data?.ok) setKpis(kpiRes.data.kpis || {});
+      } catch (err) {
+        if (!cancelled) toastRef.current.error(err.response?.data?.error || tRef.current('consign_error_load', 'Error al cargar programas'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [reloadTick]);
 
   const handleRowClick = useCallback((rowData) => {
     const programaId = rowData.id;
-    navigate(`/consignment/${programaId}`);
+    navigate(`/operations/consignment/${programaId}`);
   }, [navigate]);
 
   const handleCreateOpen = useCallback(() => {
@@ -123,7 +120,7 @@ export default function ConsignmentPrograms() {
 
   const handleCreate = useCallback(async () => {
     if (!formData.proveedor_cuit.trim() || !formData.nombre.trim()) {
-      toast.warning(t('consign_fill_required', 'Complete los campos requeridos'));
+      toastRef.current.warning(tRef.current('consign_fill_required', 'Complete los campos requeridos'));
       return;
     }
 
@@ -139,17 +136,16 @@ export default function ConsignmentPrograms() {
 
       const res = await api.post('/consignment/programs', payload);
       if (res.data?.ok) {
-        toast.success(t('consign_created', 'Programa creado exitosamente'));
+        toastRef.current.success(tRef.current('consign_created', 'Programa creado exitosamente'));
         setCreateOpen(false);
-        fetchPrograms();
-        fetchKpis();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('consign_error_create', 'Error al crear programa'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('consign_error_create', 'Error al crear programa'));
     } finally {
       setCreating(false);
     }
-  }, [formData, t, toast, fetchPrograms, fetchKpis]);
+  }, [formData, reload]);
 
   const columnDefs = useMemo(() => [
     {

@@ -5,7 +5,7 @@
  * Allows generating tasks from a reception and completing individual tasks.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
@@ -64,74 +64,84 @@ const PRIORIDAD_COLORS = {
 export default function PutawayTasks() {
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
 
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({ estado: '', prioridad: '', almacen: '' });
   const [processing, setProcessing] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
   // Generate dialog
   const [generateOpen, setGenerateOpen] = useState(false);
   const [generateRecepcionId, setGenerateRecepcionId] = useState('');
 
-  const fetchTasks = useCallback(async () => {
-    try {
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
       setLoading(true);
-      const params = { page, per_page: 20 };
-      if (filters.estado) params.estado = filters.estado;
-      if (filters.prioridad) params.prioridad = filters.prioridad;
-      if (filters.almacen) params.almacen = filters.almacen;
-      const res = await api.get('/warehouse/putaway', { params });
-      if (res.data?.ok) {
-        setTasks(res.data.tasks || res.data.items || []);
+      try {
+        const params = { page, per_page: 20 };
+        if (filters.estado) params.estado = filters.estado;
+        if (filters.prioridad) params.prioridad = filters.prioridad;
+        if (filters.almacen) params.almacen = filters.almacen;
+        const res = await api.get('/warehouse/putaway', { params });
+        if (cancelled) return;
+        if (res.data?.ok) {
+          setTasks(res.data.tasks || res.data.items || []);
+        }
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('putaway_error_load', 'Error al cargar tareas'));
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch {
-      toast.error(t('putaway_error_load', 'Error al cargar tareas'));
-    } finally {
-      setLoading(false);
-    }
-  }, [page, filters, t, toast]);
-
-  useEffect(() => { fetchTasks(); }, [fetchTasks]);
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [page, filters, reloadTick]);
 
   const handleFilterChange = useCallback((field, value) => {
     setFilters(prev => ({ ...prev, [field]: value }));
     setPage(1);
   }, []);
 
-  const handleGenerate = useCallback(async () => {
+  const handleGenerate = async () => {
     if (!generateRecepcionId) {
-      toast.warning(t('putaway_recepcion_required', 'Ingrese ID de recepcion'));
+      toastRef.current.warning(tRef.current('putaway_recepcion_required', 'Ingrese ID de recepcion'));
       return;
     }
     setProcessing(true);
     try {
       const res = await api.post(`/warehouse/putaway/generate/${generateRecepcionId}`);
       if (res.data?.ok) {
-        toast.success(t('putaway_generated', 'Tareas generadas exitosamente'));
+        toastRef.current.success(tRef.current('putaway_generated', 'Tareas generadas exitosamente'));
         setGenerateOpen(false);
         setGenerateRecepcionId('');
-        fetchTasks();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('putaway_error_generate', 'Error al generar tareas'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('putaway_error_generate', 'Error al generar tareas'));
     } finally {
       setProcessing(false);
     }
-  }, [generateRecepcionId, fetchTasks, t, toast]);
+  };
 
   const handleComplete = useCallback(async (taskId) => {
     try {
       const res = await api.put(`/warehouse/putaway/${taskId}/complete`);
       if (res.data?.ok) {
-        toast.success(t('putaway_completed', 'Tarea completada'));
-        fetchTasks();
+        toastRef.current.success(tRef.current('putaway_completed', 'Tarea completada'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('putaway_error_complete', 'Error al completar tarea'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('putaway_error_complete', 'Error al completar tarea'));
     }
-  }, [fetchTasks, t, toast]);
+  }, []);
 
   const columnDefs = useMemo(() => [
     { field: 'material_codigo', headerName: t('putaway_material', 'Material'), flex: 1, minWidth: 140 },

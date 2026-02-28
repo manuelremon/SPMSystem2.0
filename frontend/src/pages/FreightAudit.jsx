@@ -7,7 +7,7 @@
  * Sprint 61
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
@@ -75,6 +75,10 @@ const INITIAL_INVOICE_FORM = {
 export default function FreightAudit() {
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
 
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -98,6 +102,9 @@ export default function FreightAudit() {
   const [invoiceForm, setInvoiceForm] = useState(INITIAL_INVOICE_FORM);
   const [submitting, setSubmitting] = useState(false);
 
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
+
   // Approve dialog
   const [approveOpen, setApproveOpen] = useState(false);
   const [approveInvoice, setApproveInvoice] = useState(null);
@@ -110,60 +117,52 @@ export default function FreightAudit() {
   const [disputeReason, setDisputeReason] = useState('');
   const [disputing, setDisputing] = useState(false);
 
-  const fetchInvoices = useCallback(async () => {
-    try {
+  // Fetch invoices + KPIs
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
       setLoading(true);
-      const params = { page: 1, per_page: 200 };
-      if (filters.estado) params.estado = filters.estado;
-      if (filters.transportista_cuit) params.transportista_cuit = filters.transportista_cuit;
-      if (filters.fecha_desde) params.fecha_desde = filters.fecha_desde;
-      if (filters.fecha_hasta) params.fecha_hasta = filters.fecha_hasta;
-      const res = await api.get('/freight/invoices', { params });
-      if (res.data?.ok) {
-        setInvoices(res.data.invoices || res.data.items || []);
+      try {
+        const params = { page: 1, per_page: 200 };
+        if (filters.estado) params.estado = filters.estado;
+        if (filters.transportista_cuit) params.transportista_cuit = filters.transportista_cuit;
+        if (filters.fecha_desde) params.fecha_desde = filters.fecha_desde;
+        if (filters.fecha_hasta) params.fecha_hasta = filters.fecha_hasta;
+        const [invRes, kpiRes] = await Promise.all([
+          api.get('/freight/invoices', { params }),
+          api.get('/freight/kpis')
+        ]);
+        if (cancelled) return;
+        if (invRes.data?.ok) setInvoices(invRes.data.invoices || invRes.data.items || []);
+        if (kpiRes.data?.ok) setKpis(kpiRes.data.kpis || kpiRes.data);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('freight_error_load', 'Error al cargar facturas'));
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch {
-      toast.error(t('freight_error_load', 'Error al cargar facturas'));
-    } finally {
-      setLoading(false);
-    }
-  }, [filters, t, toast]);
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [filters, reloadTick]);
 
-  const fetchKPIs = useCallback(async () => {
-    try {
-      const res = await api.get('/freight/kpis');
-      if (res.data?.ok) {
-        setKpis(res.data.kpis || res.data);
-      }
-    } catch {
-      // Non-critical
-    }
-  }, []);
-
-  const fetchCarrierPerformance = useCallback(async () => {
-    setCarrierLoading(true);
-    try {
-      const res = await api.get('/freight/carrier-performance');
-      if (res.data?.ok) {
-        setCarrierPerf(res.data.carriers || res.data.items || []);
-      }
-    } catch {
-      toast.error(t('freight_error_carrier', 'Error al cargar rendimiento transportistas'));
-    } finally {
-      setCarrierLoading(false);
-    }
-  }, [t, toast]);
-
+  // Fetch carrier performance when tab selected
   useEffect(() => {
-    fetchInvoices();
-    fetchKPIs();
-  }, [fetchInvoices, fetchKPIs]);
-
-  useEffect(() => {
-    if (tabValue === 1) {
-      fetchCarrierPerformance();
-    }
-  }, [tabValue, fetchCarrierPerformance]);
+    if (tabValue !== 1) return;
+    let cancelled = false;
+    const load = async () => {
+      setCarrierLoading(true);
+      try {
+        const res = await api.get('/freight/carrier-performance');
+        if (!cancelled && res.data?.ok) setCarrierPerf(res.data.carriers || res.data.items || []);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('freight_error_carrier', 'Error al cargar rendimiento transportistas'));
+      } finally {
+        if (!cancelled) setCarrierLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [tabValue, reloadTick]);
 
   const handleFilterChange = useCallback((field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
@@ -176,7 +175,7 @@ export default function FreightAudit() {
   // Create invoice
   const handleCreateInvoice = useCallback(async () => {
     if (!invoiceForm.numero_factura.trim() || !invoiceForm.transportista_cuit.trim() || !invoiceForm.monto_facturado) {
-      toast.warning(t('freight_required', 'Complete numero, transportista y monto'));
+      toastRef.current.warning(tRef.current('freight_required', 'Complete numero, transportista y monto'));
       return;
     }
     setSubmitting(true);
@@ -187,32 +186,30 @@ export default function FreightAudit() {
       };
       const res = await api.post('/freight/invoices', payload);
       if (res.data?.ok) {
-        toast.success(t('freight_created', 'Factura registrada'));
+        toastRef.current.success(tRef.current('freight_created', 'Factura registrada'));
         setCreateOpen(false);
         setInvoiceForm(INITIAL_INVOICE_FORM);
-        fetchInvoices();
-        fetchKPIs();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('freight_error_create', 'Error al registrar factura'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('freight_error_create', 'Error al registrar factura'));
     } finally {
       setSubmitting(false);
     }
-  }, [invoiceForm, t, toast, fetchInvoices, fetchKPIs]);
+  }, [invoiceForm]);
 
   // Auto-audit
   const handleAutoAudit = useCallback(async (invoiceId) => {
     try {
       const res = await api.post(`/freight/invoices/${invoiceId}/audit`);
       if (res.data?.ok) {
-        toast.success(t('freight_audited', 'Factura auditada'));
-        fetchInvoices();
-        fetchKPIs();
+        toastRef.current.success(tRef.current('freight_audited', 'Factura auditada'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('freight_error_audit', 'Error al auditar'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('freight_error_audit', 'Error al auditar'));
     }
-  }, [t, toast, fetchInvoices, fetchKPIs]);
+  }, []);
 
   // Approve
   const handleApproveSubmit = useCallback(async () => {
@@ -223,24 +220,23 @@ export default function FreightAudit() {
         monto_aprobado: approveAmount ? parseFloat(approveAmount) : approveInvoice.monto_facturado,
       });
       if (res.data?.ok) {
-        toast.success(t('freight_approved', 'Factura aprobada'));
+        toastRef.current.success(tRef.current('freight_approved', 'Factura aprobada'));
         setApproveOpen(false);
         setApproveInvoice(null);
         setApproveAmount('');
-        fetchInvoices();
-        fetchKPIs();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('freight_error_approve', 'Error al aprobar'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('freight_error_approve', 'Error al aprobar'));
     } finally {
       setApproving(false);
     }
-  }, [approveInvoice, approveAmount, t, toast, fetchInvoices, fetchKPIs]);
+  }, [approveInvoice, approveAmount]);
 
   // Dispute
   const handleDisputeSubmit = useCallback(async () => {
     if (!disputeInvoice || !disputeReason.trim()) {
-      toast.warning(t('freight_dispute_reason_req', 'Ingrese la razon de la disputa'));
+      toastRef.current.warning(tRef.current('freight_dispute_reason_req', 'Ingrese la razon de la disputa'));
       return;
     }
     setDisputing(true);
@@ -249,19 +245,18 @@ export default function FreightAudit() {
         razon: disputeReason,
       });
       if (res.data?.ok) {
-        toast.success(t('freight_disputed', 'Factura disputada'));
+        toastRef.current.success(tRef.current('freight_disputed', 'Factura disputada'));
         setDisputeOpen(false);
         setDisputeInvoice(null);
         setDisputeReason('');
-        fetchInvoices();
-        fetchKPIs();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('freight_error_dispute', 'Error al disputar'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('freight_error_dispute', 'Error al disputar'));
     } finally {
       setDisputing(false);
     }
-  }, [disputeInvoice, disputeReason, t, toast, fetchInvoices, fetchKPIs]);
+  }, [disputeInvoice, disputeReason]);
 
   const fmtMoney = useCallback((val) => {
     return val != null ? formatCurrency(val) : '-';

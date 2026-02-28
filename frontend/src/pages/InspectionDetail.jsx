@@ -6,7 +6,7 @@
  * Sprint 58
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -44,6 +44,10 @@ const RESULTADO_COLORS = {
 export default function InspectionDetail() {
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
   const navigate = useNavigate();
   const { id } = useParams();
 
@@ -52,34 +56,38 @@ export default function InspectionDetail() {
   const [items, setItems] = useState([]);
   const [saving, setSaving] = useState(false);
   const [generatingNCR, setGeneratingNCR] = useState(false);
-
-  const fetchInspection = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await api.get(`/quality/inspections/${id}`);
-      if (res.data?.ok) {
-        setInspection(res.data.inspection);
-        setItems(
-          (res.data.inspection?.items || []).map((it) => ({
-            ...it,
-            cantidad_inspeccionada: it.cantidad_inspeccionada ?? it.cantidad ?? 0,
-            cantidad_aprobada: it.cantidad_aprobada ?? 0,
-            cantidad_rechazada: it.cantidad_rechazada ?? 0,
-            resultado: it.resultado || 'pending',
-            defectos: it.defectos || '',
-          }))
-        );
-      }
-    } catch {
-      toast.error(t('quality_error_cargar_detalle', 'Error al cargar detalle de inspeccion'));
-    } finally {
-      setLoading(false);
-    }
-  }, [id, t, toast]);
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
   useEffect(() => {
-    fetchInspection();
-  }, [fetchInspection]);
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await api.get(`/quality/inspections/${id}`);
+        if (cancelled) return;
+        if (res.data?.ok) {
+          setInspection(res.data.inspection);
+          setItems(
+            (res.data.inspection?.items || []).map((it) => ({
+              ...it,
+              cantidad_inspeccionada: it.cantidad_inspeccionada ?? it.cantidad ?? 0,
+              cantidad_aprobada: it.cantidad_aprobada ?? 0,
+              cantidad_rechazada: it.cantidad_rechazada ?? 0,
+              resultado: it.resultado || 'pending',
+              defectos: it.defectos || '',
+            }))
+          );
+        }
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('quality_error_cargar_detalle', 'Error al cargar detalle de inspeccion'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [id, reloadTick]);
 
   const handleItemChange = useCallback((index, field, value) => {
     setItems((prev) =>
@@ -107,30 +115,30 @@ export default function InspectionDetail() {
       };
       const res = await api.put(`/quality/inspections/${id}/results`, payload);
       if (res.data?.ok) {
-        toast.success(t('quality_resultados_guardados', 'Resultados guardados'));
-        fetchInspection();
+        toastRef.current.success(tRef.current('quality_resultados_guardados', 'Resultados guardados'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('quality_error_guardar', 'Error al guardar resultados'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('quality_error_guardar', 'Error al guardar resultados'));
     } finally {
       setSaving(false);
     }
-  }, [id, items, fetchInspection, t, toast]);
+  }, [id, items]);
 
   const handleGenerateNCR = useCallback(async () => {
     setGeneratingNCR(true);
     try {
       const res = await api.post(`/quality/inspections/${id}/ncr`);
       if (res.data?.ok) {
-        toast.success(t('quality_ncr_generado', 'NCR generado exitosamente'));
+        toastRef.current.success(tRef.current('quality_ncr_generado', 'NCR generado exitosamente'));
         navigate(`/quality/ncr/${res.data.ncr_id}`);
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('quality_error_ncr', 'Error al generar NCR'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('quality_error_ncr', 'Error al generar NCR'));
     } finally {
       setGeneratingNCR(false);
     }
-  }, [id, navigate, t, toast]);
+  }, [id, navigate]);
 
   if (loading) {
     return (

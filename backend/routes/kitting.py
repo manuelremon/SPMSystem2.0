@@ -40,7 +40,7 @@ def crear_bom():
     try:
         data = request.get_json()
         bom = kitting_service.crear_bom(data)
-        return jsonify(bom), 201
+        return jsonify({'ok': True, **bom}), 201
     except Exception as e:
         return safe_error_response(e, logger, context="kitting")
 
@@ -51,7 +51,7 @@ def obtener_detalle_bom(id):
     """Obtener detalle completo de BOM."""
     try:
         detalle = kitting_service.obtener_detalle_bom(id)
-        return jsonify(detalle), 200
+        return jsonify({'ok': True, **detalle}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="kitting")
 
@@ -63,7 +63,7 @@ def actualizar_bom(id):
     try:
         data = request.get_json()
         bom = kitting_service.actualizar_bom(id, data)
-        return jsonify(bom), 200
+        return jsonify({'ok': True, **bom}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="kitting")
 
@@ -75,7 +75,7 @@ def agregar_componente(id):
     try:
         data = request.get_json()
         componente = kitting_service.agregar_componente(id, data)
-        return jsonify(componente), 201
+        return jsonify({'ok': True, 'componente_id': componente}), 201
     except Exception as e:
         return safe_error_response(e, logger, context="kitting")
 
@@ -85,8 +85,8 @@ def agregar_componente(id):
 def eliminar_componente(id, comp_id):
     """Eliminar componente de BOM."""
     try:
-        resultado = kitting_service.eliminar_componente(id, comp_id)
-        return jsonify(resultado), 200
+        kitting_service.eliminar_componente(id, comp_id)
+        return jsonify({'ok': True}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="kitting")
 
@@ -118,7 +118,7 @@ def crear_orden():
     try:
         data = request.get_json()
         orden = kitting_service.crear_orden(data)
-        return jsonify(orden), 201
+        return jsonify({'ok': True, **orden}), 201
     except Exception as e:
         return safe_error_response(e, logger, context="kitting")
 
@@ -129,7 +129,7 @@ def obtener_detalle_orden(id):
     """Obtener detalle completo de orden."""
     try:
         detalle = kitting_service.obtener_detalle_orden(id)
-        return jsonify(detalle), 200
+        return jsonify({'ok': True, **detalle}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="kitting")
 
@@ -139,8 +139,8 @@ def obtener_detalle_orden(id):
 def asignar_componentes(id):
     """Asignar componentes a orden de kitting."""
     try:
-        resultado = kitting_service.asignar_componentes(id)
-        return jsonify(resultado), 200
+        kitting_service.asignar_componentes(id)
+        return jsonify({'ok': True}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="kitting")
 
@@ -150,8 +150,8 @@ def asignar_componentes(id):
 def iniciar_produccion(id):
     """Iniciar producción de orden de kitting."""
     try:
-        resultado = kitting_service.iniciar_produccion(id)
-        return jsonify(resultado), 200
+        kitting_service.iniciar_produccion(id)
+        return jsonify({'ok': True}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="kitting")
 
@@ -161,8 +161,8 @@ def iniciar_produccion(id):
 def completar_orden(id):
     """Completar orden de kitting."""
     try:
-        resultado = kitting_service.completar_orden(id)
-        return jsonify(resultado), 200
+        kitting_service.completar_orden(id)
+        return jsonify({'ok': True}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="kitting")
 
@@ -173,7 +173,7 @@ def verificar_disponibilidad(id):
     """Verificar disponibilidad de componentes para orden."""
     try:
         disponibilidad = kitting_service.verificar_disponibilidad(id)
-        return jsonify(disponibilidad), 200
+        return jsonify({'ok': True, 'availability': disponibilidad}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="kitting")
 

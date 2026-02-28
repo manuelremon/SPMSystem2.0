@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Card,
@@ -24,9 +24,16 @@ import { Add as AddIcon, Warning as WarningIcon, CheckCircle as CheckCircleIcon,
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useI18n } from '../context/i18n';
+import { useToast } from '../hooks/useToast';
 
 const WarrantyList = () => {
   const { t } = useI18n();
+  const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
+
   const navigate = useNavigate();
 
   // Estado
@@ -36,6 +43,8 @@ const WarrantyList = () => {
   const [reclamos, setReclamos] = useState([]);
   const [loadingGarantias, setLoadingGarantias] = useState(false);
   const [loadingReclamos, setLoadingReclamos] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
   // Modales
   const [openGarantiaModal, setOpenGarantiaModal] = useState(false);
@@ -62,53 +71,40 @@ const WarrantyList = () => {
     costo_estimado: ''
   });
 
-  // Cargar KPIs
-  const fetchKpis = useCallback(async () => {
-    try {
-      const response = await api.get('/api/warranty/kpis');
-      setKpis(response.data);
-    } catch (error) {
-    }
-  }, []);
-
-  // Cargar garantías
-  const fetchGarantias = useCallback(async () => {
-    setLoadingGarantias(true);
-    try {
-      const response = await api.get('/api/warranty/', {
-        params: { page: 1, per_page: 1000 }
-      });
-      setGarantias(response.data.garantias || []);
-    } catch (error) {
-    } finally {
-      setLoadingGarantias(false);
-    }
-  }, []);
-
-  // Cargar reclamos
-  const fetchReclamos = useCallback(async () => {
-    setLoadingReclamos(true);
-    try {
-      const response = await api.get('/api/warranty/claims', {
-        params: { page: 1, per_page: 1000 }
-      });
-      setReclamos(response.data.reclamos || []);
-    } catch (error) {
-    } finally {
-      setLoadingReclamos(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchKpis();
-    fetchGarantias();
-    fetchReclamos();
-  }, [fetchKpis, fetchGarantias, fetchReclamos]);
+    let cancelled = false;
+
+    const fetchAll = async () => {
+      setLoadingGarantias(true);
+      setLoadingReclamos(true);
+      try {
+        const [kpisRes, garantiasRes, reclamosRes] = await Promise.all([
+          api.get('/warranty/kpis'),
+          api.get('/warranty/', { params: { page: 1, per_page: 1000 } }),
+          api.get('/warranty/claims', { params: { page: 1, per_page: 1000 } })
+        ]);
+        if (cancelled) return;
+        if (kpisRes.data?.ok) setKpis(kpisRes.data.kpis || kpisRes.data);
+        if (garantiasRes.data?.ok) setGarantias(garantiasRes.data.garantias || []);
+        if (reclamosRes.data?.ok) setReclamos(reclamosRes.data.reclamos || []);
+      } catch (error) {
+        if (!cancelled) toastRef.current.error(tRef.current('warranty_error_load', 'Error al cargar datos de garantías'));
+      } finally {
+        if (!cancelled) {
+          setLoadingGarantias(false);
+          setLoadingReclamos(false);
+        }
+      }
+    };
+
+    fetchAll();
+    return () => { cancelled = true; };
+  }, [reloadTick]);
 
   // Handlers
   const handleCreateGarantia = async () => {
     try {
-      await api.post('/api/warranty/', formGarantia);
+      await api.post('/warranty/', formGarantia);
       setOpenGarantiaModal(false);
       setFormGarantia({
         material_codigo: '',
@@ -120,10 +116,9 @@ const WarrantyList = () => {
         lote_id: '',
         orden_compra_id: ''
       });
-      fetchGarantias();
-      fetchKpis();
+      reload();
     } catch (error) {
-      alert(t('warranty_error_create', 'Error al crear garantía'));
+      toastRef.current.error(tRef.current('warranty_error_create', 'Error al crear garantía'));
     }
   };
 
@@ -135,7 +130,7 @@ const WarrantyList = () => {
         cantidad_afectada: formReclamo.cantidad_afectada ? parseFloat(formReclamo.cantidad_afectada) : null,
         costo_estimado: formReclamo.costo_estimado ? parseFloat(formReclamo.costo_estimado) : null
       };
-      await api.post('/api/warranty/claims', payload);
+      await api.post('/warranty/claims', payload);
       setOpenReclamoModal(false);
       setFormReclamo({
         garantia_id: '',
@@ -144,10 +139,9 @@ const WarrantyList = () => {
         cantidad_afectada: '',
         costo_estimado: ''
       });
-      fetchReclamos();
-      fetchKpis();
+      reload();
     } catch (error) {
-      alert(t('warranty_error_create_claim', 'Error al crear reclamo'));
+      toastRef.current.error(tRef.current('warranty_error_create_claim', 'Error al crear reclamo'));
     }
   };
 

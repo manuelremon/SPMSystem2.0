@@ -46,10 +46,10 @@ export default function DispositionModal({ open, onClose, item, onCreated }) {
     }
     setSubmitting(true);
     try {
-      await api.post('/api/slob/disposition', {
-        material: item?.material,
+      await api.post('/slob/disposition', {
+        material_codigo: item?.material_codigo,
         almacen: item?.almacen,
-        tipo,
+        tipo_disposicion: tipo,
         cantidad: parseFloat(cantidad),
         notas,
       });
@@ -69,7 +69,7 @@ export default function DispositionModal({ open, onClose, item, onCreated }) {
       <DialogTitle>{t('slob_propose_disposition', 'Proponer Disposicion')}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField label={t('slob_material', 'Material')} value={item?.material || ''} disabled size="small" fullWidth />
+          <TextField label={t('slob_material', 'Material')} value={item?.material_codigo || ''} disabled size="small" fullWidth />
           <TextField label={t('slob_warehouse', 'Almacen')} value={item?.almacen || ''} disabled size="small" fullWidth />
           <TextField
             label={t('slob_quantity', 'Cantidad')}

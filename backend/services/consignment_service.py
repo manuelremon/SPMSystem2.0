@@ -6,93 +6,39 @@ Gestiona programas de inventario en consignación (supplier-owned inventory at c
 import logging
 from typing import Optional
 
-from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+from backend.core.db import get_db_connection, get_db_transaction
 
 logger = logging.getLogger(__name__)
 
+PH = '%s'
+
 
 def crear_programa(datos: dict) -> int:
-    """
-    Crea un nuevo programa de consignación.
-
-    Args:
-        datos: {
-            proveedor_cuit: str,
-            almacen_id: int (optional),
-            nombre: str,
-            descripcion: str (optional),
-            condiciones_pago: str (optional),
-            porcentaje_margen: float (optional),
-            periodo_reconciliacion: str (optional, 'mensual' | 'quincenal')
-        }
-
-    Returns:
-        ID del programa creado
-    """
-    using_pg = is_using_postgresql()
-
+    """Crea un nuevo programa de consignación."""
     with get_db_transaction() as (conn, cursor):
-        if using_pg:
-            cursor.execute("""
-                INSERT INTO consignment_programa
-                (proveedor_cuit, almacen_id, nombre, descripcion, condiciones_pago, porcentaje_margen, periodo_reconciliacion, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
-                RETURNING id
-            """, (
-                datos['proveedor_cuit'],
-                datos.get('almacen_id'),
-                datos['nombre'],
-                datos.get('descripcion'),
-                datos.get('condiciones_pago'),
-                datos.get('porcentaje_margen'),
-                datos.get('periodo_reconciliacion', 'mensual')
-            ))
-            programa_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO consignment_programa
-                (proveedor_cuit, almacen_id, nombre, descripcion, condiciones_pago, porcentaje_margen, periodo_reconciliacion, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-            """, (
-                datos['proveedor_cuit'],
-                datos.get('almacen_id'),
-                datos['nombre'],
-                datos.get('descripcion'),
-                datos.get('condiciones_pago'),
-                datos.get('porcentaje_margen'),
-                datos.get('periodo_reconciliacion', 'mensual')
-            ))
-            programa_id = cursor.lastrowid
-
+        cursor.execute(f"""
+            INSERT INTO consignment_programa
+            (proveedor_cuit, almacen_id, nombre, descripcion, condiciones_pago, porcentaje_margen, periodo_reconciliacion, created_at, updated_at)
+            VALUES ({PH}, {PH}, {PH}, {PH}, {PH}, {PH}, {PH}, NOW(), NOW())
+            RETURNING id
+        """, (
+            datos['proveedor_cuit'],
+            datos.get('almacen_id'),
+            datos['nombre'],
+            datos.get('descripcion'),
+            datos.get('condiciones_pago'),
+            datos.get('porcentaje_margen'),
+            datos.get('periodo_reconciliacion', 'mensual')
+        ))
+        programa_id = cursor.fetchone()['id']
         conn.commit()
         logger.info(f"Programa de consignación creado: {programa_id}")
         return programa_id
 
 
 def obtener_programas(filtros: dict = None) -> dict:
-    """
-    Obtiene programas de consignación con paginación.
-
-    Args:
-        filtros: {
-            estado: str (optional),
-            proveedor_cuit: str (optional),
-            page: int (default: 1),
-            per_page: int (default: 50)
-        }
-
-    Returns:
-        {
-            items: [...],
-            total: int,
-            page: int,
-            per_page: int
-        }
-    """
+    """Obtiene programas de consignación con paginación."""
     filtros = filtros or {}
-    using_pg = is_using_postgresql()
-    placeholder = '%s' if using_pg else '?'
-
     page = filtros.get('page', 1)
     per_page = filtros.get('per_page', 50)
     offset = (page - 1) * per_page
@@ -101,25 +47,22 @@ def obtener_programas(filtros: dict = None) -> dict:
     cursor = conn.cursor()
 
     try:
-        # Build WHERE clauses
         where_clauses = []
         params = []
 
         if filtros.get('estado'):
-            where_clauses.append(f"cp.estado = {placeholder}")
+            where_clauses.append(f"cp.estado = {PH}")
             params.append(filtros['estado'])
 
         if filtros.get('proveedor_cuit'):
-            where_clauses.append(f"cp.proveedor_cuit = {placeholder}")
+            where_clauses.append(f"cp.proveedor_cuit = {PH}")
             params.append(filtros['proveedor_cuit'])
 
         where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
 
-        # Count total
-        cursor.execute(f"SELECT COUNT(*) FROM consignment_programa cp {where_sql}", params)
-        total = cursor.fetchone()[0]
+        cursor.execute(f"SELECT COUNT(*) as cnt FROM consignment_programa cp {where_sql}", params)
+        total = cursor.fetchone()['cnt']
 
-        # Get paginated data
         cursor.execute(f"""
             SELECT
                 cp.id, cp.proveedor_cuit, p.nombre as proveedor_nombre,
@@ -130,25 +73,15 @@ def obtener_programas(filtros: dict = None) -> dict:
             LEFT JOIN proveedores p ON cp.proveedor_cuit = p.id_proveedor
             {where_sql}
             ORDER BY cp.created_at DESC
-            LIMIT {placeholder} OFFSET {placeholder}
+            LIMIT {PH} OFFSET {PH}
         """, params + [per_page, offset])
 
         items = []
         for row in cursor.fetchall():
-            items.append({
-                'id': row[0],
-                'proveedor_cuit': row[1],
-                'proveedor_nombre': row[2],
-                'almacen_id': row[3],
-                'nombre': row[4],
-                'descripcion': row[5],
-                'estado': row[6],
-                'condiciones_pago': row[7],
-                'porcentaje_margen': float(row[8]) if row[8] else None,
-                'periodo_reconciliacion': row[9],
-                'created_at': row[10],
-                'updated_at': row[11]
-            })
+            r = dict(row)
+            if r.get('porcentaje_margen') is not None:
+                r['porcentaje_margen'] = float(r['porcentaje_margen'])
+            items.append(r)
 
         return {
             'items': items,
@@ -162,23 +95,7 @@ def obtener_programas(filtros: dict = None) -> dict:
 
 
 def obtener_detalle_programa(programa_id: int) -> dict:
-    """
-    Obtiene detalle completo de un programa de consignación.
-
-    Args:
-        programa_id: ID del programa
-
-    Returns:
-        {
-            programa: {...},
-            stock: [...],
-            consumos_recientes: [...],
-            reconciliaciones: [...]
-        }
-    """
-    using_pg = is_using_postgresql()
-    placeholder = '%s' if using_pg else '?'
-
+    """Obtiene detalle completo de un programa de consignación."""
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -192,48 +109,34 @@ def obtener_detalle_programa(programa_id: int) -> dict:
                 cp.created_at, cp.updated_at
             FROM consignment_programa cp
             LEFT JOIN proveedores p ON cp.proveedor_cuit = p.id_proveedor
-            WHERE cp.id = {placeholder}
+            WHERE cp.id = {PH}
         """, (programa_id,))
 
         row = cursor.fetchone()
         if not row:
             raise ValueError(f"Programa {programa_id} no encontrado")
 
-        programa = {
-            'id': row[0],
-            'proveedor_cuit': row[1],
-            'proveedor_nombre': row[2],
-            'almacen_id': row[3],
-            'nombre': row[4],
-            'descripcion': row[5],
-            'estado': row[6],
-            'condiciones_pago': row[7],
-            'porcentaje_margen': float(row[8]) if row[8] else None,
-            'periodo_reconciliacion': row[9],
-            'created_at': row[10],
-            'updated_at': row[11]
-        }
+        programa = dict(row)
+        if programa.get('porcentaje_margen') is not None:
+            programa['porcentaje_margen'] = float(programa['porcentaje_margen'])
 
         # 2. Stock actual
         cursor.execute(f"""
             SELECT
-                cs.id, cs.material_codigo, cs.cantidad_disponible,
-                cs.cantidad_consumida_acumulada, cs.valor_unitario, cs.ultima_actualizacion
-            FROM consignment_stock cs
-            WHERE cs.programa_id = {placeholder}
-            ORDER BY cs.material_codigo
+                id, material_codigo, cantidad_disponible,
+                cantidad_consumida_acumulada, valor_unitario, ultima_actualizacion
+            FROM consignment_stock
+            WHERE programa_id = {PH}
+            ORDER BY material_codigo
         """, (programa_id,))
 
         stock = []
         for row in cursor.fetchall():
-            stock.append({
-                'id': row[0],
-                'material_codigo': row[1],
-                'cantidad_disponible': float(row[2]) if row[2] else 0,
-                'cantidad_consumida_acumulada': float(row[3]) if row[3] else 0,
-                'valor_unitario': float(row[4]) if row[4] else None,
-                'ultima_actualizacion': row[5]
-            })
+            r = dict(row)
+            r['cantidad_disponible'] = float(r['cantidad_disponible']) if r['cantidad_disponible'] else 0
+            r['cantidad_consumida_acumulada'] = float(r['cantidad_consumida_acumulada']) if r['cantidad_consumida_acumulada'] else 0
+            r['valor_unitario'] = float(r['valor_unitario']) if r['valor_unitario'] else None
+            stock.append(r)
 
         # 3. Consumos recientes (últimos 100)
         cursor.execute(f"""
@@ -243,24 +146,17 @@ def obtener_detalle_programa(programa_id: int) -> dict:
                 cc.factura_id
             FROM consignment_consumo cc
             JOIN consignment_stock cs ON cc.stock_id = cs.id
-            WHERE cs.programa_id = {placeholder}
+            WHERE cs.programa_id = {PH}
             ORDER BY cc.fecha_consumo DESC
             LIMIT 100
         """, (programa_id,))
 
         consumos_recientes = []
         for row in cursor.fetchall():
-            consumos_recientes.append({
-                'id': row[0],
-                'stock_id': row[1],
-                'material_codigo': row[2],
-                'cantidad': float(row[3]) if row[3] else 0,
-                'solicitud_id': row[4],
-                'usuario_id': row[5],
-                'fecha_consumo': row[6],
-                'facturado': bool(row[7]),
-                'factura_id': row[8]
-            })
+            r = dict(row)
+            r['cantidad'] = float(r['cantidad']) if r['cantidad'] else 0
+            r['facturado'] = bool(r['facturado'])
+            consumos_recientes.append(r)
 
         # 4. Reconciliaciones
         cursor.execute(f"""
@@ -268,24 +164,16 @@ def obtener_detalle_programa(programa_id: int) -> dict:
                 id, periodo, cantidad_consumida_total, monto_total, estado,
                 fecha_envio, fecha_confirmacion, notas, created_at, updated_at
             FROM consignment_reconciliacion
-            WHERE programa_id = {placeholder}
+            WHERE programa_id = {PH}
             ORDER BY periodo DESC
         """, (programa_id,))
 
         reconciliaciones = []
         for row in cursor.fetchall():
-            reconciliaciones.append({
-                'id': row[0],
-                'periodo': row[1],
-                'cantidad_consumida_total': float(row[2]) if row[2] else 0,
-                'monto_total': float(row[3]) if row[3] else 0,
-                'estado': row[4],
-                'fecha_envio': row[5],
-                'fecha_confirmacion': row[6],
-                'notas': row[7],
-                'created_at': row[8],
-                'updated_at': row[9]
-            })
+            r = dict(row)
+            r['cantidad_consumida_total'] = float(r['cantidad_consumida_total']) if r['cantidad_consumida_total'] else 0
+            r['monto_total'] = float(r['monto_total']) if r['monto_total'] else 0
+            reconciliaciones.append(r)
 
         return {
             'programa': programa,
@@ -299,108 +187,43 @@ def obtener_detalle_programa(programa_id: int) -> dict:
 
 
 def actualizar_stock(programa_id: int, material_codigo: str, cantidad_disponible: float, valor_unitario: Optional[float] = None) -> int:
-    """
-    Actualiza stock de un material en consignación (UPSERT).
-
-    Args:
-        programa_id: ID del programa
-        material_codigo: Código del material
-        cantidad_disponible: Cantidad disponible actual
-        valor_unitario: Valor unitario (optional)
-
-    Returns:
-        ID del stock creado/actualizado
-    """
-    using_pg = is_using_postgresql()
-
+    """Actualiza stock de un material en consignación (UPSERT)."""
     with get_db_transaction() as (conn, cursor):
-        if using_pg:
-            # PostgreSQL: ON CONFLICT
-            cursor.execute("""
-                INSERT INTO consignment_stock
-                (programa_id, material_codigo, cantidad_disponible, valor_unitario, ultima_actualizacion, created_at)
-                VALUES (%s, %s, %s, %s, NOW(), NOW())
-                ON CONFLICT (programa_id, material_codigo)
-                DO UPDATE SET
-                    cantidad_disponible = EXCLUDED.cantidad_disponible,
-                    valor_unitario = COALESCE(EXCLUDED.valor_unitario, consignment_stock.valor_unitario),
-                    ultima_actualizacion = NOW()
-                RETURNING id
-            """, (programa_id, material_codigo, cantidad_disponible, valor_unitario))
-            stock_id = cursor.fetchone()[0]
-        else:
-            # SQLite: INSERT OR REPLACE
-            # First, check if exists
-            cursor.execute("""
-                SELECT id FROM consignment_stock
-                WHERE programa_id = ? AND material_codigo = ?
-            """, (programa_id, material_codigo))
-            existing = cursor.fetchone()
-
-            if existing:
-                stock_id = existing[0]
-                cursor.execute("""
-                    UPDATE consignment_stock
-                    SET cantidad_disponible = ?,
-                        valor_unitario = COALESCE(?, valor_unitario),
-                        ultima_actualizacion = datetime('now')
-                    WHERE id = ?
-                """, (cantidad_disponible, valor_unitario, stock_id))
-            else:
-                cursor.execute("""
-                    INSERT INTO consignment_stock
-                    (programa_id, material_codigo, cantidad_disponible, valor_unitario, ultima_actualizacion, created_at)
-                    VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
-                """, (programa_id, material_codigo, cantidad_disponible, valor_unitario))
-                stock_id = cursor.lastrowid
-
+        cursor.execute(f"""
+            INSERT INTO consignment_stock
+            (programa_id, material_codigo, cantidad_disponible, valor_unitario, ultima_actualizacion, created_at)
+            VALUES ({PH}, {PH}, {PH}, {PH}, NOW(), NOW())
+            ON CONFLICT (programa_id, material_codigo)
+            DO UPDATE SET
+                cantidad_disponible = EXCLUDED.cantidad_disponible,
+                valor_unitario = COALESCE(EXCLUDED.valor_unitario, consignment_stock.valor_unitario),
+                ultima_actualizacion = NOW()
+            RETURNING id
+        """, (programa_id, material_codigo, cantidad_disponible, valor_unitario))
+        stock_id = cursor.fetchone()['id']
         conn.commit()
         logger.info(f"Stock actualizado: programa={programa_id}, material={material_codigo}, qty={cantidad_disponible}")
         return stock_id
 
 
 def registrar_consumo(stock_id: int, cantidad: float, solicitud_id: Optional[int] = None, usuario_id: Optional[int] = None) -> int:
-    """
-    Registra consumo de material en consignación.
-
-    Args:
-        stock_id: ID del stock
-        cantidad: Cantidad consumida
-        solicitud_id: ID de la solicitud (optional)
-        usuario_id: ID del usuario (optional)
-
-    Returns:
-        ID del consumo registrado
-    """
-    using_pg = is_using_postgresql()
-    placeholder = '%s' if using_pg else '?'
-
+    """Registra consumo de material en consignación."""
     with get_db_transaction() as (conn, cursor):
-        # 1. Decrementar stock disponible, incrementar consumida_acumulada
         cursor.execute(f"""
             UPDATE consignment_stock
-            SET cantidad_disponible = cantidad_disponible - {placeholder},
-                cantidad_consumida_acumulada = cantidad_consumida_acumulada + {placeholder},
-                ultima_actualizacion = {'NOW()' if using_pg else "datetime('now')"}
-            WHERE id = {placeholder}
+            SET cantidad_disponible = cantidad_disponible - {PH},
+                cantidad_consumida_acumulada = cantidad_consumida_acumulada + {PH},
+                ultima_actualizacion = NOW()
+            WHERE id = {PH}
         """, (cantidad, cantidad, stock_id))
 
-        # 2. Insertar registro de consumo
-        if using_pg:
-            cursor.execute("""
-                INSERT INTO consignment_consumo
-                (stock_id, cantidad, solicitud_id, usuario_id, fecha_consumo, facturado, created_at)
-                VALUES (%s, %s, %s, %s, NOW(), 0, NOW())
-                RETURNING id
-            """, (stock_id, cantidad, solicitud_id, usuario_id))
-            consumo_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO consignment_consumo
-                (stock_id, cantidad, solicitud_id, usuario_id, fecha_consumo, facturado, created_at)
-                VALUES (?, ?, ?, ?, datetime('now'), 0, datetime('now'))
-            """, (stock_id, cantidad, solicitud_id, usuario_id))
-            consumo_id = cursor.lastrowid
+        cursor.execute(f"""
+            INSERT INTO consignment_consumo
+            (stock_id, cantidad, solicitud_id, usuario_id, fecha_consumo, facturado, created_at)
+            VALUES ({PH}, {PH}, {PH}, {PH}, NOW(), 0, NOW())
+            RETURNING id
+        """, (stock_id, cantidad, solicitud_id, usuario_id))
+        consumo_id = cursor.fetchone()['id']
 
         conn.commit()
         logger.info(f"Consumo registrado: stock={stock_id}, cantidad={cantidad}, consumo_id={consumo_id}")
@@ -408,60 +231,29 @@ def registrar_consumo(stock_id: int, cantidad: float, solicitud_id: Optional[int
 
 
 def generar_reconciliacion(programa_id: int, periodo: str) -> int:
-    """
-    Genera reconciliación de consumos no facturados.
-
-    Args:
-        programa_id: ID del programa
-        periodo: Periodo (formato YYYY-MM)
-
-    Returns:
-        ID de la reconciliación creada
-    """
-    using_pg = is_using_postgresql()
-    placeholder = '%s' if using_pg else '?'
-
+    """Genera reconciliación de consumos no facturados."""
     with get_db_transaction() as (conn, cursor):
-        # 1. Sumar consumos no facturados del periodo
-        if using_pg:
-            cursor.execute(f"""
-                SELECT SUM(cc.cantidad), SUM(cc.cantidad * cs.valor_unitario)
-                FROM consignment_consumo cc
-                JOIN consignment_stock cs ON cc.stock_id = cs.id
-                WHERE cs.programa_id = {placeholder}
-                AND cc.facturado = 0
-                AND DATE_TRUNC('month', cc.fecha_consumo) = TO_DATE({placeholder}, 'YYYY-MM')
-            """, (programa_id, periodo))
-        else:
-            cursor.execute(f"""
-                SELECT SUM(cc.cantidad), SUM(cc.cantidad * cs.valor_unitario)
-                FROM consignment_consumo cc
-                JOIN consignment_stock cs ON cc.stock_id = cs.id
-                WHERE cs.programa_id = {placeholder}
-                AND cc.facturado = 0
-                AND strftime('%Y-%m', cc.fecha_consumo) = {placeholder}
-            """, (programa_id, periodo))
+        cursor.execute(f"""
+            SELECT COALESCE(SUM(cc.cantidad), 0) as qty_total,
+                   COALESCE(SUM(cc.cantidad * cs.valor_unitario), 0) as monto_total
+            FROM consignment_consumo cc
+            JOIN consignment_stock cs ON cc.stock_id = cs.id
+            WHERE cs.programa_id = {PH}
+            AND cc.facturado = 0
+            AND TO_CHAR(cc.fecha_consumo, 'YYYY-MM') = {PH}
+        """, (programa_id, periodo))
 
         row = cursor.fetchone()
-        cantidad_total = float(row[0]) if row[0] else 0
-        monto_total = float(row[1]) if row[1] else 0
+        cantidad_total = float(row['qty_total'])
+        monto_total = float(row['monto_total'])
 
-        # 2. Crear reconciliación
-        if using_pg:
-            cursor.execute("""
-                INSERT INTO consignment_reconciliacion
-                (programa_id, periodo, cantidad_consumida_total, monto_total, estado, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, 'draft', NOW(), NOW())
-                RETURNING id
-            """, (programa_id, periodo, cantidad_total, monto_total))
-            recon_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO consignment_reconciliacion
-                (programa_id, periodo, cantidad_consumida_total, monto_total, estado, created_at, updated_at)
-                VALUES (?, ?, ?, ?, 'draft', datetime('now'), datetime('now'))
-            """, (programa_id, periodo, cantidad_total, monto_total))
-            recon_id = cursor.lastrowid
+        cursor.execute(f"""
+            INSERT INTO consignment_reconciliacion
+            (programa_id, periodo, cantidad_consumida_total, monto_total, estado, created_at, updated_at)
+            VALUES ({PH}, {PH}, {PH}, {PH}, 'draft', NOW(), NOW())
+            RETURNING id
+        """, (programa_id, periodo, cantidad_total, monto_total))
+        recon_id = cursor.fetchone()['id']
 
         conn.commit()
         logger.info(f"Reconciliación generada: programa={programa_id}, periodo={periodo}, total={monto_total}")
@@ -469,140 +261,78 @@ def generar_reconciliacion(programa_id: int, periodo: str) -> int:
 
 
 def enviar_reconciliacion(reconciliacion_id: int, notas: Optional[str] = None) -> None:
-    """
-    Envía reconciliación al proveedor.
-
-    Args:
-        reconciliacion_id: ID de la reconciliación
-        notas: Notas adicionales (optional)
-    """
-    using_pg = is_using_postgresql()
-    placeholder = '%s' if using_pg else '?'
-
+    """Envía reconciliación al proveedor."""
     with get_db_transaction() as (conn, cursor):
         cursor.execute(f"""
             UPDATE consignment_reconciliacion
             SET estado = 'enviado',
-                fecha_envio = {'NOW()' if using_pg else "datetime('now')"},
-                notas = {placeholder},
-                updated_at = {'NOW()' if using_pg else "datetime('now')"}
-            WHERE id = {placeholder}
+                fecha_envio = NOW(),
+                notas = {PH},
+                updated_at = NOW()
+            WHERE id = {PH}
         """, (notas, reconciliacion_id))
-
         conn.commit()
         logger.info(f"Reconciliación enviada: {reconciliacion_id}")
 
 
 def confirmar_reconciliacion(reconciliacion_id: int, notas: Optional[str] = None) -> None:
-    """
-    Confirma reconciliación desde el proveedor.
-
-    Args:
-        reconciliacion_id: ID de la reconciliación
-        notas: Notas adicionales (optional)
-    """
-    using_pg = is_using_postgresql()
-    placeholder = '%s' if using_pg else '?'
-
+    """Confirma reconciliación desde el proveedor."""
     with get_db_transaction() as (conn, cursor):
         cursor.execute(f"""
             UPDATE consignment_reconciliacion
             SET estado = 'confirmado',
-                fecha_confirmacion = {'NOW()' if using_pg else "datetime('now')"},
-                notas = COALESCE({placeholder}, notas),
-                updated_at = {'NOW()' if using_pg else "datetime('now')"}
-            WHERE id = {placeholder}
+                fecha_confirmacion = NOW(),
+                notas = COALESCE({PH}, notas),
+                updated_at = NOW()
+            WHERE id = {PH}
         """, (notas, reconciliacion_id))
-
         conn.commit()
         logger.info(f"Reconciliación confirmada: {reconciliacion_id}")
 
 
 def obtener_kpis(programa_id: Optional[int] = None) -> dict:
-    """
-    Obtiene KPIs de consignación.
-
-    Args:
-        programa_id: ID del programa (opcional, si None devuelve KPIs globales)
-
-    Returns:
-        {
-            total_consigned_value: float,
-            month_consumption: float,
-            pending_reconciliations: int
-        }
-    """
-    using_pg = is_using_postgresql()
-    placeholder = '%s' if using_pg else '?'
-
+    """Obtiene KPIs de consignación."""
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
-        # 1. Total consigned value (stock disponible)
+        # 1. Total consigned value
         if programa_id:
             cursor.execute(f"""
-                SELECT COALESCE(SUM(cantidad_disponible * valor_unitario), 0)
-                FROM consignment_stock
-                WHERE programa_id = {placeholder}
+                SELECT COALESCE(SUM(cantidad_disponible * valor_unitario), 0) as val
+                FROM consignment_stock WHERE programa_id = {PH}
+            """, (programa_id,))
+        else:
+            cursor.execute("SELECT COALESCE(SUM(cantidad_disponible * valor_unitario), 0) as val FROM consignment_stock")
+        total_consigned_value = float(cursor.fetchone()['val'])
+
+        # 2. Consumo del mes actual
+        if programa_id:
+            cursor.execute(f"""
+                SELECT COALESCE(SUM(cc.cantidad * cs.valor_unitario), 0) as val
+                FROM consignment_consumo cc
+                JOIN consignment_stock cs ON cc.stock_id = cs.id
+                WHERE cs.programa_id = {PH}
+                AND DATE_TRUNC('month', cc.fecha_consumo) = DATE_TRUNC('month', CURRENT_DATE)
             """, (programa_id,))
         else:
             cursor.execute("""
-                SELECT COALESCE(SUM(cantidad_disponible * valor_unitario), 0)
-                FROM consignment_stock
+                SELECT COALESCE(SUM(cc.cantidad * cs.valor_unitario), 0) as val
+                FROM consignment_consumo cc
+                JOIN consignment_stock cs ON cc.stock_id = cs.id
+                WHERE DATE_TRUNC('month', cc.fecha_consumo) = DATE_TRUNC('month', CURRENT_DATE)
             """)
-        total_consigned_value = float(cursor.fetchone()[0])
-
-        # 2. Consumo del mes actual
-        if using_pg:
-            if programa_id:
-                cursor.execute(f"""
-                    SELECT COALESCE(SUM(cc.cantidad * cs.valor_unitario), 0)
-                    FROM consignment_consumo cc
-                    JOIN consignment_stock cs ON cc.stock_id = cs.id
-                    WHERE cs.programa_id = {placeholder}
-                    AND DATE_TRUNC('month', cc.fecha_consumo) = DATE_TRUNC('month', CURRENT_DATE)
-                """, (programa_id,))
-            else:
-                cursor.execute("""
-                    SELECT COALESCE(SUM(cc.cantidad * cs.valor_unitario), 0)
-                    FROM consignment_consumo cc
-                    JOIN consignment_stock cs ON cc.stock_id = cs.id
-                    WHERE DATE_TRUNC('month', cc.fecha_consumo) = DATE_TRUNC('month', CURRENT_DATE)
-                """)
-        else:
-            if programa_id:
-                cursor.execute(f"""
-                    SELECT COALESCE(SUM(cc.cantidad * cs.valor_unitario), 0)
-                    FROM consignment_consumo cc
-                    JOIN consignment_stock cs ON cc.stock_id = cs.id
-                    WHERE cs.programa_id = {placeholder}
-                    AND strftime('%Y-%m', cc.fecha_consumo) = strftime('%Y-%m', 'now')
-                """, (programa_id,))
-            else:
-                cursor.execute("""
-                    SELECT COALESCE(SUM(cc.cantidad * cs.valor_unitario), 0)
-                    FROM consignment_consumo cc
-                    JOIN consignment_stock cs ON cc.stock_id = cs.id
-                    WHERE strftime('%Y-%m', cc.fecha_consumo) = strftime('%Y-%m', 'now')
-                """)
-        month_consumption = float(cursor.fetchone()[0])
+        month_consumption = float(cursor.fetchone()['val'])
 
         # 3. Reconciliaciones pendientes
         if programa_id:
             cursor.execute(f"""
-                SELECT COUNT(*)
-                FROM consignment_reconciliacion
-                WHERE programa_id = {placeholder}
-                AND estado IN ('draft', 'enviado')
+                SELECT COUNT(*) as cnt FROM consignment_reconciliacion
+                WHERE programa_id = {PH} AND estado IN ('draft', 'enviado')
             """, (programa_id,))
         else:
-            cursor.execute("""
-                SELECT COUNT(*)
-                FROM consignment_reconciliacion
-                WHERE estado IN ('draft', 'enviado')
-            """)
-        pending_reconciliations = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) as cnt FROM consignment_reconciliacion WHERE estado IN ('draft', 'enviado')")
+        pending_reconciliations = cursor.fetchone()['cnt']
 
         return {
             'total_consigned_value': total_consigned_value,
@@ -615,34 +345,24 @@ def obtener_kpis(programa_id: Optional[int] = None) -> dict:
 
 
 def actualizar_programa(programa_id: int, datos: dict) -> None:
-    """
-    Actualiza un programa de consignación.
-
-    Args:
-        programa_id: ID del programa
-        datos: Campos a actualizar
-    """
-    using_pg = is_using_postgresql()
-    placeholder = '%s' if using_pg else '?'
-
+    """Actualiza un programa de consignación."""
     allowed_fields = ['nombre', 'descripcion', 'estado', 'condiciones_pago', 'porcentaje_margen', 'periodo_reconciliacion']
     updates = []
     params = []
 
     for field in allowed_fields:
         if field in datos:
-            updates.append(f"{field} = {placeholder}")
+            updates.append(f"{field} = {PH}")
             params.append(datos[field])
 
     if not updates:
         return
 
-    now_expr = "NOW()" if using_pg else "datetime('now')"
-    updates.append(f"updated_at = {now_expr}")
+    updates.append("updated_at = NOW()")
     params.append(programa_id)
 
     with get_db_transaction() as (conn, cursor):
-        sql = f"UPDATE consignment_programa SET {', '.join(updates)} WHERE id = {placeholder}"
+        sql = f"UPDATE consignment_programa SET {', '.join(updates)} WHERE id = {PH}"
         cursor.execute(sql, params)
         conn.commit()
         logger.info(f"Programa actualizado: {programa_id}")

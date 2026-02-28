@@ -7,7 +7,7 @@
  * Sprint 71
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -41,75 +41,81 @@ import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 const ESTADO_OPTIONS = [
   { value: '', label: 'Todos' },
   { value: 'draft', label: 'Borrador' },
-  { value: 'active', label: 'Activo' },
-  { value: 'in_progress', label: 'En Proceso' },
-  { value: 'closed', label: 'Cerrado' },
-  { value: 'cancelled', label: 'Cancelado' },
+  { value: 'initiated', label: 'Iniciado' },
+  { value: 'en_proceso', label: 'En Proceso' },
+  { value: 'completed', label: 'Completado' },
+  { value: 'cerrado', label: 'Cerrado' },
 ];
 
 const ESTADO_COLORS = {
-  draft: 'default',
-  active: 'error',
-  in_progress: 'warning',
-  closed: 'success',
-  cancelled: 'default',
+  draft: 'info',
+  initiated: 'error',
+  en_proceso: 'warning',
+  completed: 'success',
+  cerrado: 'default',
 };
 
 const ESTADO_LABELS = {
   draft: 'Borrador',
-  active: 'Activo',
-  in_progress: 'En Proceso',
-  closed: 'Cerrado',
-  cancelled: 'Cancelado',
+  initiated: 'Iniciado',
+  en_proceso: 'En Proceso',
+  completed: 'Completado',
+  cerrado: 'Cerrado',
 };
 
 const SEVERIDAD_OPTIONS = [
   { value: '', label: 'Todas' },
-  { value: 'low', label: 'Baja' },
-  { value: 'medium', label: 'Media' },
-  { value: 'high', label: 'Alta' },
-  { value: 'critical', label: 'Critica' },
+  { value: 'baja', label: 'Baja' },
+  { value: 'media', label: 'Media' },
+  { value: 'alta', label: 'Alta' },
+  { value: 'critica', label: 'Critica' },
 ];
 
 const SEVERIDAD_COLORS = {
-  low: 'info',
-  medium: 'warning',
-  high: 'error',
-  critical: 'error',
+  baja: 'info',
+  media: 'warning',
+  alta: 'error',
+  critica: 'error',
 };
 
 const SEVERIDAD_LABELS = {
-  low: 'Baja',
-  medium: 'Media',
-  high: 'Alta',
-  critical: 'Critica',
+  baja: 'Baja',
+  media: 'Media',
+  alta: 'Alta',
+  critica: 'Critica',
 };
 
 const TIPO_OPTIONS = [
-  { value: 'safety', label: 'Seguridad' },
-  { value: 'quality', label: 'Calidad' },
-  { value: 'compliance', label: 'Cumplimiento' },
-  { value: 'voluntary', label: 'Voluntario' },
+  { value: 'seguridad', label: 'Seguridad' },
+  { value: 'calidad', label: 'Calidad' },
+  { value: 'regulatorio', label: 'Regulatorio' },
+  { value: 'voluntario', label: 'Voluntario' },
+  { value: 'mandatorio', label: 'Mandatorio' },
+  { value: 'proveedor', label: 'Proveedor' },
 ];
 
 const TIPO_COLORS = {
-  safety: 'error',
-  quality: 'warning',
-  compliance: 'info',
-  voluntary: 'default',
+  seguridad: 'error',
+  calidad: 'warning',
+  regulatorio: 'info',
+  voluntario: 'default',
+  mandatorio: 'error',
+  proveedor: 'warning',
 };
 
 const TIPO_LABELS = {
-  safety: 'Seguridad',
-  quality: 'Calidad',
-  compliance: 'Cumplimiento',
-  voluntary: 'Voluntario',
+  seguridad: 'Seguridad',
+  calidad: 'Calidad',
+  regulatorio: 'Regulatorio',
+  voluntario: 'Voluntario',
+  mandatorio: 'Mandatorio',
+  proveedor: 'Proveedor',
 };
 
 const INITIAL_RECALL_FORM = {
   titulo: '',
-  severidad: 'medium',
-  tipo: 'quality',
+  severidad: 'alta',
+  tipo: 'calidad',
   razon: '',
   material_codigo: '',
   proveedor_cuit: '',
@@ -121,53 +127,56 @@ export default function Recalls() {
   const { t } = useI18n();
   const toast = useToast();
   const navigate = useNavigate();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
 
   const [recalls, setRecalls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [kpis, setKpis] = useState(null);
   const [filters, setFilters] = useState({ estado: '', severidad: '' });
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
   const [recallForm, setRecallForm] = useState(INITIAL_RECALL_FORM);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchRecalls = useCallback(async () => {
-    try {
-      setLoading(true);
-      const params = { page: 1, per_page: 200 };
-      if (filters.estado) params.estado = filters.estado;
-      if (filters.severidad) params.severidad = filters.severidad;
-      const res = await api.get('/lots/recalls', { params });
-      if (res.data?.ok) {
-        setRecalls(res.data.recalls || res.data.items || []);
-        // Extract KPIs if embedded in response
-        if (res.data.kpis) {
-          setKpis(res.data.kpis);
-        }
-      }
-    } catch {
-      toast.error(t('recall_error_load', 'Error al cargar recalls'));
-    } finally {
-      setLoading(false);
-    }
-  }, [filters, t, toast]);
-
-  const fetchKPIs = useCallback(async () => {
-    try {
-      const res = await api.get('/lots/recalls', { params: { summary: true } });
-      if (res.data?.ok && res.data.kpis) {
-        setKpis(res.data.kpis);
-      }
-    } catch {
-      // Non-critical - try to get from recalls response instead
-    }
-  }, []);
-
+  // Fetch KPIs from /lots/kpis
   useEffect(() => {
-    fetchRecalls();
-    fetchKPIs();
-  }, [fetchRecalls, fetchKPIs]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api.get('/lots/kpis');
+        if (!cancelled && res.data?.ok) setKpis(res.data.kpis || res.data);
+      } catch { /* non-critical */ }
+    })();
+    return () => { cancelled = true; };
+  }, [reloadTick]);
+
+  // Fetch recalls list
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const params = { page: 1, per_page: 200 };
+        if (filters.estado) params.estado = filters.estado;
+        if (filters.severidad) params.severidad = filters.severidad;
+        const res = await api.get('/lots/recalls', { params });
+        if (!cancelled && res.data?.ok) {
+          setRecalls(res.data.recalls || res.data.items || []);
+        }
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('recall_error_load', 'Error al cargar recalls'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [filters.estado, filters.severidad, reloadTick]);
 
   const handleFilterChange = useCallback((field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
@@ -179,29 +188,29 @@ export default function Recalls() {
 
   const handleCreateRecall = useCallback(async () => {
     if (!recallForm.titulo.trim() || !recallForm.razon.trim()) {
-      toast.warning(t('recall_required', 'Complete titulo y razon'));
+      toastRef.current.warning(tRef.current('recall_required', 'Complete titulo y razon'));
       return;
     }
     setSubmitting(true);
     try {
       const payload = {
         ...recallForm,
+        descripcion: recallForm.razon,
         costo_estimado: recallForm.costo_estimado ? parseFloat(recallForm.costo_estimado) : undefined,
       };
       const res = await api.post('/lots/recalls', payload);
       if (res.data?.ok) {
-        toast.success(t('recall_created', 'Recall creado'));
+        toastRef.current.success(tRef.current('recall_created', 'Recall creado'));
         setCreateOpen(false);
         setRecallForm(INITIAL_RECALL_FORM);
-        fetchRecalls();
-        fetchKPIs();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('recall_error_create', 'Error al crear recall'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('recall_error_create', 'Error al crear recall'));
     } finally {
       setSubmitting(false);
     }
-  }, [recallForm, t, toast, fetchRecalls, fetchKPIs]);
+  }, [recallForm]);
 
   const fmtMoney = useCallback((val) => {
     return val != null ? formatCurrency(val) : '-';
@@ -215,7 +224,7 @@ export default function Recalls() {
       headerName: t('recall_severidad', 'Severidad'),
       width: 120,
       cellRenderer: (p) => {
-        const isCritical = p.value === 'critical';
+        const isCritical = p.value === 'critica';
         return (
           <Chip
             size="small"
@@ -268,7 +277,7 @@ export default function Recalls() {
       valueFormatter: (p) => fmtMoney(p.value),
     },
     {
-      field: 'created_at',
+      field: 'fecha_inicio',
       headerName: t('recall_fecha', 'Fecha'),
       width: 110,
       valueFormatter: (p) => formatDate(p.value),
@@ -390,7 +399,7 @@ export default function Recalls() {
           pagination={true}
           paginationPageSize={20}
           enableQuickFilter={true}
-          onRowClick={(row) => navigate(`/operations/recalls/${row.id}`)}
+          onRowClick={(row) => { if (row?.id) navigate(`/operations/recalls/${row.id}`); }}
           exportFileName="recalls"
           emptyMessage={t('recall_empty', 'No hay recalls registrados')}
           getRowId={(params) => String(params.data.id)}

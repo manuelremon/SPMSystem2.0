@@ -7,7 +7,7 @@
  * Sprint 71
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -45,60 +45,59 @@ import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 
 const LOTE_ESTADO_OPTIONS = [
   { value: '', label: 'Todos' },
-  { value: 'available', label: 'Disponible' },
-  { value: 'blocked', label: 'Bloqueado' },
-  { value: 'consumed', label: 'Consumido' },
-  { value: 'expired', label: 'Vencido' },
-  { value: 'in_inspection', label: 'En Inspeccion' },
+  { value: 'disponible', label: 'Disponible' },
+  { value: 'bloqueado', label: 'Bloqueado' },
+  { value: 'reservado', label: 'Reservado' },
+  { value: 'agotado', label: 'Agotado' },
 ];
 
 const LOTE_ESTADO_COLORS = {
-  available: 'success',
-  blocked: 'error',
-  consumed: 'default',
-  expired: 'warning',
-  in_inspection: 'info',
+  disponible: 'success',
+  bloqueado: 'error',
+  reservado: 'info',
+  agotado: 'default',
 };
 
 const LOTE_ESTADO_LABELS = {
-  available: 'Disponible',
-  blocked: 'Bloqueado',
-  consumed: 'Consumido',
-  expired: 'Vencido',
-  in_inspection: 'En Inspeccion',
+  disponible: 'Disponible',
+  bloqueado: 'Bloqueado',
+  reservado: 'Reservado',
+  agotado: 'Agotado',
 };
 
 const CALIDAD_COLORS = {
-  approved: 'success',
-  pending: 'warning',
-  rejected: 'error',
+  aprobado: 'success',
+  pendiente: 'warning',
+  rechazado: 'error',
 };
 
 const CALIDAD_LABELS = {
-  approved: 'Aprobado',
-  pending: 'Pendiente',
-  rejected: 'Rechazado',
+  aprobado: 'Aprobado',
+  pendiente: 'Pendiente',
+  rechazado: 'Rechazado',
 };
 
 const RECALL_SEVERIDAD_COLORS = {
-  critical: 'error',
-  high: 'warning',
-  medium: 'default',
-  low: 'info',
+  critica: 'error',
+  alta: 'warning',
+  media: 'default',
+  baja: 'info',
 };
 
 const RECALL_ESTADO_COLORS = {
-  active: 'error',
-  in_progress: 'warning',
+  initiated: 'error',
+  en_proceso: 'warning',
   completed: 'success',
-  cancelled: 'default',
+  cerrado: 'default',
+  draft: 'info',
 };
 
 const RECALL_ESTADO_LABELS = {
-  active: 'Activo',
-  in_progress: 'En Progreso',
+  initiated: 'Iniciado',
+  en_proceso: 'En Proceso',
   completed: 'Completado',
-  cancelled: 'Cancelado',
+  cerrado: 'Cerrado',
+  draft: 'Borrador',
 };
 
 const INITIAL_LOTE_FORM = {
@@ -113,8 +112,8 @@ const INITIAL_LOTE_FORM = {
 
 const INITIAL_RECALL_FORM = {
   titulo: '',
-  severidad: 'high',
-  tipo: 'quality',
+  severidad: 'alta',
+  tipo: 'calidad',
   material_codigo: '',
   descripcion: '',
   plan_accion: '',
@@ -124,9 +123,15 @@ export default function LotTraceability() {
   const { t } = useI18n();
   const toast = useToast();
   const navigate = useNavigate();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
 
   const [tabValue, setTabValue] = useState(0);
   const [kpis, setKpis] = useState(null);
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
   // Lotes
   const [lotes, setLotes] = useState([]);
@@ -156,58 +161,54 @@ export default function LotTraceability() {
   const [recallForm, setRecallForm] = useState(INITIAL_RECALL_FORM);
   const [submittingRecall, setSubmittingRecall] = useState(false);
 
-  const fetchKPIs = useCallback(async () => {
-    try {
-      const res = await api.get('/lots/kpis');
-      if (res.data?.ok) {
-        setKpis(res.data.kpis || res.data);
-      }
-    } catch {
-      // Non-critical
-    }
-  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api.get('/lots/kpis');
+        if (!cancelled && res.data?.ok) setKpis(res.data.kpis || res.data);
+      } catch { /* non-critical */ }
+    })();
+    return () => { cancelled = true; };
+  }, [reloadTick]);
 
-  const fetchLotes = useCallback(async () => {
-    try {
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
       setLoadingLotes(true);
-      const params = { page: 1, per_page: 200 };
-      if (filters.material) params.material = filters.material;
-      if (filters.estado) params.estado = filters.estado;
-      if (filters.proveedor) params.proveedor = filters.proveedor;
-      if (filters.almacen) params.almacen = filters.almacen;
-      const res = await api.get('/lots', { params });
-      if (res.data?.ok) {
-        setLotes(res.data.lotes || res.data.items || []);
+      try {
+        const params = { page: 1, per_page: 200 };
+        if (filters.material) params.material = filters.material;
+        if (filters.estado) params.estado = filters.estado;
+        if (filters.proveedor) params.proveedor = filters.proveedor;
+        if (filters.almacen) params.almacen = filters.almacen;
+        const res = await api.get('/lots', { params });
+        if (!cancelled && res.data?.ok) setLotes(res.data.lotes || res.data.items || []);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('lot_error_load', 'Error al cargar lotes'));
+      } finally {
+        if (!cancelled) setLoadingLotes(false);
       }
-    } catch {
-      toast.error(t('lot_error_load', 'Error al cargar lotes'));
-    } finally {
-      setLoadingLotes(false);
-    }
-  }, [filters, t, toast]);
-
-  const fetchRecalls = useCallback(async () => {
-    setLoadingRecalls(true);
-    try {
-      const res = await api.get('/lots/recalls');
-      if (res.data?.ok) {
-        setRecalls(res.data.recalls || res.data.items || []);
-      }
-    } catch {
-      toast.error(t('lot_error_recalls', 'Error al cargar recalls'));
-    } finally {
-      setLoadingRecalls(false);
-    }
-  }, [t, toast]);
+    })();
+    return () => { cancelled = true; };
+  }, [filters.material, filters.estado, filters.proveedor, filters.almacen, reloadTick]);
 
   useEffect(() => {
-    fetchKPIs();
-    fetchLotes();
-  }, [fetchKPIs, fetchLotes]);
-
-  useEffect(() => {
-    if (tabValue === 1) fetchRecalls();
-  }, [tabValue, fetchRecalls]);
+    if (tabValue !== 1) return;
+    let cancelled = false;
+    (async () => {
+      setLoadingRecalls(true);
+      try {
+        const res = await api.get('/lots/recalls');
+        if (!cancelled && res.data?.ok) setRecalls(res.data.recalls || res.data.items || []);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('lot_error_recalls', 'Error al cargar recalls'));
+      } finally {
+        if (!cancelled) setLoadingRecalls(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [tabValue, reloadTick]);
 
   const handleFilterChange = useCallback((field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
@@ -216,7 +217,7 @@ export default function LotTraceability() {
   // Create lote
   const handleCreateLote = useCallback(async () => {
     if (!loteForm.numero_lote.trim() || !loteForm.material_codigo.trim() || !loteForm.cantidad_inicial) {
-      toast.warning(t('lot_required', 'Complete numero, material y cantidad'));
+      toastRef.current.warning(tRef.current('lot_required', 'Complete numero, material y cantidad'));
       return;
     }
     setSubmittingLote(true);
@@ -227,89 +228,85 @@ export default function LotTraceability() {
       };
       const res = await api.post('/lots', payload);
       if (res.data?.ok) {
-        toast.success(t('lot_created', 'Lote creado'));
+        toastRef.current.success(tRef.current('lot_created', 'Lote creado'));
         setCreateLoteOpen(false);
         setLoteForm(INITIAL_LOTE_FORM);
-        fetchLotes();
-        fetchKPIs();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('lot_error_create', 'Error al crear lote'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('lot_error_create', 'Error al crear lote'));
     } finally {
       setSubmittingLote(false);
     }
-  }, [loteForm, t, toast, fetchLotes, fetchKPIs]);
+  }, [loteForm]);
 
   // Consume
   const handleConsume = useCallback(async () => {
     if (!consumeLote || !consumeQty) {
-      toast.warning(t('lot_consume_required', 'Ingrese la cantidad'));
+      toastRef.current.warning(tRef.current('lot_consume_required', 'Ingrese la cantidad'));
       return;
     }
     setConsuming(true);
     try {
       const res = await api.post(`/lots/${consumeLote.id}/consume`, { cantidad: Number(consumeQty) });
       if (res.data?.ok) {
-        toast.success(t('lot_consumed', 'Consumo registrado'));
+        toastRef.current.success(tRef.current('lot_consumed', 'Consumo registrado'));
         setConsumeOpen(false);
         setConsumeLote(null);
         setConsumeQty('');
-        fetchLotes();
-        fetchKPIs();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('lot_error_consume', 'Error al consumir'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('lot_error_consume', 'Error al consumir'));
     } finally {
       setConsuming(false);
     }
-  }, [consumeLote, consumeQty, t, toast, fetchLotes, fetchKPIs]);
+  }, [consumeLote, consumeQty]);
 
   // Block/Unblock
   const handleBlock = useCallback(async () => {
     if (!blockLote) return;
     setBlocking(true);
     try {
-      const isBlocked = blockLote.estado === 'blocked';
+      const isBlocked = blockLote.estado === 'bloqueado';
       const endpoint = isBlocked ? `/lots/${blockLote.id}/unblock` : `/lots/${blockLote.id}/block`;
       const payload = isBlocked ? {} : { razon: blockReason };
       const res = await api.put(endpoint, payload);
       if (res.data?.ok) {
-        toast.success(isBlocked ? t('lot_unblocked', 'Lote desbloqueado') : t('lot_blocked', 'Lote bloqueado'));
+        toastRef.current.success(isBlocked ? tRef.current('lot_unblocked', 'Lote desbloqueado') : tRef.current('lot_blocked', 'Lote bloqueado'));
         setBlockOpen(false);
         setBlockLote(null);
         setBlockReason('');
-        fetchLotes();
-        fetchKPIs();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('lot_error_block', 'Error al bloquear/desbloquear'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('lot_error_block', 'Error al bloquear/desbloquear'));
     } finally {
       setBlocking(false);
     }
-  }, [blockLote, blockReason, t, toast, fetchLotes, fetchKPIs]);
+  }, [blockLote, blockReason]);
 
   // Create recall
   const handleCreateRecall = useCallback(async () => {
     if (!recallForm.titulo.trim() || !recallForm.material_codigo.trim()) {
-      toast.warning(t('lot_recall_required', 'Complete titulo y material'));
+      toastRef.current.warning(tRef.current('lot_recall_required', 'Complete titulo y material'));
       return;
     }
     setSubmittingRecall(true);
     try {
       const res = await api.post('/lots/recalls', recallForm);
       if (res.data?.ok) {
-        toast.success(t('lot_recall_created', 'Recall creado'));
+        toastRef.current.success(tRef.current('lot_recall_created', 'Recall creado'));
         setCreateRecallOpen(false);
         setRecallForm(INITIAL_RECALL_FORM);
-        fetchRecalls();
-        fetchKPIs();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('lot_error_recall_create', 'Error al crear recall'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('lot_error_recall_create', 'Error al crear recall'));
     } finally {
       setSubmittingRecall(false);
     }
-  }, [recallForm, t, toast, fetchRecalls, fetchKPIs]);
+  }, [recallForm]);
 
   const loteColumnDefs = useMemo(() => [
     { field: 'numero_lote', headerName: t('lot_col_numero', 'Numero Lote'), flex: 1, minWidth: 140 },
@@ -351,7 +348,7 @@ export default function LotTraceability() {
         if (!row) return null;
         return (
           <Stack direction="row" gap={0.5} alignItems="center" sx={{ height: '100%' }}>
-            {row.estado === 'available' && (
+            {row.estado === 'disponible' && (
               <Button
                 size="small"
                 variant="outlined"
@@ -365,11 +362,11 @@ export default function LotTraceability() {
             <Button
               size="small"
               variant="outlined"
-              color={row.estado === 'blocked' ? 'success' : 'error'}
-              startIcon={row.estado === 'blocked' ? <LockOpenIcon /> : <BlockIcon />}
+              color={row.estado === 'bloqueado' ? 'success' : 'error'}
+              startIcon={row.estado === 'bloqueado' ? <LockOpenIcon /> : <BlockIcon />}
               onClick={(e) => { e.stopPropagation(); setBlockLote(row); setBlockReason(''); setBlockOpen(true); }}
             >
-              {row.estado === 'blocked' ? t('lot_desbloquear', 'Desbloquear') : t('lot_bloquear', 'Bloquear')}
+              {row.estado === 'bloqueado' ? t('lot_desbloquear', 'Desbloquear') : t('lot_bloquear', 'Bloquear')}
             </Button>
           </Stack>
         );
@@ -378,7 +375,7 @@ export default function LotTraceability() {
   ], [t]);
 
   const recallColumnDefs = useMemo(() => [
-    { field: 'numero', headerName: t('lot_col_recall_numero', 'Numero'), flex: 1, minWidth: 130 },
+    { field: 'numero_recall', headerName: t('lot_col_recall_numero', 'Numero'), flex: 1, minWidth: 130 },
     { field: 'titulo', headerName: t('lot_col_recall_titulo', 'Titulo'), flex: 2, minWidth: 200 },
     {
       field: 'severidad',
@@ -545,8 +542,8 @@ export default function LotTraceability() {
               exportFileName="lotes"
               emptyMessage={t('lot_empty', 'No hay lotes registrados')}
               getRowId={(params) => String(params.data.id)}
-              onRowClicked={(e) => {
-                if (e.data?.id) navigate(`/operations/lots/${e.data.id}`);
+              onRowClick={(row) => {
+                if (row?.id) navigate(`/operations/lots/${row.id}`);
               }}
             />
           </Paper>
@@ -571,8 +568,8 @@ export default function LotTraceability() {
             exportFileName="recalls"
             emptyMessage={t('lot_empty_recalls', 'No hay recalls registrados')}
             getRowId={(params) => String(params.data.id)}
-            onRowClicked={(e) => {
-              if (e.data?.id) navigate(`/operations/recalls/${e.data.id}`);
+            onRowClick={(row) => {
+              if (row?.id) navigate(`/operations/recalls/${row.id}`);
             }}
           />
         </Paper>
@@ -710,8 +707,8 @@ export default function LotTraceability() {
       <Dialog open={blockOpen} onClose={() => setBlockOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>
           <Stack direction="row" alignItems="center" gap={1}>
-            {blockLote?.estado === 'blocked' ? <LockOpenIcon color="success" /> : <BlockIcon color="error" />}
-            <span>{blockLote?.estado === 'blocked' ? t('lot_unblock_title', 'Desbloquear Lote') : t('lot_block_title', 'Bloquear Lote')}</span>
+            {blockLote?.estado === 'bloqueado' ? <LockOpenIcon color="success" /> : <BlockIcon color="error" />}
+            <span>{blockLote?.estado === 'bloqueado' ? t('lot_unblock_title', 'Desbloquear Lote') : t('lot_block_title', 'Bloquear Lote')}</span>
           </Stack>
         </DialogTitle>
         <DialogContent>
@@ -741,12 +738,12 @@ export default function LotTraceability() {
           </Button>
           <Button
             variant="contained"
-            color={blockLote?.estado === 'blocked' ? 'success' : 'error'}
+            color={blockLote?.estado === 'bloqueado' ? 'success' : 'error'}
             onClick={handleBlock}
             disabled={blocking || (blockLote?.estado !== 'blocked' && !blockReason.trim())}
             startIcon={blocking && <CircularProgress size={16} />}
           >
-            {blockLote?.estado === 'blocked' ? t('lot_desbloquear', 'Desbloquear') : t('lot_bloquear', 'Bloquear')}
+            {blockLote?.estado === 'bloqueado' ? t('lot_desbloquear', 'Desbloquear') : t('lot_bloquear', 'Bloquear')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -777,10 +774,10 @@ export default function LotTraceability() {
                   label={t('lot_field_severidad', 'Severidad')}
                   onChange={(e) => setRecallForm((prev) => ({ ...prev, severidad: e.target.value }))}
                 >
-                  <MenuItem value="critical">Critica</MenuItem>
-                  <MenuItem value="high">Alta</MenuItem>
-                  <MenuItem value="medium">Media</MenuItem>
-                  <MenuItem value="low">Baja</MenuItem>
+                  <MenuItem value="critica">Critica</MenuItem>
+                  <MenuItem value="alta">Alta</MenuItem>
+                  <MenuItem value="media">Media</MenuItem>
+                  <MenuItem value="baja">Baja</MenuItem>
                 </Select>
               </FormControl>
               <FormControl size="small" fullWidth>
@@ -790,10 +787,10 @@ export default function LotTraceability() {
                   label={t('lot_field_recall_tipo', 'Tipo')}
                   onChange={(e) => setRecallForm((prev) => ({ ...prev, tipo: e.target.value }))}
                 >
-                  <MenuItem value="quality">Calidad</MenuItem>
-                  <MenuItem value="safety">Seguridad</MenuItem>
-                  <MenuItem value="regulatory">Regulatorio</MenuItem>
-                  <MenuItem value="supplier">Proveedor</MenuItem>
+                  <MenuItem value="calidad">Calidad</MenuItem>
+                  <MenuItem value="seguridad">Seguridad</MenuItem>
+                  <MenuItem value="regulatorio">Regulatorio</MenuItem>
+                  <MenuItem value="proveedor">Proveedor</MenuItem>
                 </Select>
               </FormControl>
             </Stack>

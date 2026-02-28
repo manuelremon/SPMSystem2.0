@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Card,
@@ -32,9 +32,15 @@ import {
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import api from '../services/api';
 import { useI18n } from '../context/i18n';
+import { useToast } from '../hooks/useToast';
 
 const KanbanBoard = () => {
   const { t } = useI18n();
+  const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
   const [tableros, setTableros] = useState([]);
   const [selectedTablero, setSelectedTablero] = useState(null);
   const [tableroDetalle, setTableroDetalle] = useState(null);
@@ -42,68 +48,71 @@ const KanbanBoard = () => {
   const [loading, setLoading] = useState(false);
   const [actionDialog, setActionDialog] = useState({ open: false, type: null, tarjeta: null });
   const [notas, setNotas] = useState('');
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
-  const fetchTableros = useCallback(async () => {
-    try {
-      const res = await api.get('/api/kanban/boards');
-      setTableros(res.data);
-      if (res.data.length > 0 && !selectedTablero) {
-        setSelectedTablero(res.data[0].id);
+  // Load boards list + KPIs
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [boardsRes, kpiRes] = await Promise.all([
+          api.get('/kanban/boards'),
+          api.get('/kanban/kpis'),
+        ]);
+        if (cancelled) return;
+        const boards = boardsRes.data?.boards || boardsRes.data || [];
+        setTableros(boards);
+        if (boards.length > 0) {
+          setSelectedTablero((prev) => prev || boards[0].id);
+        }
+        setKpis(kpiRes.data?.kpis || kpiRes.data || null);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('kanban_error_load', 'Error al cargar tableros'));
       }
-    } catch (error) {
-    }
-  }, [selectedTablero]);
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [reloadTick]);
 
-  const fetchTableroDetalle = useCallback(async () => {
+  // Load board detail when selection changes
+  useEffect(() => {
     if (!selectedTablero) return;
-    setLoading(true);
-    try {
-      const res = await api.get(`/api/kanban/boards/${selectedTablero}`);
-      setTableroDetalle(res.data);
-    } catch (error) {
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedTablero]);
-
-  const fetchKpis = useCallback(async () => {
-    try {
-      const res = await api.get('/api/kanban/kpis');
-      setKpis(res.data);
-    } catch (error) {
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchTableros();
-    fetchKpis();
-  }, []);
-
-  useEffect(() => {
-    fetchTableroDetalle();
-  }, [selectedTablero]);
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await api.get(`/kanban/boards/${selectedTablero}`);
+        if (!cancelled) setTableroDetalle(res.data?.board || res.data || null);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('kanban_error_detail', 'Error al cargar detalle del tablero'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [selectedTablero, reloadTick]);
 
   const handleVaciarTarjeta = async () => {
     try {
-      await api.put(`/api/kanban/cards/${actionDialog.tarjeta.id}/empty`, { notas });
+      await api.put(`/kanban/cards/${actionDialog.tarjeta.id}/empty`, { notas });
       setActionDialog({ open: false, type: null, tarjeta: null });
       setNotas('');
-      fetchTableroDetalle();
-      fetchKpis();
-    } catch (error) {
-      alert(t('kanban_error_empty', 'Error al vaciar tarjeta'));
+      reload();
+    } catch {
+      toastRef.current.error(tRef.current('kanban_error_empty', 'Error al vaciar tarjeta'));
     }
   };
 
   const handleLlenarTarjeta = async () => {
     try {
-      await api.put(`/api/kanban/cards/${actionDialog.tarjeta.id}/fill`, { notas });
+      await api.put(`/kanban/cards/${actionDialog.tarjeta.id}/fill`, { notas });
       setActionDialog({ open: false, type: null, tarjeta: null });
       setNotas('');
-      fetchTableroDetalle();
-      fetchKpis();
-    } catch (error) {
-      alert(t('kanban_error_fill', 'Error al llenar tarjeta'));
+      reload();
+    } catch {
+      toastRef.current.error(tRef.current('kanban_error_fill', 'Error al llenar tarjeta'));
     }
   };
 
@@ -253,7 +262,7 @@ const KanbanBoard = () => {
           {t('kanban_titulo', 'Tablero Kanban')}
         </Typography>
         <Tooltip title={t('kanban_refresh', 'Actualizar')}>
-          <IconButton onClick={() => { fetchTableroDetalle(); fetchKpis(); }}>
+          <IconButton onClick={reload}>
             <RefreshIcon />
           </IconButton>
         </Tooltip>

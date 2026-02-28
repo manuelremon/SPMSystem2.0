@@ -5,7 +5,7 @@
  * and reorder points. Supports inline editing and bulk recalculation.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
@@ -31,28 +31,38 @@ const ABC_COLORS = {
 export default function ServiceLevels() {
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
 
   const [levels, setLevels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page] = useState(1);
   const [recalculating, setRecalculating] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
-  const fetchLevels = useCallback(async () => {
-    try {
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
       setLoading(true);
-      const params = { page, per_page: 50 };
-      const res = await api.get('/inventory-optimization/service-levels', { params });
-      if (res.data?.ok) {
-        setLevels(res.data.levels || res.data.items || []);
+      try {
+        const params = { page, per_page: 50 };
+        const res = await api.get('/inventory-optimization/service-levels', { params });
+        if (cancelled) return;
+        if (res.data?.ok) {
+          setLevels(res.data.levels || res.data.items || []);
+        }
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('service_error_load', 'Error al cargar niveles de servicio'));
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch {
-      toast.error(t('service_error_load', 'Error al cargar niveles de servicio'));
-    } finally {
-      setLoading(false);
-    }
-  }, [page, t, toast]);
-
-  useEffect(() => { fetchLevels(); }, [fetchLevels]);
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [page, reloadTick]);
 
   const handleUpdateLevel = useCallback(async (materialCodigo, almacen, nivelServicio) => {
     try {
@@ -61,41 +71,41 @@ export default function ServiceLevels() {
         nivel_servicio: nivelServicio,
       });
       if (res.data?.ok) {
-        toast.success(t('service_updated', 'Nivel de servicio actualizado'));
-        fetchLevels();
+        toastRef.current.success(tRef.current('service_updated', 'Nivel de servicio actualizado'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('service_error_update', 'Error al actualizar'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('service_error_update', 'Error al actualizar'));
     }
-  }, [fetchLevels, t, toast]);
+  }, []);
 
-  const handleRecalculate = useCallback(async () => {
+  const handleRecalculate = async () => {
     setRecalculating(true);
     try {
       const res = await api.post('/inventory-optimization/service-levels/recalculate');
       if (res.data?.ok) {
-        toast.success(t('service_recalculated', 'Recalculo completado'));
-        fetchLevels();
+        toastRef.current.success(tRef.current('service_recalculated', 'Recalculo completado'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('service_error_recalculate', 'Error al recalcular'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('service_error_recalculate', 'Error al recalcular'));
     } finally {
       setRecalculating(false);
     }
-  }, [fetchLevels, t, toast]);
+  };
 
   const handleCellValueChanged = useCallback((event) => {
     const { data, colDef, newValue } = event;
     if (colDef.field === 'nivel_servicio') {
       const parsed = parseFloat(newValue);
       if (isNaN(parsed) || parsed < 0 || parsed > 100) {
-        toast.warning(t('service_invalid_value', 'Valor debe ser entre 0 y 100'));
-        fetchLevels();
+        toastRef.current.warning(tRef.current('service_invalid_value', 'Valor debe ser entre 0 y 100'));
+        reload();
         return;
       }
       handleUpdateLevel(data.material_codigo, data.almacen, parsed);
     }
-  }, [handleUpdateLevel, fetchLevels, t, toast]);
+  }, [handleUpdateLevel]);
 
   const columnDefs = useMemo(() => [
     { field: 'material_codigo', headerName: t('service_material', 'Material'), flex: 1, minWidth: 140 },

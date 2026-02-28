@@ -40,8 +40,10 @@ def crear_programa():
     """Crear nuevo programa VMI."""
     try:
         data = request.get_json()
-        programa = vmi_service.crear_programa(data)
-        return jsonify(programa), 201
+        programa_id = vmi_service.crear_programa(data)
+        if programa_id:
+            return jsonify({'ok': True, 'id': programa_id}), 201
+        return jsonify({'ok': False, 'error': 'Error al crear programa VMI'}), 400
     except Exception as e:
         return safe_error_response(e, logger, context="vmi")
 
@@ -52,6 +54,9 @@ def obtener_detalle_programa(id):
     """Obtener detalle de programa VMI."""
     try:
         detalle = vmi_service.obtener_detalle_programa(id)
+        if detalle is None:
+            return jsonify({'ok': False, 'error': 'Programa VMI no encontrado'}), 404
+        detalle['ok'] = True
         return jsonify(detalle), 200
     except Exception as e:
         return safe_error_response(e, logger, context="vmi")
@@ -63,8 +68,10 @@ def actualizar_programa(id):
     """Actualizar programa VMI."""
     try:
         data = request.get_json()
-        programa = vmi_service.actualizar_programa(id, data)
-        return jsonify(programa), 200
+        ok = vmi_service.actualizar_programa(id, data)
+        if ok:
+            return jsonify({'ok': True, 'message': 'Programa actualizado'}), 200
+        return jsonify({'ok': False, 'error': 'No se pudo actualizar'}), 400
     except Exception as e:
         return safe_error_response(e, logger, context="vmi")
 
@@ -75,8 +82,10 @@ def actualizar_inventario(id):
     """Actualizar inventario de programa VMI."""
     try:
         data = request.get_json()
-        resultado = vmi_service.actualizar_inventario(id, data)
-        return jsonify(resultado), 200
+        ok = vmi_service.actualizar_inventario(id, data)
+        if ok:
+            return jsonify({'ok': True, 'message': 'Inventario actualizado'}), 200
+        return jsonify({'ok': False, 'error': 'No se pudo actualizar inventario'}), 400
     except Exception as e:
         return safe_error_response(e, logger, context="vmi")
 
@@ -107,10 +116,12 @@ def aprobar_reposicion(id):
     """Aprobar reposición VMI."""
     try:
         user_id = _get_user_id()
-        data = request.get_json()
+        data = request.get_json() or {}
         cantidad_aprobada = data.get('cantidad_aprobada')
-        resultado = vmi_service.aprobar_reposicion(id, user_id, cantidad_aprobada)
-        return jsonify(resultado), 200
+        ok = vmi_service.aprobar_reposicion(id, user_id, cantidad_aprobada)
+        if ok:
+            return jsonify({'ok': True, 'message': 'Reposición aprobada'}), 200
+        return jsonify({'ok': False, 'error': 'No se pudo aprobar'}), 400
     except Exception as e:
         return safe_error_response(e, logger, context="vmi")
 
@@ -121,10 +132,12 @@ def rechazar_reposicion(id):
     """Rechazar reposición VMI."""
     try:
         user_id = _get_user_id()
-        data = request.get_json()
-        razon = data.get('razon')
-        resultado = vmi_service.rechazar_reposicion(id, user_id, razon)
-        return jsonify(resultado), 200
+        data = request.get_json() or {}
+        razon = data.get('razon', '')
+        ok = vmi_service.rechazar_reposicion(id, user_id, razon)
+        if ok:
+            return jsonify({'ok': True, 'message': 'Reposición rechazada'}), 200
+        return jsonify({'ok': False, 'error': 'No se pudo rechazar'}), 400
     except Exception as e:
         return safe_error_response(e, logger, context="vmi")
 

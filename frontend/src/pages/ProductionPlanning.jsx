@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Card,
@@ -20,10 +20,29 @@ import {
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import api from '../services/api';
 import { useI18n } from '../context/i18n';
+import { useToast } from '../hooks/useToast';
 import { useNavigate } from 'react-router-dom';
+
+const WC_INITIAL = {
+  nombre: '',
+  codigo: '',
+  tipo: 'assembly',
+  capacidad_diaria: 0,
+  unidad: 'horas',
+  turnos: 1,
+  eficiencia_pct: 85,
+  costo_hora: 0,
+  estado: 'active',
+  ubicacion: ''
+};
 
 const ProductionPlanning = () => {
   const { t } = useI18n();
+  const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [kpis, setKpis] = useState({
@@ -34,6 +53,8 @@ const ProductionPlanning = () => {
     items_completados_hoy: 0
   });
   const [activeTab, setActiveTab] = useState(0);
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
   // Plans state
   const [plans, setPlans] = useState([]);
@@ -51,108 +72,68 @@ const ProductionPlanning = () => {
   const [workCenters, setWorkCenters] = useState([]);
   const [createWCOpen, setCreateWCOpen] = useState(false);
   const [editWC, setEditWC] = useState(null);
-  const [wcForm, setWCForm] = useState({
-    nombre: '',
-    codigo: '',
-    tipo: 'assembly',
-    capacidad_diaria: 0,
-    unidad: 'horas',
-    turnos: 1,
-    eficiencia_pct: 85,
-    costo_hora: 0,
-    estado: 'active',
-    ubicacion: ''
-  });
+  const [wcForm, setWCForm] = useState(WC_INITIAL);
 
   useEffect(() => {
-    loadKPIs();
-    loadPlans();
-    loadWorkCenters();
-  }, []);
-
-  const loadKPIs = async () => {
-    try {
-      const res = await api.get('/api/production/kpis');
-      if (res.data.ok) {
-        setKpis(res.data.kpis);
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [kpiRes, plansRes, wcRes] = await Promise.all([
+          api.get('/production/kpis'),
+          api.get(`/production/plans?page=${plansPage}&page_size=20`),
+          api.get('/production/work-centers'),
+        ]);
+        if (cancelled) return;
+        if (kpiRes.data?.ok) setKpis(kpiRes.data.kpis);
+        if (plansRes.data?.ok) {
+          setPlans(plansRes.data.planes || []);
+          setPlansTotal(plansRes.data.total || 0);
+        }
+        if (wcRes.data?.ok) setWorkCenters(wcRes.data.work_centers || []);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('prod_error_load', 'Error al cargar datos de produccion'));
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (error) {
-    }
-  };
-
-  const loadPlans = async (page = 1) => {
-    setLoading(true);
-    try {
-      const res = await api.get(`/api/production/plans?page=${page}&page_size=20`);
-      if (res.data.ok) {
-        setPlans(res.data.planes);
-        setPlansTotal(res.data.total);
-        setPlansPage(page);
-      }
-    } catch (error) {
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadWorkCenters = async () => {
-    try {
-      const res = await api.get('/api/production/work-centers');
-      if (res.data.ok) {
-        setWorkCenters(res.data.work_centers);
-      }
-    } catch (error) {
-    }
-  };
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [plansPage, reloadTick]);
 
   const handleCreatePlan = async () => {
     if (!newPlan.nombre) {
-      alert(t('prod_plan_name_required', 'Plan name is required'));
+      toastRef.current.warning(tRef.current('prod_plan_name_required', 'El nombre del plan es requerido'));
       return;
     }
 
     try {
-      const res = await api.post('/api/production/plans', newPlan);
-      if (res.data.ok) {
+      const res = await api.post('/production/plans', newPlan);
+      if (res.data?.ok) {
         setCreatePlanOpen(false);
         setNewPlan({ nombre: '', periodo_desde: '', periodo_hasta: '', notas: '' });
-        loadPlans();
-        loadKPIs();
-        // Navigate to detail page
         navigate(`/production/${res.data.id}`);
       }
     } catch (error) {
-      alert(t('common_error', 'Error: ') + (error.response?.data?.mensaje || error.message));
+      toastRef.current.error(error.response?.data?.mensaje || tRef.current('prod_error_create_plan', 'Error al crear plan'));
     }
   };
 
   const handleCreateWC = async () => {
     if (!wcForm.nombre || !wcForm.codigo) {
-      alert(t('prod_wc_name_code_required', 'Name and code are required'));
+      toastRef.current.warning(tRef.current('prod_wc_name_code_required', 'Nombre y codigo son requeridos'));
       return;
     }
 
     try {
-      const res = await api.post('/api/production/work-centers', wcForm);
-      if (res.data.ok) {
+      const res = await api.post('/production/work-centers', wcForm);
+      if (res.data?.ok) {
         setCreateWCOpen(false);
-        setWCForm({
-          nombre: '',
-          codigo: '',
-          tipo: 'assembly',
-          capacidad_diaria: 0,
-          unidad: 'horas',
-          turnos: 1,
-          eficiencia_pct: 85,
-          costo_hora: 0,
-          estado: 'active',
-          ubicacion: ''
-        });
-        loadWorkCenters();
-        loadKPIs();
+        setWCForm(WC_INITIAL);
+        reload();
       }
     } catch (error) {
-      alert(t('common_error', 'Error: ') + (error.response?.data?.mensaje || error.message));
+      toastRef.current.error(error.response?.data?.mensaje || tRef.current('prod_error_create_wc', 'Error al crear centro de trabajo'));
     }
   };
 
@@ -160,25 +141,14 @@ const ProductionPlanning = () => {
     if (!editWC) return;
 
     try {
-      const res = await api.put(`/api/production/work-centers/${editWC.id}`, wcForm);
-      if (res.data.ok) {
+      const res = await api.put(`/production/work-centers/${editWC.id}`, wcForm);
+      if (res.data?.ok) {
         setEditWC(null);
-        setWCForm({
-          nombre: '',
-          codigo: '',
-          tipo: 'assembly',
-          capacidad_diaria: 0,
-          unidad: 'horas',
-          turnos: 1,
-          eficiencia_pct: 85,
-          costo_hora: 0,
-          estado: 'active',
-          ubicacion: ''
-        });
-        loadWorkCenters();
+        setWCForm(WC_INITIAL);
+        reload();
       }
     } catch (error) {
-      alert(t('common_error', 'Error: ') + (error.response?.data?.mensaje || error.message));
+      toastRef.current.error(error.response?.data?.mensaje || tRef.current('prod_error_update_wc', 'Error al actualizar centro de trabajo'));
     }
   };
 
@@ -461,18 +431,7 @@ const ProductionPlanning = () => {
         onClose={() => {
           setCreateWCOpen(false);
           setEditWC(null);
-          setWCForm({
-            nombre: '',
-            codigo: '',
-            tipo: 'assembly',
-            capacidad_diaria: 0,
-            unidad: 'horas',
-            turnos: 1,
-            eficiencia_pct: 85,
-            costo_hora: 0,
-            estado: 'active',
-            ubicacion: ''
-          });
+          setWCForm(WC_INITIAL);
         }}
         maxWidth="sm"
         fullWidth

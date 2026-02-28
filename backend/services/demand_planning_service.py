@@ -65,7 +65,7 @@ def crear_ciclo_planificacion(data: dict, user_id: int) -> int:
             plan_id = cursor.lastrowid
 
         conn.commit()
-        return plan_id
+        return {'ok': True, 'id': plan_id}
 
 
 def obtener_ciclos(filtros: dict) -> dict:
@@ -435,9 +435,6 @@ def generar_baseline_ml(plan_id: int) -> dict:
         if not result:
             raise ValueError(f"Plan {plan_id} no encontrado")
 
-        result[0]
-        result[1]
-
         # Obtener materiales únicos en el plan
         cursor.execute(
             f"""
@@ -464,7 +461,7 @@ def generar_baseline_ml(plan_id: int) -> dict:
                         f"""
                         SELECT AVG(cantidad) as avg_cantidad
                         FROM consumo_historico
-                        WHERE material_codigo = {placeholder}
+                        WHERE material = {placeholder}
                         """,
                         (material_codigo,)
                     )
@@ -565,7 +562,9 @@ def calcular_consenso(plan_id: int) -> dict:
             suma_ponderada = 0
             suma_pesos = 0
 
-            for fuente, cantidad in entradas:
+            for row in entradas:
+                fuente = row['fuente'] if isinstance(row, dict) else row[0]
+                cantidad = row['cantidad_pronosticada'] if isinstance(row, dict) else row[1]
                 peso = 2 if fuente == 'ml_baseline' else 1
                 suma_ponderada += float(cantidad) * peso
                 suma_pesos += peso

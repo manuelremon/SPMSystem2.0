@@ -6,7 +6,7 @@
  * Sprint 60
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -68,6 +68,10 @@ const ESTADO_OPTIONS = [
 export default function CAPAList() {
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
   const navigate = useNavigate();
 
   const [capas, setCapas] = useState([]);
@@ -76,27 +80,26 @@ export default function CAPAList() {
   const [estadoFilter, setEstadoFilter] = useState('');
   const [responsableFilter, setResponsableFilter] = useState('');
 
-  const fetchCAPAs = useCallback(async () => {
-    try {
-      setLoading(true);
-      const params = {};
-      if (tipoFilter) params.tipo = tipoFilter;
-      if (estadoFilter) params.estado = estadoFilter;
-      if (responsableFilter.trim()) params.responsable = responsableFilter.trim();
-      const res = await api.get('/quality/capa', { params });
-      if (res.data?.ok) {
-        setCapas(res.data.capas || []);
-      }
-    } catch {
-      toast.error(t('capa_error_cargar', 'Error al cargar CAPAs'));
-    } finally {
-      setLoading(false);
-    }
-  }, [tipoFilter, estadoFilter, responsableFilter, t, toast]);
-
   useEffect(() => {
-    fetchCAPAs();
-  }, [fetchCAPAs]);
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const params = {};
+        if (tipoFilter) params.tipo = tipoFilter;
+        if (estadoFilter) params.estado = estadoFilter;
+        if (responsableFilter.trim()) params.responsable = responsableFilter.trim();
+        const res = await api.get('/quality/capa', { params });
+        if (!cancelled && res.data?.ok) setCapas(res.data.capas || []);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('capa_error_cargar', 'Error al cargar CAPAs'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [tipoFilter, estadoFilter, responsableFilter]);
 
   const columnDefs = useMemo(() => [
     {

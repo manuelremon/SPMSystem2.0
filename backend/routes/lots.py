@@ -16,6 +16,17 @@ logger = logging.getLogger(__name__)
 lots_bp = Blueprint('lots', __name__, url_prefix='/api/lots')
 
 
+@lots_bp.route('/kpis', methods=['GET'])
+@require_auth
+def obtener_kpis():
+    """Obtener KPIs de lotes."""
+    try:
+        kpis = lot_service.obtener_kpis()
+        return jsonify({'ok': True, 'kpis': kpis}), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="lots")
+
+
 @lots_bp.route('/', methods=['GET'])
 @require_auth
 def buscar_lotes():
@@ -47,7 +58,7 @@ def crear_lote():
         user_id = _get_user_id()
         data['usuario_id'] = user_id
         lote_id = lot_service.crear_lote(data)
-        return jsonify({'id': lote_id}), 201
+        return jsonify({'ok': True, 'id': lote_id}), 201
     except Exception as e:
         return safe_error_response(e, logger, context="lots")
 
@@ -58,6 +69,9 @@ def obtener_lote(id):
     """Obtener detalle de lote."""
     try:
         lote = lot_service.obtener_lote(id)
+        if lote is None:
+            return jsonify({'ok': False, 'error': 'Lote no encontrado'}), 404
+        lote['ok'] = True
         return jsonify(lote), 200
     except Exception as e:
         return safe_error_response(e, logger, context="lots")
@@ -74,8 +88,8 @@ def consumir_lote(id):
         solicitud_id = data.get('solicitud_id')
         destino = data.get('destino')
         observaciones = data.get('observaciones')
-        resultado = lot_service.consumir_lote(id, cantidad, user_id, solicitud_id, destino, observaciones)
-        return jsonify(resultado), 200
+        lot_service.consumir_lote(id, cantidad, user_id, solicitud_id, destino, observaciones)
+        return jsonify({'ok': True, 'message': 'Consumo registrado'}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="lots")
 
@@ -88,8 +102,8 @@ def bloquear_lote(id):
         user_id = _get_user_id()
         data = request.get_json()
         razon = data.get('razon') or data.get('motivo') or data.get('reason', '')
-        resultado = lot_service.bloquear_lote(id, razon, user_id)
-        return jsonify({'success': resultado}), 200
+        lot_service.bloquear_lote(id, razon, user_id)
+        return jsonify({'ok': True, 'message': 'Lote bloqueado'}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="lots")
 
@@ -100,8 +114,8 @@ def desbloquear_lote(id):
     """Desbloquear lote."""
     try:
         user_id = _get_user_id()
-        resultado = lot_service.desbloquear_lote(id, user_id)
-        return jsonify(resultado), 200
+        lot_service.desbloquear_lote(id, user_id)
+        return jsonify({'ok': True, 'message': 'Lote desbloqueado'}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="lots")
 
@@ -112,7 +126,7 @@ def obtener_traceability_forward(id):
     """Obtener trazabilidad hacia adelante (dónde fue usado el lote)."""
     try:
         traceability = lot_service.obtener_traceability_forward(id)
-        return jsonify(traceability), 200
+        return jsonify({'ok': True, 'nodes': traceability}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="lots")
 
@@ -123,7 +137,7 @@ def obtener_traceability_backward(id):
     """Obtener trazabilidad hacia atrás (qué lotes formaron este lote)."""
     try:
         traceability = lot_service.obtener_traceability_backward(id)
-        return jsonify(traceability), 200
+        return jsonify({'ok': True, 'nodes': traceability}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="lots")
 
@@ -140,7 +154,7 @@ def registrar_genealogia():
             relacion=data.get('relacion', 'component'),
             cantidad_utilizada=data.get('cantidad_utilizada', 0)
         )
-        return jsonify({'id': genealogia_id}), 201
+        return jsonify({'ok': True, 'id': genealogia_id}), 201
     except Exception as e:
         return safe_error_response(e, logger, context="lots")
 
@@ -174,7 +188,7 @@ def crear_recall():
         user_id = _get_user_id()
         data['responsable_id'] = data.get('responsable_id') or user_id
         recall_id = lot_service.crear_recall(data)
-        return jsonify({'id': recall_id}), 201
+        return jsonify({'ok': True, 'id': recall_id}), 201
     except Exception as e:
         return safe_error_response(e, logger, context="lots")
 
@@ -185,6 +199,9 @@ def obtener_detalle_recall(id):
     """Obtener detalle de recall."""
     try:
         detalle = lot_service.obtener_detalle_recall(id)
+        if detalle is None:
+            return jsonify({'ok': False, 'error': 'Recall no encontrado'}), 404
+        detalle['ok'] = True
         return jsonify(detalle), 200
     except Exception as e:
         return safe_error_response(e, logger, context="lots")
@@ -195,7 +212,7 @@ def obtener_detalle_recall(id):
 def marcar_lote_recuperado(id, lote_id):
     """Marcar lote como recuperado en un recall."""
     try:
-        resultado = lot_service.marcar_lote_recuperado(id, lote_id)
-        return jsonify(resultado), 200
+        lot_service.marcar_lote_recuperado(id, lote_id)
+        return jsonify({'ok': True, 'message': 'Lote marcado como recuperado'}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="lots")

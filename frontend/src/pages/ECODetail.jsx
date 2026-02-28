@@ -7,7 +7,7 @@
  * Sprint 71
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -117,11 +117,17 @@ export default function ECODetail() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
 
   const [eco, setEco] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [tabValue, setTabValue] = useState(0);
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
   // Impact data
   const [impact, setImpact] = useState(null);
@@ -132,41 +138,40 @@ export default function ECODetail() {
   const [changeForm, setChangeForm] = useState(INITIAL_CHANGE_FORM);
   const [changeSubmitting, setChangeSubmitting] = useState(false);
 
-  const fetchECO = useCallback(async () => {
-    try {
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
       setLoading(true);
-      const res = await api.get(`/eco/${id}`);
-      if (res.data?.ok) {
-        setEco(res.data.eco || res.data);
+      try {
+        const res = await api.get(`/eco/${id}`);
+        if (!cancelled && res.data?.ok) setEco(res.data.eco || res.data);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('eco_error_detail', 'Error al cargar ECO'));
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch {
-      toast.error(t('eco_error_detail', 'Error al cargar ECO'));
-    } finally {
-      setLoading(false);
-    }
-  }, [id, t, toast]);
-
-  const fetchImpact = useCallback(async () => {
-    setImpactLoading(true);
-    try {
-      const res = await api.get(`/eco/${id}/impact`);
-      if (res.data?.ok) {
-        setImpact(res.data.impact || res.data);
-      }
-    } catch {
-      // Non-critical
-    } finally {
-      setImpactLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => { fetchECO(); }, [fetchECO]);
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [id, reloadTick]);
 
   useEffect(() => {
-    if (tabValue === 2 && !impact) {
-      fetchImpact();
-    }
-  }, [tabValue, impact, fetchImpact]);
+    if (tabValue !== 2 || impact) return;
+    let cancelled = false;
+    const load = async () => {
+      setImpactLoading(true);
+      try {
+        const res = await api.get(`/eco/${id}/impact`);
+        if (!cancelled && res.data?.ok) setImpact(res.data.impact || res.data);
+      } catch {
+        // Non-critical
+      } finally {
+        if (!cancelled) setImpactLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [tabValue, impact, id]);
 
   // Actions
   const handleSubmitECO = useCallback(async () => {
@@ -174,60 +179,60 @@ export default function ECODetail() {
     try {
       const res = await api.post(`/eco/${id}/submit`);
       if (res.data?.ok) {
-        toast.success(t('eco_submitted', 'ECO enviada a aprobacion'));
-        fetchECO();
+        toastRef.current.success(tRef.current('eco_submitted', 'ECO enviada a aprobacion'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('eco_error_submit', 'Error al enviar ECO'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('eco_error_submit', 'Error al enviar ECO'));
     } finally {
       setProcessing(false);
     }
-  }, [id, fetchECO, t, toast]);
+  }, [id]);
 
   const handleApprove = useCallback(async () => {
     setProcessing(true);
     try {
       const res = await api.put(`/eco/${id}/approve`);
       if (res.data?.ok) {
-        toast.success(t('eco_approved', 'ECO aprobada'));
-        fetchECO();
+        toastRef.current.success(tRef.current('eco_approved', 'ECO aprobada'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('eco_error_approve', 'Error al aprobar ECO'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('eco_error_approve', 'Error al aprobar ECO'));
     } finally {
       setProcessing(false);
     }
-  }, [id, fetchECO, t, toast]);
+  }, [id]);
 
   const handleReject = useCallback(async () => {
     setProcessing(true);
     try {
       const res = await api.put(`/eco/${id}/reject`);
       if (res.data?.ok) {
-        toast.success(t('eco_rejected', 'ECO rechazada'));
-        fetchECO();
+        toastRef.current.success(tRef.current('eco_rejected', 'ECO rechazada'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('eco_error_reject', 'Error al rechazar ECO'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('eco_error_reject', 'Error al rechazar ECO'));
     } finally {
       setProcessing(false);
     }
-  }, [id, fetchECO, t, toast]);
+  }, [id]);
 
   const handleImplement = useCallback(async () => {
     setProcessing(true);
     try {
       const res = await api.post(`/eco/${id}/implement`);
       if (res.data?.ok) {
-        toast.success(t('eco_implemented', 'ECO implementada'));
-        fetchECO();
+        toastRef.current.success(tRef.current('eco_implemented', 'ECO implementada'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('eco_error_implement', 'Error al implementar ECO'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('eco_error_implement', 'Error al implementar ECO'));
     } finally {
       setProcessing(false);
     }
-  }, [id, fetchECO, t, toast]);
+  }, [id]);
 
   // Add change
   const handleChangeFormChange = useCallback((field, value) => {
@@ -236,24 +241,24 @@ export default function ECODetail() {
 
   const handleAddChange = useCallback(async () => {
     if (!changeForm.campo_afectado.trim()) {
-      toast.warning(t('eco_change_required', 'Complete el campo afectado'));
+      toastRef.current.warning(tRef.current('eco_change_required', 'Complete el campo afectado'));
       return;
     }
     setChangeSubmitting(true);
     try {
       const res = await api.post(`/eco/${id}/changes`, changeForm);
       if (res.data?.ok) {
-        toast.success(t('eco_change_added', 'Cambio agregado'));
+        toastRef.current.success(tRef.current('eco_change_added', 'Cambio agregado'));
         setChangeDialogOpen(false);
         setChangeForm(INITIAL_CHANGE_FORM);
-        fetchECO();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('eco_error_add_change', 'Error al agregar cambio'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('eco_error_add_change', 'Error al agregar cambio'));
     } finally {
       setChangeSubmitting(false);
     }
-  }, [id, changeForm, fetchECO, t, toast]);
+  }, [id, changeForm]);
 
   // Column definitions
   const changesColumnDefs = useMemo(() => [

@@ -62,7 +62,7 @@ def crear_lote(data: Dict[str, Any]) -> int:
                 data.get('fecha_recepcion', datetime.now().date()),
                 almacen_id,
                 data.get('ubicacion'),
-                'available'
+                'disponible'
             ))
 
             # Get lote_id
@@ -300,7 +300,7 @@ def consumir_lote(lote_id: int, cantidad: float, usuario_id: int,
             cantidad_disponible = float(row[0]) if row[0] else 0
             estado = row[1]
 
-            if estado == 'blocked':
+            if estado in ('blocked', 'bloqueado'):
                 raise ValueError(f"Lote {lote_id} está bloqueado")
 
             if cantidad > cantidad_disponible:
@@ -308,7 +308,7 @@ def consumir_lote(lote_id: int, cantidad: float, usuario_id: int,
 
             # Update cantidad_disponible
             nueva_cantidad = cantidad_disponible - cantidad
-            nuevo_estado = 'consumed' if nueva_cantidad == 0 else estado
+            nuevo_estado = 'agotado' if nueva_cantidad == 0 else estado
 
             cursor.execute(f"""
                 UPDATE lote
@@ -357,7 +357,7 @@ def bloquear_lote(lote_id: int, razon: str, usuario_id: int) -> bool:
                 UPDATE lote
                 SET estado = {ph}, bloqueado_razon = {ph}
                 WHERE id = {ph}
-            """, ('blocked', razon, lote_id))
+            """, ('bloqueado', razon, lote_id))
 
             # Create movement
             cursor.execute(f"""
@@ -395,7 +395,7 @@ def desbloquear_lote(lote_id: int, usuario_id: int) -> bool:
                 UPDATE lote
                 SET estado = {ph}, bloqueado_razon = NULL
                 WHERE id = {ph}
-            """, ('available', lote_id))
+            """, ('disponible', lote_id))
 
             # Create movement
             cursor.execute(f"""
@@ -614,7 +614,7 @@ def crear_recall(data: Dict[str, Any]) -> int:
                 recall_id = cursor.lastrowid
 
             # Find affected lotes
-            conditions = ["estado = 'available'"]
+            conditions = ["estado IN ('disponible', 'reservado', 'available')"]
             params = []
 
             if data.get('material_codigo'):
@@ -643,7 +643,7 @@ def crear_recall(data: Dict[str, Any]) -> int:
                     UPDATE lote
                     SET estado = {ph}, bloqueado_razon = {ph}
                     WHERE id = {ph}
-                """, ('blocked', f"Recall {numero_recall}", lote_id))
+                """, ('bloqueado', f"Recall {numero_recall}", lote_id))
 
                 # Create recall_lote
                 cursor.execute(f"""
@@ -908,7 +908,7 @@ def check_vencimientos(dias: int = 30) -> List[Dict[str, Any]]:
                   AND fecha_vencimiento IS NOT NULL
                   AND fecha_vencimiento <= {ph}
                 ORDER BY fecha_vencimiento
-            """, ('available', fecha_limite))
+            """, ('disponible', fecha_limite))
 
             lotes = []
             for row in cursor.fetchall():
@@ -927,4 +927,46 @@ def check_vencimientos(dias: int = 30) -> List[Dict[str, Any]]:
 
     except Exception as e:
         logger.error(f"Error al verificar vencimientos: {e}")
+        raise
+
+
+def obtener_kpis() -> Dict[str, Any]:
+    """
+    Obtiene KPIs de lotes: activos, bloqueados, por vencer (30d), recalls activos.
+    """
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Lotes activos (disponible + reservado)
+            cursor.execute("SELECT COUNT(*) FROM lote WHERE estado IN ('disponible', 'reservado', 'available')")
+            lotes_activos = cursor.fetchone()[0]
+
+            # Lotes bloqueados
+            cursor.execute("SELECT COUNT(*) FROM lote WHERE estado IN ('bloqueado', 'blocked')")
+            lotes_bloqueados = cursor.fetchone()[0]
+
+            # Lotes por vencer (próximos 30 días)
+            cursor.execute("""
+                SELECT COUNT(*) FROM lote
+                WHERE estado IN ('disponible', 'reservado', 'available')
+                AND fecha_vencimiento IS NOT NULL
+                AND fecha_vencimiento <= CURRENT_DATE + INTERVAL '30 days'
+                AND fecha_vencimiento >= CURRENT_DATE
+            """)
+            lotes_por_vencer = cursor.fetchone()[0]
+
+            # Recalls activos
+            cursor.execute("SELECT COUNT(*) FROM recall WHERE estado IN ('initiated', 'en_proceso', 'active', 'in_progress', 'draft')")
+            recalls_activos = cursor.fetchone()[0]
+
+            return {
+                'lotes_activos': lotes_activos,
+                'lotes_bloqueados': lotes_bloqueados,
+                'lotes_por_vencer': lotes_por_vencer,
+                'recalls_activos': recalls_activos,
+            }
+
+    except Exception as e:
+        logger.error(f"Error al obtener KPIs de lotes: {e}")
         raise

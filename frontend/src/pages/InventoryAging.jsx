@@ -6,7 +6,7 @@
  * Sprint 53
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -44,10 +44,11 @@ function getAgingBucket(days) {
 }
 
 const DISPOSITION_STATUS_COLORS = {
-  pendiente: 'warning',
-  aprobada: 'success',
-  rechazada: 'error',
-  ejecutada: 'info',
+  proposed: 'warning',
+  approved: 'info',
+  in_progress: 'primary',
+  completed: 'success',
+  rejected: 'error',
 };
 
 export default function InventoryAging() {
@@ -61,71 +62,88 @@ export default function InventoryAging() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [filters, setFilters] = useState({ categoria: '', almacen: '', material: '' });
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
 
-  const fetchKpis = useCallback(async () => {
-    try {
-      const { data } = await api.get('/api/slob/kpis');
-      setKpis(data);
-    } catch {
-      /* non-critical */
-    }
-  }, []);
+  // Stable refs for toast/t to avoid dependency issues
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
 
-  const fetchAging = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = {};
-      Object.entries(filters).forEach(([k, v]) => {
-        if (v) params[k] = v;
-      });
-      const { data } = await api.get('/api/slob/aging', { params });
-      setAgingData(data.items || []);
-    } catch {
-      toast.error(t('slob_error_aging', 'Error al cargar datos de antiguedad'));
-    } finally {
-      setLoading(false);
-    }
-  }, [filters, t, toast]);
-
-  const fetchDispositions = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data } = await api.get('/api/slob/disposition');
-      setDispositions(data.items || []);
-    } catch {
-      toast.error(t('slob_error_dispositions', 'Error al cargar disposiciones'));
-    } finally {
-      setLoading(false);
-    }
-  }, [t, toast]);
+  // Serialize filters to a string for stable useEffect dependency
+  const filtersKey = useMemo(() => JSON.stringify(filters), [filters]);
 
   useEffect(() => {
-    fetchKpis();
-  }, [fetchKpis]);
+    let cancelled = false;
 
-  useEffect(() => {
-    if (tab === 0) {
-      fetchAging();
-    } else {
-      fetchDispositions();
+    async function loadData() {
+      // Always load KPIs
+      try {
+        const { data } = await api.get('/slob/kpis');
+        if (!cancelled && data?.ok) {
+          const total = (data.aging_por_categoria || []).reduce((s, c) => s + (c.cantidad_items || 0), 0);
+          const over180 = (data.aging_por_categoria || [])
+            .filter(c => c.categoria === '180+')
+            .reduce((s, c) => s + (c.cantidad_items || 0), 0);
+          setKpis({
+            total_items: total,
+            items_over_180: over180,
+            valor_obsoleto: data.slob?.valor_total || 0,
+            disposiciones_pendientes: (data.disposiciones || [])
+              .filter(d => d.estado === 'proposed')
+              .reduce((s, d) => s + (d.cantidad || 0), 0),
+            recovery_rate: data.recovery_rate || 0,
+            total_recuperado: data.total_recuperado || 0,
+          });
+        }
+      } catch { /* non-critical */ }
+
+      // Load tab-specific data
+      setLoading(true);
+      try {
+        if (tab === 0) {
+          const params = { page, per_page: 50 };
+          const flt = JSON.parse(filtersKey);
+          Object.entries(flt).forEach(([k, v]) => { if (v) params[k] = v; });
+          const { data } = await api.get('/slob/aging', { params });
+          if (!cancelled) {
+            setAgingData(data?.items || []);
+            setTotalPages(data?.pages || 1);
+            setTotalItems(data?.total || 0);
+          }
+        } else {
+          const { data } = await api.get('/slob/disposition');
+          if (!cancelled) {
+            setDispositions(data?.items || []);
+          }
+        }
+      } catch {
+        /* errors shown by interceptor */
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
-  }, [tab, fetchAging, fetchDispositions]);
+
+    loadData();
+    return () => { cancelled = true; };
+  }, [tab, page, filtersKey]);
 
   const handleRefreshSnapshot = useCallback(async () => {
     setRefreshing(true);
     try {
-      await api.post('/api/slob/snapshot');
-      toast.success(t('slob_snapshot_ok', 'Snapshot actualizado'));
-      fetchKpis();
-      fetchAging();
+      await api.post('/slob/snapshot');
+      toastRef.current.success(tRef.current('slob_snapshot_ok', 'Snapshot actualizado'));
+      window.location.reload();
     } catch {
-      toast.error(t('slob_snapshot_error', 'Error al actualizar snapshot'));
+      toastRef.current.error(tRef.current('slob_snapshot_error', 'Error al actualizar snapshot'));
     } finally {
       setRefreshing(false);
     }
-  }, [t, toast, fetchKpis, fetchAging]);
+  }, []);
 
   const handleProposeDisposition = useCallback((item) => {
     setSelectedItem(item);
@@ -135,13 +153,18 @@ export default function InventoryAging() {
   const handleDispositionCreated = useCallback(() => {
     setModalOpen(false);
     setSelectedItem(null);
-    fetchDispositions();
-    fetchKpis();
-    toast.success(t('slob_disposition_created', 'Disposicion propuesta exitosamente'));
-  }, [fetchDispositions, fetchKpis, t, toast]);
+    toastRef.current.success(tRef.current('slob_disposition_created', 'Disposicion propuesta exitosamente'));
+    window.location.reload();
+  }, []);
 
   const handleFilterChange = useCallback((field, value) => {
-    setFilters((prev) => ({ ...prev, [field]: value }));
+    setFilters((prev) => {
+      const next = { ...prev, [field]: value };
+      // Only update if actually changed
+      if (prev[field] === value) return prev;
+      return next;
+    });
+    setPage(1);
   }, []);
 
   const fmtMoney = (val) =>
@@ -246,7 +269,7 @@ export default function InventoryAging() {
                 onChange={(e) => handleFilterChange('material', e.target.value)}
                 sx={{ width: 200 }}
               />
-              <Button variant="contained" size="small" onClick={fetchAging}>
+              <Button variant="contained" size="small" onClick={() => setPage(1)}>
                 {t('common_filter', 'Filtrar')}
               </Button>
             </Stack>
@@ -291,17 +314,18 @@ export default function InventoryAging() {
                     </td>
                   </tr>
                 ) : (
-                  agingData.map((item) => {
-                    const bucket = getAgingBucket(item.dias || 0);
+                  agingData.map((item, idx) => {
+                    const dias = item.dias_sin_movimiento ?? item.dias ?? 0;
+                    const bucket = getAgingBucket(dias);
                     const style = AGING_COLORS[bucket];
                     return (
-                      <tr key={item.id || item.material} className={`${style.bg} hover:opacity-90`}>
-                        <td className="px-4 py-2 font-mono text-xs">{item.material}</td>
-                        <td className="px-4 py-2">{item.descripcion}</td>
+                      <tr key={`${item.id}-${idx}`} className={`${style.bg} hover:opacity-90`}>
+                        <td className="px-4 py-2 font-mono text-xs">{item.material_codigo}</td>
+                        <td className="px-4 py-2">{item.material_descripcion || '-'}</td>
                         <td className="px-4 py-2">{item.almacen}</td>
                         <td className="px-4 py-2 text-right">{(item.cantidad || 0).toLocaleString()}</td>
                         <td className="px-4 py-2 text-right">{fmtMoney(item.valor)}</td>
-                        <td className="px-4 py-2 text-right font-medium">{item.dias}</td>
+                        <td className="px-4 py-2 text-right font-medium">{dias}</td>
                         <td className="px-4 py-2 text-center">
                           <Chip label={style.label} size="small" color={style.color} variant="outlined" />
                         </td>
@@ -323,6 +347,24 @@ export default function InventoryAging() {
                 )}
               </tbody>
             </table>
+
+            {/* Pagination */}
+            {!loading && agingData.length > 0 && (
+              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 2, py: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="body2" color="text.secondary">
+                  {t('slob_showing', 'Mostrando')} {((page - 1) * 50) + 1}-{Math.min(page * 50, totalItems)} {t('slob_of', 'de')} {totalItems.toLocaleString()}
+                </Typography>
+                <Stack direction="row" spacing={1}>
+                  <Button size="small" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                    {t('common_prev', 'Anterior')}
+                  </Button>
+                  <Chip label={`${page} / ${totalPages.toLocaleString()}`} size="small" variant="outlined" />
+                  <Button size="small" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                    {t('common_next', 'Siguiente')}
+                  </Button>
+                </Stack>
+              </Stack>
+            )}
           </Paper>
         </>
       )}
@@ -358,9 +400,9 @@ export default function InventoryAging() {
               ) : (
                 dispositions.map((d) => (
                   <tr key={d.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 font-mono text-xs">{d.material}</td>
+                    <td className="px-4 py-2 font-mono text-xs">{d.material_codigo}</td>
                     <td className="px-4 py-2">{d.almacen}</td>
-                    <td className="px-4 py-2 capitalize">{d.tipo}</td>
+                    <td className="px-4 py-2 capitalize">{d.tipo_disposicion}</td>
                     <td className="px-4 py-2 text-right">{(d.cantidad || 0).toLocaleString()}</td>
                     <td className="px-4 py-2">
                       <Chip
@@ -370,9 +412,9 @@ export default function InventoryAging() {
                         variant="outlined"
                       />
                     </td>
-                    <td className="px-4 py-2">{d.creado_por_nombre || '-'}</td>
+                    <td className="px-4 py-2">{d.propuesto_por_nombre || '-'}</td>
                     <td className="px-4 py-2 text-gray-600">
-                      {new Date(d.created_at).toLocaleDateString()}
+                      {d.created_at ? new Date(d.created_at).toLocaleDateString() : '-'}
                     </td>
                   </tr>
                 ))

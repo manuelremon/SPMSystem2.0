@@ -5,7 +5,7 @@
  * Includes ImbalanceHeatmap visualization and transfer management.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -36,6 +36,7 @@ const TRANSFER_ESTADO_COLORS = {
   approved: 'info',
   in_transit: 'warning',
   completed: 'success',
+  received: 'success',
   cancelled: 'error',
 };
 
@@ -44,6 +45,7 @@ const TRANSFER_ESTADO_LABELS = {
   approved: 'Aprobada',
   in_transit: 'En Transito',
   completed: 'Completada',
+  received: 'Recibida',
   cancelled: 'Cancelada',
 };
 
@@ -58,6 +60,10 @@ export default function InventoryOptimization() {
   const { t } = useI18n();
   const toast = useToast();
   const navigate = useNavigate();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
 
   const [currentTab, setCurrentTab] = useState(0);
   const [kpis, setKpis] = useState(null);
@@ -66,78 +72,82 @@ export default function InventoryOptimization() {
   const [loadingImbalances, setLoadingImbalances] = useState(true);
   const [loadingTransfers, setLoadingTransfers] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
-  const fetchKpis = useCallback(async () => {
-    try {
-      const res = await api.get('/inventory-optimization/kpis');
-      if (res.data?.ok) {
-        setKpis(res.data);
-      }
-    } catch {
-      // Non-critical
-    }
-  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api.get('/inventory-optimization/kpis');
+        if (!cancelled && res.data?.ok) setKpis(res.data);
+      } catch { /* non-critical */ }
+    })();
+    return () => { cancelled = true; };
+  }, [reloadTick]);
 
-  const fetchImbalances = useCallback(async () => {
-    try {
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
       setLoadingImbalances(true);
-      const res = await api.get('/inventory-optimization/imbalances');
-      if (res.data?.ok) {
-        setImbalances(res.data.imbalances || res.data.items || []);
+      try {
+        const res = await api.get('/inventory-optimization/imbalances');
+        if (!cancelled && res.data?.ok) setImbalances(res.data.imbalances || res.data.items || []);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('inventory_error_imbalances', 'Error al cargar desbalances'));
+      } finally {
+        if (!cancelled) setLoadingImbalances(false);
       }
-    } catch {
-      toast.error(t('inventory_error_imbalances', 'Error al cargar desbalances'));
-    } finally {
-      setLoadingImbalances(false);
-    }
-  }, [t, toast]);
+    })();
+    return () => { cancelled = true; };
+  }, [reloadTick]);
 
-  const fetchTransfers = useCallback(async () => {
-    try {
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
       setLoadingTransfers(true);
-      const res = await api.get('/inventory-optimization/transfers');
-      if (res.data?.ok) {
-        setTransfers(res.data.transfers || res.data.items || []);
+      try {
+        const res = await api.get('/inventory-optimization/transfers');
+        if (!cancelled && res.data?.ok) setTransfers(res.data.transfers || res.data.items || []);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('inventory_error_transfers', 'Error al cargar transferencias'));
+      } finally {
+        if (!cancelled) setLoadingTransfers(false);
       }
-    } catch {
-      toast.error(t('inventory_error_transfers', 'Error al cargar transferencias'));
-    } finally {
-      setLoadingTransfers(false);
-    }
-  }, [t, toast]);
-
-  useEffect(() => { fetchKpis(); }, [fetchKpis]);
-  useEffect(() => { fetchImbalances(); }, [fetchImbalances]);
-  useEffect(() => { fetchTransfers(); }, [fetchTransfers]);
+    })();
+    return () => { cancelled = true; };
+  }, [reloadTick]);
 
   const handleProposeTransfers = useCallback(async () => {
     setProcessing(true);
     try {
       const res = await api.post('/inventory-optimization/transfers/propose');
       if (res.data?.ok) {
-        toast.success(t('inventory_transfers_proposed', 'Transferencias propuestas exitosamente'));
-        fetchTransfers();
-        fetchKpis();
+        toastRef.current.success(tRef.current('inventory_transfers_proposed', 'Transferencias propuestas exitosamente'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('inventory_error_propose', 'Error al proponer transferencias'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('inventory_error_propose', 'Error al proponer transferencias'));
     } finally {
       setProcessing(false);
     }
-  }, [fetchTransfers, fetchKpis, t, toast]);
+  }, []);
 
   const handleTransferAction = useCallback(async (transferId, action) => {
     try {
-      const res = await api.put(`/inventory-optimization/transfers/${transferId}/status`, { estado: action });
+      // Map action to correct endpoint
+      const endpoint = action === 'approved'
+        ? `/inventory-optimization/transfers/${transferId}/approve`
+        : `/inventory-optimization/transfers/${transferId}/complete`;
+      const res = await api.put(endpoint);
       if (res.data?.ok) {
-        toast.success(t('inventory_transfer_updated', 'Transferencia actualizada'));
-        fetchTransfers();
-        fetchKpis();
+        toastRef.current.success(tRef.current('inventory_transfer_updated', 'Transferencia actualizada'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('inventory_error_action', 'Error al actualizar transferencia'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('inventory_error_action', 'Error al actualizar transferencia'));
     }
-  }, [fetchTransfers, fetchKpis, t, toast]);
+  }, []);
 
   const imbalanceColumns = useMemo(() => [
     { field: 'material_codigo', headerName: t('inventory_material', 'Material'), flex: 1, minWidth: 140 },

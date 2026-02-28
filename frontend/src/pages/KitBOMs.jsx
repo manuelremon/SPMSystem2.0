@@ -34,20 +34,20 @@ import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 const ESTADO_OPTIONS = [
   { value: '', label: 'Todos' },
   { value: 'draft', label: 'Borrador' },
-  { value: 'active', label: 'Activo' },
-  { value: 'obsolete', label: 'Obsoleto' },
+  { value: 'activo', label: 'Activo' },
+  { value: 'obsoleto', label: 'Obsoleto' },
 ];
 
 const ESTADO_COLORS = {
   draft: 'default',
-  active: 'success',
-  obsolete: 'error',
+  activo: 'success',
+  obsoleto: 'error',
 };
 
 const ESTADO_LABELS = {
   draft: 'Borrador',
-  active: 'Activo',
-  obsolete: 'Obsoleto',
+  activo: 'Activo',
+  obsoleto: 'Obsoleto',
 };
 
 const INITIAL_FORM = {

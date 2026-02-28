@@ -29,9 +29,9 @@ from ._base import (
 WORK_CENTER_TIPOS = ["assembly", "machining", "packaging", "testing"]
 WORK_CENTER_ESTADOS = ["active", "inactive", "maintenance"]
 
-PLAN_PROD_ESTADOS = ["draft", "in_progress", "completed", "cancelled"]
+PLAN_PROD_ESTADOS = ["draft", "publicado", "en_ejecucion", "completado", "cancelado"]
 
-PLAN_DEMANDA_ESTADOS = ["draft", "active", "closed", "archived"]
+PLAN_DEMANDA_ESTADOS = ["draft", "collecting", "review", "consensus", "approved", "closed"]
 PLAN_DEMANDA_METODOS = ["manual", "historico", "ml", "consenso"]
 
 ORDEN_TIPOS = ["compra", "produccion", "transferencia"]
@@ -98,6 +98,9 @@ class PlanningSeed(SeedModule):
             eficiencia = round(random.uniform(70, 98), 2)
             capacidad = round(random.uniform(4, 24), 2)
 
+            # First 4 WCs always active, rest random
+            estado = "active" if i <= 4 else pick(WORK_CENTER_ESTADOS)
+
             row = {
                 "nombre": f"{SEED_TAG} {nombre_base}",
                 "codigo": seed_code("WC", i),
@@ -107,7 +110,7 @@ class PlanningSeed(SeedModule):
                 "turnos": random.randint(1, 3),
                 "eficiencia_pct": eficiencia,
                 "costo_hora": round(random.uniform(150, 1500), 2),
-                "estado": pick(WORK_CENTER_ESTADOS),
+                "estado": estado,
                 "ubicacion": f"Planta {pick(['A', 'B', 'C'])} - Sector {random.randint(1, 5)}",
                 "created_at": rand_datetime(days_back=365),
             }
@@ -197,7 +200,7 @@ class PlanningSeed(SeedModule):
                 "periodo_hasta": rand_future_date(30, 365),
                 "estado": estado,
                 "creado_por": self.refs.rand_user(),
-                "aprobado_por": self.refs.rand_admin() if estado in ("active", "closed") else None,
+                "aprobado_por": self.refs.rand_admin() if estado in ("approved", "closed") else None,
                 "created_at": rand_datetime(days_back=180),
             }
             try:

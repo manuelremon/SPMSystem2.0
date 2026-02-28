@@ -5,7 +5,7 @@
  * Sprint 83
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -48,6 +48,10 @@ export default function ConsignmentDetail() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
 
   const [programa, setPrograma] = useState(null);
   const [stock, setStock] = useState([]);
@@ -55,6 +59,7 @@ export default function ConsignmentDetail() {
   const [reconciliaciones, setReconciliaciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
+  const [reloadTick, setReloadTick] = useState(0);
 
   // Stock dialog
   const [stockOpen, setStockOpen] = useState(false);
@@ -89,37 +94,40 @@ export default function ConsignmentDetail() {
     porcentaje_margen: '',
   });
 
-  const fetchDetalle = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get(`/consignment/programs/${id}`);
-      if (res.data?.ok) {
-        setPrograma(res.data.programa);
-        setStock(res.data.stock || []);
-        setConsumos(res.data.consumos_recientes || []);
-        setReconciliaciones(res.data.reconciliaciones || []);
-
-        // Initialize config form
-        if (res.data.programa) {
-          setConfigForm({
-            nombre: res.data.programa.nombre || '',
-            descripcion: res.data.programa.descripcion || '',
-            estado: res.data.programa.estado || '',
-            periodo_reconciliacion: res.data.programa.periodo_reconciliacion || '',
-            porcentaje_margen: res.data.programa.porcentaje_margen || '',
-          });
-        }
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.error || t('consign_error_detail', 'Error al cargar detalle'));
-    } finally {
-      setLoading(false);
-    }
-  }, [id, t, toast]);
+  const reload = useCallback(() => setReloadTick((n) => n + 1), []);
 
   useEffect(() => {
-    fetchDetalle();
-  }, [fetchDetalle]);
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await api.get(`/consignment/programs/${id}`);
+        if (cancelled) return;
+        if (res.data?.ok) {
+          setPrograma(res.data.programa);
+          setStock(res.data.stock || []);
+          setConsumos(res.data.consumos_recientes || []);
+          setReconciliaciones(res.data.reconciliaciones || []);
+
+          if (res.data.programa) {
+            setConfigForm({
+              nombre: res.data.programa.nombre || '',
+              descripcion: res.data.programa.descripcion || '',
+              estado: res.data.programa.estado || '',
+              periodo_reconciliacion: res.data.programa.periodo_reconciliacion || '',
+              porcentaje_margen: res.data.programa.porcentaje_margen || '',
+            });
+          }
+        }
+      } catch (err) {
+        if (!cancelled) toastRef.current.error(err.response?.data?.error || tRef.current('consign_error_detail', 'Error al cargar detalle'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [id, reloadTick]);
 
   const handleTabChange = useCallback((event, newValue) => {
     setActiveTab(newValue);
@@ -133,7 +141,7 @@ export default function ConsignmentDetail() {
 
   const handleStockSubmit = useCallback(async () => {
     if (!stockForm.material_codigo.trim() || !stockForm.cantidad_disponible) {
-      toast.warning(t('consign_fill_stock', 'Complete los campos requeridos'));
+      toastRef.current.warning(tRef.current('consign_fill_stock', 'Complete los campos requeridos'));
       return;
     }
 
@@ -147,16 +155,16 @@ export default function ConsignmentDetail() {
 
       const res = await api.post(`/consignment/programs/${id}/stock`, payload);
       if (res.data?.ok) {
-        toast.success(t('consign_stock_updated', 'Stock actualizado'));
+        toastRef.current.success(tRef.current('consign_stock_updated', 'Stock actualizado'));
         setStockOpen(false);
-        fetchDetalle();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('consign_error_stock', 'Error al actualizar stock'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('consign_error_stock', 'Error al actualizar stock'));
     } finally {
       setStockSubmitting(false);
     }
-  }, [id, stockForm, t, toast, fetchDetalle]);
+  }, [id, stockForm, reload]);
 
   // Consumo handlers
   const handleConsumoOpen = useCallback(() => {
@@ -166,7 +174,7 @@ export default function ConsignmentDetail() {
 
   const handleConsumoSubmit = useCallback(async () => {
     if (!consumoForm.stock_id || !consumoForm.cantidad) {
-      toast.warning(t('consign_fill_consumo', 'Complete los campos requeridos'));
+      toastRef.current.warning(tRef.current('consign_fill_consumo', 'Complete los campos requeridos'));
       return;
     }
 
@@ -179,16 +187,16 @@ export default function ConsignmentDetail() {
 
       const res = await api.post(`/consignment/programs/${id}/consume`, payload);
       if (res.data?.ok) {
-        toast.success(t('consign_consumo_registered', 'Consumo registrado'));
+        toastRef.current.success(tRef.current('consign_consumo_registered', 'Consumo registrado'));
         setConsumoOpen(false);
-        fetchDetalle();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('consign_error_consumo', 'Error al registrar consumo'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('consign_error_consumo', 'Error al registrar consumo'));
     } finally {
       setConsumoSubmitting(false);
     }
-  }, [id, consumoForm, t, toast, fetchDetalle]);
+  }, [id, consumoForm, reload]);
 
   // Reconciliacion handlers
   const handleReconOpen = useCallback(() => {
@@ -198,7 +206,7 @@ export default function ConsignmentDetail() {
 
   const handleReconGenerate = useCallback(async () => {
     if (!reconPeriodo.trim()) {
-      toast.warning(t('consign_periodo_required', 'Ingrese periodo (YYYY-MM)'));
+      toastRef.current.warning(tRef.current('consign_periodo_required', 'Ingrese periodo (YYYY-MM)'));
       return;
     }
 
@@ -208,40 +216,40 @@ export default function ConsignmentDetail() {
         periodo: reconPeriodo.trim(),
       });
       if (res.data?.ok) {
-        toast.success(t('consign_recon_generated', 'Reconciliación generada'));
+        toastRef.current.success(tRef.current('consign_recon_generated', 'Reconciliación generada'));
         setReconOpen(false);
-        fetchDetalle();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('consign_error_recon', 'Error al generar reconciliación'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('consign_error_recon', 'Error al generar reconciliación'));
     } finally {
       setReconSubmitting(false);
     }
-  }, [id, reconPeriodo, t, toast, fetchDetalle]);
+  }, [id, reconPeriodo, reload]);
 
   const handleReconSend = useCallback(async (reconId) => {
     try {
       const res = await api.put(`/consignment/reconciliations/${reconId}/send`);
       if (res.data?.ok) {
-        toast.success(t('consign_recon_sent', 'Reconciliación enviada'));
-        fetchDetalle();
+        toastRef.current.success(tRef.current('consign_recon_sent', 'Reconciliación enviada'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('consign_error_send', 'Error al enviar'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('consign_error_send', 'Error al enviar'));
     }
-  }, [t, toast, fetchDetalle]);
+  }, [reload]);
 
   const handleReconConfirm = useCallback(async (reconId) => {
     try {
       const res = await api.put(`/consignment/reconciliations/${reconId}/confirm`);
       if (res.data?.ok) {
-        toast.success(t('consign_recon_confirmed', 'Reconciliación confirmada'));
-        fetchDetalle();
+        toastRef.current.success(tRef.current('consign_recon_confirmed', 'Reconciliación confirmada'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('consign_error_confirm', 'Error al confirmar'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('consign_error_confirm', 'Error al confirmar'));
     }
-  }, [t, toast, fetchDetalle]);
+  }, [reload]);
 
   // Config handlers
   const handleConfigSave = useCallback(async () => {
@@ -257,16 +265,16 @@ export default function ConsignmentDetail() {
 
       const res = await api.put(`/consignment/programs/${id}`, payload);
       if (res.data?.ok) {
-        toast.success(t('consign_config_saved', 'Configuración guardada'));
+        toastRef.current.success(tRef.current('consign_config_saved', 'Configuración guardada'));
         setConfigEditing(false);
-        fetchDetalle();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('consign_error_config', 'Error al guardar'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('consign_error_config', 'Error al guardar'));
     } finally {
       setConfigSaving(false);
     }
-  }, [id, configForm, t, toast, fetchDetalle]);
+  }, [id, configForm, reload]);
 
   // AG-Grid columns
   const stockColumns = useMemo(() => [
@@ -406,7 +414,7 @@ export default function ConsignmentDetail() {
       {/* Header */}
       <Stack direction="row" alignItems="center" justifyContent="space-between">
         <Stack direction="row" alignItems="center" gap={2}>
-          <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/consignment')}>
+          <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/operations/consignment')}>
             {t('common_volver', 'Volver')}
           </Button>
           <Stack>

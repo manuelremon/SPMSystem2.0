@@ -38,14 +38,14 @@ import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 
 const ESTADO_COLORS = {
   draft: 'default',
-  active: 'success',
-  obsolete: 'error',
+  activo: 'success',
+  obsoleto: 'error',
 };
 
 const ESTADO_LABELS = {
   draft: 'Borrador',
-  active: 'Activo',
-  obsolete: 'Obsoleto',
+  activo: 'Activo',
+  obsoleto: 'Obsoleto',
 };
 
 const INITIAL_COMPONENT_FORM = {
@@ -92,7 +92,7 @@ export default function KitBOMDetail() {
   const handleActivate = useCallback(async () => {
     setProcessing(true);
     try {
-      const res = await api.put(`/kitting/boms/${id}`, { estado: 'active' });
+      const res = await api.put(`/kitting/boms/${id}`, { estado: 'activo' });
       if (res.data?.ok) {
         toast.success(t('kit_activated', 'BOM activada'));
         fetchBOM();
@@ -154,14 +154,14 @@ export default function KitBOMDetail() {
     { field: 'cantidad', headerName: t('kit_comp_cantidad', 'Cantidad'), width: 110, type: 'numericColumn' },
     { field: 'unidad', headerName: t('kit_comp_unidad', 'Unidad'), width: 90 },
     {
-      field: 'opcional',
+      field: 'es_opcional',
       headerName: t('kit_comp_opcional', 'Opcional'),
       width: 100,
       cellRenderer: (p) => (
         <Checkbox checked={!!p.value} disabled size="small" />
       ),
     },
-    { field: 'alternativa', headerName: t('kit_comp_alternativa', 'Alternativa'), flex: 1, minWidth: 120 },
+    { field: 'alternativa_material', headerName: t('kit_comp_alternativa', 'Alternativa'), flex: 1, minWidth: 120 },
     { field: 'notas', headerName: t('kit_comp_notas', 'Notas'), flex: 1, minWidth: 140 },
     {
       headerName: '',

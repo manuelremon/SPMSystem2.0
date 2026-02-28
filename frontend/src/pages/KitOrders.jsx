@@ -39,57 +39,57 @@ import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 
 const ESTADO_OPTIONS = [
   { value: '', label: 'Todos' },
-  { value: 'draft', label: 'Borrador' },
-  { value: 'released', label: 'Liberada' },
-  { value: 'allocated', label: 'Asignada' },
-  { value: 'in_progress', label: 'En Proceso' },
-  { value: 'completed', label: 'Completada' },
-  { value: 'cancelled', label: 'Cancelada' },
+  { value: 'pendiente', label: 'Pendiente' },
+  { value: 'asignado', label: 'Asignado' },
+  { value: 'parcial', label: 'Parcial' },
+  { value: 'en_proceso', label: 'En Proceso' },
+  { value: 'completado', label: 'Completado' },
+  { value: 'cancelado', label: 'Cancelado' },
 ];
 
 const ESTADO_COLORS = {
-  draft: 'default',
-  released: 'info',
-  allocated: 'warning',
-  in_progress: 'primary',
-  completed: 'success',
-  cancelled: 'error',
+  pendiente: 'default',
+  asignado: 'info',
+  parcial: 'warning',
+  en_proceso: 'primary',
+  completado: 'success',
+  cancelado: 'error',
 };
 
 const ESTADO_LABELS = {
-  draft: 'Borrador',
-  released: 'Liberada',
-  allocated: 'Asignada',
-  in_progress: 'En Proceso',
-  completed: 'Completada',
-  cancelled: 'Cancelada',
+  pendiente: 'Pendiente',
+  asignado: 'Asignado',
+  parcial: 'Parcial',
+  en_proceso: 'En Proceso',
+  completado: 'Completado',
+  cancelado: 'Cancelado',
 };
 
 const PRIORIDAD_OPTIONS = [
-  { value: 'low', label: 'Baja' },
-  { value: 'medium', label: 'Media' },
-  { value: 'high', label: 'Alta' },
-  { value: 'urgent', label: 'Urgente' },
+  { value: 'baja', label: 'Baja' },
+  { value: 'media', label: 'Media' },
+  { value: 'alta', label: 'Alta' },
+  { value: 'critica', label: 'Critica' },
 ];
 
 const PRIORIDAD_COLORS = {
-  low: 'default',
-  medium: 'info',
-  high: 'warning',
-  urgent: 'error',
+  baja: 'default',
+  media: 'info',
+  alta: 'warning',
+  critica: 'error',
 };
 
 const PRIORIDAD_LABELS = {
-  low: 'Baja',
-  medium: 'Media',
-  high: 'Alta',
-  urgent: 'Urgente',
+  baja: 'Baja',
+  media: 'Media',
+  alta: 'Alta',
+  critica: 'Critica',
 };
 
 const INITIAL_ORDER_FORM = {
   kit_bom_id: '',
   cantidad_kits: '',
-  prioridad: 'medium',
+  prioridad: 'media',
   almacen_id: '',
   fecha_requerida: '',
 };
@@ -272,7 +272,7 @@ export default function KitOrders() {
               </Typography>
             </Stack>
             <Typography variant="h5" sx={{ fontWeight: 700, color: 'info.main' }}>
-              {kpis.ordenes_activas ?? 0}
+              {kpis.activas ?? 0}
             </Typography>
           </Paper>
           <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 180 }}>

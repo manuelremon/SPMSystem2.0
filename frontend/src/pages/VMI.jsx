@@ -7,7 +7,7 @@
  * Sprint 71
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -43,37 +43,41 @@ import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 const ESTADO_OPTIONS = [
   { value: '', label: 'Todos' },
   { value: 'active', label: 'Activo' },
-  { value: 'paused', label: 'Pausado' },
+  { value: 'suspended', label: 'Suspendido' },
   { value: 'draft', label: 'Borrador' },
-  { value: 'closed', label: 'Cerrado' },
+  { value: 'terminated', label: 'Terminado' },
 ];
 
 const ESTADO_COLORS = {
   active: 'success',
-  paused: 'warning',
+  suspended: 'warning',
   draft: 'default',
-  closed: 'error',
+  terminated: 'error',
 };
 
 const ESTADO_LABELS = {
   active: 'Activo',
-  paused: 'Pausado',
+  suspended: 'Suspendido',
   draft: 'Borrador',
-  closed: 'Cerrado',
+  terminated: 'Terminado',
 };
 
 const REPO_ESTADO_COLORS = {
-  pending: 'warning',
+  suggested: 'warning',
   approved: 'success',
   rejected: 'error',
-  completed: 'info',
+  in_progress: 'info',
+  delivered: 'default',
+  cancelled: 'error',
 };
 
 const REPO_ESTADO_LABELS = {
-  pending: 'Pendiente',
+  suggested: 'Sugerida',
   approved: 'Aprobada',
   rejected: 'Rechazada',
-  completed: 'Completada',
+  in_progress: 'En Proceso',
+  delivered: 'Entregada',
+  cancelled: 'Cancelada',
 };
 
 const INITIAL_FORM = {
@@ -110,56 +114,60 @@ export default function VMI() {
   const [form, setForm] = useState(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchKPIs = useCallback(async () => {
-    try {
-      const res = await api.get('/vmi/dashboard');
-      if (res.data?.ok) {
-        setKpis(res.data.kpis || res.data);
-      }
-    } catch {
-      // Non-critical
-    }
-  }, []);
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
+  const tRef = useRef(t);
+  tRef.current = t;
 
-  const fetchProgramas = useCallback(async () => {
-    try {
-      setLoadingProgramas(true);
-      const params = {};
-      if (filters.estado) params.estado = filters.estado;
-      if (filters.proveedor) params.proveedor = filters.proveedor;
-      const res = await api.get('/vmi/programas', { params });
-      if (res.data?.ok) {
-        setProgramas(res.data.programas || res.data.items || []);
-      }
-    } catch {
-      toast.error(t('vmi_error_load', 'Error al cargar programas VMI'));
-    } finally {
-      setLoadingProgramas(false);
-    }
-  }, [filters, t, toast]);
+  const filtersKey = useMemo(() => JSON.stringify(filters), [filters]);
 
-  const fetchReposiciones = useCallback(async () => {
-    setLoadingRepo(true);
-    try {
-      const res = await api.get('/vmi/reposiciones', { params: { estado: 'pending' } });
-      if (res.data?.ok) {
-        setReposiciones(res.data.reposiciones || res.data.items || []);
-      }
-    } catch {
-      toast.error(t('vmi_error_repo', 'Error al cargar reposiciones'));
-    } finally {
-      setLoadingRepo(false);
-    }
-  }, [t, toast]);
+  // Reload function for manual refresh (after create, approve, etc.)
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = useCallback(() => setReloadTick((n) => n + 1), []);
 
   useEffect(() => {
-    fetchKPIs();
-    fetchProgramas();
-  }, [fetchKPIs, fetchProgramas]);
+    let cancelled = false;
+    async function loadData() {
+      // Always load KPIs
+      try {
+        const { data } = await api.get('/vmi/dashboard');
+        if (!cancelled && data?.ok) setKpis(data);
+      } catch { /* non-critical */ }
 
-  useEffect(() => {
-    if (tabValue === 1) fetchReposiciones();
-  }, [tabValue, fetchReposiciones]);
+      // Load based on tab
+      if (tabValue === 0) {
+        setLoadingProgramas(true);
+        try {
+          const params = {};
+          const flt = JSON.parse(filtersKey);
+          if (flt.estado) params.estado = flt.estado;
+          if (flt.proveedor) params.proveedor = flt.proveedor;
+          const { data } = await api.get('/vmi/programas', { params });
+          if (!cancelled && data?.ok) {
+            setProgramas(data.programas || data.items || []);
+          }
+        } catch {
+          if (!cancelled) toastRef.current.error(tRef.current('vmi_error_load', 'Error al cargar programas VMI'));
+        } finally {
+          if (!cancelled) setLoadingProgramas(false);
+        }
+      } else {
+        setLoadingRepo(true);
+        try {
+          const { data } = await api.get('/vmi/reposiciones', { params: { estado: 'suggested' } });
+          if (!cancelled && data?.ok) {
+            setReposiciones(data.reposiciones || data.items || []);
+          }
+        } catch {
+          if (!cancelled) toastRef.current.error(tRef.current('vmi_error_repo', 'Error al cargar reposiciones'));
+        } finally {
+          if (!cancelled) setLoadingRepo(false);
+        }
+      }
+    }
+    loadData();
+    return () => { cancelled = true; };
+  }, [tabValue, filtersKey, reloadTick]);
 
   const handleFilterChange = useCallback((field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
@@ -171,57 +179,65 @@ export default function VMI() {
 
   const handleCreate = useCallback(async () => {
     if (!form.proveedor_id || !form.material_codigo.trim() || !form.centro.trim()) {
-      toast.warning(t('vmi_required', 'Complete proveedor, material y centro'));
+      toastRef.current.warning(tRef.current('vmi_required', 'Complete proveedor, material y centro'));
       return;
     }
     setSubmitting(true);
     try {
       const payload = {
-        ...form,
-        stock_minimo: form.stock_minimo ? Number(form.stock_minimo) : null,
-        stock_maximo: form.stock_maximo ? Number(form.stock_maximo) : null,
+        proveedor_cuit: form.proveedor_id,
+        material_codigo: form.material_codigo,
+        centro_id: form.centro,
+        tipo_reposicion: form.tipo_reposicion,
+        min_stock: form.stock_minimo ? Number(form.stock_minimo) : null,
+        max_stock: form.stock_maximo ? Number(form.stock_maximo) : null,
         punto_pedido: form.punto_pedido ? Number(form.punto_pedido) : null,
-        lead_time_dias: form.lead_time_dias ? Number(form.lead_time_dias) : null,
+        frecuencia_dias: form.lead_time_dias ? Number(form.lead_time_dias) : null,
       };
       const res = await api.post('/vmi/programas', payload);
       if (res.data?.ok) {
-        toast.success(t('vmi_created', 'Programa VMI creado'));
+        toastRef.current.success(tRef.current('vmi_created', 'Programa VMI creado'));
         setDialogOpen(false);
         setForm(INITIAL_FORM);
-        fetchProgramas();
-        fetchKPIs();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('vmi_error_create', 'Error al crear programa'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('vmi_error_create', 'Error al crear programa'));
     } finally {
       setSubmitting(false);
     }
-  }, [form, t, toast, fetchProgramas, fetchKPIs]);
+  }, [form, reload]);
 
   const handleRepoAction = useCallback(async (repoId, action) => {
     setProcessingRepo((prev) => ({ ...prev, [repoId]: action }));
     try {
       const res = await api.put(`/vmi/reposiciones/${repoId}/${action}`);
       if (res.data?.ok) {
-        toast.success(
+        toastRef.current.success(
           action === 'approve'
-            ? t('vmi_repo_approved', 'Reposicion aprobada')
-            : t('vmi_repo_rejected', 'Reposicion rechazada')
+            ? tRef.current('vmi_repo_approved', 'Reposicion aprobada')
+            : tRef.current('vmi_repo_rejected', 'Reposicion rechazada')
         );
-        fetchReposiciones();
-        fetchKPIs();
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('vmi_error_repo_action', 'Error al procesar reposicion'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('vmi_error_repo_action', 'Error al procesar reposicion'));
     } finally {
       setProcessingRepo((prev) => ({ ...prev, [repoId]: null }));
     }
-  }, [fetchReposiciones, fetchKPIs, t, toast]);
+  }, [reload]);
 
   const programaColumnDefs = useMemo(() => [
-    { field: 'proveedor_nombre', headerName: t('vmi_col_proveedor', 'Proveedor'), flex: 2, minWidth: 180 },
+    { field: 'nombre', headerName: t('vmi_col_nombre', 'Nombre'), flex: 1.5, minWidth: 180 },
+    {
+      field: 'proveedor_nombre',
+      headerName: t('vmi_col_proveedor', 'Proveedor'),
+      flex: 1.5,
+      minWidth: 160,
+      valueGetter: (p) => p.data?.proveedor_nombre || p.data?.proveedor_cuit || '-',
+    },
     { field: 'material_codigo', headerName: t('vmi_col_material', 'Material'), flex: 1, minWidth: 140 },
-    { field: 'centro', headerName: t('vmi_col_centro', 'Centro'), width: 120 },
+    { field: 'centro_id', headerName: t('vmi_col_centro', 'Centro'), width: 100 },
     {
       field: 'estado',
       headerName: t('vmi_col_estado', 'Estado'),
@@ -231,8 +247,8 @@ export default function VMI() {
       ),
     },
     { field: 'tipo_reposicion', headerName: t('vmi_col_tipo', 'Tipo Reposicion'), width: 140 },
-    { field: 'stock_minimo', headerName: t('vmi_col_min', 'Min'), width: 80, type: 'numericColumn' },
-    { field: 'stock_maximo', headerName: t('vmi_col_max', 'Max'), width: 80, type: 'numericColumn' },
+    { field: 'min_stock', headerName: t('vmi_col_min', 'Min'), width: 80, type: 'numericColumn' },
+    { field: 'max_stock', headerName: t('vmi_col_max', 'Max'), width: 80, type: 'numericColumn' },
     { field: 'punto_pedido', headerName: t('vmi_col_rop', 'Pto. Pedido'), width: 100, type: 'numericColumn' },
   ], [t]);
 
@@ -256,7 +272,7 @@ export default function VMI() {
       filter: false,
       cellRenderer: (p) => {
         const row = p.data;
-        if (!row || row.estado !== 'pending') return null;
+        if (!row || row.estado !== 'suggested') return null;
         const isProcessing = processingRepo[row.id];
         return (
           <Stack direction="row" gap={0.5} alignItems="center" sx={{ height: '100%' }}>
@@ -466,9 +482,9 @@ export default function VMI() {
                 onChange={(e) => handleFormChange('tipo_reposicion', e.target.value)}
               >
                 <MenuItem value="min_max">Min/Max</MenuItem>
-                <MenuItem value="punto_pedido">Punto de Pedido</MenuItem>
-                <MenuItem value="kanban">Kanban</MenuItem>
-                <MenuItem value="consumo">Por Consumo</MenuItem>
+                <MenuItem value="eoq">EOQ</MenuItem>
+                <MenuItem value="periodic">Periodico</MenuItem>
+                <MenuItem value="forecast_based">Basado en Forecast</MenuItem>
               </Select>
             </FormControl>
             <Stack direction="row" spacing={2}>

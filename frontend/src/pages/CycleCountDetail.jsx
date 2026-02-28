@@ -7,7 +7,7 @@
  * Sprint 71
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -66,56 +66,64 @@ export default function CycleCountDetail() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+  toastRef.current = toast;
+  tRef.current = t;
 
   const [count, setCount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
 
-  const fetchCount = useCallback(async () => {
-    try {
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
       setLoading(true);
-      const res = await api.get(`/cycle-count/counts/${id}`);
-      if (res.data?.ok) {
-        setCount(res.data.count || res.data);
+      try {
+        const res = await api.get(`/cycle-count/counts/${id}`);
+        if (cancelled) return;
+        if (res.data?.ok) setCount(res.data.count || res.data);
+      } catch {
+        if (!cancelled) toastRef.current.error(tRef.current('cc_error_detail', 'Error al cargar conteo'));
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch {
-      toast.error(t('cc_error_detail', 'Error al cargar conteo'));
-    } finally {
-      setLoading(false);
-    }
-  }, [id, t, toast]);
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [id, reloadTick]);
 
-  useEffect(() => { fetchCount(); }, [fetchCount]);
-
-  const handleStart = useCallback(async () => {
+  const handleStart = async () => {
     setProcessing(true);
     try {
       const res = await api.put(`/cycle-count/counts/${id}/start`);
       if (res.data?.ok) {
-        toast.success(t('cc_started', 'Conteo iniciado'));
-        fetchCount();
+        toastRef.current.success(tRef.current('cc_started', 'Conteo iniciado'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('cc_error_start', 'Error al iniciar conteo'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('cc_error_start', 'Error al iniciar conteo'));
     } finally {
       setProcessing(false);
     }
-  }, [id, fetchCount, t, toast]);
+  };
 
-  const handleComplete = useCallback(async () => {
+  const handleComplete = async () => {
     setProcessing(true);
     try {
       const res = await api.put(`/cycle-count/counts/${id}/complete`);
       if (res.data?.ok) {
-        toast.success(t('cc_completed', 'Conteo completado'));
-        fetchCount();
+        toastRef.current.success(tRef.current('cc_completed', 'Conteo completado'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('cc_error_complete', 'Error al completar conteo'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('cc_error_complete', 'Error al completar conteo'));
     } finally {
       setProcessing(false);
     }
-  }, [id, fetchCount, t, toast]);
+  };
 
   const handleCellEdit = useCallback(async (event) => {
     const { data, colDef, newValue } = event;
@@ -123,8 +131,8 @@ export default function CycleCountDetail() {
 
     const parsedValue = parseFloat(newValue);
     if (isNaN(parsedValue) || parsedValue < 0) {
-      toast.warning(t('cc_invalid_quantity', 'Cantidad invalida'));
-      fetchCount();
+      toastRef.current.warning(tRef.current('cc_invalid_quantity', 'Cantidad invalida'));
+      reload();
       return;
     }
 
@@ -133,14 +141,14 @@ export default function CycleCountDetail() {
         cantidad_contada: parsedValue,
       });
       if (res.data?.ok) {
-        toast.success(t('cc_item_updated', 'Item actualizado'));
-        fetchCount();
+        toastRef.current.success(tRef.current('cc_item_updated', 'Item actualizado'));
+        reload();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('cc_error_update_item', 'Error al actualizar item'));
-      fetchCount();
+      toastRef.current.error(err.response?.data?.error || tRef.current('cc_error_update_item', 'Error al actualizar item'));
+      reload();
     }
-  }, [id, fetchCount, t, toast]);
+  }, [id]);
 
   const isInProgress = count?.estado === 'in_progress';
 
