@@ -594,17 +594,20 @@ def crear_recall(data: Dict[str, Any]) -> int:
             #   estado, material_codigo, proveedor_cuit, lotes_afectados,
             #   cantidad_afectada, responsable_id, fecha_inicio, fecha_cierre,
             #   accion_requerida, created_at, updated_at)
+            plan_accion = data.get('plan_accion', data.get('accion_requerida', ''))
+            costo_estimado = float(data['costo_estimado']) if data.get('costo_estimado') else 0
+
             cursor.execute(f"""
                 INSERT INTO recall (
                     numero_recall, titulo, descripcion, tipo, severidad, material_codigo,
-                    proveedor_cuit, responsable_id, accion_requerida,
-                    estado, fecha_inicio
-                ) VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
+                    proveedor_cuit, responsable_id, accion_requerida, plan_accion,
+                    costo_estimado, estado, fecha_inicio
+                ) VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
             """, (
                 numero_recall, titulo, descripcion, tipo,
                 severidad, data.get('material_codigo'), data.get('proveedor_cuit'),
-                responsable_id, data.get('accion_requerida', data.get('plan_accion', '')),
-                'initiated', datetime.now()
+                responsable_id, plan_accion, plan_accion,
+                costo_estimado, 'initiated', datetime.now()
             ))
 
             if is_using_postgresql():
@@ -716,13 +719,14 @@ def obtener_recalls(filtros: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
                 SELECT r.id, r.numero_recall, r.titulo, r.severidad, r.tipo, r.descripcion,
                        r.material_codigo, r.proveedor_cuit, r.responsable_id, r.estado,
                        r.fecha_inicio, r.fecha_cierre,
-                       COUNT(rl.id) as lotes_afectados_count
+                       COUNT(rl.id) as lotes_afectados_count,
+                       COALESCE(r.costo_estimado, 0) as costo_estimado
                 FROM recall r
                 LEFT JOIN recall_lote rl ON rl.recall_id = r.id
                 WHERE {where_clause}
                 GROUP BY r.id, r.numero_recall, r.titulo, r.severidad, r.tipo, r.descripcion,
                          r.material_codigo, r.proveedor_cuit, r.responsable_id, r.estado,
-                         r.fecha_inicio, r.fecha_cierre
+                         r.fecha_inicio, r.fecha_cierre, r.costo_estimado
                 ORDER BY r.fecha_inicio DESC
                 LIMIT {ph} OFFSET {ph}
             """, params + [per_page, offset])
@@ -742,7 +746,7 @@ def obtener_recalls(filtros: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
                     'estado': row[9],
                     'fecha_inicio': row[10].isoformat() if row[10] else None,
                     'fecha_cierre': row[11].isoformat() if row[11] else None,
-                    'costo_estimado': 0,
+                    'costo_estimado': float(row[13]) if row[13] else 0,
                     'lotes_afectados': row[12]
                 })
 
@@ -781,8 +785,9 @@ def obtener_detalle_recall(recall_id: int) -> Optional[Dict[str, Any]]:
             #   accion_requerida, created_at, updated_at)
             cursor.execute(f"""
                 SELECT id, numero_recall, titulo, severidad, tipo, descripcion, material_codigo,
-                       proveedor_cuit, responsable_id, accion_requerida,
-                       estado, fecha_inicio, fecha_cierre, created_at
+                       proveedor_cuit, responsable_id, COALESCE(plan_accion, accion_requerida) as plan_accion,
+                       estado, fecha_inicio, fecha_cierre, created_at,
+                       COALESCE(costo_estimado, 0) as costo_estimado
                 FROM recall
                 WHERE id = {ph}
             """, (recall_id,))
@@ -797,12 +802,12 @@ def obtener_detalle_recall(recall_id: int) -> Optional[Dict[str, Any]]:
                 'titulo': row[2],
                 'severidad': row[3],
                 'tipo': row[4],
-                'razon': row[5],
+                'descripcion': row[5],
                 'material_codigo': row[6],
                 'proveedor_cuit': row[7],
                 'responsable_id': row[8],
                 'plan_accion': row[9],
-                'costo_estimado': 0,
+                'costo_estimado': float(row[14]) if row[14] else 0,
                 'estado': row[10],
                 'fecha_inicio': row[11].isoformat() if row[11] else None,
                 'fecha_cierre': row[12].isoformat() if row[12] else None,
@@ -862,7 +867,7 @@ def marcar_lote_recuperado(recall_id: int, lote_id: int) -> bool:
                 UPDATE recall_lote
                 SET estado_recuperacion = {ph}, fecha_recuperacion = {ph}
                 WHERE recall_id = {ph} AND lote_id = {ph}
-            """, ('retrieved', datetime.now(), recall_id, lote_id))
+            """, ('recovered', datetime.now(), recall_id, lote_id))
 
             conn.commit()
             logger.info(f"Lote {lote_id} marcado como recuperado en recall {recall_id}")
@@ -960,11 +965,29 @@ def obtener_kpis() -> Dict[str, Any]:
             cursor.execute("SELECT COUNT(*) FROM recall WHERE estado IN ('initiated', 'en_proceso', 'active', 'in_progress', 'draft')")
             recalls_activos = cursor.fetchone()[0]
 
+            # Lotes recuperados
+            lotes_recuperados = 0
+            try:
+                cursor.execute("SELECT COUNT(*) FROM recall_lote WHERE estado_recuperacion IN ('recovered', 'retrieved')")
+                lotes_recuperados = cursor.fetchone()[0]
+            except Exception:
+                pass
+
+            # Costo estimado total de recalls activos
+            costo_estimado_total = 0
+            try:
+                cursor.execute("SELECT COALESCE(SUM(costo_estimado), 0) FROM recall WHERE estado IN ('initiated', 'en_proceso', 'active', 'in_progress', 'draft')")
+                costo_estimado_total = float(cursor.fetchone()[0])
+            except Exception:
+                pass
+
             return {
                 'lotes_activos': lotes_activos,
                 'lotes_bloqueados': lotes_bloqueados,
                 'lotes_por_vencer': lotes_por_vencer,
                 'recalls_activos': recalls_activos,
+                'lotes_recuperados': lotes_recuperados,
+                'costo_estimado_total': costo_estimado_total,
             }
 
     except Exception as e:

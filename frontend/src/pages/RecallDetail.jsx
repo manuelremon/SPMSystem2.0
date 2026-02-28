@@ -64,14 +64,18 @@ const ESTADO_LABELS = {
 
 const RECUPERACION_COLORS = {
   pending: 'warning',
+  identified: 'info',
   recovered: 'success',
+  retrieved: 'success',
   disposed: 'error',
   not_required: 'default',
 };
 
 const RECUPERACION_LABELS = {
   pending: 'Pendiente',
+  identified: 'Identificado',
   recovered: 'Recuperado',
+  retrieved: 'Recuperado',
   disposed: 'Descartado',
   not_required: 'No Requerido',
 };
@@ -162,7 +166,7 @@ export default function RecallDetail() {
       filter: false,
       cellRenderer: (p) => {
         const row = p.data;
-        if (!row || row.estado_recuperacion === 'recovered' || row.estado_recuperacion === 'disposed') return null;
+        if (!row || ['recovered', 'retrieved', 'disposed'].includes(row.estado_recuperacion)) return null;
         const isRecovering = recovering[row.lote_id || row.id];
         return (
           <Button
@@ -206,7 +210,7 @@ export default function RecallDetail() {
   const lotesAfectados = recall.lotes || [];
   const cantidadTotal = recall.cantidad_total_afectada ?? lotesAfectados.reduce((sum, l) => sum + (l.cantidad_afectada || 0), 0);
   const totalLotes = lotesAfectados.length;
-  const recoveredCount = recall.recovered_count ?? lotesAfectados.filter((l) => l.estado_recuperacion === 'recovered').length;
+  const recoveredCount = recall.recovered_count ?? lotesAfectados.filter((l) => ['recovered', 'retrieved'].includes(l.estado_recuperacion)).length;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
