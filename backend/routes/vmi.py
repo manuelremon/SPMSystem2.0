@@ -24,6 +24,7 @@ def obtener_programas():
             'per_page': request.args.get('per_page', 50, type=int)
         }
         programas = vmi_service.obtener_programas(filtros)
+        programas['ok'] = True
         return jsonify(programas), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -127,6 +128,7 @@ def obtener_dashboard_vmi():
     """Obtener dashboard VMI."""
     try:
         dashboard = vmi_service.obtener_dashboard_vmi()
+        dashboard['ok'] = True
         return jsonify(dashboard), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

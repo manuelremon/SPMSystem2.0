@@ -70,6 +70,7 @@ def listar_contratos():
         }
 
         resultado = contract_service.obtener_contratos(filtros)
+        resultado['ok'] = True
         return jsonify(resultado), 200
 
     except Exception as e:

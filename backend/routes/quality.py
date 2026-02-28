@@ -28,6 +28,7 @@ def listar_inspecciones():
         }
 
         resultado = quality_service.obtener_inspecciones(filtros)
+        resultado['ok'] = True
         return jsonify(resultado), 200
 
     except Exception as e:
@@ -118,6 +119,7 @@ def listar_ncrs():
         }
 
         resultado = quality_service.obtener_ncrs(filtros)
+        resultado['ok'] = True
         return jsonify(resultado), 200
 
     except Exception as e:
@@ -291,6 +293,7 @@ def listar_capas():
         }
 
         resultado = capa_service.obtener_capas(filtros)
+        resultado['ok'] = True
         return jsonify(resultado), 200
 
     except Exception as e:

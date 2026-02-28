@@ -23,7 +23,7 @@ def obtener_boms():
             'per_page': request.args.get('per_page', 50, type=int)
         }
         boms = kitting_service.obtener_boms(filtros)
-        return jsonify(boms), 200
+        return jsonify({'ok': True, 'items': boms}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -100,6 +100,7 @@ def obtener_ordenes():
             'per_page': request.args.get('per_page', 50, type=int)
         }
         ordenes = kitting_service.obtener_ordenes(filtros)
+        ordenes['ok'] = True
         return jsonify(ordenes), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -178,6 +179,7 @@ def obtener_kpis():
     """Obtener KPIs de kitting."""
     try:
         kpis = kitting_service.obtener_kpis()
+        kpis['ok'] = True
         return jsonify(kpis), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

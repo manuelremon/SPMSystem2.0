@@ -25,6 +25,7 @@ def obtener_ciclos():
         }
 
         resultado = demand_planning_service.obtener_ciclos(filtros)
+        resultado['ok'] = True
         return jsonify(resultado), 200
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
@@ -131,6 +132,7 @@ def obtener_accuracy_kpis():
     """Obtener KPIs de accuracy del forecast vs demanda real."""
     try:
         resultado = demand_planning_service.obtener_accuracy_kpis()
+        resultado['ok'] = True
         return jsonify(resultado), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

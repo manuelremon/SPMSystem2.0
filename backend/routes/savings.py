@@ -120,6 +120,7 @@ def listar_ahorros():
         filtros = {k: v for k, v in filtros.items() if v is not None}
 
         resultado = savings_service.obtener_ahorros(filtros)
+        resultado['ok'] = True
         return jsonify(resultado), 200
 
     except Exception as e:
@@ -148,6 +149,7 @@ def obtener_kpis():
     """
     try:
         kpis = savings_service.obtener_kpis_ahorro()
+        kpis['ok'] = True
         return jsonify(kpis), 200
 
     except Exception as e:
@@ -247,7 +249,7 @@ def listar_metas():
             return jsonify({'error': 'Periodo debe tener formato YYYYMM'}), 400
 
         metas = savings_service.obtener_metas(periodo)
-        return jsonify(metas), 200
+        return jsonify({'ok': True, 'items': metas}), 200
 
     except Exception as e:
         return jsonify({'error': f'Error al obtener metas: {str(e)}'}), 500

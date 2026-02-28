@@ -26,6 +26,7 @@ def obtener_ecos():
             'per_page': request.args.get('per_page', 50, type=int)
         }
         ecos = eco_service.obtener_ecos(filtros)
+        ecos['ok'] = True
         return jsonify(ecos), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -148,6 +149,7 @@ def obtener_kpis():
     """Obtener KPIs de ECOs."""
     try:
         kpis = eco_service.obtener_kpis()
+        kpis['ok'] = True
         return jsonify(kpis), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

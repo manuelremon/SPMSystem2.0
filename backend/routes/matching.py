@@ -29,6 +29,7 @@ def obtener_facturas():
         }
 
         resultado = matching_service.obtener_facturas(filtros)
+        resultado['ok'] = True
         return jsonify(resultado), 200
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
@@ -104,6 +105,7 @@ def obtener_kpis_matching():
     """Obtener KPIs del proceso de matching."""
     try:
         resultado = matching_service.obtener_kpis_matching()
+        resultado['ok'] = True
         return jsonify(resultado), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

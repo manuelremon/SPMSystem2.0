@@ -28,6 +28,7 @@ def buscar_lotes():
             'per_page': request.args.get('per_page', 50, type=int)
         }
         lotes = lot_service.buscar_lotes(filtros)
+        lotes['ok'] = True
         return jsonify(lotes), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -154,6 +155,7 @@ def obtener_recalls():
             'per_page': request.args.get('per_page', 50, type=int)
         }
         recalls = lot_service.obtener_recalls(filtros)
+        recalls['ok'] = True
         return jsonify(recalls), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

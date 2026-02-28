@@ -23,7 +23,7 @@ def obtener_tableros():
             'almacen_id': request.args.get('almacen_id', type=int)
         }
         tableros = kanban_service.obtener_tableros(filtros)
-        return jsonify(tableros), 200
+        return jsonify({'ok': True, 'items': tableros}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -159,7 +159,7 @@ def obtener_senales():
             'tablero_id': request.args.get('tablero_id', type=int)
         }
         senales = kanban_service.obtener_senales_pendientes(filtros)
-        return jsonify(senales), 200
+        return jsonify({'ok': True, 'items': senales}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -225,6 +225,7 @@ def obtener_kpis():
     """Obtener KPIs del sistema kanban."""
     try:
         kpis = kanban_service.obtener_kpis()
+        kpis['ok'] = True
         return jsonify(kpis), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

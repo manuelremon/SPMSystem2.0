@@ -27,6 +27,7 @@ def obtener_devoluciones():
         }
 
         resultado = returns_service.obtener_devoluciones(filtros)
+        resultado['ok'] = True
         return jsonify(resultado), 200
     except ValueError as e:
         return jsonify({'error': str(e)}), 400

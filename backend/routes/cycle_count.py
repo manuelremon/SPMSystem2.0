@@ -18,7 +18,7 @@ def obtener_programas():
     """Obtener programas de conteo cíclico."""
     try:
         programas = cycle_count_service.obtener_programas()
-        return jsonify(programas), 200
+        return jsonify({'ok': True, 'items': programas}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -62,6 +62,7 @@ def obtener_conteos():
             'per_page': request.args.get('per_page', 50, type=int)
         }
         conteos = cycle_count_service.obtener_conteos(filtros)
+        conteos['ok'] = True
         return jsonify(conteos), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -148,6 +149,7 @@ def obtener_kpis():
     """Obtener KPIs de conteo cíclico."""
     try:
         kpis = cycle_count_service.obtener_kpis()
+        kpis['ok'] = True
         return jsonify(kpis), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

@@ -25,6 +25,7 @@ def obtener_eventos_timeline():
             'per_page': request.args.get('per_page', 50, type=int)
         }
         eventos = control_tower_service.obtener_eventos_timeline(filtros)
+        eventos['ok'] = True
         return jsonify(eventos), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -36,6 +37,7 @@ def obtener_kpis_agregados():
     """Obtener KPIs agregados del control tower."""
     try:
         kpis = control_tower_service.obtener_kpis_agregados()
+        kpis['ok'] = True
         return jsonify(kpis), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -51,7 +53,7 @@ def obtener_alertas_agregadas():
             'tipo': request.args.get('tipo')
         }
         alertas = control_tower_service.obtener_alertas_agregadas(filtros)
-        return jsonify(alertas), 200
+        return jsonify({'ok': True, 'items': alertas}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -86,6 +88,7 @@ def obtener_tendencias():
         kpi_key = request.args.get('kpi_key')
         periodos = request.args.get('periodos', 12, type=int)
         tendencias = control_tower_service.obtener_tendencias(kpi_key, periodos)
+        tendencias['ok'] = True
         return jsonify(tendencias), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

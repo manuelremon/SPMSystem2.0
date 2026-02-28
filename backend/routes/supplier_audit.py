@@ -25,6 +25,7 @@ def obtener_certificaciones():
             'per_page': request.args.get('per_page', 50, type=int)
         }
         certificaciones = supplier_audit_service.obtener_certificaciones(filtros)
+        certificaciones['ok'] = True
         return jsonify(certificaciones), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -79,6 +80,7 @@ def obtener_auditorias():
             'per_page': request.args.get('per_page', 50, type=int)
         }
         auditorias = supplier_audit_service.obtener_auditorias(filtros)
+        auditorias['ok'] = True
         return jsonify(auditorias), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -138,6 +140,7 @@ def obtener_kpis_auditorias():
     """Obtener KPIs de auditorías de proveedores."""
     try:
         kpis = supplier_audit_service.obtener_kpis_auditorias()
+        kpis['ok'] = True
         return jsonify(kpis), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

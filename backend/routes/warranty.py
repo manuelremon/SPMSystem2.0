@@ -30,6 +30,7 @@ def get_garantias():
             estado=estado
         )
 
+        result['ok'] = True
         return jsonify(result), 200
 
     except Exception as e:
@@ -87,6 +88,7 @@ def get_reclamos():
             garantia_id=garantia_id
         )
 
+        result['ok'] = True
         return jsonify(result), 200
 
     except Exception as e:

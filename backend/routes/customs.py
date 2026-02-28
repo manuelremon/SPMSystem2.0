@@ -21,6 +21,7 @@ def obtener_hs_codes():
         search = request.args.get('search')
 
         resultado = customs_service.obtener_hs_codes(page=page, per_page=per_page, search=search)
+        resultado['ok'] = True
         return jsonify(resultado), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -128,6 +129,7 @@ def obtener_operaciones():
             tipo=tipo,
             estado=estado
         )
+        resultado['ok'] = True
         return jsonify(resultado), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -184,7 +186,7 @@ def obtener_acuerdos():
     try:
         estado = request.args.get('estado', 'active')
         acuerdos = customs_service.obtener_acuerdos(estado=estado)
-        return jsonify(acuerdos), 200
+        return jsonify({'ok': True, 'items': acuerdos}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -215,6 +217,7 @@ def obtener_kpis():
     """Obtener KPIs de aduanas."""
     try:
         kpis = customs_service.obtener_kpis()
+        kpis['ok'] = True
         return jsonify(kpis), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

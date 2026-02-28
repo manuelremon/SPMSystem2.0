@@ -20,7 +20,7 @@ def obtener_tasas_historicas():
         moneda_destino = request.args.get('moneda_destino')
         dias = request.args.get('dias', 30, type=int)
         tasas = currency_service.obtener_tasas_historicas(moneda_origen, moneda_destino, dias)
-        return jsonify(tasas), 200
+        return jsonify({'ok': True, 'items': tasas}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -79,6 +79,7 @@ def calcular_exposicion_cambiaria():
     """Calcular exposición cambiaria."""
     try:
         exposicion = currency_service.calcular_exposicion_cambiaria()
+        exposicion['ok'] = True
         return jsonify(exposicion), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -102,6 +103,7 @@ def obtener_dashboard_monedas():
     """Obtener dashboard de monedas."""
     try:
         dashboard = currency_service.obtener_dashboard_monedas()
+        dashboard['ok'] = True
         return jsonify(dashboard), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

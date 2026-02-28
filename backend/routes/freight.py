@@ -26,6 +26,7 @@ def obtener_facturas_flete():
             'per_page': request.args.get('per_page', 50, type=int)
         }
         facturas = freight_audit_service.obtener_facturas_flete(filtros)
+        facturas['ok'] = True
         return jsonify(facturas), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -101,6 +102,7 @@ def obtener_tarifas():
             'transportista_cuit': request.args.get('transportista_cuit')
         }
         tarifas = freight_audit_service.obtener_tarifas(filtros)
+        tarifas['ok'] = True
         return jsonify(tarifas), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -124,6 +126,7 @@ def obtener_kpis_freight():
     """Obtener KPIs de auditoría de fletes."""
     try:
         kpis = freight_audit_service.obtener_kpis_freight()
+        kpis['ok'] = True
         return jsonify(kpis), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -135,6 +138,6 @@ def rendimiento_transportistas():
     """Obtener rendimiento de transportistas."""
     try:
         rendimiento = freight_audit_service.rendimiento_transportistas()
-        return jsonify(rendimiento), 200
+        return jsonify({'ok': True, 'items': rendimiento}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

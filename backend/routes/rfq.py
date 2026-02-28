@@ -33,6 +33,7 @@ def listar_rfqs():
         }
 
         resultado = rfq_service.obtener_rfqs(filtros)
+        resultado["ok"] = True
 
         return jsonify(resultado), 200
 
