@@ -7,7 +7,7 @@ import {
   RefreshCw, TrendingUp, Gauge, Activity
 } from '../../components/ui/Icons'
 import { useI18n } from '../../context/i18n'
-import { useTmsStore } from '../../store/tmsStore'
+import { useTmsStore, useTmsKpis } from '../../store/tmsStore'
 
 const KPI_CONFIGS = [
   {
@@ -77,7 +77,9 @@ function formatKpiValue(value, format) {
 
 export default function TMSKPIs() {
   const { t } = useI18n()
-  const { kpis, kpisLoading, fetchKpis } = useTmsStore()
+  const kpis = useTmsKpis()
+  const kpisLoading = useTmsStore(s => s.kpisLoading)
+  const fetchKpis = useTmsStore(s => s.fetchKpis)
 
   useEffect(() => {
     fetchKpis()

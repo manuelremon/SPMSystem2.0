@@ -8,14 +8,19 @@ services:
     image: redis:7-alpine
     container_name: spm-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    command: redis-server --appendonly yes --maxmemory 64mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:?error}
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 30s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 96M
+          cpus: '0.25'
     networks:
       - spm-network
 
@@ -36,6 +41,11 @@ services:
       interval: 30s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+          cpus: '0.5'
     networks:
       - spm-network
 
@@ -55,7 +65,7 @@ services:
       # Database
       DATABASE_URL: postgresql://${POSTGRES_USER:-spm}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-spm_production}
       # Redis / Celery
-      REDIS_URL: redis://redis:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       CELERY_ENABLED: "true"
       # Security
       SECRET_KEY: ${SECRET_KEY:?error}
@@ -79,7 +89,11 @@ services:
       - spm_uploads:/app/uploads
       - spm_logs:/app/logs
       - spm_vapid:/app/data/vapid
-      # Datos SAP ahora viven en PostgreSQL (migración 033)
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
     networks:
       - spm-network
     expose:
@@ -108,7 +122,7 @@ services:
       # Database
       DATABASE_URL: postgresql://${POSTGRES_USER:-spm}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-spm_production}
       # Redis / Celery
-      REDIS_URL: redis://redis:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       CELERY_ENABLED: "true"
       # Security
       SECRET_KEY: ${SECRET_KEY:?error}
@@ -124,6 +138,11 @@ services:
       SMTP_ENABLED: ${SMTP_ENABLED:-false}
       # Vertex IA (Google Gemini)
       GOOGLE_AI_API_KEY: ${GOOGLE_AI_API_KEY:-}
+    deploy:
+      resources:
+        limits:
+          memory: 192M
+          cpus: '0.5'
     volumes:
       - spm_logs:/app/logs
     networks:
@@ -147,11 +166,16 @@ services:
       start_period: 30s
       retries: 3
     environment:
-      REDIS_URL: redis://redis:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       DATABASE_URL: postgresql://${POSTGRES_USER:-spm}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-spm_production}
       CELERY_ENABLED: "true"
       SECRET_KEY: ${SECRET_KEY:?error}
       FLASK_ENV: production
+    deploy:
+      resources:
+        limits:
+          memory: 96M
+          cpus: '0.25'
     volumes:
       - spm_logs:/app/logs
     networks:
@@ -174,6 +198,11 @@ services:
       - "443:443"
     depends_on:
       - backend
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.25'
     networks:
       - spm-network
 

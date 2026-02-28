@@ -3,10 +3,15 @@ Currency Management & Foreign Exchange Routes
 Endpoints para gestión de tipos de cambio (Sprint 71)
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
+from backend.core.helpers import safe_error_response
 from backend.core.roles import require_auth
 from backend.services import currency_service
+
+logger = logging.getLogger(__name__)
 
 currency_bp = Blueprint('currency', __name__, url_prefix='/api/currency')
 
@@ -22,7 +27,7 @@ def obtener_tasas_historicas():
         tasas = currency_service.obtener_tasas_historicas(moneda_origen, moneda_destino, dias)
         return jsonify({'ok': True, 'items': tasas}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="currency")
 
 
 @currency_bp.route('/rates', methods=['POST'])
@@ -40,7 +45,7 @@ def registrar_tasa():
         )
         return jsonify(tasa), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="currency")
 
 
 @currency_bp.route('/rates/latest', methods=['GET'])
@@ -51,7 +56,7 @@ def obtener_tasas_ultimas():
         tasas = currency_service.obtener_tasas_ultimas()
         return jsonify(tasas), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="currency")
 
 
 @currency_bp.route('/convert', methods=['POST'])
@@ -70,7 +75,7 @@ def convertir_monto():
         )
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="currency")
 
 
 @currency_bp.route('/exposure', methods=['GET'])
@@ -82,7 +87,7 @@ def calcular_exposicion_cambiaria():
         exposicion['ok'] = True
         return jsonify(exposicion), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="currency")
 
 
 @currency_bp.route('/gain-loss', methods=['GET'])
@@ -94,7 +99,7 @@ def calcular_ganancia_perdida():
         resultado = currency_service.calcular_ganancia_perdida(periodo)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="currency")
 
 
 @currency_bp.route('/dashboard', methods=['GET'])
@@ -106,4 +111,4 @@ def obtener_dashboard_monedas():
         dashboard['ok'] = True
         return jsonify(dashboard), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="currency")

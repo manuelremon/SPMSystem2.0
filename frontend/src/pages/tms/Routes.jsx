@@ -30,7 +30,8 @@ const EMPTY_ROUTE = {
 
 export default function Routes() {
   const { t } = useI18n()
-  const { routes, fetchRoutes } = useTmsStore()
+  const routes = useTmsStore(s => s.routes)
+  const fetchRoutes = useTmsStore(s => s.fetchRoutes)
 
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)

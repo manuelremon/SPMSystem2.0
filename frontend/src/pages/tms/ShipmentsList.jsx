@@ -7,7 +7,7 @@ import {
 } from '@mui/material'
 import { Plus, Eye, Truck, Search } from '../../components/ui/Icons'
 import { useI18n } from '../../context/i18n'
-import { useTmsStore } from '../../store/tmsStore'
+import { useTmsStore, useTmsShipments, useTmsLoading } from '../../store/tmsStore'
 
 const ESTADO_COLORS = {
   draft: 'default',
@@ -43,7 +43,10 @@ const PRIORIDAD_OPTIONS = [
 export default function ShipmentsList() {
   const { t } = useI18n()
   const navigate = useNavigate()
-  const { shipments, shipmentsTotal, shipmentsLoading, fetchShipments } = useTmsStore()
+  const shipments = useTmsShipments()
+  const shipmentsTotal = useTmsStore(s => s.shipmentsTotal)
+  const shipmentsLoading = useTmsLoading()
+  const fetchShipments = useTmsStore(s => s.fetchShipments)
 
   const [filters, setFilters] = useState({
     estado: '',

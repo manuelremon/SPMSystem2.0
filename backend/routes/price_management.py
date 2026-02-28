@@ -3,11 +3,15 @@ Price Management Routes
 Endpoints para gestión de listas de precios, negociaciones y comparación de precios (Sprint 82)
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_auth
 from backend.services import price_management_service
+
+logger = logging.getLogger(__name__)
 
 price_mgmt_bp = Blueprint('price_mgmt', __name__, url_prefix='/api/prices')
 
@@ -28,7 +32,7 @@ def obtener_listas():
         resultado = price_management_service.obtener_listas(filtros, page, per_page)
         return jsonify({'ok': True, **resultado}), 200
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="price_management")
 
 
 @price_mgmt_bp.route('/lists', methods=['POST'])
@@ -53,7 +57,7 @@ def crear_lista():
     except ValueError as e:
         return jsonify({'ok': False, 'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="price_management")
 
 
 @price_mgmt_bp.route('/lists/<int:id>', methods=['GET'])
@@ -66,7 +70,7 @@ def obtener_detalle_lista(id):
     except ValueError as e:
         return jsonify({'ok': False, 'error': str(e)}), 404
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="price_management")
 
 
 @price_mgmt_bp.route('/lists/<int:id>/activate', methods=['PUT'])
@@ -79,7 +83,7 @@ def activar_lista(id):
     except ValueError as e:
         return jsonify({'ok': False, 'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="price_management")
 
 
 @price_mgmt_bp.route('/lists/<int:id>/items', methods=['POST'])
@@ -103,7 +107,7 @@ def agregar_precio_item(id):
     except ValueError as e:
         return jsonify({'ok': False, 'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="price_management")
 
 
 @price_mgmt_bp.route('/lists/<int:lista_id>/items/<int:item_id>', methods=['DELETE'])
@@ -114,7 +118,7 @@ def eliminar_precio_item(lista_id, item_id):
         price_management_service.eliminar_precio_item(item_id)
         return jsonify({'ok': True, 'message': 'Item eliminado exitosamente'}), 200
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="price_management")
 
 
 @price_mgmt_bp.route('/material/<codigo>/price', methods=['GET'])
@@ -136,7 +140,7 @@ def obtener_precio_material(codigo):
         else:
             return jsonify({'ok': False, 'error': 'No se encontró precio para este material'}), 404
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="price_management")
 
 
 @price_mgmt_bp.route('/material/<codigo>/compare', methods=['GET'])
@@ -153,7 +157,7 @@ def comparar_precios(codigo):
 
         return jsonify({'ok': True, 'precios': precios}), 200
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="price_management")
 
 
 @price_mgmt_bp.route('/negotiations', methods=['GET'])
@@ -219,7 +223,7 @@ def obtener_negociaciones():
             conn.close()
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="price_management")
 
 
 @price_mgmt_bp.route('/negotiations', methods=['POST'])
@@ -244,7 +248,7 @@ def crear_negociacion():
     except ValueError as e:
         return jsonify({'ok': False, 'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="price_management")
 
 
 @price_mgmt_bp.route('/negotiations/<int:id>/approve', methods=['PUT'])
@@ -258,7 +262,7 @@ def aprobar_negociacion(id):
     except ValueError as e:
         return jsonify({'ok': False, 'error': str(e)}), 404
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="price_management")
 
 
 @price_mgmt_bp.route('/negotiations/<int:id>/reject', methods=['PUT'])
@@ -272,7 +276,7 @@ def rechazar_negociacion(id):
     except ValueError as e:
         return jsonify({'ok': False, 'error': str(e)}), 404
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="price_management")
 
 
 @price_mgmt_bp.route('/material/<codigo>/history', methods=['GET'])
@@ -289,4 +293,4 @@ def obtener_historial_precios(codigo):
 
         return jsonify({'ok': True, 'historial': historial}), 200
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="price_management")

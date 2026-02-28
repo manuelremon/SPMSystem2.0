@@ -29,7 +29,7 @@ class ErrorBoundary extends React.Component {
     });
 
     // Log error to console in development
-    if (process.env.NODE_ENV === "development") {
+    if (import.meta.env.DEV) {
     }
 
     // Send to Sentry in production
@@ -112,7 +112,7 @@ class ErrorBoundary extends React.Component {
             </Stack>
 
             {/* Error details (development only) */}
-            {process.env.NODE_ENV === "development" && this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <Paper
                 elevation={0}
                 sx={{

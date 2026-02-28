@@ -3,11 +3,15 @@ Supplier Audit & Certifications Routes
 Endpoints para auditorías y certificaciones (Sprint 69)
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_auth
 from backend.services import supplier_audit_service
+
+logger = logging.getLogger(__name__)
 
 supplier_audit_bp = Blueprint('supplier_audit', __name__, url_prefix='/api/supplier-audit')
 
@@ -28,7 +32,7 @@ def obtener_certificaciones():
         certificaciones['ok'] = True
         return jsonify(certificaciones), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_certificaciones")
 
 
 @supplier_audit_bp.route('/certifications', methods=['POST'])
@@ -40,7 +44,7 @@ def registrar_certificacion():
         certificacion = supplier_audit_service.registrar_certificacion(data)
         return jsonify(certificacion), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="registrar_certificacion")
 
 
 @supplier_audit_bp.route('/certifications/<int:id>', methods=['PUT'])
@@ -52,7 +56,7 @@ def actualizar_certificacion(id):
         certificacion = supplier_audit_service.actualizar_certificacion(id, data)
         return jsonify(certificacion), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="actualizar_certificacion")
 
 
 @supplier_audit_bp.route('/certifications/expiring', methods=['GET'])
@@ -62,9 +66,9 @@ def alertas_vencimiento():
     try:
         dias = int(request.args.get('dias', 30))
         alertas = supplier_audit_service.alertas_vencimiento(dias)
-        return jsonify(alertas), 200
+        return jsonify({'ok': True, 'items': alertas}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="alertas_vencimiento")
 
 
 @supplier_audit_bp.route('/audits', methods=['GET'])
@@ -83,7 +87,7 @@ def obtener_auditorias():
         auditorias['ok'] = True
         return jsonify(auditorias), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_auditorias")
 
 
 @supplier_audit_bp.route('/audits', methods=['POST'])
@@ -96,7 +100,7 @@ def crear_auditoria():
         auditoria = supplier_audit_service.crear_auditoria(data, user_id)
         return jsonify(auditoria), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="crear_auditoria")
 
 
 @supplier_audit_bp.route('/audits/<int:id>', methods=['GET'])
@@ -107,7 +111,7 @@ def obtener_detalle_auditoria(id):
         detalle = supplier_audit_service.obtener_detalle_auditoria(id)
         return jsonify(detalle), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_detalle_auditoria")
 
 
 @supplier_audit_bp.route('/audits/<int:id>/result', methods=['PUT'])
@@ -119,7 +123,7 @@ def registrar_resultado(id):
         resultado = supplier_audit_service.registrar_resultado(id, data)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="registrar_resultado")
 
 
 @supplier_audit_bp.route('/findings/<int:id>/resolve', methods=['PUT'])
@@ -131,7 +135,7 @@ def resolver_hallazgo(id):
         hallazgo = supplier_audit_service.resolver_hallazgo(id, data)
         return jsonify(hallazgo), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="resolver_hallazgo")
 
 
 @supplier_audit_bp.route('/kpis', methods=['GET'])
@@ -143,4 +147,4 @@ def obtener_kpis_auditorias():
         kpis['ok'] = True
         return jsonify(kpis), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_kpis_auditorias")

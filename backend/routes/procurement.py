@@ -52,7 +52,7 @@ def get_solpeds():
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error getting solpeds: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
 
 @procurement_bp.route('/solpeds/<solped_id>', methods=['GET'])
 @require_auth
@@ -60,11 +60,11 @@ def get_solped_detail(solped_id):
     try:
         result = ProcurementService.get_solped_detail(solped_id)
         if not result:
-            return jsonify({"error": "Solped no encontrada"}), 404
+            return jsonify({"ok": False, "error": "Solped no encontrada"}), 404
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error getting solped detail: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
 
 @procurement_bp.route('/orders', methods=['GET'])
 @require_auth
@@ -87,7 +87,7 @@ def get_orders():
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error getting orders: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
 
 @procurement_bp.route('/orders/<pedido_id>', methods=['GET'])
 @require_auth
@@ -95,11 +95,11 @@ def get_order_detail(pedido_id):
     try:
         result = ProcurementService.get_order_detail(pedido_id)
         if not result:
-            return jsonify({"error": "Pedido no encontrado"}), 404
+            return jsonify({"ok": False, "error": "Pedido no encontrado"}), 404
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error getting order detail: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
 
 @procurement_bp.route('/kpis', methods=['GET'])
 @require_auth
@@ -112,7 +112,7 @@ def get_kpis():
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error getting KPIs: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
 
 @procurement_bp.route('/kpis/lead-times', methods=['GET'])
 @require_auth
@@ -122,12 +122,17 @@ def get_lead_times():
         proveedor = request.args.get('proveedor')
         group_by = request.args.get('group_by', 'proveedor')
         
-        return jsonify(ProcurementService.get_lead_times(
+        result = ProcurementService.get_lead_times(
             centro=centro, proveedor=proveedor, group_by=group_by
-        ))
+        )
+        if isinstance(result, dict):
+            result['ok'] = True
+        else:
+            result = {'ok': True, 'items': result}
+        return jsonify(result)
     except Exception as e:
         logger.error(f"Error getting lead times: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
 
 @procurement_bp.route('/kpis/compliance', methods=['GET'])
 @require_auth
@@ -138,7 +143,7 @@ def get_compliance():
         return jsonify({"ok": True, "items": ProcurementService.get_compliance(min_pedidos=min_pedidos, limit=limit)})
     except Exception as e:
         logger.error(f"Error getting compliance: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
 
 @procurement_bp.route('/kpis/costs', methods=['GET'])
 @require_auth
@@ -153,7 +158,7 @@ def get_costs():
         )})
     except Exception as e:
         logger.error(f"Error getting costs: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
 
 @procurement_bp.route('/import', methods=['POST'])
 @require_auth
@@ -161,11 +166,11 @@ def get_costs():
 def import_zm65():
     try:
         if 'file' not in request.files:
-            return jsonify({"error": "No file part"}), 400
+            return jsonify({"ok": False, "error": "No file part"}), 400
         
         file = request.files['file']
         if file.filename == '':
-            return jsonify({"error": "No selected file"}), 400
+            return jsonify({"ok": False, "error": "No selected file"}), 400
             
         user_id = _get_user_id()
         result = ProcurementService.import_zm65_file(file, user_id=user_id)
@@ -173,7 +178,7 @@ def import_zm65():
         
     except Exception as e:
         logger.error(f"Error importing ZM65: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
 
 @procurement_bp.route('/import/history', methods=['GET'])
 @require_auth
@@ -183,7 +188,7 @@ def get_import_history():
         return jsonify({"ok": True, "items": ProcurementService.get_import_history(limit=limit)})
     except Exception as e:
         logger.error(f"Error getting import history: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
 
 @procurement_bp.route('/summary', methods=['GET'])
 @require_auth
@@ -192,7 +197,7 @@ def get_summary():
         return jsonify({"ok": True, "items": ProcurementService.get_summary()})
     except Exception as e:
         logger.error(f"Error getting summary: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
 
 @procurement_bp.route('/pipeline', methods=['GET'])
 @require_auth
@@ -201,26 +206,33 @@ def get_pipeline():
         return jsonify({"ok": True, "items": ProcurementService.get_pipeline()})
     except Exception as e:
         logger.error(f"Error getting pipeline: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
 
 @procurement_bp.route('/analytics', methods=['GET'])
 @require_auth
 def get_procurement_analytics():
     try:
-        return jsonify(ProcurementService.get_procurement_analytics())
+        result = ProcurementService.get_procurement_analytics()
+        result['ok'] = True
+        return jsonify(result)
     except Exception as e:
         logger.error(f"Error getting analytics: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
 
 @procurement_bp.route('/scorecard/<proveedor>', methods=['GET'])
 @require_auth
 def get_provider_scorecard(proveedor):
     try:
         periodo = request.args.get('periodo', 'anio')
-        return jsonify(ProcurementService.get_provider_scorecard(proveedor, periodo=periodo))
+        result = ProcurementService.get_provider_scorecard(proveedor, periodo=periodo)
+        if isinstance(result, dict):
+            result['ok'] = True
+        else:
+            result = {'ok': True, 'items': result}
+        return jsonify(result)
     except Exception as e:
         logger.error(f"Error getting provider scorecard: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
 
 @procurement_bp.route('/price-history/<material_codigo>', methods=['GET'])
 @require_auth
@@ -229,13 +241,18 @@ def get_price_history(material_codigo):
         centro = request.args.get('centro')
         moneda = request.args.get('moneda')
         limit = request.args.get('limit', 50, type=int)
-        
-        return jsonify(ProcurementService.get_price_history(
+
+        result = ProcurementService.get_price_history(
             material_codigo, centro=centro, moneda=moneda, limit=limit
-        ))
+        )
+        if isinstance(result, dict):
+            result['ok'] = True
+        else:
+            result = {'ok': True, 'items': result}
+        return jsonify(result)
     except Exception as e:
         logger.error(f"Error getting price history: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
 
 @procurement_bp.route('/ranking', methods=['GET'])
 @require_auth
@@ -244,13 +261,18 @@ def get_provider_ranking():
         limit = request.args.get('limit', 20, type=int)
         periodo = request.args.get('periodo', 'anio')
         centro = request.args.get('centro')
-        
-        return jsonify(ProcurementService.get_provider_ranking(
+
+        result = ProcurementService.get_provider_ranking(
             limit=limit, periodo=periodo, centro=centro
-        ))
+        )
+        if isinstance(result, dict):
+            result['ok'] = True
+        else:
+            result = {'ok': True, 'items': result}
+        return jsonify(result)
     except Exception as e:
         logger.error(f"Error getting ranking: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
 
 @procurement_bp.route('/comparar', methods=['GET', 'POST'])
 @require_auth
@@ -259,20 +281,30 @@ def comparar_proveedores():
         if request.method == 'POST':
             data = request.get_json() or {}
             proveedor_ids = data.get('proveedor_ids', [])
-            return jsonify(ProcurementService.compare_providers_side_by_side(proveedor_ids))
+            result = ProcurementService.compare_providers_side_by_side(proveedor_ids)
+            if isinstance(result, dict):
+                result['ok'] = True
+            else:
+                result = {'ok': True, 'items': result}
+            return jsonify(result)
 
         material_codigo = request.args.get('material')
         if not material_codigo:
-            return jsonify({"error": "Parámetro 'material' es requerido"}), 400
-        
+            return jsonify({"ok": False, "error": "Parámetro 'material' es requerido"}), 400
+
         centro = request.args.get('centro')
-        return jsonify(ProcurementService.compare_providers(material_codigo, centro=centro))
-        
+        result = ProcurementService.compare_providers(material_codigo, centro=centro)
+        if isinstance(result, dict):
+            result['ok'] = True
+        else:
+            result = {'ok': True, 'items': result}
+        return jsonify(result)
+
     except ValueError as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
         logger.error(f"Error comparing providers: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
 
 @procurement_bp.route('/scorecard/ranking', methods=['GET'])
 @require_auth
@@ -280,10 +312,15 @@ def get_scorecard_ranking():
     try:
         limit = request.args.get('limit', 50, type=int)
         periodo = request.args.get('periodo')
-        return jsonify(ProcurementService.get_scorecard_ranking(limit=limit, periodo=periodo))
+        result = ProcurementService.get_scorecard_ranking(limit=limit, periodo=periodo)
+        if isinstance(result, dict):
+            result['ok'] = True
+        else:
+            result = {'ok': True, 'items': result}
+        return jsonify(result)
     except Exception as e:
         logger.error(f"Error getting scorecard ranking: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
 
 @procurement_bp.route('/scorecard/<proveedor_id>/evaluar', methods=['POST'])
 @require_auth
@@ -293,17 +330,26 @@ def evaluar_proveedor(proveedor_id):
         data = request.get_json() or {}
         user_id = _get_user_id()
         result = ProcurementService.evaluate_provider(proveedor_id, data, user_id)
+        if isinstance(result, dict):
+            result['ok'] = True
+        else:
+            result = {'ok': True, 'id': result}
         return jsonify(result), 201
     except Exception as e:
         logger.error(f"Error evaluating provider: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500
 
 @procurement_bp.route('/scorecard/<proveedor_id>/historial', methods=['GET'])
 @require_auth
 def get_scorecard_historial(proveedor_id):
     try:
         meses = request.args.get('meses', 12, type=int)
-        return jsonify(ProcurementService.get_scorecard_history(proveedor_id, meses=meses))
+        result = ProcurementService.get_scorecard_history(proveedor_id, meses=meses)
+        if isinstance(result, dict):
+            result['ok'] = True
+        else:
+            result = {'ok': True, 'items': result}
+        return jsonify(result)
     except Exception as e:
         logger.error(f"Error getting scorecard history: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"ok": False, "error": "Error interno del servidor"}), 500

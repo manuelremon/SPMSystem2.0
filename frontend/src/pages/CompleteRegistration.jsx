@@ -10,7 +10,7 @@
  * Migrated to Material UI (MUI)
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Paper,
@@ -25,12 +25,11 @@ import {
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-
-const sectoresEjemplo = ["Operaciones", "Logística", "Compras", "Mantenimiento"];
-const centrosEjemplo = ["Centro A", "Centro B", "Centro C"];
-const almacenesEjemplo = ["Almacén 1", "Almacén 2", "Almacén 3"];
+import { useI18n } from "../context/i18n";
+import api from "../services/api";
 
 export default function CompleteRegistration() {
+  const { t } = useI18n();
   const [form, setForm] = useState({
     sector: "",
     centro: "",
@@ -40,6 +39,26 @@ export default function CompleteRegistration() {
     gerente2: "",
   });
   const [status, setStatus] = useState(null);
+  const [catalogos, setCatalogos] = useState({ sectores: [], centros: [], almacenes: [] });
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadCatalogos = async () => {
+      try {
+        const res = await api.get("/catalogos");
+        if (cancelled) return;
+        setCatalogos({
+          sectores: res.data?.sectores || [],
+          centros: res.data?.centros || [],
+          almacenes: res.data?.almacenes || [],
+        });
+      } catch {
+        // Silenciar - se mostrarán listas vacías
+      }
+    };
+    loadCatalogos();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -58,10 +77,10 @@ export default function CompleteRegistration() {
       {/* Page Header */}
       <Box>
         <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
-          Completar Registro
+          {t("registro_titulo", "Completar Registro")}
         </Typography>
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          Completa los campos requeridos; el administrador validará la información antes de habilitar el acceso total.
+          {t("registro_desc", "Completa los campos requeridos; el administrador validara la informacion antes de habilitar el acceso total.")}
         </Typography>
       </Box>
 
@@ -75,7 +94,7 @@ export default function CompleteRegistration() {
         }}
       >
         <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, color: 'text.primary' }}>
-          Datos para aprobación
+          {t("registro_datos_aprobacion", "Datos para aprobacion")}
         </Typography>
 
         <Box component="form" onSubmit={handleSubmit}>
@@ -85,7 +104,7 @@ export default function CompleteRegistration() {
               <TextField
                 select
                 fullWidth
-                label="Sector"
+                label={t("registro_sector_label", "Sector")}
                 name="sector"
                 value={form.sector}
                 onChange={handleChange}
@@ -93,11 +112,11 @@ export default function CompleteRegistration() {
                 size="small"
               >
                 <MenuItem value="">
-                  <em>Selecciona sector</em>
+                  <em>{t("registro_selecciona_sector", "Selecciona sector")}</em>
                 </MenuItem>
-                {sectoresEjemplo.map((s) => (
-                  <MenuItem key={s} value={s}>
-                    {s}
+                {catalogos.sectores.map((s) => (
+                  <MenuItem key={s.id || s.nombre || s} value={s.nombre || s}>
+                    {s.nombre || s}
                   </MenuItem>
                 ))}
               </TextField>
@@ -108,7 +127,7 @@ export default function CompleteRegistration() {
               <TextField
                 select
                 fullWidth
-                label="Centro"
+                label={t("registro_centro_label", "Centro")}
                 name="centro"
                 value={form.centro}
                 onChange={handleChange}
@@ -116,11 +135,11 @@ export default function CompleteRegistration() {
                 size="small"
               >
                 <MenuItem value="">
-                  <em>Selecciona centro</em>
+                  <em>{t("registro_selecciona_centro", "Selecciona centro")}</em>
                 </MenuItem>
-                {centrosEjemplo.map((c) => (
-                  <MenuItem key={c} value={c}>
-                    {c}
+                {catalogos.centros.map((c) => (
+                  <MenuItem key={c.id || c.nombre || c} value={c.nombre || c}>
+                    {c.nombre || c}
                   </MenuItem>
                 ))}
               </TextField>
@@ -131,7 +150,7 @@ export default function CompleteRegistration() {
               <TextField
                 select
                 fullWidth
-                label="Almacén"
+                label={t("registro_almacen_label", "Almacen")}
                 name="almacen"
                 value={form.almacen}
                 onChange={handleChange}
@@ -139,11 +158,11 @@ export default function CompleteRegistration() {
                 size="small"
               >
                 <MenuItem value="">
-                  <em>Selecciona almacén</em>
+                  <em>{t("registro_selecciona_almacen", "Selecciona almacen")}</em>
                 </MenuItem>
-                {almacenesEjemplo.map((a) => (
-                  <MenuItem key={a} value={a}>
-                    {a}
+                {catalogos.almacenes.map((a) => (
+                  <MenuItem key={a.id || a.nombre || a} value={a.nombre || a}>
+                    {a.nombre || a}
                   </MenuItem>
                 ))}
               </TextField>
@@ -153,11 +172,11 @@ export default function CompleteRegistration() {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Jefe"
+                label={t("registro_jefe_label", "Jefe")}
                 name="jefe"
                 value={form.jefe}
                 onChange={handleChange}
-                placeholder="Nombre y apellido"
+                placeholder={t("registro_nombre_apellido", "Nombre y apellido")}
                 required
                 size="small"
               />
@@ -167,11 +186,11 @@ export default function CompleteRegistration() {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Gerente 1"
+                label={t("registro_gerente1_label", "Gerente 1")}
                 name="gerente1"
                 value={form.gerente1}
                 onChange={handleChange}
-                placeholder="Nombre y apellido"
+                placeholder={t("registro_nombre_apellido", "Nombre y apellido")}
                 required
                 size="small"
               />
@@ -181,11 +200,11 @@ export default function CompleteRegistration() {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Gerente 2"
+                label={t("registro_gerente2_label", "Gerente 2")}
                 name="gerente2"
                 value={form.gerente2}
                 onChange={handleChange}
-                placeholder="Nombre y apellido (opcional)"
+                placeholder={t("registro_nombre_apellido_opcional", "Nombre y apellido (opcional)")}
                 size="small"
               />
             </Grid>
@@ -200,7 +219,7 @@ export default function CompleteRegistration() {
                   startIcon={status === "pending" ? <CircularProgress size={16} color="inherit" /> : <SendIcon />}
                   sx={{ textTransform: 'none' }}
                 >
-                  {status === "pending" ? "Enviando..." : "Enviar para aprobación"}
+                  {status === "pending" ? t("registro_enviando", "Enviando...") : t("registro_enviar_btn", "Enviar para aprobacion")}
                 </Button>
               </Stack>
             </Grid>
@@ -215,7 +234,7 @@ export default function CompleteRegistration() {
           icon={<CheckCircleIcon />}
           sx={{ borderRadius: 2 }}
         >
-          Solicitud enviada. Un administrador revisará y aprobará tu alta.
+          {t("registro_exito", "Solicitud enviada. Un administrador revisara y aprobara tu alta.")}
         </Alert>
       )}
     </Box>

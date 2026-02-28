@@ -50,12 +50,13 @@ def get_aging_analysis():
         }
 
         resultado = slob_service.obtener_inventario_aging(filtros)
+        resultado['ok'] = True
         return jsonify(resultado), 200
 
     except ValueError as e:
-        return jsonify({'error': f'Parámetros inválidos: {str(e)}'}), 400
+        return jsonify({'ok': False, 'error': f'Parámetros inválidos: {str(e)}'}), 400
     except Exception as e:
-        return jsonify({'error': f'Error al obtener aging analysis: {str(e)}'}), 500
+        return jsonify({'ok': False, 'error': f'Error al obtener aging analysis: {str(e)}'}), 500
 
 
 @slob_bp.route('/kpis', methods=['GET'])
@@ -76,10 +77,11 @@ def get_slob_kpis():
     """
     try:
         kpis = slob_service.obtener_kpis_slob()
+        kpis['ok'] = True
         return jsonify(kpis), 200
 
     except Exception as e:
-        return jsonify({'error': f'Error al obtener KPIs SLOB: {str(e)}'}), 500
+        return jsonify({'ok': False, 'error': f'Error al obtener KPIs SLOB: {str(e)}'}), 500
 
 
 @slob_bp.route('/snapshot', methods=['POST'])
@@ -101,10 +103,11 @@ def refresh_snapshot():
     """
     try:
         resultado = slob_service.generar_snapshot_aging()
+        resultado['ok'] = True
         return jsonify(resultado), 200
 
     except Exception as e:
-        return jsonify({'error': f'Error al generar snapshot: {str(e)}'}), 500
+        return jsonify({'ok': False, 'error': f'Error al generar snapshot: {str(e)}'}), 500
 
 
 @slob_bp.route('/disposition', methods=['POST'])
@@ -134,26 +137,30 @@ def propose_disposition():
         required_fields = ['material_codigo', 'almacen', 'cantidad', 'tipo_disposicion']
         for field in required_fields:
             if field not in data:
-                return jsonify({'error': f'Campo requerido: {field}'}), 400
+                return jsonify({'ok': False, 'error': f'Campo requerido: {field}'}), 400
 
         # Validar tipo_disposicion
         tipos_validos = ['scrap', 'transfer', 'discount_sale', 'rework', 'donate']
         if data['tipo_disposicion'] not in tipos_validos:
-            return jsonify({'error': f'Tipo de disposición inválido. Debe ser uno de: {", ".join(tipos_validos)}'}), 400
+            return jsonify({'ok': False, 'error': f'Tipo de disposición inválido. Debe ser uno de: {", ".join(tipos_validos)}'}), 400
 
         # Validar cantidad
         if not isinstance(data['cantidad'], (int, float)) or data['cantidad'] <= 0:
-            return jsonify({'error': 'Cantidad debe ser mayor a 0'}), 400
+            return jsonify({'ok': False, 'error': 'Cantidad debe ser mayor a 0'}), 400
 
         user_id = _get_user_id()
         disposicion = slob_service.proponer_disposicion(data, user_id)
+        if isinstance(disposicion, dict):
+            disposicion['ok'] = True
+        else:
+            disposicion = {'ok': True, 'data': disposicion}
 
         return jsonify(disposicion), 201
 
     except KeyError as e:
-        return jsonify({'error': f'Campo faltante: {str(e)}'}), 400
+        return jsonify({'ok': False, 'error': f'Campo faltante: {str(e)}'}), 400
     except Exception as e:
-        return jsonify({'error': f'Error al proponer disposición: {str(e)}'}), 500
+        return jsonify({'ok': False, 'error': f'Error al proponer disposición: {str(e)}'}), 500
 
 
 @slob_bp.route('/disposition', methods=['GET'])
@@ -183,12 +190,13 @@ def list_dispositions():
         }
 
         resultado = slob_service.obtener_disposiciones(filtros)
+        resultado['ok'] = True
         return jsonify(resultado), 200
 
     except ValueError as e:
-        return jsonify({'error': f'Parámetros inválidos: {str(e)}'}), 400
+        return jsonify({'ok': False, 'error': f'Parámetros inválidos: {str(e)}'}), 400
     except Exception as e:
-        return jsonify({'error': f'Error al obtener disposiciones: {str(e)}'}), 500
+        return jsonify({'ok': False, 'error': f'Error al obtener disposiciones: {str(e)}'}), 500
 
 
 @slob_bp.route('/disposition/<int:disp_id>/approve', methods=['PUT'])
@@ -210,6 +218,7 @@ def approve_disposition(disp_id):
     try:
         user_id = _get_user_id()
         resultado = slob_service.aprobar_disposicion(disp_id, user_id)
+        resultado['ok'] = resultado.get('success', False)
 
         if resultado['success']:
             return jsonify(resultado), 200
@@ -217,7 +226,7 @@ def approve_disposition(disp_id):
             return jsonify(resultado), 400
 
     except Exception as e:
-        return jsonify({'error': f'Error al aprobar disposición: {str(e)}'}), 500
+        return jsonify({'ok': False, 'error': f'Error al aprobar disposición: {str(e)}'}), 500
 
 
 @slob_bp.route('/disposition/<int:disp_id>/complete', methods=['PUT'])
@@ -244,12 +253,13 @@ def complete_disposition(disp_id):
 
         # Validar costo_recuperado
         if 'costo_recuperado' not in data:
-            return jsonify({'error': 'Campo requerido: costo_recuperado'}), 400
+            return jsonify({'ok': False, 'error': 'Campo requerido: costo_recuperado'}), 400
 
         if not isinstance(data['costo_recuperado'], (int, float)) or data['costo_recuperado'] < 0:
-            return jsonify({'error': 'Costo recuperado debe ser mayor o igual a 0'}), 400
+            return jsonify({'ok': False, 'error': 'Costo recuperado debe ser mayor o igual a 0'}), 400
 
         resultado = slob_service.completar_disposicion(disp_id, data['costo_recuperado'])
+        resultado['ok'] = resultado.get('success', False)
 
         if resultado['success']:
             return jsonify(resultado), 200
@@ -257,7 +267,7 @@ def complete_disposition(disp_id):
             return jsonify(resultado), 400
 
     except Exception as e:
-        return jsonify({'error': f'Error al completar disposición: {str(e)}'}), 500
+        return jsonify({'ok': False, 'error': f'Error al completar disposición: {str(e)}'}), 500
 
 
 # Health check para testing

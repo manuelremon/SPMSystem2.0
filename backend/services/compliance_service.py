@@ -246,9 +246,9 @@ def obtener_checks(filtros: dict) -> dict:
             where_clauses.append("contrato_id = ?" if not is_using_postgresql() else "contrato_id = %s")
             params.append(filtros['contrato_id'])
 
-        if 'es_compliant' in filtros:
+        if filtros.get('es_compliant') is not None:
             where_clauses.append("es_compliant = ?" if not is_using_postgresql() else "es_compliant = %s")
-            params.append(filtros['es_compliant'])
+            params.append(1 if filtros['es_compliant'] else 0)
 
         where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
 

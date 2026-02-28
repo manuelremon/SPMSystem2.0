@@ -69,7 +69,7 @@ export default function Foro() {
         setPosts(res.data.posts || []);
       }
     } catch (err) {
-      setError("No se pudieron cargar las publicaciones");
+      setError(t("foro_error_cargar", "No se pudieron cargar las publicaciones"));
     } finally {
       setLoading(false);
     }
@@ -135,7 +135,7 @@ export default function Foro() {
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffMins < 1) return "Ahora mismo";
+    if (diffMins < 1) return t("foro_ahora", "Ahora mismo");
     if (diffMins < 60) return `Hace ${diffMins} min`;
     if (diffHours < 24) return `Hace ${diffHours}h`;
     if (diffDays < 7) return `Hace ${diffDays} dias`;
@@ -188,7 +188,7 @@ export default function Foro() {
             }}
           >
             <ForumIcon sx={{ color: "secondary.main" }} />
-            Foro SPM
+            {t("foro_titulo", "Foro SPM")}
           </Typography>
         </Box>
         <Button
@@ -196,14 +196,14 @@ export default function Foro() {
           startIcon={<AddIcon />}
           onClick={() => setNewPostOpen(!newPostOpen)}
         >
-          Nueva Publicacion
+          {t("foro_nueva_pub", "Nueva Publicacion")}
         </Button>
       </Box>
 
       {/* Barra de busqueda */}
       <TextField
         fullWidth
-        placeholder="Buscar publicaciones por titulo, contenido o autor..."
+        placeholder={t("foro_buscar_placeholder", "Buscar publicaciones por titulo, contenido o autor...")}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         InputProps={{
@@ -250,7 +250,7 @@ export default function Foro() {
               }}
             >
               <FilterListIcon fontSize="small" />
-              Categorias
+              {t("foro_categorias", "Categorias")}
             </Typography>
             <Stack spacing={0.5}>
               {/* Todas las categorias */}
@@ -280,7 +280,7 @@ export default function Foro() {
               >
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <TagIcon sx={{ fontSize: 16 }} />
-                  Todos
+                  {t("foro_todos", "Todos")}
                 </Box>
                 <Chip
                   label={posts.length}
@@ -352,26 +352,26 @@ export default function Foro() {
           {newPostOpen && (
             <Paper sx={{ p: 3, borderLeft: 4, borderColor: "primary.main" }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
-                Nueva Publicacion
+                {t("foro_nueva_pub", "Nueva Publicacion")}
               </Typography>
               <Box component="form" onSubmit={handleCreatePost} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <Box>
                   <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
-                    Titulo
+                    {t("foro_campo_titulo", "Titulo")}
                   </Typography>
                   <TextField
                     fullWidth
                     size="small"
                     value={newPost.titulo}
                     onChange={(e) => setNewPost({ ...newPost, titulo: e.target.value })}
-                    placeholder="Escribe un titulo descriptivo..."
+                    placeholder={t("foro_titulo_placeholder", "Escribe un titulo descriptivo...")}
                     inputProps={{ maxLength: 100 }}
                   />
                 </Box>
 
                 <Box>
                   <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
-                    Categoria
+                    {t("foro_campo_categoria", "Categoria")}
                   </Typography>
                   <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
                     {categorias.map((cat) => (
@@ -398,7 +398,7 @@ export default function Foro() {
 
                 <Box>
                   <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
-                    Contenido
+                    {t("foro_campo_contenido", "Contenido")}
                   </Typography>
                   <TextField
                     fullWidth
@@ -406,21 +406,21 @@ export default function Foro() {
                     rows={4}
                     value={newPost.contenido}
                     onChange={(e) => setNewPost({ ...newPost, contenido: e.target.value })}
-                    placeholder="Describe tu pregunta, idea o comentario..."
+                    placeholder={t("foro_contenido_placeholder", "Describe tu pregunta, idea o comentario...")}
                     inputProps={{ maxLength: 2000 }}
                   />
                 </Box>
 
                 <Stack direction="row" spacing={1} justifyContent="flex-end">
                   <Button variant="text" onClick={() => setNewPostOpen(false)}>
-                    Cancelar
+                    {t("foro_cancelar", "Cancelar")}
                   </Button>
                   <Button
                     type="submit"
                     variant="contained"
                     disabled={submitting || !newPost.titulo.trim() || !newPost.contenido.trim()}
                   >
-                    {submitting ? "Publicando..." : "Publicar"}
+                    {submitting ? t("foro_publicando", "Publicando...") : t("foro_publicar", "Publicar")}
                   </Button>
                 </Stack>
               </Box>
@@ -432,7 +432,7 @@ export default function Foro() {
             <Box sx={{ textAlign: "center", py: 6 }}>
               <CircularProgress size={40} />
               <Typography sx={{ color: "text.secondary", mt: 2 }}>
-                Cargando publicaciones...
+                {t("foro_cargando", "Cargando publicaciones...")}
               </Typography>
             </Box>
           ) : error ? (
@@ -440,19 +440,19 @@ export default function Foro() {
               <WarningAmberIcon sx={{ fontSize: 48, color: "warning.main", mb: 1.5 }} />
               <Typography sx={{ color: "text.secondary" }}>{error}</Typography>
               <Button variant="outlined" onClick={loadPosts} sx={{ mt: 2 }}>
-                Reintentar
+                {t("foro_reintentar", "Reintentar")}
               </Button>
             </Paper>
           ) : filteredPosts.length === 0 ? (
             <Paper sx={{ p: 6, textAlign: "center" }}>
               <ForumIcon sx={{ fontSize: 64, color: "secondary.main", opacity: 0.5, mb: 2 }} />
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                {posts.length === 0 ? "No hay publicaciones aun" : "No se encontraron resultados"}
+                {posts.length === 0 ? t("foro_sin_publicaciones", "No hay publicaciones aun") : t("foro_sin_resultados", "No se encontraron resultados")}
               </Typography>
               <Typography sx={{ color: "text.secondary", mb: 2 }}>
                 {posts.length === 0
-                  ? "Se el primero en iniciar una conversacion!"
-                  : "Intenta con otros terminos de busqueda o categoria"}
+                  ? t("foro_primero_publicar", "Se el primero en iniciar una conversacion!")
+                  : t("foro_intenta_otros", "Intenta con otros terminos de busqueda o categoria")}
               </Typography>
               {posts.length === 0 && (
                 <Button
@@ -460,7 +460,7 @@ export default function Foro() {
                   startIcon={<AddIcon />}
                   onClick={() => setNewPostOpen(true)}
                 >
-                  Crear primera publicacion
+                  {t("foro_crear_primera", "Crear primera publicacion")}
                 </Button>
               )}
               {(searchQuery || selectedCategoria) && (
@@ -471,7 +471,7 @@ export default function Foro() {
                     setSelectedCategoria(null);
                   }}
                 >
-                  Limpiar filtros
+                  {t("foro_limpiar_filtros", "Limpiar filtros")}
                 </Button>
               )}
             </Paper>
@@ -488,7 +488,7 @@ export default function Foro() {
                 }}
               >
                 <Chip
-                  label={`Todos (${posts.length})`}
+                  label={`${t("foro_todos", "Todos")} (${posts.length})`}
                   size="small"
                   onClick={() => setSelectedCategoria(null)}
                   sx={{
@@ -675,7 +675,7 @@ export default function Foro() {
                             <TextField
                               fullWidth
                               size="small"
-                              placeholder="Escribe una respuesta..."
+                              placeholder={t("foro_respuesta_placeholder", "Escribe una respuesta...")}
                               value={replyContent[post.id] || ""}
                               onChange={(e) => setReplyContent({ ...replyContent, [post.id]: e.target.value })}
                               onKeyDown={(e) => {

@@ -83,7 +83,7 @@ export default function Contracts() {
       if (filters.fecha_hasta) params.fecha_hasta = filters.fecha_hasta;
       const res = await api.get('/contracts', { params });
       if (res.data?.ok) {
-        setContracts(res.data.contracts || res.data.items || []);
+        setContracts(res.data.contratos || res.data.contracts || res.data.items || []);
       }
     } catch {
       toast.error(t('contracts_error_load', 'Error al cargar contratos'));

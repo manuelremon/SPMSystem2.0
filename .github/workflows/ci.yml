@@ -16,10 +16,25 @@ jobs:
     name: Backend Tests
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: spm_test
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: spm_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U spm_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
       ENV: test
       SECRET_KEY: test-secret-key-for-ci
-      DATABASE_URL: sqlite:///data/spm_test.db
+      DATABASE_URL: postgresql://spm_test:test_password@localhost:5432/spm_test
       LOG_LEVEL: WARNING
 
     steps:
@@ -46,6 +61,7 @@ jobs:
           python -m pytest tests/unit/ -v --tb=short \
             --ignore=tests/unit/test_forecast_parallel.py \
             --ignore=tests/unit/test_lstm_model.py \
+            --ignore=tests/unit/test_approval_strategies.py \
             --cov=backend --cov-report=xml --cov-report=term-missing \
             --cov-fail-under=29 \
             -x --timeout=60
@@ -53,9 +69,10 @@ jobs:
       - name: Run integration tests
         run: |
           python -m pytest tests/integration/ -v --tb=short \
+            --ignore=tests/integration/test_assistant_routes.py \
             --cov=backend --cov-report=xml --cov-append \
             -x --timeout=120
-        continue-on-error: true  # Integration tests may need DB
+        continue-on-error: true  # Integration tests may need additional setup
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

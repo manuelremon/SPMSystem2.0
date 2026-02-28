@@ -3,11 +3,15 @@ Lot Traceability Routes
 Endpoints para trazabilidad de lotes y recalls (Sprint 74)
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_auth
 from backend.services import lot_service
+
+logger = logging.getLogger(__name__)
 
 lots_bp = Blueprint('lots', __name__, url_prefix='/api/lots')
 
@@ -31,7 +35,7 @@ def buscar_lotes():
         lotes['ok'] = True
         return jsonify(lotes), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="lots")
 
 
 @lots_bp.route('/', methods=['POST'])
@@ -45,7 +49,7 @@ def crear_lote():
         lote_id = lot_service.crear_lote(data)
         return jsonify({'id': lote_id}), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="lots")
 
 
 @lots_bp.route('/<int:id>', methods=['GET'])
@@ -56,7 +60,7 @@ def obtener_lote(id):
         lote = lot_service.obtener_lote(id)
         return jsonify(lote), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="lots")
 
 
 @lots_bp.route('/<int:id>/consume', methods=['POST'])
@@ -73,7 +77,7 @@ def consumir_lote(id):
         resultado = lot_service.consumir_lote(id, cantidad, user_id, solicitud_id, destino, observaciones)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="lots")
 
 
 @lots_bp.route('/<int:id>/block', methods=['PUT'])
@@ -87,7 +91,7 @@ def bloquear_lote(id):
         resultado = lot_service.bloquear_lote(id, razon, user_id)
         return jsonify({'success': resultado}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="lots")
 
 
 @lots_bp.route('/<int:id>/unblock', methods=['PUT'])
@@ -99,7 +103,7 @@ def desbloquear_lote(id):
         resultado = lot_service.desbloquear_lote(id, user_id)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="lots")
 
 
 @lots_bp.route('/<int:id>/traceability/forward', methods=['GET'])
@@ -110,7 +114,7 @@ def obtener_traceability_forward(id):
         traceability = lot_service.obtener_traceability_forward(id)
         return jsonify(traceability), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="lots")
 
 
 @lots_bp.route('/<int:id>/traceability/backward', methods=['GET'])
@@ -121,7 +125,7 @@ def obtener_traceability_backward(id):
         traceability = lot_service.obtener_traceability_backward(id)
         return jsonify(traceability), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="lots")
 
 
 @lots_bp.route('/genealogy', methods=['POST'])
@@ -138,7 +142,7 @@ def registrar_genealogia():
         )
         return jsonify({'id': genealogia_id}), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="lots")
 
 
 @lots_bp.route('/recalls', methods=['GET'])
@@ -158,7 +162,7 @@ def obtener_recalls():
         recalls['ok'] = True
         return jsonify(recalls), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="lots")
 
 
 @lots_bp.route('/recalls', methods=['POST'])
@@ -172,7 +176,7 @@ def crear_recall():
         recall_id = lot_service.crear_recall(data)
         return jsonify({'id': recall_id}), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="lots")
 
 
 @lots_bp.route('/recalls/<int:id>', methods=['GET'])
@@ -183,7 +187,7 @@ def obtener_detalle_recall(id):
         detalle = lot_service.obtener_detalle_recall(id)
         return jsonify(detalle), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="lots")
 
 
 @lots_bp.route('/recalls/<int:id>/lotes/<int:lote_id>/recover', methods=['PUT'])
@@ -194,4 +198,4 @@ def marcar_lote_recuperado(id, lote_id):
         resultado = lot_service.marcar_lote_recuperado(id, lote_id)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="lots")

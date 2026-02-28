@@ -229,7 +229,7 @@ function App() {
       createBrowserRouter(
         createRoutesFromElements(
           <>
-            <Route path="/login" element={user ? <Navigate to={user.is_new_user ? "/nuevo-usuario" : "/dashboard"} /> : <Login />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/nuevo-usuario" element={<ProtectedRoute><NuevoUsuario /></ProtectedRoute>} />
             <Route path="/solicitudes/nueva" element={<ProtectedRoute><CreateSolicitud /></ProtectedRoute>} />
@@ -246,8 +246,8 @@ function App() {
             <Route path="/planificador/mrp/kpis" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><MRPKPIs /></ProtectedRoute>} />
             <Route path="/mrp/portfolio" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><MRPPortfolio /></ProtectedRoute>} />
             <Route path="/mrp/parametrizar" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><MRPParametrizar /></ProtectedRoute>} />
-            <Route path="/mrp/alertas" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><MRPTableroAlertas /></ProtectedRoute>} />
-            <Route path="/mrp/kpis" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><MRPKPIs /></ProtectedRoute>} />
+            <Route path="/mrp/alertas" element={<Navigate to="/planificador/mrp/alertas" replace />} />
+            <Route path="/mrp/kpis" element={<Navigate to="/planificador/mrp/kpis" replace />} />
             <Route path="/planificador/sla" element={<Navigate to="/planificador/ai" replace />} />
             <Route path="/planificador/ai" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><AIAnalytics /></ProtectedRoute>} />
             <Route path="/planificador/forecast" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ForecastIndividual /></ProtectedRoute>} />
@@ -276,21 +276,21 @@ function App() {
             <Route path="/shared/:token" element={<SpreadsheetShared />} />
             <Route path="/scan/:sessionId" element={<MobileScanner />} />
             {/* TMS Routes */}
-            <Route path="/tms/shipments" element={<ProtectedRoute><ShipmentsList /></ProtectedRoute>} />
-            <Route path="/tms/shipments/new" element={<ProtectedRoute><ShipmentCreate /></ProtectedRoute>} />
-            <Route path="/tms/shipments/:id" element={<ProtectedRoute><ShipmentDetail /></ProtectedRoute>} />
-            <Route path="/tms/consolidation" element={<ProtectedRoute><Consolidation /></ProtectedRoute>} />
-            <Route path="/tms/routes" element={<ProtectedRoute><TMSRoutes /></ProtectedRoute>} />
-            <Route path="/tms/settlements" element={<ProtectedRoute><TripSettlement /></ProtectedRoute>} />
-            <Route path="/tms/kpis" element={<ProtectedRoute><TMSKPIs /></ProtectedRoute>} />
-            <Route path="/tms/tariffs" element={<ProtectedRoute><TariffRules /></ProtectedRoute>} />
+            <Route path="/tms/shipments" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ShipmentsList /></ProtectedRoute>} />
+            <Route path="/tms/shipments/new" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ShipmentCreate /></ProtectedRoute>} />
+            <Route path="/tms/shipments/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ShipmentDetail /></ProtectedRoute>} />
+            <Route path="/tms/consolidation" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><Consolidation /></ProtectedRoute>} />
+            <Route path="/tms/routes" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><TMSRoutes /></ProtectedRoute>} />
+            <Route path="/tms/settlements" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><TripSettlement /></ProtectedRoute>} />
+            <Route path="/tms/kpis" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><TMSKPIs /></ProtectedRoute>} />
+            <Route path="/tms/tariff-rules" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><TariffRules /></ProtectedRoute>} />
             {/* FMS Routes */}
-            <Route path="/fms/vehicles" element={<ProtectedRoute><VehiclesList /></ProtectedRoute>} />
-            <Route path="/fms/vehicles/:id" element={<ProtectedRoute><VehicleDetail /></ProtectedRoute>} />
-            <Route path="/fms/drivers" element={<ProtectedRoute><DriversList /></ProtectedRoute>} />
-            <Route path="/fms/work-orders" element={<ProtectedRoute><WorkOrders /></ProtectedRoute>} />
-            <Route path="/fms/work-orders/:id" element={<ProtectedRoute><WorkOrderDetail /></ProtectedRoute>} />
-            <Route path="/fms/kpis" element={<ProtectedRoute><FMSKPIs /></ProtectedRoute>} />
+            <Route path="/fms/vehicles" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><VehiclesList /></ProtectedRoute>} />
+            <Route path="/fms/vehicles/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><VehicleDetail /></ProtectedRoute>} />
+            <Route path="/fms/drivers" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><DriversList /></ProtectedRoute>} />
+            <Route path="/fms/work-orders" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><WorkOrders /></ProtectedRoute>} />
+            <Route path="/fms/work-orders/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><WorkOrderDetail /></ProtectedRoute>} />
+            <Route path="/fms/kpis" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><FMSKPIs /></ProtectedRoute>} />
             {/* IA / Analytics Routes */}
             <Route path="/planificador/anomalias" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><AnomaliaDetection /></ProtectedRoute>} />
             <Route path="/planificador/clusters" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><MaterialClusters /></ProtectedRoute>} />
@@ -438,7 +438,7 @@ function App() {
           }
         }
       ),
-    [user, basename]
+    [basename]
   )
 
   if (appLoading || isLoading) {

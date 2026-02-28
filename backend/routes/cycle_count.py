@@ -3,11 +3,15 @@ Cycle Count Routes
 Endpoints para conteo cíclico de inventario (Sprint 75)
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_auth
 from backend.services import cycle_count_service
+
+logger = logging.getLogger(__name__)
 
 cycle_count_bp = Blueprint('cycle_count', __name__, url_prefix='/api/cycle-count')
 
@@ -20,7 +24,7 @@ def obtener_programas():
         programas = cycle_count_service.obtener_programas()
         return jsonify({'ok': True, 'items': programas}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_programas")
 
 
 @cycle_count_bp.route('/programs', methods=['POST'])
@@ -32,7 +36,7 @@ def crear_programa():
         programa = cycle_count_service.crear_programa(data)
         return jsonify(programa), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="crear_programa")
 
 
 @cycle_count_bp.route('/programs/<int:id>', methods=['PUT'])
@@ -44,7 +48,7 @@ def actualizar_programa(id):
         programa = cycle_count_service.actualizar_programa(id, data)
         return jsonify(programa), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="actualizar_programa")
 
 
 @cycle_count_bp.route('/counts', methods=['GET'])
@@ -65,7 +69,7 @@ def obtener_conteos():
         conteos['ok'] = True
         return jsonify(conteos), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_conteos")
 
 
 @cycle_count_bp.route('/counts/generate', methods=['POST'])
@@ -81,7 +85,7 @@ def generar_conteo():
         conteo = cycle_count_service.generar_conteo(tipo, almacen_id, programa_id, asignado_a)
         return jsonify(conteo), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="generar_conteo")
 
 
 @cycle_count_bp.route('/counts/<int:id>', methods=['GET'])
@@ -92,7 +96,7 @@ def obtener_detalle_conteo(id):
         detalle = cycle_count_service.obtener_detalle_conteo(id)
         return jsonify(detalle), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_detalle_conteo")
 
 
 @cycle_count_bp.route('/counts/<int:id>/start', methods=['PUT'])
@@ -103,7 +107,7 @@ def iniciar_conteo(id):
         resultado = cycle_count_service.iniciar_conteo(id)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="iniciar_conteo")
 
 
 @cycle_count_bp.route('/counts/<int:id>/items/<int:item_id>', methods=['PUT'])
@@ -117,7 +121,7 @@ def registrar_conteo_item(id, item_id):
         resultado = cycle_count_service.registrar_conteo_item(id, item_id, cantidad_contada, user_id)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="registrar_conteo_item")
 
 
 @cycle_count_bp.route('/counts/<int:id>/complete', methods=['PUT'])
@@ -128,7 +132,7 @@ def completar_conteo(id):
         resultado = cycle_count_service.completar_conteo(id)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="completar_conteo")
 
 
 @cycle_count_bp.route('/adjustments/<int:item_id>/approve', methods=['POST'])
@@ -140,7 +144,7 @@ def aprobar_ajuste(item_id):
         resultado = cycle_count_service.aprobar_ajuste(item_id, user_id)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="aprobar_ajuste")
 
 
 @cycle_count_bp.route('/kpis', methods=['GET'])
@@ -152,4 +156,4 @@ def obtener_kpis():
         kpis['ok'] = True
         return jsonify(kpis), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_kpis")

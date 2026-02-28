@@ -11,7 +11,7 @@ import {
   MapPin, Plus, AlertTriangle
 } from '../../components/ui/Icons'
 import { useI18n } from '../../context/i18n'
-import { useTmsStore } from '../../store/tmsStore'
+import { useTmsStore, useTmsCurrentShipment } from '../../store/tmsStore'
 import * as tmsService from '../../services/tms'
 
 const ESTADO_COLORS = {
@@ -49,7 +49,9 @@ export default function ShipmentDetail() {
   const { t } = useI18n()
   const { id } = useParams()
   const navigate = useNavigate()
-  const { currentShipment, fetchShipment, transitionShipment } = useTmsStore()
+  const currentShipment = useTmsCurrentShipment()
+  const fetchShipment = useTmsStore(s => s.fetchShipment)
+  const transitionShipment = useTmsStore(s => s.transitionShipment)
 
   const [tab, setTab] = useState(0)
   const [loading, setLoading] = useState(true)

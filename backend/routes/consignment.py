@@ -3,11 +3,15 @@ Consignment Inventory Routes
 Endpoints para gestión de inventario en consignación (Sprint 83)
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_auth
 from backend.services import consignment_service
+
+logger = logging.getLogger(__name__)
 
 consignment_bp = Blueprint('consignment', __name__, url_prefix='/api/consignment')
 
@@ -26,7 +30,7 @@ def obtener_programas():
         resultado = consignment_service.obtener_programas(filtros)
         return jsonify({'ok': True, **resultado}), 200
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="consignment")
 
 
 @consignment_bp.route('/programs', methods=['POST'])
@@ -45,7 +49,7 @@ def crear_programa():
         programa_id = consignment_service.crear_programa(data)
         return jsonify({'ok': True, 'programa_id': programa_id}), 201
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="consignment")
 
 
 @consignment_bp.route('/programs/<int:id>', methods=['GET'])
@@ -58,7 +62,7 @@ def obtener_detalle_programa(id):
     except ValueError as e:
         return jsonify({'ok': False, 'error': str(e)}), 404
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="consignment")
 
 
 @consignment_bp.route('/programs/<int:id>', methods=['PUT'])
@@ -70,7 +74,7 @@ def actualizar_programa(id):
         consignment_service.actualizar_programa(id, data)
         return jsonify({'ok': True, 'message': 'Programa actualizado'}), 200
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="consignment")
 
 
 @consignment_bp.route('/programs/<int:id>/stock', methods=['POST'])
@@ -93,7 +97,7 @@ def actualizar_stock(id):
         )
         return jsonify({'ok': True, 'stock_id': stock_id}), 200
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="consignment")
 
 
 @consignment_bp.route('/programs/<int:id>/consume', methods=['POST'])
@@ -117,7 +121,7 @@ def registrar_consumo(id):
         )
         return jsonify({'ok': True, 'consumo_id': consumo_id}), 201
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="consignment")
 
 
 @consignment_bp.route('/programs/<int:id>/reconciliation', methods=['POST'])
@@ -133,7 +137,7 @@ def generar_reconciliacion(id):
         reconciliacion_id = consignment_service.generar_reconciliacion(id, data['periodo'])
         return jsonify({'ok': True, 'reconciliacion_id': reconciliacion_id}), 201
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="consignment")
 
 
 @consignment_bp.route('/reconciliations/<int:id>/send', methods=['PUT'])
@@ -145,7 +149,7 @@ def enviar_reconciliacion(id):
         consignment_service.enviar_reconciliacion(id, data.get('notas'))
         return jsonify({'ok': True, 'message': 'Reconciliación enviada'}), 200
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="consignment")
 
 
 @consignment_bp.route('/reconciliations/<int:id>/confirm', methods=['PUT'])
@@ -157,7 +161,7 @@ def confirmar_reconciliacion(id):
         consignment_service.confirmar_reconciliacion(id, data.get('notas'))
         return jsonify({'ok': True, 'message': 'Reconciliación confirmada'}), 200
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="consignment")
 
 
 @consignment_bp.route('/kpis', methods=['GET'])
@@ -169,4 +173,4 @@ def obtener_kpis():
         kpis = consignment_service.obtener_kpis(programa_id)
         return jsonify({'ok': True, 'kpis': kpis}), 200
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="consignment")

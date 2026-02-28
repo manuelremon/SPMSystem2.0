@@ -3,10 +3,15 @@ Control Tower Routes
 Endpoints para torre de control centralizada (Sprint 71)
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_auth
 from backend.services import control_tower_service
+
+logger = logging.getLogger(__name__)
 
 control_tower_bp = Blueprint('control_tower', __name__, url_prefix='/api/control-tower')
 
@@ -28,7 +33,7 @@ def obtener_eventos_timeline():
         eventos['ok'] = True
         return jsonify(eventos), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_eventos_timeline")
 
 
 @control_tower_bp.route('/kpis', methods=['GET'])
@@ -40,7 +45,7 @@ def obtener_kpis_agregados():
         kpis['ok'] = True
         return jsonify(kpis), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_kpis_agregados")
 
 
 @control_tower_bp.route('/alerts', methods=['GET'])
@@ -55,7 +60,7 @@ def obtener_alertas_agregadas():
         alertas = control_tower_service.obtener_alertas_agregadas(filtros)
         return jsonify({'ok': True, 'items': alertas}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_alertas_agregadas")
 
 
 @control_tower_bp.route('/alerts/<int:id>/acknowledge', methods=['PUT'])
@@ -66,7 +71,7 @@ def acknowledgeAlert(id):
         resultado = control_tower_service.marcar_alerta(id, 'acknowledged')
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="acknowledgeAlert")
 
 
 @control_tower_bp.route('/alerts/<int:id>/resolve', methods=['PUT'])
@@ -77,7 +82,7 @@ def resolveAlert(id):
         resultado = control_tower_service.marcar_alerta(id, 'resolved')
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="resolveAlert")
 
 
 @control_tower_bp.route('/trends', methods=['GET'])
@@ -91,4 +96,4 @@ def obtener_tendencias():
         tendencias['ok'] = True
         return jsonify(tendencias), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_tendencias")

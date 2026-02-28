@@ -410,20 +410,23 @@ def obtener_progreso_metas(periodo: str) -> List[Dict[str, Any]]:
             ORDER BY m.categoria, m.buyer_id
         """, (fecha_desde, next_month, periodo))
 
-    columns = [desc[0] for desc in cursor.description]
     resultados = []
     for row in cursor.fetchall():
-        item = dict(zip(columns, row))
+        item = dict(row)
+        meta = float(item['meta_monto']) if item['meta_monto'] else 0
+        actual = float(item['monto_actual']) if item['monto_actual'] else 0
+        item['meta_monto'] = meta
+        item['monto_actual'] = actual
         item['porcentaje_cumplimiento'] = (
-            (item['monto_actual'] / item['meta_monto'] * 100)
-            if item['meta_monto'] > 0 else 0
+            round(actual / meta * 100, 2)
+            if meta > 0 else 0
         )
         resultados.append(item)
 
     cursor.close()
     conn.close()
 
-    return resultados
+    return {'ok': True, 'items': resultados}
 
 
 def exportar_ahorros_excel(filtros: Optional[Dict[str, Any]] = None) -> bytes:

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useVertexStore, selectFormattedMessages } from '../store/vertexStore'
 import { useAuthStore } from '../store/authStore'
+import { useI18n } from '../context/i18n'
 import vertexService, { sendVertexMessage, loadVertexAlerts, initializeVertex } from '../services/vertex'
 import api from '../services/api'
 
@@ -36,6 +37,7 @@ import VolumeOffIcon from '@mui/icons-material/VolumeOff'
  * - Voz: Text-to-Speech y Speech-to-Text
  */
 export default function ChatAssistant() {
+  const { t } = useI18n()
   const messagesEndRef = useRef(null)
   const [inputValue, setInputValue] = useState('')
   const inputRef = useRef(null)
@@ -587,7 +589,7 @@ export default function ChatAssistant() {
           <IconButton
             onClick={toggleVoice}
             aria-label={voiceEnabled ? 'Desactivar voz' : 'Activar voz'}
-            title={voiceEnabled ? 'Desactivar voz' : 'Activar voz'}
+            title={voiceEnabled ? t("chat_voice_off", "Desactivar voz") : t("chat_voice_on", "Activar voz")}
             size="small"
             sx={{
               color: voiceEnabled ? 'white' : 'var(--primary-bg-light)',
@@ -615,7 +617,7 @@ export default function ChatAssistant() {
 
           <IconButton
             onClick={closeChat}
-            aria-label="Cerrar chat"
+            aria-label={t("aria_close_chat", "Cerrar chat")}
             size="small"
             sx={{
               color: 'white',
@@ -878,7 +880,7 @@ export default function ChatAssistant() {
               type="button"
               onClick={toggleListening}
               disabled={isLoading}
-              title={isListening ? 'Detener' : 'Hablar'}
+              title={isListening ? t("chat_stop", "Detener") : t("chat_speak", "Hablar")}
               sx={{
                 backgroundColor: isListening ? 'var(--danger)' : 'var(--primary-bg-light)',
                 animation: isListening ? 'pulse 1.5s infinite' : 'none',

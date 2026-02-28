@@ -89,14 +89,12 @@ function PriorityStars({ priority }) {
 export default function WorkOrders() {
   const { t } = useI18n()
   const navigate = useNavigate()
-  const {
-    workOrders,
-    workOrdersTotal,
-    workOrdersLoading,
-    error,
-    fetchWorkOrders,
-    createWorkOrder,
-  } = useFmsStore()
+  const workOrders = useFmsStore(s => s.workOrders)
+  const workOrdersTotal = useFmsStore(s => s.workOrdersTotal)
+  const workOrdersLoading = useFmsStore(s => s.workOrdersLoading)
+  const error = useFmsStore(s => s.error)
+  const fetchWorkOrders = useFmsStore(s => s.fetchWorkOrders)
+  const createWorkOrder = useFmsStore(s => s.createWorkOrder)
 
   const [filtroEstado, setFiltroEstado] = useState('')
   const [filtroTipo, setFiltroTipo] = useState('')

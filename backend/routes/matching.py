@@ -4,11 +4,15 @@ Endpoints para 3-Way Matching (Sprint 61)
 Blueprint: matching_bp, Prefix: /api/matching
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_auth
 from backend.services import matching_service
+
+logger = logging.getLogger(__name__)
 
 matching_bp = Blueprint('matching', __name__, url_prefix='/api/matching')
 
@@ -32,9 +36,9 @@ def obtener_facturas():
         resultado['ok'] = True
         return jsonify(resultado), 200
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'ok': False, 'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_facturas")
 
 
 @matching_bp.route('/invoices', methods=['POST'])
@@ -44,15 +48,15 @@ def registrar_factura():
     try:
         data = request.get_json()
         if not data:
-            return jsonify({'error': 'No se proporcionaron datos'}), 400
+            return jsonify({'ok': False, 'error': 'No se proporcionaron datos'}), 400
 
         user_id = _get_user_id()
         resultado = matching_service.registrar_factura(data, user_id)
         return jsonify(resultado), 201
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'ok': False, 'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="registrar_factura")
 
 
 @matching_bp.route('/invoices/<int:id>', methods=['GET'])
@@ -62,10 +66,10 @@ def obtener_detalle_factura(id):
     try:
         resultado = matching_service.obtener_detalle_factura(id)
         if not resultado:
-            return jsonify({'error': 'Factura no encontrada'}), 404
+            return jsonify({'ok': False, 'error': 'Factura no encontrada'}), 404
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_detalle_factura")
 
 
 @matching_bp.route('/invoices/<int:id>/match', methods=['POST'])
@@ -76,9 +80,9 @@ def ejecutar_matching(id):
         resultado = matching_service.ejecutar_matching(id)
         return jsonify(resultado), 200
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'ok': False, 'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="ejecutar_matching")
 
 
 @matching_bp.route('/results/<int:id>/resolve', methods=['PUT'])
@@ -88,15 +92,15 @@ def resolver_discrepancia(id):
     try:
         data = request.get_json()
         if not data:
-            return jsonify({'error': 'No se proporcionaron datos'}), 400
+            return jsonify({'ok': False, 'error': 'No se proporcionaron datos'}), 400
 
         user_id = _get_user_id()
         resultado = matching_service.resolver_discrepancia(id, data, user_id)
         return jsonify(resultado), 200
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'ok': False, 'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="resolver_discrepancia")
 
 
 @matching_bp.route('/kpis', methods=['GET'])
@@ -108,7 +112,7 @@ def obtener_kpis_matching():
         resultado['ok'] = True
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_kpis_matching")
 
 
 @matching_bp.route('/invoices/<int:id>/comparison', methods=['GET'])
@@ -118,7 +122,7 @@ def obtener_comparacion(id):
     try:
         resultado = matching_service.obtener_comparacion(id)
         if not resultado:
-            return jsonify({'error': 'Comparacion no disponible'}), 404
+            return jsonify({'ok': False, 'error': 'Comparacion no disponible'}), 404
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_comparacion")

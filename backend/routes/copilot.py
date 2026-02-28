@@ -3,11 +3,15 @@ AI Copilot Routes
 Endpoints para asistente de IA conversacional (Sprint 75)
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_auth
 from backend.services import copilot_service
+
+logger = logging.getLogger(__name__)
 
 copilot_bp = Blueprint('copilot', __name__, url_prefix='/api/copilot')
 
@@ -21,7 +25,7 @@ def obtener_conversaciones():
         conversaciones = copilot_service.obtener_conversaciones(user_id)
         return jsonify(conversaciones), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="copilot")
 
 
 @copilot_bp.route('/conversations', methods=['POST'])
@@ -36,7 +40,7 @@ def iniciar_conversacion():
         conversacion = copilot_service.iniciar_conversacion(user_id, titulo, contexto_tipo)
         return jsonify(conversacion), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="copilot")
 
 
 @copilot_bp.route('/conversations/<int:id>', methods=['GET'])
@@ -47,7 +51,7 @@ def obtener_mensajes(id):
         mensajes = copilot_service.obtener_mensajes(id)
         return jsonify(mensajes), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="copilot")
 
 
 @copilot_bp.route('/conversations/<int:id>/messages', methods=['POST'])
@@ -61,7 +65,7 @@ def enviar_mensaje(id):
         mensaje = copilot_service.enviar_mensaje(id, contenido, user_id)
         return jsonify(mensaje), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="copilot")
 
 
 @copilot_bp.route('/suggestions', methods=['GET'])
@@ -78,7 +82,7 @@ def obtener_sugerencias():
         sugerencias = copilot_service.obtener_sugerencias(filtros)
         return jsonify(sugerencias), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="copilot")
 
 
 @copilot_bp.route('/suggestions/sourcing/<material>', methods=['POST'])
@@ -89,7 +93,7 @@ def generar_sugerencia_sourcing(material):
         sugerencia = copilot_service.generar_sugerencia_sourcing(material)
         return jsonify(sugerencia), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="copilot")
 
 
 @copilot_bp.route('/suggestions/rfq-draft/<int:solicitud_id>', methods=['POST'])
@@ -100,7 +104,7 @@ def auto_draft_rfq(solicitud_id):
         rfq_draft = copilot_service.auto_draft_rfq(solicitud_id)
         return jsonify(rfq_draft), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="copilot")
 
 
 @copilot_bp.route('/suggestions/<int:id>/feedback', methods=['PUT'])
@@ -114,7 +118,7 @@ def feedback_sugerencia(id):
         resultado = copilot_service.feedback_sugerencia(id, accion, feedback)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="copilot")
 
 
 @copilot_bp.route('/insights', methods=['GET'])
@@ -125,7 +129,7 @@ def obtener_insights_dashboard():
         insights = copilot_service.obtener_insights_dashboard()
         return jsonify(insights), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="copilot")
 
 
 @copilot_bp.route('/spend-patterns', methods=['GET'])
@@ -137,4 +141,4 @@ def analizar_patron_gasto():
         patrones = copilot_service.analizar_patron_gasto(periodo)
         return jsonify(patrones), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="copilot")

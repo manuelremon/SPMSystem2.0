@@ -247,7 +247,7 @@ function SectorRow({ sector, onEdit, onDelete, isDeleting, onCancelDelete, onCon
               bgcolor: "error.lighter",
             },
           }}
-          aria-label="Eliminar sector"
+          aria-label={t("aria_delete_sector", "Eliminar sector")}
         >
           <DeleteIcon fontSize="small" />
         </IconButton>

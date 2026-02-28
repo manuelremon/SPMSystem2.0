@@ -3,11 +3,15 @@ Vendor-Managed Inventory (VMI) Routes
 Endpoints para gestión de inventario administrado por proveedor (Sprint 73)
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_auth
 from backend.services import vmi_service
+
+logger = logging.getLogger(__name__)
 
 vmi_bp = Blueprint('vmi', __name__, url_prefix='/api/vmi')
 
@@ -27,7 +31,7 @@ def obtener_programas():
         programas['ok'] = True
         return jsonify(programas), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="vmi")
 
 
 @vmi_bp.route('/programas', methods=['POST'])
@@ -39,7 +43,7 @@ def crear_programa():
         programa = vmi_service.crear_programa(data)
         return jsonify(programa), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="vmi")
 
 
 @vmi_bp.route('/programas/<int:id>', methods=['GET'])
@@ -50,7 +54,7 @@ def obtener_detalle_programa(id):
         detalle = vmi_service.obtener_detalle_programa(id)
         return jsonify(detalle), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="vmi")
 
 
 @vmi_bp.route('/programas/<int:id>', methods=['PUT'])
@@ -62,7 +66,7 @@ def actualizar_programa(id):
         programa = vmi_service.actualizar_programa(id, data)
         return jsonify(programa), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="vmi")
 
 
 @vmi_bp.route('/programas/<int:id>/inventario', methods=['POST'])
@@ -74,7 +78,7 @@ def actualizar_inventario(id):
         resultado = vmi_service.actualizar_inventario(id, data)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="vmi")
 
 
 @vmi_bp.route('/reposiciones', methods=['GET'])
@@ -89,9 +93,12 @@ def obtener_reposiciones():
             'per_page': request.args.get('per_page', 50, type=int)
         }
         reposiciones = vmi_service.obtener_reposiciones(filtros)
+        if isinstance(reposiciones, list):
+            return jsonify({'ok': True, 'items': reposiciones}), 200
+        reposiciones['ok'] = True
         return jsonify(reposiciones), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="vmi")
 
 
 @vmi_bp.route('/reposiciones/<int:id>/approve', methods=['PUT'])
@@ -105,7 +112,7 @@ def aprobar_reposicion(id):
         resultado = vmi_service.aprobar_reposicion(id, user_id, cantidad_aprobada)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="vmi")
 
 
 @vmi_bp.route('/reposiciones/<int:id>/reject', methods=['PUT'])
@@ -119,7 +126,7 @@ def rechazar_reposicion(id):
         resultado = vmi_service.rechazar_reposicion(id, user_id, razon)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="vmi")
 
 
 @vmi_bp.route('/dashboard', methods=['GET'])
@@ -131,4 +138,4 @@ def obtener_dashboard_vmi():
         dashboard['ok'] = True
         return jsonify(dashboard), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="vmi")

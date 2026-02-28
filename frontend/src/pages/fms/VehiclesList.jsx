@@ -32,7 +32,7 @@ import {
   Gauge,
 } from '../../components/ui/Icons'
 import { useI18n } from '../../context/i18n'
-import { useFmsStore } from '../../store/fmsStore'
+import { useFmsStore, useFmsVehicles, useFmsLoading } from '../../store/fmsStore'
 
 const ESTADO_COLORS = {
   disponible: 'success',
@@ -62,7 +62,10 @@ const TIPOS_VEHICULO = [
 export default function VehiclesList() {
   const { t } = useI18n()
   const navigate = useNavigate()
-  const { vehicles, vehiclesLoading, error, fetchVehicles } = useFmsStore()
+  const vehicles = useFmsVehicles()
+  const vehiclesLoading = useFmsLoading()
+  const error = useFmsStore(s => s.error)
+  const fetchVehicles = useFmsStore(s => s.fetchVehicles)
 
   const [filtroEstado, setFiltroEstado] = useState('')
   const [filtroTipo, setFiltroTipo] = useState('')

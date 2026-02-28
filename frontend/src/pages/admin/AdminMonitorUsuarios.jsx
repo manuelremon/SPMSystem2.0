@@ -839,7 +839,7 @@ export default function AdminMonitorUsuarios() {
                     bgcolor: "grey.100",
                   },
                 }}
-                aria-label="Volver"
+                aria-label={t("aria_back", "Volver")}
               >
                 <ArrowBackIcon sx={{ fontSize: 20 }} />
               </IconButton>

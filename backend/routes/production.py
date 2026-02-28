@@ -1,10 +1,15 @@
 """
 Routes de Planificación de Producción (MPS)
 """
+import logging
+
 from flask import Blueprint, g, jsonify, request
 
+from backend.core.helpers import safe_error_response
 from backend.core.roles import require_auth
 from backend.services import production_planning_service as prod_service
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint('production', __name__, url_prefix='/api/production')
 
@@ -30,10 +35,7 @@ def get_work_centers():
         }), 200
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'mensaje': f'Error al obtener work centers: {str(e)}'
-        }), 500
+        return safe_error_response(e, logger, context="production")
 
 
 @bp.route('/work-centers', methods=['POST'])
@@ -58,10 +60,7 @@ def create_work_center():
         }), 201
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'mensaje': f'Error al crear work center: {str(e)}'
-        }), 500
+        return safe_error_response(e, logger, context="production")
 
 
 @bp.route('/work-centers/<int:wc_id>', methods=['PUT'])
@@ -85,10 +84,7 @@ def update_work_center(wc_id):
         }), 200
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'mensaje': f'Error al actualizar work center: {str(e)}'
-        }), 500
+        return safe_error_response(e, logger, context="production")
 
 
 @bp.route('/plans', methods=['GET'])
@@ -115,10 +111,7 @@ def get_plans():
         }), 200
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'mensaje': f'Error al obtener planes: {str(e)}'
-        }), 500
+        return safe_error_response(e, logger, context="production")
 
 
 @bp.route('/plans', methods=['POST'])
@@ -145,10 +138,7 @@ def create_plan():
         }), 201
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'mensaje': f'Error al crear plan: {str(e)}'
-        }), 500
+        return safe_error_response(e, logger, context="production")
 
 
 @bp.route('/plans/<int:plan_id>', methods=['GET'])
@@ -170,10 +160,7 @@ def get_plan_detail(plan_id):
         }), 200
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'mensaje': f'Error al obtener detalle del plan: {str(e)}'
-        }), 500
+        return safe_error_response(e, logger, context="production")
 
 
 @bp.route('/plans/<int:plan_id>/items', methods=['POST'])
@@ -200,10 +187,7 @@ def add_plan_item(plan_id):
         }), 201
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'mensaje': f'Error al agregar item al plan: {str(e)}'
-        }), 500
+        return safe_error_response(e, logger, context="production")
 
 
 @bp.route('/plans/<int:plan_id>/publish', methods=['PUT'])
@@ -225,10 +209,7 @@ def publish_plan(plan_id):
         }), 200
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'mensaje': f'Error al publicar plan: {str(e)}'
-        }), 500
+        return safe_error_response(e, logger, context="production")
 
 
 @bp.route('/plans/<int:plan_id>/items/<int:item_id>/report', methods=['PUT'])
@@ -258,10 +239,7 @@ def report_production(plan_id, item_id):
         }), 200
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'mensaje': f'Error al reportar producción: {str(e)}'
-        }), 500
+        return safe_error_response(e, logger, context="production")
 
 
 @bp.route('/plans/<int:plan_id>/complete', methods=['PUT'])
@@ -283,10 +261,7 @@ def complete_plan(plan_id):
         }), 200
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'mensaje': f'Error al completar plan: {str(e)}'
-        }), 500
+        return safe_error_response(e, logger, context="production")
 
 
 @bp.route('/capacity', methods=['GET'])
@@ -310,10 +285,7 @@ def get_capacity_utilization():
         }), 200
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'mensaje': f'Error al obtener utilización: {str(e)}'
-        }), 500
+        return safe_error_response(e, logger, context="production")
 
 
 @bp.route('/plans/<int:plan_id>/validate', methods=['POST'])
@@ -329,10 +301,7 @@ def validate_plan_capacity(plan_id):
         }), 200
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'mensaje': f'Error al validar capacidad: {str(e)}'
-        }), 500
+        return safe_error_response(e, logger, context="production")
 
 
 @bp.route('/kpis', methods=['GET'])
@@ -348,7 +317,4 @@ def get_kpis():
         }), 200
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'mensaje': f'Error al obtener KPIs: {str(e)}'
-        }), 500
+        return safe_error_response(e, logger, context="production")

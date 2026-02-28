@@ -16,6 +16,7 @@ import {
   Menu,
   MenuItem,
   Badge,
+  Divider,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -28,6 +29,7 @@ import ChatAssistant from "./ChatAssistant";
 import HeaderNav from "./HeaderNav";
 import ToastContainer from "./ui/ToastContainer";
 import SkipLink from "./ui/SkipLink";
+import AboutModal from "./AboutModal";
 import { useI18n } from "../context/i18n";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import OfflineBanner from "./ui/OfflineBanner";
@@ -40,6 +42,7 @@ export default function Layout({ children }) {
   const location = useLocation();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [userMenuAnchor, setUserMenuAnchor] = useState(null);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const { toggleChat, getUnshownAlertsCount } = useVertexStore();
   const unshownAlertsCount = getUnshownAlertsCount();
   const unreadCount = useRealtimeStore((state) => state.unreadCount);
@@ -206,14 +209,14 @@ export default function Layout({ children }) {
                   fontWeight: 600,
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
-                  backgroundColor: userMenuAnchor || isPathActive("/mi-cuenta") || isPathActive("/mi-cuenta")
+                  backgroundColor: userMenuAnchor || isPathActive("/mi-cuenta")
                     ? 'var(--primary)'
                     : 'transparent',
                   color: 'white',
                   border: 'none',
                   cursor: 'pointer',
                   '&:hover': {
-                    backgroundColor: userMenuAnchor || isPathActive("/mi-cuenta") || isPathActive("/mi-cuenta")
+                    backgroundColor: userMenuAnchor || isPathActive("/mi-cuenta")
                       ? 'var(--primary)'
                       : 'var(--header-border, #424242)',
                   },
@@ -273,20 +276,31 @@ export default function Layout({ children }) {
                 >
                   {t("user_mi_cuenta", "Mi Cuenta")}
                 </MenuItem>
+                <Divider sx={{ borderColor: 'var(--header-border, #424242)', my: 0 }} />
                 <MenuItem
                   component={NavLink}
-                  to="/mi-cuenta"
+                  to="/ayuda"
                   onClick={() => setUserMenuAnchor(null)}
                   sx={{
                     ...menuItemSx,
-                    backgroundColor: isPathActive("/mi-cuenta") ? 'var(--primary)' : 'transparent',
+                    backgroundColor: isPathActive("/ayuda") ? 'var(--primary)' : 'transparent',
                     '&:hover': {
-                      backgroundColor: isPathActive("/mi-cuenta") ? 'var(--primary-dark)' : 'var(--header-border, #424242)',
+                      backgroundColor: isPathActive("/ayuda") ? 'var(--primary-dark)' : 'var(--header-border, #424242)',
                     },
                   }}
                 >
-                  {t("user_ajustes", "Ajustes")}
+                  {t("user_ayuda", "Ayuda")}
                 </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setUserMenuAnchor(null);
+                    setAboutOpen(true);
+                  }}
+                  sx={menuItemSx}
+                >
+                  {t("user_acerca", "Acerca de...")}
+                </MenuItem>
+                <Divider sx={{ borderColor: 'var(--header-border, #424242)', my: 0 }} />
                 <MenuItem
                   onClick={() => {
                     setUserMenuAnchor(null);
@@ -439,7 +453,7 @@ export default function Layout({ children }) {
             backgroundColor: 'var(--primary-dark)',
           },
         }}
-        aria-label="Abrir Vertex IA"
+        aria-label={t("aria_open_vertex", "Abrir Vertex IA")}
         title={t("tooltip_chat", "Vertex IA - Asistente")}
       >
         {/* Avatar V */}
@@ -486,6 +500,9 @@ export default function Layout({ children }) {
 
       {/* Offline indicator */}
       <OfflineBanner />
+
+      {/* About modal */}
+      <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
     </Box>
   );
 }

@@ -3,11 +3,15 @@ Quality Routes
 Endpoints para gestión de inspecciones de calidad, NCR y CAPA
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_auth
 from backend.services import capa_service, quality_service
+
+logger = logging.getLogger(__name__)
 
 quality_bp = Blueprint('quality', __name__, url_prefix='/api/quality')
 
@@ -32,7 +36,7 @@ def listar_inspecciones():
         return jsonify(resultado), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="quality")
 
 
 @quality_bp.route('/inspections', methods=['POST'])
@@ -54,7 +58,7 @@ def crear_inspeccion():
         return jsonify(inspeccion), 201
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="quality")
 
 
 @quality_bp.route('/inspections/<int:inspeccion_id>', methods=['GET'])
@@ -70,7 +74,7 @@ def obtener_inspeccion(inspeccion_id):
         return jsonify(inspeccion), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="quality")
 
 
 @quality_bp.route('/inspections/<int:inspeccion_id>/results', methods=['PUT'])
@@ -100,7 +104,7 @@ def registrar_resultados_inspeccion(inspeccion_id):
         return jsonify(resultado), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="quality")
 
 
 # ==================== NCR (Non-Conformance Reports) ====================
@@ -123,7 +127,7 @@ def listar_ncrs():
         return jsonify(resultado), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="quality")
 
 
 @quality_bp.route('/ncr', methods=['POST'])
@@ -154,7 +158,7 @@ def crear_ncr():
         return jsonify(ncr), 201
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="quality")
 
 
 @quality_bp.route('/ncr/<int:ncr_id>', methods=['GET'])
@@ -170,7 +174,7 @@ def obtener_ncr(ncr_id):
         return jsonify(ncr), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="quality")
 
 
 @quality_bp.route('/ncr/<int:ncr_id>/status', methods=['PUT'])
@@ -200,7 +204,7 @@ def cambiar_estado_ncr(ncr_id):
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="quality")
 
 
 # ==================== KPIs DE CALIDAD ====================
@@ -211,10 +215,11 @@ def obtener_kpis_calidad():
     """Obtener KPIs de calidad"""
     try:
         kpis = quality_service.obtener_kpis_calidad()
+        kpis['ok'] = True
         return jsonify(kpis), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="quality")
 
 
 @quality_bp.route('/supplier/<string:proveedor_cuit>/quality-trend', methods=['GET'])
@@ -274,7 +279,7 @@ def obtener_tendencia_calidad_proveedor(proveedor_cuit):
         }), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="quality")
 
 
 # ==================== CAPA (Corrective and Preventive Actions) ====================
@@ -297,7 +302,7 @@ def listar_capas():
         return jsonify(resultado), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="quality")
 
 
 @quality_bp.route('/capa', methods=['POST'])
@@ -332,7 +337,7 @@ def crear_capa():
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="quality")
 
 
 @quality_bp.route('/capa/<int:capa_id>', methods=['GET'])
@@ -348,7 +353,7 @@ def obtener_capa(capa_id):
         return jsonify(capa), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="quality")
 
 
 @quality_bp.route('/capa/<int:capa_id>/status', methods=['PUT'])
@@ -378,7 +383,7 @@ def cambiar_estado_capa(capa_id):
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="quality")
 
 
 @quality_bp.route('/capa/<int:capa_id>/verify', methods=['PUT'])
@@ -404,4 +409,4 @@ def verificar_efectividad_capa(capa_id):
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="quality")

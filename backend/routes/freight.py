@@ -3,11 +3,15 @@ Freight Audit & Payment Routes
 Endpoints para auditoría de fletes (Sprint 70)
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_auth
 from backend.services import freight_audit_service
+
+logger = logging.getLogger(__name__)
 
 freight_bp = Blueprint('freight', __name__, url_prefix='/api/freight')
 
@@ -29,7 +33,7 @@ def obtener_facturas_flete():
         facturas['ok'] = True
         return jsonify(facturas), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_facturas_flete")
 
 
 @freight_bp.route('/invoices', methods=['POST'])
@@ -41,7 +45,7 @@ def registrar_factura_flete():
         factura = freight_audit_service.registrar_factura_flete(data)
         return jsonify(factura), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="registrar_factura_flete")
 
 
 @freight_bp.route('/invoices/<int:id>', methods=['GET'])
@@ -52,7 +56,7 @@ def obtener_detalle_factura_flete(id):
         detalle = freight_audit_service.obtener_detalle_factura_flete(id)
         return jsonify(detalle), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_detalle_factura_flete")
 
 
 @freight_bp.route('/invoices/<int:id>/audit', methods=['POST'])
@@ -63,7 +67,7 @@ def auditar_factura(id):
         resultado = freight_audit_service.auditar_factura(id)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="auditar_factura")
 
 
 @freight_bp.route('/invoices/<int:id>/approve', methods=['PUT'])
@@ -77,7 +81,7 @@ def aprobar_factura(id):
         resultado = freight_audit_service.aprobar_factura(id, user_id, monto_aprobado)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="aprobar_factura")
 
 
 @freight_bp.route('/invoices/<int:id>/dispute', methods=['PUT'])
@@ -90,7 +94,7 @@ def disputar_factura(id):
         resultado = freight_audit_service.disputar_factura(id, razon)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="disputar_factura")
 
 
 @freight_bp.route('/tariffs', methods=['GET'])
@@ -105,7 +109,7 @@ def obtener_tarifas():
         tarifas['ok'] = True
         return jsonify(tarifas), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_tarifas")
 
 
 @freight_bp.route('/tariffs', methods=['POST'])
@@ -117,7 +121,7 @@ def crear_tarifa():
         tarifa = freight_audit_service.crear_tarifa(data)
         return jsonify(tarifa), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="crear_tarifa")
 
 
 @freight_bp.route('/kpis', methods=['GET'])
@@ -129,7 +133,7 @@ def obtener_kpis_freight():
         kpis['ok'] = True
         return jsonify(kpis), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="obtener_kpis_freight")
 
 
 @freight_bp.route('/carrier-performance', methods=['GET'])
@@ -140,4 +144,4 @@ def rendimiento_transportistas():
         rendimiento = freight_audit_service.rendimiento_transportistas()
         return jsonify({'ok': True, 'items': rendimiento}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="rendimiento_transportistas")

@@ -36,7 +36,7 @@ const EMPTY_ITEM = {
 export default function ShipmentCreate() {
   const { t } = useI18n()
   const navigate = useNavigate()
-  const { createShipment } = useTmsStore()
+  const createShipment = useTmsStore(s => s.createShipment)
 
   const [form, setForm] = useState({
     tipo: 'FTL',

@@ -170,7 +170,7 @@ export default function ContractCompliance() {
           <KpiCard
             icon={<PercentIcon fontSize="small" sx={{ color: 'success.main' }} />}
             label={t('compliance_kpi_rate', 'Tasa de Cumplimiento')}
-            value={kpis.compliance_rate != null ? `${kpis.compliance_rate.toFixed(1)}%` : null}
+            value={kpis.compliant_pct != null ? `${kpis.compliant_pct.toFixed(1)}%` : null}
             color="success.main"
           />
           <KpiCard

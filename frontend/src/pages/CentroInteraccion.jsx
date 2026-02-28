@@ -217,7 +217,7 @@ export default function CentroInteraccion() {
                     bgcolor: "grey.100",
                   },
                 }}
-                aria-label="Volver"
+                aria-label={t("aria_back", "Volver")}
               >
                 <ArrowBackIcon sx={{ fontSize: 16 }} />
               </IconButton>
@@ -518,7 +518,7 @@ export default function CentroInteraccion() {
             ) : (
               <EmptyState
                 title={t("centro_sin_actividad", "No hay actividad reciente")}
-                description="La actividad de tu cuenta aparecera aqui"
+                description={t("centro_sin_actividad_desc", "La actividad de tu cuenta aparecera aqui")}
               />
             )}
           </Box>

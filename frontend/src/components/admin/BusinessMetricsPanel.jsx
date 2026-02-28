@@ -5,6 +5,7 @@
  */
 
 import { Box, Paper, Typography, Stack, Skeleton, Tooltip } from '@mui/material'
+import { useI18n } from '../../context/i18n'
 import DescriptionIcon from '@mui/icons-material/Description'
 import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import PeopleIcon from '@mui/icons-material/People'
@@ -229,6 +230,7 @@ export function BusinessMetricsPanel({ data, isLoading = false }) {
     )
   }
 
+  const { t } = useI18n()
   const { solicitudes = {}, usuarios = {}, materiales = {} } = data
 
   return (
@@ -250,22 +252,22 @@ export function BusinessMetricsPanel({ data, isLoading = false }) {
           }}
         >
           <MetricCard
-            title="Solicitudes Hoy"
+            title={t("admin_metrics_requests_today", "Solicitudes Hoy")}
             value={solicitudes.hoy || 0}
             icon={DescriptionIcon}
             variant="primary"
             tooltip="Cantidad de solicitudes de materiales creadas en el dia actual"
           />
           <MetricCard
-            title="Pendientes"
+            title={t("admin_metrics_pending", "Pendientes")}
             value={solicitudes.pendientes || 0}
             icon={AccessTimeIcon}
             variant={solicitudes.pendientes > 10 ? 'warning' : 'default'}
-            subtitle={solicitudes.pendientes > 10 ? 'Requiere atencion' : null}
+            subtitle={solicitudes.pendientes > 10 ? t("admin_metrics_requires_attention", "Requiere atencion") : null}
             tooltip="Solicitudes en estado 'Enviada' esperando aprobacion o revision"
           />
           <MetricCard
-            title="Usuarios Activos (24h)"
+            title={t("admin_metrics_active_users", "Usuarios Activos (24h)")}
             value={usuarios.activos_24h || 0}
             icon={PeopleIcon}
             variant="success"
@@ -273,10 +275,10 @@ export function BusinessMetricsPanel({ data, isLoading = false }) {
             tooltip="Usuarios unicos que iniciaron sesion en las ultimas 24 horas"
           />
           <MetricCard
-            title="Materiales (Mes)"
+            title={t("admin_metrics_materials_month", "Materiales (Mes)")}
             value={materiales.unicos_mes || 0}
             icon={InventoryIcon}
-            subtitle="Unicos solicitados"
+            subtitle={t("admin_metrics_unique_requested", "Unicos solicitados")}
             tooltip="Cantidad de materiales distintos (por codigo SAP) solicitados en los ultimos 30 dias"
           />
         </Box>

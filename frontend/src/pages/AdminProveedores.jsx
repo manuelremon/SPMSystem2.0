@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { useI18n } from "../context/i18n";
 import {
   Container,
   Paper,
@@ -57,6 +58,7 @@ const initialFormExterno = {
 };
 
 export default function AdminProveedores() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") === "externos" ? 1 : 0;
@@ -127,16 +129,16 @@ export default function AdminProveedores() {
 
   // Columns for internos (AG Grid format)
   const columnDefsInternos = useMemo(() => [
-    { field: "centro", headerName: "Centro", flex: 0.4, minWidth: 80 },
-    { field: "centro_nombre", headerName: "Nombre Centro", flex: 1, minWidth: 150 },
-    { field: "almacen", headerName: "Almacén", flex: 0.4, minWidth: 80 },
-    { field: "almacen_nombre", headerName: "Nombre Almacén", flex: 1, minWidth: 150 },
-    { field: "sector", headerName: "Sector", flex: 0.6, minWidth: 100 },
-    { field: "responsable_centro", headerName: "Responsable", flex: 0.8, minWidth: 120 },
-    { field: "contacto_centro", headerName: "Contacto", flex: 1, minWidth: 150 },
+    { field: "centro", headerName: t('admin_prov_centro', 'Centro'), flex: 0.4, minWidth: 80 },
+    { field: "centro_nombre", headerName: t('admin_prov_nombre_centro', 'Nombre Centro'), flex: 1, minWidth: 150 },
+    { field: "almacen", headerName: t('admin_prov_almacen', 'Almacén'), flex: 0.4, minWidth: 80 },
+    { field: "almacen_nombre", headerName: t('admin_prov_nombre_almacen', 'Nombre Almacén'), flex: 1, minWidth: 150 },
+    { field: "sector", headerName: t('admin_prov_sector', 'Sector'), flex: 0.6, minWidth: 100 },
+    { field: "responsable_centro", headerName: t('admin_prov_responsable', 'Responsable'), flex: 0.8, minWidth: 120 },
+    { field: "contacto_centro", headerName: t('admin_prov_contacto', 'Contacto'), flex: 1, minWidth: 150 },
     {
       field: "activo",
-      headerName: "Estado",
+      headerName: t('admin_prov_estado', 'Estado'),
       flex: 0.5,
       minWidth: 80,
       cellRenderer: (params) => (
@@ -149,13 +151,13 @@ export default function AdminProveedores() {
             fontSize: "11px",
           }}
         >
-          {params.value ? "Activo" : "Inactivo"}
+          {params.value ? t('admin_prov_activo', 'Activo') : t('admin_prov_inactivo', 'Inactivo')}
         </Typography>
       ),
     },
     {
       field: "acciones",
-      headerName: "Acciones",
+      headerName: t('admin_prov_acciones', 'Acciones'),
       flex: 0.6,
       minWidth: 150,
       sortable: false,
@@ -167,7 +169,7 @@ export default function AdminProveedores() {
             onClick={() => handleEditInterno(params.data)}
             sx={{ minWidth: 60, textTransform: "uppercase", fontSize: "11px" }}
           >
-            Editar
+            {t('admin_prov_editar', 'Editar')}
           </Button>
           <Button
             size="small"
@@ -176,29 +178,29 @@ export default function AdminProveedores() {
             onClick={() => setDeleteDialogInterno({ open: true, item: params.data })}
             sx={{ minWidth: 60, textTransform: "uppercase", fontSize: "11px" }}
           >
-            Eliminar
+            {t('admin_prov_eliminar', 'Eliminar')}
           </Button>
         </Box>
       ),
     },
-  ], []);
+  ], [t]);
 
   // Columns for externos (AG Grid format)
   const columnDefsExternos = useMemo(() => [
-    { field: "cuit", headerName: "CUIT", flex: 0.6, minWidth: 120 },
-    { field: "nombre", headerName: "Nombre", flex: 1, minWidth: 180 },
-    { field: "localidad", headerName: "Localidad", flex: 0.8, minWidth: 120 },
-    { field: "rubro", headerName: "Rubro", flex: 0.8, minWidth: 120 },
+    { field: "cuit", headerName: t('admin_prov_cuit', 'CUIT'), flex: 0.6, minWidth: 120 },
+    { field: "nombre", headerName: t('admin_prov_nombre', 'Nombre'), flex: 1, minWidth: 180 },
+    { field: "localidad", headerName: t('admin_prov_localidad', 'Localidad'), flex: 0.8, minWidth: 120 },
+    { field: "rubro", headerName: t('admin_prov_rubro', 'Rubro'), flex: 0.8, minWidth: 120 },
     {
       field: "lead_time_dias",
-      headerName: "Lead Time",
+      headerName: t('admin_prov_lead_time', 'Lead Time'),
       flex: 0.5,
       minWidth: 100,
       valueFormatter: (params) => `${params.value || 0} días`,
     },
     {
       field: "calificacion",
-      headerName: "Calificación",
+      headerName: t('admin_prov_calificacion', 'Calificación'),
       flex: 0.7,
       minWidth: 130,
       cellRenderer: (params) => {
@@ -220,7 +222,7 @@ export default function AdminProveedores() {
     },
     {
       field: "activo",
-      headerName: "Estado",
+      headerName: t('admin_prov_estado', 'Estado'),
       flex: 0.5,
       minWidth: 80,
       cellRenderer: (params) => (
@@ -233,13 +235,13 @@ export default function AdminProveedores() {
             fontSize: "11px",
           }}
         >
-          {params.value ? "Activo" : "Inactivo"}
+          {params.value ? t('admin_prov_activo', 'Activo') : t('admin_prov_inactivo', 'Inactivo')}
         </Typography>
       ),
     },
     {
       field: "acciones",
-      headerName: "Acciones",
+      headerName: t('admin_prov_acciones', 'Acciones'),
       flex: 0.6,
       minWidth: 150,
       sortable: false,
@@ -251,7 +253,7 @@ export default function AdminProveedores() {
             onClick={() => handleEditExterno(params.data)}
             sx={{ minWidth: 60, textTransform: "uppercase", fontSize: "11px" }}
           >
-            Editar
+            {t('admin_prov_editar', 'Editar')}
           </Button>
           <Button
             size="small"
@@ -260,12 +262,12 @@ export default function AdminProveedores() {
             onClick={() => setDeleteDialogExterno({ open: true, item: params.data })}
             sx={{ minWidth: 60, textTransform: "uppercase", fontSize: "11px" }}
           >
-            Eliminar
+            {t('admin_prov_eliminar', 'Eliminar')}
           </Button>
         </Box>
       ),
     },
-  ], []);
+  ], [t]);
 
   // Handlers Internos
   const handleEditInterno = useCallback((row) => {
@@ -431,7 +433,7 @@ export default function AdminProveedores() {
               <ArrowBack />
             </IconButton>
             <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Proveedores
+              {t('admin_prov_title', 'Proveedores')}
             </Typography>
           </Box>
           <Button
@@ -439,7 +441,7 @@ export default function AdminProveedores() {
             onClick={tab === 0 ? handleNewInterno : handleNewExterno}
             sx={{ textTransform: "uppercase" }}
           >
-            Nuevo
+            {t('admin_prov_nuevo', 'Nuevo')}
           </Button>
         </Box>
       </Box>
@@ -451,8 +453,8 @@ export default function AdminProveedores() {
       {/* Tabs */}
       <Box sx={{ mb: 2 }}>
         <Tabs value={tab} onChange={(e, v) => setTab(v)}>
-          <Tab label="Internos (Almacenes)" sx={{ textTransform: "uppercase", fontWeight: 600 }} />
-          <Tab label="Externos" sx={{ textTransform: "uppercase", fontWeight: 600 }} />
+          <Tab label={t('admin_prov_tab_internos', 'Internos (Almacenes)')} sx={{ textTransform: "uppercase", fontWeight: 600 }} />
+          <Tab label={t('admin_prov_tab_externos', 'Externos')} sx={{ textTransform: "uppercase", fontWeight: 600 }} />
         </Tabs>
       </Box>
 
@@ -497,7 +499,7 @@ export default function AdminProveedores() {
       {/* Modal Formulario Interno */}
       <Dialog open={showFormInterno} onClose={() => setShowFormInterno(false)} maxWidth="md" fullWidth>
         <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700 }}>
-          {editingInterno ? "Editar Proveedor Interno" : "Nuevo Proveedor Interno"}
+          {editingInterno ? t('admin_prov_editar_interno', 'Editar Proveedor Interno') : t('admin_prov_nuevo_interno', 'Nuevo Proveedor Interno')}
         </DialogTitle>
         <form onSubmit={handleSubmitInterno}>
           <DialogContent dividers>
@@ -508,7 +510,7 @@ export default function AdminProveedores() {
                   fullWidth
                   size="small"
                   name="centro"
-                  label="Centro"
+                  label={t('admin_prov_centro', 'Centro')}
                   value={formInterno.centro}
                   onChange={(e) => setFormInterno(prev => ({ ...prev, centro: e.target.value }))}
                   required
@@ -521,7 +523,7 @@ export default function AdminProveedores() {
                   fullWidth
                   size="small"
                   name="almacen"
-                  label="Almacén"
+                  label={t('admin_prov_almacen', 'Almacén')}
                   value={formInterno.almacen}
                   onChange={(e) => setFormInterno(prev => ({ ...prev, almacen: e.target.value }))}
                   required
@@ -534,7 +536,7 @@ export default function AdminProveedores() {
                   fullWidth
                   size="small"
                   name="centro_nombre"
-                  label="Nombre Centro"
+                  label={t('admin_prov_nombre_centro', 'Nombre Centro')}
                   value={formInterno.centro_nombre}
                   onChange={(e) => setFormInterno(prev => ({ ...prev, centro_nombre: e.target.value }))}
                   slotProps={{ inputLabel: { shrink: true } }}
@@ -545,7 +547,7 @@ export default function AdminProveedores() {
                   fullWidth
                   size="small"
                   name="almacen_nombre"
-                  label="Nombre Almacén"
+                  label={t('admin_prov_nombre_almacen', 'Nombre Almacén')}
                   value={formInterno.almacen_nombre}
                   onChange={(e) => setFormInterno(prev => ({ ...prev, almacen_nombre: e.target.value }))}
                   slotProps={{ inputLabel: { shrink: true } }}
@@ -556,7 +558,7 @@ export default function AdminProveedores() {
                   fullWidth
                   size="small"
                   name="sector"
-                  label="Sector"
+                  label={t('admin_prov_sector', 'Sector')}
                   value={formInterno.sector}
                   onChange={(e) => setFormInterno(prev => ({ ...prev, sector: e.target.value }))}
                   slotProps={{ inputLabel: { shrink: true } }}
@@ -567,7 +569,7 @@ export default function AdminProveedores() {
                   fullWidth
                   size="small"
                   name="responsable_centro"
-                  label="Responsable Depósito"
+                  label={t('admin_prov_responsable_deposito', 'Responsable Depósito')}
                   value={formInterno.responsable_centro}
                   onChange={(e) => setFormInterno(prev => ({ ...prev, responsable_centro: e.target.value }))}
                   slotProps={{ inputLabel: { shrink: true } }}
@@ -578,7 +580,7 @@ export default function AdminProveedores() {
                   fullWidth
                   size="small"
                   name="contacto_centro"
-                  label="Contacto Centro"
+                  label={t('admin_prov_contacto_centro', 'Contacto Centro')}
                   type="email"
                   value={formInterno.contacto_centro}
                   onChange={(e) => setFormInterno(prev => ({ ...prev, contacto_centro: e.target.value }))}
@@ -590,7 +592,7 @@ export default function AdminProveedores() {
                   fullWidth
                   size="small"
                   name="referente_nombre"
-                  label="Referente Nombre"
+                  label={t('admin_prov_referente_nombre', 'Referente Nombre')}
                   value={formInterno.referente_nombre}
                   onChange={(e) => setFormInterno(prev => ({ ...prev, referente_nombre: e.target.value }))}
                   slotProps={{ inputLabel: { shrink: true } }}
@@ -601,7 +603,7 @@ export default function AdminProveedores() {
                   fullWidth
                   size="small"
                   name="referente_email"
-                  label="Referente Email"
+                  label={t('admin_prov_referente_email', 'Referente Email')}
                   type="email"
                   value={formInterno.referente_email}
                   onChange={(e) => setFormInterno(prev => ({ ...prev, referente_email: e.target.value }))}
@@ -613,7 +615,7 @@ export default function AdminProveedores() {
                   fullWidth
                   size="small"
                   name="notas"
-                  label="Notas"
+                  label={t('admin_prov_notas', 'Notas')}
                   value={formInterno.notas}
                   onChange={(e) => setFormInterno(prev => ({ ...prev, notas: e.target.value }))}
                   multiline
@@ -625,10 +627,10 @@ export default function AdminProveedores() {
           </DialogContent>
           <DialogActions sx={{ p: 2, gap: 1 }}>
             <Button variant="outlined" color="inherit" onClick={() => setShowFormInterno(false)} disabled={submitting} sx={{ textTransform: "uppercase", color: "text.secondary", borderColor: "divider" }}>
-              Cancelar
+              {t('admin_prov_cancelar', 'Cancelar')}
             </Button>
             <Button type="submit" variant="contained" disabled={submitting} startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : null} sx={{ textTransform: "uppercase" }}>
-              {submitting ? "Guardando..." : editingInterno ? "Actualizar" : "Crear"}
+              {submitting ? t('admin_prov_guardando', 'Guardando...') : editingInterno ? t('admin_prov_actualizar', 'Actualizar') : t('admin_prov_crear', 'Crear')}
             </Button>
           </DialogActions>
         </form>
@@ -637,7 +639,7 @@ export default function AdminProveedores() {
       {/* Modal Formulario Externo */}
       <Dialog open={showFormExterno} onClose={() => setShowFormExterno(false)} maxWidth="md" fullWidth>
         <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700 }}>
-          {editingExterno ? "Editar Proveedor Externo" : "Nuevo Proveedor Externo"}
+          {editingExterno ? t('admin_prov_editar_externo', 'Editar Proveedor Externo') : t('admin_prov_nuevo_externo', 'Nuevo Proveedor Externo')}
         </DialogTitle>
         <form onSubmit={handleSubmitExterno}>
           <DialogContent dividers>
@@ -648,7 +650,7 @@ export default function AdminProveedores() {
                   fullWidth
                   size="small"
                   name="cuit"
-                  label="CUIT"
+                  label={t('admin_prov_cuit', 'CUIT')}
                   value={formExterno.cuit}
                   onChange={(e) => setFormExterno(prev => ({ ...prev, cuit: e.target.value }))}
                   required
@@ -661,7 +663,7 @@ export default function AdminProveedores() {
                   fullWidth
                   size="small"
                   name="nombre"
-                  label="Nombre"
+                  label={t('admin_prov_nombre', 'Nombre')}
                   value={formExterno.nombre}
                   onChange={(e) => setFormExterno(prev => ({ ...prev, nombre: e.target.value }))}
                   required
@@ -673,7 +675,7 @@ export default function AdminProveedores() {
                   fullWidth
                   size="small"
                   name="direccion"
-                  label="Dirección"
+                  label={t('admin_prov_direccion', 'Dirección')}
                   value={formExterno.direccion}
                   onChange={(e) => setFormExterno(prev => ({ ...prev, direccion: e.target.value }))}
                   slotProps={{ inputLabel: { shrink: true } }}
@@ -684,7 +686,7 @@ export default function AdminProveedores() {
                   fullWidth
                   size="small"
                   name="localidad"
-                  label="Localidad"
+                  label={t('admin_prov_localidad', 'Localidad')}
                   value={formExterno.localidad}
                   onChange={(e) => setFormExterno(prev => ({ ...prev, localidad: e.target.value }))}
                   slotProps={{ inputLabel: { shrink: true } }}
@@ -695,7 +697,7 @@ export default function AdminProveedores() {
                   fullWidth
                   size="small"
                   name="rubro"
-                  label="Rubro"
+                  label={t('admin_prov_rubro', 'Rubro')}
                   value={formExterno.rubro}
                   onChange={(e) => setFormExterno(prev => ({ ...prev, rubro: e.target.value }))}
                   slotProps={{ inputLabel: { shrink: true } }}
@@ -707,13 +709,13 @@ export default function AdminProveedores() {
                   fullWidth
                   size="small"
                   name="origen"
-                  label="Origen"
+                  label={t('admin_prov_origen', 'Origen')}
                   value={formExterno.origen}
                   onChange={(e) => setFormExterno(prev => ({ ...prev, origen: e.target.value }))}
                   slotProps={{ inputLabel: { shrink: true } }}
                 >
-                  <MenuItem value="local">Local</MenuItem>
-                  <MenuItem value="importado">Importado</MenuItem>
+                  <MenuItem value="local">{t('admin_prov_origen_local', 'Local')}</MenuItem>
+                  <MenuItem value="importado">{t('admin_prov_origen_importado', 'Importado')}</MenuItem>
                 </TextField>
               </Grid>
               <Grid size={{ xs: 12, md: 4 }}>
@@ -721,7 +723,7 @@ export default function AdminProveedores() {
                   fullWidth
                   size="small"
                   name="lead_time_dias"
-                  label="Lead Time (días)"
+                  label={t('admin_prov_lead_time_label', 'Lead Time (días)')}
                   type="number"
                   value={formExterno.lead_time_dias}
                   onChange={(e) => setFormExterno(prev => ({ ...prev, lead_time_dias: Number(e.target.value) }))}
@@ -734,7 +736,7 @@ export default function AdminProveedores() {
                   fullWidth
                   size="small"
                   name="calificacion"
-                  label="Calificación"
+                  label={t('admin_prov_calificacion', 'Calificación')}
                   value={formExterno.calificacion}
                   onChange={(e) => setFormExterno(prev => ({ ...prev, calificacion: e.target.value }))}
                   slotProps={{ inputLabel: { shrink: true } }}
@@ -748,10 +750,10 @@ export default function AdminProveedores() {
           </DialogContent>
           <DialogActions sx={{ p: 2, gap: 1 }}>
             <Button variant="outlined" color="inherit" onClick={() => setShowFormExterno(false)} disabled={submitting} sx={{ textTransform: "uppercase", color: "text.secondary", borderColor: "divider" }}>
-              Cancelar
+              {t('admin_prov_cancelar', 'Cancelar')}
             </Button>
             <Button type="submit" variant="contained" disabled={submitting} startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : null} sx={{ textTransform: "uppercase" }}>
-              {submitting ? "Guardando..." : editingExterno ? "Actualizar" : "Crear"}
+              {submitting ? t('admin_prov_guardando', 'Guardando...') : editingExterno ? t('admin_prov_actualizar', 'Actualizar') : t('admin_prov_crear', 'Crear')}
             </Button>
           </DialogActions>
         </form>
@@ -759,36 +761,36 @@ export default function AdminProveedores() {
 
       {/* Modal Eliminar Interno */}
       <Dialog open={deleteDialogInterno.open} onClose={() => setDeleteDialogInterno({ open: false, item: null })}>
-        <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700, color: "error.main" }}>Eliminar</DialogTitle>
+        <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700, color: "error.main" }}>{t('admin_prov_eliminar', 'Eliminar')}</DialogTitle>
         <DialogContent>
           <Typography>
-            ¿Eliminar el proveedor interno <strong>{deleteDialogInterno.item?.centro_nombre || deleteDialogInterno.item?.centro}</strong> - <strong>{deleteDialogInterno.item?.almacen_nombre || deleteDialogInterno.item?.almacen}</strong>?
+            {t('admin_prov_confirmar_eliminar_interno', '¿Eliminar el proveedor interno')} <strong>{deleteDialogInterno.item?.centro_nombre || deleteDialogInterno.item?.centro}</strong> - <strong>{deleteDialogInterno.item?.almacen_nombre || deleteDialogInterno.item?.almacen}</strong>?
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
           <Button variant="outlined" color="inherit" onClick={() => setDeleteDialogInterno({ open: false, item: null })} disabled={submitting} sx={{ textTransform: "uppercase", color: "text.secondary", borderColor: "divider" }}>
-            Cancelar
+            {t('admin_prov_cancelar', 'Cancelar')}
           </Button>
           <Button variant="contained" color="error" onClick={handleDeleteInterno} disabled={submitting} startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : null} sx={{ textTransform: "uppercase" }}>
-            {submitting ? "Eliminando..." : "Eliminar"}
+            {submitting ? t('admin_prov_eliminando', 'Eliminando...') : t('admin_prov_eliminar', 'Eliminar')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Modal Eliminar Externo */}
       <Dialog open={deleteDialogExterno.open} onClose={() => setDeleteDialogExterno({ open: false, item: null })}>
-        <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700, color: "error.main" }}>Eliminar</DialogTitle>
+        <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700, color: "error.main" }}>{t('admin_prov_eliminar', 'Eliminar')}</DialogTitle>
         <DialogContent>
           <Typography>
-            ¿Eliminar el proveedor externo <strong>{deleteDialogExterno.item?.nombre}</strong> ({deleteDialogExterno.item?.cuit})?
+            {t('admin_prov_confirmar_eliminar_externo', '¿Eliminar el proveedor externo')} <strong>{deleteDialogExterno.item?.nombre}</strong> ({deleteDialogExterno.item?.cuit})?
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
           <Button variant="outlined" color="inherit" onClick={() => setDeleteDialogExterno({ open: false, item: null })} disabled={submitting} sx={{ textTransform: "uppercase", color: "text.secondary", borderColor: "divider" }}>
-            Cancelar
+            {t('admin_prov_cancelar', 'Cancelar')}
           </Button>
           <Button variant="contained" color="error" onClick={handleDeleteExterno} disabled={submitting} startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : null} sx={{ textTransform: "uppercase" }}>
-            {submitting ? "Eliminando..." : "Eliminar"}
+            {submitting ? t('admin_prov_eliminando', 'Eliminando...') : t('admin_prov_eliminar', 'Eliminar')}
           </Button>
         </DialogActions>
       </Dialog>

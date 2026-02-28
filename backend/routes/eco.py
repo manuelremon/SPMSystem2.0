@@ -3,11 +3,15 @@ Engineering Change Order (ECO) Routes
 Endpoints para órdenes de cambio de ingeniería (Sprint 72)
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_auth
 from backend.services import eco_service
+
+logger = logging.getLogger(__name__)
 
 eco_bp = Blueprint('eco', __name__, url_prefix='/api/eco')
 
@@ -29,7 +33,7 @@ def obtener_ecos():
         ecos['ok'] = True
         return jsonify(ecos), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="eco")
 
 
 @eco_bp.route('/', methods=['POST'])
@@ -41,7 +45,7 @@ def crear_eco():
         eco = eco_service.crear_eco(data)
         return jsonify(eco), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="eco")
 
 
 @eco_bp.route('/<int:id>', methods=['GET'])
@@ -52,7 +56,7 @@ def obtener_detalle_eco(id):
         detalle = eco_service.obtener_detalle_eco(id)
         return jsonify(detalle), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="eco")
 
 
 @eco_bp.route('/<int:id>', methods=['PUT'])
@@ -64,7 +68,7 @@ def actualizar_eco(id):
         eco = eco_service.actualizar_eco(id, data)
         return jsonify(eco), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="eco")
 
 
 @eco_bp.route('/<int:id>/changes', methods=['POST'])
@@ -77,7 +81,7 @@ def agregar_cambios(id):
         resultado = eco_service.agregar_cambios(id, cambios)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="eco")
 
 
 @eco_bp.route('/<int:id>/submit', methods=['POST'])
@@ -89,7 +93,7 @@ def solicitar_aprobacion(id):
         resultado = eco_service.solicitar_aprobacion(id, user_id)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="eco")
 
 
 @eco_bp.route('/<int:id>/approve', methods=['PUT'])
@@ -103,7 +107,7 @@ def aprobar_eco(id):
         resultado = eco_service.aprobar_eco(id, user_id, comentarios)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="eco")
 
 
 @eco_bp.route('/<int:id>/reject', methods=['PUT'])
@@ -117,7 +121,7 @@ def rechazar_eco(id):
         resultado = eco_service.rechazar_eco(id, user_id, comentarios)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="eco")
 
 
 @eco_bp.route('/<int:id>/implement', methods=['POST'])
@@ -129,7 +133,7 @@ def implementar_eco(id):
         resultado = eco_service.implementar_eco(id, user_id)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="eco")
 
 
 @eco_bp.route('/<int:id>/impact', methods=['GET'])
@@ -140,7 +144,7 @@ def obtener_impacto(id):
         impacto = eco_service.obtener_impacto(id)
         return jsonify(impacto), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="eco")
 
 
 @eco_bp.route('/kpis', methods=['GET'])
@@ -152,4 +156,4 @@ def obtener_kpis():
         kpis['ok'] = True
         return jsonify(kpis), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="eco")

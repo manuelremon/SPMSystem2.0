@@ -3,10 +3,15 @@ Kitting & Light Assembly Routes
 Endpoints para kitting y ensamblaje ligero (Sprint 73)
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
+from backend.core.helpers import safe_error_response
 from backend.core.roles import require_auth
 from backend.services import kitting_service
+
+logger = logging.getLogger(__name__)
 
 kitting_bp = Blueprint('kitting', __name__, url_prefix='/api/kitting')
 
@@ -25,7 +30,7 @@ def obtener_boms():
         boms = kitting_service.obtener_boms(filtros)
         return jsonify({'ok': True, 'items': boms}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kitting")
 
 
 @kitting_bp.route('/boms', methods=['POST'])
@@ -37,7 +42,7 @@ def crear_bom():
         bom = kitting_service.crear_bom(data)
         return jsonify(bom), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kitting")
 
 
 @kitting_bp.route('/boms/<int:id>', methods=['GET'])
@@ -48,7 +53,7 @@ def obtener_detalle_bom(id):
         detalle = kitting_service.obtener_detalle_bom(id)
         return jsonify(detalle), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kitting")
 
 
 @kitting_bp.route('/boms/<int:id>', methods=['PUT'])
@@ -60,7 +65,7 @@ def actualizar_bom(id):
         bom = kitting_service.actualizar_bom(id, data)
         return jsonify(bom), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kitting")
 
 
 @kitting_bp.route('/boms/<int:id>/components', methods=['POST'])
@@ -72,7 +77,7 @@ def agregar_componente(id):
         componente = kitting_service.agregar_componente(id, data)
         return jsonify(componente), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kitting")
 
 
 @kitting_bp.route('/boms/<int:id>/components/<int:comp_id>', methods=['DELETE'])
@@ -83,7 +88,7 @@ def eliminar_componente(id, comp_id):
         resultado = kitting_service.eliminar_componente(id, comp_id)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kitting")
 
 
 @kitting_bp.route('/orders', methods=['GET'])
@@ -103,7 +108,7 @@ def obtener_ordenes():
         ordenes['ok'] = True
         return jsonify(ordenes), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kitting")
 
 
 @kitting_bp.route('/orders', methods=['POST'])
@@ -115,7 +120,7 @@ def crear_orden():
         orden = kitting_service.crear_orden(data)
         return jsonify(orden), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kitting")
 
 
 @kitting_bp.route('/orders/<int:id>', methods=['GET'])
@@ -126,7 +131,7 @@ def obtener_detalle_orden(id):
         detalle = kitting_service.obtener_detalle_orden(id)
         return jsonify(detalle), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kitting")
 
 
 @kitting_bp.route('/orders/<int:id>/allocate', methods=['POST'])
@@ -137,7 +142,7 @@ def asignar_componentes(id):
         resultado = kitting_service.asignar_componentes(id)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kitting")
 
 
 @kitting_bp.route('/orders/<int:id>/start', methods=['PUT'])
@@ -148,7 +153,7 @@ def iniciar_produccion(id):
         resultado = kitting_service.iniciar_produccion(id)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kitting")
 
 
 @kitting_bp.route('/orders/<int:id>/complete', methods=['PUT'])
@@ -159,7 +164,7 @@ def completar_orden(id):
         resultado = kitting_service.completar_orden(id)
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kitting")
 
 
 @kitting_bp.route('/orders/<int:id>/availability', methods=['GET'])
@@ -170,7 +175,7 @@ def verificar_disponibilidad(id):
         disponibilidad = kitting_service.verificar_disponibilidad(id)
         return jsonify(disponibilidad), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kitting")
 
 
 @kitting_bp.route('/kpis', methods=['GET'])
@@ -182,4 +187,4 @@ def obtener_kpis():
         kpis['ok'] = True
         return jsonify(kpis), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kitting")

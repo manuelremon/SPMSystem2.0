@@ -2,11 +2,15 @@
 Rutas para gestión de garantías y reclamos
 Fecha: 2026-02-15
 """
+import logging
+
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_auth
 from backend.services import warranty_service
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint('warranty', __name__, url_prefix='/api/warranty')
 
@@ -34,7 +38,7 @@ def get_garantias():
         return jsonify(result), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warranty")
 
 
 @bp.route('/', methods=['POST'])
@@ -64,7 +68,7 @@ def create_garantia():
         return jsonify({'id': garantia_id, 'message': 'Garantía creada exitosamente'}), 201
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warranty")
 
 
 @bp.route('/claims', methods=['GET'])
@@ -92,7 +96,7 @@ def get_reclamos():
         return jsonify(result), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warranty")
 
 
 @bp.route('/claims', methods=['POST'])
@@ -124,7 +128,7 @@ def create_reclamo():
         }), 201
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warranty")
 
 
 @bp.route('/claims/<int:reclamo_id>', methods=['GET'])
@@ -140,7 +144,7 @@ def get_reclamo_detalle(reclamo_id):
         return jsonify(reclamo), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warranty")
 
 
 @bp.route('/claims/<int:reclamo_id>/submit', methods=['PUT'])
@@ -156,7 +160,7 @@ def submit_reclamo(reclamo_id):
         return jsonify({'message': 'Reclamo enviado exitosamente'}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warranty")
 
 
 @bp.route('/claims/<int:reclamo_id>/review', methods=['PUT'])
@@ -175,7 +179,7 @@ def review_reclamo(reclamo_id):
         return jsonify({'message': 'Reclamo puesto en revisión'}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warranty")
 
 
 @bp.route('/claims/<int:reclamo_id>/approve', methods=['PUT'])
@@ -194,7 +198,7 @@ def approve_reclamo(reclamo_id):
         return jsonify({'message': 'Reclamo aprobado exitosamente'}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warranty")
 
 
 @bp.route('/claims/<int:reclamo_id>/reject', methods=['PUT'])
@@ -213,7 +217,7 @@ def reject_reclamo(reclamo_id):
         return jsonify({'message': 'Reclamo rechazado'}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warranty")
 
 
 @bp.route('/claims/<int:reclamo_id>/resolve', methods=['PUT'])
@@ -243,7 +247,7 @@ def resolve_reclamo(reclamo_id):
         return jsonify({'message': 'Reclamo resuelto exitosamente'}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warranty")
 
 
 @bp.route('/claims/<int:reclamo_id>/documents', methods=['POST'])
@@ -272,7 +276,7 @@ def add_documento(reclamo_id):
         }), 201
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warranty")
 
 
 @bp.route('/kpis', methods=['GET'])
@@ -284,4 +288,4 @@ def get_kpis():
         return jsonify(kpis), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warranty")

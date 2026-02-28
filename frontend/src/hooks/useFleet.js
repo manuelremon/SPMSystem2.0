@@ -2,28 +2,26 @@
  * useFleet - Custom hook for FMS fleet operations
  */
 import { useState, useCallback, useEffect } from 'react'
-import { useFmsStore } from '../store/fmsStore'
+import { useFmsStore, useFmsVehicles, useFmsCurrentVehicle } from '../store/fmsStore'
 
 export function useFleet(autoFetch = false) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const {
-    vehicles,
-    currentVehicle,
-    drivers,
-    currentDriver,
-    availableVehicles,
-    availableDrivers,
-    fetchVehicles,
-    fetchVehicle,
-    createVehicle,
-    fetchAvailableVehicles,
-    fetchDrivers,
-    fetchDriver,
-    createDriver,
-    fetchAvailableDrivers,
-  } = useFmsStore()
+  const vehicles = useFmsVehicles()
+  const currentVehicle = useFmsCurrentVehicle()
+  const drivers = useFmsStore(s => s.drivers)
+  const currentDriver = useFmsStore(s => s.currentDriver)
+  const availableVehicles = useFmsStore(s => s.availableVehicles)
+  const availableDrivers = useFmsStore(s => s.availableDrivers)
+  const fetchVehicles = useFmsStore(s => s.fetchVehicles)
+  const fetchVehicle = useFmsStore(s => s.fetchVehicle)
+  const createVehicle = useFmsStore(s => s.createVehicle)
+  const fetchAvailableVehicles = useFmsStore(s => s.fetchAvailableVehicles)
+  const fetchDrivers = useFmsStore(s => s.fetchDrivers)
+  const fetchDriver = useFmsStore(s => s.fetchDriver)
+  const createDriver = useFmsStore(s => s.createDriver)
+  const fetchAvailableDrivers = useFmsStore(s => s.fetchAvailableDrivers)
 
   const loadVehicles = useCallback(async (params = {}) => {
     setLoading(true)

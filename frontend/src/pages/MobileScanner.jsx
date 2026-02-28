@@ -15,12 +15,14 @@ import {
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
+import { useI18n } from '../context/i18n';
 import api from '../services/api';
 
 const READER_ID = 'mobile-scanner-reader';
 
 export default function MobileScanner() {
   const { sessionId } = useParams();
+  const { t } = useI18n();
   const [error, setError] = useState('');
   const [sessionValid, setSessionValid] = useState(null); // null = loading
   const [scannedCodes, setScannedCodes] = useState([]);
@@ -32,17 +34,23 @@ export default function MobileScanner() {
 
   // Validate session on mount
   useEffect(() => {
+    let cancelled = false;
     const validate = async () => {
       try {
-        // Try submitting an empty code to check if session exists
-        // Actually, just try to GET - but it requires auth. Instead, we'll
-        // start the camera and handle 404 on first submit.
-        setSessionValid(true);
-      } catch {
+        const res = await api.get(`/scanner/session/${sessionId}`);
+        if (cancelled) return;
+        setSessionValid(res.data?.ok !== false);
+      } catch (err) {
+        if (cancelled) return;
+        // 404 = session not found, any other error = assume invalid
         setSessionValid(false);
+        setError(err.response?.status === 404
+          ? t('scanner_session_expired', 'Sesión expirada o inválida')
+          : t('scanner_session_error', 'Error al validar sesión'));
       }
     };
     validate();
+    return () => { cancelled = true; };
   }, [sessionId]);
 
   const stopCamera = useCallback(async () => {
@@ -80,13 +88,13 @@ export default function MobileScanner() {
     } catch (err) {
       const status = err?.response?.status;
       if (status === 404) {
-        setError('La sesión ha expirado o no existe. Generá un nuevo QR desde la PC.');
+        setError(t("scanner_mobile_session_expired", "La sesion ha expirado o no existe. Genera un nuevo QR desde la PC."));
         await stopCamera();
         setSessionValid(false);
       } else if (status === 429) {
-        setError('Se alcanzó el límite de códigos por sesión (máx. 10).');
+        setError(t("scanner_mobile_limit", "Se alcanzo el limite de codigos por sesion (max. 10)."));
       } else {
-        setError('Error al enviar el código. Intentá de nuevo.');
+        setError(t("scanner_mobile_error_send", "Error al enviar el codigo. Intenta de nuevo."));
       }
     }
   }, [sessionId, stopCamera]);
@@ -108,7 +116,7 @@ export default function MobileScanner() {
       );
       setCameraActive(true);
     } catch {
-      setError('No se pudo acceder a la cámara. Verificá los permisos del navegador.');
+      setError(t("scanner_mobile_no_camera", "No se pudo acceder a la camara. Verifica los permisos del navegador."));
     }
   }, [handleCodeScanned]);
 
@@ -134,10 +142,10 @@ export default function MobileScanner() {
         <Stack spacing={2} alignItems="center" sx={{ maxWidth: 360, textAlign: 'center' }}>
           <QrCodeScannerIcon sx={{ fontSize: 64, color: 'error.main', opacity: 0.6 }} />
           <Typography variant="h6" fontWeight={600}>
-            Sesión no disponible
+            {t("scanner_mobile_session_title", "Sesion no disponible")}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {error || 'Esta sesión ha expirado o no existe. Generá un nuevo QR desde la PC.'}
+            {error || t("scanner_mobile_session_expired", "La sesion ha expirado o no existe. Genera un nuevo QR desde la PC.")}
           </Typography>
         </Stack>
       </Box>
@@ -160,7 +168,7 @@ export default function MobileScanner() {
         <Box sx={{ flex: 1 }} />
         {scannedCodes.length > 0 && (
           <Chip
-            label={`${scannedCodes.length} escaneado(s)`}
+            label={t("scanner_mobile_scanned", `${scannedCodes.length} escaneado(s)`)}
             size="small"
             sx={{ bgcolor: 'success.main', color: '#fff', fontWeight: 600 }}
           />
@@ -218,7 +226,7 @@ export default function MobileScanner() {
               onClick={startCamera}
               sx={{ textTransform: 'none' }}
             >
-              Iniciar Cámara
+              {t("scanner_mobile_start_camera", "Iniciar Camara")}
             </Button>
           </Stack>
         )}
@@ -235,7 +243,7 @@ export default function MobileScanner() {
           onClick={() => window.close()}
           sx={{ textTransform: 'none', color: '#fff', borderColor: 'rgba(255,255,255,0.3)' }}
         >
-          Listo
+          {t("scanner_mobile_done", "Listo")}
         </Button>
       </Stack>
     </Box>

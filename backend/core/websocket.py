@@ -131,21 +131,20 @@ def _persist_subscription(user_id: Optional[int], room: str) -> None:
     from backend.core.db import get_db_transaction
 
     try:
-        with get_db_transaction() as conn:
-            cursor = conn.cursor()
-            # Crear tabla si no existe
+        with get_db_transaction() as (conn, cursor):
+            # Crear tabla si no existe (PostgreSQL syntax)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS websocket_subscriptions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id SERIAL PRIMARY KEY,
                     user_id TEXT NOT NULL,
                     room TEXT NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(user_id, room)
                 )
             """)
-            # Insertar o ignorar si ya existe
+            # Insertar o ignorar si ya existe (PostgreSQL syntax)
             cursor.execute(
-                "INSERT OR IGNORE INTO websocket_subscriptions (user_id, room) VALUES (?, ?)",
+                "INSERT INTO websocket_subscriptions (user_id, room) VALUES (%s, %s) ON CONFLICT DO NOTHING",
                 (str(user_id), room),
             )
     except Exception as e:
@@ -159,10 +158,9 @@ def _remove_subscription(user_id: Optional[int], room: str) -> None:
     from backend.core.db import get_db_transaction
 
     try:
-        with get_db_transaction() as conn:
-            cursor = conn.cursor()
+        with get_db_transaction() as (conn, cursor):
             cursor.execute(
-                "DELETE FROM websocket_subscriptions WHERE user_id = ? AND room = ?",
+                "DELETE FROM websocket_subscriptions WHERE user_id = %s AND room = %s",
                 (str(user_id), room),
             )
     except Exception as e:

@@ -26,6 +26,7 @@ from backend.core.db_optimization import (
     get_all_pool_stats,
     optimize_database,
 )
+from backend.core.helpers import safe_error_response
 from backend.core.rate_limit import rate_limit
 from backend.core.roles import require_auth
 
@@ -298,7 +299,7 @@ def get_tables():
             conn.close()
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="database.db_error")
 
     return jsonify({"ok": True, "database": db_name, "tables": tables}), 200
 
@@ -383,7 +384,7 @@ def get_table_structure(table: str):
             conn.close()
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="database.db_error")
 
     return jsonify({
         "ok": True,
@@ -456,7 +457,7 @@ def get_table_preview(table: str):
             conn.close()
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="database.db_error")
 
     return jsonify({
         "ok": True,
@@ -496,7 +497,7 @@ def run_optimize():
             result = optimize_database(db_name)
             return jsonify({"ok": True, "message": f"BD {db_name} optimizada", "result": result}), 200
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "optimize_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="database.optimize")
 
 
 @bp.route("/vacuum", methods=["POST"])
@@ -529,7 +530,7 @@ def run_vacuum():
             new_size = os.path.getsize(db_path) / (1024 * 1024)
             return jsonify({"ok": True, "message": "VACUUM completado", "new_size_mb": round(new_size, 2)}), 200
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "vacuum_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="database.vacuum")
 
 
 @bp.route("/analyze", methods=["POST"])
@@ -554,7 +555,7 @@ def run_analyze():
 
         return jsonify({"ok": True, "message": f"ANALYZE completado para {db_name}"}), 200
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "analyze_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="database.analyze")
 
 
 @bp.route("/integrity-check", methods=["POST"])
@@ -630,7 +631,7 @@ def run_integrity_check():
                 "foreign_key_details": [{"table": r[0], "rowid": r[1], "parent": r[2]} for r in fk_result[:10]],
             }), 200
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "integrity_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="database.integrity")
 
 
 @bp.route("/create-indexes", methods=["POST"])
@@ -651,7 +652,7 @@ def run_create_indexes():
         result = create_indexes(db_name)
         return jsonify({"ok": True, "message": f"Indices creados para {db_name}", "result": result}), 200
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "index_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="database.index")
 
 
 @bp.route("/pool-stats", methods=["GET"])
@@ -663,7 +664,7 @@ def get_pool_stats():
         stats = get_all_pool_stats()
         return jsonify({"ok": True, "pools": stats}), 200
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "pool_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="database.pool")
 
 
 @bp.route("/export/<db_name>", methods=["GET"])
@@ -689,7 +690,7 @@ def export_database(db_name: str):
             mimetype="application/x-sqlite3",
         )
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "export_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="database.export")
 
 
 @bp.route("/tables/<table>/export-csv", methods=["GET"])
@@ -747,7 +748,7 @@ def export_table_csv(table: str):
             mimetype="text/csv",
         )
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "export_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="database.export")
 
 
 # ==================== CRUD OPERATIONS ====================
@@ -984,7 +985,7 @@ def create_row(table: str):
         }), 201
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "insert_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="database.insert")
 
 
 @bp.route("/tables/<table>/rows", methods=["PUT"])
@@ -1035,6 +1036,11 @@ def update_row(table: str):
     invalid_columns = [k for k in filtered_data.keys() if k not in valid_column_names]
     if invalid_columns:
         return jsonify({"ok": False, "error": {"code": "invalid_columns", "message": f"Columnas invalidas: {invalid_columns}"}}), 400
+
+    # Validar PK columns contra schema real
+    invalid_pk_cols = [k for k in pk_data.keys() if k not in valid_column_names]
+    if invalid_pk_cols:
+        return jsonify({"ok": False, "error": {"code": "invalid_pk", "message": f"Columnas PK invalidas: {invalid_pk_cols}"}}), 400
 
     try:
         columns = list(filtered_data.keys())
@@ -1099,7 +1105,7 @@ def update_row(table: str):
         }), 200
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "update_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="database.update")
 
 
 @bp.route("/tables/<table>/rows", methods=["DELETE"])
@@ -1126,6 +1132,13 @@ def delete_row(table: str):
 
     if not pk_data:
         return jsonify({"ok": False, "error": {"code": "invalid_pk", "message": "No se proporciono primary key"}}), 400
+
+    # Validar PK columns contra schema real
+    table_columns = _get_table_columns_info(db_name, table)
+    valid_column_names = {c["name"] for c in table_columns}
+    invalid_pk_cols = [k for k in pk_data.keys() if k not in valid_column_names]
+    if invalid_pk_cols:
+        return jsonify({"ok": False, "error": {"code": "invalid_pk", "message": f"Columnas PK invalidas: {invalid_pk_cols}"}}), 400
 
     try:
         # Obtener datos antes de eliminar para audit
@@ -1234,7 +1247,7 @@ def delete_row(table: str):
         }), 200
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "delete_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="database.delete")
 
 
 @bp.route("/tables/<table>/columns", methods=["GET"])
@@ -1387,7 +1400,7 @@ def get_table_stats(table: str):
                 },
             }), 200
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "stats_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="database.stats")
 
 
 @bp.route("/audit-logs", methods=["GET"])
@@ -1551,7 +1564,7 @@ def get_audit_logs():
             }), 200
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "audit_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="database.audit")
 
 
 @bp.route("/connections", methods=["GET"])
@@ -1597,4 +1610,4 @@ def get_active_connections():
         }), 200
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "connections_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="database.connections")

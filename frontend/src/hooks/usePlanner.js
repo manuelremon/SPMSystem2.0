@@ -119,22 +119,25 @@ export function usePlanner({ t, filterMode }) {
 
   // Cargar catálogos
   useEffect(() => {
+    let cancelled = false;
     const fetchCatalogos = async () => {
       try {
         const res = await api.get("/catalogos");
+        if (cancelled) return;
         setCatalogos({
           centros: res.data?.centros || [],
           almacenes: res.data?.almacenes || [],
           sectores: res.data?.sectores || [],
         });
       } catch (err) {
-        // Intentar cargar individualmente si falla el combinado
+        if (cancelled) return;
         try {
           const [centrosRes, almacenesRes, sectoresRes] = await Promise.all([
             api.get("/catalogos/centros"),
             api.get("/catalogos/almacenes"),
             api.get("/catalogos/sectores"),
           ]);
+          if (cancelled) return;
           setCatalogos({
             centros: centrosRes.data || [],
             almacenes: almacenesRes.data || [],
@@ -146,6 +149,7 @@ export function usePlanner({ t, filterMode }) {
       }
     };
     fetchCatalogos();
+    return () => { cancelled = true; };
   }, []);
 
   // Limpiar todos los filtros

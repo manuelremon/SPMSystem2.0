@@ -114,17 +114,25 @@ def calcular_riesgo_proveedor(proveedor_cuit: str) -> dict:
         else:
             nivel = 'critical'
 
-        # Verificar si es fuente única
+        # Verificar si es fuente única: materiales de este proveedor
+        # donde no existe otro proveedor que los suministre
         cursor.execute(
             f"""
-            SELECT material_codigo
+            SELECT oci.material_codigo
             FROM orden_compra oc
             JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
             WHERE oc.proveedor_cuit = {placeholder}
-            GROUP BY material_codigo
-            HAVING COUNT(DISTINCT oc.proveedor_cuit) = 1
+              AND oc.estado != 'cancelled'
+            GROUP BY oci.material_codigo
+            HAVING oci.material_codigo NOT IN (
+                SELECT oci2.material_codigo
+                FROM orden_compra oc2
+                JOIN orden_compra_item oci2 ON oc2.id = oci2.orden_compra_id
+                WHERE oc2.proveedor_cuit != {placeholder}
+                  AND oc2.estado != 'cancelled'
+            )
             """,
-            (proveedor_cuit,)
+            (proveedor_cuit, proveedor_cuit)
         )
         materiales_unicos = cursor.fetchall()
         es_fuente_unica = 1 if len(materiales_unicos) > 0 else 0
@@ -202,22 +210,31 @@ def detectar_fuentes_unicas() -> list:
     cursor = conn.cursor()
 
     try:
+        # Subquery: find materials with exactly 1 distinct supplier
+        # Then join back to get supplier details
         cursor.execute("""
             SELECT
-                oci.material_codigo,
-                oc.proveedor_cuit,
+                ss.material_codigo,
+                ss.proveedor_cuit,
                 p.nombre as proveedor_nombre,
                 m.descripcion as material_descripcion,
-                COUNT(DISTINCT oc.id) as num_ordenes,
-                SUM(oci.cantidad * oci.precio_unitario) as gasto_total
-            FROM orden_compra oc
-            JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
-            LEFT JOIN proveedores p ON oc.proveedor_cuit = p.id_proveedor
-            LEFT JOIN catalogo_materiales m ON oci.material_codigo = m.codigo
-            WHERE oc.estado != 'cancelled'
-            GROUP BY oci.material_codigo, oc.proveedor_cuit, p.nombre, m.descripcion
-            HAVING COUNT(DISTINCT oc.proveedor_cuit) = 1
-            ORDER BY gasto_total DESC
+                ss.num_ordenes,
+                ss.gasto_total
+            FROM (
+                SELECT
+                    oci.material_codigo,
+                    MIN(oc.proveedor_cuit) as proveedor_cuit,
+                    COUNT(DISTINCT oc.id) as num_ordenes,
+                    SUM(oci.cantidad * oci.precio_unitario) as gasto_total
+                FROM orden_compra oc
+                JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
+                WHERE oc.estado != 'cancelled'
+                GROUP BY oci.material_codigo
+                HAVING COUNT(DISTINCT oc.proveedor_cuit) = 1
+            ) ss
+            LEFT JOIN proveedores p ON ss.proveedor_cuit = p.id_proveedor
+            LEFT JOIN catalogo_materiales m ON ss.material_codigo = m.codigo
+            ORDER BY ss.gasto_total DESC
         """)
 
         fuentes_unicas = []

@@ -49,23 +49,23 @@ def registrar_ahorro():
 
         # Validaciones
         if not data:
-            return jsonify({'error': 'No se recibieron datos'}), 400
+            return jsonify({'ok': False, 'error': 'No se recibieron datos'}), 400
 
         campos_requeridos = ['categoria', 'tipo', 'monto']
         for campo in campos_requeridos:
             if campo not in data:
-                return jsonify({'error': f'Campo requerido: {campo}'}), 400
+                return jsonify({'ok': False, 'error': f'Campo requerido: {campo}'}), 400
 
         categorias_validas = ['negotiated', 'contract', 'rfq', 'bulk', 'other']
         if data['categoria'] not in categorias_validas:
-            return jsonify({'error': f'Categoría debe ser una de: {categorias_validas}'}), 400
+            return jsonify({'ok': False, 'error': f'Categoría debe ser una de: {categorias_validas}'}), 400
 
         tipos_validos = ['hard', 'soft']
         if data['tipo'] not in tipos_validos:
-            return jsonify({'error': f'Tipo debe ser uno de: {tipos_validos}'}), 400
+            return jsonify({'ok': False, 'error': f'Tipo debe ser uno de: {tipos_validos}'}), 400
 
         if not isinstance(data['monto'], (int, float)) or data['monto'] < 0:
-            return jsonify({'error': 'Monto debe ser un número positivo'}), 400
+            return jsonify({'ok': False, 'error': 'Monto debe ser un número positivo'}), 400
 
         # Registrar ahorro
         user_id = get_current_user_id()
@@ -77,7 +77,7 @@ def registrar_ahorro():
         }), 201
 
     except Exception as e:
-        return jsonify({'error': f'Error al registrar ahorro: {str(e)}'}), 500
+        return jsonify({'ok': False, 'error': f'Error al registrar ahorro: {str(e)}'}), 500
 
 
 @bp.route('/', methods=['GET'])
@@ -124,7 +124,7 @@ def listar_ahorros():
         return jsonify(resultado), 200
 
     except Exception as e:
-        return jsonify({'error': f'Error al obtener ahorros: {str(e)}'}), 500
+        return jsonify({'ok': False, 'error': f'Error al obtener ahorros: {str(e)}'}), 500
 
 
 @bp.route('/kpis', methods=['GET'])
@@ -153,7 +153,7 @@ def obtener_kpis():
         return jsonify(kpis), 200
 
     except Exception as e:
-        return jsonify({'error': f'Error al obtener KPIs: {str(e)}'}), 500
+        return jsonify({'ok': False, 'error': f'Error al obtener KPIs: {str(e)}'}), 500
 
 
 @bp.route('/goals', methods=['POST'])
@@ -182,24 +182,24 @@ def crear_meta():
 
         # Validaciones
         if not data:
-            return jsonify({'error': 'No se recibieron datos'}), 400
+            return jsonify({'ok': False, 'error': 'No se recibieron datos'}), 400
 
         campos_requeridos = ['categoria', 'periodo', 'meta_monto']
         for campo in campos_requeridos:
             if campo not in data:
-                return jsonify({'error': f'Campo requerido: {campo}'}), 400
+                return jsonify({'ok': False, 'error': f'Campo requerido: {campo}'}), 400
 
         categorias_validas = ['negotiated', 'contract', 'rfq', 'bulk', 'other']
         if data['categoria'] not in categorias_validas:
-            return jsonify({'error': f'Categoría debe ser una de: {categorias_validas}'}), 400
+            return jsonify({'ok': False, 'error': f'Categoría debe ser una de: {categorias_validas}'}), 400
 
         # Validar formato periodo YYYYMM
         periodo = str(data['periodo'])
         if len(periodo) != 6 or not periodo.isdigit():
-            return jsonify({'error': 'Periodo debe tener formato YYYYMM'}), 400
+            return jsonify({'ok': False, 'error': 'Periodo debe tener formato YYYYMM'}), 400
 
         if not isinstance(data['meta_monto'], (int, float)) or data['meta_monto'] < 0:
-            return jsonify({'error': 'Meta monto debe ser un número positivo'}), 400
+            return jsonify({'ok': False, 'error': 'Meta monto debe ser un número positivo'}), 400
 
         # Crear meta
         user_id = get_current_user_id()
@@ -211,7 +211,7 @@ def crear_meta():
         }), 201
 
     except Exception as e:
-        return jsonify({'error': f'Error al crear meta: {str(e)}'}), 500
+        return jsonify({'ok': False, 'error': f'Error al crear meta: {str(e)}'}), 500
 
 
 @bp.route('/goals', methods=['GET'])
@@ -246,13 +246,13 @@ def listar_metas():
 
         # Validar formato
         if len(periodo) != 6 or not periodo.isdigit():
-            return jsonify({'error': 'Periodo debe tener formato YYYYMM'}), 400
+            return jsonify({'ok': False, 'error': 'Periodo debe tener formato YYYYMM'}), 400
 
         metas = savings_service.obtener_metas(periodo)
         return jsonify({'ok': True, 'items': metas}), 200
 
     except Exception as e:
-        return jsonify({'error': f'Error al obtener metas: {str(e)}'}), 500
+        return jsonify({'ok': False, 'error': f'Error al obtener metas: {str(e)}'}), 500
 
 
 @bp.route('/goals/progress', methods=['GET'])
@@ -287,13 +287,13 @@ def obtener_progreso():
 
         # Validar formato
         if len(periodo) != 6 or not periodo.isdigit():
-            return jsonify({'error': 'Periodo debe tener formato YYYYMM'}), 400
+            return jsonify({'ok': False, 'error': 'Periodo debe tener formato YYYYMM'}), 400
 
         progreso = savings_service.obtener_progreso_metas(periodo)
         return jsonify(progreso), 200
 
     except Exception as e:
-        return jsonify({'error': f'Error al obtener progreso: {str(e)}'}), 500
+        return jsonify({'ok': False, 'error': f'Error al obtener progreso: {str(e)}'}), 500
 
 
 @bp.route('/export', methods=['GET'])
@@ -336,6 +336,6 @@ def exportar_excel():
         )
 
     except ImportError:
-        return jsonify({'error': 'openpyxl no está instalado en el servidor'}), 500
+        return jsonify({'ok': False, 'error': 'openpyxl no está instalado en el servidor'}), 500
     except Exception as e:
-        return jsonify({'error': f'Error al exportar: {str(e)}'}), 500
+        return jsonify({'ok': False, 'error': f'Error al exportar: {str(e)}'}), 500

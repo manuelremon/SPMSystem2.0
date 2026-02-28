@@ -370,7 +370,7 @@ export default function AdminAutoAprobacion() {
           : t('auto_approval_historial_info', 'Historial de solicitudes que fueron auto-aprobadas por reglas configuradas.')}
       </Alert>
 
-      <Tabs value={currentTab} onChange={(_, val) => setCurrentTab(val)} aria-label="Auto-aprobación tabs">
+      <Tabs value={currentTab} onChange={(_, val) => setCurrentTab(val)} aria-label={t("aria_auto_approval_tabs", "Auto-aprobación tabs")}>
         <Tab label={t('auto_approval_tab_reglas', 'Reglas')} />
         <Tab label={t('auto_approval_historial_tab', 'Historial')} icon={<HistoryIcon />} iconPosition="start" />
       </Tabs>

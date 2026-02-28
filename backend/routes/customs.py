@@ -3,10 +3,15 @@ Customs & Trade Compliance Routes
 Endpoints para gestión aduanera y comercio exterior
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
+from backend.core.helpers import safe_error_response
 from backend.core.roles import require_auth
 from backend.services import customs_service
+
+logger = logging.getLogger(__name__)
 
 customs_bp = Blueprint('customs', __name__, url_prefix='/api/customs')
 
@@ -24,7 +29,7 @@ def obtener_hs_codes():
         resultado['ok'] = True
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="customs")
 
 
 @customs_bp.route('/hs-codes', methods=['POST'])
@@ -41,7 +46,7 @@ def crear_hs_code():
         hs_id = customs_service.crear_hs_code(data)
         return jsonify({'id': hs_id, 'message': 'Código HS creado exitosamente'}), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="customs")
 
 
 @customs_bp.route('/classifications', methods=['POST'])
@@ -64,7 +69,7 @@ def clasificar_material():
         )
         return jsonify({'id': clasificacion_id, 'message': 'Material clasificado exitosamente'}), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="customs")
 
 
 @customs_bp.route('/classifications/<material>', methods=['GET'])
@@ -86,7 +91,7 @@ def obtener_clasificacion(material):
 
         return jsonify(clasificacion), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="customs")
 
 
 @customs_bp.route('/calculate-duties', methods=['POST'])
@@ -110,7 +115,7 @@ def calcular_tributos():
 
         return jsonify(tributos), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="customs")
 
 
 @customs_bp.route('/operations', methods=['GET'])
@@ -132,7 +137,7 @@ def obtener_operaciones():
         resultado['ok'] = True
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="customs")
 
 
 @customs_bp.route('/operations', methods=['POST'])
@@ -152,7 +157,7 @@ def crear_operacion():
         operacion_id = customs_service.crear_operacion(data)
         return jsonify({'id': operacion_id, 'message': 'Operación aduanera creada exitosamente'}), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="customs")
 
 
 @customs_bp.route('/operations/<int:id>', methods=['PUT'])
@@ -176,7 +181,7 @@ def actualizar_estado_operacion(id):
 
         return jsonify({'message': 'Estado actualizado exitosamente'}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="customs")
 
 
 @customs_bp.route('/agreements', methods=['GET'])
@@ -188,7 +193,7 @@ def obtener_acuerdos():
         acuerdos = customs_service.obtener_acuerdos(estado=estado)
         return jsonify({'ok': True, 'items': acuerdos}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="customs")
 
 
 @customs_bp.route('/agreements', methods=['POST'])
@@ -208,7 +213,7 @@ def crear_acuerdo():
         acuerdo_id = customs_service.crear_acuerdo(data)
         return jsonify({'id': acuerdo_id, 'message': 'Acuerdo comercial creado exitosamente'}), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="customs")
 
 
 @customs_bp.route('/kpis', methods=['GET'])
@@ -220,4 +225,4 @@ def obtener_kpis():
         kpis['ok'] = True
         return jsonify(kpis), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="customs")

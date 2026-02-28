@@ -22,7 +22,7 @@ import {
   Play,
 } from '../../components/ui/Icons'
 import { useI18n } from '../../context/i18n'
-import { useFmsStore } from '../../store/fmsStore'
+import { useFmsStore, useFmsKpis } from '../../store/fmsStore'
 import * as fmsService from '../../services/fms'
 
 const BORDER_COLORS = {
@@ -81,7 +81,9 @@ function KpiCard({ icon: Icon, label, value, subtitle, borderColor, children }) 
 
 export default function FMSKPIs() {
   const { t } = useI18n()
-  const { kpis, kpisLoading, fetchKpis } = useFmsStore()
+  const kpis = useFmsKpis()
+  const kpisLoading = useFmsStore(s => s.kpisLoading)
+  const fetchKpis = useFmsStore(s => s.fetchKpis)
 
   const [evaluating, setEvaluating] = useState(false)
   const [evalResult, setEvalResult] = useState(null)

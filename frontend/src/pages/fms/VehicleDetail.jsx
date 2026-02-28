@@ -44,7 +44,7 @@ import {
   History,
 } from '../../components/ui/Icons'
 import { useI18n } from '../../context/i18n'
-import { useFmsStore } from '../../store/fmsStore'
+import { useFmsStore, useFmsCurrentVehicle } from '../../store/fmsStore'
 import * as fmsService from '../../services/fms'
 
 const ESTADO_COLORS = {
@@ -81,7 +81,9 @@ export default function VehicleDetail() {
   const { t } = useI18n()
   const navigate = useNavigate()
   const { id } = useParams()
-  const { currentVehicle, fetchVehicle, error } = useFmsStore()
+  const currentVehicle = useFmsCurrentVehicle()
+  const fetchVehicle = useFmsStore(s => s.fetchVehicle)
+  const error = useFmsStore(s => s.error)
 
   const [tab, setTab] = useState(0)
   const [loading, setLoading] = useState(true)

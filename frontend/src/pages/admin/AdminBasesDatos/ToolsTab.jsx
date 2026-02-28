@@ -128,7 +128,7 @@ export function ToolsTab({
         <ToolCard
           icon={FlashOnIcon}
           iconColor="warning.main"
-          title="Optimizar"
+          title={t("admin_db_tools_optimize", "Optimizar")}
           chipLabel="All DBs"
           chipColor="success"
           description={isPostgres ? "VACUUM ANALYZE" : "Indices + ANALYZE + VACUUM"}
@@ -150,7 +150,7 @@ export function ToolsTab({
         <ToolCard
           icon={StorageIcon}
           iconColor="info.main"
-          title="VACUUM"
+          title={t("admin_db_tools_vacuum", "VACUUM")}
           chipLabel="All DBs"
           chipColor="success"
           description="Compactar y liberar espacio"
@@ -172,7 +172,7 @@ export function ToolsTab({
         <ToolCard
           icon={AccessTimeIcon}
           iconColor="success.main"
-          title="ANALYZE"
+          title={t("admin_db_tools_analyze", "ANALYZE")}
           chipLabel="All DBs"
           chipColor="success"
           description="Actualizar estadisticas de tablas"
@@ -194,7 +194,7 @@ export function ToolsTab({
         <ToolCard
           icon={ListIcon}
           iconColor="primary.main"
-          title="Crear Indices"
+          title={t("admin_db_tools_create_indexes", "Crear Indices")}
           chipLabel="SQLite"
           chipColor="warning"
           description="Indices recomendados para rendimiento"
@@ -222,7 +222,7 @@ export function ToolsTab({
         <ToolCard
           icon={ShieldIcon}
           iconColor="error.main"
-          title="Verificar Integridad"
+          title={t("admin_db_tools_integrity", "Verificar Integridad")}
           chipLabel="All DBs"
           chipColor="success"
           description={isPostgres ? "Indices invalidos y fragmentacion" : "PRAGMA integrity_check"}
@@ -277,7 +277,7 @@ export function ToolsTab({
         <ToolCard
           icon={DownloadIcon}
           iconColor="info.main"
-          title="Backup"
+          title={t("admin_db_tools_backup", "Backup")}
           chipLabel="SQLite"
           chipColor="warning"
           description="Descargar copia de la BD"
@@ -305,7 +305,7 @@ export function ToolsTab({
         <ToolCard
           icon={BarChartIcon}
           iconColor="primary.main"
-          title="Estadisticas"
+          title={t("admin_db_tools_stats", "Estadisticas")}
           chipLabel="All DBs"
           chipColor="success"
           description="Ver tamano, filas e indices de una tabla"
@@ -342,7 +342,7 @@ export function ToolsTab({
         <ToolCard
           icon={HistoryIcon}
           iconColor="warning.main"
-          title="Audit Log"
+          title={t("admin_db_tools_audit", "Audit Log")}
           chipLabel="All DBs"
           chipColor="success"
           description="Ver historial de operaciones CRUD"
@@ -364,7 +364,7 @@ export function ToolsTab({
         <ToolCard
           icon={PeopleIcon}
           iconColor="info.main"
-          title="Conexiones"
+          title={t("admin_db_tools_connections", "Conexiones")}
           chipLabel="PostgreSQL"
           chipColor="info"
           description="Ver conexiones activas"
@@ -392,7 +392,7 @@ export function ToolsTab({
         <ToolCard
           icon={ShowChartIcon}
           iconColor="success.main"
-          title="Pool Stats"
+          title={t("admin_db_tools_pool_stats", "Pool Stats")}
           chipLabel="All DBs"
           chipColor="success"
           description="Estadisticas del pool de conexiones"

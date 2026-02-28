@@ -7,6 +7,10 @@ const I18nContext = createContext({
 });
 
 const translations = {
+  // =====================================================================
+  // NAVEGACIÓN Y LAYOUT
+  // =====================================================================
+
   // Layout / nav
   nav_solicitudes: { es: "Solicitudes", en: "Requests" },
   nav_aprobaciones: { es: "Aprobaciones", en: "Approvals" },
@@ -152,13 +156,26 @@ const translations = {
   tooltip_cerrar_menu: { es: "Cerrar menú", en: "Close menu" },
   tooltip_expandir: { es: "Expandir", en: "Expand" },
   tooltip_colapsar: { es: "Colapsar", en: "Collapse" },
-  common_copyright: { es: "© 2025 SPM System", en: "© 2025 SPM System" },
+  common_copyright: { es: `© ${new Date().getFullYear()} SPM System`, en: `© ${new Date().getFullYear()} SPM System` },
+
+  // =====================================================================
+  // PÁGINAS PRINCIPALES
+  // =====================================================================
 
   // User menu
   user_mi_cuenta: { es: "Mi Cuenta", en: "My Account" },
   user_ajustes: { es: "Ajustes", en: "Settings" },
+  user_ayuda: { es: "Ayuda", en: "Help" },
+  user_acerca: { es: "Acerca de...", en: "About..." },
   user_logout: { es: "Cerrar Sesión", en: "Sign Out" },
   user_default: { es: "Usuario", en: "User" },
+
+  // About modal
+  about_title: { es: "Acerca de SPM System", en: "About SPM System" },
+  about_subtitle: { es: "Sistema de Planificación de Materiales", en: "Materials Planning System" },
+  about_version: { es: "Versión", en: "Version" },
+  about_description: { es: "Plataforma integral para la gestión de solicitudes de materiales, planificación de compras y seguimiento de inventario. Diseñada para optimizar la cadena de suministro con herramientas de análisis predictivo e inteligencia artificial.", en: "Comprehensive platform for materials request management, procurement planning and inventory tracking. Designed to optimize the supply chain with predictive analytics and AI tools." },
+  about_stack: { es: "Tecnologías", en: "Technologies" },
 
   // Dashboard
   dash_totales: { es: "Solicitudes totales", en: "Total requests" },
@@ -420,6 +437,10 @@ const translations = {
   micuenta_perfil: { es: "Perfil", en: "Profile" },
   micuenta_actualizar: { es: "Actualizar", en: "Update" },
 
+  // =====================================================================
+  // ADMINISTRACIÓN
+  // =====================================================================
+
   // Admin comunes
   admin_title: { es: "Administración", en: "Admin" },
   admin_guardar: { es: "Guardar", en: "Save" },
@@ -456,6 +477,65 @@ const translations = {
   admin_si: { es: "Sí", en: "Yes" },
   admin_no: { es: "No", en: "No" },
 
+  // Admin Proveedores
+  admin_prov_title: { es: "Proveedores", en: "Suppliers" },
+  admin_prov_nuevo: { es: "Nuevo", en: "New" },
+  admin_prov_tab_internos: { es: "Internos (Almacenes)", en: "Internal (Warehouses)" },
+  admin_prov_tab_externos: { es: "Externos", en: "External" },
+  admin_prov_centro: { es: "Centro", en: "Plant" },
+  admin_prov_nombre_centro: { es: "Nombre Centro", en: "Plant Name" },
+  admin_prov_almacen: { es: "Almacén", en: "Warehouse" },
+  admin_prov_nombre_almacen: { es: "Nombre Almacén", en: "Warehouse Name" },
+  admin_prov_sector: { es: "Sector", en: "Sector" },
+  admin_prov_responsable: { es: "Responsable", en: "Responsible" },
+  admin_prov_responsable_deposito: { es: "Responsable Depósito", en: "Warehouse Manager" },
+  admin_prov_contacto: { es: "Contacto", en: "Contact" },
+  admin_prov_contacto_centro: { es: "Contacto Centro", en: "Plant Contact" },
+  admin_prov_referente_nombre: { es: "Referente Nombre", en: "Reference Name" },
+  admin_prov_referente_email: { es: "Referente Email", en: "Reference Email" },
+  admin_prov_notas: { es: "Notas", en: "Notes" },
+  admin_prov_estado: { es: "Estado", en: "Status" },
+  admin_prov_activo: { es: "Activo", en: "Active" },
+  admin_prov_inactivo: { es: "Inactivo", en: "Inactive" },
+  admin_prov_acciones: { es: "Acciones", en: "Actions" },
+  admin_prov_editar: { es: "Editar", en: "Edit" },
+  admin_prov_eliminar: { es: "Eliminar", en: "Delete" },
+  admin_prov_cuit: { es: "CUIT", en: "Tax ID" },
+  admin_prov_nombre: { es: "Nombre", en: "Name" },
+  admin_prov_localidad: { es: "Localidad", en: "City" },
+  admin_prov_rubro: { es: "Rubro", en: "Category" },
+  admin_prov_lead_time: { es: "Lead Time", en: "Lead Time" },
+  admin_prov_lead_time_label: { es: "Lead Time (días)", en: "Lead Time (days)" },
+  admin_prov_calificacion: { es: "Calificación", en: "Rating" },
+  admin_prov_origen: { es: "Origen", en: "Origin" },
+  admin_prov_origen_local: { es: "Local", en: "Local" },
+  admin_prov_origen_importado: { es: "Importado", en: "Imported" },
+  admin_prov_direccion: { es: "Dirección", en: "Address" },
+  admin_prov_editar_interno: { es: "Editar Proveedor Interno", en: "Edit Internal Supplier" },
+  admin_prov_nuevo_interno: { es: "Nuevo Proveedor Interno", en: "New Internal Supplier" },
+  admin_prov_editar_externo: { es: "Editar Proveedor Externo", en: "Edit External Supplier" },
+  admin_prov_nuevo_externo: { es: "Nuevo Proveedor Externo", en: "New External Supplier" },
+  admin_prov_cancelar: { es: "Cancelar", en: "Cancel" },
+  admin_prov_guardando: { es: "Guardando...", en: "Saving..." },
+  admin_prov_actualizar: { es: "Actualizar", en: "Update" },
+  admin_prov_crear: { es: "Crear", en: "Create" },
+  admin_prov_eliminando: { es: "Eliminando...", en: "Deleting..." },
+  admin_prov_confirmar_eliminar_interno: { es: "¿Eliminar el proveedor interno", en: "Delete internal supplier" },
+  admin_prov_confirmar_eliminar_externo: { es: "¿Eliminar el proveedor externo", en: "Delete external supplier" },
+
+  // Admin Materiales
+  admin_mat_title: { es: "Materiales", en: "Materials" },
+  admin_mat_codigo: { es: "Código", en: "Code" },
+  admin_mat_descripcion: { es: "Descripción", en: "Description" },
+  admin_mat_unidad: { es: "Unidad", en: "Unit" },
+  admin_mat_precio_usd: { es: "Precio USD", en: "Price USD" },
+  admin_mat_codigo_sap: { es: "Código SAP", en: "SAP Code" },
+  admin_mat_descripcion_placeholder: { es: "Descripción breve del material", en: "Brief material description" },
+  admin_mat_descripcion_larga: { es: "Descripción Larga", en: "Long Description" },
+  admin_mat_descripcion_larga_placeholder: { es: "Descripción detallada del material", en: "Detailed material description" },
+  admin_mat_unidad_medida: { es: "Unidad de Medida", en: "Unit of Measure" },
+  admin_mat_precio_label: { es: "Precio (USD)", en: "Price (USD)" },
+
   // CRUD Template
   crud_manage_catalog: { es: "Gestiona el catálogo de", en: "Manage the catalog of" },
   crud_total_records: { es: "Total de registros:", en: "Total records:" },
@@ -491,6 +571,10 @@ const translations = {
   status_completada: { es: "Completada", en: "Completed" },
   status_tratada: { es: "Tratada", en: "Treated" },
   status_presupuesto_insuficiente: { es: "Presupuesto Insuficiente", en: "Insufficient Budget" },
+
+  // =====================================================================
+  // VALORES COMUNES Y ESTADOS
+  // =====================================================================
 
   // Criticidad
   criticidad_normal: { es: "Normal", en: "Normal" },
@@ -561,6 +645,10 @@ const translations = {
   common_no_data: { es: "No hay datos disponibles", en: "No data available" },
   common_total_value: { es: "Valor Total", en: "Total Value" },
   common_file: { es: "Archivo", en: "File" },
+
+  // =====================================================================
+  // MÓDULOS DE NEGOCIO
+  // =====================================================================
 
   // Procurement
   procurement_dashboard: { es: "Panel de Compras SAP", en: "SAP Procurement Dashboard" },
@@ -824,6 +912,10 @@ const translations = {
     es: "Tu bandeja está vacía. Los mensajes nuevos aparecerán aquí.",
     en: "Your inbox is empty. New messages will appear here."
   },
+
+  // =====================================================================
+  // FUNCIONALIDADES AVANZADAS
+  // =====================================================================
 
   // Push Notifications
   push_denied: { es: "Notificaciones bloqueadas en tu navegador", en: "Notifications blocked in your browser" },
@@ -1337,6 +1429,10 @@ const translations = {
   slob_category: { es: "Categoría", en: "Category" },
   slob_days: { es: "Días sin movimiento", en: "Days without movement" },
   slob_value: { es: "Valor", en: "Value" },
+
+  // =====================================================================
+  // MÓDULOS SCM EXTENDIDOS (Sprints 54+)
+  // =====================================================================
 
   // Contracts (Sprints 54-56)
   nav_contracts: { es: "Contratos", en: "Contracts" },
@@ -2106,6 +2202,167 @@ const translations = {
   warranty_notes: { es: "Notas", en: "Notes" },
   warranty_responsible: { es: "Responsable", en: "Responsible" },
   nav_warranty: { es: "Garantías y Reclamos", en: "Warranties & Claims" },
+
+  // =====================================================================
+  // PÁGINAS ADICIONALES (i18n agregado en auditoría)
+  // =====================================================================
+
+  // Ayuda page
+  ayuda_centro_title: { es: "Centro de Ayuda", en: "Help Center" },
+  ayuda_centro_desc: { es: "Obten asistencia, aprende a usar el sistema o contacta al administrador", en: "Get assistance, learn how to use the system or contact the administrator" },
+  ayuda_tab_contactar: { es: "Contactar Administrador", en: "Contact Administrator" },
+  ayuda_tab_instrucciones: { es: "Instrucciones de Uso", en: "Usage Instructions" },
+  ayuda_tab_urgente: { es: "Ayuda Urgente", en: "Urgent Help" },
+  ayuda_form_titulo: { es: "Enviar Mensaje al Administrador", en: "Send Message to Administrator" },
+  ayuda_form_desc: { es: "Completa el formulario para enviar tu consulta o reporte", en: "Fill out the form to send your query or report" },
+  ayuda_enviado_titulo: { es: "Mensaje Enviado", en: "Message Sent" },
+  ayuda_enviado_desc: { es: "Tu mensaje ha sido enviado al administrador. Recibiras una respuesta pronto.", en: "Your message has been sent to the administrator. You will receive a reply soon." },
+  ayuda_enviar_otro: { es: "Enviar otro mensaje", en: "Send another message" },
+  ayuda_tipo_label: { es: "Tipo de Consulta", en: "Query Type" },
+  ayuda_tipo_consulta: { es: "Consulta General", en: "General Query" },
+  ayuda_tipo_problema: { es: "Reportar Problema", en: "Report Issue" },
+  ayuda_tipo_sugerencia: { es: "Sugerencia", en: "Suggestion" },
+  ayuda_tipo_acceso: { es: "Problema de Acceso", en: "Access Issue" },
+  ayuda_tipo_otro: { es: "Otro", en: "Other" },
+  ayuda_asunto_label: { es: "Asunto", en: "Subject" },
+  ayuda_asunto_placeholder: { es: "Describe brevemente tu consulta", en: "Briefly describe your query" },
+  ayuda_mensaje_label: { es: "Mensaje", en: "Message" },
+  ayuda_mensaje_placeholder: { es: "Describe tu consulta o problema en detalle...", en: "Describe your query or problem in detail..." },
+  ayuda_enviando: { es: "Enviando...", en: "Sending..." },
+  ayuda_enviar_btn: { es: "Enviar Mensaje", en: "Send Message" },
+  ayuda_error_envio: { es: "No se pudo enviar el mensaje. Intenta de nuevo.", en: "Could not send the message. Please try again." },
+  ayuda_contacto_titulo: { es: "Informacion de Contacto", en: "Contact Information" },
+  ayuda_contacto_email: { es: "Email", en: "Email" },
+  ayuda_contacto_telefono: { es: "Telefono", en: "Phone" },
+  ayuda_contacto_horario: { es: "Horario de Atencion", en: "Business Hours" },
+  ayuda_contacto_horario_val: { es: "Lun - Vie: 8:00 - 18:00", en: "Mon - Fri: 8:00 - 18:00" },
+  ayuda_faq_titulo: { es: "Preguntas Frecuentes", en: "Frequently Asked Questions" },
+  ayuda_urgente_titulo: { es: "Ayuda Urgente", en: "Urgent Help" },
+  ayuda_urgente_desc: { es: "Para situaciones criticas que requieren atencion inmediata", en: "For critical situations requiring immediate attention" },
+  ayuda_emergencia_titulo: { es: "Contacto de Emergencia", en: "Emergency Contact" },
+  ayuda_linea_directa: { es: "Linea directa soporte:", en: "Direct support line:" },
+  ayuda_whatsapp: { es: "WhatsApp urgencias:", en: "WhatsApp emergencies:" },
+  ayuda_cuando_urgente_titulo: { es: "Cuando usar Ayuda Urgente?", en: "When to use Urgent Help?" },
+  ayuda_urgente_caso1: { es: "No puedes acceder al sistema y tienes una solicitud critica", en: "Cannot access the system and have a critical request" },
+  ayuda_urgente_caso2: { es: "Error que bloquea operaciones de produccion", en: "Error blocking production operations" },
+  ayuda_urgente_caso3: { es: "Problema de seguridad o acceso no autorizado", en: "Security issue or unauthorized access" },
+  ayuda_urgente_caso4: { es: "Perdida de datos o informacion critica", en: "Loss of critical data or information" },
+  ayuda_admins_titulo: { es: "Administradores del Sistema", en: "System Administrators" },
+  ayuda_admin1: { es: "Admin Principal", en: "Main Admin" },
+  ayuda_admin2: { es: "Soporte Tecnico", en: "Technical Support" },
+  ayuda_admin3: { es: "Mesa de Ayuda", en: "Help Desk" },
+  ayuda_horario_label: { es: "Horario:", en: "Hours:" },
+  ayuda_llamar_ahora: { es: "Llamar Ahora", en: "Call Now" },
+  ayuda_instr1_titulo: { es: "Crear una Nueva Solicitud", en: "Create a New Request" },
+  ayuda_instr1_paso1: { es: "Ve a 'Solicitudes' > 'Nueva Solicitud' en el menu superior", en: "Go to 'Requests' > 'New Request' in the top menu" },
+  ayuda_instr1_paso2: { es: "Completa los datos del formulario: centro, sector, justificacion", en: "Fill in the form details: site, sector, justification" },
+  ayuda_instr1_paso3: { es: "Agrega los materiales que necesitas usando el buscador", en: "Add the materials you need using the search tool" },
+  ayuda_instr1_paso4: { es: "Revisa el resumen y haz clic en 'Enviar Solicitud'", en: "Review the summary and click 'Submit Request'" },
+  ayuda_instr1_paso5: { es: "La solicitud pasara a estado 'Enviada' para aprobacion", en: "The request will move to 'Submitted' status for approval" },
+  ayuda_instr2_titulo: { es: "Ver Mis Solicitudes", en: "View My Requests" },
+  ayuda_instr2_paso1: { es: "Ve a 'Solicitudes' > 'Mis Solicitudes'", en: "Go to 'Requests' > 'My Requests'" },
+  ayuda_instr2_paso2: { es: "Filtra por estado: Borradores, Enviadas, Aprobadas, etc.", en: "Filter by status: Drafts, Submitted, Approved, etc." },
+  ayuda_instr2_paso3: { es: "Haz clic en 'Ver' para ver los detalles de una solicitud", en: "Click 'View' to see the details of a request" },
+  ayuda_instr2_paso4: { es: "Puedes editar o eliminar solicitudes en estado 'Borrador'", en: "You can edit or delete requests in 'Draft' status" },
+  ayuda_instr3_titulo: { es: "Aprobar Solicitudes", en: "Approve Requests" },
+  ayuda_instr3_paso1: { es: "Ve a 'Aprobaciones' en el menu superior", en: "Go to 'Approvals' in the top menu" },
+  ayuda_instr3_paso2: { es: "Veras las solicitudes pendientes de tu aprobacion", en: "You will see requests pending your approval" },
+  ayuda_instr3_paso3: { es: "Revisa los detalles, materiales y montos", en: "Review the details, materials and amounts" },
+  ayuda_instr3_paso4: { es: "Haz clic en 'Aprobar' o 'Rechazar' segun corresponda", en: "Click 'Approve' or 'Reject' as appropriate" },
+  ayuda_instr3_paso5: { es: "Si rechazas, debes indicar el motivo", en: "If you reject, you must provide a reason" },
+  ayuda_instr4_titulo: { es: "Panel de Planificacion", en: "Planning Panel" },
+  ayuda_instr4_paso1: { es: "Accede a 'Planificador' en el menu (solo planificadores)", en: "Access 'Planner' in the menu (planners only)" },
+  ayuda_instr4_paso2: { es: "Veras las solicitudes aprobadas asignadas a ti", en: "You will see approved requests assigned to you" },
+  ayuda_instr4_paso3: { es: "Trata cada solicitud: asigna materiales, cantidades y almacenes", en: "Process each request: assign materials, quantities and warehouses" },
+  ayuda_instr4_paso4: { es: "Finaliza el tratamiento para completar el proceso", en: "Finish the treatment to complete the process" },
+  ayuda_instr5_titulo: { es: "Configurar Mi Cuenta", en: "Configure My Account" },
+  ayuda_instr5_paso1: { es: "Haz clic en tu nombre en la esquina superior derecha", en: "Click your name in the upper right corner" },
+  ayuda_instr5_paso2: { es: "Selecciona 'Mi Cuenta'", en: "Select 'My Account'" },
+  ayuda_instr5_paso3: { es: "Aqui puedes actualizar tu informacion personal", en: "Here you can update your personal information" },
+  ayuda_instr5_paso4: { es: "Cambiar tu contrasena o preferencias", en: "Change your password or preferences" },
+  ayuda_faq1_p: { es: "Como puedo editar una solicitud ya enviada?", en: "How can I edit a request that has already been submitted?" },
+  ayuda_faq1_r: { es: "Las solicitudes enviadas no pueden editarse. Si necesitas hacer cambios, solicita al aprobador que la rechace para que vuelva a estado Borrador, o crea una nueva solicitud.", en: "Submitted requests cannot be edited. If you need changes, ask the approver to reject it so it returns to Draft status, or create a new request." },
+  ayuda_faq2_p: { es: "Por que no veo el boton de aprobar en las solicitudes?", en: "Why don't I see the approve button on requests?" },
+  ayuda_faq2_r: { es: "El boton de aprobar solo aparece si tienes rol de aprobador y la solicitud esta asignada a ti. Contacta al administrador si crees que deberias poder aprobar.", en: "The approve button only appears if you have the approver role and the request is assigned to you. Contact the administrator if you believe you should be able to approve." },
+  ayuda_faq3_p: { es: "Como agrego materiales que no aparecen en el buscador?", en: "How do I add materials that don't appear in the search?" },
+  ayuda_faq3_r: { es: "Si un material no aparece, puede que no este en el catalogo del sistema. Contacta al administrador para que lo agregue.", en: "If a material doesn't appear, it may not be in the system catalog. Contact the administrator to add it." },
+  ayuda_faq4_p: { es: "Que significa cada estado de solicitud?", en: "What does each request status mean?" },
+  ayuda_faq4_r: { es: "Borrador: aun no enviada. Enviada: esperando aprobacion. Aprobada: lista para planificacion. Rechazada: requiere revision. En Proceso: siendo planificada. Completada: entregada.", en: "Draft: not yet submitted. Submitted: awaiting approval. Approved: ready for planning. Rejected: requires review. In Process: being planned. Completed: delivered." },
+  ayuda_faq5_p: { es: "Puedo cancelar una solicitud despues de enviarla?", en: "Can I cancel a request after submitting it?" },
+  ayuda_faq5_r: { es: "No puedes cancelar directamente. Debes solicitar al aprobador que la rechace, o contactar al administrador para casos especiales.", en: "You cannot cancel directly. You must ask the approver to reject it, or contact the administrator for special cases." },
+
+  // CompleteRegistration page
+  registro_titulo: { es: "Completar Registro", en: "Complete Registration" },
+  registro_desc: { es: "Completa los campos requeridos; el administrador validara la informacion antes de habilitar el acceso total.", en: "Fill in the required fields; the administrator will validate the information before enabling full access." },
+  registro_datos_aprobacion: { es: "Datos para aprobacion", en: "Data for approval" },
+  registro_sector_label: { es: "Sector", en: "Sector" },
+  registro_selecciona_sector: { es: "Selecciona sector", en: "Select sector" },
+  registro_centro_label: { es: "Centro", en: "Site" },
+  registro_selecciona_centro: { es: "Selecciona centro", en: "Select site" },
+  registro_almacen_label: { es: "Almacen", en: "Warehouse" },
+  registro_selecciona_almacen: { es: "Selecciona almacen", en: "Select warehouse" },
+  registro_jefe_label: { es: "Jefe", en: "Manager" },
+  registro_nombre_apellido: { es: "Nombre y apellido", en: "First and last name" },
+  registro_gerente1_label: { es: "Gerente 1", en: "Manager 1" },
+  registro_gerente2_label: { es: "Gerente 2", en: "Manager 2" },
+  registro_nombre_apellido_opcional: { es: "Nombre y apellido (opcional)", en: "First and last name (optional)" },
+  registro_enviando: { es: "Enviando...", en: "Sending..." },
+  registro_enviar_btn: { es: "Enviar para aprobacion", en: "Submit for approval" },
+  registro_exito: { es: "Solicitud enviada. Un administrador revisara y aprobara tu alta.", en: "Request submitted. An administrator will review and approve your registration." },
+
+  // MobileScanner page
+  scanner_mobile_session_title: { es: "Sesion no disponible", en: "Session not available" },
+  scanner_mobile_session_expired: { es: "La sesion ha expirado o no existe. Genera un nuevo QR desde la PC.", en: "The session has expired or does not exist. Generate a new QR from the PC." },
+  scanner_mobile_limit: { es: "Se alcanzo el limite de codigos por sesion (max. 10).", en: "The code limit per session has been reached (max. 10)." },
+  scanner_mobile_error_send: { es: "Error al enviar el codigo. Intenta de nuevo.", en: "Error sending the code. Please try again." },
+  scanner_mobile_no_camera: { es: "No se pudo acceder a la camara. Verifica los permisos del navegador.", en: "Could not access the camera. Check your browser permissions." },
+  scanner_mobile_scanned: { es: "escaneado(s)", en: "scanned" },
+  scanner_mobile_start_camera: { es: "Iniciar Camara", en: "Start Camera" },
+  scanner_mobile_done: { es: "Listo", en: "Done" },
+
+  // Foro page
+  foro_titulo: { es: "Foro SPM", en: "SPM Forum" },
+  foro_nueva_pub: { es: "Nueva Publicacion", en: "New Post" },
+  foro_buscar_placeholder: { es: "Buscar publicaciones por titulo, contenido o autor...", en: "Search posts by title, content or author..." },
+  foro_categorias: { es: "Categorias", en: "Categories" },
+  foro_todos: { es: "Todos", en: "All" },
+  foro_campo_titulo: { es: "Titulo", en: "Title" },
+  foro_titulo_placeholder: { es: "Escribe un titulo descriptivo...", en: "Write a descriptive title..." },
+  foro_campo_categoria: { es: "Categoria", en: "Category" },
+  foro_campo_contenido: { es: "Contenido", en: "Content" },
+  foro_contenido_placeholder: { es: "Describe tu pregunta, idea o comentario...", en: "Describe your question, idea or comment..." },
+  foro_cancelar: { es: "Cancelar", en: "Cancel" },
+  foro_publicando: { es: "Publicando...", en: "Publishing..." },
+  foro_publicar: { es: "Publicar", en: "Publish" },
+  foro_cargando: { es: "Cargando publicaciones...", en: "Loading posts..." },
+  foro_reintentar: { es: "Reintentar", en: "Retry" },
+  foro_sin_publicaciones: { es: "No hay publicaciones aun", en: "No posts yet" },
+  foro_sin_resultados: { es: "No se encontraron resultados", en: "No results found" },
+  foro_primero_publicar: { es: "Se el primero en iniciar una conversacion!", en: "Be the first to start a conversation!" },
+  foro_intenta_otros: { es: "Intenta con otros terminos de busqueda o categoria", en: "Try different search terms or category" },
+  foro_crear_primera: { es: "Crear primera publicacion", en: "Create first post" },
+  foro_limpiar_filtros: { es: "Limpiar filtros", en: "Clear filters" },
+  foro_respuesta_placeholder: { es: "Escribe una respuesta...", en: "Write a reply..." },
+  foro_error_cargar: { es: "No se pudieron cargar las publicaciones", en: "Could not load posts" },
+  foro_ahora: { es: "Ahora mismo", en: "Just now" },
+
+  // CentroInteraccion page
+  centro_sin_actividad_desc: { es: "La actividad de tu cuenta aparecera aqui", en: "Your account activity will appear here" },
+
+  // Trivias page
+  trivias_titulo: { es: "Trivias SPM", en: "SPM Trivias" },
+  trivias_puntaje_total: { es: "Tu puntaje total", en: "Your total score" },
+  trivias_explicacion: { es: "Explicacion:", en: "Explanation:" },
+  trivias_quiz_nombre: { es: "Quiz SPM", en: "SPM Quiz" },
+  trivias_quiz_desc: { es: "Responde preguntas sobre el sistema y sus procesos", en: "Answer questions about the system and its processes" },
+  trivias_guess_nombre: { es: "Adivina el Material", en: "Guess the Material" },
+  trivias_guess_desc: { es: "Lee la descripcion y elige el material correcto", en: "Read the description and choose the correct material" },
+  trivias_price_nombre: { es: "Cuanto Cuesta?", en: "How Much Does It Cost?" },
+  trivias_price_desc: { es: "Adivina el precio correcto del material", en: "Guess the correct price for the material" },
+  trivias_cat_nombre: { es: "Categorias", en: "Categories" },
+  trivias_cat_desc: { es: "Arrastra cada material a su grupo correcto", en: "Drag each material to its correct group" },
+  trivias_ranking: { es: "Ranking de Jugadores", en: "Player Ranking" },
+  trivias_sin_ranking: { es: "Aun no hay puntuaciones. Se el primero en jugar!", en: "No scores yet. Be the first to play!" },
 };
 
 export function I18nProvider({ children }) {

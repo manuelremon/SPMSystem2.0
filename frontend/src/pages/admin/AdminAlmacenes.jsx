@@ -332,7 +332,7 @@ function AlmacenRow({ almacen, onEdit, onDelete, isDeleting, onCancelDelete, onC
               bgcolor: 'error.lighter',
             },
           }}
-          aria-label="Eliminar"
+          aria-label={t("aria_delete", "Eliminar")}
         >
           <DeleteIcon sx={{ fontSize: 18 }} />
         </IconButton>

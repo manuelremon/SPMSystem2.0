@@ -3,11 +3,15 @@ Supplier Onboarding Routes
 Endpoints para gestión de onboarding de proveedores (Sprint 81)
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_admin, require_auth
 from backend.services import supplier_onboarding_service
+
+logger = logging.getLogger(__name__)
 
 supplier_onboarding_bp = Blueprint('supplier_onboarding', __name__, url_prefix='/api/supplier-onboarding')
 
@@ -26,7 +30,7 @@ def obtener_onboardings():
         resultado = supplier_onboarding_service.obtener_onboardings(filtros)
         return jsonify({'ok': True, **resultado}), 200
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_onboarding")
 
 
 @supplier_onboarding_bp.route('/', methods=['POST'])
@@ -49,7 +53,7 @@ def crear_onboarding():
             return jsonify({'ok': False, 'error': 'Error al crear onboarding'}), 500
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_onboarding")
 
 
 @supplier_onboarding_bp.route('/<int:id>', methods=['GET'])
@@ -65,7 +69,7 @@ def obtener_detalle_onboarding(id):
             return jsonify({'ok': False, 'error': 'Onboarding no encontrado'}), 404
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_onboarding")
 
 
 @supplier_onboarding_bp.route('/<int:id>', methods=['PUT'])
@@ -84,7 +88,7 @@ def actualizar_onboarding(id):
             return jsonify({'ok': False, 'error': 'Error al actualizar onboarding'}), 500
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_onboarding")
 
 
 @supplier_onboarding_bp.route('/<int:id>/submit', methods=['POST'])
@@ -101,7 +105,7 @@ def enviar_a_revision(id):
             return jsonify({'ok': False, 'error': 'Error al enviar a revisión'}), 500
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_onboarding")
 
 
 @supplier_onboarding_bp.route('/<int:id>/documents', methods=['POST'])
@@ -123,7 +127,7 @@ def agregar_documento(id):
             return jsonify({'ok': False, 'error': 'Error al agregar documento'}), 500
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_onboarding")
 
 
 @supplier_onboarding_bp.route('/<int:id>/documents/<int:doc_id>/review', methods=['PUT'])
@@ -145,7 +149,7 @@ def revisar_documento(id, doc_id):
             return jsonify({'ok': False, 'error': 'Error al revisar documento'}), 500
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_onboarding")
 
 
 @supplier_onboarding_bp.route('/<int:id>/evaluations', methods=['POST'])
@@ -171,7 +175,7 @@ def agregar_evaluacion(id):
             return jsonify({'ok': False, 'error': 'Error al agregar evaluación'}), 500
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_onboarding")
 
 
 @supplier_onboarding_bp.route('/<int:id>/approve', methods=['PUT'])
@@ -188,7 +192,7 @@ def aprobar_onboarding(id):
             return jsonify({'ok': False, 'error': 'Error al aprobar onboarding'}), 500
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_onboarding")
 
 
 @supplier_onboarding_bp.route('/<int:id>/reject', methods=['PUT'])
@@ -211,7 +215,7 @@ def rechazar_onboarding(id):
             return jsonify({'ok': False, 'error': 'Error al rechazar onboarding'}), 500
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_onboarding")
 
 
 @supplier_onboarding_bp.route('/kpis', methods=['GET'])
@@ -222,4 +226,4 @@ def obtener_kpis():
         kpis = supplier_onboarding_service.obtener_kpis()
         return jsonify({'ok': True, 'kpis': kpis}), 200
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_onboarding")

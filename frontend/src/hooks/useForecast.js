@@ -53,6 +53,8 @@ export function useForecast() {
 
   // Cargar catálogos al montar
   useEffect(() => {
+    let cancelled = false;
+
     const loadCatalogos = async () => {
       setLoadingCatalogos(true);
 
@@ -62,29 +64,29 @@ export function useForecast() {
           forecastService.getCentros(),
           forecastService.getAlmacenes()
         ]);
+        if (cancelled) return;
         setCentrosDisponibles(centrosRes || []);
         setAlmacenesDisponibles(almacenesRes || []);
       } catch (err) {
+        if (cancelled) return;
       }
 
       // Cargar modelos (requiere auth, puede fallar independiente)
       try {
         const modelosRes = await forecastService.getModelsDisponibles();
+        if (cancelled) return;
         let modelos = [];
         if (modelosRes?.modelos && modelosRes?.nombres) {
-          // Transformar a array de objetos {id, nombre}
           modelos = modelosRes.modelos.map(id => ({
             id,
             nombre: modelosRes.nombres[id] || MODELOS_NOMBRES[id] || id
           }));
         } else if (modelosRes?.modelos) {
-          // Solo IDs disponibles, usar nombres locales
           modelos = modelosRes.modelos.map(id => ({
             id,
             nombre: MODELOS_NOMBRES[id] || id
           }));
         } else {
-          // Fallback con objetos
           modelos = [
             { id: 'random_forest', nombre: 'Random Forest' },
             { id: 'gradient_boosting', nombre: 'Gradient Boosting' },
@@ -92,12 +94,11 @@ export function useForecast() {
           ];
         }
         setModelosDisponibles(modelos);
-        // Establecer modelo por defecto si no hay uno seleccionado
         if (modelos.length > 0) {
           setModeloSeleccionado(prev => prev || modelos[0].id);
         }
       } catch (err) {
-        // Fallback con objetos
+        if (cancelled) return;
         const fallbackModelos = [
           { id: 'random_forest', nombre: 'Random Forest' },
           { id: 'gradient_boosting', nombre: 'Gradient Boosting' },
@@ -110,6 +111,8 @@ export function useForecast() {
       setLoadingCatalogos(false);
     };
     loadCatalogos();
+
+    return () => { cancelled = true; };
   }, []);
 
   // Ejecutar forecast

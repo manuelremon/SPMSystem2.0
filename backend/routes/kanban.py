@@ -3,11 +3,15 @@ Kanban Routes
 Endpoints para sistema kanban y reposición pull (Sprint 85)
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_auth
 from backend.services import kanban_service
+
+logger = logging.getLogger(__name__)
 
 kanban_bp = Blueprint('kanban', __name__, url_prefix='/api/kanban')
 
@@ -25,7 +29,7 @@ def obtener_tableros():
         tableros = kanban_service.obtener_tableros(filtros)
         return jsonify({'ok': True, 'items': tableros}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kanban")
 
 
 @kanban_bp.route('/boards', methods=['POST'])
@@ -49,7 +53,7 @@ def crear_tablero():
         )
         return jsonify(tablero), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kanban")
 
 
 @kanban_bp.route('/boards/<int:id>', methods=['GET'])
@@ -62,7 +66,7 @@ def obtener_detalle_tablero(id):
             return jsonify({'error': 'Tablero no encontrado'}), 404
         return jsonify(tablero), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kanban")
 
 
 @kanban_bp.route('/boards/<int:id>/cards', methods=['POST'])
@@ -96,7 +100,7 @@ def crear_tarjeta(id):
         )
         return jsonify(tarjeta), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kanban")
 
 
 @kanban_bp.route('/cards/<int:id>', methods=['PUT'])
@@ -110,7 +114,7 @@ def actualizar_tarjeta(id):
             return jsonify(resultado), 400
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kanban")
 
 
 @kanban_bp.route('/cards/<int:id>/empty', methods=['PUT'])
@@ -127,7 +131,7 @@ def vaciar_tarjeta(id):
             return jsonify(resultado), 400
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kanban")
 
 
 @kanban_bp.route('/cards/<int:id>/fill', methods=['PUT'])
@@ -145,7 +149,7 @@ def llenar_tarjeta(id):
             return jsonify(resultado), 400
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kanban")
 
 
 @kanban_bp.route('/signals', methods=['GET'])
@@ -161,7 +165,7 @@ def obtener_senales():
         senales = kanban_service.obtener_senales_pendientes(filtros)
         return jsonify({'ok': True, 'items': senales}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kanban")
 
 
 @kanban_bp.route('/signals/<int:id>/complete', methods=['PUT'])
@@ -186,7 +190,7 @@ def completar_senal(id):
             return jsonify(resultado), 400
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kanban")
 
 
 @kanban_bp.route('/signals', methods=['POST'])
@@ -216,7 +220,7 @@ def generar_senal():
             return jsonify(resultado), 400
         return jsonify(resultado), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kanban")
 
 
 @kanban_bp.route('/kpis', methods=['GET'])
@@ -228,4 +232,4 @@ def obtener_kpis():
         kpis['ok'] = True
         return jsonify(kpis), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="kanban")

@@ -7,7 +7,7 @@ import {
   Boxes, Truck, RefreshCw, Sparkles, Plus, Trash2, ArrowRightRight
 } from '../../components/ui/Icons'
 import { useI18n } from '../../context/i18n'
-import { useTmsStore } from '../../store/tmsStore'
+import { useTmsStore, useTmsShipments } from '../../store/tmsStore'
 import * as tmsService from '../../services/tms'
 
 const ESTADO_LABELS = {
@@ -23,10 +23,12 @@ const ESTADO_LABELS = {
 
 export default function Consolidation() {
   const { t } = useI18n()
-  const {
-    shipments, fetchShipments, consolidations, fetchConsolidations,
-    suggestedConsolidations, fetchSuggestedConsolidations
-  } = useTmsStore()
+  const shipments = useTmsShipments()
+  const consolidations = useTmsStore(s => s.consolidations)
+  const suggestedConsolidations = useTmsStore(s => s.suggestedConsolidations)
+  const fetchShipments = useTmsStore(s => s.fetchShipments)
+  const fetchConsolidations = useTmsStore(s => s.fetchConsolidations)
+  const fetchSuggestedConsolidations = useTmsStore(s => s.fetchSuggestedConsolidations)
 
   const [loading, setLoading] = useState(true)
   const [suggesting, setSuggesting] = useState(false)

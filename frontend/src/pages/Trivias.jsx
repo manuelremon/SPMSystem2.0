@@ -528,7 +528,7 @@ export default function Trivias() {
           {answered && (
             <Paper sx={{ mt: 2, p: 2, backgroundColor: 'grey.50' }}>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                <Box component="span" sx={{ fontWeight: 'bold', color: 'text.primary' }}>Explicacion:</Box> {q.explanation}
+                <Box component="span" sx={{ fontWeight: 'bold', color: 'text.primary' }}>{t("trivias_explicacion", "Explicacion:")}</Box> {q.explanation}
               </Typography>
             </Paper>
           )}
@@ -877,11 +877,11 @@ export default function Trivias() {
             <Box>
               <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1, textTransform: 'uppercase' }}>
                 <TrophyIcon sx={{ color: 'warning.main' }} />
-                Trivias SPM
+                {t("trivias_titulo", "Trivias SPM")}
               </Typography>
             </Box>
             <Box sx={{ textAlign: 'right' }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>Tu puntaje total</Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>{t("trivias_puntaje_total", "Tu puntaje total")}</Typography>
               <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.main' }}>{myStats.total_score.toLocaleString()}</Typography>
             </Box>
           </Stack>
@@ -921,8 +921,8 @@ export default function Trivias() {
                   <BookOpenIcon sx={{ color: 'primary.main' }} />
                 </Box>
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>Quiz SPM</Typography>
-                  <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Responde preguntas sobre el sistema y sus procesos</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>{t("trivias_quiz_nombre", "Quiz SPM")}</Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>{t("trivias_quiz_desc", "Responde preguntas sobre el sistema y sus procesos")}</Typography>
                   <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
                     <Chip label={`${quizQuestions.length} preguntas`} size="small" />
                     <Chip label="15s por pregunta" size="small" color="info" />
@@ -961,8 +961,8 @@ export default function Trivias() {
                   <HelpCircleIcon sx={{ color: 'success.main' }} />
                 </Box>
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>Adivina el Material</Typography>
-                  <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Lee la descripcion y elige el material correcto</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>{t("trivias_guess_nombre", "Adivina el Material")}</Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>{t("trivias_guess_desc", "Lee la descripcion y elige el material correcto")}</Typography>
                   <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
                     <Chip label={`${guessMaterials.length} materiales`} size="small" />
                     <Chip label="20s por pregunta" size="small" color="success" />
@@ -1001,8 +1001,8 @@ export default function Trivias() {
                   <DollarSignIcon sx={{ color: 'warning.main' }} />
                 </Box>
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>¿Cuanto Cuesta?</Typography>
-                  <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Adivina el precio correcto del material</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>{t("trivias_price_nombre", "Cuanto Cuesta?")}</Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>{t("trivias_price_desc", "Adivina el precio correcto del material")}</Typography>
                   <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
                     <Chip label={`${priceMaterials.length} materiales`} size="small" />
                     <Chip label="12s por pregunta" size="small" color="warning" />
@@ -1041,8 +1041,8 @@ export default function Trivias() {
                   <LayersIcon sx={{ color: 'info.main' }} />
                 </Box>
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>Categorias</Typography>
-                  <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Arrastra cada material a su grupo correcto</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>{t("trivias_cat_nombre", "Categorias")}</Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>{t("trivias_cat_desc", "Arrastra cada material a su grupo correcto")}</Typography>
                   <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
                     <Chip label={`${categoryGame.rounds.length} rondas`} size="small" />
                     <Chip label="Drag & Drop" size="small" color="info" />
@@ -1057,7 +1057,7 @@ export default function Trivias() {
           <Paper sx={{ p: 3 }}>
             <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
               <MedalIcon sx={{ color: 'warning.main' }} />
-              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Ranking de Jugadores</Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{t("trivias_ranking", "Ranking de Jugadores")}</Typography>
             </Stack>
 
             {loadingRankings ? (
@@ -1067,7 +1067,7 @@ export default function Trivias() {
             ) : rankings.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
                 <TrophyIcon sx={{ width: 48, height: 48, mx: 'auto', mb: 1.5, opacity: 0.3 }} />
-                <Typography>Aun no hay puntuaciones. Se el primero en jugar!</Typography>
+                <Typography>{t("trivias_sin_ranking", "Aun no hay puntuaciones. Se el primero en jugar!")}</Typography>
               </Box>
             ) : (
               <Stack spacing={1}>
@@ -1129,10 +1129,10 @@ export default function Trivias() {
       <Paper sx={{ p: 3 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {activeGame === "quiz" && <><BookOpenIcon sx={{ color: 'primary.main' }} /> Quiz SPM</>}
-            {activeGame === "guess" && <><HelpCircleIcon sx={{ color: 'success.main' }} /> Adivina el Material</>}
-            {activeGame === "price" && <><DollarSignIcon sx={{ color: 'warning.main' }} /> ¿Cuanto Cuesta?</>}
-            {activeGame === "category" && <><LayersIcon sx={{ color: 'info.main' }} /> Categorias</>}
+            {activeGame === "quiz" && <><BookOpenIcon sx={{ color: 'primary.main' }} /> {t("trivias_quiz_nombre", "Quiz SPM")}</>}
+            {activeGame === "guess" && <><HelpCircleIcon sx={{ color: 'success.main' }} /> {t("trivias_guess_nombre", "Adivina el Material")}</>}
+            {activeGame === "price" && <><DollarSignIcon sx={{ color: 'warning.main' }} /> {t("trivias_price_nombre", "Cuanto Cuesta?")}</>}
+            {activeGame === "category" && <><LayersIcon sx={{ color: 'info.main' }} /> {t("trivias_cat_nombre", "Categorias")}</>}
           </Typography>
           <Stack direction="row" alignItems="center" spacing={1}>
             <StarIcon sx={{ width: 16, height: 16, color: 'warning.main' }} />

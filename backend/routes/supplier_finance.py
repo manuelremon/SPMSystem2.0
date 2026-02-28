@@ -2,11 +2,15 @@
 Rutas para gestión de financiamiento de proveedores.
 Sprint 89: Supplier Finance
 """
+import logging
+
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_auth, require_role
 from backend.services import supplier_finance_service as sf_service
+
+logger = logging.getLogger(__name__)
 
 supplier_finance_bp = Blueprint('supplier_finance', __name__, url_prefix='/api/supplier-finance')
 
@@ -20,7 +24,7 @@ def get_programs():
         programas = sf_service.obtener_programas(estado)
         return jsonify({'ok': True, 'programas': programas}), 200
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_finance")
 
 
 @supplier_finance_bp.route('/programs', methods=['POST'])
@@ -42,7 +46,7 @@ def create_program():
     except KeyError as e:
         return jsonify({'ok': False, 'error': f'Campo requerido: {e}'}), 400
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_finance")
 
 
 @supplier_finance_bp.route('/programs/<int:programa_id>/generate-offers', methods=['POST'])
@@ -62,7 +66,7 @@ def generate_offers(programa_id):
             'ofertas_ids': ofertas_ids
         }), 201
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_finance")
 
 
 @supplier_finance_bp.route('/offers', methods=['GET'])
@@ -76,7 +80,7 @@ def get_offers():
         ofertas = sf_service.obtener_ofertas(estado, proveedor_cuit)
         return jsonify({'ok': True, 'ofertas': ofertas}), 200
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_finance")
 
 
 @supplier_finance_bp.route('/offers/<int:oferta_id>/accept', methods=['PUT'])
@@ -91,7 +95,7 @@ def accept_offer(oferta_id):
         else:
             return jsonify({'ok': False, 'error': 'Oferta no encontrada o ya procesada'}), 404
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_finance")
 
 
 @supplier_finance_bp.route('/offers/<int:oferta_id>/reject', methods=['PUT'])
@@ -106,7 +110,7 @@ def reject_offer(oferta_id):
         else:
             return jsonify({'ok': False, 'error': 'Oferta no encontrada o ya procesada'}), 404
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_finance")
 
 
 @supplier_finance_bp.route('/offers/<int:oferta_id>/pay', methods=['PUT'])
@@ -121,7 +125,7 @@ def mark_offer_paid(oferta_id):
         else:
             return jsonify({'ok': False, 'error': 'Oferta no encontrada o no está aceptada'}), 404
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_finance")
 
 
 @supplier_finance_bp.route('/payment-terms', methods=['GET'])
@@ -133,7 +137,7 @@ def get_payment_terms():
         terminos = sf_service.obtener_terminos_proveedor(proveedor_cuit)
         return jsonify({'ok': True, 'terminos': terminos}), 200
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_finance")
 
 
 @supplier_finance_bp.route('/payment-terms/<proveedor_cuit>', methods=['PUT'])
@@ -154,7 +158,7 @@ def update_payment_terms(proveedor_cuit):
         else:
             return jsonify({'ok': False, 'error': 'Error al actualizar términos'}), 500
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_finance")
 
 
 @supplier_finance_bp.route('/simulate', methods=['POST'])
@@ -174,7 +178,7 @@ def simulate_cashflow():
     except KeyError as e:
         return jsonify({'ok': False, 'error': f'Campo requerido: {e}'}), 400
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_finance")
 
 
 @supplier_finance_bp.route('/kpis', methods=['GET'])
@@ -185,4 +189,4 @@ def get_kpis():
         kpis = sf_service.obtener_kpis()
         return jsonify({'ok': True, 'kpis': kpis}), 200
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_finance")

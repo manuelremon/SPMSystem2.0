@@ -23,7 +23,9 @@ function getMarginChipColor(marginPct) {
 
 export default function TripSettlement() {
   const { t } = useI18n()
-  const { settlements, settlementsTotal, fetchSettlements } = useTmsStore()
+  const settlements = useTmsStore(s => s.settlements)
+  const settlementsTotal = useTmsStore(s => s.settlementsTotal)
+  const fetchSettlements = useTmsStore(s => s.fetchSettlements)
 
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(0)

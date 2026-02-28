@@ -590,7 +590,7 @@ function UserRow({ user, onEdit, onDelete, isDeleting, onCancelDelete, onConfirm
             transition: "all 0.15s",
             "&:hover": { color: "error.main", bgcolor: "error.50" },
           }}
-          aria-label="Eliminar usuario"
+          aria-label={t("aria_delete_user", "Eliminar usuario")}
         >
           <DeleteIcon sx={{ fontSize: 18 }} />
         </IconButton>
@@ -932,7 +932,7 @@ export default function AdminUsuarios() {
               <IconButton
                 onClick={() => navigate("/admin")}
                 sx={{ ml: -1, color: "grey.400", "&:hover": { color: "grey.600", bgcolor: "grey.100" } }}
-                aria-label="Volver"
+                aria-label={t("aria_back", "Volver")}
               >
                 <ArrowBackIcon sx={{ fontSize: 18 }} />
               </IconButton>

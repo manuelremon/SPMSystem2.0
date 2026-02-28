@@ -4,11 +4,15 @@ Endpoints para devoluciones y logistica inversa (Sprint 65)
 Blueprint: returns_bp, Prefix: /api/returns
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_auth
 from backend.services import returns_service
+
+logger = logging.getLogger(__name__)
 
 returns_bp = Blueprint('returns', __name__, url_prefix='/api/returns')
 
@@ -32,7 +36,7 @@ def obtener_devoluciones():
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="returns")
 
 
 @returns_bp.route('/', methods=['POST'])
@@ -50,7 +54,7 @@ def crear_devolucion():
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="returns")
 
 
 @returns_bp.route('/from-ncr/<int:ncr_id>', methods=['POST'])
@@ -64,7 +68,7 @@ def crear_desde_ncr(ncr_id):
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="returns")
 
 
 @returns_bp.route('/<int:id>', methods=['GET'])
@@ -77,7 +81,7 @@ def obtener_detalle_devolucion(id):
             return jsonify({'error': 'Devolucion no encontrada'}), 404
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="returns")
 
 
 @returns_bp.route('/<int:id>/status', methods=['PUT'])
@@ -96,7 +100,7 @@ def cambiar_estado(id):
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="returns")
 
 
 @returns_bp.route('/<int:id>/credit', methods=['PUT'])
@@ -114,7 +118,7 @@ def registrar_credito(id):
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="returns")
 
 
 @returns_bp.route('/kpis', methods=['GET'])
@@ -123,6 +127,7 @@ def obtener_kpis_devoluciones():
     """Obtener KPIs del proceso de devoluciones."""
     try:
         resultado = returns_service.obtener_kpis_devoluciones()
+        resultado['ok'] = True
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="returns")

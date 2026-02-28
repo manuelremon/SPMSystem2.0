@@ -8,7 +8,7 @@ import logging
 from flask import Blueprint, jsonify, request
 
 from backend.core.errors import NotFoundError, ValidationError
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_auth
 from backend.services import rfq_service
 
@@ -38,10 +38,9 @@ def listar_rfqs():
         return jsonify(resultado), 200
 
     except ValueError as e:
-        return jsonify({"error": f"Parametros invalidos: {str(e)}"}), 400
+        return jsonify({"ok": False, "error": f"Parametros invalidos: {str(e)}"}), 400
     except Exception as e:
-        logger.error(f"Error al listar RFQs: {str(e)}")
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return safe_error_response(e, logger, context="listar_rfqs")
 
 
 @rfq_bp.route("/", methods=["POST"])
@@ -56,17 +55,16 @@ def crear_rfq():
         user_id = _get_user_id()
 
         if not data:
-            return jsonify({"error": "Datos requeridos"}), 400
+            return jsonify({"ok": False, "error": "Datos requeridos"}), 400
 
         rfq = rfq_service.crear_rfq(data, user_id)
 
         return jsonify(rfq), 201
 
     except ValidationError as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
-        logger.error(f"Error al crear RFQ: {str(e)}")
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return safe_error_response(e, logger, context="crear_rfq")
 
 
 @rfq_bp.route("/from-solicitud/<int:solicitud_id>", methods=["POST"])
@@ -81,19 +79,18 @@ def crear_desde_solicitud(solicitud_id):
         user_id = _get_user_id()
 
         if not data:
-            return jsonify({"error": "Datos requeridos"}), 400
+            return jsonify({"ok": False, "error": "Datos requeridos"}), 400
 
         rfq = rfq_service.crear_rfq_desde_solicitud(solicitud_id, data, user_id)
 
         return jsonify(rfq), 201
 
     except NotFoundError as e:
-        return jsonify({"error": str(e)}), 404
+        return jsonify({"ok": False, "error": str(e)}), 404
     except ValidationError as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
-        logger.error(f"Error al crear RFQ desde solicitud {solicitud_id}: {str(e)}")
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return safe_error_response(e, logger, context="crear_desde_solicitud")
 
 
 @rfq_bp.route("/<int:rfq_id>", methods=["GET"])
@@ -107,10 +104,9 @@ def obtener_detalle(rfq_id):
         return jsonify(rfq), 200
 
     except NotFoundError as e:
-        return jsonify({"error": str(e)}), 404
+        return jsonify({"ok": False, "error": str(e)}), 404
     except Exception as e:
-        logger.error(f"Error al obtener RFQ {rfq_id}: {str(e)}")
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return safe_error_response(e, logger, context="obtener_detalle")
 
 
 @rfq_bp.route("/<int:rfq_id>", methods=["PUT"])
@@ -125,19 +121,18 @@ def actualizar_rfq(rfq_id):
         user_id = _get_user_id()
 
         if not data:
-            return jsonify({"error": "Datos requeridos"}), 400
+            return jsonify({"ok": False, "error": "Datos requeridos"}), 400
 
         rfq = rfq_service.actualizar_rfq(rfq_id, data, user_id)
 
         return jsonify(rfq), 200
 
     except NotFoundError as e:
-        return jsonify({"error": str(e)}), 404
+        return jsonify({"ok": False, "error": str(e)}), 404
     except ValidationError as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
-        logger.error(f"Error al actualizar RFQ {rfq_id}: {str(e)}")
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return safe_error_response(e, logger, context="actualizar_rfq")
 
 
 @rfq_bp.route("/<int:rfq_id>/publish", methods=["PUT"])
@@ -153,12 +148,11 @@ def publicar_rfq(rfq_id):
         return jsonify(rfq), 200
 
     except NotFoundError as e:
-        return jsonify({"error": str(e)}), 404
+        return jsonify({"ok": False, "error": str(e)}), 404
     except ValidationError as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
-        logger.error(f"Error al publicar RFQ {rfq_id}: {str(e)}")
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return safe_error_response(e, logger, context="publicar_rfq")
 
 
 @rfq_bp.route("/<int:rfq_id>/bids", methods=["POST"])
@@ -172,19 +166,18 @@ def registrar_ofertas(rfq_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({"error": "Datos requeridos"}), 400
+            return jsonify({"ok": False, "error": "Datos requeridos"}), 400
 
         resultado = rfq_service.registrar_oferta(rfq_id, data)
 
         return jsonify(resultado), 201
 
     except NotFoundError as e:
-        return jsonify({"error": str(e)}), 404
+        return jsonify({"ok": False, "error": str(e)}), 404
     except ValidationError as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
-        logger.error(f"Error al registrar ofertas para RFQ {rfq_id}: {str(e)}")
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return safe_error_response(e, logger, context="registrar_ofertas")
 
 
 @rfq_bp.route("/<int:rfq_id>/bids", methods=["GET"])
@@ -198,8 +191,7 @@ def listar_ofertas(rfq_id):
         return jsonify({"ofertas": ofertas}), 200
 
     except Exception as e:
-        logger.error(f"Error al listar ofertas del RFQ {rfq_id}: {str(e)}")
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return safe_error_response(e, logger, context="listar_ofertas")
 
 
 @rfq_bp.route("/<int:rfq_id>/comparison", methods=["GET"])
@@ -213,8 +205,7 @@ def obtener_comparacion(rfq_id):
         return jsonify(comparacion), 200
 
     except Exception as e:
-        logger.error(f"Error al generar comparacion del RFQ {rfq_id}: {str(e)}")
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return safe_error_response(e, logger, context="obtener_comparacion")
 
 
 @rfq_bp.route("/<int:rfq_id>/criteria", methods=["POST"])
@@ -228,19 +219,18 @@ def configurar_criterios(rfq_id):
         data = request.get_json()
 
         if not data or "criterios" not in data:
-            return jsonify({"error": "Campo 'criterios' requerido"}), 400
+            return jsonify({"ok": False, "error": "Campo 'criterios' requerido"}), 400
 
         resultado = rfq_service.configurar_criterios(rfq_id, data["criterios"])
 
         return jsonify(resultado), 200
 
     except NotFoundError as e:
-        return jsonify({"error": str(e)}), 404
+        return jsonify({"ok": False, "error": str(e)}), 404
     except ValidationError as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
-        logger.error(f"Error al configurar criterios del RFQ {rfq_id}: {str(e)}")
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return safe_error_response(e, logger, context="configurar_criterios")
 
 
 @rfq_bp.route("/<int:rfq_id>/evaluate", methods=["POST"])
@@ -255,12 +245,11 @@ def evaluar_rfq(rfq_id):
         return jsonify({"evaluaciones": evaluaciones}), 200
 
     except NotFoundError as e:
-        return jsonify({"error": str(e)}), 404
+        return jsonify({"ok": False, "error": str(e)}), 404
     except ValidationError as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
-        logger.error(f"Error al evaluar RFQ {rfq_id}: {str(e)}")
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return safe_error_response(e, logger, context="evaluar_rfq")
 
 
 @rfq_bp.route("/<int:rfq_id>/award", methods=["POST"])
@@ -275,19 +264,18 @@ def adjudicar_rfq(rfq_id):
         user_id = _get_user_id()
 
         if not data or "adjudicaciones" not in data:
-            return jsonify({"error": "Campo 'adjudicaciones' requerido"}), 400
+            return jsonify({"ok": False, "error": "Campo 'adjudicaciones' requerido"}), 400
 
         resultado = rfq_service.adjudicar_rfq(rfq_id, data["adjudicaciones"], user_id)
 
         return jsonify(resultado), 200
 
     except NotFoundError as e:
-        return jsonify({"error": str(e)}), 404
+        return jsonify({"ok": False, "error": str(e)}), 404
     except ValidationError as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
-        logger.error(f"Error al adjudicar RFQ {rfq_id}: {str(e)}")
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return safe_error_response(e, logger, context="adjudicar_rfq")
 
 
 @rfq_bp.route("/<int:rfq_id>/generate-po", methods=["POST"])
@@ -306,9 +294,8 @@ def generar_ordenes_compra(rfq_id):
         }), 201
 
     except NotFoundError as e:
-        return jsonify({"error": str(e)}), 404
+        return jsonify({"ok": False, "error": str(e)}), 404
     except ValidationError as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
-        logger.error(f"Error al generar OCs del RFQ {rfq_id}: {str(e)}")
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return safe_error_response(e, logger, context="generar_ordenes_compra")

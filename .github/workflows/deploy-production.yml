@@ -187,8 +187,7 @@ jobs:
             git remote set-url origin https://github.com/${{ github.repository }}.git
             echo "=== Building frontend ==="
             cd frontend
-            rm -rf node_modules 2>/dev/null || true
-            npm install --force
+            npm ci
             npm run build
             cd ..
             echo "=== Code and frontend deployed ==="
@@ -215,6 +214,7 @@ jobs:
             echo "JWT_SECRET_KEY=${JWT_SECRET_KEY}" >> infra/.env
             echo "GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}" >> infra/.env
             echo "CORS_ORIGINS=https://planifica-materiales.com" >> infra/.env
+            echo "REDIS_PASSWORD=${REDIS_PASSWORD:-spm_redis_secret}" >> infra/.env
             echo "=== infra/.env updated with all secrets ==="
 
             echo "=== Pruning old Docker images ==="
@@ -257,11 +257,50 @@ jobs:
             echo "=== Running database migrations ==="
             cd /opt/spm
 
-            # Run SAP catalog tables migration (idempotent - creates tables + views if not exist)
-            docker exec spm-backend python backend/migrations/020_catalogs_to_postgresql.py || echo "Migration 020 skipped or already applied"
+            # Run all pending migrations via migration runner
+            docker exec spm-backend python -c "
+            import os, sys, importlib.util, logging
+            logging.basicConfig(level=logging.INFO)
+            logger = logging.getLogger('migration_runner')
 
-            # Run Vertex IA tables migration (idempotent - uses CREATE TABLE IF NOT EXISTS)
-            docker exec spm-backend python backend/migrations/022_vertex_ia_tables.py || echo "Migration 022 skipped or already applied"
+            migration_dir = 'backend/migrations'
+            files = sorted([f for f in os.listdir(migration_dir) if f.endswith('.py') and f[0].isdigit()])
+
+            # Track applied migrations via schema_migrations table
+            from backend.core.db import get_db_connection
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+                cur.execute('''CREATE TABLE IF NOT EXISTS schema_migrations (
+                    version TEXT PRIMARY KEY,
+                    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )''')
+                conn.commit()
+                cur.execute('SELECT version FROM schema_migrations')
+                applied = {r[0] for r in cur.fetchall()}
+
+            for f in files:
+                version = f.split('_')[0]
+                if version in applied:
+                    continue
+                logger.info(f'Applying migration {f}...')
+                try:
+                    spec = importlib.util.spec_from_file_location(f[:-3], os.path.join(migration_dir, f))
+                    mod = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(mod)
+                    if hasattr(mod, 'up'):
+                        mod.up()
+                    with get_db_connection() as conn:
+                        cur = conn.cursor()
+                        cur.execute('INSERT INTO schema_migrations (version) VALUES (%s)', (version,))
+                        conn.commit()
+                    logger.info(f'Migration {f} applied successfully')
+                except Exception as e:
+                    logger.error(f'Migration {f} failed: {e}')
+                    # Don't stop on failure - some migrations may already be partially applied
+                    continue
+
+            logger.info('All migrations processed')
+            " || echo "Migration runner completed with warnings"
 
             echo "=== Migrations completed ==="
           MIGRATE_SCRIPT

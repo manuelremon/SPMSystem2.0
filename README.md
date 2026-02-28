@@ -161,8 +161,8 @@ scripts/INICIAR_SPM.bat           # Inicia backend + frontend
 | Base de Datos | Proposito | Registros |
 |---------------|-----------|-----------|
 | `data/spm.db` | Transaccional (usuarios, solicitudes, auth) | ~500 |
-| `data/equivalentes.db` | Equivalencias de materiales SAP | 34,865 |
 | `data/sap_data.db` | Stock, consumo historico, pedidos | 178,338 |
+| `data/master_materiales.db` | Catalogo materiales + equivalencias SAP | ~79,000 |
 | PostgreSQL (prod) | Base de datos de produccion | - |
 
 ---

@@ -91,7 +91,10 @@ export default function WorkOrderDetail() {
   const { t } = useI18n()
   const navigate = useNavigate()
   const { id } = useParams()
-  const { currentWorkOrder, fetchWorkOrder, transitionWorkOrder, error } = useFmsStore()
+  const currentWorkOrder = useFmsStore(s => s.currentWorkOrder)
+  const fetchWorkOrder = useFmsStore(s => s.fetchWorkOrder)
+  const transitionWorkOrder = useFmsStore(s => s.transitionWorkOrder)
+  const error = useFmsStore(s => s.error)
 
   const [loading, setLoading] = useState(true)
   const [parts, setParts] = useState([])

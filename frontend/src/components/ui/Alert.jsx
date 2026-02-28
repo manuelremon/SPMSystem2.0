@@ -6,6 +6,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 import MuiAlert from "@mui/material/Alert";
+import { useI18n } from "../../context/i18n";
 import AlertTitle from "@mui/material/AlertTitle";
 import IconButton from "@mui/material/IconButton";
 import Collapse from "@mui/material/Collapse";
@@ -49,6 +50,7 @@ export function Alert({
   sx,
   ...props
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = React.useState(true);
 
   const content = children || message;
@@ -78,7 +80,7 @@ export function Alert({
       action={
         canDismiss ? (
           <IconButton
-            aria-label="Cerrar alerta"
+            aria-label={t("aria_close_alert", "Cerrar alerta")}
             color="inherit"
             size="small"
             onClick={handleDismiss}

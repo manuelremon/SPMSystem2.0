@@ -3,11 +3,15 @@ Warehouse Operations Routes
 Endpoints para recepción y putaway (Sprint 66)
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_admin, require_auth
 from backend.services import warehouse_service
+
+logger = logging.getLogger(__name__)
 
 warehouse_bp = Blueprint('warehouse', __name__, url_prefix='/api/warehouse')
 
@@ -19,9 +23,9 @@ def obtener_docks():
     try:
         almacen = request.args.get('almacen')
         docks = warehouse_service.obtener_docks(almacen)
-        return jsonify(docks), 200
+        return jsonify({'ok': True, 'items': docks}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warehouse")
 
 
 @warehouse_bp.route('/docks', methods=['POST'])
@@ -31,9 +35,9 @@ def crear_dock():
     try:
         data = request.get_json()
         dock = warehouse_service.crear_dock(data)
-        return jsonify(dock), 201
+        return jsonify({'ok': True, 'id': dock}), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warehouse")
 
 
 @warehouse_bp.route('/docks/<int:dock_id>/assign/<int:recepcion_id>', methods=['POST'])
@@ -43,9 +47,10 @@ def asignar_dock(dock_id, recepcion_id):
     try:
         user_id = _get_user_id()
         resultado = warehouse_service.asignar_dock(dock_id, recepcion_id, user_id)
+        resultado['ok'] = True
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warehouse")
 
 
 @warehouse_bp.route('/docks/<int:dock_id>/times', methods=['PUT'])
@@ -55,9 +60,10 @@ def registrar_tiempos_dock(dock_id):
     try:
         data = request.get_json()
         resultado = warehouse_service.registrar_tiempos_dock(dock_id, data)
+        resultado['ok'] = True
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warehouse")
 
 
 @warehouse_bp.route('/putaway', methods=['GET'])
@@ -74,9 +80,10 @@ def obtener_tareas_putaway():
             'per_page': request.args.get('per_page', 50, type=int)
         }
         tareas = warehouse_service.obtener_tareas_putaway(filtros)
+        tareas['ok'] = True
         return jsonify(tareas), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warehouse")
 
 
 @warehouse_bp.route('/putaway/generate/<int:recepcion_id>', methods=['POST'])
@@ -85,9 +92,9 @@ def generar_tareas_putaway(recepcion_id):
     """Generar tareas de putaway para recepción."""
     try:
         tareas = warehouse_service.generar_tareas_putaway(recepcion_id)
-        return jsonify(tareas), 201
+        return jsonify({'ok': True, 'items': tareas}), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warehouse")
 
 
 @warehouse_bp.route('/putaway/<int:tarea_id>/complete', methods=['PUT'])
@@ -97,9 +104,10 @@ def completar_putaway(tarea_id):
     try:
         user_id = _get_user_id()
         resultado = warehouse_service.completar_putaway(tarea_id, user_id)
+        resultado['ok'] = True
         return jsonify(resultado), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warehouse")
 
 
 @warehouse_bp.route('/kpis', methods=['GET'])
@@ -108,6 +116,7 @@ def obtener_kpis_warehouse():
     """Obtener KPIs de operaciones de warehouse."""
     try:
         kpis = warehouse_service.obtener_kpis_warehouse()
+        kpis['ok'] = True
         return jsonify(kpis), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="warehouse")

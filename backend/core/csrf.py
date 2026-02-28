@@ -88,7 +88,7 @@ class CSRFProtection:
                     return None
 
                 header_token = request.headers.get("X-CSRF-Token")
-                if not header_token or header_token != token:
+                if not header_token or not hmac.compare_digest(header_token, token):
                     return (
                         jsonify(
                             {

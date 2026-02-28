@@ -260,6 +260,47 @@ def error_response(
     return jsonify(response), status_code
 
 
+def safe_error_response(
+    e: Exception,
+    logger_instance=None,
+    status_code: int = 500,
+    context: str = "",
+) -> tuple:
+    """
+    Genera respuesta de error segura que NO expone detalles internos al cliente.
+
+    Loguea el error completo internamente y retorna un mensaje genérico.
+
+    Args:
+        e: La excepción capturada
+        logger_instance: Logger para registrar el error internamente
+        status_code: HTTP status code (default 500)
+        context: Contexto adicional para el log (ej: nombre del endpoint)
+
+    Returns:
+        tuple: (jsonify response, status_code)
+    """
+    import logging
+
+    from flask import jsonify
+
+    log = logger_instance or logging.getLogger(__name__)
+    log.error(f"[{context}] {type(e).__name__}: {e}", exc_info=True)
+
+    return (
+        jsonify(
+            {
+                "ok": False,
+                "error": {
+                    "code": "internal_error",
+                    "message": "An internal error occurred. Please try again later.",
+                },
+            }
+        ),
+        status_code,
+    )
+
+
 def success_response(data: Dict[str, Any] | None = None, message: str | None = None) -> dict:
     """
     Genera respuesta de éxito estandarizada.

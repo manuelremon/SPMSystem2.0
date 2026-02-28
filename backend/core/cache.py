@@ -118,9 +118,13 @@ class TTLCache:
         if _redis_available and _redis_client and self._prefix:
             try:
                 pattern = f"spm:{self._prefix}:*"
-                keys = _redis_client.keys(pattern)
-                if keys:
-                    _redis_client.delete(*keys)
+                cursor = 0
+                while True:
+                    cursor, keys = _redis_client.scan(cursor, match=pattern, count=100)
+                    if keys:
+                        _redis_client.delete(*keys)
+                    if cursor == 0:
+                        break
             except Exception:
                 pass
         logger.info("Cache cleared")
@@ -252,7 +256,7 @@ def cache_key(*args) -> str:
     key_str = ":".join(str(a) for a in args)
     if len(key_str) > 100:
         # Hash long keys
-        return hashlib.md5(key_str.encode()).hexdigest()
+        return hashlib.sha256(key_str.encode()).hexdigest()
     return key_str
 
 

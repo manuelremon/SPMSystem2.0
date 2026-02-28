@@ -267,7 +267,7 @@ function PuestoRow({ puesto, onEdit, onDelete, isDeleting, onCancelDelete, onCon
             onDelete();
           }}
           size="small"
-          aria-label="Eliminar puesto"
+          aria-label={t("aria_delete_puesto", "Eliminar puesto")}
           sx={{
             opacity: 0,
             transition: "all 150ms",

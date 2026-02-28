@@ -24,7 +24,8 @@ const EMPTY_TARIFF = {
 
 export default function TariffRules() {
   const { t } = useI18n()
-  const { tariffs, fetchTariffs } = useTmsStore()
+  const tariffs = useTmsStore(s => s.tariffs)
+  const fetchTariffs = useTmsStore(s => s.fetchTariffs)
 
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
