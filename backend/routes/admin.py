@@ -594,7 +594,7 @@ def admin_presupuestos():
         cur.execute("SELECT centro, sector, monto_usd, saldo_usd, version, updated_by, monto_cents, saldo_cents FROM presupuesto")
         rows = [dict(r) for r in cur.fetchall()]
 
-    return jsonify(rows), 200
+    return jsonify({"ok": True, "data": rows}), 200
 
 
 @bp.route("/presupuestos/historial", methods=["GET"])
@@ -765,6 +765,71 @@ def admin_metricas():
     return jsonify(counts), 200
 
 
+@bp.route("/dashboard", methods=["GET"])
+@require_admin
+@rate_limit(requests=30, window_seconds=60)
+def admin_dashboard():
+    """Dashboard administrativo: resumen de metricas clave del sistema."""
+    stats = {
+        "usuarios": 0,
+        "solicitudes_totales": 0,
+        "solicitudes_pendientes": 0,
+        "solicitudes_aprobadas": 0,
+        "materiales": 0,
+        "presupuesto_total_usd": 0,
+        "presupuesto_disponible_usd": 0,
+    }
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+
+            # Conteos basicos
+            for table, key in [("usuario", "usuarios"), ("solicitud", "solicitudes_totales")]:
+                try:
+                    cur.execute(f"SELECT COUNT(*) AS count FROM {table}")
+                    row = cur.fetchone()
+                    stats[key] = row["count"] if isinstance(row, dict) else row[0]
+                except Exception:
+                    pass
+
+            # Materiales
+            try:
+                cur.execute("SELECT COUNT(*) AS count FROM materiales")
+                row = cur.fetchone()
+                stats["materiales"] = row["count"] if isinstance(row, dict) else row[0]
+            except Exception:
+                pass
+
+            # Solicitudes por estado
+            try:
+                cur.execute("SELECT status, COUNT(*) AS cnt FROM solicitud GROUP BY status")
+                for row in cur.fetchall():
+                    st = row["status"] if isinstance(row, dict) else row[0]
+                    cnt = row["cnt"] if isinstance(row, dict) else row[1]
+                    st_lower = (st or "").lower()
+                    if st_lower in ("en aprobacion", "enviada", "submitted"):
+                        stats["solicitudes_pendientes"] += cnt
+                    elif st_lower in ("aprobada", "approved"):
+                        stats["solicitudes_aprobadas"] += cnt
+            except Exception:
+                pass
+
+            # Presupuesto
+            try:
+                cur.execute("SELECT COALESCE(SUM(monto_usd), 0) AS total_monto, COALESCE(SUM(saldo_usd), 0) AS total_saldo FROM presupuesto")
+                row = cur.fetchone()
+                if row:
+                    stats["presupuesto_total_usd"] = float(row["total_monto"] if isinstance(row, dict) else row[0])
+                    stats["presupuesto_disponible_usd"] = float(row["total_saldo"] if isinstance(row, dict) else row[1])
+            except Exception:
+                pass
+
+        return jsonify({"ok": True, "data": stats}), 200
+    except Exception as e:
+        logger.error(f"Error en admin dashboard: {e}")
+        return jsonify({"ok": False, "error": "Error al obtener dashboard"}), 500
+
+
 # ==============================================================================
 # CONFIG ALMACENES (Libre disponibilidad, exclusiones)
 # ==============================================================================
@@ -823,7 +888,7 @@ def admin_config_almacenes():
                 row_dict["responsable_display"] = None
             rows.append(row_dict)
 
-    return jsonify(rows), 200
+    return jsonify({"ok": True, "data": rows}), 200
 
 
 @bp.route("/config/almacenes/<centro>/<almacen>", methods=["PUT", "DELETE"])
@@ -855,6 +920,23 @@ def admin_config_almacenes_mod(centro, almacen):
             )
 
     return jsonify({"ok": True}), 200
+
+
+# Alias routes for /config_almacenes (underscore variant)
+@bp.route("/config_almacenes", methods=["GET", "POST"])
+@require_admin
+@rate_limit(requests=30, window_seconds=60)
+def admin_config_almacenes_alias():
+    """Alias for /config/almacenes (underscore variant for backwards compatibility)."""
+    return admin_config_almacenes()
+
+
+@bp.route("/config_almacenes/<centro>/<almacen>", methods=["PUT", "DELETE"])
+@require_admin
+@rate_limit(requests=20, window_seconds=60)
+def admin_config_almacenes_mod_alias(centro, almacen):
+    """Alias for /config/almacenes/<centro>/<almacen> (underscore variant)."""
+    return admin_config_almacenes_mod(centro, almacen)
 
 
 # ==============================================================================

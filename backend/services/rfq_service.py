@@ -697,7 +697,7 @@ def calcular_puntajes(rfq_id: int) -> List[Dict[str, Any]]:
                         FROM rfq_oferta
                         WHERE rfq_id = ?
                         GROUP BY proveedor_cuit
-                    )
+                    ) sub
                 """, (rfq_id,))
                 precio_min = cursor.fetchone()[0] or 1
 
@@ -724,7 +724,7 @@ def calcular_puntajes(rfq_id: int) -> List[Dict[str, Any]]:
                             FROM rfq_oferta
                             WHERE rfq_id = ? AND lead_time_dias IS NOT NULL
                             GROUP BY proveedor_cuit
-                        )
+                        ) sub
                     """, (rfq_id,))
                     lead_time_min = cursor.fetchone()[0] or 1
 

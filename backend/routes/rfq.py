@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 rfq_bp = Blueprint("rfq", __name__, url_prefix="/api/rfq")
 
 
-@rfq_bp.route("/", methods=["GET"])
+@rfq_bp.route("", methods=["GET"])
 @require_auth
 def listar_rfqs():
     """
@@ -43,7 +43,7 @@ def listar_rfqs():
         return safe_error_response(e, logger, context="listar_rfqs")
 
 
-@rfq_bp.route("/", methods=["POST"])
+@rfq_bp.route("", methods=["POST"])
 @require_auth
 def crear_rfq():
     """

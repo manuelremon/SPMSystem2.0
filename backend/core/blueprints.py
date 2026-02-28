@@ -270,3 +270,16 @@ def register_blueprints(app: Flask) -> None:
     # Barcode Scanner Pairing (Sprint 91)
     from backend.routes.scanner import scanner_bp
     app.register_blueprint(scanner_bp)  # Scanner at /api/scanner
+
+    # Dashboard alias: /api/dashboard/admin -> delegates to admin.admin_dashboard
+    from flask import Blueprint as _Bp
+    _dashboard_alias_bp = _Bp("dashboard_alias", __name__, url_prefix="/api/dashboard")
+
+    @_dashboard_alias_bp.route("/admin", methods=["GET"])
+    def _dashboard_admin_alias():
+        from backend.routes.admin import admin_dashboard
+        # admin_dashboard is already decorated with @require_admin,
+        # calling it as a function invokes the decorated version
+        return admin_dashboard()
+
+    app.register_blueprint(_dashboard_alias_bp)  # Dashboard alias at /api/dashboard/admin

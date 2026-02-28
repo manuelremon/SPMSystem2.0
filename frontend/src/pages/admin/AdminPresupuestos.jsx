@@ -139,7 +139,8 @@ export default function AdminPresupuestos() {
     setLoadingPresupuestos(true);
     try {
       const res = await admin.list("presupuestos");
-      const data = (res.data || []).map((r) => ({
+      const rawData = res.data?.data || res.data || [];
+      const data = (Array.isArray(rawData) ? rawData : []).map((r) => ({
         ...r,
         _id: `${r.centro}|${r.sector}`,
       }));
