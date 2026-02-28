@@ -48,6 +48,7 @@ def get_solpeds():
             fecha_desde=fecha_desde, fecha_hasta=fecha_hasta,
             search=search
         )
+        result['ok'] = True
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error getting solpeds: {e}", exc_info=True)
@@ -82,6 +83,7 @@ def get_orders():
             material=material, fecha_desde=fecha_desde,
             fecha_hasta=fecha_hasta, recibido=recibido
         )
+        result['ok'] = True
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error getting orders: {e}", exc_info=True)
@@ -105,7 +107,9 @@ def get_kpis():
     try:
         centro = request.args.get('centro')
         periodo = request.args.get('periodo', 'mes')
-        return jsonify(ProcurementService.get_kpis(centro=centro, periodo=periodo))
+        result = ProcurementService.get_kpis(centro=centro, periodo=periodo)
+        result['ok'] = True
+        return jsonify(result)
     except Exception as e:
         logger.error(f"Error getting KPIs: {e}", exc_info=True)
         return jsonify({"error": "Error interno del servidor"}), 500
@@ -131,7 +135,7 @@ def get_compliance():
     try:
         min_pedidos = request.args.get('min_pedidos', 5, type=int)
         limit = request.args.get('limit', 50, type=int)
-        return jsonify({"items": ProcurementService.get_compliance(min_pedidos=min_pedidos, limit=limit)})
+        return jsonify({"ok": True, "items": ProcurementService.get_compliance(min_pedidos=min_pedidos, limit=limit)})
     except Exception as e:
         logger.error(f"Error getting compliance: {e}", exc_info=True)
         return jsonify({"error": "Error interno del servidor"}), 500
@@ -144,7 +148,7 @@ def get_costs():
         moneda = request.args.get('moneda')
         min_trans = request.args.get('min_trans', 3, type=int)
         
-        return jsonify({"items": ProcurementService.get_costs(
+        return jsonify({"ok": True, "items": ProcurementService.get_costs(
             material=material, moneda=moneda, min_trans=min_trans
         )})
     except Exception as e:
@@ -176,7 +180,7 @@ def import_zm65():
 def get_import_history():
     try:
         limit = request.args.get('limit', 20, type=int)
-        return jsonify({"items": ProcurementService.get_import_history(limit=limit)})
+        return jsonify({"ok": True, "items": ProcurementService.get_import_history(limit=limit)})
     except Exception as e:
         logger.error(f"Error getting import history: {e}", exc_info=True)
         return jsonify({"error": "Error interno del servidor"}), 500
@@ -185,7 +189,7 @@ def get_import_history():
 @require_auth
 def get_summary():
     try:
-        return jsonify({"items": ProcurementService.get_summary()})
+        return jsonify({"ok": True, "items": ProcurementService.get_summary()})
     except Exception as e:
         logger.error(f"Error getting summary: {e}", exc_info=True)
         return jsonify({"error": "Error interno del servidor"}), 500
@@ -194,7 +198,7 @@ def get_summary():
 @require_auth
 def get_pipeline():
     try:
-        return jsonify({"items": ProcurementService.get_pipeline()})
+        return jsonify({"ok": True, "items": ProcurementService.get_pipeline()})
     except Exception as e:
         logger.error(f"Error getting pipeline: {e}", exc_info=True)
         return jsonify({"error": "Error interno del servidor"}), 500
