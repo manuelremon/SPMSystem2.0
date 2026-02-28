@@ -176,7 +176,7 @@ class PlanningSeed(SeedModule):
         return prod_ids
 
     # ------------------------------------------------------------------
-    # plan_demanda  (~5 records)
+    # plan_demanda  (~10 records)
     # Cols: nombre, periodo, estado, metodo, created_by, created_at,
     #       updated_at
     # ------------------------------------------------------------------
@@ -189,6 +189,11 @@ class PlanningSeed(SeedModule):
             "Plan Demanda Anual 2025",
             "Plan Demanda Revisión Especial",
             "Plan Demanda H2 2025",
+            "Plan Demanda Q3 2026",
+            "Plan Demanda Q4 2026",
+            "Plan Demanda Materiales Críticos",
+            "Plan Demanda Lubricantes 2026",
+            "Plan Demanda Repuestos Mecánicos",
         ]
 
         for nombre_base in nombres:

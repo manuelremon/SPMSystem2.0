@@ -24,6 +24,8 @@ from scripts.seed_modules.m16_admin_config import AdminConfigSeed
 from scripts.seed_modules.m17_executive import ExecutiveSeed
 from scripts.seed_modules.m18_kitting import KittingSeed
 from scripts.seed_modules.m19_missing_tables import MissingTablesSeed
+from scripts.seed_modules.m20_inventory_gaps import InventoryGapsSeed
+from scripts.seed_modules.m21_compliance_copilot import ComplianceCopilotSeed
 
 # Orden de ejecución (respeta dependencias)
 SEED_MODULES = [
@@ -46,6 +48,8 @@ SEED_MODULES = [
     ExecutiveSeed,            # Fase 5
     KittingSeed,              # Fase 5
     MissingTablesSeed,        # Fase 6: tablas restantes vacías
+    InventoryGapsSeed,        # Fase 7: nivel servicio, genealogía lotes, SLOB
+    ComplianceCopilotSeed,    # Fase 7: compliance checks, AI copilot
 ]
 
 MODULE_MAP = {m.name: m for m in SEED_MODULES}

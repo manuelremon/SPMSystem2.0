@@ -68,6 +68,7 @@ class MissingTablesSeed(SeedModule):
         "emision_carbono",
         "consignment_reconciliacion",
         "consignment_consumo",
+        "consignment_stock",
         "consignment_programa",
         "tipo_cambio",
     ]
@@ -75,6 +76,7 @@ class MissingTablesSeed(SeedModule):
     def seed(self):
         self._seed_tipo_cambio()
         consignment_ids = self._seed_consignment()
+        self._seed_consignment_stock(consignment_ids)
         self._seed_consignment_consumo(consignment_ids)
         self._seed_consignment_reconciliacion(consignment_ids)
         self._seed_emision_carbono()
@@ -157,6 +159,49 @@ class MissingTablesSeed(SeedModule):
                 pass
         self.log(f"consignment_programa: {len(ids)} insertados")
         return ids
+
+    # ------------------------------------------------------------------
+    # consignment_stock  (~15 records, needed for consignment_consumo FK)
+    # Cols: programa_id, material_codigo, cantidad_disponible,
+    #       cantidad_consumida_acumulada, valor_unitario,
+    #       ultima_actualizacion, created_at
+    # ------------------------------------------------------------------
+    def _seed_consignment_stock(self, programa_ids):
+        count = 0
+        if not programa_ids:
+            return
+
+        # Check if stock already exists
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM consignment_stock")
+            existing = cursor.fetchone()[0]
+        except Exception:
+            existing = 0
+
+        if existing >= 10:
+            self.log(f"consignment_stock: ya hay {existing} records, skip")
+            return
+
+        for prog_id in programa_ids:
+            for _ in range(3):
+                cant_disp = round(random.uniform(10, 500), 2)
+                cant_cons = round(random.uniform(0, cant_disp * 0.6), 2)
+                row = {
+                    "programa_id": prog_id,
+                    "material_codigo": self.refs.rand_material(),
+                    "cantidad_disponible": cant_disp,
+                    "cantidad_consumida_acumulada": cant_cons,
+                    "valor_unitario": rand_money(10, 2000),
+                    "ultima_actualizacion": rand_datetime(days_back=30),
+                    "created_at": rand_datetime(days_back=90),
+                }
+                try:
+                    self.insert_no_return("consignment_stock", row)
+                    count += 1
+                except Exception:
+                    pass
+        self.log(f"consignment_stock: {count} insertados")
 
     # ------------------------------------------------------------------
     # consignment_consumo  (~15 records)
@@ -988,6 +1033,7 @@ class MissingTablesSeed(SeedModule):
             "emision_carbono": "periodo",
             "consignment_reconciliacion": "periodo",
             "consignment_consumo": None,
+            "consignment_stock": None,
             "consignment_programa": "nombre",
             "tipo_cambio": "fuente",
         }
