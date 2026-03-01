@@ -311,7 +311,7 @@ def obtener_detalle_eco(eco_id: int) -> dict:
                 ea.id, ea.aprobador_id, u.nombre as aprobador_nombre,
                 ea.estado, ea.comentarios, ea.fecha_aprobacion
             FROM eco_aprobacion ea
-            LEFT JOIN usuarios u ON ea.aprobador_id = u.id_spm
+            LEFT JOIN usuarios u ON ea.aprobador_id::text = u.id_spm
             WHERE ea.eco_id = {placeholder}
             ORDER BY ea.created_at
             """,
@@ -338,7 +338,7 @@ def obtener_detalle_eco(eco_id: int) -> dict:
                 eh.id, eh.estado, eh.actor_id, u.nombre as actor_nombre,
                 eh.comentarios, eh.created_at
             FROM eco_historial eh
-            LEFT JOIN usuarios u ON eh.actor_id = u.id_spm
+            LEFT JOIN usuarios u ON eh.actor_id::text = u.id_spm
             WHERE eh.eco_id = {placeholder}
             ORDER BY eh.created_at DESC
             """,
@@ -640,7 +640,7 @@ def implementar_eco(eco_id: int, actor_id: int) -> None:
 
         # Actualizar estado
         cursor.execute(
-            f"UPDATE eco SET estado = 'completed', updated_at = {now_fn} WHERE id = {placeholder}",
+            f"UPDATE eco SET estado = 'implemented', updated_at = {now_fn} WHERE id = {placeholder}",
             (eco_id,)
         )
 
@@ -649,12 +649,12 @@ def implementar_eco(eco_id: int, actor_id: int) -> None:
             cursor.execute("""
                 INSERT INTO eco_historial (eco_id, estado, actor_id, comentarios, created_at)
                 VALUES (%s, %s, %s, %s, NOW())
-            """, (eco_id, 'completed', actor_id, 'ECO implementada'))
+            """, (eco_id, 'implemented', actor_id, 'ECO implementada'))
         else:
             cursor.execute("""
                 INSERT INTO eco_historial (eco_id, estado, actor_id, comentarios, created_at)
                 VALUES (?, ?, ?, ?, datetime('now'))
-            """, (eco_id, 'completed', actor_id, 'ECO implementada'))
+            """, (eco_id, 'implemented', actor_id, 'ECO implementada'))
 
         conn.commit()
         logger.info(f"ECO {eco_id} marcada como completada")
@@ -735,9 +735,9 @@ def obtener_impacto(eco_id: int) -> dict:
         # Stock actual
         cursor.execute(
             f"""
-            SELECT almacen, stock, unidad
+            SELECT almacen, stock, um
             FROM stock
-            WHERE codigo_material = {placeholder}
+            WHERE material = {placeholder}
             """,
             (material_codigo,)
         )
@@ -789,13 +789,13 @@ def obtener_kpis() -> dict:
         if using_pg:
             cursor.execute("""
                 SELECT COUNT(*) FROM eco
-                WHERE estado = 'completed'
+                WHERE estado IN ('completed', 'implemented')
                 AND DATE_TRUNC('month', updated_at) = DATE_TRUNC('month', CURRENT_DATE)
             """)
         else:
             cursor.execute("""
                 SELECT COUNT(*) FROM eco
-                WHERE estado = 'completed'
+                WHERE estado IN ('completed', 'implemented')
                 AND strftime('%Y-%m', updated_at) = strftime('%Y-%m', 'now')
             """)
         implementadas_mes = cursor.fetchone()[0]
@@ -820,13 +820,13 @@ def obtener_kpis() -> dict:
             cursor.execute("""
                 SELECT AVG(EXTRACT(EPOCH FROM (updated_at - created_at)) / 86400)
                 FROM eco
-                WHERE estado IN ('approved', 'completed')
+                WHERE estado IN ('approved', 'completed', 'implemented')
             """)
         else:
             cursor.execute("""
                 SELECT AVG(JULIANDAY(updated_at) - JULIANDAY(created_at))
                 FROM eco
-                WHERE estado IN ('approved', 'completed')
+                WHERE estado IN ('approved', 'completed', 'implemented')
             """)
         tiempo_promedio = cursor.fetchone()[0] or 0
 

@@ -25,13 +25,16 @@ def obtener_ecos():
             'estado': request.args.get('estado'),
             'tipo': request.args.get('tipo'),
             'prioridad': request.args.get('prioridad'),
-            'material_codigo': request.args.get('material_codigo'),
+            # Frontend envia 'material', backend lee 'material_codigo'
+            'material_codigo': request.args.get('material_codigo') or request.args.get('material'),
             'page': request.args.get('page', 1, type=int),
             'per_page': request.args.get('per_page', 50, type=int)
         }
-        ecos = eco_service.obtener_ecos(filtros)
-        ecos['ok'] = True
-        return jsonify(ecos), 200
+        result = eco_service.obtener_ecos(filtros)
+        # Frontend espera 'ecos', servicio retorna 'items'
+        result['ecos'] = result.pop('items', [])
+        result['ok'] = True
+        return jsonify(result), 200
     except Exception as e:
         return safe_error_response(e, logger, context="eco")
 
@@ -43,6 +46,7 @@ def crear_eco():
     try:
         data = request.get_json()
         eco = eco_service.crear_eco(data)
+        eco['ok'] = True
         return jsonify(eco), 201
     except Exception as e:
         return safe_error_response(e, logger, context="eco")
@@ -54,7 +58,20 @@ def obtener_detalle_eco(id):
     """Obtener detalle completo de ECO."""
     try:
         detalle = eco_service.obtener_detalle_eco(id)
-        return jsonify(detalle), 200
+        # Alinear keys de cambios al frontend
+        for c in detalle.get('cambios', []):
+            c.setdefault('campo_afectado', c.get('campo'))
+            c.setdefault('tipo_cambio', c.get('razon'))
+        # Alinear keys de aprobaciones al frontend
+        for a in detalle.get('aprobaciones', []):
+            a.setdefault('aprobador', a.get('aprobador_nombre'))
+        # Alinear keys de historial al frontend
+        for h in detalle.get('historial', []):
+            h.setdefault('actor', h.get('actor_nombre'))
+            h.setdefault('notas', h.get('comentarios'))
+        return jsonify({'ok': True, 'eco': detalle}), 200
+    except ValueError as e:
+        return jsonify({'ok': False, 'error': str(e)}), 404
     except Exception as e:
         return safe_error_response(e, logger, context="eco")
 
@@ -66,6 +83,7 @@ def actualizar_eco(id):
     try:
         data = request.get_json()
         eco = eco_service.actualizar_eco(id, data)
+        eco['ok'] = True
         return jsonify(eco), 200
     except Exception as e:
         return safe_error_response(e, logger, context="eco")
@@ -77,9 +95,19 @@ def agregar_cambios(id):
     """Agregar cambios a ECO."""
     try:
         data = request.get_json()
+        # Frontend puede enviar un objeto plano o {cambios: [...]}
         cambios = data.get('cambios')
+        if cambios is None:
+            # Frontend envia objeto plano: {campo_afectado, tipo_cambio, ...}
+            cambio = {
+                'campo': data.get('campo_afectado') or data.get('campo'),
+                'valor_anterior': data.get('valor_anterior'),
+                'valor_nuevo': data.get('valor_nuevo'),
+                'razon': data.get('tipo_cambio') or data.get('razon'),
+            }
+            cambios = [cambio]
         resultado = eco_service.agregar_cambios(id, cambios)
-        return jsonify(resultado), 200
+        return jsonify({'ok': True, 'result': resultado}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="eco")
 
@@ -91,7 +119,7 @@ def solicitar_aprobacion(id):
     try:
         user_id = _get_user_id()
         resultado = eco_service.solicitar_aprobacion(id, user_id)
-        return jsonify(resultado), 200
+        return jsonify({'ok': True, 'result': resultado}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="eco")
 
@@ -105,7 +133,7 @@ def aprobar_eco(id):
         user_id = _get_user_id()
         comentarios = data.get('comentarios')
         resultado = eco_service.aprobar_eco(id, user_id, comentarios)
-        return jsonify(resultado), 200
+        return jsonify({'ok': True, 'result': resultado}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="eco")
 
@@ -119,7 +147,7 @@ def rechazar_eco(id):
         user_id = _get_user_id()
         comentarios = data.get('comentarios')
         resultado = eco_service.rechazar_eco(id, user_id, comentarios)
-        return jsonify(resultado), 200
+        return jsonify({'ok': True, 'result': resultado}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="eco")
 
@@ -131,7 +159,7 @@ def implementar_eco(id):
     try:
         user_id = _get_user_id()
         resultado = eco_service.implementar_eco(id, user_id)
-        return jsonify(resultado), 200
+        return jsonify({'ok': True, 'result': resultado}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="eco")
 
@@ -142,7 +170,9 @@ def obtener_impacto(id):
     """Obtener análisis de impacto de ECO."""
     try:
         impacto = eco_service.obtener_impacto(id)
-        return jsonify(impacto), 200
+        # Frontend espera 'stock', servicio retorna 'stock_afectado'
+        impacto['stock'] = impacto.pop('stock_afectado', [])
+        return jsonify({'ok': True, 'impact': impacto}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="eco")
 
