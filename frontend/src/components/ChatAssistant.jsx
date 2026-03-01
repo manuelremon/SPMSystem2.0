@@ -419,6 +419,17 @@ export default function ChatAssistant() {
     return () => clearInterval(interval)
   }, [isOpen])
 
+  // Marcar alertas como shown cuando se renderizan visualmente
+  useEffect(() => {
+    if (!isOpen || pendingAlerts.length === 0) return
+
+    const unshown = pendingAlerts.filter(a => !a.shown)
+    for (const alert of unshown) {
+      store.markAlertShown(alert.id)
+      vertexService.markAlertShown(alert.id).catch(() => {})
+    }
+  }, [isOpen, pendingAlerts.length])
+
   // Auto scroll a los ultimos mensajes
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

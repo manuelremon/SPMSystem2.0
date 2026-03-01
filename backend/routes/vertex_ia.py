@@ -674,7 +674,7 @@ NO ofrezcas ejemplos inventados. NO uses códigos ficticios como 1234-5678.
         if not chat_messages or chat_messages[-1]["content"] != user_message:
             chat_messages.append({"role": "user", "content": user_message})
 
-        # Generar respuesta con Gemini (o fallback a otro LLM)
+        # Generar respuesta con LLM (con fallback automatico)
         try:
             client = get_llm_client(provider="auto")
 
@@ -695,31 +695,10 @@ NO ofrezcas ejemplos inventados. NO uses códigos ficticios como 1234-5678.
                 f"sys_len: {len(system_prompt)}, temp: {temperature}"
             )
 
-            # Usar generate_chat si el cliente lo soporta (Gemini, Groq)
-            if hasattr(client, 'generate_chat'):
-                response_text = client.generate_chat(
-                    messages=chat_messages,
-                    system_prompt=system_prompt,
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                )
-            else:
-                # Fallback para otros LLMs: concatenar como antes
-                history_text = _format_history(history)
-                full_prompt = f"""Contexto:\n{context_info}{rag_context}{material_restriction}
-
-HISTORIAL:
-{history_text}
-
-MENSAJE ACTUAL: {user_message}
-
-Responde como Vertex IA:"""
-                response_text = client.generate(
-                    prompt=full_prompt,
-                    system_prompt=VERTEX_SYSTEM_PROMPT,
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                )
+            response_text = _call_llm_with_fallback(
+                client, chat_messages, system_prompt,
+                max_tokens, temperature, history,
+            )
 
             logger.info(f"Response ({len(response_text)} chars): {response_text[:200]}")
 
@@ -730,12 +709,7 @@ Responde como Vertex IA:"""
         except Exception as e:
             logger.exception(f"Error generando con LLM: {e}")
             err_str = str(e).lower()
-            if "resource_exhausted" in err_str or "429" in err_str or "quota" in err_str:
-                response_text = (
-                    "El servicio de IA alcanzo su limite de uso temporalmente. "
-                    "Intenta de nuevo en unos minutos."
-                )
-            elif "api_key" in err_str or "401" in err_str or "403" in err_str or "invalid" in err_str:
+            if "api_key" in err_str or "401" in err_str or "403" in err_str or "invalid" in err_str:
                 response_text = (
                     "Hay un problema con la configuracion del servicio de IA. "
                     "Contacta al administrador."
@@ -795,6 +769,76 @@ Responde como Vertex IA:"""
                 "message": "Error interno del servidor",
             },
         }), 500
+
+
+def _call_llm_with_fallback(
+    client, chat_messages, system_prompt, max_tokens, temperature, history
+) -> str:
+    """
+    Llama al LLM primario. Si falla con 429/quota, intenta con un provider alternativo.
+    Orden de fallback: Gemini <-> Groq <-> mock message.
+    """
+    import os
+
+    def _do_generate(c):
+        if hasattr(c, "generate_chat"):
+            return c.generate_chat(
+                messages=chat_messages,
+                system_prompt=system_prompt,
+                max_tokens=max_tokens,
+                temperature=temperature,
+            )
+        history_text = _format_history(history)
+        full_prompt = f"""Contexto:\n{system_prompt}
+
+HISTORIAL:
+{history_text}
+
+MENSAJE ACTUAL: {chat_messages[-1]['content'] if chat_messages else ''}
+
+Responde como Vertex IA:"""
+        return c.generate(
+            prompt=full_prompt,
+            system_prompt=VERTEX_SYSTEM_PROMPT,
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
+
+    def _is_quota_error(e):
+        err = str(e).lower()
+        return "resource_exhausted" in err or "429" in err or "quota" in err or "rate" in err
+
+    # Intento 1: provider primario
+    try:
+        return _do_generate(client)
+    except Exception as primary_err:
+        if not _is_quota_error(primary_err):
+            raise
+
+        logger.warning(f"LLM primario ({type(client).__name__}) quota excedida, buscando fallback...")
+
+        # Determinar fallback
+        fallback_provider = None
+        if client.provider == "gemini" and os.getenv("GROQ_API_KEY"):
+            fallback_provider = "groq"
+        elif client.provider == "groq" and os.getenv("GOOGLE_AI_API_KEY"):
+            fallback_provider = "gemini"
+        elif os.getenv("GROQ_API_KEY"):
+            fallback_provider = "groq"
+        elif os.getenv("GOOGLE_AI_API_KEY"):
+            fallback_provider = "gemini"
+
+        if not fallback_provider:
+            raise
+
+        # Intento 2: fallback provider
+        try:
+            fallback_client = get_llm_client(provider=fallback_provider)
+            logger.info(f"Usando fallback LLM: {type(fallback_client).__name__}")
+            return _do_generate(fallback_client)
+        except Exception as fallback_err:
+            logger.warning(f"Fallback LLM tambien fallo: {fallback_err}")
+            raise primary_err
 
 
 def _format_history(history: List[Dict[str, str]]) -> str:
@@ -1124,31 +1168,57 @@ def _search_materials_direct(query: str) -> list:
 
 def _enrich_with_stock(materials: list) -> list:
     """Agrega datos de stock a los resultados de materiales."""
-    import sqlite3
     try:
-        from backend.core.db import get_sap_data_db_path
-        db_path = str(get_sap_data_db_path())
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
+        from backend.core.db import is_using_postgresql
 
-        for mat in materials:
-            codigo = mat.get("codigo", "")
-            cur.execute(
-                """SELECT SUM(stock) as stock_total, centro, almacen
-                   FROM stock WHERE material = ?
-                   GROUP BY material LIMIT 1""",
-                (codigo,),
-            )
-            row = cur.fetchone()
-            if row:
-                mat["stock_total"] = row["stock_total"] or 0
-                mat["centro"] = row["centro"]
-                mat["almacen"] = row["almacen"]
-            else:
-                mat["stock_total"] = "Sin datos"
+        if is_using_postgresql():
+            from backend.core.db import get_db_connection
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+                for mat in materials:
+                    codigo = mat.get("codigo", "")
+                    cur.execute(
+                        """SELECT SUM(stock::numeric) as stock_total,
+                                  MIN(centro) as centro, MIN(almacen) as almacen
+                           FROM stock WHERE material = ?""",
+                        (codigo,),
+                    )
+                    row = cur.fetchone()
+                    if row:
+                        stock_val = row[0] if isinstance(row, (list, tuple)) else row.get("stock_total")
+                        if stock_val is not None:
+                            mat["stock_total"] = float(stock_val)
+                            mat["centro"] = row[1] if isinstance(row, (list, tuple)) else row.get("centro")
+                            mat["almacen"] = row[2] if isinstance(row, (list, tuple)) else row.get("almacen")
+                        else:
+                            mat["stock_total"] = "Sin datos"
+                    else:
+                        mat["stock_total"] = "Sin datos"
+        else:
+            import sqlite3
+            from backend.core.db import get_sap_data_db_path
+            db_path = str(get_sap_data_db_path())
+            conn = sqlite3.connect(db_path)
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
 
-        conn.close()
+            for mat in materials:
+                codigo = mat.get("codigo", "")
+                cur.execute(
+                    """SELECT SUM(stock) as stock_total, centro, almacen
+                       FROM stock WHERE material = ?
+                       GROUP BY material LIMIT 1""",
+                    (codigo,),
+                )
+                row = cur.fetchone()
+                if row:
+                    mat["stock_total"] = row["stock_total"] or 0
+                    mat["centro"] = row["centro"]
+                    mat["almacen"] = row["almacen"]
+                else:
+                    mat["stock_total"] = "Sin datos"
+
+            conn.close()
     except Exception as e:
         logger.debug(f"No se pudo enriquecer con stock: {e}")
 
@@ -1252,7 +1322,7 @@ def _get_user_data_context(user_id: str, message: str) -> str:
 
             # Obtener info basica del usuario (centro, rol)
             cursor.execute(
-                "SELECT centros, roles, nombre FROM usuario WHERE id_spm = ?",
+                "SELECT centros, rol, nombre FROM usuario WHERE id_spm = ?",
                 (user_id,),
             )
             user_row = cursor.fetchone()
