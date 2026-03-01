@@ -97,12 +97,12 @@ def crear_eco(data: dict) -> int:
         # Insertar historial inicial
         if using_pg:
             cursor.execute("""
-                INSERT INTO eco_historial (eco_id, estado, actor_id, comentarios, created_at)
+                INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
                 VALUES (%s, %s, %s, %s, NOW())
             """, (eco_id, 'draft', data['solicitante_id'], 'ECO creada'))
         else:
             cursor.execute("""
-                INSERT INTO eco_historial (eco_id, estado, actor_id, comentarios, created_at)
+                INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
                 VALUES (?, ?, ?, ?, datetime('now'))
             """, (eco_id, 'draft', data['solicitante_id'], 'ECO creada'))
 
@@ -283,7 +283,7 @@ def obtener_detalle_eco(eco_id: int) -> dict:
         cursor.execute(
             f"""
             SELECT
-                id, campo, valor_anterior, valor_nuevo, razon, created_at
+                id, campo_afectado, valor_anterior, valor_nuevo, tipo_cambio, created_at
             FROM eco_cambio
             WHERE eco_id = {placeholder}
             ORDER BY created_at
@@ -295,9 +295,11 @@ def obtener_detalle_eco(eco_id: int) -> dict:
         for row in cursor.fetchall():
             cambios.append({
                 'id': row[0],
+                'campo_afectado': row[1],
                 'campo': row[1],
                 'valor_anterior': row[2],
                 'valor_nuevo': row[3],
+                'tipo_cambio': row[4],
                 'razon': row[4],
                 'created_at': row[5]
             })
@@ -309,7 +311,7 @@ def obtener_detalle_eco(eco_id: int) -> dict:
             f"""
             SELECT
                 ea.id, ea.aprobador_id, u.nombre as aprobador_nombre,
-                ea.estado, ea.comentarios, ea.fecha_aprobacion
+                ea.decision, ea.comentarios, ea.fecha_decision
             FROM eco_aprobacion ea
             LEFT JOIN usuarios u ON ea.aprobador_id::text = u.id_spm
             WHERE ea.eco_id = {placeholder}
@@ -324,6 +326,7 @@ def obtener_detalle_eco(eco_id: int) -> dict:
                 'id': row[0],
                 'aprobador_id': row[1],
                 'aprobador_nombre': row[2],
+                'aprobador': row[2],
                 'estado': row[3],
                 'comentarios': row[4],
                 'fecha_aprobacion': row[5]
@@ -335,8 +338,8 @@ def obtener_detalle_eco(eco_id: int) -> dict:
         cursor.execute(
             f"""
             SELECT
-                eh.id, eh.estado, eh.actor_id, u.nombre as actor_nombre,
-                eh.comentarios, eh.created_at
+                eh.id, eh.estado_nuevo, eh.actor_id, u.nombre as actor_nombre,
+                eh.notas, eh.created_at
             FROM eco_historial eh
             LEFT JOIN usuarios u ON eh.actor_id::text = u.id_spm
             WHERE eh.eco_id = {placeholder}
@@ -352,6 +355,8 @@ def obtener_detalle_eco(eco_id: int) -> dict:
                 'estado': row[1],
                 'actor_id': row[2],
                 'actor_nombre': row[3],
+                'actor': row[3],
+                'notas': row[4],
                 'comentarios': row[4],
                 'created_at': row[5]
             })
@@ -428,29 +433,31 @@ def agregar_cambios(eco_id: int, cambios: list) -> None:
 
     with get_db_transaction() as (conn, cursor):
         for cambio in cambios:
+            campo = cambio.get('campo_afectado') or cambio.get('campo')
+            tipo = cambio.get('tipo_cambio') or cambio.get('razon')
             if using_pg:
                 cursor.execute("""
                     INSERT INTO eco_cambio
-                    (eco_id, campo, valor_anterior, valor_nuevo, razon, created_at)
+                    (eco_id, campo_afectado, valor_anterior, valor_nuevo, tipo_cambio, created_at)
                     VALUES (%s, %s, %s, %s, %s, NOW())
                 """, (
                     eco_id,
-                    cambio['campo'],
+                    campo,
                     cambio.get('valor_anterior'),
-                    cambio['valor_nuevo'],
-                    cambio.get('razon')
+                    cambio.get('valor_nuevo'),
+                    tipo
                 ))
             else:
                 cursor.execute("""
                     INSERT INTO eco_cambio
-                    (eco_id, campo, valor_anterior, valor_nuevo, razon, created_at)
+                    (eco_id, campo_afectado, valor_anterior, valor_nuevo, tipo_cambio, created_at)
                     VALUES (?, ?, ?, ?, ?, datetime('now'))
                 """, (
                     eco_id,
-                    cambio['campo'],
+                    campo,
                     cambio.get('valor_anterior'),
-                    cambio['valor_nuevo'],
-                    cambio.get('razon')
+                    cambio.get('valor_nuevo'),
+                    tipo
                 ))
 
         conn.commit()
@@ -479,12 +486,12 @@ def solicitar_aprobacion(eco_id: int, actor_id: int) -> None:
         # Crear historial
         if using_pg:
             cursor.execute("""
-                INSERT INTO eco_historial (eco_id, estado, actor_id, comentarios, created_at)
+                INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
                 VALUES (%s, %s, %s, %s, NOW())
             """, (eco_id, 'submitted', actor_id, 'ECO enviada para aprobación'))
         else:
             cursor.execute("""
-                INSERT INTO eco_historial (eco_id, estado, actor_id, comentarios, created_at)
+                INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
                 VALUES (?, ?, ?, ?, datetime('now'))
             """, (eco_id, 'submitted', actor_id, 'ECO enviada para aprobación'))
 
@@ -497,12 +504,12 @@ def solicitar_aprobacion(eco_id: int, actor_id: int) -> None:
         for aprobador_id in aprobadores:
             if using_pg:
                 cursor.execute("""
-                    INSERT INTO eco_aprobacion (eco_id, aprobador_id, estado, created_at)
+                    INSERT INTO eco_aprobacion (eco_id, aprobador_id, decision, created_at)
                     VALUES (%s, %s, %s, NOW())
                 """, (eco_id, aprobador_id, 'pending'))
             else:
                 cursor.execute("""
-                    INSERT INTO eco_aprobacion (eco_id, aprobador_id, estado, created_at)
+                    INSERT INTO eco_aprobacion (eco_id, aprobador_id, decision, created_at)
                     VALUES (?, ?, ?, datetime('now'))
                 """, (eco_id, aprobador_id, 'pending'))
 
@@ -528,8 +535,8 @@ def aprobar_eco(eco_id: int, aprobador_id: int, comentarios: str = None) -> None
         cursor.execute(
             f"""
             UPDATE eco_aprobacion
-            SET estado = 'approved', comentarios = {placeholder},
-                fecha_aprobacion = {now_fn}
+            SET decision = 'approved', comentarios = {placeholder},
+                fecha_decision = {now_fn}
             WHERE eco_id = {placeholder} AND aprobador_id = {placeholder}
             """,
             (comentarios, eco_id, aprobador_id)
@@ -539,7 +546,7 @@ def aprobar_eco(eco_id: int, aprobador_id: int, comentarios: str = None) -> None
         cursor.execute(
             f"""
             SELECT COUNT(*) FROM eco_aprobacion
-            WHERE eco_id = {placeholder} AND estado = 'pending'
+            WHERE eco_id = {placeholder} AND decision = 'pending'
             """,
             (eco_id,)
         )
@@ -554,12 +561,12 @@ def aprobar_eco(eco_id: int, aprobador_id: int, comentarios: str = None) -> None
 
             if using_pg:
                 cursor.execute("""
-                    INSERT INTO eco_historial (eco_id, estado, actor_id, comentarios, created_at)
+                    INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
                     VALUES (%s, %s, %s, %s, NOW())
                 """, (eco_id, 'approved', aprobador_id, 'Todas las aprobaciones completadas'))
             else:
                 cursor.execute("""
-                    INSERT INTO eco_historial (eco_id, estado, actor_id, comentarios, created_at)
+                    INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
                     VALUES (?, ?, ?, ?, datetime('now'))
                 """, (eco_id, 'approved', aprobador_id, 'Todas las aprobaciones completadas'))
 
@@ -585,8 +592,8 @@ def rechazar_eco(eco_id: int, aprobador_id: int, comentarios: str = None) -> Non
         cursor.execute(
             f"""
             UPDATE eco_aprobacion
-            SET estado = 'rejected', comentarios = {placeholder},
-                fecha_aprobacion = {now_fn}
+            SET decision = 'rejected', comentarios = {placeholder},
+                fecha_decision = {now_fn}
             WHERE eco_id = {placeholder} AND aprobador_id = {placeholder}
             """,
             (comentarios, eco_id, aprobador_id)
@@ -601,12 +608,12 @@ def rechazar_eco(eco_id: int, aprobador_id: int, comentarios: str = None) -> Non
         # Crear historial
         if using_pg:
             cursor.execute("""
-                INSERT INTO eco_historial (eco_id, estado, actor_id, comentarios, created_at)
+                INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
                 VALUES (%s, %s, %s, %s, NOW())
             """, (eco_id, 'rejected', aprobador_id, comentarios or 'ECO rechazada'))
         else:
             cursor.execute("""
-                INSERT INTO eco_historial (eco_id, estado, actor_id, comentarios, created_at)
+                INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
                 VALUES (?, ?, ?, ?, datetime('now'))
             """, (eco_id, 'rejected', aprobador_id, comentarios or 'ECO rechazada'))
 
@@ -647,12 +654,12 @@ def implementar_eco(eco_id: int, actor_id: int) -> None:
         # Crear historial
         if using_pg:
             cursor.execute("""
-                INSERT INTO eco_historial (eco_id, estado, actor_id, comentarios, created_at)
+                INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
                 VALUES (%s, %s, %s, %s, NOW())
             """, (eco_id, 'implemented', actor_id, 'ECO implementada'))
         else:
             cursor.execute("""
-                INSERT INTO eco_historial (eco_id, estado, actor_id, comentarios, created_at)
+                INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
                 VALUES (?, ?, ?, ?, datetime('now'))
             """, (eco_id, 'implemented', actor_id, 'ECO implementada'))
 
