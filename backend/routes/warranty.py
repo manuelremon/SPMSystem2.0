@@ -285,6 +285,7 @@ def get_kpis():
     """GET /api/warranty/kpis - KPIs de garantías y reclamos"""
     try:
         kpis = warranty_service.obtener_kpis()
+        kpis['ok'] = True
         return jsonify(kpis), 200
 
     except Exception as e:

@@ -377,7 +377,7 @@ def calcular_ganancia_perdida(periodo: Optional[int] = None) -> Dict[str, Any]:
 
             if periodo:
                 fecha_desde = datetime.now() - timedelta(days=periodo)
-                fecha_condition = f"AND oc.fecha_pago >= {ph}"
+                fecha_condition = f"AND oc.fecha_entrega_real >= {ph}"
                 params.append(fecha_desde)
 
             # Get completed OCs with different currency than ARS

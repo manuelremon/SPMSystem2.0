@@ -23,7 +23,7 @@ def obtener_conversaciones():
     try:
         user_id = _get_user_id()
         conversaciones = copilot_service.obtener_conversaciones(user_id)
-        return jsonify(conversaciones), 200
+        return jsonify({'ok': True, 'items': conversaciones}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="copilot")
 
@@ -127,6 +127,10 @@ def obtener_insights_dashboard():
     """Obtener insights del dashboard de IA."""
     try:
         insights = copilot_service.obtener_insights_dashboard()
+        if isinstance(insights, dict):
+            insights['ok'] = True
+        else:
+            insights = {'ok': True, 'data': insights}
         return jsonify(insights), 200
     except Exception as e:
         return safe_error_response(e, logger, context="copilot")
@@ -139,6 +143,10 @@ def analizar_patron_gasto():
     try:
         periodo = request.args.get('periodo')
         patrones = copilot_service.analizar_patron_gasto(periodo)
+        if isinstance(patrones, dict):
+            patrones['ok'] = True
+        else:
+            patrones = {'ok': True, 'data': patrones}
         return jsonify(patrones), 200
     except Exception as e:
         return safe_error_response(e, logger, context="copilot")

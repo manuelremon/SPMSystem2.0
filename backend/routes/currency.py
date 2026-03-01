@@ -43,7 +43,7 @@ def registrar_tasa():
             fecha=data.get('fecha'),
             fuente=data.get('fuente')
         )
-        return jsonify(tasa), 201
+        return jsonify({'ok': True, 'tasa': tasa}), 201
     except Exception as e:
         return safe_error_response(e, logger, context="currency")
 
@@ -54,7 +54,7 @@ def obtener_tasas_ultimas():
     """Obtener tasas de cambio más recientes."""
     try:
         tasas = currency_service.obtener_tasas_ultimas()
-        return jsonify(tasas), 200
+        return jsonify({'ok': True, 'items': tasas}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="currency")
 
@@ -84,8 +84,7 @@ def calcular_exposicion_cambiaria():
     """Calcular exposición cambiaria."""
     try:
         exposicion = currency_service.calcular_exposicion_cambiaria()
-        exposicion['ok'] = True
-        return jsonify(exposicion), 200
+        return jsonify({'ok': True, 'items': exposicion}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="currency")
 
@@ -97,6 +96,7 @@ def calcular_ganancia_perdida():
     try:
         periodo = request.args.get('periodo')
         resultado = currency_service.calcular_ganancia_perdida(periodo)
+        resultado['ok'] = True
         return jsonify(resultado), 200
     except Exception as e:
         return safe_error_response(e, logger, context="currency")

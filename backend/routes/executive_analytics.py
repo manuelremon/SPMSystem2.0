@@ -29,7 +29,7 @@ def get_kpis():
     """GET /api/executive/kpis - Lista de KPIs configurados"""
     try:
         kpis = executive_analytics_service.obtener_kpis_configurados()
-        return jsonify({'kpis': kpis}), 200
+        return jsonify({'ok': True, 'kpis': kpis}), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
