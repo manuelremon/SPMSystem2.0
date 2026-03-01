@@ -24,6 +24,7 @@ def listar_inspecciones():
     """Listar inspecciones con filtros opcionales"""
     try:
         filtros = {
+            'tipo': request.args.get('tipo'),
             'resultado': request.args.get('resultado'),
             'fecha_desde': request.args.get('fecha_desde'),
             'fecha_hasta': request.args.get('fecha_hasta'),
@@ -33,6 +34,8 @@ def listar_inspecciones():
 
         resultado = quality_service.obtener_inspecciones(filtros)
         resultado['ok'] = True
+        # Frontend espera 'inspections' (ingles)
+        resultado['inspections'] = resultado.pop('inspecciones', [])
         return jsonify(resultado), 200
 
     except Exception as e:
@@ -51,10 +54,13 @@ def crear_inspeccion():
         if not data.get('recepcion_id'):
             return jsonify({'error': 'recepcion_id es requerido'}), 400
 
-        if not data.get('tipo') or data['tipo'] not in ['sample', 'full']:
-            return jsonify({'error': 'tipo debe ser sample o full'}), 400
+        valid_tipos = ['sample', 'full', 'recepcion', 'proceso', 'final']
+        if not data.get('tipo') or data['tipo'] not in valid_tipos:
+            return jsonify({'error': f'tipo debe ser uno de: {", ".join(valid_tipos)}'}), 400
 
         inspeccion = quality_service.crear_inspeccion(data, user_id)
+        inspeccion['ok'] = True
+        inspeccion['inspection_id'] = inspeccion.get('id')
         return jsonify(inspeccion), 201
 
     except Exception as e:
@@ -214,9 +220,18 @@ def cambiar_estado_ncr(ncr_id):
 def obtener_kpis_calidad():
     """Obtener KPIs de calidad"""
     try:
-        kpis = quality_service.obtener_kpis_calidad()
-        kpis['ok'] = True
-        return jsonify(kpis), 200
+        raw = quality_service.obtener_kpis_calidad()
+        # Frontend espera: kpis.total, kpis.pass_rate, kpis.pending, kpis.failed
+        kpis = {
+            'total': raw.get('total_inspecciones', 0),
+            'pass_rate': raw.get('pass_rate', 0),
+            'pending': raw.get('ncrs_abiertos', 0),
+            'failed': raw.get('ncr_por_severidad', {}).get('critical', 0)
+                     + raw.get('ncr_por_severidad', {}).get('major', 0),
+            'avg_resolution_days': raw.get('avg_resolution_days', 0),
+            'ncr_por_severidad': raw.get('ncr_por_severidad', {}),
+        }
+        return jsonify({'ok': True, 'kpis': kpis}), 200
 
     except Exception as e:
         return safe_error_response(e, logger, context="quality")

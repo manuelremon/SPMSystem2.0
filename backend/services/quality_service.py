@@ -403,6 +403,10 @@ def obtener_inspecciones(filtros=None):
     where_clauses = []
     params = []
 
+    if filtros.get('tipo'):
+        where_clauses.append(f"tipo = {ph}")
+        params.append(filtros['tipo'])
+
     if filtros.get('resultado'):
         where_clauses.append(f"resultado = {ph}")
         params.append(filtros['resultado'])
