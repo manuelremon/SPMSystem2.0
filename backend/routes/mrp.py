@@ -494,21 +494,23 @@ def get_alertas():
         with get_db_connection("sap_data") as conn:
             cursor = conn.cursor()
 
-            # Query principal desde materiales_bbdd (7,309 registros)
-            # Usa campos precalculados: consumo_promedio_anual, rotacion
-            base_query = """
+            # Query principal desde materiales_bbdd
+            # Columnas disponibles: id, sector, almacen, centro, codigo_material,
+            #   descripcion, stock_de_seguridad, punto_de_pedido, stock_maximo
+            ph = "%s" if is_using_postgresql() else "?"
+            base_query = f"""
                 SELECT
                     m.codigo_material as codigo,
                     m.descripcion,
                     m.centro,
                     m.almacen,
                     m.sector,
-                    m.stock_de_seguridad,
-                    m.punto_de_pedido,
-                    m.stock_maximo,
-                    COALESCE(m.Demanda_estimada_anual, 0) as demanda_estimada_anual,
-                    COALESCE(m.consumo_promedio_anual, 0) as consumo_promedio_anual,
-                    COALESCE(m.rotacion, 0) as rotacion,
+                    COALESCE(m.stock_de_seguridad, 0) as stock_de_seguridad,
+                    COALESCE(m.punto_de_pedido, 0) as punto_de_pedido,
+                    COALESCE(m.stock_maximo, 0) as stock_maximo,
+                    0 as demanda_estimada_anual,
+                    0 as consumo_promedio_anual,
+                    0 as rotacion,
                     COALESCE(s.stock_actual, 0) as stock_actual,
                     COALESCE(s.unidad, 'UNI') as unidad,
                     COALESCE(s.precio_unitario, 0) as precio_unitario
@@ -532,17 +534,17 @@ def get_alertas():
 
             # Filtros múltiples
             if centros:
-                placeholders = ",".join(["?" for _ in centros])
+                placeholders = ",".join([ph for _ in centros])
                 base_query += f" AND m.centro IN ({placeholders})"
                 params.extend(centros)
 
             if almacenes:
-                placeholders = ",".join(["?" for _ in almacenes])
+                placeholders = ",".join([ph for _ in almacenes])
                 base_query += f" AND m.almacen IN ({placeholders})"
                 params.extend(almacenes)
 
             if sectores:
-                placeholders = ",".join(["?" for _ in sectores])
+                placeholders = ",".join([ph for _ in sectores])
                 base_query += f" AND m.sector IN ({placeholders})"
                 params.extend(sectores)
 
@@ -861,6 +863,8 @@ def get_kpis():
     fecha_inicio_str = fecha_inicio.strftime("%Y-%m-%d")
 
     try:
+        ph = "%s" if is_using_postgresql() else "?"
+
         # Conectar a sap_data para estadisticas reales
         # En produccion usa PostgreSQL, en desarrollo SQLite
         with get_db_connection("sap_data") as conn_sap:
@@ -870,15 +874,15 @@ def get_kpis():
             query_materiales = "SELECT COUNT(DISTINCT material) as total FROM stock"
             params_mat = []
             if centro:
-                query_materiales += " WHERE centro = ?"
+                query_materiales += f" WHERE centro = {ph}"
                 params_mat.append(centro)
             cursor_sap.execute(query_materiales, params_mat)
             total_materiales = cursor_sap.fetchone()["total"]
 
             # Valor total del inventario
-            query_valor = "SELECT SUM(stock_valorizado) as total FROM stock"
+            query_valor = "SELECT COALESCE(SUM(stock_valorizado), 0) as total FROM stock"
             if centro:
-                query_valor += " WHERE centro = ?"
+                query_valor += f" WHERE centro = {ph}"
             cursor_sap.execute(query_valor, params_mat)
             float(cursor_sap.fetchone()["total"] or 0)
 
@@ -887,7 +891,7 @@ def get_kpis():
                 "SELECT COUNT(DISTINCT material) as total FROM stock WHERE stock < 10 AND stock > 0"
             )
             if centro:
-                query_bajo += " AND centro = ?"
+                query_bajo += f" AND centro = {ph}"
             cursor_sap.execute(query_bajo, params_mat)
             cursor_sap.fetchone()["total"]
 
@@ -895,7 +899,7 @@ def get_kpis():
             try:
                 query_criticos = "SELECT COUNT(DISTINCT material) as total FROM stock WHERE critico = 'SI'"
                 if centro:
-                    query_criticos += " AND centro = ?"
+                    query_criticos += f" AND centro = {ph}"
                 cursor_sap.execute(query_criticos, params_mat)
                 cursor_sap.fetchone()["total"]
             except Exception:
@@ -905,7 +909,7 @@ def get_kpis():
             try:
                 query_inmov = "SELECT COUNT(DISTINCT material) as total FROM stock WHERE inmovilizado = 'INMOVILIZADO'"
                 if centro:
-                    query_inmov += " AND centro = ?"
+                    query_inmov += f" AND centro = {ph}"
                 cursor_sap.execute(query_inmov, params_mat)
                 cursor_sap.fetchone()["total"]
             except Exception:
@@ -923,7 +927,7 @@ def get_kpis():
                 WHERE stock > 0 AND stock < 20
             """
             if centro:
-                query_riesgo_count += " AND centro = ?"
+                query_riesgo_count += f" AND centro = {ph}"
             cursor_sap.execute(query_riesgo_count, params_mat)
             materiales_en_riesgo = cursor_sap.fetchone()["total"] or 0
 
@@ -934,7 +938,7 @@ def get_kpis():
                 WHERE stock > 1000
             """
             if centro:
-                query_sobrestock_count += " AND centro = ?"
+                query_sobrestock_count += f" AND centro = {ph}"
             cursor_sap.execute(query_sobrestock_count, params_mat)
             materiales_sobrestock = cursor_sap.fetchone()["total"] or 0
 
@@ -971,7 +975,7 @@ def get_kpis():
             """
             params_riesgo = []
             if centro:
-                query_riesgo += " AND centro = ?"
+                query_riesgo += f" AND centro = {ph}"
                 params_riesgo.append(centro)
             query_riesgo += """
                 GROUP BY material, material_descripcion
@@ -986,7 +990,7 @@ def get_kpis():
             material_codes = [mat["codigo"] for mat in materiales_riesgo_raw]
             consumo_por_material = {}
             if material_codes:
-                placeholders = ",".join("?" * len(material_codes))
+                placeholders = ",".join(ph for _ in material_codes)
                 cursor_sap.execute(f"""
                     SELECT material, SUM(cantidad) / 180.0 as consumo_diario
                     FROM consumo_historico
@@ -1029,14 +1033,14 @@ def get_kpis():
             # Solpeds creadas vs completadas (COALESCE para null safety)
             try:
                 cursor.execute(
-                    """
+                    f"""
                     SELECT
                         COUNT(*) as total,
                         COALESCE(SUM(CASE WHEN status = 'creada' THEN 1 ELSE 0 END), 0) as pendientes,
                         COALESCE(SUM(CASE WHEN status = 'enviada' THEN 1 ELSE 0 END), 0) as enviadas,
                         COALESCE(SUM(CASE WHEN status = 'completada' THEN 1 ELSE 0 END), 0) as completadas
                     FROM solicitud_pedido_sap
-                    WHERE created_at >= ?
+                    WHERE created_at >= {ph}
                 """,
                     (fecha_inicio_str,),
                 )
@@ -1721,13 +1725,15 @@ def what_if_analysis():
         )
 
     try:
+        ph = "%s" if is_using_postgresql() else "?"
+
         # Obtener parámetros MRP actuales desde materiales_bbdd
         with get_db_connection("sap_data") as conn:
             cursor = conn.cursor()
 
             # Buscar material en materiales_bbdd (join con stock para precio/stock actual)
             cursor.execute(
-                """
+                f"""
                 SELECT
                     m.codigo_material,
                     m.descripcion,
@@ -1742,7 +1748,7 @@ def what_if_analysis():
                     FROM stock
                     GROUP BY material
                 ) s ON m.codigo_material = s.material
-                WHERE m.codigo_material = ?
+                WHERE m.codigo_material = {ph}
                 LIMIT 1
             """,
                 (material,),
