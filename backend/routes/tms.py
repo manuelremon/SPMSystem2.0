@@ -958,7 +958,30 @@ def get_kpis():
             "fecha_hasta": request.args.get("fecha_hasta"),
         }
 
-        kpis = service.get_kpis(user_id, filters)
+        raw = service.get_kpis(user_id, filters)
+        # Map backend keys to frontend expected keys
+        shipments_by_state = raw.get("shipments_by_state", {})
+        total_envios = sum(shipments_by_state.values())
+        total_entregados = shipments_by_state.get("delivered", 0)
+        in_transit = raw.get("in_transit", 0)
+        confirmed = shipments_by_state.get("confirmed", 0)
+        assigned = shipments_by_state.get("assigned", 0)
+        kpis = {
+            "envios_activos": in_transit + confirmed + assigned,
+            "entregas_a_tiempo_pct": raw.get("on_time_delivery_rate", 0),
+            "costo_promedio_envio": raw.get("avg_cost_per_shipment", 0),
+            "tiempo_promedio_entrega_hrs": 0,
+            "incidentes_mes": 0,
+            "margen_promedio_pct": raw.get("avg_margin_pct", 0),
+            "por_estado": shipments_by_state,
+            "top_routes": raw.get("top_routes", []),
+            "resumen": {
+                "total_envios": total_envios,
+                "total_entregados": total_entregados,
+                "total_incidentes": 0,
+                "ingreso_total": round(raw.get("avg_cost_per_shipment", 0) * total_envios, 2),
+            },
+        }
         return success_response(kpis)
 
     except (KeyError, ValueError, TypeError):
