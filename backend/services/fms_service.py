@@ -1040,11 +1040,11 @@ def obtener_kpis_fms() -> dict:
         """)
         ots_por_prioridad = {row["prioridad"]: row["count"] for row in cursor.fetchall()}
 
-        # Costo promedio por OT - actual column is costo_real
+        # Costo promedio por OT - actual column is costo_total
         cursor = conn.execute("""
-            SELECT AVG(costo_real) as promedio
+            SELECT AVG(costo_total) as promedio
             FROM fms_work_orders
-            WHERE estado = 'completed' AND costo_real IS NOT NULL
+            WHERE estado = 'completed' AND costo_total IS NOT NULL
         """)
         row = cursor.fetchone()
         costo_promedio = (row["promedio"] if isinstance(row, dict) else row[0]) if row else 0

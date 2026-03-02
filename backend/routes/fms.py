@@ -907,7 +907,23 @@ def get_expiring_documents():
 def get_fms_kpis():
     """Obtiene KPIs del dashboard FMS"""
     try:
-        kpis = fms_service.get_fms_kpis()
+        raw = fms_service.get_fms_kpis()
+        # Map backend keys to frontend expected keys
+        vehiculos_por_estado = raw.get("vehiculos_por_estado", {})
+        ots_por_prioridad = raw.get("ots_abiertas_por_prioridad", {})
+        total_ots = sum(ots_por_prioridad.values())
+        kpis = {
+            "total_vehicles": raw.get("total_vehiculos", 0),
+            "available_vehicles": vehiculos_por_estado.get("disponible", 0),
+            "open_work_orders": total_ots,
+            "critical_work_orders": ots_por_prioridad.get("critica", 0) + ots_por_prioridad.get("alta", 0),
+            "avg_cost_per_wo": raw.get("costo_promedio_ot", 0),
+            "expiring_documents": raw.get("documentos_por_vencer_30d", 0),
+            "upcoming_maintenance": raw.get("mantenimientos_proximos_7d", 0),
+            "avg_fuel_efficiency": raw.get("rendimiento_promedio_km_l", 0),
+            "vehicles_by_status": vehiculos_por_estado,
+            "work_orders_by_type": ots_por_prioridad,
+        }
         return jsonify({"ok": True, "data": kpis})
 
     except (KeyError, ValueError, TypeError):
