@@ -623,14 +623,23 @@ def get_fleet_utilization():
             disponibles = estados.get("disponible", 0)
             disponibilidad_pct = round((disponibles / total_vehicles) * 100, 1) if total_vehicles > 0 else 0
 
+            # Detect cost column (costo_real in dev, costo_total in prod)
+            cursor.execute(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name='fms_work_orders' AND column_name IN ('costo_real','costo_total') "
+                "ORDER BY column_name DESC LIMIT 1"
+            )
+            cost_col_row = cursor.fetchone()
+            cost_col = (_row_val(cost_col_row, "column_name") or _row_val(cost_col_row, 0)) if cost_col_row else "costo_real"
+
             # Work order summary
             cursor.execute(
-                """
+                f"""
                 SELECT
                     estado,
                     COUNT(*) as total,
-                    AVG(costo_real) as costo_promedio,
-                    SUM(costo_real) as costo_total
+                    AVG({cost_col}) as costo_promedio,
+                    SUM({cost_col}) as costo_total
                 FROM fms_work_orders
                 GROUP BY estado
                 """
