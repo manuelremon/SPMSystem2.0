@@ -3,11 +3,15 @@ import { useState, useCallback, useEffect } from 'react';
 const STORAGE_KEY = 'spm_dashboard_layout';
 
 const DEFAULT_CARDS = [
+  { id: 'attention', label: 'Alertas', visible: true },
+  { id: 'quick_actions', label: 'Acciones Rápidas', visible: true },
   { id: 'solicitudes', label: 'Solicitudes', visible: true },
   { id: 'filters', label: 'Filtros', visible: true },
   { id: 'kpi_row1', label: 'KPIs Principales', visible: true },
   { id: 'kpi_row2', label: 'Distribución y Tendencia', visible: true },
   { id: 'kpi_row3', label: 'Materiales y Stock', visible: true },
+  { id: 'kpi_row4', label: 'Métricas Avanzadas', visible: true },
+  { id: 'operations', label: 'Operaciones', visible: true },
 ];
 
 /**

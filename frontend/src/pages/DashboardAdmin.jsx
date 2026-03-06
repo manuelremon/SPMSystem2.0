@@ -33,6 +33,10 @@ import { KPIRow1 } from './DashboardAdmin/index';
 import { KPIRow2 } from './DashboardAdmin/index';
 import { KPIRow3 } from './DashboardAdmin/index';
 import { ExpandedCardDialog } from './DashboardAdmin/index';
+import { AttentionBanner } from './DashboardAdmin/index';
+import { QuickActions } from './DashboardAdmin/index';
+import { OperationsOverview } from './DashboardAdmin/index';
+import { KPIRow4 } from './DashboardAdmin/index';
 import DrillDownModal from '../components/dashboard/DrillDownModal';
 
 // ============================================================================
@@ -237,12 +241,11 @@ export default function DashboardAdmin() {
   // Stock inmovilizado (global)
   const [stockInmovilizado, setStockInmovilizado] = useState({ items: [], total: 0, valorTotal: 0, globalTotal: 0, globalValorTotal: 0 });
 
-  // Stock inmovilizado con filtros locales (nueva card)
-  const [stockFiltradoLocal, setStockFiltradoLocal] = useState({ items: [], total: 0, valorTotal: 0, loading: false });
-  const [stockFiltrosPeriodo, setStockFiltrosPeriodo] = useState(1); // 1, 2 o 3 anos
-
   // Compras evitadas detalle (para filtrado)
   const [comprasEvitadasDetalle, setComprasEvitadasDetalle] = useState([]);
+
+  // Resumen data for AttentionBanner + MrpAlertsCard
+  const [resumenData, setResumenData] = useState(null);
 
   // ============================================================================
   // DATA FETCHING EFFECTS
@@ -453,46 +456,25 @@ export default function DashboardAdmin() {
     };
   }, []);
 
-  // Fetch stock inmovilizado con filtros locales (nueva card)
+  // Fetch resumen for AttentionBanner + MrpAlertsCard (Tier 1 - immediate)
   useEffect(() => {
-    const abortController = new AbortController();
     let isMounted = true;
 
-    const fetchStockFiltradoLocal = async () => {
-      setStockFiltradoLocal(prev => ({ ...prev, loading: true }));
+    const fetchResumen = async () => {
       try {
-        const params = new URLSearchParams();
-        params.set("periodo_anos", stockFiltrosPeriodo.toString());
-        params.set("limit", "10");
-
-        const url = `/kpis/stock-inmovilizado?${params}`;
-        const response = await api.get(url, { signal: abortController.signal });
-
+        const response = await cachedGet('/dashboard-data/resumen');
         if (!isMounted) return;
-
-        if (response.data?.ok) {
-          setStockFiltradoLocal({
-            items: response.data.items || [],
-            total: response.data.total || 0,
-            valorTotal: response.data.valorTotal || 0,
-            loading: false,
-          });
-        } else {
-          setStockFiltradoLocal({ items: [], total: 0, valorTotal: 0, loading: false });
+        if (response.data?.ok || response.data?.data) {
+          setResumenData(response.data.data || response.data);
         }
-      } catch (err) {
-        if (!isMounted || err?.name === 'AbortError') return;
-        setStockFiltradoLocal({ items: [], total: 0, valorTotal: 0, loading: false });
+      } catch {
+        // Silently fail - AttentionBanner handles null gracefully
       }
     };
 
-    fetchStockFiltradoLocal();
-
-    return () => {
-      isMounted = false;
-      abortController.abort();
-    };
-  }, [stockFiltrosPeriodo]);
+    fetchResumen();
+    return () => { isMounted = false; };
+  }, []);
 
   // Fetch compras evitadas detalle - con AbortController
   useEffect(() => {
@@ -844,12 +826,18 @@ export default function DashboardAdmin() {
             datosFiltrados={datosFiltrados}
             stockInmovilizadoFiltrado={stockInmovilizadoFiltrado}
             kpiLoading={kpiLoading}
-            stockFiltradoLocal={stockFiltradoLocal}
-            stockFiltrosPeriodo={stockFiltrosPeriodo}
-            setStockFiltrosPeriodo={setStockFiltrosPeriodo}
+            resumen={resumenData}
             onKpiDrillDown={handleKpiDrillDown}
           />
         );
+      case 'attention':
+        return <AttentionBanner key="attention" resumen={resumenData} />;
+      case 'quick_actions':
+        return <QuickActions key="quick_actions" />;
+      case 'kpi_row4':
+        return <KPIRow4 key="kpi_row4" />;
+      case 'operations':
+        return <OperationsOverview key="operations" />;
       default:
         return null;
     }
@@ -859,8 +847,7 @@ export default function DashboardAdmin() {
       sectoresSeleccionados, solicitantesSeleccionados, filtrosOpciones,
       datosFiltrados, kpiData, rangoFechas, sliderAFechaDate, comprasEvitadasDetalle,
       cumplimientoProveedores, proveedoresSeleccionados, trendData, handleDrillDown,
-      handleKpiDrillDown, stockInmovilizadoFiltrado, kpiLoading, stockFiltradoLocal,
-      stockFiltrosPeriodo]);
+      handleKpiDrillDown, stockInmovilizadoFiltrado, kpiLoading, resumenData]);
 
   const orderedVisibleIds = layout.getOrderedVisibleIds();
   const isKpiSection = (id) => id.startsWith('kpi_row');

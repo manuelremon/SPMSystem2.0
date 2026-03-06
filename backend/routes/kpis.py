@@ -245,6 +245,27 @@ def get_stock_inmovilizado():
         }), 500
 
 
+@bp.route("/advanced", methods=["GET"])
+@require_auth
+@cached(kpi_cache, "kpis_advanced")
+def get_advanced_kpis():
+    """
+    All advanced KPIs in a single endpoint (Tiers 1, 2, 3).
+
+    Returns 12 metric groups: stockAging, supplierOtd, productionEfficiency,
+    inventoryAccuracy, procurementCycle, supplierScorecard, qualityScorecard,
+    fleetUtilization, forecastAccuracy, supplyChainRisk, costAvoidance, kanbanHealth.
+    """
+    from backend.services.kpi_advanced_service import get_all_advanced_kpis
+
+    try:
+        data = get_all_advanced_kpis()
+        return jsonify({"ok": True, "data": data})
+    except Exception as e:
+        logger.error(f"Error obteniendo KPIs avanzados: {e}")
+        return jsonify({"ok": False, "error": "Error al obtener métricas avanzadas"}), 500
+
+
 @bp.route("/compras-evitadas-detalle", methods=["GET"])
 @require_auth
 def get_compras_evitadas_detalle():
