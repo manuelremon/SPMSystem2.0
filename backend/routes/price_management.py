@@ -55,9 +55,9 @@ def crear_lista():
 
         return jsonify({'ok': True, 'lista_id': lista_id}), 201
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="price_management.crear_lista")
     except Exception as e:
-        return safe_error_response(e, logger, context="price_management")
+        return safe_error_response(e, logger, context="price_management.crear_lista")
 
 
 @price_mgmt_bp.route('/lists/<int:id>', methods=['GET'])
@@ -68,9 +68,9 @@ def obtener_detalle_lista(id):
         detalle = price_management_service.obtener_detalle_lista(id)
         return jsonify({'ok': True, **detalle}), 200
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="price_management.obtener_detalle_lista")
     except Exception as e:
-        return safe_error_response(e, logger, context="price_management")
+        return safe_error_response(e, logger, context="price_management.obtener_detalle_lista")
 
 
 @price_mgmt_bp.route('/lists/<int:id>/activate', methods=['PUT'])
@@ -81,9 +81,9 @@ def activar_lista(id):
         price_management_service.activar_lista(id)
         return jsonify({'ok': True, 'message': 'Lista activada exitosamente'}), 200
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="price_management.activar_lista")
     except Exception as e:
-        return safe_error_response(e, logger, context="price_management")
+        return safe_error_response(e, logger, context="price_management.activar_lista")
 
 
 @price_mgmt_bp.route('/lists/<int:id>/items', methods=['POST'])
@@ -105,9 +105,9 @@ def agregar_precio_item(id):
 
         return jsonify({'ok': True, 'item_id': item_id}), 201
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="price_management.agregar_precio_item")
     except Exception as e:
-        return safe_error_response(e, logger, context="price_management")
+        return safe_error_response(e, logger, context="price_management.agregar_precio_item")
 
 
 @price_mgmt_bp.route('/lists/<int:lista_id>/items/<int:item_id>', methods=['DELETE'])
@@ -246,9 +246,9 @@ def crear_negociacion():
 
         return jsonify({'ok': True, 'negociacion_id': neg_id}), 201
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="price_management.crear_negociacion")
     except Exception as e:
-        return safe_error_response(e, logger, context="price_management")
+        return safe_error_response(e, logger, context="price_management.crear_negociacion")
 
 
 @price_mgmt_bp.route('/negotiations/<int:id>/approve', methods=['PUT'])
@@ -260,9 +260,9 @@ def aprobar_negociacion(id):
         price_management_service.aprobar_negociacion(id, user_id)
         return jsonify({'ok': True, 'message': 'Negociación aprobada exitosamente'}), 200
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="price_management.aprobar_negociacion")
     except Exception as e:
-        return safe_error_response(e, logger, context="price_management")
+        return safe_error_response(e, logger, context="price_management.aprobar_negociacion")
 
 
 @price_mgmt_bp.route('/negotiations/<int:id>/reject', methods=['PUT'])
@@ -274,9 +274,9 @@ def rechazar_negociacion(id):
         price_management_service.rechazar_negociacion(id, user_id)
         return jsonify({'ok': True, 'message': 'Negociación rechazada'}), 200
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="price_management.rechazar_negociacion")
     except Exception as e:
-        return safe_error_response(e, logger, context="price_management")
+        return safe_error_response(e, logger, context="price_management.rechazar_negociacion")
 
 
 @price_mgmt_bp.route('/material/<codigo>/history', methods=['GET'])

@@ -11,6 +11,9 @@ import logging
 
 from flask import Blueprint, jsonify, request
 
+from backend.core.helpers import safe_error_response
+from backend.core.roles import require_auth
+
 from backend.agent.tools.material_matcher import MaterialMatcher
 from backend.agent.tools.nlp_processor import NLPProcessor
 
@@ -49,6 +52,7 @@ matcher = MaterialMatcher()
 
 
 @bp.route("/solicitudes/sugerir", methods=["POST"])
+@require_auth
 def sugerir_materiales():
     """
     Analiza descripción de problema y sugiere materiales.
@@ -176,8 +180,7 @@ def sugerir_materiales():
         )
 
     except Exception as e:
-        logger.exception(f"Error en sugerir_materiales: {e}")
-        return jsonify({"ok": False, "error": {"code": "internal_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="assistant.sugerir_materiales")
 
 
 @bp.route("/health", methods=["GET"])
@@ -203,6 +206,7 @@ def health():
 
 
 @bp.route("/rag/status", methods=["GET"])
+@require_auth
 def rag_status():
     """
     Estado del módulo RAG.
@@ -224,6 +228,7 @@ def rag_status():
 
 
 @bp.route("/rag/search", methods=["POST"])
+@require_auth
 def rag_search():
     """
     Búsqueda semántica de materiales.
@@ -290,14 +295,11 @@ def rag_search():
         }), 200
 
     except Exception as e:
-        logger.exception(f"Error en búsqueda RAG: {e}")
-        return jsonify({
-            "ok": False,
-            "error": {"code": "rag_error", "message": str(e)},
-        }), 500
+        return safe_error_response(e, logger, context="assistant.rag_search")
 
 
 @bp.route("/rag/query", methods=["POST"])
+@require_auth
 def rag_query():
     """
     Consulta RAG completa (retrieve + generate).
@@ -367,14 +369,11 @@ def rag_query():
         }), 200
 
     except Exception as e:
-        logger.exception(f"Error en query RAG: {e}")
-        return jsonify({
-            "ok": False,
-            "error": {"code": "rag_error", "message": str(e)},
-        }), 500
+        return safe_error_response(e, logger, context="assistant.rag_query")
 
 
 @bp.route("/rag/equivalents", methods=["POST"])
+@require_auth
 def rag_find_equivalents():
     """
     Encuentra materiales equivalentes usando RAG.
@@ -428,8 +427,4 @@ def rag_find_equivalents():
         }), 200
 
     except Exception as e:
-        logger.exception(f"Error buscando equivalentes: {e}")
-        return jsonify({
-            "ok": False,
-            "error": {"code": "rag_error", "message": str(e)},
-        }), 500
+        return safe_error_response(e, logger, context="assistant.rag_find_equivalents")

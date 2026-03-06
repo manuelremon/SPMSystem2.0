@@ -2,11 +2,15 @@
 Packaging Routes
 API para gestión de empaque, packing lists y etiquetas de envío
 """
+import logging
+
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_auth
 from backend.services import packaging_service
+
+logger = logging.getLogger(__name__)
 
 packaging_bp = Blueprint('packaging', __name__, url_prefix='/api/packaging')
 
@@ -27,10 +31,7 @@ def get_templates():
         }), 200
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'error': str(e)
-        }), 500
+        return safe_error_response(e, logger, context="packaging.get_templates")
 
 
 @packaging_bp.route('/templates', methods=['POST'])
@@ -60,10 +61,7 @@ def create_template():
         }), 201
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'error': str(e)
-        }), 500
+        return safe_error_response(e, logger, context="packaging.create_template")
 
 
 @packaging_bp.route('/packing-lists', methods=['GET'])
@@ -85,10 +83,7 @@ def get_packing_lists():
         }), 200
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'error': str(e)
-        }), 500
+        return safe_error_response(e, logger, context="packaging.get_packing_lists")
 
 
 @packaging_bp.route('/packing-lists', methods=['POST'])
@@ -107,10 +102,7 @@ def create_packing_list():
         }), 201
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'error': str(e)
-        }), 500
+        return safe_error_response(e, logger, context="packaging.create_packing_list")
 
 
 @packaging_bp.route('/packing-lists/<int:packing_id>', methods=['GET'])
@@ -132,10 +124,7 @@ def get_packing_detail(packing_id):
         }), 200
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'error': str(e)
-        }), 500
+        return safe_error_response(e, logger, context="packaging.get_packing_detail")
 
 
 @packaging_bp.route('/packing-lists/<int:packing_id>/items', methods=['POST'])
@@ -159,15 +148,9 @@ def add_item(packing_id):
         }), 201
 
     except ValueError as e:
-        return jsonify({
-            'ok': False,
-            'error': str(e)
-        }), 400
+        return safe_error_response(e, logger, status_code=400, context="packaging.add_item")
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'error': str(e)
-        }), 500
+        return safe_error_response(e, logger, context="packaging.add_item")
 
 
 @packaging_bp.route('/packing-lists/<int:packing_id>/items/<int:item_id>', methods=['DELETE'])
@@ -183,15 +166,9 @@ def delete_item(packing_id, item_id):
         }), 200
 
     except ValueError as e:
-        return jsonify({
-            'ok': False,
-            'error': str(e)
-        }), 400
+        return safe_error_response(e, logger, status_code=400, context="packaging.delete_item")
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'error': str(e)
-        }), 500
+        return safe_error_response(e, logger, context="packaging.delete_item")
 
 
 @packaging_bp.route('/packing-lists/<int:packing_id>/optimize', methods=['POST'])
@@ -207,10 +184,7 @@ def optimize_packing(packing_id):
         }), 200
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'error': str(e)
-        }), 500
+        return safe_error_response(e, logger, context="packaging.optimize_packing")
 
 
 @packaging_bp.route('/packing-lists/<int:packing_id>/pack', methods=['PUT'])
@@ -226,15 +200,9 @@ def pack_packing_list(packing_id):
         }), 200
 
     except ValueError as e:
-        return jsonify({
-            'ok': False,
-            'error': str(e)
-        }), 400
+        return safe_error_response(e, logger, status_code=400, context="packaging.pack_packing_list")
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'error': str(e)
-        }), 500
+        return safe_error_response(e, logger, context="packaging.pack_packing_list")
 
 
 @packaging_bp.route('/packing-lists/<int:packing_id>/dispatch', methods=['PUT'])
@@ -250,15 +218,9 @@ def dispatch_packing_list(packing_id):
         }), 200
 
     except ValueError as e:
-        return jsonify({
-            'ok': False,
-            'error': str(e)
-        }), 400
+        return safe_error_response(e, logger, status_code=400, context="packaging.dispatch_packing_list")
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'error': str(e)
-        }), 500
+        return safe_error_response(e, logger, context="packaging.dispatch_packing_list")
 
 
 @packaging_bp.route('/packing-lists/<int:packing_id>/labels', methods=['POST'])
@@ -302,15 +264,9 @@ def generate_label(packing_id):
         }), 201
 
     except ValueError as e:
-        return jsonify({
-            'ok': False,
-            'error': str(e)
-        }), 400
+        return safe_error_response(e, logger, status_code=400, context="packaging.generate_label")
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'error': str(e)
-        }), 500
+        return safe_error_response(e, logger, context="packaging.generate_label")
 
 
 @packaging_bp.route('/kpis', methods=['GET'])
@@ -326,7 +282,4 @@ def get_kpis():
         }), 200
 
     except Exception as e:
-        return jsonify({
-            'ok': False,
-            'error': str(e)
-        }), 500
+        return safe_error_response(e, logger, context="packaging.get_kpis")

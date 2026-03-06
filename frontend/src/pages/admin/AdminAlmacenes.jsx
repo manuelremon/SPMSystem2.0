@@ -162,6 +162,7 @@ function EmptyState({ onClear, hasFilters }) {
 }
 
 function AlmacenRow({ almacen, onEdit, onDelete, isDeleting, onCancelDelete, onConfirmDelete }) {
+  const { t } = useI18n();
   const isActivo = almacen.activo === 1 || almacen.activo === true;
 
   if (isDeleting) {

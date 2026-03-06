@@ -13,13 +13,17 @@ Endpoints:
 - POST /api/metrics/reset    - Reiniciar metricas (admin)
 """
 
+import logging
 
 from flask import Blueprint, g, jsonify, request
 
 from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+from backend.core.helpers import safe_error_response
 from backend.core.metrics import get_cache_metrics, get_db_pool_metrics, get_metrics_collector
 from backend.core.rate_limit import rate_limit
 from backend.core.roles import require_admin, require_auth
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("metrics", __name__, url_prefix="/api/metrics")
 
@@ -275,7 +279,8 @@ def get_db_stats():
             size_mb = round(db_path.stat().st_size / 1024 / 1024, 2)
             return {"counts": counts, "size_mb": size_mb, "total_records": sum(counts.values())}
         except Exception as e:
-            return {"error": str(e)}
+            logger.error(f"[metrics.get_table_counts] {type(e).__name__}: {e}", exc_info=True)
+            return {"error": "Internal error"}
 
     stats = {
         "spm": get_table_counts(
@@ -525,7 +530,7 @@ def get_metrics_history():
         # Si la tabla no existe aún, retornar datos vacíos
         if "metrics_history" in str(e):
             return jsonify({"ok": True, "data": {}, "message": "No hay datos históricos aún"})
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="metrics.get_metrics_history")
 
 
 @bp.route("/alerts", methods=["GET"])
@@ -602,7 +607,7 @@ def get_system_alerts():
         # Si la tabla no existe aún, retornar lista vacía
         if "system_alerts" in str(e):
             return jsonify({"ok": True, "data": [], "total": 0, "message": "Sin alertas"})
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="metrics.get_system_alerts")
 
 
 @bp.route("/alerts/<int:alert_id>/acknowledge", methods=["POST"])
@@ -665,7 +670,7 @@ def acknowledge_alert(alert_id):
         })
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="metrics.acknowledge_alert")
 
 
 @bp.route("/alerts/acknowledge-all", methods=["POST"])
@@ -707,4 +712,4 @@ def acknowledge_all_alerts():
         })
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="metrics.acknowledge_all_alerts")

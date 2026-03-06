@@ -6,6 +6,7 @@ import logging
 
 from flask import Blueprint, g, jsonify, request
 
+from backend.core.helpers import safe_error_response
 from backend.core.roles import require_admin
 from backend.services.webhook_service import WebhookService
 
@@ -23,8 +24,7 @@ def list_webhooks():
         webhooks = WebhookService.get_all(activo_only=activo_only)
         return jsonify({"ok": True, "webhooks": webhooks})
     except Exception as e:
-        logger.error(f"[Webhooks] Error listing webhooks: {e}")
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return safe_error_response(e, logger, context="webhooks.list_webhooks")
 
 
 @bp.route("/", methods=["POST"])
@@ -54,8 +54,7 @@ def create_webhook():
         return jsonify({"ok": True, "webhook_id": webhook_id, "secret": secret}), 201
 
     except Exception as e:
-        logger.error(f"[Webhooks] Error creating webhook: {e}")
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return safe_error_response(e, logger, context="webhooks.create_webhook")
 
 
 @bp.route("/<int:webhook_id>", methods=["PUT"])
@@ -76,8 +75,7 @@ def update_webhook(webhook_id: int):
         return jsonify({"ok": True})
 
     except Exception as e:
-        logger.error(f"[Webhooks] Error updating webhook {webhook_id}: {e}")
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return safe_error_response(e, logger, context="webhooks.update_webhook")
 
 
 @bp.route("/<int:webhook_id>", methods=["DELETE"])
@@ -88,8 +86,7 @@ def delete_webhook(webhook_id: int):
         WebhookService.delete(webhook_id)
         return jsonify({"ok": True})
     except Exception as e:
-        logger.error(f"[Webhooks] Error deleting webhook {webhook_id}: {e}")
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return safe_error_response(e, logger, context="webhooks.delete_webhook")
 
 
 @bp.route("/<int:webhook_id>/deliveries", methods=["GET"])
@@ -101,8 +98,7 @@ def get_deliveries(webhook_id: int):
         deliveries = WebhookService.get_deliveries(webhook_id, limit=limit)
         return jsonify({"ok": True, "deliveries": deliveries})
     except Exception as e:
-        logger.error(f"[Webhooks] Error getting deliveries for webhook {webhook_id}: {e}")
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return safe_error_response(e, logger, context="webhooks.get_deliveries")
 
 
 @bp.route("/<int:webhook_id>/test", methods=["POST"])
@@ -113,5 +109,4 @@ def test_webhook(webhook_id: int):
         result = WebhookService.test_webhook(webhook_id)
         return jsonify({"ok": result.get("success", False), **result})
     except Exception as e:
-        logger.error(f"[Webhooks] Error testing webhook {webhook_id}: {e}")
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return safe_error_response(e, logger, context="webhooks.test_webhook")

@@ -16,6 +16,7 @@ import ListItemText from '@mui/material/ListItemText';
 import Select from '@mui/material/Select';
 import Checkbox from '@mui/material/Checkbox';
 import Divider from '@mui/material/Divider';
+import Tooltip from '@mui/material/Tooltip';
 
 // MenuProps para los multiselect
 const ITEM_HEIGHT = 32;
@@ -158,9 +159,11 @@ function KPIRow1({
                       <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
                         Cumplimiento Proveedores
                       </Typography>
+                      <Tooltip title={totalPedidos > 0 ? `${entregasATiempo} entregas a tiempo de ${totalPedidos} pedidos totales` : 'Sin datos de pedidos'} arrow placement="right">
                       <Typography variant="h5" sx={{ fontWeight: 700, color: 'grey.800' }}>
                         {totalPedidos > 0 ? `${pctCumplimiento}%` : 'N/A'}
                       </Typography>
+                    </Tooltip>
                     </Box>
                     <Typography variant="caption" sx={{ color: 'grey.500' }}>
                       {totalPedidos > 0 ? `${entregasATiempo}/${totalPedidos} a tiempo` : `${cumplimientoProveedores.length} proveedores`}
@@ -219,20 +222,24 @@ function KPIRow1({
                               : null;
                           return (
                             <Stack key={idx} direction="row" alignItems="center" justifyContent="space-between">
-                              <Typography variant="caption" sx={{ color: 'grey.600', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {p.proveedor_nombre || 'Proveedor'}
-                              </Typography>
-                              {pct !== null ? (
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    fontWeight: 600,
-                                    ml: 1,
-                                    color: pct >= 90 ? 'success.main' : pct >= 70 ? 'warning.main' : 'error.main',
-                                  }}
-                                >
-                                  {pct}%
+                              <Tooltip title={`${p.proveedor_nombre || 'Proveedor'} — ${p.entregas_a_tiempo || 0}/${p.total_pedidos || 0} entregas a tiempo`} arrow>
+                                <Typography variant="caption" sx={{ color: 'grey.600', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {p.proveedor_nombre || 'Proveedor'}
                                 </Typography>
+                              </Tooltip>
+                              {pct !== null ? (
+                                <Tooltip title={`${pct >= 90 ? 'Excelente' : pct >= 70 ? 'Aceptable' : 'Bajo'}: ${p.entregas_a_tiempo || 0} de ${p.total_pedidos || 0}`} arrow>
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      fontWeight: 600,
+                                      ml: 1,
+                                      color: pct >= 90 ? 'success.main' : pct >= 70 ? 'warning.main' : 'error.main',
+                                    }}
+                                  >
+                                    {pct}%
+                                  </Typography>
+                                </Tooltip>
                               ) : (
                                 <Typography variant="caption" sx={{ color: 'grey.400', ml: 1, fontSize: FONT_SIZES.xs }}>Sin datos</Typography>
                               )}
@@ -362,9 +369,15 @@ function KPIRow1({
                 <Stack spacing={1.5} sx={{ flex: 1, justifyContent: 'center' }}>
                   <Box>
                     <Stack direction="row" spacing={0.5} sx={{ width: '100%', height: 12, borderRadius: 1, overflow: 'hidden' }}>
-                      <Box sx={{ flex: pctAprobacion, bgcolor: colores.aprobacion.bg, minWidth: pctAprobacion > 5 ? 'auto' : 0, transition: 'flex 0.3s ease' }} />
-                      <Box sx={{ flex: pctPlanificacion, bgcolor: colores.planificacion.bg, minWidth: pctPlanificacion > 5 ? 'auto' : 0, transition: 'flex 0.3s ease' }} />
-                      <Box sx={{ flex: pctProveedor, bgcolor: colores.proveedor.bg, minWidth: pctProveedor > 5 ? 'auto' : 0, transition: 'flex 0.3s ease' }} />
+                      <Tooltip title={`Aprobación: ${tiempos.aprobacion}d (${pctAprobacion.toFixed(0)}%)`} arrow>
+                        <Box sx={{ flex: pctAprobacion, bgcolor: colores.aprobacion.bg, minWidth: pctAprobacion > 5 ? 'auto' : 0, transition: 'flex 0.3s ease' }} />
+                      </Tooltip>
+                      <Tooltip title={`Planificación: ${tiempos.planificacion}d (${pctPlanificacion.toFixed(0)}%)`} arrow>
+                        <Box sx={{ flex: pctPlanificacion, bgcolor: colores.planificacion.bg, minWidth: pctPlanificacion > 5 ? 'auto' : 0, transition: 'flex 0.3s ease' }} />
+                      </Tooltip>
+                      <Tooltip title={`Proveedor: ${tiempos.proveedor}d (${pctProveedor.toFixed(0)}%)`} arrow>
+                        <Box sx={{ flex: pctProveedor, bgcolor: colores.proveedor.bg, minWidth: pctProveedor > 5 ? 'auto' : 0, transition: 'flex 0.3s ease' }} />
+                      </Tooltip>
                     </Stack>
                   </Box>
 
@@ -566,9 +579,11 @@ function KPIRow1({
                         </Typography>
                       </Stack>
                       <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ ml: 2.25 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 700, color: SPM_COLORS.success, fontSize: FONT_SIZES.lg }}>
-                          USD {formatMontoCorto(valorStockInterno)}
-                        </Typography>
+                        <Tooltip title={`USD ${valorStockInterno.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`} arrow>
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: SPM_COLORS.success, fontSize: FONT_SIZES.lg }}>
+                            USD {formatMontoCorto(valorStockInterno)}
+                          </Typography>
+                        </Tooltip>
                         <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: FONT_SIZES.xs }}>
                           ({itemsStockInterno} items)
                         </Typography>
@@ -583,9 +598,11 @@ function KPIRow1({
                         </Typography>
                       </Stack>
                       <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ ml: 2.25 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 700, color: SPM_COLORS.warning, fontSize: FONT_SIZES.lg }}>
-                          USD {formatMontoCorto(valorCompraExterna)}
-                        </Typography>
+                        <Tooltip title={`USD ${valorCompraExterna.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`} arrow>
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: SPM_COLORS.warning, fontSize: FONT_SIZES.lg }}>
+                            USD {formatMontoCorto(valorCompraExterna)}
+                          </Typography>
+                        </Tooltip>
                         <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: FONT_SIZES.xs }}>
                           ({itemsCompraExterna} sol.)
                         </Typography>

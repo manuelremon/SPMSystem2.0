@@ -111,9 +111,9 @@ def crear_contrato():
         }), 201
 
     except ValidationError as e:
-        return jsonify({'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="contracts.crear_contrato")
     except Exception as e:
-        return safe_error_response(e, logger, context="contracts")
+        return safe_error_response(e, logger, context="contracts.crear_contrato")
 
 
 @bp.route('/<int:contrato_id>', methods=['GET'])
@@ -133,9 +133,9 @@ def obtener_detalle_contrato(contrato_id):
         return jsonify(detalle), 200
 
     except NotFoundError as e:
-        return jsonify({'error': str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="contracts.obtener_detalle_contrato")
     except Exception as e:
-        return safe_error_response(e, logger, context="contracts")
+        return safe_error_response(e, logger, context="contracts.obtener_detalle_contrato")
 
 
 @bp.route('/<int:contrato_id>', methods=['PUT'])
@@ -161,11 +161,11 @@ def actualizar_contrato(contrato_id):
         return jsonify({'mensaje': 'Contrato actualizado exitosamente'}), 200
 
     except NotFoundError as e:
-        return jsonify({'error': str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="contracts.actualizar_contrato")
     except BusinessRuleError as e:
-        return jsonify({'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="contracts.actualizar_contrato")
     except Exception as e:
-        return safe_error_response(e, logger, context="contracts")
+        return safe_error_response(e, logger, context="contracts.actualizar_contrato")
 
 
 @bp.route('/<int:contrato_id>', methods=['DELETE'])
@@ -183,11 +183,11 @@ def eliminar_contrato(contrato_id):
         return jsonify({'mensaje': 'Contrato eliminado exitosamente'}), 200
 
     except NotFoundError as e:
-        return jsonify({'error': str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="contracts.eliminar_contrato")
     except BusinessRuleError as e:
-        return jsonify({'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="contracts.eliminar_contrato")
     except Exception as e:
-        return safe_error_response(e, logger, context="contracts")
+        return safe_error_response(e, logger, context="contracts.eliminar_contrato")
 
 
 @bp.route('/<int:contrato_id>/status', methods=['PUT'])
@@ -226,13 +226,13 @@ def cambiar_estado_contrato(contrato_id):
         return jsonify({'mensaje': f'Estado cambiado a {data["estado"]}'}), 200
 
     except NotFoundError as e:
-        return jsonify({'error': str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="contracts.cambiar_estado_contrato")
     except ValidationError as e:
-        return jsonify({'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="contracts.cambiar_estado_contrato")
     except BusinessRuleError as e:
-        return jsonify({'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="contracts.cambiar_estado_contrato")
     except Exception as e:
-        return safe_error_response(e, logger, context="contracts")
+        return safe_error_response(e, logger, context="contracts.cambiar_estado_contrato")
 
 
 # ============================================================================
@@ -274,11 +274,11 @@ def agregar_items(contrato_id):
         }), 201
 
     except NotFoundError as e:
-        return jsonify({'error': str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="contracts.agregar_items")
     except ValidationError as e:
-        return jsonify({'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="contracts.agregar_items")
     except Exception as e:
-        return safe_error_response(e, logger, context="contracts")
+        return safe_error_response(e, logger, context="contracts.agregar_items")
 
 
 @bp.route('/<int:contrato_id>/items', methods=['GET'])
@@ -326,9 +326,9 @@ def actualizar_item(contrato_id, item_id):
         return jsonify({'mensaje': 'Item actualizado exitosamente'}), 200
 
     except NotFoundError as e:
-        return jsonify({'error': str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="contracts.actualizar_item")
     except Exception as e:
-        return safe_error_response(e, logger, context="contracts")
+        return safe_error_response(e, logger, context="contracts.actualizar_item")
 
 
 @bp.route('/<int:contrato_id>/items/<int:item_id>', methods=['DELETE'])
@@ -388,9 +388,9 @@ def buscar_precio_contractual():
             }), 404
 
     except ValidationError as e:
-        return jsonify({'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="contracts.buscar_precio_contractual")
     except Exception as e:
-        return safe_error_response(e, logger, context="contracts")
+        return safe_error_response(e, logger, context="contracts.buscar_precio_contractual")
 
 
 # ============================================================================
@@ -426,9 +426,9 @@ def subir_documento(contrato_id):
         }), 201
 
     except ValidationError as e:
-        return jsonify({'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="contracts.subir_documento")
     except Exception as e:
-        return safe_error_response(e, logger, context="contracts")
+        return safe_error_response(e, logger, context="contracts.subir_documento")
 
 
 @bp.route('/<int:contrato_id>/documents', methods=['GET'])
@@ -487,9 +487,9 @@ def descargar_documento(contrato_id, doc_id):
         )
 
     except NotFoundError as e:
-        return jsonify({'error': str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="contracts.descargar_documento")
     except Exception as e:
-        return safe_error_response(e, logger, context="contracts")
+        return safe_error_response(e, logger, context="contracts.descargar_documento")
 
 
 @bp.route('/<int:contrato_id>/documents/<int:doc_id>', methods=['DELETE'])
@@ -506,11 +506,11 @@ def eliminar_documento(contrato_id, doc_id):
         return jsonify({'mensaje': 'Documento eliminado exitosamente'}), 200
 
     except NotFoundError as e:
-        return jsonify({'error': str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="contracts.eliminar_documento")
     except BusinessRuleError as e:
-        return jsonify({'error': str(e)}), 403
+        return safe_error_response(e, logger, status_code=403, context="contracts.eliminar_documento")
     except Exception as e:
-        return safe_error_response(e, logger, context="contracts")
+        return safe_error_response(e, logger, context="contracts.eliminar_documento")
 
 
 # ============================================================================

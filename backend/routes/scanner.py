@@ -45,6 +45,7 @@ def create_session():
         qr_data_uri = None
 
     return jsonify({
+        "ok": True,
         "session_id": result["session_id"],
         "scan_url": scan_url,
         "qr_data_uri": qr_data_uri,
@@ -58,12 +59,12 @@ def submit_code(session_id):
     data = request.get_json(silent=True) or {}
     code = (data.get("code") or "").strip()
     if not code:
-        return jsonify({"error": "code is required"}), 400
+        return jsonify({"ok": False, "error": "code is required"}), 400
 
     result = scanner_service.submit_code(session_id, code)
     if not result["ok"]:
         status = 404 if result["error"] == "session_not_found" else 429
-        return jsonify({"error": result["error"]}), status
+        return jsonify({"ok": False, "error": result["error"]}), status
 
     return jsonify(result), 200
 
@@ -76,7 +77,7 @@ def poll_codes(session_id):
     result = scanner_service.poll_codes(session_id, user_id)
     if not result["ok"]:
         status = 404 if result["error"] == "session_not_found" else 403
-        return jsonify({"error": result["error"]}), status
+        return jsonify({"ok": False, "error": result["error"]}), status
 
     return jsonify(result), 200
 
@@ -89,6 +90,6 @@ def delete_session(session_id):
     result = scanner_service.delete_session(session_id, user_id)
     if not result["ok"]:
         status = 404 if result["error"] == "session_not_found" else 403
-        return jsonify({"error": result["error"]}), status
+        return jsonify({"ok": False, "error": result["error"]}), status
 
     return jsonify(result), 200

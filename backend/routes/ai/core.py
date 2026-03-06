@@ -6,6 +6,7 @@ import logging
 
 from flask import jsonify, request
 
+from backend.core.helpers import safe_error_response
 from backend.core.rate_limit import rate_limit
 from backend.core.roles import require_auth, require_role
 from backend.routes.ai import bp
@@ -31,8 +32,7 @@ def get_status():
         return jsonify({"ok": True, "data": status})
 
     except Exception as e:
-        logger.error(f"Error obteniendo status IA: {e}")
-        return jsonify({"ok": False, "error": {"code": "ai_status_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_core.get_status")
 
 
 @bp.route("/train", methods=["POST"])
@@ -87,8 +87,7 @@ def train_models():
         return jsonify({"ok": True, "data": result})
 
     except Exception as e:
-        logger.error(f"Error entrenando modelos: {e}")
-        return jsonify({"ok": False, "error": {"code": "train_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_core.train_models")
 
 
 @bp.route("/solicitudes/priorizar", methods=["GET"])
@@ -141,5 +140,4 @@ def priorizar_solicitudes():
         return jsonify({"ok": True, "data": result})
 
     except Exception as e:
-        logger.error(f"Error priorizando solicitudes: {e}")
-        return jsonify({"ok": False, "error": {"code": "prioritize_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_core.priorizar_solicitudes")

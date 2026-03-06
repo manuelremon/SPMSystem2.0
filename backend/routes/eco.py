@@ -71,7 +71,7 @@ def obtener_detalle_eco(id):
             h.setdefault('notas', h.get('comentarios'))
         return jsonify({'ok': True, 'eco': detalle}), 200
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="eco.obtener_detalle_eco")
     except Exception as e:
         return safe_error_response(e, logger, context="eco")
 

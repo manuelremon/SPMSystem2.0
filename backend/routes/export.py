@@ -16,6 +16,7 @@ import logging
 
 from flask import Blueprint, Response, g, jsonify, request
 
+from backend.core.helpers import safe_error_response
 from backend.core.rate_limit import rate_limit
 from backend.core.roles import require_auth, require_role
 from backend.services.reporting_service import get_reporting_service
@@ -105,8 +106,7 @@ def export_solicitudes():
         return _make_download_response(result)
 
     except Exception as e:
-        logger.error(f"Error exportando solicitudes: {e}")
-        return jsonify({"ok": False, "error": {"code": "export_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="export.export_solicitudes")
 
 
 @bp.route("/inventario", methods=["GET"])
@@ -135,8 +135,7 @@ def export_inventario():
         return _make_download_response(result)
 
     except Exception as e:
-        logger.error(f"Error exportando inventario: {e}")
-        return jsonify({"ok": False, "error": {"code": "export_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="export.export_inventario")
 
 
 @bp.route("/alertas-mrp", methods=["GET"])
@@ -252,8 +251,7 @@ def export_alertas_mrp():
         return _make_download_response(result)
 
     except Exception as e:
-        logger.error(f"Error exportando alertas MRP: {e}")
-        return jsonify({"ok": False, "error": {"code": "export_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="export.export_alertas_mrp")
 
 
 @bp.route("/kpis", methods=["GET"])
@@ -351,8 +349,7 @@ def export_kpis():
         return _make_download_response(result)
 
     except Exception as e:
-        logger.error(f"Error exportando KPIs: {e}")
-        return jsonify({"ok": False, "error": {"code": "export_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="export.export_kpis")
 
 
 @bp.route("/usuarios", methods=["GET"])
@@ -405,16 +402,7 @@ def export_usuarios():
         return _make_download_response(result)
 
     except Exception as e:
-        logger.error(f"Error exportando usuarios: {e}", exc_info=True)
-        return jsonify(
-            {
-                "ok": False,
-                "error": {
-                    "code": "export_error",
-                    "message": f"Error al exportar usuarios: {str(e)}",
-                },
-            }
-        ), 500
+        return safe_error_response(e, logger, context="export.export_usuarios")
 
 
 @bp.route("/custom", methods=["POST"])
@@ -470,7 +458,7 @@ def export_custom():
                 cursor.execute(query)
                 datos = [dict(row) for row in cursor.fetchall()]
         except Exception as e:
-            return jsonify({"ok": False, "error": {"code": "query_error", "message": str(e)}}), 400
+            return safe_error_response(e, logger, status_code=400, context="export.export_custom.query")
 
     if not datos:
         return (
@@ -493,8 +481,7 @@ def export_custom():
         return _make_download_response(result)
 
     except Exception as e:
-        logger.error(f"Error generando reporte custom: {e}")
-        return jsonify({"ok": False, "error": {"code": "export_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="export.export_custom")
 
 
 @bp.route("/recomendaciones", methods=["GET"])
@@ -606,8 +593,7 @@ def export_recomendaciones():
         return _make_download_response(result)
 
     except Exception as e:
-        logger.error(f"Error exportando recomendaciones: {e}")
-        return jsonify({"ok": False, "error": {"code": "export_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="export.export_recomendaciones")
 
 
 @bp.route("/formatos", methods=["GET"])
@@ -717,8 +703,7 @@ def list_reportes_programados():
         })
 
     except Exception as e:
-        logger.error(f"Error listando reportes programados: {e}")
-        return jsonify({"ok": False, "error": {"code": "list_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="export.list_reportes_programados")
 
 
 @bp.route("/programados", methods=["POST"])
@@ -838,8 +823,7 @@ def create_reporte_programado():
         }), 201
 
     except Exception as e:
-        logger.error(f"Error creando reporte programado: {e}")
-        return jsonify({"ok": False, "error": {"code": "create_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="export.create_reporte_programado")
 
 
 @bp.route("/programados/<int:reporte_id>", methods=["PUT"])
@@ -951,8 +935,7 @@ def update_reporte_programado(reporte_id: int):
         return jsonify({"ok": True, "data": {"id": reporte_id, "updated": True}})
 
     except Exception as e:
-        logger.error(f"Error actualizando reporte programado: {e}")
-        return jsonify({"ok": False, "error": {"code": "update_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="export.update_reporte_programado")
 
 
 @bp.route("/programados/<int:reporte_id>", methods=["DELETE"])
@@ -1003,8 +986,7 @@ def delete_reporte_programado(reporte_id: int):
         return jsonify({"ok": True, "data": {"id": reporte_id, "deleted": True}})
 
     except Exception as e:
-        logger.error(f"Error eliminando reporte programado: {e}")
-        return jsonify({"ok": False, "error": {"code": "delete_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="export.delete_reporte_programado")
 
 
 @bp.route("/programados/<int:reporte_id>/ejecutar", methods=["POST"])
@@ -1075,8 +1057,7 @@ def ejecutar_reporte_programado(reporte_id: int):
         return _make_download_response(result)
 
     except Exception as e:
-        logger.error(f"Error ejecutando reporte programado: {e}")
-        return jsonify({"ok": False, "error": {"code": "execution_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="export.ejecutar_reporte_programado")
 
 
 # ============================================================================
@@ -1145,8 +1126,7 @@ def listar_historial_reportes():
         })
 
     except Exception as e:
-        logger.error(f"Error listando historial de reportes: {e}")
-        return jsonify({"ok": False, "error": {"code": "reportes_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="export.listar_historial_reportes")
 
 
 @bp.route("/programados/ejecutar-manual", methods=["POST"])
@@ -1190,8 +1170,7 @@ def ejecutar_reporte_manual():
         })
 
     except Exception as e:
-        logger.error(f"Error encolando reporte programado: {e}")
-        return jsonify({"ok": False, "error": {"code": "queue_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="export.ejecutar_reporte_manual")
 
 
 # ============================================================================
@@ -1259,8 +1238,7 @@ def list_destinatarios(reporte_id: int):
         })
 
     except Exception as e:
-        logger.error(f"Error listando destinatarios: {e}")
-        return jsonify({"ok": False, "error": {"code": "list_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="export.list_destinatarios")
 
 
 @bp.route("/programados/<int:reporte_id>/destinatarios", methods=["POST"])
@@ -1359,8 +1337,7 @@ def add_destinatario(reporte_id: int):
         }), 201
 
     except Exception as e:
-        logger.error(f"Error agregando destinatario: {e}")
-        return jsonify({"ok": False, "error": {"code": "create_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="export.add_destinatario")
 
 
 @bp.route("/programados/<int:reporte_id>/destinatarios/<int:dest_id>", methods=["DELETE"])
@@ -1431,8 +1408,7 @@ def delete_destinatario(reporte_id: int, dest_id: int):
         })
 
     except Exception as e:
-        logger.error(f"Error eliminando destinatario: {e}")
-        return jsonify({"ok": False, "error": {"code": "delete_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="export.delete_destinatario")
 
 
 @bp.route("/programados/<int:reporte_id>/enviar", methods=["POST"])
@@ -1496,5 +1472,4 @@ def enviar_reporte_por_email(reporte_id: int):
         })
 
     except Exception as e:
-        logger.error(f"Error enviando reporte por email: {e}")
-        return jsonify({"ok": False, "error": {"code": "send_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="export.enviar_reporte_por_email")

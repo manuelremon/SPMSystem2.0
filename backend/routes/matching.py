@@ -36,9 +36,9 @@ def obtener_facturas():
         resultado['ok'] = True
         return jsonify(resultado), 200
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="matching.obtener_facturas")
     except Exception as e:
-        return safe_error_response(e, logger, context="obtener_facturas")
+        return safe_error_response(e, logger, context="matching.obtener_facturas")
 
 
 @matching_bp.route('/invoices', methods=['POST'])
@@ -54,9 +54,9 @@ def registrar_factura():
         resultado = matching_service.registrar_factura(data, user_id)
         return jsonify(resultado), 201
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="matching.registrar_factura")
     except Exception as e:
-        return safe_error_response(e, logger, context="registrar_factura")
+        return safe_error_response(e, logger, context="matching.registrar_factura")
 
 
 @matching_bp.route('/invoices/<int:id>', methods=['GET'])
@@ -80,9 +80,9 @@ def ejecutar_matching(id):
         resultado = matching_service.ejecutar_matching(id)
         return jsonify(resultado), 200
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="matching.ejecutar_matching")
     except Exception as e:
-        return safe_error_response(e, logger, context="ejecutar_matching")
+        return safe_error_response(e, logger, context="matching.ejecutar_matching")
 
 
 @matching_bp.route('/results/<int:id>/resolve', methods=['PUT'])
@@ -98,9 +98,9 @@ def resolver_discrepancia(id):
         resultado = matching_service.resolver_discrepancia(id, data, user_id)
         return jsonify(resultado), 200
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="matching.resolver_discrepancia")
     except Exception as e:
-        return safe_error_response(e, logger, context="resolver_discrepancia")
+        return safe_error_response(e, logger, context="matching.resolver_discrepancia")
 
 
 @matching_bp.route('/kpis', methods=['GET'])

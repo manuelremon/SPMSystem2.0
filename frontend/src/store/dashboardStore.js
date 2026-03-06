@@ -76,7 +76,7 @@ export const useDashboardStore = create((set, get) => ({
     set({ isSaving: true, error: null });
     try {
       const response = await dashboardService.create(data);
-      if (response.success && response.dashboard) {
+      if (response.ok && response.dashboard) {
         set((state) => ({
           dashboards: [response.dashboard, ...state.dashboards],
           isSaving: false,
@@ -96,7 +96,7 @@ export const useDashboardStore = create((set, get) => ({
     set({ isSaving: true, error: null });
     try {
       const response = await dashboardService.update(uuid, data);
-      if (response.success && response.dashboard) {
+      if (response.ok && response.dashboard) {
         set((state) => ({
           currentDashboard:
             state.currentDashboard?.uuid === uuid
@@ -122,7 +122,7 @@ export const useDashboardStore = create((set, get) => ({
   deleteDashboard: async (uuid) => {
     try {
       const response = await dashboardService.delete(uuid);
-      if (response.success) {
+      if (response.ok) {
         set((state) => ({
           dashboards: state.dashboards.filter((d) => d.uuid !== uuid),
           currentDashboard:
@@ -142,7 +142,7 @@ export const useDashboardStore = create((set, get) => ({
   toggleFavorite: async (uuid) => {
     try {
       const response = await dashboardService.toggleFavorite(uuid);
-      if (response.success) {
+      if (response.ok) {
         set((state) => ({
           currentDashboard:
             state.currentDashboard?.uuid === uuid
@@ -187,7 +187,7 @@ export const useDashboardStore = create((set, get) => ({
     set({ isSaving: true });
     try {
       const response = await sheetService.add(currentDashboard.uuid, nombre);
-      if (response.success && response.sheet) {
+      if (response.ok && response.sheet) {
         set((state) => ({
           currentDashboard: {
             ...state.currentDashboard,
@@ -209,7 +209,7 @@ export const useDashboardStore = create((set, get) => ({
   deleteSheet: async (sheetId) => {
     try {
       const response = await sheetService.delete(sheetId);
-      if (response.success) {
+      if (response.ok) {
         set((state) => ({
           currentDashboard: {
             ...state.currentDashboard,
@@ -279,7 +279,7 @@ export const useDashboardStore = create((set, get) => ({
 
     try {
       const response = await datasourceService.add(currentDashboard.uuid, data);
-      if (response.success && response.datasource) {
+      if (response.ok && response.datasource) {
         set((state) => ({
           currentDashboard: {
             ...state.currentDashboard,
@@ -303,7 +303,7 @@ export const useDashboardStore = create((set, get) => ({
   removeDatasource: async (datasourceId) => {
     try {
       const response = await datasourceService.delete(datasourceId);
-      if (response.success) {
+      if (response.ok) {
         set((state) => ({
           currentDashboard: {
             ...state.currentDashboard,
@@ -341,7 +341,7 @@ export const useDashboardStore = create((set, get) => ({
   createGrupo: async (data) => {
     try {
       const response = await grupoService.create(data);
-      if (response.success && response.grupo) {
+      if (response.ok && response.grupo) {
         set((state) => ({
           grupos: [...state.grupos, response.grupo],
         }));

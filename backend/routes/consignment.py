@@ -60,7 +60,7 @@ def obtener_detalle_programa(id):
         detalle = consignment_service.obtener_detalle_programa(id)
         return jsonify({'ok': True, **detalle}), 200
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="consignment.obtener_detalle_programa")
     except Exception as e:
         return safe_error_response(e, logger, context="consignment")
 

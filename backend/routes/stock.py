@@ -3,13 +3,17 @@ Stock management endpoints.
 Provides stock data with filters, inmovilizado and MRP indicators.
 """
 
+import logging
 from datetime import datetime, timedelta
 
 from flask import Blueprint, jsonify, request
 
 from backend.core.db import get_db_connection
+from backend.core.helpers import safe_error_response
 from backend.core.roles import require_auth
 from backend.core.search_utils import build_description_search_with_catalog
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("stock", __name__, url_prefix="/api/stock")
 
@@ -198,9 +202,7 @@ def get_stock():
             })
 
     except Exception as e:
-        import logging
-        logging.error(f"Error in get_stock: {e}")
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return safe_error_response(e, logger, context="stock.get_stock")
 
 
 @bp.route("/resumen", methods=["GET"])
@@ -317,9 +319,7 @@ def get_stock_resumen():
             })
 
     except Exception as e:
-        import logging
-        logging.error(f"Error in get_stock_resumen: {e}")
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return safe_error_response(e, logger, context="stock.get_stock_resumen")
 
 
 @bp.route('/health', methods=['GET'])

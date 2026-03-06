@@ -39,7 +39,7 @@ def get_audit_logs():
     }
 
     result = buscar_auditoria(filtros)
-    return jsonify(result)
+    return jsonify({"ok": True, **result})
 
 
 @bp.route("/logs/<entidad>/<entidad_id>", methods=["GET"])
@@ -49,7 +49,7 @@ def get_entity_timeline(entidad, entidad_id):
     from backend.services.audit_query_service import obtener_timeline_entidad
 
     timeline = obtener_timeline_entidad(entidad, entidad_id)
-    return jsonify({"timeline": timeline})
+    return jsonify({"ok": True, "timeline": timeline})
 
 
 @bp.route("/export", methods=["GET"])
@@ -70,7 +70,7 @@ def export_audit_logs():
 
     data = exportar_auditoria_excel(filtros)
     if data is None:
-        return jsonify({"error": "Error al exportar auditoria"}), 500
+        return jsonify({"ok": False, "error": "Error al exportar auditoria"}), 500
 
     return Response(
         data,
@@ -87,4 +87,4 @@ def get_audit_stats():
     from backend.services.audit_query_service import obtener_stats_auditoria
 
     stats = obtener_stats_auditoria()
-    return jsonify(stats)
+    return jsonify({"ok": True, **stats})

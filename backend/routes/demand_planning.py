@@ -32,9 +32,9 @@ def obtener_ciclos():
         resultado['ok'] = True
         return jsonify(resultado), 200
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="demand_planning.obtener_ciclos")
     except Exception as e:
-        return safe_error_response(e, logger, context="obtener_ciclos")
+        return safe_error_response(e, logger, context="demand_planning.obtener_ciclos")
 
 
 @demand_bp.route('/cycles', methods=['POST'])
@@ -50,9 +50,9 @@ def crear_ciclo():
         resultado = demand_planning_service.crear_ciclo_planificacion(data, user_id)
         return jsonify(resultado), 201
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="demand_planning.crear_ciclo")
     except Exception as e:
-        return safe_error_response(e, logger, context="crear_ciclo")
+        return safe_error_response(e, logger, context="demand_planning.crear_ciclo")
 
 
 @demand_bp.route('/cycles/<int:id>', methods=['GET'])
@@ -83,9 +83,9 @@ def cambiar_estado_ciclo(id):
         resultado['ok'] = True
         return jsonify(resultado), 200
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="demand_planning.cambiar_estado_ciclo")
     except Exception as e:
-        return safe_error_response(e, logger, context="cambiar_estado_ciclo")
+        return safe_error_response(e, logger, context="demand_planning.cambiar_estado_ciclo")
 
 
 @demand_bp.route('/cycles/<int:id>/entries', methods=['POST'])
@@ -101,9 +101,9 @@ def agregar_entrada(id):
         entrada_id = demand_planning_service.agregar_entrada(id, data, user_id)
         return jsonify({'ok': True, 'id': entrada_id}), 201
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="demand_planning.agregar_entrada")
     except Exception as e:
-        return safe_error_response(e, logger, context="agregar_entrada")
+        return safe_error_response(e, logger, context="demand_planning.agregar_entrada")
 
 
 @demand_bp.route('/cycles/<int:id>/baseline', methods=['POST'])
@@ -115,9 +115,9 @@ def generar_baseline(id):
         resultado['ok'] = True
         return jsonify(resultado), 200
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="demand_planning.generar_baseline")
     except Exception as e:
-        return safe_error_response(e, logger, context="generar_baseline")
+        return safe_error_response(e, logger, context="demand_planning.generar_baseline")
 
 
 @demand_bp.route('/cycles/<int:id>/consensus', methods=['POST'])
@@ -129,9 +129,9 @@ def calcular_consenso(id):
         resultado['ok'] = True
         return jsonify(resultado), 200
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="demand_planning.calcular_consenso")
     except Exception as e:
-        return safe_error_response(e, logger, context="calcular_consenso")
+        return safe_error_response(e, logger, context="demand_planning.calcular_consenso")
 
 
 @demand_bp.route('/accuracy', methods=['GET'])

@@ -16,7 +16,7 @@ import time
 from flask import Blueprint, Response, g, jsonify, request, stream_with_context
 
 from backend.core.notification_schemas import NotificacionEvent
-from backend.core.roles import require_auth
+from backend.core.roles import require_admin, require_auth
 from backend.services.notification_service import NotificationService
 
 bp = Blueprint("notificaciones", __name__, url_prefix="/api/notificaciones")
@@ -351,6 +351,7 @@ def centro_interaccion():
 
 
 @bp.route("/test", methods=["POST"])
+@require_admin
 def create_test_notification():
     """
     Endpoint de prueba para crear notificaciones manualmente.

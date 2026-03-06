@@ -145,7 +145,7 @@ def obtener_usuarios_portal():
         usuarios = supplier_portal_service.obtener_usuarios_portal(filtros)
         return jsonify(usuarios), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_portal.obtener_usuarios_portal")
 
 
 @supplier_portal_bp.route('/admin/users', methods=['POST'])
@@ -157,7 +157,7 @@ def crear_usuario_portal():
         usuario = supplier_portal_service.crear_usuario_portal(data)
         return jsonify(usuario), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_portal.crear_usuario_portal")
 
 
 @supplier_portal_bp.route('/admin/users/<int:id>', methods=['PUT'])
@@ -169,7 +169,7 @@ def actualizar_usuario_portal(id):
         usuario = supplier_portal_service.actualizar_usuario_portal(id, data)
         return jsonify(usuario), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_portal.actualizar_usuario_portal")
 
 
 @supplier_portal_bp.route('/admin/share-forecast', methods=['POST'])
@@ -181,7 +181,7 @@ def compartir_forecast():
         resultado = supplier_portal_service.compartir_forecast(data)
         return jsonify(resultado), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_portal.compartir_forecast")
 
 
 @supplier_portal_bp.route('/admin/activity', methods=['GET'])
@@ -192,4 +192,4 @@ def obtener_actividad_proveedores():
         actividad = supplier_portal_service.obtener_actividad_proveedores()
         return jsonify(actividad), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="supplier_portal.obtener_actividad_proveedores")

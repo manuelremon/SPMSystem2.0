@@ -38,7 +38,7 @@ def listar_rfqs():
         return jsonify(resultado), 200
 
     except ValueError as e:
-        return jsonify({"ok": False, "error": f"Parametros invalidos: {str(e)}"}), 400
+        return safe_error_response(e, logger, status_code=400, context="rfq.listar_rfqs")
     except Exception as e:
         return safe_error_response(e, logger, context="listar_rfqs")
 
@@ -62,9 +62,9 @@ def crear_rfq():
         return jsonify(rfq), 201
 
     except ValidationError as e:
-        return jsonify({"ok": False, "error": str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="rfq.crear_rfq")
     except Exception as e:
-        return safe_error_response(e, logger, context="crear_rfq")
+        return safe_error_response(e, logger, context="rfq.crear_rfq")
 
 
 @rfq_bp.route("/from-solicitud/<int:solicitud_id>", methods=["POST"])
@@ -86,11 +86,11 @@ def crear_desde_solicitud(solicitud_id):
         return jsonify(rfq), 201
 
     except NotFoundError as e:
-        return jsonify({"ok": False, "error": str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="rfq.crear_desde_solicitud")
     except ValidationError as e:
-        return jsonify({"ok": False, "error": str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="rfq.crear_desde_solicitud")
     except Exception as e:
-        return safe_error_response(e, logger, context="crear_desde_solicitud")
+        return safe_error_response(e, logger, context="rfq.crear_desde_solicitud")
 
 
 @rfq_bp.route("/<int:rfq_id>", methods=["GET"])
@@ -104,9 +104,9 @@ def obtener_detalle(rfq_id):
         return jsonify(rfq), 200
 
     except NotFoundError as e:
-        return jsonify({"ok": False, "error": str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="rfq.obtener_detalle")
     except Exception as e:
-        return safe_error_response(e, logger, context="obtener_detalle")
+        return safe_error_response(e, logger, context="rfq.obtener_detalle")
 
 
 @rfq_bp.route("/<int:rfq_id>", methods=["PUT"])
@@ -128,11 +128,11 @@ def actualizar_rfq(rfq_id):
         return jsonify(rfq), 200
 
     except NotFoundError as e:
-        return jsonify({"ok": False, "error": str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="rfq.actualizar_rfq")
     except ValidationError as e:
-        return jsonify({"ok": False, "error": str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="rfq.actualizar_rfq")
     except Exception as e:
-        return safe_error_response(e, logger, context="actualizar_rfq")
+        return safe_error_response(e, logger, context="rfq.actualizar_rfq")
 
 
 @rfq_bp.route("/<int:rfq_id>/publish", methods=["PUT"])
@@ -148,11 +148,11 @@ def publicar_rfq(rfq_id):
         return jsonify(rfq), 200
 
     except NotFoundError as e:
-        return jsonify({"ok": False, "error": str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="rfq.publicar_rfq")
     except ValidationError as e:
-        return jsonify({"ok": False, "error": str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="rfq.publicar_rfq")
     except Exception as e:
-        return safe_error_response(e, logger, context="publicar_rfq")
+        return safe_error_response(e, logger, context="rfq.publicar_rfq")
 
 
 @rfq_bp.route("/<int:rfq_id>/bids", methods=["POST"])
@@ -173,11 +173,11 @@ def registrar_ofertas(rfq_id):
         return jsonify(resultado), 201
 
     except NotFoundError as e:
-        return jsonify({"ok": False, "error": str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="rfq.registrar_ofertas")
     except ValidationError as e:
-        return jsonify({"ok": False, "error": str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="rfq.registrar_ofertas")
     except Exception as e:
-        return safe_error_response(e, logger, context="registrar_ofertas")
+        return safe_error_response(e, logger, context="rfq.registrar_ofertas")
 
 
 @rfq_bp.route("/<int:rfq_id>/bids", methods=["GET"])
@@ -226,11 +226,11 @@ def configurar_criterios(rfq_id):
         return jsonify(resultado), 200
 
     except NotFoundError as e:
-        return jsonify({"ok": False, "error": str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="rfq.configurar_criterios")
     except ValidationError as e:
-        return jsonify({"ok": False, "error": str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="rfq.configurar_criterios")
     except Exception as e:
-        return safe_error_response(e, logger, context="configurar_criterios")
+        return safe_error_response(e, logger, context="rfq.configurar_criterios")
 
 
 @rfq_bp.route("/<int:rfq_id>/evaluate", methods=["POST"])
@@ -245,11 +245,11 @@ def evaluar_rfq(rfq_id):
         return jsonify({"evaluaciones": evaluaciones}), 200
 
     except NotFoundError as e:
-        return jsonify({"ok": False, "error": str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="rfq.evaluar_rfq")
     except ValidationError as e:
-        return jsonify({"ok": False, "error": str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="rfq.evaluar_rfq")
     except Exception as e:
-        return safe_error_response(e, logger, context="evaluar_rfq")
+        return safe_error_response(e, logger, context="rfq.evaluar_rfq")
 
 
 @rfq_bp.route("/<int:rfq_id>/award", methods=["POST"])
@@ -271,11 +271,11 @@ def adjudicar_rfq(rfq_id):
         return jsonify(resultado), 200
 
     except NotFoundError as e:
-        return jsonify({"ok": False, "error": str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="rfq.adjudicar_rfq")
     except ValidationError as e:
-        return jsonify({"ok": False, "error": str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="rfq.adjudicar_rfq")
     except Exception as e:
-        return safe_error_response(e, logger, context="adjudicar_rfq")
+        return safe_error_response(e, logger, context="rfq.adjudicar_rfq")
 
 
 @rfq_bp.route("/<int:rfq_id>/generate-po", methods=["POST"])
@@ -294,8 +294,8 @@ def generar_ordenes_compra(rfq_id):
         }), 201
 
     except NotFoundError as e:
-        return jsonify({"ok": False, "error": str(e)}), 404
+        return safe_error_response(e, logger, status_code=404, context="rfq.generar_ordenes_compra")
     except ValidationError as e:
-        return jsonify({"ok": False, "error": str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="rfq.generar_ordenes_compra")
     except Exception as e:
-        return safe_error_response(e, logger, context="generar_ordenes_compra")
+        return safe_error_response(e, logger, context="rfq.generar_ordenes_compra")

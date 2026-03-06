@@ -2,11 +2,16 @@
 Executive Analytics Routes
 Dashboard ejecutivo de procurement y benchmarking
 """
+import logging
+
 from flask import Blueprint, g, jsonify, request
 
+from backend.core.helpers import safe_error_response
 from backend.core.request_validation import validate_json
 from backend.core.roles import require_admin, require_auth
 from backend.services import executive_analytics_service
+
+logger = logging.getLogger(__name__)
 
 executive_bp = Blueprint('executive', __name__, url_prefix='/api/executive')
 
@@ -17,10 +22,10 @@ def get_dashboard():
     """GET /api/executive/dashboard - Dashboard ejecutivo completo"""
     try:
         dashboard = executive_analytics_service.obtener_dashboard()
-        return jsonify(dashboard), 200
+        return jsonify({'ok': True, **dashboard}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="executive.get_dashboard")
 
 
 @executive_bp.route('/kpis', methods=['GET'])
@@ -32,7 +37,7 @@ def get_kpis():
         return jsonify({'ok': True, 'kpis': kpis}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="executive.get_kpis")
 
 
 @executive_bp.route('/kpis', methods=['POST'])
@@ -49,12 +54,13 @@ def create_kpi():
         kpi_id = executive_analytics_service.crear_kpi(data)
 
         return jsonify({
+            'ok': True,
             'message': 'KPI creado exitosamente',
             'kpi_id': kpi_id
         }), 201
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="executive.create_kpi")
 
 
 @executive_bp.route('/kpis/<int:kpi_id>', methods=['PUT'])
@@ -65,10 +71,10 @@ def update_kpi(kpi_id):
         data = request.get_json()
         executive_analytics_service.actualizar_kpi(kpi_id, data)
 
-        return jsonify({'message': 'KPI actualizado exitosamente'}), 200
+        return jsonify({'ok': True, 'message': 'KPI actualizado exitosamente'}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="executive.update_kpi")
 
 
 @executive_bp.route('/trends/<kpi_key>', methods=['GET'])
@@ -80,12 +86,13 @@ def get_trends(kpi_key):
         tendencias = executive_analytics_service.obtener_tendencias(kpi_key, meses)
 
         return jsonify({
+            'ok': True,
             'kpi_key': kpi_key,
             'tendencias': tendencias
         }), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="executive.get_trends")
 
 
 @executive_bp.route('/benchmarks', methods=['GET'])
@@ -96,10 +103,10 @@ def get_benchmarks():
         kpi_key = request.args.get('kpi_key')
         benchmarks = executive_analytics_service.obtener_benchmarks(kpi_key)
 
-        return jsonify({'benchmarks': benchmarks}), 200
+        return jsonify({'ok': True, 'benchmarks': benchmarks}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="executive.get_benchmarks")
 
 
 @executive_bp.route('/benchmarks', methods=['POST'])
@@ -119,12 +126,13 @@ def create_benchmark():
         benchmark_id = executive_analytics_service.crear_benchmark(data)
 
         return jsonify({
+            'ok': True,
             'message': 'Benchmark creado exitosamente',
             'benchmark_id': benchmark_id
         }), 201
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="executive.create_benchmark")
 
 
 @executive_bp.route('/scorecards/generate', methods=['POST'])
@@ -141,12 +149,13 @@ def generate_scorecard():
         )
 
         return jsonify({
+            'ok': True,
             'message': 'Scorecard generado exitosamente',
             'scorecard_id': scorecard_id
         }), 201
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="executive.generate_scorecard")
 
 
 @executive_bp.route('/scorecards', methods=['GET'])
@@ -157,10 +166,10 @@ def get_scorecards():
         limit = int(request.args.get('limit', 10))
         scorecards = executive_analytics_service.obtener_scorecards(limit)
 
-        return jsonify({'scorecards': scorecards}), 200
+        return jsonify({'ok': True, 'scorecards': scorecards}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="executive.get_scorecards")
 
 
 @executive_bp.route('/scorecards/<int:scorecard_id>', methods=['GET'])
@@ -171,9 +180,9 @@ def get_scorecard_detail(scorecard_id):
         scorecard = executive_analytics_service.obtener_scorecard_detalle(scorecard_id)
 
         if not scorecard:
-            return jsonify({'error': 'Scorecard no encontrado'}), 404
+            return jsonify({'ok': False, 'error': 'Scorecard no encontrado'}), 404
 
-        return jsonify(scorecard), 200
+        return jsonify({'ok': True, **scorecard}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error_response(e, logger, context="executive.get_scorecard_detail")

@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 @bp.route("/dashboard", methods=["GET"])
+@require_auth
 def dashboard_stats():
     """Estadisticas para el dashboard del planificador/admin"""
     stats = {
@@ -199,6 +200,7 @@ def listar_solicitudes_aprobadas():
 
 
 @bp.route("/presupuesto", methods=["GET"])
+@require_auth
 def obtener_presupuesto():
     """Retorna presupuesto y saldo por centro/sector para validaciones rapidas"""
     centro = request.args.get("centro")
@@ -215,8 +217,9 @@ def obtener_presupuesto():
         row = cur.fetchone()
 
     if not row:
-        return jsonify({"centro": centro, "sector": sector, "monto_usd": 0, "saldo_usd": 0}), 200
+        return jsonify({"ok": True, "centro": centro, "sector": sector, "monto_usd": 0, "saldo_usd": 0}), 200
     d = dict(row)
+    d["ok"] = True
     return jsonify(d), 200
 
 
@@ -236,7 +239,7 @@ def simular_compra():
     """
     data = request.get_json()
     if not data:
-        return jsonify({"error": "JSON requerido"}), 400
+        return jsonify({"ok": False, "error": "JSON requerido"}), 400
 
     material_codigo = data.get("material_codigo")
     centro = data.get("centro")
@@ -244,7 +247,7 @@ def simular_compra():
     precio_unitario = data.get("precio_unitario", 0)
 
     if not material_codigo or not centro or cantidad <= 0:
-        return jsonify({"error": "material_codigo, centro y cantidad > 0 requeridos"}), 400
+        return jsonify({"ok": False, "error": "material_codigo, centro y cantidad > 0 requeridos"}), 400
 
     try:
         with get_db_connection() as conn:
@@ -262,7 +265,7 @@ def simular_compra():
             mat = cur.fetchone()
 
             if not mat:
-                return jsonify({"error": "Material no encontrado en MRP"}), 404
+                return jsonify({"ok": False, "error": "Material no encontrado en MRP"}), 404
 
             mat_dict = (
                 dict(mat)
@@ -336,6 +339,7 @@ def simular_compra():
 
         return jsonify(
             {
+                "ok": True,
                 "material": material_codigo,
                 "descripcion": mat_dict.get("descripcion", ""),
                 "cantidad_propuesta": cantidad,
@@ -359,4 +363,4 @@ def simular_compra():
 
     except Exception as exc:
         logger.error(f"Error en simulacion: {exc}")
-        return jsonify({"error": "Error al simular compra"}), 500
+        return jsonify({"ok": False, "error": "Error al simular compra"}), 500

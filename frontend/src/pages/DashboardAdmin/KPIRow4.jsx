@@ -183,9 +183,11 @@ function KPIRow4() {
               {t('dash_stock_aging', 'Aging de Stock')}
             </Typography>
           </Stack>
-          <Typography sx={{ ...valueSx, color: sa.pctSinConsumo6m > 50 ? 'error.main' : 'warning.main' }}>
-            {sa.pctSinConsumo6m}%
-          </Typography>
+          <Tooltip title={`${sa.pctSinConsumo6m}% del stock no tuvo consumo en los últimos 6 meses`} arrow>
+            <Typography sx={{ ...valueSx, color: sa.pctSinConsumo6m > 50 ? 'error.main' : 'warning.main' }}>
+              {sa.pctSinConsumo6m}%
+            </Typography>
+          </Tooltip>
           <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 1 }}>
             sin consumo 6m
           </Typography>
@@ -211,12 +213,16 @@ function KPIRow4() {
           {(sotd.proveedores || []).slice(0, 4).map((p, i) => {
             const otd = p.totalDecisiones > 0 ? Math.round((p.confirmadas / p.totalDecisiones) * 100) : 0;
             return (
-              <MetricRow key={i}
-                label={p.nombre?.substring(0, 20) || p.cuit}
-                value={`${otd}%`}
-                sub={`${p.plazoPromedio}d`}
-                color={getColor(otd)}
-              />
+              <Tooltip key={i} title={`${p.nombre || p.cuit} — OTD: ${otd}% (${p.confirmadas}/${p.totalDecisiones}) — Plazo prom: ${p.plazoPromedio}d`} arrow placement="left">
+                <Box>
+                  <MetricRow
+                    label={p.nombre?.substring(0, 20) || p.cuit}
+                    value={`${otd}%`}
+                    sub={`${p.plazoPromedio}d`}
+                    color={getColor(otd)}
+                  />
+                </Box>
+              </Tooltip>
             );
           })}
         </Paper>
@@ -230,16 +236,22 @@ function KPIRow4() {
             </Typography>
           </Stack>
           <Stack direction="row" gap={2} sx={{ mb: 1 }}>
-            <Box>
-              <Typography sx={{ ...valueSx, color: getColor(pe.eficiencia) }}>{pe.eficiencia}%</Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>eficiencia</Typography>
-            </Box>
-            <Box>
-              <Typography sx={{ ...valueSx, color: getColor(pe.utilizacionCapacidad) }}>{pe.utilizacionCapacidad}%</Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>util. cap.</Typography>
-            </Box>
+            <Tooltip title={`Eficiencia: ${pe.eficiencia}% — Producido: ${formatMonto(pe.totalProducida)} / Planificado: ${formatMonto(pe.totalPlanificada)}`} arrow>
+              <Box>
+                <Typography sx={{ ...valueSx, color: getColor(pe.eficiencia) }}>{pe.eficiencia}%</Typography>
+                <Typography variant="caption" sx={{ color: 'text.disabled' }}>eficiencia</Typography>
+              </Box>
+            </Tooltip>
+            <Tooltip title={`Utilización de capacidad: ${pe.utilizacionCapacidad}% de los ${pe.totalItems} items planificados`} arrow>
+              <Box>
+                <Typography sx={{ ...valueSx, color: getColor(pe.utilizacionCapacidad) }}>{pe.utilizacionCapacidad}%</Typography>
+                <Typography variant="caption" sx={{ color: 'text.disabled' }}>util. cap.</Typography>
+              </Box>
+            </Tooltip>
           </Stack>
-          <Box sx={miniBarSx(pe.eficiencia, SPM_COLORS.primary)} mb={0.5} />
+          <Tooltip title={`Barra de eficiencia: ${pe.eficiencia}%`} arrow>
+            <Box sx={miniBarSx(pe.eficiencia, SPM_COLORS.primary)} mb={0.5} />
+          </Tooltip>
           <MetricRow label="Items totales" value={pe.totalItems} />
           <MetricRow label="Planificada" value={formatMonto(pe.totalPlanificada)} />
           <MetricRow label="Producida" value={formatMonto(pe.totalProducida)} />
@@ -270,8 +282,10 @@ function KPIRow4() {
           <MetricRow label="Faltantes" value={ia.faltantes} color="error.main" />
           <Stack direction="row" gap={0.5} sx={{ mt: 0.5 }}>
             {Object.entries(ia.conteos || {}).map(([estado, cnt]) => (
-              <Chip key={estado} size="small" label={`${estado}: ${cnt}`} variant="outlined"
-                sx={{ fontSize: '0.65rem', height: 20 }} />
+              <Tooltip key={estado} title={`Estado "${estado}": ${cnt} conteos cíclicos`} arrow>
+                <Chip size="small" label={`${estado}: ${cnt}`} variant="outlined"
+                  sx={{ fontSize: '0.65rem', height: 20 }} />
+              </Tooltip>
             ))}
           </Stack>
         </Paper>
@@ -325,24 +339,26 @@ function KPIRow4() {
           </Stack>
           <Box sx={{ '& > *:not(:last-child)': { borderBottom: '1px solid', borderColor: 'grey.100' } }}>
             {(ss.proveedores || []).slice(0, 6).map((p, i) => (
-              <Stack key={i} direction="row" alignItems="center" gap={0.5} sx={{ py: 0.5 }}>
-                <Typography variant="caption" sx={{ flex: 1, fontSize: FONT_SIZES.sm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {p.nombre?.substring(0, 22) || p.cuit}
-                </Typography>
-                <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: FONT_SIZES.xs, color: 'text.secondary' }}>
-                  USD {formatMonto(p.gastoTotal)}
-                </Typography>
-                {p.qualityPct !== null && (
-                  <Chip size="small" label={`Q${Math.round(p.qualityPct)}%`}
-                    color={p.qualityPct >= 80 ? 'success' : p.qualityPct >= 50 ? 'warning' : 'error'}
-                    variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
-                )}
-                {p.riskLevel && (
-                  <Chip size="small" label={p.riskLevel}
-                    color={p.riskLevel === 'bajo' ? 'success' : p.riskLevel === 'medio' ? 'warning' : 'error'}
-                    variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
-                )}
-              </Stack>
+              <Tooltip key={i} title={`${p.nombre || p.cuit} — Gasto: USD ${(p.gastoTotal || 0).toLocaleString('es-AR')}${p.qualityPct !== null ? ` — Calidad: ${Math.round(p.qualityPct)}%` : ''}${p.riskLevel ? ` — Riesgo: ${p.riskLevel}` : ''}`} arrow placement="left">
+                <Stack direction="row" alignItems="center" gap={0.5} sx={{ py: 0.5 }}>
+                  <Typography variant="caption" sx={{ flex: 1, fontSize: FONT_SIZES.sm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {p.nombre?.substring(0, 22) || p.cuit}
+                  </Typography>
+                  <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: FONT_SIZES.xs, color: 'text.secondary' }}>
+                    USD {formatMonto(p.gastoTotal)}
+                  </Typography>
+                  {p.qualityPct !== null && (
+                    <Chip size="small" label={`Q${Math.round(p.qualityPct)}%`}
+                      color={p.qualityPct >= 80 ? 'success' : p.qualityPct >= 50 ? 'warning' : 'error'}
+                      variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
+                  )}
+                  {p.riskLevel && (
+                    <Chip size="small" label={p.riskLevel}
+                      color={p.riskLevel === 'bajo' ? 'success' : p.riskLevel === 'medio' ? 'warning' : 'error'}
+                      variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
+                  )}
+                </Stack>
+              </Tooltip>
             ))}
             {(ss.proveedores || []).length === 0 && (
               <Typography variant="caption" sx={{ color: 'grey.400', py: 1, display: 'block', textAlign: 'center' }}>
@@ -375,8 +391,10 @@ function KPIRow4() {
           <MetricRow label="Desviación prom." value={`${qs.desviacionPromedio}%`} />
           <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.5 }}>
             {Object.entries(qs.garantias || {}).map(([estado, cnt]) => (
-              <Chip key={estado} size="small" label={`${estado}: ${cnt}`} variant="outlined"
-                sx={{ fontSize: '0.6rem', height: 18 }} />
+              <Tooltip key={estado} title={`Garantías en estado "${estado}": ${cnt} reclamos`} arrow>
+                <Chip size="small" label={`${estado}: ${cnt}`} variant="outlined"
+                  sx={{ fontSize: '0.6rem', height: 18 }} />
+              </Tooltip>
             ))}
           </Stack>
         </Paper>
@@ -401,9 +419,11 @@ function KPIRow4() {
           </Stack>
           <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mb: 1 }}>
             {Object.entries(fu.vehiculosPorEstado || {}).map(([est, cnt]) => (
-              <Chip key={est} size="small" label={`${est}: ${cnt}`}
-                color={est === 'disponible' ? 'success' : est === 'en_mantenimiento' ? 'warning' : 'default'}
-                variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
+              <Tooltip key={est} title={`${cnt} vehículos en estado "${est.replace('_', ' ')}"`} arrow>
+                <Chip size="small" label={`${est}: ${cnt}`}
+                  color={est === 'disponible' ? 'success' : est === 'en_mantenimiento' ? 'warning' : 'default'}
+                  variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
+              </Tooltip>
             ))}
           </Stack>
           <MetricRow label="OTs totales" value={fu.totalOrdenesTrabajo} />
@@ -420,21 +440,27 @@ function KPIRow4() {
             </Typography>
           </Stack>
           <Stack direction="row" gap={2} sx={{ mb: 1 }}>
-            <Box>
-              <Typography sx={{ ...valueSx, color: getColor(fa.accuracy) }}>{fa.accuracy}%</Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>accuracy</Typography>
-            </Box>
-            <Box>
-              <Typography sx={{ ...valueSx, color: fa.mape > 30 ? 'error.main' : 'text.primary' }}>{fa.mape}%</Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>MAPE</Typography>
-            </Box>
+            <Tooltip title={`Precisión del pronóstico: ${fa.accuracy}% — basado en ${fa.totalPronosticos} pronósticos`} arrow>
+              <Box>
+                <Typography sx={{ ...valueSx, color: getColor(fa.accuracy) }}>{fa.accuracy}%</Typography>
+                <Typography variant="caption" sx={{ color: 'text.disabled' }}>accuracy</Typography>
+              </Box>
+            </Tooltip>
+            <Tooltip title={`MAPE (Mean Absolute Percentage Error): ${fa.mape}% — ${fa.mape <= 10 ? 'Excelente' : fa.mape <= 20 ? 'Bueno' : fa.mape <= 30 ? 'Aceptable' : 'Requiere mejora'}`} arrow>
+              <Box>
+                <Typography sx={{ ...valueSx, color: fa.mape > 30 ? 'error.main' : 'text.primary' }}>{fa.mape}%</Typography>
+                <Typography variant="caption" sx={{ color: 'text.disabled' }}>MAPE</Typography>
+              </Box>
+            </Tooltip>
           </Stack>
           <MetricRow label="Confianza prom." value={`${fa.confianzaPromedio}`} />
           <MetricRow label="Total pronósticos" value={fa.totalPronosticos} />
           <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.5 }}>
             {Object.entries(fa.porFuente || {}).map(([fuente, cnt]) => (
-              <Chip key={fuente} size="small" label={`${fuente.replace('_', ' ')}: ${cnt}`}
-                variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
+              <Tooltip key={fuente} title={`Fuente "${fuente.replace('_', ' ')}": ${cnt} pronósticos generados`} arrow>
+                <Chip size="small" label={`${fuente.replace('_', ' ')}: ${cnt}`}
+                  variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
+              </Tooltip>
             ))}
           </Stack>
         </Paper>
@@ -466,25 +492,31 @@ function KPIRow4() {
           </Stack>
           <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mb: 1 }}>
             {Object.entries(scr.porNivel || {}).map(([nivel, info]) => (
-              <Chip key={nivel} size="small"
-                label={`${nivel}: ${info.count} (${info.scorePromedio})`}
-                color={nivel === 'bajo' ? 'success' : nivel === 'medio' ? 'warning' : 'error'}
-                variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
+              <Tooltip key={nivel} title={`Riesgo ${nivel}: ${info.count} proveedores — Score promedio: ${info.scorePromedio}/100`} arrow>
+                <Chip size="small"
+                  label={`${nivel}: ${info.count} (${info.scorePromedio})`}
+                  color={nivel === 'bajo' ? 'success' : nivel === 'medio' ? 'warning' : 'error'}
+                  variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
+              </Tooltip>
             ))}
           </Stack>
           <Box sx={{ '& > *:not(:last-child)': { borderBottom: '1px solid', borderColor: 'grey.100' } }}>
             {(scr.topRisk || []).slice(0, 4).map((p, i) => (
-              <Stack key={i} direction="row" alignItems="center" gap={0.5} sx={{ py: 0.4 }}>
-                <Typography variant="caption" sx={{ flex: 1, fontSize: FONT_SIZES.sm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {p.nombre?.substring(0, 20)}
-                </Typography>
-                <Typography variant="caption" sx={{ fontWeight: 700, fontFamily: 'monospace', fontSize: FONT_SIZES.xs, color: p.score > 70 ? 'error.main' : p.score > 40 ? 'warning.main' : 'success.main' }}>
-                  {p.score}
-                </Typography>
-                {p.fuenteUnica && (
-                  <Chip size="small" label="FU" color="error" variant="filled" sx={{ fontSize: '0.55rem', height: 16, minWidth: 24 }} />
-                )}
-              </Stack>
+              <Tooltip key={i} title={`${p.nombre} — Score riesgo: ${p.score}/100 (${p.score > 70 ? 'Alto' : p.score > 40 ? 'Medio' : 'Bajo'})${p.fuenteUnica ? ' — Fuente Única (sin alternativa)' : ''}`} arrow placement="left">
+                <Stack direction="row" alignItems="center" gap={0.5} sx={{ py: 0.4 }}>
+                  <Typography variant="caption" sx={{ flex: 1, fontSize: FONT_SIZES.sm, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {p.nombre?.substring(0, 20)}
+                  </Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 700, fontFamily: 'monospace', fontSize: FONT_SIZES.xs, color: p.score > 70 ? 'error.main' : p.score > 40 ? 'warning.main' : 'success.main' }}>
+                    {p.score}
+                  </Typography>
+                  {p.fuenteUnica && (
+                    <Tooltip title="Fuente Única: sin proveedores alternativos" arrow>
+                      <Chip size="small" label="FU" color="error" variant="filled" sx={{ fontSize: '0.55rem', height: 16, minWidth: 24 }} />
+                    </Tooltip>
+                  )}
+                </Stack>
+              </Tooltip>
             ))}
           </Box>
         </Paper>
@@ -497,9 +529,11 @@ function KPIRow4() {
               {t('dash_cost_avoid', 'Ahorros y Cost Avoidance')}
             </Typography>
           </Stack>
-          <Typography sx={{ ...valueSx, color: 'success.main' }}>
-            USD {formatMonto(ca.negociaciones?.ahorroTotal || 0)}
-          </Typography>
+          <Tooltip title={`USD ${(ca.negociaciones?.ahorroTotal || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}`} arrow>
+            <Typography sx={{ ...valueSx, color: 'success.main' }}>
+              USD {formatMonto(ca.negociaciones?.ahorroTotal || 0)}
+            </Typography>
+          </Tooltip>
           <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 1 }}>
             ahorro por negociación
           </Typography>
@@ -538,9 +572,11 @@ function KPIRow4() {
           <MetricRow label="Tiempo resp." value={`${kh.tiempoRespuestaHoras}h`} />
           <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.5 }}>
             {Object.entries(kh.tarjetas || {}).map(([est, info]) => (
-              <Chip key={est} size="small"
-                label={`${est}: ${info.count}`}
-                variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
+              <Tooltip key={est} title={`Tarjetas "${est}": ${info.count} tarjetas kanban`} arrow>
+                <Chip size="small"
+                  label={`${est}: ${info.count}`}
+                  variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
+              </Tooltip>
             ))}
           </Stack>
         </Paper>

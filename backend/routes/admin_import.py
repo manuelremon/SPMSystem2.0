@@ -11,7 +11,7 @@ from io import BytesIO
 from flask import Blueprint, jsonify, request, send_file
 
 from backend.core.excel_validator import excel_validator
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import is_admin, require_auth
 from backend.services.temp_data_service import temp_data_service
 
@@ -112,11 +112,7 @@ def import_excel():
         })
 
     except Exception as e:
-        logger.error(f"Error importando Excel: {e}", exc_info=True)
-        return jsonify({
-            "ok": False,
-            "error": f"Error al procesar datos: {str(e)}"
-        }), 500
+        return safe_error_response(e, logger, context="admin_import.import_excel")
 
 
 @bp.route("/temp-data/status", methods=["GET"])
@@ -259,11 +255,7 @@ def download_template():
             "error": "openpyxl no está instalado. Ejecute: pip install openpyxl"
         }), 500
     except Exception as e:
-        logger.error(f"Error generando plantilla: {e}", exc_info=True)
-        return jsonify({
-            "ok": False,
-            "error": f"Error al generar plantilla: {str(e)}"
-        }), 500
+        return safe_error_response(e, logger, context="admin_import.download_template")
 
 
 @bp.route("/temp-data/preview", methods=["POST"])

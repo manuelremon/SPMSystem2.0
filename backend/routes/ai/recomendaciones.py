@@ -6,6 +6,7 @@ import logging
 
 from flask import jsonify, request
 
+from backend.core.helpers import safe_error_response
 from backend.core.rate_limit import rate_limit
 from backend.core.roles import require_auth, require_role
 from backend.routes.ai import bp
@@ -105,8 +106,7 @@ def get_recomendaciones(centro):
         })
 
     except Exception as e:
-        logger.error(f"Error generando recomendaciones: {e}")
-        return jsonify({"ok": False, "error": {"code": "recomendaciones_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_recomendaciones.get_recomendaciones")
 
 
 @bp.route("/recomendaciones/material/<material_codigo>", methods=["GET"])
@@ -213,8 +213,7 @@ def get_recomendacion_material(material_codigo):
         return jsonify({"ok": True, "data": rec})
 
     except Exception as e:
-        logger.error(f"Error en recomendacion de material: {e}")
-        return jsonify({"ok": False, "error": {"code": "recomendacion_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_recomendaciones.get_recomendacion_material")
 
 
 # ============================================================================
@@ -312,8 +311,7 @@ def get_top_recomendaciones():
         })
 
     except Exception as e:
-        logger.error(f"Error en top recomendaciones: {e}")
-        return jsonify({"ok": False, "error": {"code": "recomendaciones_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_recomendaciones.get_top_recomendaciones")
 
 
 # ============================================================================
@@ -406,8 +404,7 @@ def detectar_anomalias(material_codigo):
             "error": {"code": "dependency_missing", "message": "sklearn es requerido para deteccion de anomalias"}
         }), 501
     except Exception as e:
-        logger.error(f"Error detectando anomalias: {e}")
-        return jsonify({"ok": False, "error": {"code": "anomalias_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_recomendaciones.detectar_anomalias")
 
 
 # ============================================================================
@@ -552,5 +549,4 @@ def clustering_materiales():
             "error": {"code": "dependency_missing", "message": "sklearn es requerido para clustering"}
         }), 501
     except Exception as e:
-        logger.error(f"Error en clustering: {e}")
-        return jsonify({"ok": False, "error": {"code": "clustering_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_recomendaciones.clustering_materiales")

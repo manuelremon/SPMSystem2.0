@@ -72,7 +72,7 @@ class TestFormulaResult:
 
         d = result.to_dict()
 
-        assert d["success"] is True
+        assert d["ok"] is True
         assert d["value"] == {"total": 100}
         assert d["execution_time_ms"] == 3.0
         assert "error_code" not in d
@@ -87,7 +87,7 @@ class TestFormulaResult:
 
         d = result.to_dict()
 
-        assert d["success"] is False
+        assert d["ok"] is False
         assert d["error_code"] == "INVALID_PARAMS"
         assert d["error_message"] == "Parametros invalidos"
 

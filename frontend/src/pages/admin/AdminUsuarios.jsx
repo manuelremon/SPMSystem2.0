@@ -451,6 +451,7 @@ function UsuariosTable({
 
 /** Fila con confirmacion de eliminacion inline */
 function UserRow({ user, onEdit, onDelete, isDeleting, onCancelDelete, onConfirmDelete }) {
+  const { t } = useI18n();
   const roles = parseRoles(user.roles || user.rol);
   const isActive = user.estado_registro?.toLowerCase() === "activo";
 

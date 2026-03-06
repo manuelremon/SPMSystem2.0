@@ -10,6 +10,7 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
+import Tooltip from '@mui/material/Tooltip';
 
 /**
  * KPIRow2 - Second row: Distribucion de Estados, Tendencia Historica, Presupuesto
@@ -248,27 +249,33 @@ function KPIRow2({
               <Stack direction="row" alignItems="flex-start" gap={1.5}>
                 {/* Medidores con SPMGauge Chart.js */}
                 <Stack direction="row" gap={0} sx={{ flexShrink: 0 }}>
-                  <Stack alignItems="center" sx={{ width: 75 }}>
-                    <SPMGauge value={100} valueMax={100} width={70} height={70} color={BUDGET_COLORS.total} startAngle={-90} endAngle={90} />
-                    <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.secondary', mt: -0.5 }}>Total</Typography>
-                    <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.total, whiteSpace: 'nowrap' }}>
-                      MUSD {(presupuestoFiltrado.total / 1000000).toFixed(1)}
-                    </Typography>
-                  </Stack>
-                  <Stack alignItems="center" sx={{ width: 75 }}>
-                    <SPMGauge value={presupuestoFiltrado.percentage} valueMax={100} width={70} height={70} color={BUDGET_COLORS.utilizado} startAngle={-90} endAngle={90} />
-                    <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.secondary', mt: -0.5 }}>Utilizado</Typography>
-                    <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.utilizado, whiteSpace: 'nowrap' }}>
-                      MUSD {(presupuestoFiltrado.utilizado / 1000000).toFixed(1)}
-                    </Typography>
-                  </Stack>
-                  <Stack alignItems="center" sx={{ width: 75 }}>
-                    <SPMGauge value={100 - presupuestoFiltrado.percentage} valueMax={100} width={70} height={70} color={BUDGET_COLORS.disponible} startAngle={-90} endAngle={90} />
-                    <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.secondary', mt: -0.5 }}>Disponible</Typography>
-                    <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.disponible, whiteSpace: 'nowrap' }}>
-                      MUSD {(presupuestoFiltrado.disponible / 1000000).toFixed(1)}
-                    </Typography>
-                  </Stack>
+                  <Tooltip title={`USD ${presupuestoFiltrado.total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`} arrow>
+                    <Stack alignItems="center" sx={{ width: 75 }}>
+                      <SPMGauge value={100} valueMax={100} width={70} height={70} color={BUDGET_COLORS.total} startAngle={-90} endAngle={90} />
+                      <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.secondary', mt: -0.5 }}>Total</Typography>
+                      <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.total, whiteSpace: 'nowrap' }}>
+                        MUSD {(presupuestoFiltrado.total / 1000000).toFixed(1)}
+                      </Typography>
+                    </Stack>
+                  </Tooltip>
+                  <Tooltip title={`USD ${presupuestoFiltrado.utilizado.toLocaleString('es-AR', { minimumFractionDigits: 2 })} (${presupuestoFiltrado.percentage}%)`} arrow>
+                    <Stack alignItems="center" sx={{ width: 75 }}>
+                      <SPMGauge value={presupuestoFiltrado.percentage} valueMax={100} width={70} height={70} color={BUDGET_COLORS.utilizado} startAngle={-90} endAngle={90} />
+                      <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.secondary', mt: -0.5 }}>Utilizado</Typography>
+                      <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.utilizado, whiteSpace: 'nowrap' }}>
+                        MUSD {(presupuestoFiltrado.utilizado / 1000000).toFixed(1)}
+                      </Typography>
+                    </Stack>
+                  </Tooltip>
+                  <Tooltip title={`USD ${presupuestoFiltrado.disponible.toLocaleString('es-AR', { minimumFractionDigits: 2 })} (${100 - presupuestoFiltrado.percentage}%)`} arrow>
+                    <Stack alignItems="center" sx={{ width: 75 }}>
+                      <SPMGauge value={100 - presupuestoFiltrado.percentage} valueMax={100} width={70} height={70} color={BUDGET_COLORS.disponible} startAngle={-90} endAngle={90} />
+                      <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.secondary', mt: -0.5 }}>Disponible</Typography>
+                      <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.disponible, whiteSpace: 'nowrap' }}>
+                        MUSD {(presupuestoFiltrado.disponible / 1000000).toFixed(1)}
+                      </Typography>
+                    </Stack>
+                  </Tooltip>
                 </Stack>
                 {/* Separador vertical */}
                 <Box sx={{ width: '1px', height: 120, bgcolor: 'divider', flexShrink: 0, alignSelf: 'center' }} />
@@ -285,19 +292,21 @@ function KPIRow2({
                       </Typography>
                       <Stack spacing={0.75}>
                         {(mostrandoGlobal ? topCentros : centrosFiltrados).slice(0, 3).map((centro, idx) => (
-                          <Box key={idx}>
-                            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.25, width: '100%', overflow: 'visible' }}>
-                              <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
-                                {centro.nombre}
-                              </Typography>
-                              <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.utilizado, ml: 0.5, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                                {centro.porcentaje}%
-                              </Typography>
-                            </Stack>
-                            <Box sx={{ height: 4, bgcolor: 'grey.200', borderRadius: 2, overflow: 'hidden' }}>
-                              <Box sx={{ height: '100%', width: `${Math.min(centro.porcentaje || 0, 100)}%`, bgcolor: BUDGET_COLORS.utilizado, borderRadius: 2, transition: 'width 0.3s ease' }} />
+                          <Tooltip key={idx} title={`${centro.nombre}: USD ${(centro.utilizado || 0).toLocaleString('es-AR')} de ${(centro.monto || 0).toLocaleString('es-AR')} (${centro.porcentaje}%)`} arrow placement="top">
+                            <Box>
+                              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.25, width: '100%', overflow: 'visible' }}>
+                                <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
+                                  {centro.nombre}
+                                </Typography>
+                                <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.utilizado, ml: 0.5, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                  {centro.porcentaje}%
+                                </Typography>
+                              </Stack>
+                              <Box sx={{ height: 4, bgcolor: 'grey.200', borderRadius: 2, overflow: 'hidden' }}>
+                                <Box sx={{ height: '100%', width: `${Math.min(centro.porcentaje || 0, 100)}%`, bgcolor: BUDGET_COLORS.utilizado, borderRadius: 2, transition: 'width 0.3s ease' }} />
+                              </Box>
                             </Box>
-                          </Box>
+                          </Tooltip>
                         ))}
                         {(mostrandoGlobal ? topCentros : centrosFiltrados).length === 0 && (
                           <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.disabled' }}>Sin datos</Typography>
@@ -311,19 +320,21 @@ function KPIRow2({
                       </Typography>
                       <Stack spacing={0.75}>
                         {(mostrandoGlobal ? topSectores : sectoresFiltrados).slice(0, 3).map((sector, idx) => (
-                          <Box key={idx}>
-                            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.25, width: '100%', overflow: 'visible' }}>
-                              <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
-                                {sector.nombre}
-                              </Typography>
-                              <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.total, ml: 0.5, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                                {sector.porcentaje}%
-                              </Typography>
-                            </Stack>
-                            <Box sx={{ height: 4, bgcolor: 'grey.200', borderRadius: 2, overflow: 'hidden' }}>
-                              <Box sx={{ height: '100%', width: `${Math.min(sector.porcentaje || 0, 100)}%`, bgcolor: BUDGET_COLORS.total, borderRadius: 2, transition: 'width 0.3s ease' }} />
+                          <Tooltip key={idx} title={`${sector.nombre}: USD ${(sector.utilizado || 0).toLocaleString('es-AR')} de ${(sector.monto || 0).toLocaleString('es-AR')} (${sector.porcentaje}%)`} arrow placement="top">
+                            <Box>
+                              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.25, width: '100%', overflow: 'visible' }}>
+                                <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
+                                  {sector.nombre}
+                                </Typography>
+                                <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.total, ml: 0.5, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                  {sector.porcentaje}%
+                                </Typography>
+                              </Stack>
+                              <Box sx={{ height: 4, bgcolor: 'grey.200', borderRadius: 2, overflow: 'hidden' }}>
+                                <Box sx={{ height: '100%', width: `${Math.min(sector.porcentaje || 0, 100)}%`, bgcolor: BUDGET_COLORS.total, borderRadius: 2, transition: 'width 0.3s ease' }} />
+                              </Box>
                             </Box>
-                          </Box>
+                          </Tooltip>
                         ))}
                         {(mostrandoGlobal ? topSectores : sectoresFiltrados).length === 0 && (
                           <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.disabled' }}>Sin datos</Typography>

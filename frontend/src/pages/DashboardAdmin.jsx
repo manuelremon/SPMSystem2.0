@@ -23,9 +23,15 @@ import DashboardCustomizeIcon from '@mui/icons-material/DashboardCustomize';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import RestoreIcon from '@mui/icons-material/Restore';
-import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+// Category icons
+import BoltIcon from '@mui/icons-material/Bolt';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import SpeedIcon from '@mui/icons-material/Speed';
+import Inventory2Icon from '@mui/icons-material/Inventory2';
+import InsightsIcon from '@mui/icons-material/Insights';
+import HubIcon from '@mui/icons-material/Hub';
 // Sub-components (extracted for maintainability)
 import { SolicitudesSection } from './DashboardAdmin/index';
 import { FiltersBar } from './DashboardAdmin/index';
@@ -37,7 +43,18 @@ import { AttentionBanner } from './DashboardAdmin/index';
 import { QuickActions } from './DashboardAdmin/index';
 import { OperationsOverview } from './DashboardAdmin/index';
 import { KPIRow4 } from './DashboardAdmin/index';
+import { CategoryHeader } from './DashboardAdmin/index';
 import DrillDownModal from '../components/dashboard/DrillDownModal';
+
+// Map category icon names to MUI icon components
+const CATEGORY_ICONS = {
+  CommandCenter: <BoltIcon sx={{ fontSize: 20 }} />,
+  RequestManagement: <AssignmentIcon sx={{ fontSize: 20 }} />,
+  Performance: <SpeedIcon sx={{ fontSize: 20 }} />,
+  Inventory: <Inventory2Icon sx={{ fontSize: 20 }} />,
+  AdvancedMetrics: <InsightsIcon sx={{ fontSize: 20 }} />,
+  Operations: <HubIcon sx={{ fontSize: 20 }} />,
+};
 
 // ============================================================================
 // AG-Grid column definitions for solicitudes table
@@ -849,11 +866,13 @@ export default function DashboardAdmin() {
       cumplimientoProveedores, proveedoresSeleccionados, trendData, handleDrillDown,
       handleKpiDrillDown, stockInmovilizadoFiltrado, kpiLoading, resumenData]);
 
-  const orderedVisibleIds = layout.getOrderedVisibleIds();
-  const isKpiSection = (id) => id.startsWith('kpi_row');
+  const categorizedCards = layout.getCategorizedCards();
+
+  // Categories that contain KPI sections (need loading wrapper)
+  const KPI_CATEGORIES = new Set(['performance', 'inventory', 'advanced_metrics']);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
       {/* Header with customize button */}
       <Stack direction="row" alignItems="center" justifyContent="space-between">
         <Typography variant="h5" component="h1" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'text.primary' }}>
@@ -883,86 +902,126 @@ export default function DashboardAdmin() {
         </Stack>
       </Stack>
 
-      {/* Edit mode: card list with reorder and visibility controls */}
+      {/* Edit mode: card list organized by category */}
       {layout.editMode && (
-        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-          {layout.cards.map((card, index) => (
-            <Chip
-              key={card.id}
-              icon={card.visible ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
-              label={
-                <Stack direction="row" alignItems="center" spacing={0.5}>
-                  <span>{card.label}</span>
-                  <IconButton
-                    size="small"
-                    disabled={index === 0}
-                    onClick={(e) => { e.stopPropagation(); layout.moveCard(index, index - 1); }}
-                    aria-label={t('dash_layout_move_up', 'Mover arriba')}
-                    sx={{ p: 0, ml: 0.5 }}
-                  >
-                    <ArrowUpwardIcon sx={{ fontSize: 14 }} />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    disabled={index === layout.cards.length - 1}
-                    onClick={(e) => { e.stopPropagation(); layout.moveCard(index, index + 1); }}
-                    aria-label={t('dash_layout_move_down', 'Mover abajo')}
-                    sx={{ p: 0 }}
-                  >
-                    <ArrowDownwardIcon sx={{ fontSize: 14 }} />
-                  </IconButton>
+        <Box sx={{
+          bgcolor: 'grey.50',
+          border: '1px dashed',
+          borderColor: 'divider',
+          borderRadius: 2,
+          p: 2,
+        }}>
+          <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', mb: 1.5, display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '0.7rem' }}>
+            {t('dash_layout_customize_hint', 'Haz clic para mostrar/ocultar. Usa las flechas para reordenar.')}
+          </Typography>
+          {layout.categories.map(cat => {
+            const catCards = layout.cards.filter(c => c.category === cat.id);
+            if (catCards.length === 0) return null;
+            return (
+              <Box key={cat.id} sx={{ mb: 1.5 }}>
+                <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 0.5 }}>
+                  <Box sx={{ width: 3, height: 14, borderRadius: 1, bgcolor: cat.color }} />
+                  <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.68rem', color: 'text.secondary', textTransform: 'uppercase' }}>
+                    {cat.label}
+                  </Typography>
                 </Stack>
-              }
-              variant={card.visible ? 'filled' : 'outlined'}
-              color={card.visible ? 'primary' : 'default'}
-              onClick={() => layout.toggleCard(card.id)}
-              sx={{ cursor: 'pointer' }}
-            />
-          ))}
-        </Stack>
-      )}
-
-      {/* Render sections in layout order */}
-      {orderedVisibleIds.map(id => {
-        // Non-KPI sections render directly
-        if (!isKpiSection(id)) {
-          return renderSection(id);
-        }
-        return null;
-      })}
-
-      {/* KPI sections wrapped in their loading container */}
-      {orderedVisibleIds.some(isKpiSection) && (
-        <Box aria-live="polite" aria-busy={kpiLoading} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {kpiLoading ? (
-            <KPIGridSkeleton />
-          ) : (
-            <>
-              {orderedVisibleIds.filter(isKpiSection).map(id => renderSection(id))}
-
-              {/* Drill-Down Modal */}
-              <DrillDownModal
-                open={drillDownOpen}
-                onClose={() => setDrillDownOpen(false)}
-                metrica={drillDownMetrica}
-                filtros={drillDownFiltros}
-              />
-
-              {/* Modal para ampliar cards */}
-              <ExpandedCardDialog
-                t={t}
-                expandedCard={expandedCard}
-                expandedTitle={expandedTitle}
-                setExpandedCard={setExpandedCard}
-                datosFiltrados={datosFiltrados}
-                trendData={trendData}
-                kpiData={kpiData}
-                handleDrillDown={handleDrillDown}
-              />
-            </>
-          )}
+                <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5, pl: 1.5 }}>
+                  {catCards.map((card) => {
+                    const globalIndex = layout.cards.indexOf(card);
+                    return (
+                      <Chip
+                        key={card.id}
+                        icon={card.visible ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
+                        label={
+                          <Stack direction="row" alignItems="center" spacing={0.5}>
+                            <span>{card.label}</span>
+                            <IconButton
+                              size="small"
+                              disabled={globalIndex === 0}
+                              onClick={(e) => { e.stopPropagation(); layout.moveCard(globalIndex, globalIndex - 1); }}
+                              aria-label={t('dash_layout_move_up', 'Mover arriba')}
+                              sx={{ p: 0, ml: 0.5 }}
+                            >
+                              <ArrowUpwardIcon sx={{ fontSize: 14 }} />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              disabled={globalIndex === layout.cards.length - 1}
+                              onClick={(e) => { e.stopPropagation(); layout.moveCard(globalIndex, globalIndex + 1); }}
+                              aria-label={t('dash_layout_move_down', 'Mover abajo')}
+                              sx={{ p: 0 }}
+                            >
+                              <ArrowDownwardIcon sx={{ fontSize: 14 }} />
+                            </IconButton>
+                          </Stack>
+                        }
+                        variant={card.visible ? 'filled' : 'outlined'}
+                        color={card.visible ? 'primary' : 'default'}
+                        onClick={() => layout.toggleCard(card.id)}
+                        sx={{ cursor: 'pointer' }}
+                      />
+                    );
+                  })}
+                </Stack>
+              </Box>
+            );
+          })}
         </Box>
       )}
+
+      {/* Render sections grouped by category with headers */}
+      {categorizedCards.map(cat => {
+        const isKpiCategory = KPI_CATEGORIES.has(cat.id);
+        const visibleIds = cat.visibleCards.map(c => c.id);
+
+        return (
+          <Box key={cat.id} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* Category Header */}
+            <CategoryHeader
+              id={`cat-${cat.id}`}
+              icon={CATEGORY_ICONS[cat.icon]}
+              title={cat.label}
+              subtitle={cat.subtitle}
+              color={cat.color}
+            />
+
+            {/* Category content */}
+            {isKpiCategory ? (
+              <Box aria-live="polite" aria-busy={kpiLoading} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {kpiLoading ? (
+                  <KPIGridSkeleton />
+                ) : (
+                  visibleIds.map(id => renderSection(id))
+                )}
+              </Box>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {visibleIds.map(id => renderSection(id))}
+              </Box>
+            )}
+          </Box>
+        );
+      })}
+
+      {/* Drill-Down Modal */}
+      <DrillDownModal
+        open={drillDownOpen}
+        onClose={() => setDrillDownOpen(false)}
+        metrica={drillDownMetrica}
+        filtros={drillDownFiltros}
+      />
+
+      {/* Modal para ampliar cards */}
+      <ExpandedCardDialog
+        t={t}
+        expandedCard={expandedCard}
+        expandedTitle={expandedTitle}
+        setExpandedCard={setExpandedCard}
+        datosFiltrados={datosFiltrados}
+        trendData={trendData}
+        kpiData={kpiData}
+        handleDrillDown={handleDrillDown}
+      />
     </Box>
   );
 }

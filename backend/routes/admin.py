@@ -12,6 +12,7 @@ from flask import Blueprint, g, jsonify, request
 logger = logging.getLogger(__name__)
 
 from backend.core.cache import get_cache_stats, invalidate_catalog_cache, invalidate_user_cache
+from backend.core.helpers import safe_error_response
 from backend.core.config import settings
 from backend.core.db import get_db_connection, get_db_transaction, get_spm_db_path
 from backend.core.rate_limit import rate_limit
@@ -1313,10 +1314,9 @@ def admin_reglas_aprobacion():
             return jsonify({"ok": True, "id": resultado["id"]}), 201
 
         except ApprovalValidationError as e:
-            return jsonify({"ok": False, "error": str(e)}), 400
+            return safe_error_response(e, logger, status_code=400, context="admin.admin_reglas_aprobacion")
         except Exception as e:
-            logger.error(f"Error creando regla de aprobación: {e}")
-            return jsonify({"ok": False, "error": "Error interno al crear la regla"}), 500
+            return safe_error_response(e, logger, context="admin.admin_reglas_aprobacion")
 
     # GET: Listar reglas
     solo_activas = request.args.get("activas", "true").lower() == "true"
@@ -1416,10 +1416,9 @@ def admin_delegaciones_aprobacion():
             return jsonify({"ok": True, "id": resultado["id"]}), 201
 
         except ApprovalValidationError as e:
-            return jsonify({"ok": False, "error": str(e)}), 400
+            return safe_error_response(e, logger, status_code=400, context="admin.admin_delegaciones_aprobacion")
         except Exception as e:
-            logger.error(f"Error creando delegación: {e}")
-            return jsonify({"ok": False, "error": "Error interno al crear la delegación"}), 500
+            return safe_error_response(e, logger, context="admin.admin_delegaciones_aprobacion")
 
     # GET: Listar delegaciones activas
     with get_db_connection() as conn:
@@ -1745,8 +1744,7 @@ def auto_approval_historial():
         })
 
     except Exception as e:
-        logger.error(f"Error obteniendo historial auto-aprobación: {e}", exc_info=True)
-        return jsonify({"ok": False, "error": {"code": "server_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="admin.auto_approval_historial")
 
 
 # =============================================================================
@@ -1764,8 +1762,7 @@ def list_escalation_rules():
         rules = EscalationService.get_rules(activo_only=False)
         return jsonify({"ok": True, "rules": rules})
     except Exception as e:
-        logger.error(f"Error listing escalation rules: {e}")
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return safe_error_response(e, logger, context="admin.list_escalation_rules")
 
 
 @bp.route("/escalation-rules", methods=["POST"])
@@ -1791,8 +1788,7 @@ def create_escalation_rule():
 
         return jsonify({"ok": True, "id": rule_id}), 201
     except Exception as e:
-        logger.error(f"Error creating escalation rule: {e}")
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return safe_error_response(e, logger, context="admin.create_escalation_rule")
 
 
 @bp.route("/escalation-rules/<int:rule_id>", methods=["PUT"])
@@ -1810,8 +1806,7 @@ def update_escalation_rule(rule_id):
             return jsonify({"ok": True})
         return jsonify({"ok": False, "error": "Regla no encontrada"}), 404
     except Exception as e:
-        logger.error(f"Error updating escalation rule: {e}")
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return safe_error_response(e, logger, context="admin.update_escalation_rule")
 
 
 @bp.route("/escalation-rules/<int:rule_id>", methods=["DELETE"])
@@ -1828,5 +1823,4 @@ def delete_escalation_rule(rule_id):
             return jsonify({"ok": True})
         return jsonify({"ok": False, "error": "Regla no encontrada"}), 404
     except Exception as e:
-        logger.error(f"Error deleting escalation rule: {e}")
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return safe_error_response(e, logger, context="admin.delete_escalation_rule")

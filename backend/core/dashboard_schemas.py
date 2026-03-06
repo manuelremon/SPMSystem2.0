@@ -425,7 +425,7 @@ class FormulaResult:
 
     def to_dict(self) -> Dict[str, Any]:
         result = {
-            "success": self.success,
+            "ok": self.success,
             "value": self.value,
             "cached": self.cached,
             "execution_time_ms": self.execution_time_ms,
@@ -528,7 +528,7 @@ class DashboardOperationResult:
     error_message: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        result = {"success": self.success}
+        result = {"ok": self.success}
         if self.dashboard:
             result["dashboard"] = self.dashboard.to_dict(include_sheets=True, include_datasources=True)
         if self.error_code:

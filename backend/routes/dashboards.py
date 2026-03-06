@@ -86,7 +86,7 @@ def list_dashboards():
     )
 
     return jsonify({
-        "success": True,
+        "ok": True,
         "dashboards": [d.to_dict() for d in dashboards],
         "total": len(dashboards),
     })
@@ -100,14 +100,14 @@ def create_dashboard():
     data = request.get_json() or {}
 
     if not data.get("nombre"):
-        return jsonify({"success": False, "error": "El nombre es requerido"}), 400
+        return jsonify({"ok": False, "error": "El nombre es requerido"}), 400
 
     req = CreateDashboardRequest.from_dict(data, user_id)
     result = DashboardService.create(req)
 
     if not result.success:
         return jsonify({
-            "success": False,
+            "ok": False,
             "error": result.error_message,
             "error_code": result.error_code,
         }), 400
@@ -124,13 +124,13 @@ def get_dashboard(uuid):
     dashboard = DashboardService.get_by_uuid(uuid, user_id, check_permission=True)
 
     if not dashboard:
-        return jsonify({"success": False, "error": "Dashboard no encontrado"}), 404
+        return jsonify({"ok": False, "error": "Dashboard no encontrado"}), 404
 
     # Obtener nivel de permiso del usuario
     perm = DashboardService.get_permission_level(dashboard.id, user_id, dashboard.owner_id)
 
     return jsonify({
-        "success": True,
+        "ok": True,
         "dashboard": dashboard.to_dict(include_sheets=True, include_datasources=True),
         "permiso": perm,
     })
@@ -149,7 +149,7 @@ def update_dashboard(uuid):
     if not result.success:
         status = 404 if result.error_code == "NOT_FOUND" else 403 if result.error_code == "FORBIDDEN" else 400
         return jsonify({
-            "success": False,
+            "ok": False,
             "error": result.error_message,
             "error_code": result.error_code,
         }), status
@@ -164,9 +164,9 @@ def delete_dashboard(uuid):
     user_id = _get_user_id()
 
     if DashboardService.delete(uuid, user_id):
-        return jsonify({"success": True, "message": "Dashboard eliminado"})
+        return jsonify({"ok": True, "message": "Dashboard eliminado"})
 
-    return jsonify({"success": False, "error": "No se pudo eliminar el dashboard"}), 400
+    return jsonify({"ok": False, "error": "No se pudo eliminar el dashboard"}), 400
 
 
 @bp.route("/dashboards/<uuid>/favorite", methods=["POST"])
@@ -178,9 +178,9 @@ def toggle_favorite(uuid):
     result = DashboardService.toggle_favorite(uuid, user_id)
 
     if result is None:
-        return jsonify({"success": False, "error": "Dashboard no encontrado"}), 404
+        return jsonify({"ok": False, "error": "Dashboard no encontrado"}), 404
 
-    return jsonify({"success": True, "es_favorito": result})
+    return jsonify({"ok": True, "es_favorito": result})
 
 
 # ============================================================================
@@ -198,16 +198,16 @@ def create_share(uuid):
     # Obtener dashboard para obtener su ID
     dashboard = DashboardService.get_by_uuid(uuid, user_id, check_permission=True)
     if not dashboard:
-        return jsonify({"success": False, "error": "Dashboard no encontrado"}), 404
+        return jsonify({"ok": False, "error": "Dashboard no encontrado"}), 404
 
     req = CreateShareRequest.from_dict(data, dashboard.id, user_id)
     share = DashboardShareService.create_share(req)
 
     if not share:
-        return jsonify({"success": False, "error": "No se pudo crear el link"}), 400
+        return jsonify({"ok": False, "error": "No se pudo crear el link"}), 400
 
     return jsonify({
-        "success": True,
+        "ok": True,
         "share": share.to_dict(),
         "url": f"/shared/{share.token}",
     }), 201
@@ -221,12 +221,12 @@ def list_shares(uuid):
 
     dashboard = DashboardService.get_by_uuid(uuid, user_id, check_permission=True)
     if not dashboard:
-        return jsonify({"success": False, "error": "Dashboard no encontrado"}), 404
+        return jsonify({"ok": False, "error": "Dashboard no encontrado"}), 404
 
     shares = DashboardShareService.list_shares(dashboard.id, user_id)
 
     return jsonify({
-        "success": True,
+        "ok": True,
         "shares": [s.to_dict() for s in shares],
     })
 
@@ -238,9 +238,9 @@ def revoke_share(share_id):
     user_id = _get_user_id()
 
     if DashboardShareService.revoke_share(share_id, user_id):
-        return jsonify({"success": True, "message": "Link revocado"})
+        return jsonify({"ok": True, "message": "Link revocado"})
 
-    return jsonify({"success": False, "error": "No se pudo revocar el link"}), 400
+    return jsonify({"ok": False, "error": "No se pudo revocar el link"}), 400
 
 
 @bp.route("/shared/<token>", methods=["GET", "POST"])
@@ -254,14 +254,14 @@ def access_shared(token):
     result = DashboardShareService.get_by_token(token, password)
 
     if not result:
-        return jsonify({"success": False, "error": "Link no encontrado"}), 404
+        return jsonify({"ok": False, "error": "Link no encontrado"}), 404
 
     if "error" in result:
         status = 401 if result["error"] == "PASSWORD_REQUIRED" else 403
-        return jsonify({"success": False, **result}), status
+        return jsonify({"ok": False, **result}), status
 
     return jsonify({
-        "success": True,
+        "ok": True,
         **result,
     })
 
@@ -280,12 +280,12 @@ def update_sheet(sheet_id):
 
     sheet_data = data.get("data")
     if not sheet_data:
-        return jsonify({"success": False, "error": "Los datos son requeridos"}), 400
+        return jsonify({"ok": False, "error": "Los datos son requeridos"}), 400
 
     if DashboardSheetService.update_data(sheet_id, sheet_data, user_id):
-        return jsonify({"success": True, "message": "Hoja actualizada"})
+        return jsonify({"ok": True, "message": "Hoja actualizada"})
 
-    return jsonify({"success": False, "error": "No se pudo actualizar la hoja"}), 400
+    return jsonify({"ok": False, "error": "No se pudo actualizar la hoja"}), 400
 
 
 @bp.route("/dashboards/<uuid>/sheets", methods=["POST"])
@@ -297,16 +297,16 @@ def add_sheet(uuid):
 
     dashboard = DashboardService.get_by_uuid(uuid, user_id, check_permission=True)
     if not dashboard:
-        return jsonify({"success": False, "error": "Dashboard no encontrado"}), 404
+        return jsonify({"ok": False, "error": "Dashboard no encontrado"}), 404
 
     nombre = data.get("nombre", f"Hoja {len(dashboard.sheets) + 1}")
     sheet = DashboardSheetService.add_sheet(dashboard.id, nombre, user_id)
 
     if not sheet:
-        return jsonify({"success": False, "error": "No se pudo agregar la hoja"}), 400
+        return jsonify({"ok": False, "error": "No se pudo agregar la hoja"}), 400
 
     return jsonify({
-        "success": True,
+        "ok": True,
         "sheet": sheet.to_dict(),
     }), 201
 
@@ -318,9 +318,9 @@ def delete_sheet(sheet_id):
     user_id = _get_user_id()
 
     if DashboardSheetService.delete_sheet(sheet_id, user_id):
-        return jsonify({"success": True, "message": "Hoja eliminada"})
+        return jsonify({"ok": True, "message": "Hoja eliminada"})
 
-    return jsonify({"success": False, "error": "No se pudo eliminar la hoja"}), 400
+    return jsonify({"ok": False, "error": "No se pudo eliminar la hoja"}), 400
 
 
 # ============================================================================
@@ -337,13 +337,13 @@ def add_datasource(uuid):
 
     dashboard = DashboardService.get_by_uuid(uuid, user_id, check_permission=True)
     if not dashboard:
-        return jsonify({"success": False, "error": "Dashboard no encontrado"}), 404
+        return jsonify({"ok": False, "error": "Dashboard no encontrado"}), 404
 
     nombre = data.get("nombre")
     tipo = data.get("tipo")
 
     if not nombre or not tipo:
-        return jsonify({"success": False, "error": "Nombre y tipo son requeridos"}), 400
+        return jsonify({"ok": False, "error": "Nombre y tipo son requeridos"}), 400
 
     ds = DashboardDataSourceService.create(
         dashboard_id=dashboard.id,
@@ -356,10 +356,10 @@ def add_datasource(uuid):
     )
 
     if not ds:
-        return jsonify({"success": False, "error": "No se pudo agregar la fuente de datos"}), 400
+        return jsonify({"ok": False, "error": "No se pudo agregar la fuente de datos"}), 400
 
     return jsonify({
-        "success": True,
+        "ok": True,
         "datasource": ds.to_dict(),
     }), 201
 
@@ -371,9 +371,9 @@ def delete_datasource(datasource_id):
     user_id = _get_user_id()
 
     if DashboardDataSourceService.delete(datasource_id, user_id):
-        return jsonify({"success": True, "message": "Fuente de datos eliminada"})
+        return jsonify({"ok": True, "message": "Fuente de datos eliminada"})
 
-    return jsonify({"success": False, "error": "No se pudo eliminar la fuente de datos"}), 400
+    return jsonify({"ok": False, "error": "No se pudo eliminar la fuente de datos"}), 400
 
 
 # ============================================================================
@@ -394,7 +394,7 @@ def get_formula_catalog():
         }
 
     return jsonify({
-        "success": True,
+        "ok": True,
         "formulas": catalog,
     })
 
@@ -410,7 +410,7 @@ def execute_formula():
     params = data.get("params", [])
 
     if not formula:
-        return jsonify({"success": False, "error": "Formula es requerida"}), 400
+        return jsonify({"ok": False, "error": "Formula es requerida"}), 400
 
     from backend.services.dashboard_formulas import FormulaExecutor
 
@@ -432,7 +432,7 @@ def export_dashboard(uuid):
 
     dashboard = DashboardService.get_by_uuid(uuid, user_id, check_permission=True)
     if not dashboard:
-        return jsonify({"success": False, "error": "Dashboard no encontrado"}), 404
+        return jsonify({"ok": False, "error": "Dashboard no encontrado"}), 404
 
     data.get("formato", "xlsx")
 
@@ -484,13 +484,13 @@ def export_dashboard(uuid):
 
     except ImportError:
         return jsonify({
-            "success": False,
+            "ok": False,
             "error": "openpyxl no instalado",
         }), 500
     except Exception as e:
         logger.error(f"Error exportando dashboard: {e}")
         return jsonify({
-            "success": False,
+            "ok": False,
             "error": "Error al exportar dashboard",
         }), 500
 
@@ -510,7 +510,7 @@ def list_grupos():
     grupos = DashboardGrupoService.list_all(user_id, include_public)
 
     return jsonify({
-        "success": True,
+        "ok": True,
         "grupos": [g.to_dict() for g in grupos],
     })
 
@@ -524,7 +524,7 @@ def create_grupo():
 
     nombre = data.get("nombre")
     if not nombre:
-        return jsonify({"success": False, "error": "El nombre es requerido"}), 400
+        return jsonify({"ok": False, "error": "El nombre es requerido"}), 400
 
     grupo = DashboardGrupoService.create(
         nombre=nombre,
@@ -535,7 +535,7 @@ def create_grupo():
     )
 
     return jsonify({
-        "success": True,
+        "ok": True,
         "grupo": grupo.to_dict(),
     }), 201
 
@@ -547,9 +547,9 @@ def delete_grupo(grupo_id):
     user_id = _get_user_id()
 
     if DashboardGrupoService.delete(grupo_id, user_id):
-        return jsonify({"success": True, "message": "Grupo eliminado"})
+        return jsonify({"ok": True, "message": "Grupo eliminado"})
 
-    return jsonify({"success": False, "error": "No se pudo eliminar el grupo"}), 400
+    return jsonify({"ok": False, "error": "No se pudo eliminar el grupo"}), 400
 
 
 # ============================================================================
@@ -565,16 +565,16 @@ def list_permisos(uuid):
 
     dashboard = DashboardService.get_by_uuid(uuid, user_id, check_permission=True)
     if not dashboard:
-        return jsonify({"success": False, "error": "Dashboard no encontrado"}), 404
+        return jsonify({"ok": False, "error": "Dashboard no encontrado"}), 404
 
     # Solo el owner puede ver permisos
     if dashboard.owner_id != user_id:
-        return jsonify({"success": False, "error": "Sin permiso"}), 403
+        return jsonify({"ok": False, "error": "Sin permiso"}), 403
 
     permisos = DashboardPermisoService.list_permisos(dashboard.id)
 
     return jsonify({
-        "success": True,
+        "ok": True,
         "permisos": [p.to_dict() for p in permisos],
     })
 
@@ -588,21 +588,21 @@ def grant_permiso(uuid):
 
     dashboard = DashboardService.get_by_uuid(uuid, user_id, check_permission=True)
     if not dashboard:
-        return jsonify({"success": False, "error": "Dashboard no encontrado"}), 404
+        return jsonify({"ok": False, "error": "Dashboard no encontrado"}), 404
 
     usuario_id = data.get("usuario_id")
     permiso = data.get("permiso", "view")
 
     if not usuario_id:
-        return jsonify({"success": False, "error": "usuario_id es requerido"}), 400
+        return jsonify({"ok": False, "error": "usuario_id es requerido"}), 400
 
     result = DashboardPermisoService.grant(dashboard.id, usuario_id, permiso, user_id)
 
     if not result:
-        return jsonify({"success": False, "error": "No se pudo otorgar el permiso"}), 400
+        return jsonify({"ok": False, "error": "No se pudo otorgar el permiso"}), 400
 
     return jsonify({
-        "success": True,
+        "ok": True,
         "permiso": result.to_dict(),
     }), 201
 
@@ -615,12 +615,12 @@ def revoke_permiso(uuid, usuario_id):
 
     dashboard = DashboardService.get_by_uuid(uuid, user_id, check_permission=True)
     if not dashboard:
-        return jsonify({"success": False, "error": "Dashboard no encontrado"}), 404
+        return jsonify({"ok": False, "error": "Dashboard no encontrado"}), 404
 
     if DashboardPermisoService.revoke(dashboard.id, usuario_id, user_id):
-        return jsonify({"success": True, "message": "Permiso revocado"})
+        return jsonify({"ok": True, "message": "Permiso revocado"})
 
-    return jsonify({"success": False, "error": "No se pudo revocar el permiso"}), 400
+    return jsonify({"ok": False, "error": "No se pudo revocar el permiso"}), 400
 
 
 # ============================================================================

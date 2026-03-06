@@ -3,6 +3,8 @@ Rutas para gestión de equivalencias de materiales
 CRUD completo con permisos para Admin y Planificador
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
 from backend.core.db import (
@@ -11,8 +13,11 @@ from backend.core.db import (
     insert_returning_id,
     is_using_postgresql,
 )
+from backend.core.helpers import safe_error_response
 from backend.core.roles import require_auth, require_role
 from backend.core.search_utils import build_description_search
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("equivalencias", __name__, url_prefix="/api/equivalencias")
 
@@ -153,7 +158,7 @@ def listar_equivalencias():
         )
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="equivalencias.listar_equivalencias")
 
 
 @bp.route("/tipos", methods=["GET"])
@@ -194,7 +199,7 @@ def get_tipos_equivalencia():
         return jsonify({"ok": True, "data": tipos})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="equivalencias.get_tipos_equivalencia")
 
 
 @bp.route("/<codigo>", methods=["GET"])
@@ -251,7 +256,7 @@ def equivalencias_por_material(codigo):
         return jsonify({"ok": True, "codigo": codigo, "equivalencias": equivalencias})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="equivalencias.equivalencias_por_material")
 
 
 @bp.route("", methods=["POST"])
@@ -337,7 +342,7 @@ def crear_equivalencia():
             equivalente_exists = cursor.fetchone() is not None
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="equivalencias.crear_equivalencia.verify_materials")
 
     # Fase 1b: Verificar que no exista ya la equivalencia en spm.db
     try:
@@ -353,7 +358,7 @@ def crear_equivalencia():
             already_exists = cursor.fetchone() is not None
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="equivalencias.crear_equivalencia.check_duplicate")
 
     if not original_exists:
         return (
@@ -420,7 +425,7 @@ def crear_equivalencia():
         )
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="equivalencias.crear_equivalencia")
 
 
 @bp.route("/<int:id_equivalencia>", methods=["PUT"])
@@ -456,7 +461,7 @@ def actualizar_equivalencia(id_equivalencia):
             exists = cursor.fetchone() is not None
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="equivalencias.actualizar_equivalencia.verify")
 
     if not exists:
         return (
@@ -529,7 +534,7 @@ def actualizar_equivalencia(id_equivalencia):
         return jsonify({"ok": True, "message": "Equivalencia actualizada exitosamente"})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="equivalencias.actualizar_equivalencia")
 
 
 @bp.route("/<int:id_equivalencia>", methods=["DELETE"])
@@ -551,7 +556,7 @@ def eliminar_equivalencia(id_equivalencia):
             exists = cursor.fetchone() is not None
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="equivalencias.eliminar_equivalencia.verify")
 
     if not exists:
         return (
@@ -576,4 +581,4 @@ def eliminar_equivalencia(id_equivalencia):
         return jsonify({"ok": True, "message": "Equivalencia eliminada exitosamente"})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="equivalencias.eliminar_equivalencia")

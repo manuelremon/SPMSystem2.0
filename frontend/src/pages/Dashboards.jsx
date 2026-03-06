@@ -117,7 +117,7 @@ export default function Dashboards() {
         nombre: newDashboardName,
         grupo_id: selectedGrupo,
       });
-      if (response?.success && response.dashboard) {
+      if (response?.ok && response.dashboard) {
         navigate(`/dashboards/${response.dashboard.uuid}`);
       }
     } catch (err) {

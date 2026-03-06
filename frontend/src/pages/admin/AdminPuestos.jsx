@@ -26,6 +26,7 @@ import {
   Checkbox,
   InputAdornment,
   Chip,
+  CircularProgress,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
@@ -120,6 +121,7 @@ function EmptyState({ onClear, hasFilters }) {
 }
 
 function PuestoRow({ puesto, onEdit, onDelete, isDeleting, onCancelDelete, onConfirmDelete }) {
+  const { t } = useI18n();
   const isActivo = puesto.activo === 1 || puesto.activo === true;
 
   if (isDeleting) {

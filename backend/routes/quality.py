@@ -208,9 +208,9 @@ def cambiar_estado_ncr(ncr_id):
         return jsonify(resultado), 200
 
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="quality.cambiar_estado_ncr")
     except Exception as e:
-        return safe_error_response(e, logger, context="quality")
+        return safe_error_response(e, logger, context="quality.cambiar_estado_ncr")
 
 
 # ==================== KPIs DE CALIDAD ====================
@@ -350,9 +350,9 @@ def crear_capa():
         return jsonify(capa), 201
 
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="quality.crear_capa")
     except Exception as e:
-        return safe_error_response(e, logger, context="quality")
+        return safe_error_response(e, logger, context="quality.crear_capa")
 
 
 @quality_bp.route('/capa/<int:capa_id>', methods=['GET'])
@@ -396,9 +396,9 @@ def cambiar_estado_capa(capa_id):
         return jsonify(resultado), 200
 
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="quality.cambiar_estado_capa")
     except Exception as e:
-        return safe_error_response(e, logger, context="quality")
+        return safe_error_response(e, logger, context="quality.cambiar_estado_capa")
 
 
 @quality_bp.route('/capa/<int:capa_id>/verify', methods=['PUT'])
@@ -422,6 +422,6 @@ def verificar_efectividad_capa(capa_id):
         return jsonify(resultado), 200
 
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="quality.verificar_efectividad_capa")
     except Exception as e:
-        return safe_error_response(e, logger, context="quality")
+        return safe_error_response(e, logger, context="quality.verificar_efectividad_capa")

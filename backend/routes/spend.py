@@ -30,9 +30,9 @@ def obtener_gasto_por_categoria():
         resultado = spend_service.calcular_gasto_por_categoria(periodo_desde, periodo_hasta)
         return jsonify({'ok': True, 'categories': resultado if isinstance(resultado, list) else resultado.get('items', [])}), 200
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="spend.obtener_gasto_por_categoria")
     except Exception as e:
-        return safe_error_response(e, logger, context="obtener_gasto_por_categoria")
+        return safe_error_response(e, logger, context="spend.obtener_gasto_por_categoria")
 
 
 @spend_bp.route('/maverick', methods=['GET'])
@@ -49,9 +49,9 @@ def detectar_maverick_spend():
             resultado = {'ok': True, 'maverick': resultado}
         return jsonify(resultado), 200
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="spend.detectar_maverick_spend")
     except Exception as e:
-        return safe_error_response(e, logger, context="detectar_maverick_spend")
+        return safe_error_response(e, logger, context="spend.detectar_maverick_spend")
 
 
 @spend_bp.route('/kraljic', methods=['GET'])
@@ -77,9 +77,9 @@ def obtener_tendencia_gasto():
         resultado = spend_service.obtener_tendencia_gasto(meses)
         return jsonify({'ok': True, 'trend': resultado if isinstance(resultado, list) else resultado.get('items', [])}), 200
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="spend.obtener_tendencia_gasto")
     except Exception as e:
-        return safe_error_response(e, logger, context="obtener_tendencia_gasto")
+        return safe_error_response(e, logger, context="spend.obtener_tendencia_gasto")
 
 
 @spend_bp.route('/tco/<material>', methods=['GET'])
@@ -107,6 +107,6 @@ def tomar_snapshot_periodo():
         resultado = spend_service.tomar_snapshot_periodo(data['periodo'])
         return jsonify(resultado), 201
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="spend.tomar_snapshot_periodo")
     except Exception as e:
-        return safe_error_response(e, logger, context="tomar_snapshot_periodo")
+        return safe_error_response(e, logger, context="spend.tomar_snapshot_periodo")

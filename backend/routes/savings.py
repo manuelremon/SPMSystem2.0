@@ -9,13 +9,17 @@ blueprint independiente por separación de responsabilidades.
 """
 
 import io
+import logging
 from datetime import datetime
 
 from flask import Blueprint, jsonify, request, send_file
 
+from backend.core.helpers import safe_error_response
 from backend.core.roles import require_admin, require_auth
 from backend.core.user_helpers import get_current_user_id
 from backend.services import savings_service
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint('savings', __name__, url_prefix='/api/savings')
 
@@ -77,7 +81,7 @@ def registrar_ahorro():
         }), 201
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': f'Error al registrar ahorro: {str(e)}'}), 500
+        return safe_error_response(e, logger, context="savings.registrar_ahorro")
 
 
 @bp.route('/', methods=['GET'])
@@ -124,7 +128,7 @@ def listar_ahorros():
         return jsonify(resultado), 200
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': f'Error al obtener ahorros: {str(e)}'}), 500
+        return safe_error_response(e, logger, context="savings.listar_ahorros")
 
 
 @bp.route('/kpis', methods=['GET'])
@@ -153,7 +157,7 @@ def obtener_kpis():
         return jsonify(kpis), 200
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': f'Error al obtener KPIs: {str(e)}'}), 500
+        return safe_error_response(e, logger, context="savings.obtener_kpis")
 
 
 @bp.route('/goals', methods=['POST'])
@@ -211,7 +215,7 @@ def crear_meta():
         }), 201
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': f'Error al crear meta: {str(e)}'}), 500
+        return safe_error_response(e, logger, context="savings.crear_meta")
 
 
 @bp.route('/goals', methods=['GET'])
@@ -252,7 +256,7 @@ def listar_metas():
         return jsonify({'ok': True, 'items': metas}), 200
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': f'Error al obtener metas: {str(e)}'}), 500
+        return safe_error_response(e, logger, context="savings.listar_metas")
 
 
 @bp.route('/goals/progress', methods=['GET'])
@@ -293,7 +297,7 @@ def obtener_progreso():
         return jsonify(progreso), 200
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': f'Error al obtener progreso: {str(e)}'}), 500
+        return safe_error_response(e, logger, context="savings.obtener_progreso")
 
 
 @bp.route('/export', methods=['GET'])
@@ -338,4 +342,4 @@ def exportar_excel():
     except ImportError:
         return jsonify({'ok': False, 'error': 'openpyxl no está instalado en el servidor'}), 500
     except Exception as e:
-        return jsonify({'ok': False, 'error': f'Error al exportar: {str(e)}'}), 500
+        return safe_error_response(e, logger, context="savings.exportar_excel")

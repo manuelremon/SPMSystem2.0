@@ -34,7 +34,7 @@ def obtener_mapa_riesgo():
         resultado['suppliers'] = resultado.pop('items', [])
         return jsonify(resultado), 200
     except ValueError as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="supplier_risk.obtener_mapa_riesgo")
     except Exception as e:
         return safe_error_response(e, logger, context="obtener_mapa_riesgo")
 

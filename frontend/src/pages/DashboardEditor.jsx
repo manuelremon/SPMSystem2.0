@@ -164,7 +164,7 @@ export default function DashboardEditor() {
   const handleCreateShare = async (options) => {
     try {
       const response = await shareService.create(currentDashboard.uuid, options);
-      if (response.success) {
+      if (response.ok) {
         setShares([response.share, ...shares]);
         setSnackbar({
           open: true,

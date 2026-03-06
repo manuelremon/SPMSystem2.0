@@ -835,11 +835,27 @@ def get_kpis():
     Soporta modo temporal con datos importados desde Excel.
 
     Query params:
-        centro: Filtro por centro (opcional)
+        centro: Filtro por centro (opcional, legacy)
+        centros: Filtro por centros separados por coma
+        almacenes: Filtro por almacenes virtuales separados por coma
         periodo: Periodo de analisis ('mes', 'trimestre', 'anio') - default 'mes'
+        fecha_desde: Fecha inicio ISO (YYYY-MM-DD)
+        fecha_hasta: Fecha fin ISO (YYYY-MM-DD)
     """
     centro = request.args.get("centro", "").strip()
+    centros_param = request.args.get("centros", "").strip()
+    almacenes_param = request.args.get("almacenes", "").strip()
     periodo = request.args.get("periodo", "mes").strip()
+    fecha_desde_param = request.args.get("fecha_desde", "").strip()
+    fecha_hasta_param = request.args.get("fecha_hasta", "").strip()
+
+    # Parsear filtros multi-valor
+    centros_list = [c.strip() for c in centros_param.split(",") if c.strip()] if centros_param else []
+    almacenes_list = [a.strip() for a in almacenes_param.split(",") if a.strip()] if almacenes_param else []
+
+    # Compatibilidad: si se pasa centro singular y no centros plural
+    if centro and not centros_list:
+        centros_list = [centro]
 
     # Verificar si modo temporal está activo
     user_id = _get_user_id()
@@ -847,13 +863,19 @@ def get_kpis():
         return _get_kpis_from_temp_data(user_id, centro, periodo)
 
     # FIX 5.2: Verificar cache antes de calcular
-    cached = _get_cached_kpis(centro, periodo)
+    cache_key_centro = ",".join(sorted(centros_list)) if centros_list else centro
+    cached = _get_cached_kpis(cache_key_centro, periodo)
     if cached is not None:
         return jsonify({"ok": True, "cached": True, **cached}), 200
 
-    # Calcular fechas segun periodo
+    # Calcular fechas segun periodo o params explícitos
     hoy = datetime.now()
-    if periodo == "anio":
+    if fecha_desde_param:
+        try:
+            fecha_inicio = datetime.strptime(fecha_desde_param, "%Y-%m-%d")
+        except ValueError:
+            fecha_inicio = hoy - timedelta(days=30)
+    elif periodo == "anio":
         fecha_inicio = hoy - timedelta(days=365)
     elif periodo == "trimestre":
         fecha_inicio = hoy - timedelta(days=90)
@@ -865,52 +887,47 @@ def get_kpis():
     try:
         ph = "%s" if is_using_postgresql() else "?"
 
+        # Helper para cláusula WHERE/AND de centros
+        def centro_clause(keyword="WHERE"):
+            if not centros_list:
+                return "", []
+            placeholders = ",".join(ph for _ in centros_list)
+            return f" {keyword} centro IN ({placeholders})", list(centros_list)
+
         # Conectar a sap_data para estadisticas reales
         # En produccion usa PostgreSQL, en desarrollo SQLite
         with get_db_connection("sap_data") as conn_sap:
             cursor_sap = conn_sap.cursor()
 
             # Total de materiales unicos en stock
-            query_materiales = "SELECT COUNT(DISTINCT material) as total FROM stock"
-            params_mat = []
-            if centro:
-                query_materiales += f" WHERE centro = {ph}"
-                params_mat.append(centro)
+            clause, params_mat = centro_clause("WHERE")
+            query_materiales = f"SELECT COUNT(DISTINCT material) as total FROM stock{clause}"
             cursor_sap.execute(query_materiales, params_mat)
             total_materiales = cursor_sap.fetchone()["total"]
 
             # Valor total del inventario
-            query_valor = "SELECT COALESCE(SUM(stock_valorizado), 0) as total FROM stock"
-            if centro:
-                query_valor += f" WHERE centro = {ph}"
+            query_valor = f"SELECT COALESCE(SUM(stock_valorizado), 0) as total FROM stock{clause}"
             cursor_sap.execute(query_valor, params_mat)
             float(cursor_sap.fetchone()["total"] or 0)
 
             # Materiales con stock bajo (stock < 10 unidades)
-            query_bajo = (
-                "SELECT COUNT(DISTINCT material) as total FROM stock WHERE stock < 10 AND stock > 0"
-            )
-            if centro:
-                query_bajo += f" AND centro = {ph}"
-            cursor_sap.execute(query_bajo, params_mat)
+            and_clause, and_params = centro_clause("AND")
+            query_bajo = f"SELECT COUNT(DISTINCT material) as total FROM stock WHERE stock < 10 AND stock > 0{and_clause}"
+            cursor_sap.execute(query_bajo, and_params)
             cursor_sap.fetchone()["total"]
 
             # Materiales criticos (columna puede no existir)
             try:
-                query_criticos = "SELECT COUNT(DISTINCT material) as total FROM stock WHERE critico = 'SI'"
-                if centro:
-                    query_criticos += f" AND centro = {ph}"
-                cursor_sap.execute(query_criticos, params_mat)
+                query_criticos = f"SELECT COUNT(DISTINCT material) as total FROM stock WHERE critico = 'SI'{and_clause}"
+                cursor_sap.execute(query_criticos, and_params)
                 cursor_sap.fetchone()["total"]
             except Exception:
                 pass
 
             # Materiales inmovilizados (columna puede no existir)
             try:
-                query_inmov = "SELECT COUNT(DISTINCT material) as total FROM stock WHERE inmovilizado = 'INMOVILIZADO'"
-                if centro:
-                    query_inmov += f" AND centro = {ph}"
-                cursor_sap.execute(query_inmov, params_mat)
+                query_inmov = f"SELECT COUNT(DISTINCT material) as total FROM stock WHERE inmovilizado = 'INMOVILIZADO'{and_clause}"
+                cursor_sap.execute(query_inmov, and_params)
                 cursor_sap.fetchone()["total"]
             except Exception:
                 pass
@@ -921,25 +938,21 @@ def get_kpis():
 
             # Materiales en riesgo: stock < punto_pedido estimado (consumo*3)
             # Usamos stock < 20 como proxy para "bajo punto pedido"
-            query_riesgo_count = """
+            query_riesgo_count = f"""
                 SELECT COUNT(DISTINCT material) as total
                 FROM stock
-                WHERE stock > 0 AND stock < 20
+                WHERE stock > 0 AND stock < 20{and_clause}
             """
-            if centro:
-                query_riesgo_count += f" AND centro = {ph}"
-            cursor_sap.execute(query_riesgo_count, params_mat)
+            cursor_sap.execute(query_riesgo_count, and_params)
             materiales_en_riesgo = cursor_sap.fetchone()["total"] or 0
 
             # Materiales con sobrestock: stock > 1000 (proxy para stock_maximo excedido)
-            query_sobrestock_count = """
+            query_sobrestock_count = f"""
                 SELECT COUNT(DISTINCT material) as total
                 FROM stock
-                WHERE stock > 1000
+                WHERE stock > 1000{and_clause}
             """
-            if centro:
-                query_sobrestock_count += f" AND centro = {ph}"
-            cursor_sap.execute(query_sobrestock_count, params_mat)
+            cursor_sap.execute(query_sobrestock_count, and_params)
             materiales_sobrestock = cursor_sap.fetchone()["total"] or 0
 
             # Rotación promedio: consumo_anual / stock_promedio
@@ -965,24 +978,18 @@ def get_kpis():
 
             # Top materiales en riesgo (stock bajo comparado con punto de pedido)
             # Query simplificada sin JOIN para compatibilidad
-            query_riesgo = """
+            query_riesgo = f"""
                 SELECT
                     material as codigo,
                     material_descripcion as descripcion,
                     SUM(stock) as stock_actual
                 FROM stock
-                WHERE stock < 10 AND stock > 0
-            """
-            params_riesgo = []
-            if centro:
-                query_riesgo += f" AND centro = {ph}"
-                params_riesgo.append(centro)
-            query_riesgo += """
+                WHERE stock < 10 AND stock > 0{and_clause}
                 GROUP BY material, material_descripcion
                 ORDER BY stock_actual ASC
                 LIMIT 5
             """
-            cursor_sap.execute(query_riesgo, params_riesgo)
+            cursor_sap.execute(query_riesgo, and_params)
             materiales_riesgo_raw = cursor_sap.fetchall()
 
             # FIX 2.5: Obtener consumo real de cada material desde consumo_historico
@@ -1032,34 +1039,59 @@ def get_kpis():
 
             # Solpeds creadas vs completadas (COALESCE para null safety)
             try:
-                cursor.execute(
-                    f"""
+                solped_query = f"""
                     SELECT
                         COUNT(*) as total,
-                        COALESCE(SUM(CASE WHEN status = 'creada' THEN 1 ELSE 0 END), 0) as pendientes,
-                        COALESCE(SUM(CASE WHEN status = 'enviada' THEN 1 ELSE 0 END), 0) as enviadas,
-                        COALESCE(SUM(CASE WHEN status = 'completada' THEN 1 ELSE 0 END), 0) as completadas
-                    FROM solicitud_pedido_sap
-                    WHERE created_at >= {ph}
-                """,
-                    (fecha_inicio_str,),
-                )
+                        COALESCE(SUM(CASE WHEN sp.status = 'creada' THEN 1 ELSE 0 END), 0) as pendientes,
+                        COALESCE(SUM(CASE WHEN sp.status = 'enviada' THEN 1 ELSE 0 END), 0) as enviadas,
+                        COALESCE(SUM(CASE WHEN sp.status = 'completada' THEN 1 ELSE 0 END), 0) as completadas
+                    FROM solicitud_pedido_sap sp
+                """
+                solped_params = [fecha_inicio_str]
+                joins = ""
+                extra_where = ""
+
+                if almacenes_list or centros_list:
+                    joins = " JOIN solicitud s ON sp.solicitud_id = s.id"
+                    if almacenes_list:
+                        alm_placeholders = ",".join(ph for _ in almacenes_list)
+                        extra_where += f" AND s.almacen_virtual IN ({alm_placeholders})"
+                        solped_params.extend(almacenes_list)
+                    if centros_list:
+                        ctr_placeholders = ",".join(ph for _ in centros_list)
+                        extra_where += f" AND s.centro IN ({ctr_placeholders})"
+                        solped_params.extend(centros_list)
+
+                solped_query += f"{joins} WHERE sp.created_at >= {ph}{extra_where}"
+                cursor.execute(solped_query, solped_params)
                 solpeds_stats = cursor.fetchone()
             except Exception:
                 solpeds_stats = {"total": 0, "pendientes": 0, "enviadas": 0, "completadas": 0}
 
             # Pedidos vencidos (compatibilidad PostgreSQL/SQLite)
             try:
-                # Usar sql_now_minus para sintaxis compatible
                 fecha_limite = sql_now_minus("30 days")
-                cursor.execute(
-                    f"""
+                po_query = f"""
                     SELECT COUNT(*) as total
-                    FROM purchase_orders
-                    WHERE status = 'emitida'
-                    AND created_at < {fecha_limite}
+                    FROM purchase_orders po
                 """
-                )
+                po_params = []
+                po_joins = ""
+                po_extra = ""
+
+                if almacenes_list or centros_list:
+                    po_joins = " JOIN solicitud s ON po.solicitud_id = s.id"
+                    if almacenes_list:
+                        alm_ph = ",".join(ph for _ in almacenes_list)
+                        po_extra += f" AND s.almacen_virtual IN ({alm_ph})"
+                        po_params.extend(almacenes_list)
+                    if centros_list:
+                        ctr_ph = ",".join(ph for _ in centros_list)
+                        po_extra += f" AND s.centro IN ({ctr_ph})"
+                        po_params.extend(centros_list)
+
+                po_query += f"{po_joins} WHERE po.status = 'emitida' AND po.created_at < {fecha_limite}{po_extra}"
+                cursor.execute(po_query, po_params)
                 pedidos_vencidos = cursor.fetchone()["total"] or 0
             except Exception:
                 pedidos_vencidos = 0
@@ -1196,15 +1228,15 @@ def get_catalogos():
             cursor.execute(
                 "SELECT codigo, nombre FROM catalogo_centro WHERE activo = TRUE ORDER BY codigo"
             )
-            centros = [{"codigo": r["codigo"], "nombre": r["nombre"]} for r in cursor.fetchall()]
+            centros = [{"id": r["codigo"], "codigo": r["codigo"], "nombre": r["nombre"]} for r in cursor.fetchall()]
 
             cursor.execute(
                 "SELECT codigo, nombre FROM catalogo_almacen WHERE activo = TRUE ORDER BY codigo"
             )
-            almacenes = [{"codigo": r["codigo"], "nombre": r["nombre"]} for r in cursor.fetchall()]
+            almacenes = [{"id": r["codigo"], "codigo": r["codigo"], "nombre": f'{r["codigo"]} - {r["nombre"]}'} for r in cursor.fetchall()]
 
             cursor.execute("SELECT nombre FROM catalogo_sector WHERE activo = TRUE ORDER BY nombre")
-            sectores = [{"nombre": r["nombre"]} for r in cursor.fetchall()]
+            sectores = [{"id": r["nombre"], "nombre": r["nombre"]} for r in cursor.fetchall()]
 
         return jsonify(
             {
@@ -1545,9 +1577,10 @@ def calcular_parametros_materiales():
                 resultados.append(resultado)
 
             except Exception as e:
+                logger.error(f"Error calculando MRP para {mat.get('material_codigo')}: {e}")
                 errores.append({
                     "material_codigo": mat.get("material_codigo"),
-                    "error": str(e)
+                    "error": "Error al calcular parámetros"
                 })
 
         return jsonify({
@@ -1621,9 +1654,10 @@ def guardar_parametros_materiales():
                         "error": resultado.get("error")
                     })
             except Exception as e:
+                logger.error(f"Error guardando MRP para {params.get('material_codigo')}: {e}")
                 errores.append({
                     "material_codigo": params.get("material_codigo"),
-                    "error": str(e)
+                    "error": "Error al guardar parámetros"
                 })
 
         return jsonify({

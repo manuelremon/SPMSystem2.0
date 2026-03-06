@@ -7,6 +7,7 @@ import logging
 
 from flask import jsonify, request
 
+from backend.core.helpers import safe_error_response
 from backend.core.rate_limit import rate_limit
 from backend.core.roles import require_auth
 from backend.routes.ai import bp
@@ -120,8 +121,7 @@ def _forecast_from_temp_data(user_id: str, material_codigo: str, centro: str, di
         })
 
     except Exception as e:
-        logger.error(f"Error en forecast temporal: {e}")
-        return jsonify({"ok": False, "error": {"code": "temp_forecast_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_forecast._forecast_from_temp_data")
 
 
 # =============================================================================
@@ -156,8 +156,7 @@ def get_forecast_models():
         })
 
     except Exception as e:
-        logger.error(f"Error listando modelos forecast: {e}")
-        return jsonify({"ok": False, "error": {"code": "models_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_forecast.get_forecast_models")
 
 
 def _sanitize_for_json(obj):
@@ -256,8 +255,7 @@ def run_backtest():
         return jsonify({"ok": True, "data": _sanitize_for_json(report.to_dict())})
 
     except Exception as e:
-        logger.error(f"Error en backtesting: {e}")
-        return jsonify({"ok": False, "error": {"code": "backtest_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_forecast.run_backtest")
 
 
 @bp.route("/forecast/compare", methods=["POST"])
@@ -321,8 +319,7 @@ def compare_models():
         return jsonify({"ok": True, "data": _sanitize_for_json(serializable_result)})
 
     except Exception as e:
-        logger.error(f"Error comparando modelos: {e}")
-        return jsonify({"ok": False, "error": {"code": "compare_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_forecast.compare_models")
 
 
 @bp.route("/forecast/auto-select", methods=["POST"])
@@ -396,8 +393,7 @@ def auto_select_model():
         return jsonify({"ok": True, "data": _sanitize_for_json(result.to_dict())})
 
     except Exception as e:
-        logger.error(f"Error en auto-seleccion: {e}")
-        return jsonify({"ok": False, "error": {"code": "autoselect_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_forecast.auto_select_model")
 
 
 @bp.route("/forecast/tune", methods=["POST"])
@@ -462,8 +458,7 @@ def tune_hyperparameters():
         return jsonify({"ok": True, "data": _sanitize_for_json(result.to_dict())})
 
     except Exception as e:
-        logger.error(f"Error en tuning: {e}")
-        return jsonify({"ok": False, "error": {"code": "tune_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_forecast.tune_hyperparameters")
 
 
 # ============================================================================
@@ -572,8 +567,7 @@ def compare_models_parallel():
         })
 
     except Exception as e:
-        logger.error(f"Error comparando modelos: {e}")
-        return jsonify({"ok": False, "error": {"code": "compare_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_forecast.compare_models_parallel")
 
 
 @bp.route("/forecast/decomposition", methods=["POST"])
@@ -654,8 +648,7 @@ def get_stl_decomposition():
         })
 
     except Exception as e:
-        logger.error(f"Error en descomposicion STL: {e}")
-        return jsonify({"ok": False, "error": {"code": "decomposition_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_forecast.get_stl_decomposition")
 
 
 @bp.route("/forecast/ensemble/<material>", methods=["GET"])
@@ -776,5 +769,4 @@ def forecast_ensemble(material):
         })
 
     except Exception as e:
-        logger.error(f"Error en ensemble forecast: {e}")
-        return jsonify({"ok": False, "error": {"code": "ensemble_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_forecast.forecast_ensemble")

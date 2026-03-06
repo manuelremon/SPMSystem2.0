@@ -17,6 +17,7 @@ from typing import Any
 
 from flask import Blueprint, Response, g, jsonify, request
 
+from backend.core.helpers import safe_error_response
 from backend.core.rate_limit import rate_limit
 from backend.core.roles import require_auth
 from backend.services.oc_service import OCService
@@ -223,7 +224,7 @@ def crear_orden():
         )
 
     except ValueError as e:
-        return _error_response("validation_error", str(e))
+        return safe_error_response(e, logger, status_code=400, context="ordenes_compra.crear_orden")
     except Exception as e:
         logger.error(f"[OC] Error creando orden: {e}", exc_info=True)
         return _error_response(
@@ -291,7 +292,7 @@ def cambiar_estado(orden_id: int):
         )
 
     except ValueError as e:
-        return _error_response("validation_error", str(e))
+        return safe_error_response(e, logger, status_code=400, context="ordenes_compra.cambiar_estado")
     except Exception as e:
         logger.error(
             f"[OC] Error cambiando estado de orden {orden_id}: {e}",
@@ -369,7 +370,7 @@ def registrar_recepcion(orden_id: int):
         )
 
     except ValueError as e:
-        return _error_response("validation_error", str(e))
+        return safe_error_response(e, logger, status_code=400, context="ordenes_compra.registrar_recepcion")
     except Exception as e:
         logger.error(
             f"[OC] Error registrando recepcion para orden {orden_id}: {e}",
@@ -470,7 +471,7 @@ def crear_desde_solicitud():
         )
 
     except ValueError as e:
-        return _error_response("validation_error", str(e))
+        return safe_error_response(e, logger, status_code=400, context="ordenes_compra.crear_desde_solicitud")
     except Exception as e:
         logger.error(
             f"[OC] Error generando OC desde solicitud: {e}", exc_info=True

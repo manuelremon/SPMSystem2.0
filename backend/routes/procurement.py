@@ -7,7 +7,7 @@ import logging
 
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_auth, require_role
 from backend.services.procurement_service import ProcurementService
 
@@ -301,7 +301,7 @@ def comparar_proveedores():
         return jsonify(result)
 
     except ValueError as e:
-        return jsonify({"ok": False, "error": str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="procurement.comparar_proveedores")
     except Exception as e:
         logger.error(f"Error comparing providers: {e}", exc_info=True)
         return jsonify({"ok": False, "error": "Error interno del servidor"}), 500

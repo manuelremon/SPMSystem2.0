@@ -1,9 +1,13 @@
 import json
+import logging
 from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, jsonify, request
 
 from backend.core.db import get_db_connection
+from backend.core.helpers import safe_error_response
+
+logger = logging.getLogger(__name__)
 
 bp_detalle = Blueprint("materiales_detalle", __name__, url_prefix="/api/materiales")
 
@@ -511,4 +515,4 @@ def solicitudes_por_material(codigo):
         )
 
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "db_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="materiales_detalle.solicitudes_por_material")

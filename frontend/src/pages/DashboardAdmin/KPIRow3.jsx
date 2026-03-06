@@ -7,6 +7,7 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
+import Tooltip from '@mui/material/Tooltip';
 
 /**
  * KPIRow3 - Third row: Materiales Mas Solicitados, Stock Inmovilizado Global,
@@ -99,12 +100,16 @@ function KPIRow3({
                       >
                         <Typography variant="caption" sx={{ fontWeight: 700, color: 'grey.400', width: 16, fontSize: FONT_SIZES.xs }}>{idx + 1}.</Typography>
                         <Typography variant="caption" sx={{ color: 'grey.600', fontFamily: 'monospace' }}>{material.codigo || '-'}</Typography>
-                        <Typography variant="caption" sx={{ color: 'grey.700', flex: 1 }}>
-                          {material.nombre}
-                        </Typography>
+                        <Tooltip title={`${material.nombre}${material.codigo ? ` (${material.codigo})` : ''} — Cant: ${Math.round(material.cantidad)}${material.monto > 0 ? ` — USD ${material.monto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}` : ''}`} arrow placement="top">
+                          <Typography variant="caption" sx={{ color: 'grey.700', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {material.nombre}
+                          </Typography>
+                        </Tooltip>
                         <Typography variant="caption" sx={{ color: 'grey.600', fontWeight: 600, width: 48, textAlign: 'right' }}>{Math.round(material.cantidad)}</Typography>
                         {hayMontos && (
-                          <Typography variant="caption" sx={{ color: 'grey.600', fontFamily: 'monospace', width: 112, textAlign: 'right' }}>{formatMonto(material.monto)}</Typography>
+                          <Tooltip title={`USD ${material.monto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`} arrow>
+                            <Typography variant="caption" sx={{ color: 'grey.600', fontFamily: 'monospace', width: 112, textAlign: 'right' }}>{formatMonto(material.monto)}</Typography>
+                          </Tooltip>
                         )}
                       </Stack>
                     ))
@@ -167,12 +172,16 @@ function KPIRow3({
                       >
                         <Typography variant="caption" sx={{ fontWeight: 700, color: 'grey.400', width: 16, fontSize: FONT_SIZES.xs }}>{idx + 1}.</Typography>
                         <Typography variant="caption" sx={{ color: 'grey.600', fontFamily: 'monospace' }}>{item.codigo || '-'}</Typography>
-                        <Typography variant="caption" sx={{ color: 'grey.700', flex: 1 }}>
-                          {item.descripcion}
-                        </Typography>
+                        <Tooltip title={`${item.descripcion}${item.codigo ? ` (${item.codigo})` : ''}${item.lote ? ` — Lote: ${item.lote}` : ''} — Stock: ${Math.round(item.stock || 0)}${(item.valor || 0) > 0 ? ` — USD ${(item.valor || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}` : ''}`} arrow placement="top">
+                          <Typography variant="caption" sx={{ color: 'grey.700', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {item.descripcion}
+                          </Typography>
+                        </Tooltip>
                         <Typography variant="caption" sx={{ color: 'grey.600', fontWeight: 600, width: 48, textAlign: 'right' }}>{Math.round(item.stock || 0)}</Typography>
                         {hayMontosStock && (
-                          <Typography variant="caption" sx={{ color: 'grey.600', fontFamily: 'monospace', width: 112, textAlign: 'right' }}>{formatMontoStock(item.valor || 0)}</Typography>
+                          <Tooltip title={`USD ${(item.valor || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}`} arrow>
+                            <Typography variant="caption" sx={{ color: 'grey.600', fontFamily: 'monospace', width: 112, textAlign: 'right' }}>{formatMontoStock(item.valor || 0)}</Typography>
+                          </Tooltip>
                         )}
                       </Stack>
                     ))

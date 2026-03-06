@@ -6,7 +6,7 @@ import logging
 
 from flask import jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.rate_limit import rate_limit
 from backend.core.roles import require_auth
 from backend.core.search_utils import build_description_search, expand_codes_from_catalog
@@ -45,8 +45,7 @@ def materiales_similares(material_codigo):
         return jsonify({"ok": True, "data": result})
 
     except Exception as e:
-        logger.error(f"Error buscando similares: {e}")
-        return jsonify({"ok": False, "error": {"code": "similares_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_materiales.materiales_similares")
 
 
 @bp.route("/materiales/buscar-consumo", methods=["GET"])
@@ -153,8 +152,7 @@ def buscar_materiales_consumo():
 
         return jsonify({"ok": True, "data": data, "total": len(data)})
     except Exception as e:
-        logger.error(f"Error buscando materiales con consumo: {e}")
-        return jsonify({"ok": False, "error": {"code": "search_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_materiales.buscar_materiales_consumo")
 
 
 @bp.route("/materiales/forecast/<material_codigo>", methods=["GET"])
@@ -207,8 +205,7 @@ def forecast_demanda(material_codigo):
         return jsonify({"ok": True, "data": result})
 
     except Exception as e:
-        logger.error(f"Error proyectando demanda: {e}")
-        return jsonify({"ok": False, "error": {"code": "forecast_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_materiales.forecast_demanda")
 
 
 @bp.route("/materiales/analisis/<material_codigo>", methods=["GET"])
@@ -235,8 +232,7 @@ def analisis_material(material_codigo):
         return jsonify({"ok": True, "data": result})
 
     except Exception as e:
-        logger.error(f"Error en analisis: {e}")
-        return jsonify({"ok": False, "error": {"code": "analisis_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_materiales.analisis_material")
 
 
 @bp.route("/sugerir-accion", methods=["POST"])
@@ -314,8 +310,7 @@ def sugerir_accion():
         return jsonify({"ok": True, "data": result})
 
     except Exception as e:
-        logger.error(f"Error sugiriendo accion: {e}")
-        return jsonify({"ok": False, "error": {"code": "suggest_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_materiales.sugerir_accion")
 
 
 @bp.route("/alertas", methods=["GET"])
@@ -347,8 +342,7 @@ def alertas_inteligentes():
         return jsonify({"ok": True, "data": result})
 
     except Exception as e:
-        logger.error(f"Error generando alertas: {e}")
-        return jsonify({"ok": False, "error": {"code": "alertas_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_materiales.alertas_inteligentes")
 
 
 @bp.route("/cantidad-optima", methods=["POST"])
@@ -398,8 +392,7 @@ def cantidad_optima():
         return jsonify({"ok": True, "data": result})
 
     except Exception as e:
-        logger.error(f"Error calculando cantidad optima: {e}")
-        return jsonify({"ok": False, "error": {"code": "eoq_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_materiales.cantidad_optima")
 
 
 @bp.route("/abc-analysis", methods=["GET"])
@@ -546,5 +539,4 @@ def abc_analysis():
             })
 
     except Exception as e:
-        logger.error(f"Error en ABC analysis: {e}")
-        return jsonify({"ok": False, "error": {"code": "abc_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="ai_materiales.abc_analysis")

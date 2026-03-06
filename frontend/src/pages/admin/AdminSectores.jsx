@@ -28,6 +28,7 @@ import {
   Checkbox,
   InputAdornment,
   Chip,
+  CircularProgress,
 } from "@mui/material";
 
 // MUI Icons
@@ -125,6 +126,7 @@ function EmptyState({ onClear, hasFilters }) {
 
 /** Fila de sector */
 function SectorRow({ sector, onEdit, onDelete, isDeleting, onCancelDelete, onConfirmDelete }) {
+  const { t } = useI18n();
   const isActivo = sector.activo === 1 || sector.activo === true;
 
   if (isDeleting) {

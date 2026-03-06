@@ -3,11 +3,16 @@ MRP Portfolio endpoint.
 Returns materials planned by MRP with their planning parameters.
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
 from backend.core.db import get_db_connection
+from backend.core.helpers import safe_error_response
 from backend.core.roles import require_auth
 from backend.core.search_utils import build_description_search_with_catalog
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("mrp_portfolio", __name__, url_prefix="/api/mrp")
 
@@ -141,6 +146,4 @@ def get_mrp_portfolio():
             })
 
     except Exception as e:
-        import logging
-        logging.error(f"Error in get_mrp_portfolio: {e}")
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return safe_error_response(e, logger, context="mrp_portfolio.get_mrp_portfolio")

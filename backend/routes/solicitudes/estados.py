@@ -22,7 +22,7 @@ from backend.core.fsm import (
     normalizar_estado,
     validar_transicion,
 )
-from backend.core.helpers import row_to_dict as _row_to_dict
+from backend.core.helpers import row_to_dict as _row_to_dict, safe_error_response
 from backend.core.item_schemas import validar_items
 from backend.core.roles import has_any_role, is_admin, require_auth
 from backend.routes.solicitudes import bp
@@ -157,20 +157,7 @@ def enviar_solicitud(solicitud_id):
             404,
         )
     except TransicionInvalidaError as e:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "invalid_transition",
-                        "message": str(e),
-                        "estado_actual": e.estado_actual,
-                        "estado_solicitado": e.estado_nuevo,
-                    },
-                }
-            ),
-            400,
-        )
+        return safe_error_response(e, logger, status_code=400, context="estados.enviar_solicitud")
 
     # Sprint 4.4: Calcular SLA para la transicion submitted -> approved
     try:
@@ -462,15 +449,7 @@ def aprobar_solicitud(solicitud_id):
             aprobador_rol=aprobador_rol,
             razon=f"Compensacion: FSM fallo con error {str(e)}",
         )
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {"code": "invalid_transition", "message": str(e)},
-                }
-            ),
-            400,
-        )
+        return safe_error_response(e, logger, status_code=400, context="estados.aprobar_solicitud")
     except Exception as e:
         # FIX: Cualquier otro error tambien debe revertir el presupuesto
         logger.error(f"Error inesperado en aprobacion de solicitud {solicitud_id}: {e}")
@@ -652,15 +631,7 @@ def rechazar_solicitud(solicitud_id):
             logger.warning(f"[AUDIT] Error registrando rechazo en audit_trail: {e}")
 
     except TransicionInvalidaError as e:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {"code": "invalid_transition", "message": str(e)},
-                }
-            ),
-            400,
-        )
+        return safe_error_response(e, logger, status_code=400, context="estados.rechazar_solicitud")
 
     # Sprint 4.4: Resolver todas las alertas SLA al rechazar
     try:
@@ -785,15 +756,7 @@ def cancelar_solicitud(solicitud_id):
         logger.info(f"[CANCELACION] Solicitud {solicitud_id} cancelada por usuario {actor_id}")
 
     except TransicionInvalidaError as e:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {"code": "invalid_transition", "message": str(e)},
-                }
-            ),
-            400,
-        )
+        return safe_error_response(e, logger, status_code=400, context="estados.cancelar_solicitud")
 
     # 9. Resolver alertas SLA
     try:

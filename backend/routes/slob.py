@@ -12,11 +12,15 @@ Endpoints:
 - PUT /api/slob/disposition/<id>/complete - Completar disposición
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id
+from backend.core.helpers import _get_user_id, safe_error_response
 from backend.core.roles import require_admin, require_auth
 from backend.services import slob_service
+
+logger = logging.getLogger(__name__)
 
 slob_bp = Blueprint('slob', __name__, url_prefix='/api/slob')
 
@@ -54,9 +58,9 @@ def get_aging_analysis():
         return jsonify(resultado), 200
 
     except ValueError as e:
-        return jsonify({'ok': False, 'error': f'Parámetros inválidos: {str(e)}'}), 400
+        return safe_error_response(e, logger, status_code=400, context="slob.get_aging_analysis")
     except Exception as e:
-        return jsonify({'ok': False, 'error': f'Error al obtener aging analysis: {str(e)}'}), 500
+        return safe_error_response(e, logger, context="slob.get_aging_analysis")
 
 
 @slob_bp.route('/kpis', methods=['GET'])
@@ -81,7 +85,7 @@ def get_slob_kpis():
         return jsonify(kpis), 200
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': f'Error al obtener KPIs SLOB: {str(e)}'}), 500
+        return safe_error_response(e, logger, context="slob.get_slob_kpis")
 
 
 @slob_bp.route('/snapshot', methods=['POST'])
@@ -107,7 +111,7 @@ def refresh_snapshot():
         return jsonify(resultado), 200
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': f'Error al generar snapshot: {str(e)}'}), 500
+        return safe_error_response(e, logger, context="slob.refresh_snapshot")
 
 
 @slob_bp.route('/disposition', methods=['POST'])
@@ -158,9 +162,9 @@ def propose_disposition():
         return jsonify(disposicion), 201
 
     except KeyError as e:
-        return jsonify({'ok': False, 'error': f'Campo faltante: {str(e)}'}), 400
+        return safe_error_response(e, logger, status_code=400, context="slob.propose_disposition")
     except Exception as e:
-        return jsonify({'ok': False, 'error': f'Error al proponer disposición: {str(e)}'}), 500
+        return safe_error_response(e, logger, context="slob.propose_disposition")
 
 
 @slob_bp.route('/disposition', methods=['GET'])
@@ -194,9 +198,9 @@ def list_dispositions():
         return jsonify(resultado), 200
 
     except ValueError as e:
-        return jsonify({'ok': False, 'error': f'Parámetros inválidos: {str(e)}'}), 400
+        return safe_error_response(e, logger, status_code=400, context="slob.list_dispositions")
     except Exception as e:
-        return jsonify({'ok': False, 'error': f'Error al obtener disposiciones: {str(e)}'}), 500
+        return safe_error_response(e, logger, context="slob.list_dispositions")
 
 
 @slob_bp.route('/disposition/<int:disp_id>/approve', methods=['PUT'])
@@ -226,7 +230,7 @@ def approve_disposition(disp_id):
             return jsonify(resultado), 400
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': f'Error al aprobar disposición: {str(e)}'}), 500
+        return safe_error_response(e, logger, context="slob.approve_disposition")
 
 
 @slob_bp.route('/disposition/<int:disp_id>/complete', methods=['PUT'])
@@ -267,7 +271,7 @@ def complete_disposition(disp_id):
             return jsonify(resultado), 400
 
     except Exception as e:
-        return jsonify({'ok': False, 'error': f'Error al completar disposición: {str(e)}'}), 500
+        return safe_error_response(e, logger, context="slob.complete_disposition")
 
 
 # Health check para testing

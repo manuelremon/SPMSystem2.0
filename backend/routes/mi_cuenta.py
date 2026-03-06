@@ -13,6 +13,7 @@ import bcrypt
 from flask import Blueprint, g, jsonify, request
 
 from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
+from backend.core.helpers import safe_error_response
 from backend.core.rate_limit import rate_limit
 from backend.core.roles import normalize_roles, require_admin, require_auth
 from backend.core.user_helpers import get_user_by_id, get_user_name
@@ -252,8 +253,7 @@ def update_contacto():
         )
 
     except Exception as e:
-        logger.error(f"Error actualizando contacto: {e}")
-        return jsonify({"ok": False, "error": {"message": f"Error al actualizar: {str(e)}"}}), 500
+        return safe_error_response(e, logger, context="mi_cuenta.update_contacto")
 
 
 @bp.route("/mi-cuenta/solicitud-cambio-perfil", methods=["POST"])
@@ -349,11 +349,7 @@ def solicitar_cambio_perfil():
         )
 
     except Exception as e:
-        logger.error(f"Error registrando solicitud de cambio: {e}")
-        return (
-            jsonify({"ok": False, "error": {"message": f"Error al registrar solicitud: {str(e)}"}}),
-            500,
-        )
+        return safe_error_response(e, logger, context="mi_cuenta.solicitar_cambio_perfil")
 
 
 @bp.route("/mi-cuenta/solicitudes-cambio-perfil", methods=["GET"])
@@ -481,8 +477,7 @@ def cancelar_solicitud_cambio(request_id: int):
         return jsonify({"ok": True, "message": "Solicitud cancelada correctamente"}), 200
 
     except Exception as e:
-        logger.error(f"Error cancelando solicitud: {e}")
-        return jsonify({"ok": False, "error": {"message": str(e)}}), 500
+        return safe_error_response(e, logger, context="mi_cuenta.cancelar_solicitud_cambio")
 
 
 @bp.route("/mi-cuenta/solicitudes-cambio-perfil/<int:request_id>/mensaje", methods=["POST"])
@@ -582,8 +577,7 @@ def enviar_mensaje_solicitud(request_id: int):
         )
 
     except Exception as e:
-        logger.error(f"Error enviando mensaje: {e}")
-        return jsonify({"ok": False, "error": {"message": str(e)}}), 500
+        return safe_error_response(e, logger, context="mi_cuenta.enviar_mensaje_solicitud")
 
 
 # ENDPOINTS DE ADMINISTRACIÓN - Gestión de solicitudes de cambio de perfil
@@ -661,8 +655,7 @@ def admin_listar_profile_requests():
         return jsonify({"ok": True, "requests": requests}), 200
 
     except Exception as e:
-        logger.error(f"Error listando profile requests: {e}")
-        return jsonify({"ok": False, "error": {"message": str(e)}}), 500
+        return safe_error_response(e, logger, context="mi_cuenta.admin_listar_profile_requests")
 
 
 @bp.route("/mi-cuenta/admin/profile-requests/<int:request_id>", methods=["GET"])
@@ -749,8 +742,7 @@ def admin_get_profile_request(request_id: int):
         return jsonify({"ok": True, "request": result}), 200
 
     except Exception as e:
-        logger.error(f"Error obteniendo profile request: {e}")
-        return jsonify({"ok": False, "error": {"message": str(e)}}), 500
+        return safe_error_response(e, logger, context="mi_cuenta.admin_get_profile_request")
 
 
 @bp.route("/mi-cuenta/admin/profile-requests/<int:request_id>/aprobar", methods=["POST"])
@@ -876,8 +868,7 @@ def admin_aprobar_profile_request(request_id: int):
         )
 
     except Exception as e:
-        logger.error(f"Error aprobando profile request: {e}")
-        return jsonify({"ok": False, "error": {"message": str(e)}}), 500
+        return safe_error_response(e, logger, context="mi_cuenta.admin_aprobar_profile_request")
 
 
 @bp.route("/mi-cuenta/admin/profile-requests/<int:request_id>/rechazar", methods=["POST"])
@@ -940,8 +931,7 @@ def admin_rechazar_profile_request(request_id: int):
         return jsonify({"ok": True, "message": "Solicitud rechazada"}), 200
 
     except Exception as e:
-        logger.error(f"Error rechazando profile request: {e}")
-        return jsonify({"ok": False, "error": {"message": str(e)}}), 500
+        return safe_error_response(e, logger, context="mi_cuenta.admin_rechazar_profile_request")
 
 
 @bp.route("/mi-cuenta/admin/profile-requests/<int:request_id>/mensaje", methods=["POST"])
@@ -998,8 +988,7 @@ def admin_enviar_mensaje_profile_request(request_id: int):
         return jsonify({"ok": True, "message": "Mensaje enviado", "mensaje_id": mensaje_id}), 200
 
     except Exception as e:
-        logger.error(f"Error enviando mensaje: {e}")
-        return jsonify({"ok": False, "error": {"message": str(e)}}), 500
+        return safe_error_response(e, logger, context="mi_cuenta.admin_enviar_mensaje_profile_request")
 
 
 # ============================================================================
@@ -1078,8 +1067,7 @@ def get_notification_preferences():
         }), 200
 
     except Exception as e:
-        logger.error(f"Error obteniendo preferencias de notificacion: {e}")
-        return jsonify({"ok": False, "error": {"message": str(e)}}), 500
+        return safe_error_response(e, logger, context="mi_cuenta.get_notification_preferences")
 
 
 @bp.route("/mi-cuenta/notification-preferences", methods=["PUT"])
@@ -1152,5 +1140,4 @@ def update_notification_preferences():
         return jsonify({"ok": True, "message": "Preferencias actualizadas"}), 200
 
     except Exception as e:
-        logger.error(f"Error actualizando preferencias: {e}")
-        return jsonify({"ok": False, "error": {"message": str(e)}}), 500
+        return safe_error_response(e, logger, context="mi_cuenta.update_notification_preferences")

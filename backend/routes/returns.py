@@ -34,9 +34,9 @@ def obtener_devoluciones():
         resultado['ok'] = True
         return jsonify(resultado), 200
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="returns.obtener_devoluciones")
     except Exception as e:
-        return safe_error_response(e, logger, context="returns")
+        return safe_error_response(e, logger, context="returns.obtener_devoluciones")
 
 
 @returns_bp.route('/', methods=['POST'])
@@ -52,9 +52,9 @@ def crear_devolucion():
         resultado = returns_service.crear_devolucion(data, user_id)
         return jsonify(resultado), 201
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="returns.crear_devolucion")
     except Exception as e:
-        return safe_error_response(e, logger, context="returns")
+        return safe_error_response(e, logger, context="returns.crear_devolucion")
 
 
 @returns_bp.route('/from-ncr/<int:ncr_id>', methods=['POST'])
@@ -66,9 +66,9 @@ def crear_desde_ncr(ncr_id):
         resultado = returns_service.crear_desde_ncr(ncr_id, user_id)
         return jsonify(resultado), 201
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="returns.crear_desde_ncr")
     except Exception as e:
-        return safe_error_response(e, logger, context="returns")
+        return safe_error_response(e, logger, context="returns.crear_desde_ncr")
 
 
 @returns_bp.route('/<int:id>', methods=['GET'])
@@ -98,9 +98,9 @@ def cambiar_estado(id):
         resultado = returns_service.cambiar_estado(id, data['estado'], user_id, notas)
         return jsonify(resultado), 200
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="returns.cambiar_estado")
     except Exception as e:
-        return safe_error_response(e, logger, context="returns")
+        return safe_error_response(e, logger, context="returns.cambiar_estado")
 
 
 @returns_bp.route('/<int:id>/credit', methods=['PUT'])
@@ -116,9 +116,9 @@ def registrar_credito(id):
         resultado = returns_service.registrar_credito(id, data['monto'], user_id)
         return jsonify(resultado), 200
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        return safe_error_response(e, logger, status_code=400, context="returns.registrar_credito")
     except Exception as e:
-        return safe_error_response(e, logger, context="returns")
+        return safe_error_response(e, logger, context="returns.registrar_credito")
 
 
 @returns_bp.route('/kpis', methods=['GET'])

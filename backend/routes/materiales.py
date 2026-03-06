@@ -7,11 +7,16 @@ Busca en master_materiales.db que contiene:
 - materiales_equivalencias: Equivalencias entre materiales
 """
 
+import logging
+
 from flask import Blueprint, g, jsonify, request
 
 from backend.core.db import get_db_connection, get_db_transaction
+from backend.core.helpers import safe_error_response
 from backend.core.roles import require_auth
 from backend.core.search_utils import build_description_search
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("materiales", __name__, url_prefix="/api/materiales")
 
@@ -206,7 +211,7 @@ def search_materiales():
         rows = _fetch_catalogo(query, tuple(params))
         return jsonify({"ok": True, "data": rows, "total": len(rows)}), 200
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "search_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="materiales.search_materiales")
 
 
 @bp.route("/<codigo>", methods=["GET"])
@@ -243,7 +248,7 @@ def get_material(codigo: str):
 
         return jsonify({"ok": True, "data": rows[0]}), 200
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="materiales.get_material")
 
 
 @bp.route("/grupos", methods=["GET"])
@@ -284,7 +289,7 @@ def get_grupos():
         data = [row["grupo"] for row in rows if row.get("grupo")]
         return jsonify({"ok": True, "data": data, "total": len(data)}), 200
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "search_error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="materiales.get_grupos")
 
 
 @bp.route("/stats", methods=["GET"])
@@ -326,7 +331,7 @@ def get_stats():
 
         return jsonify({"ok": True, "data": stats}), 200
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="materiales.get_stats")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -397,7 +402,7 @@ def get_favoritos():
 
         return jsonify({"ok": True, "data": favoritos}), 200
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="materiales.get_favoritos")
 
 
 @bp.route("/favoritos", methods=["POST"])
@@ -444,7 +449,7 @@ def add_favorito():
 
         return jsonify({"ok": True, "message": "Material agregado a favoritos"}), 201
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="materiales.add_favorito")
 
 
 @bp.route("/favoritos/<codigo>", methods=["DELETE"])
@@ -480,4 +485,4 @@ def remove_favorito(codigo: str):
 
         return jsonify({"ok": True, "message": "Material eliminado de favoritos"}), 200
     except Exception as e:
-        return jsonify({"ok": False, "error": {"code": "error", "message": str(e)}}), 500
+        return safe_error_response(e, logger, context="materiales.remove_favorito")
