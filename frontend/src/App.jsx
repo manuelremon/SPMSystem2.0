@@ -7,6 +7,7 @@ import {
   Navigate
 } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
+import { useModuleStore } from './store/moduleStore'
 import { fetchCsrfToken } from './services/csrf'
 import ErrorBoundary from './components/ErrorBoundary'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -78,6 +79,7 @@ const AdminMateriales = lazy(() => import('./pages/admin/AdminMateriales'))
 const AdminProveedores = lazy(() => import('./pages/AdminProveedores'))
 const AdminBasesDatos = lazy(() => import('./pages/admin/AdminBasesDatos'))
 const AdminMonitorUsuarios = lazy(() => import('./pages/admin/AdminMonitorUsuarios'))
+const AdminModules = lazy(() => import('./pages/admin/AdminModules'))
 
 // Analisis Puntual (admin) - lazy loaded
 const AnalisisPuntualHome = lazy(() => import('./pages/admin/AnalisisPuntualHome'))
@@ -212,6 +214,7 @@ function App() {
         const isLoginPath = window.location.pathname === '/login'
         if (!isLoginPath && user === null) {
           await getCurrentUser()
+          useModuleStore.getState().fetchModules()
         }
       } catch (err) {
       } finally {
@@ -319,6 +322,7 @@ function App() {
             <Route path="/admin/escalacion" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminEscalacion /></ProtectedRoute>} />
             <Route path="/admin/webhooks" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminWebhooks /></ProtectedRoute>} />
             <Route path="/admin/audit-log" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminAuditLog /></ProtectedRoute>} />
+            <Route path="/admin/modules" element={<ProtectedRoute roles={['administrador', 'admin']}><AdminModules /></ProtectedRoute>} />
             <Route path="/reportes/programados" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ReportesProgramados /></ProtectedRoute>} />
             {/* Procurement - Sprints 52, 54-58 */}
             <Route path="/procurement/savings" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><CostSavings /></ProtectedRoute>} />

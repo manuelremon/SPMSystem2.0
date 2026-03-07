@@ -12,6 +12,7 @@ import ListSubheader from "@mui/material/ListSubheader";
 import { ChevronDown } from "./ui/Icons";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
+import { useModuleStore } from "../store/moduleStore";
 
 /* ───────── Styles ───────── */
 
@@ -312,7 +313,6 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin }) => 
     visible: isAdmin,
     activePrefixes: ['/admin'],
     minWidth: 200,
-    maxHeight: 400,
     sections: [
       {
         header: { key: 'nav_header_usuarios', fallback: 'USUARIOS' },
@@ -336,6 +336,7 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin }) => 
       {
         header: { key: 'nav_header_sistema', fallback: 'SISTEMA' },
         items: [
+          { to: '/admin/modules', labelKey: 'admin_modules', labelFallback: 'Modulos' },
           { to: '/admin/estado', labelKey: 'admin_estado', labelFallback: 'Estado del Sistema' },
           { to: '/admin/bases-datos', labelKey: 'admin_bases_datos', labelFallback: 'Bases de Datos' },
           { to: '/admin/currency', labelKey: 'nav_currency', labelFallback: 'Monedas' },
@@ -364,6 +365,7 @@ function HeaderNav() {
   const location = useLocation();
   const { t } = useI18n();
   const { user } = useAuthStore();
+  const isModuleEnabled = useModuleStore(s => s.isModuleEnabled);
 
   // Single state for open menu
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -431,6 +433,7 @@ function HeaderNav() {
     <nav className="flex items-center h-[43px]" data-tour="main-navigation">
       {menuConfig.map((menu) => {
         if (!menu.visible) return null;
+        if (!isModuleEnabled(menu.id)) return null;
 
         const isOpen = openMenuId === menu.id;
         const isActive = isMenuActive(menu.activePrefixes);
@@ -461,7 +464,8 @@ function HeaderNav() {
               PaperProps={{
                 sx: {
                   minWidth: menu.minWidth || 180,
-                  ...(menu.maxHeight ? { maxHeight: menu.maxHeight } : {}),
+                  maxHeight: menu.maxHeight || 'calc(100vh - 60px)',
+                  overflow: 'auto',
                   ...menuPaperSx,
                 },
               }}

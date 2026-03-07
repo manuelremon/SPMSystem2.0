@@ -271,6 +271,10 @@ def register_blueprints(app: Flask) -> None:
     from backend.routes.scanner import scanner_bp
     app.register_blueprint(scanner_bp)  # Scanner at /api/scanner
 
+    # System Modules Management
+    from backend.routes.modules import bp as modules_bp
+    app.register_blueprint(modules_bp)  # Modules at /api/admin/modules
+
     # Dashboard alias: /api/dashboard/admin -> delegates to admin.admin_dashboard
     from flask import Blueprint as _Bp
     _dashboard_alias_bp = _Bp("dashboard_alias", __name__, url_prefix="/api/dashboard")

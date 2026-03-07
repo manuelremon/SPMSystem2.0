@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import * as authService from '../services/auth'
 import { ensureCsrfToken, clearCsrfToken } from '../services/csrf'
+import { useModuleStore } from './moduleStore'
 
 /**
  * Auth Store
@@ -106,6 +107,7 @@ export const useAuthStore = create((set, get) => ({
     } finally {
       // Siempre limpiar estado local
       clearCsrfToken()
+      useModuleStore.getState().clearModules()
       set({
         user: null,
         isAuthenticated: false,
