@@ -13,7 +13,6 @@ import os
 import sqlite3
 import time
 from datetime import datetime
-from functools import wraps
 
 from flask import Blueprint, g, jsonify, request, send_file
 
@@ -28,7 +27,7 @@ from backend.core.db_optimization import (
 )
 from backend.core.helpers import safe_error_response
 from backend.core.rate_limit import rate_limit
-from backend.core.roles import require_auth
+from backend.core.roles import require_admin
 
 bp = Blueprint("database", __name__, url_prefix="/api/admin/database")
 
@@ -98,20 +97,6 @@ AUTO_MANAGED_COLUMNS = {
 }
 
 
-def require_admin(f):
-    """Decorator que requiere rol admin"""
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not hasattr(g, "user") or not g.user:
-            return jsonify({"ok": False, "error": {"code": "unauthorized", "message": "No autenticado"}}), 401
-
-        rol = (g.user.get("rol") or "").lower()
-        if "admin" not in rol:
-            return jsonify({"ok": False, "error": {"code": "forbidden", "message": "Requiere rol admin"}}), 403
-
-        return f(*args, **kwargs)
-    return decorated
-
 
 def get_sqlite_path(db_name: str) -> str:
     """Obtiene la ruta del archivo SQLite"""
@@ -155,7 +140,6 @@ def _get_value(row, key_or_index, default=None):
 
 
 @bp.route("/overview", methods=["GET"])
-@require_auth
 @require_admin
 def get_overview():
     """Vista general de todas las bases de datos"""
@@ -243,7 +227,6 @@ def get_overview():
 
 
 @bp.route("/tables", methods=["GET"])
-@require_auth
 @require_admin
 def get_tables():
     """Lista todas las tablas de una BD"""
@@ -305,7 +288,6 @@ def get_tables():
 
 
 @bp.route("/tables/<table>/structure", methods=["GET"])
-@require_auth
 @require_admin
 def get_table_structure(table: str):
     """Obtiene la estructura de una tabla"""
@@ -396,7 +378,6 @@ def get_table_structure(table: str):
 
 
 @bp.route("/tables/<table>/preview", methods=["GET"])
-@require_auth
 @require_admin
 def get_table_preview(table: str):
     """Vista previa de datos de una tabla (primeras 50 filas)"""
@@ -472,7 +453,6 @@ def get_table_preview(table: str):
 
 
 @bp.route("/optimize", methods=["POST"])
-@require_auth
 @require_admin
 @rate_limit(5, 60)  # 5 requests per minute - operacion costosa
 def run_optimize():
@@ -501,7 +481,6 @@ def run_optimize():
 
 
 @bp.route("/vacuum", methods=["POST"])
-@require_auth
 @require_admin
 @rate_limit(5, 60)  # 5 requests per minute - operacion costosa
 def run_vacuum():
@@ -534,7 +513,6 @@ def run_vacuum():
 
 
 @bp.route("/analyze", methods=["POST"])
-@require_auth
 @require_admin
 @rate_limit(10, 60)  # 10 requests per minute
 def run_analyze():
@@ -559,7 +537,6 @@ def run_analyze():
 
 
 @bp.route("/integrity-check", methods=["POST"])
-@require_auth
 @require_admin
 @rate_limit(5, 60)  # 5 requests per minute - operacion costosa
 def run_integrity_check():
@@ -635,7 +612,6 @@ def run_integrity_check():
 
 
 @bp.route("/create-indexes", methods=["POST"])
-@require_auth
 @require_admin
 @rate_limit(5, 60)  # 5 requests per minute - operacion costosa
 def run_create_indexes():
@@ -656,7 +632,6 @@ def run_create_indexes():
 
 
 @bp.route("/pool-stats", methods=["GET"])
-@require_auth
 @require_admin
 def get_pool_stats():
     """Estadisticas del pool de conexiones"""
@@ -668,7 +643,6 @@ def get_pool_stats():
 
 
 @bp.route("/export/<db_name>", methods=["GET"])
-@require_auth
 @require_admin
 def export_database(db_name: str):
     """Descarga una copia de la BD SQLite"""
@@ -694,7 +668,6 @@ def export_database(db_name: str):
 
 
 @bp.route("/tables/<table>/export-csv", methods=["GET"])
-@require_auth
 @require_admin
 def export_table_csv(table: str):
     """Exporta una tabla a CSV"""
@@ -874,7 +847,6 @@ def _is_table_read_only(db_name: str, table: str) -> bool:
 
 
 @bp.route("/tables/<table>/pk", methods=["GET"])
-@require_auth
 @require_admin
 @rate_limit(requests=30, window_seconds=60)
 def get_table_pk(table: str):
@@ -899,7 +871,6 @@ def get_table_pk(table: str):
 
 
 @bp.route("/tables/<table>/rows", methods=["POST"])
-@require_auth
 @require_admin
 @rate_limit(requests=10, window_seconds=60)
 def create_row(table: str):
@@ -989,7 +960,6 @@ def create_row(table: str):
 
 
 @bp.route("/tables/<table>/rows", methods=["PUT"])
-@require_auth
 @require_admin
 @rate_limit(requests=10, window_seconds=60)
 def update_row(table: str):
@@ -1109,7 +1079,6 @@ def update_row(table: str):
 
 
 @bp.route("/tables/<table>/rows", methods=["DELETE"])
-@require_auth
 @require_admin
 @rate_limit(requests=5, window_seconds=60)
 def delete_row(table: str):
@@ -1251,7 +1220,6 @@ def delete_row(table: str):
 
 
 @bp.route("/tables/<table>/columns", methods=["GET"])
-@require_auth
 @require_admin
 @rate_limit(requests=30, window_seconds=60)
 def get_table_columns_for_crud(table: str):
@@ -1291,7 +1259,6 @@ def get_table_columns_for_crud(table: str):
 # ==================== STATISTICS & AUDIT ====================
 
 @bp.route("/tables/<table>/stats", methods=["GET"])
-@require_auth
 @require_admin
 @rate_limit(requests=30, window_seconds=60)
 def get_table_stats(table: str):
@@ -1404,7 +1371,6 @@ def get_table_stats(table: str):
 
 
 @bp.route("/audit-logs", methods=["GET"])
-@require_auth
 @require_admin
 @rate_limit(requests=30, window_seconds=60)
 def get_audit_logs():
@@ -1568,7 +1534,6 @@ def get_audit_logs():
 
 
 @bp.route("/connections", methods=["GET"])
-@require_auth
 @require_admin
 @rate_limit(requests=30, window_seconds=60)
 def get_active_connections():

@@ -12,7 +12,7 @@ from flask import Blueprint, jsonify, request, send_file
 
 from backend.core.excel_validator import excel_validator
 from backend.core.helpers import _get_user_id, safe_error_response
-from backend.core.roles import is_admin, require_auth
+from backend.core.roles import require_admin
 from backend.services.temp_data_service import temp_data_service
 
 logger = logging.getLogger(__name__)
@@ -20,23 +20,8 @@ logger = logging.getLogger(__name__)
 bp = Blueprint("admin_import", __name__, url_prefix="/api/admin")
 
 
-def _check_admin():
-    """Verifica que el usuario sea admin. Retorna error response o None."""
-    from flask import g
-
-    user = getattr(g, "user", None)
-    if not user:
-        return jsonify({"ok": False, "error": "No autenticado"}), 401
-
-    user_rol = user.get("rol", "")
-    if not is_admin(user_rol):
-        return jsonify({"ok": False, "error": "Acceso denegado. Se requiere rol admin."}), 403
-
-    return None
-
-
 @bp.route("/import-excel", methods=["POST"])
-@require_auth
+@require_admin
 def import_excel():
     """
     Importa un archivo Excel para modo temporal MRP/Forecast.
@@ -53,11 +38,6 @@ def import_excel():
             "advertencias": [...]
         }
     """
-    # Verificar admin
-    error_response = _check_admin()
-    if error_response:
-        return error_response
-
     # Verificar archivo
     if "file" not in request.files:
         return jsonify({
@@ -116,7 +96,7 @@ def import_excel():
 
 
 @bp.route("/temp-data/status", methods=["GET"])
-@require_auth
+@require_admin
 def temp_data_status():
     """
     Obtiene el estado del modo temporal para el usuario actual.
@@ -128,10 +108,6 @@ def temp_data_status():
             "data": {...} o null
         }
     """
-    error_response = _check_admin()
-    if error_response:
-        return error_response
-
     user_id = _get_user_id()
     status = temp_data_service.get_status(user_id)
 
@@ -143,7 +119,7 @@ def temp_data_status():
 
 
 @bp.route("/temp-data/clear", methods=["POST"])
-@require_auth
+@require_admin
 def clear_temp_data():
     """
     Desactiva el modo temporal eliminando los datos importados.
@@ -154,10 +130,6 @@ def clear_temp_data():
             "message": "Modo temporal desactivado"
         }
     """
-    error_response = _check_admin()
-    if error_response:
-        return error_response
-
     user_id = _get_user_id()
     was_active = temp_data_service.clear(user_id)
 
@@ -172,7 +144,7 @@ def clear_temp_data():
 
 
 @bp.route("/temp-data/template", methods=["GET"])
-@require_auth
+@require_admin
 def download_template():
     """
     Descarga una plantilla Excel vacía con la estructura correcta.
@@ -180,10 +152,6 @@ def download_template():
     Response:
         Archivo Excel (.xlsx)
     """
-    error_response = _check_admin()
-    if error_response:
-        return error_response
-
     try:
         import pandas as pd
 
@@ -259,7 +227,7 @@ def download_template():
 
 
 @bp.route("/temp-data/preview", methods=["POST"])
-@require_auth
+@require_admin
 def preview_excel():
     """
     Valida un Excel y retorna preview sin importar.
@@ -280,10 +248,6 @@ def preview_excel():
             }
         }
     """
-    error_response = _check_admin()
-    if error_response:
-        return error_response
-
     if "file" not in request.files:
         return jsonify({
             "ok": False,

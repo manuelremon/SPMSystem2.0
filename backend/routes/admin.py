@@ -30,126 +30,144 @@ _get_user = get_user_by_id
 @require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_centros():
-    if request.method == "POST":
-        data = request.get_json(silent=True) or {}
-        if not data.get("codigo"):
-            return jsonify({"ok": False, "error": "codigo es requerido"}), 400
-        with get_db_transaction() as conn:
-            cur = conn.cursor()
-            cur.execute(
-                "INSERT INTO catalogo_centro (codigo, nombre, activo) VALUES (?,?,?)",
-                (data["codigo"], data.get("nombre"), True),
-            )
-        invalidate_catalog_cache()
+    try:
+        if request.method == "POST":
+            data = request.get_json(silent=True) or {}
+            if not data.get("codigo"):
+                return jsonify({"ok": False, "error": "codigo es requerido"}), 400
+            with get_db_transaction() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "INSERT INTO catalogo_centro (codigo, nombre, activo) VALUES (?,?,?)",
+                    (data["codigo"], data.get("nombre"), True),
+                )
+            invalidate_catalog_cache()
 
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT codigo, nombre, activo, created_at, updated_at FROM catalogo_centro")
-        rows = [dict(r) for r in cur.fetchall()]
-    return jsonify(rows), 200
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT codigo, nombre, activo, created_at, updated_at FROM catalogo_centro")
+            rows = [dict(r) for r in cur.fetchall()]
+        return jsonify(rows), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.centros")
 
 
 @bp.route("/centros/<centro_codigo>", methods=["PUT", "DELETE"])
 @require_admin
 @rate_limit(requests=20, window_seconds=60)
 def admin_centros_mod(centro_codigo):
-    with get_db_transaction() as conn:
-        cur = conn.cursor()
-        if request.method == "PUT":
-            data = request.get_json(silent=True) or {}
-            cur.execute(
-                "UPDATE catalogo_centro SET nombre=?, activo=? WHERE codigo=?",
-                (data.get("nombre"), bool(data.get("activo", True)), centro_codigo),
-            )
-        else:
-            cur.execute("UPDATE catalogo_centro SET activo=FALSE WHERE codigo=?", (centro_codigo,))
+    try:
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+            if request.method == "PUT":
+                data = request.get_json(silent=True) or {}
+                cur.execute(
+                    "UPDATE catalogo_centro SET nombre=?, activo=? WHERE codigo=?",
+                    (data.get("nombre"), bool(data.get("activo", True)), centro_codigo),
+                )
+            else:
+                cur.execute("UPDATE catalogo_centro SET activo=FALSE WHERE codigo=?", (centro_codigo,))
 
-    invalidate_catalog_cache()
-    return jsonify({"ok": True}), 200
+        invalidate_catalog_cache()
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.centros_mod")
 
 
 @bp.route("/almacenes", methods=["GET", "POST"])
 @require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_almacenes():
-    if request.method == "POST":
-        data = request.get_json(silent=True) or {}
-        if not data.get("codigo"):
-            return jsonify({"ok": False, "error": "codigo requerido"}), 400
-        with get_db_transaction() as conn:
-            cur = conn.cursor()
-            cur.execute(
-                "INSERT INTO catalogo_almacen (codigo, nombre, activo) VALUES (?,?,?)",
-                (data["codigo"], data.get("nombre"), True),
-            )
-        invalidate_catalog_cache()
+    try:
+        if request.method == "POST":
+            data = request.get_json(silent=True) or {}
+            if not data.get("codigo"):
+                return jsonify({"ok": False, "error": "codigo requerido"}), 400
+            with get_db_transaction() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "INSERT INTO catalogo_almacen (codigo, nombre, activo) VALUES (?,?,?)",
+                    (data["codigo"], data.get("nombre"), True),
+                )
+            invalidate_catalog_cache()
 
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT codigo, nombre, activo, created_at, updated_at FROM catalogo_almacen")
-        rows = [dict(r) for r in cur.fetchall()]
-    return jsonify(rows), 200
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT codigo, nombre, activo, created_at, updated_at FROM catalogo_almacen")
+            rows = [dict(r) for r in cur.fetchall()]
+        return jsonify(rows), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.almacenes")
 
 
 @bp.route("/almacenes/<almacen_codigo>", methods=["PUT", "DELETE"])
 @require_admin
 @rate_limit(requests=20, window_seconds=60)
 def admin_almacenes_mod(almacen_codigo):
-    with get_db_transaction() as conn:
-        cur = conn.cursor()
-        if request.method == "PUT":
-            data = request.get_json(silent=True) or {}
-            cur.execute(
-                "UPDATE catalogo_almacen SET nombre=?, activo=? WHERE codigo=?",
-                (data.get("nombre"), bool(data.get("activo", True)), almacen_codigo),
-            )
-        else:
-            cur.execute("UPDATE catalogo_almacen SET activo=FALSE WHERE codigo=?", (almacen_codigo,))
+    try:
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+            if request.method == "PUT":
+                data = request.get_json(silent=True) or {}
+                cur.execute(
+                    "UPDATE catalogo_almacen SET nombre=?, activo=? WHERE codigo=?",
+                    (data.get("nombre"), bool(data.get("activo", True)), almacen_codigo),
+                )
+            else:
+                cur.execute("UPDATE catalogo_almacen SET activo=FALSE WHERE codigo=?", (almacen_codigo,))
 
-    invalidate_catalog_cache()
-    return jsonify({"ok": True}), 200
+        invalidate_catalog_cache()
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.almacenes_mod")
 
 
 @bp.route("/sectores", methods=["GET", "POST"])
 @require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_sectores():
-    if request.method == "POST":
-        data = request.get_json(silent=True) or {}
-        if not data.get("nombre"):
-            return jsonify({"ok": False, "error": "nombre requerido"}), 400
-        with get_db_transaction() as conn:
-            cur = conn.cursor()
-            cur.execute(
-                "INSERT INTO catalogo_sector (nombre, activo) VALUES (?,?)",
-                (data["nombre"], True),
-            )
-        invalidate_catalog_cache()
+    try:
+        if request.method == "POST":
+            data = request.get_json(silent=True) or {}
+            if not data.get("nombre"):
+                return jsonify({"ok": False, "error": "nombre requerido"}), 400
+            with get_db_transaction() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "INSERT INTO catalogo_sector (nombre, activo) VALUES (?,?)",
+                    (data["nombre"], True),
+                )
+            invalidate_catalog_cache()
 
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT nombre, activo, created_at, updated_at FROM catalogo_sector")
-        rows = [dict(r) for r in cur.fetchall()]
-    return jsonify(rows), 200
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT nombre, activo, created_at, updated_at FROM catalogo_sector")
+            rows = [dict(r) for r in cur.fetchall()]
+        return jsonify(rows), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.sectores")
 
 
 @bp.route("/sectores/<sector_nombre>", methods=["PUT", "DELETE"])
 @require_admin
 @rate_limit(requests=20, window_seconds=60)
 def admin_sectores_mod(sector_nombre):
-    with get_db_transaction() as conn:
-        cur = conn.cursor()
-        if request.method == "PUT":
-            data = request.get_json(silent=True) or {}
-            cur.execute(
-                "UPDATE catalogo_sector SET activo=? WHERE nombre=?",
-                (bool(data.get("activo", True)), sector_nombre),
-            )
-        else:
-            cur.execute("UPDATE catalogo_sector SET activo=FALSE WHERE nombre=?", (sector_nombre,))
+    try:
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+            if request.method == "PUT":
+                data = request.get_json(silent=True) or {}
+                cur.execute(
+                    "UPDATE catalogo_sector SET activo=? WHERE nombre=?",
+                    (bool(data.get("activo", True)), sector_nombre),
+                )
+            else:
+                cur.execute("UPDATE catalogo_sector SET activo=FALSE WHERE nombre=?", (sector_nombre,))
 
-    invalidate_catalog_cache()
-    return jsonify({"ok": True}), 200
+        invalidate_catalog_cache()
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.sectores_mod")
 
 
 # ======================== ROLES ========================
@@ -157,45 +175,51 @@ def admin_sectores_mod(sector_nombre):
 @require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_roles():
-    if request.method == "POST":
-        data = request.get_json(silent=True) or {}
-        if not data.get("nombre"):
-            return jsonify({"ok": False, "error": "nombre requerido"}), 400
-        with get_db_transaction() as conn:
-            cur = conn.cursor()
-            cur.execute(
-                "INSERT INTO catalogo_rol (nombre, activo, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
-                (data["nombre"], bool(data.get("activo", True))),
-            )
-        invalidate_catalog_cache()
+    try:
+        if request.method == "POST":
+            data = request.get_json(silent=True) or {}
+            if not data.get("nombre"):
+                return jsonify({"ok": False, "error": "nombre requerido"}), 400
+            with get_db_transaction() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "INSERT INTO catalogo_rol (nombre, activo, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
+                    (data["nombre"], bool(data.get("activo", True))),
+                )
+            invalidate_catalog_cache()
 
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT nombre, activo, created_at, updated_at FROM catalogo_rol ORDER BY nombre")
-        rows = [dict(r) for r in cur.fetchall()]
-    return jsonify(rows), 200
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT nombre, activo, created_at, updated_at FROM catalogo_rol ORDER BY nombre")
+            rows = [dict(r) for r in cur.fetchall()]
+        return jsonify(rows), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.roles")
 
 
 @bp.route("/roles/<rol_nombre>", methods=["PUT", "DELETE"])
 @require_admin
 @rate_limit(requests=20, window_seconds=60)
 def admin_roles_mod(rol_nombre):
-    with get_db_transaction() as conn:
-        cur = conn.cursor()
-        if request.method == "PUT":
-            data = request.get_json(silent=True) or {}
-            cur.execute(
-                "UPDATE catalogo_rol SET activo=?, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
-                (bool(data.get("activo", True)), rol_nombre),
-            )
-        else:
-            cur.execute(
-                "UPDATE catalogo_rol SET activo=FALSE, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
-                (rol_nombre,),
-            )
+    try:
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+            if request.method == "PUT":
+                data = request.get_json(silent=True) or {}
+                cur.execute(
+                    "UPDATE catalogo_rol SET activo=?, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
+                    (bool(data.get("activo", True)), rol_nombre),
+                )
+            else:
+                cur.execute(
+                    "UPDATE catalogo_rol SET activo=FALSE, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
+                    (rol_nombre,),
+                )
 
-    invalidate_catalog_cache()
-    return jsonify({"ok": True}), 200
+        invalidate_catalog_cache()
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.roles_mod")
 
 
 # ======================== PUESTOS ========================
@@ -203,276 +227,368 @@ def admin_roles_mod(rol_nombre):
 @require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_puestos():
-    if request.method == "POST":
-        data = request.get_json(silent=True) or {}
-        if not data.get("nombre"):
-            return jsonify({"ok": False, "error": "nombre requerido"}), 400
-        with get_db_transaction() as conn:
-            cur = conn.cursor()
-            cur.execute(
-                "INSERT INTO catalogo_puesto (nombre, activo, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
-                (data["nombre"], bool(data.get("activo", True))),
-            )
-        invalidate_catalog_cache()
+    try:
+        if request.method == "POST":
+            data = request.get_json(silent=True) or {}
+            if not data.get("nombre"):
+                return jsonify({"ok": False, "error": "nombre requerido"}), 400
+            with get_db_transaction() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "INSERT INTO catalogo_puesto (nombre, activo, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
+                    (data["nombre"], bool(data.get("activo", True))),
+                )
+            invalidate_catalog_cache()
 
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT nombre, activo, created_at, updated_at FROM catalogo_puesto ORDER BY nombre")
-        rows = [dict(r) for r in cur.fetchall()]
-    return jsonify(rows), 200
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT nombre, activo, created_at, updated_at FROM catalogo_puesto ORDER BY nombre")
+            rows = [dict(r) for r in cur.fetchall()]
+        return jsonify(rows), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.puestos")
 
 
 @bp.route("/puestos/<puesto_nombre>", methods=["PUT", "DELETE"])
 @require_admin
 @rate_limit(requests=20, window_seconds=60)
 def admin_puestos_mod(puesto_nombre):
-    with get_db_transaction() as conn:
-        cur = conn.cursor()
-        if request.method == "PUT":
-            data = request.get_json(silent=True) or {}
-            cur.execute(
-                "UPDATE catalogo_puesto SET activo=?, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
-                (bool(data.get("activo", True)), puesto_nombre),
-            )
-        else:
-            cur.execute(
-                "UPDATE catalogo_puesto SET activo=FALSE, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
-                (puesto_nombre,),
-            )
+    try:
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+            if request.method == "PUT":
+                data = request.get_json(silent=True) or {}
+                cur.execute(
+                    "UPDATE catalogo_puesto SET activo=?, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
+                    (bool(data.get("activo", True)), puesto_nombre),
+                )
+            else:
+                cur.execute(
+                    "UPDATE catalogo_puesto SET activo=FALSE, updated_at=CURRENT_TIMESTAMP WHERE nombre=?",
+                    (puesto_nombre,),
+                )
 
-    invalidate_catalog_cache()
-    return jsonify({"ok": True}), 200
+        invalidate_catalog_cache()
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.puestos_mod")
+
+
+# ======================== MATERIALES ========================
+@bp.route("/materiales", methods=["GET", "POST"])
+@require_admin
+@rate_limit(requests=30, window_seconds=60)
+def admin_materiales():
+    try:
+        if request.method == "POST":
+            data = request.get_json(silent=True) or {}
+            if not data.get("codigo_material"):
+                return jsonify({"ok": False, "error": "codigo_material es requerido"}), 400
+            with get_db_transaction() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    """INSERT INTO sap_materiales_bbdd (codigo_material, descripcion, centro, almacen, sector)
+                       VALUES (?,?,?,?,?)""",
+                    (
+                        data["codigo_material"],
+                        data.get("descripcion"),
+                        data.get("centro"),
+                        data.get("almacen"),
+                        data.get("sector"),
+                    ),
+                )
+
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT codigo_material, descripcion, centro, almacen, sector FROM materiales_bbdd ORDER BY codigo_material"
+            )
+            rows = [dict(r) for r in cur.fetchall()]
+        return jsonify(rows), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.materiales")
+
+
+@bp.route("/materiales/<codigo>", methods=["PUT", "DELETE"])
+@require_admin
+@rate_limit(requests=20, window_seconds=60)
+def admin_materiales_mod(codigo):
+    try:
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+            if request.method == "PUT":
+                data = request.get_json(silent=True) or {}
+                cur.execute(
+                    """UPDATE sap_materiales_bbdd
+                       SET descripcion=?, centro=?, almacen=?, sector=?
+                       WHERE codigo_material=?""",
+                    (
+                        data.get("descripcion"),
+                        data.get("centro"),
+                        data.get("almacen"),
+                        data.get("sector"),
+                        codigo,
+                    ),
+                )
+            else:
+                cur.execute(
+                    "DELETE FROM sap_materiales_bbdd WHERE codigo_material=?", (codigo,)
+                )
+
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.materiales_mod")
 
 
 @bp.route("/usuarios", methods=["GET", "POST"])
 @require_admin
 @rate_limit(requests=30, window_seconds=60)  # Proteccion contra brute force
 def admin_usuarios():
-    if request.method == "POST":
-        data = request.get_json(silent=True) or {}
+    try:
+        if request.method == "POST":
+            data = request.get_json(silent=True) or {}
 
-        # El frontend envía 'roles' (plural), pero BD usa 'rol' (singular)
-        roles_data = data.get("roles") or data.get("rol")
-        if not roles_data:
-            return jsonify({"ok": False, "error": "Campo roles es requerido"}), 400
+            # El frontend envía 'roles' (plural), pero BD usa 'rol' (singular)
+            roles_data = data.get("roles") or data.get("rol")
+            if not roles_data:
+                return jsonify({"ok": False, "error": "Campo roles es requerido"}), 400
 
-        # Convertir roles a CSV si es array
-        if isinstance(roles_data, list):
-            rol_csv = ", ".join(roles_data)
-        else:
-            rol_csv = roles_data
+            # Convertir roles a CSV si es array
+            if isinstance(roles_data, list):
+                rol_csv = ", ".join(roles_data)
+            else:
+                rol_csv = roles_data
 
-        required = ["id_spm", "nombre", "apellido", "contrasena"]
-        if not all(data.get(k) for k in required):
-            return jsonify({"ok": False, "error": "Faltan campos obligatorios"}), 400
+            required = ["id_spm", "nombre", "apellido", "contrasena"]
+            if not all(data.get(k) for k in required):
+                return jsonify({"ok": False, "error": "Faltan campos obligatorios"}), 400
 
-        # Hash de la contraseña con bcrypt antes de guardar
-        password_hash = bcrypt.hashpw(
-            data["contrasena"].encode("utf-8"), bcrypt.gensalt()
-        ).decode("utf-8")
+            # Hash de la contraseña con bcrypt antes de guardar
+            password_hash = bcrypt.hashpw(
+                data["contrasena"].encode("utf-8"), bcrypt.gensalt()
+            ).decode("utf-8")
 
-        with get_db_transaction() as conn:
+            with get_db_transaction() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    """INSERT INTO usuario (id_spm, nombre, apellido, rol, contrasena, mail, posicion, sector, centros, jefe, gerente1, gerente2, telefono, estado_registro, id_ypf)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        data["id_spm"],
+                        data["nombre"],
+                        data["apellido"],
+                        rol_csv,
+                        password_hash,
+                        data.get("mail"),
+                        data.get("posicion"),
+                        data.get("sector"),
+                        data.get("centros"),
+                        data.get("jefe"),
+                        data.get("gerente1"),
+                        data.get("gerente2"),
+                        data.get("telefono"),
+                        data.get("estado_registro", "Activo"),
+                        data.get("id_ypf"),
+                    ),
+                )
+            invalidate_user_cache()
+            invalidate_catalog_cache()
+
+        # Obtener usuarios y normalizar formato de roles
+        with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute(
-                """INSERT INTO usuario (id_spm, nombre, apellido, rol, contrasena, mail, posicion, sector, centros, jefe, gerente1, gerente2, telefono, estado_registro, id_ypf)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (
-                    data["id_spm"],
-                    data["nombre"],
-                    data["apellido"],
-                    rol_csv,
-                    password_hash,
-                    data.get("mail"),
-                    data.get("posicion"),
-                    data.get("sector"),
-                    data.get("centros"),
-                    data.get("jefe"),
-                    data.get("gerente1"),
-                    data.get("gerente2"),
-                    data.get("telefono"),
-                    data.get("estado_registro", "Activo"),
-                    data.get("id_ypf"),
-                ),
-            )
-        invalidate_user_cache()
-        invalidate_catalog_cache()
+            cur.execute("SELECT id_spm, nombre, apellido, rol, mail, posicion, sector, centros, jefe, gerente1, gerente2, telefono, estado_registro, id_ypf, mail_respaldo, almacenes FROM usuario")
+            rows = []
+            for r in cur.fetchall():
+                row_dict = dict(r)
+                row_dict["roles"] = normalize_roles(row_dict.get("rol", ""))
+                rows.append(row_dict)
 
-    # Obtener usuarios y normalizar formato de roles
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT id_spm, nombre, apellido, rol, mail, posicion, sector, centros, jefe, gerente1, gerente2, telefono, estado_registro, id_ypf, mail_respaldo, almacenes FROM usuario")
-        rows = []
-        for r in cur.fetchall():
-            row_dict = dict(r)
-            row_dict["roles"] = normalize_roles(row_dict.get("rol", ""))
-            rows.append(row_dict)
-
-    return jsonify(rows), 200
+        return jsonify(rows), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.usuarios")
 
 
 @bp.route("/usuarios/<id_spm>", methods=["GET", "PUT", "DELETE"])
 @require_admin
 @rate_limit(requests=20, window_seconds=60)  # Proteccion contra enumeracion/brute force
 def admin_usuarios_mod(id_spm):
-    if request.method == "GET":
-        with get_db_connection() as conn:
-            cur = conn.cursor()
-            cur.execute("SELECT id_spm, nombre, apellido, rol, mail, posicion, sector, centros, jefe, gerente1, gerente2, telefono, estado_registro, id_ypf, mail_respaldo, almacenes FROM usuario WHERE id_spm=?", (id_spm,))
-            row = cur.fetchone()
-            if not row:
-                return jsonify({"ok": False, "error": "Usuario no encontrado"}), 404
+    try:
+        if request.method == "GET":
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+                cur.execute("SELECT id_spm, nombre, apellido, rol, mail, posicion, sector, centros, jefe, gerente1, gerente2, telefono, estado_registro, id_ypf, mail_respaldo, almacenes FROM usuario WHERE id_spm=?", (id_spm,))
+                row = cur.fetchone()
+                if not row:
+                    return jsonify({"ok": False, "error": "Usuario no encontrado"}), 404
 
-            row_dict = dict(row)
-            row_dict["roles"] = normalize_roles(row_dict.get("rol", ""))
-        return jsonify(row_dict), 200
+                row_dict = dict(row)
+                row_dict["roles"] = normalize_roles(row_dict.get("rol", ""))
+            return jsonify(row_dict), 200
 
-    elif request.method == "PUT":
-        data = request.get_json(silent=True) or {}
-        logger.debug(f"Actualizando usuario {id_spm} con campos: {list(data.keys())}")
+        elif request.method == "PUT":
+            data = request.get_json(silent=True) or {}
+            logger.debug(f"Actualizando usuario {id_spm} con campos: {list(data.keys())}")
 
-        update_fields = []
-        values = []
+            update_fields = []
+            values = []
 
-        allowed_fields = {
-            "nombre": "nombre",
-            "apellido": "apellido",
-            "rol": "rol",
-            "roles": "rol",
-            "mail": "mail",
-            "telefono": "telefono",
-            "sector": "sector",
-            "centros": "centros",
-            "jefe": "jefe",
-            "gerente1": "gerente1",
-            "gerente2": "gerente2",
-            "estado_registro": "estado_registro",
-            "contrasena": "contrasena",
-            "posicion": "posicion",
-            "puesto": "posicion",
-            "id_ypf": "id_ypf",
-            "mail_respaldo": "mail_respaldo",
-            "almacenes": "almacenes",
-        }
+            allowed_fields = {
+                "nombre": "nombre",
+                "apellido": "apellido",
+                "rol": "rol",
+                "roles": "rol",
+                "mail": "mail",
+                "telefono": "telefono",
+                "sector": "sector",
+                "centros": "centros",
+                "jefe": "jefe",
+                "gerente1": "gerente1",
+                "gerente2": "gerente2",
+                "estado_registro": "estado_registro",
+                "contrasena": "contrasena",
+                "posicion": "posicion",
+                "puesto": "posicion",
+                "id_ypf": "id_ypf",
+                "mail_respaldo": "mail_respaldo",
+                "almacenes": "almacenes",
+            }
 
-        rol_processed = False
+            rol_processed = False
 
-        for key, db_field in allowed_fields.items():
-            if key in data:
-                value = data[key]
+            for key, db_field in allowed_fields.items():
+                if key in data:
+                    value = data[key]
 
-                if key in ["roles", "rol"]:
-                    if rol_processed:
+                    if key in ["roles", "rol"]:
+                        if rol_processed:
+                            continue
+                        if isinstance(value, list):
+                            value = ", ".join(value)
+                        if not value:
+                            return (
+                                jsonify({"ok": False, "error": "Campo roles no puede estar vacío"}),
+                                400,
+                            )
+                        update_fields.append("rol=?")
+                        values.append(value)
+                        rol_processed = True
                         continue
-                    if isinstance(value, list):
-                        value = ", ".join(value)
-                    if not value:
-                        return (
-                            jsonify({"ok": False, "error": "Campo roles no puede estar vacío"}),
-                            400,
-                        )
-                    update_fields.append("rol=?")
+
+                    # Hash de contraseña con bcrypt si se está actualizando
+                    if key == "contrasena" and value:
+                        value = bcrypt.hashpw(
+                            value.encode("utf-8"), bcrypt.gensalt()
+                        ).decode("utf-8")
+
+                    if key in ["centros", "almacenes"] and isinstance(value, list):
+                        value = ",".join(str(v) for v in value)
+
+                    update_fields.append(f"{db_field}=?")
                     values.append(value)
-                    rol_processed = True
-                    continue
 
-                # Hash de contraseña con bcrypt si se está actualizando
-                if key == "contrasena" and value:
-                    value = bcrypt.hashpw(
-                        value.encode("utf-8"), bcrypt.gensalt()
-                    ).decode("utf-8")
+            if not update_fields:
+                return jsonify({"ok": False, "error": "No hay campos para actualizar"}), 400
 
-                if key in ["centros", "almacenes"] and isinstance(value, list):
-                    value = ",".join(str(v) for v in value)
+            values.append(id_spm)
 
-                update_fields.append(f"{db_field}=?")
-                values.append(value)
-
-        if not update_fields:
-            return jsonify({"ok": False, "error": "No hay campos para actualizar"}), 400
-
-        values.append(id_spm)
-
-        try:
             with get_db_transaction() as conn:
                 cur = conn.cursor()
                 query = f"UPDATE usuario SET {', '.join(update_fields)} WHERE id_spm=?"
                 logger.debug(f"Ejecutando UPDATE usuario {id_spm}, campos: {update_fields}")
                 cur.execute(query, values)
                 logger.debug(f"Usuario {id_spm} actualizado, filas afectadas: {cur.rowcount}")
-        except Exception as e:
-            logger.error(f"Error actualizando usuario {id_spm}: {e}", exc_info=True)
-            return jsonify({"ok": False, "error": "Error interno al actualizar usuario"}), 500
-    else:
-        with get_db_transaction() as conn:
-            cur = conn.cursor()
-            cur.execute("UPDATE usuario SET estado_registro='Inactivo' WHERE id_spm=?", (id_spm,))
+        else:
+            with get_db_transaction() as conn:
+                cur = conn.cursor()
+                cur.execute("UPDATE usuario SET estado_registro='Inactivo' WHERE id_spm=?", (id_spm,))
 
-    invalidate_user_cache(id_spm)
-    invalidate_catalog_cache()
-    return jsonify({"ok": True}), 200
+        invalidate_user_cache(id_spm)
+        invalidate_catalog_cache()
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.usuarios_mod")
 
 
 @bp.route("/planificadores", methods=["GET", "POST"])
 @require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_planificadores():
-    if request.method == "POST":
-        data = request.get_json(silent=True) or {}
-        if not data.get("usuario_id"):
-            return jsonify({"ok": False, "error": "usuario_id requerido"}), 400
-        asignaciones = data.get("asignaciones") or []
-        with get_db_transaction() as conn:
+    try:
+        if request.method == "POST":
+            data = request.get_json(silent=True) or {}
+            if not data.get("usuario_id"):
+                return jsonify({"ok": False, "error": "usuario_id requerido"}), 400
+            asignaciones = data.get("asignaciones") or []
+            with get_db_transaction() as conn:
+                cur = conn.cursor()
+                for a in asignaciones:
+                    p_id = data["usuario_id"]
+                    c = a.get("centro")
+                    s = a.get("sector")
+                    av = a.get("almacen_virtual")
+                    cur.execute(
+                        """INSERT INTO planificador_asignaciones (planificador_id, centro, sector, almacen_virtual, activo)
+                            SELECT ?,?,?,?,TRUE
+                            WHERE NOT EXISTS (
+                                SELECT 1 FROM planificador_asignaciones
+                                WHERE planificador_id=? AND centro=? AND sector=? AND almacen_virtual=?
+                            )""",
+                        (p_id, c, s, av, p_id, c, s, av),
+                    )
+
+        with get_db_connection() as conn:
             cur = conn.cursor()
-            for a in asignaciones:
-                cur.execute(
-                    "INSERT INTO planificador_asignaciones (planificador_id, centro, sector, almacen_virtual, activo) VALUES (%s,%s,%s,%s,TRUE) ON CONFLICT DO NOTHING",
-                    (
-                        data["usuario_id"],
-                        a.get("centro"),
-                        a.get("sector"),
-                        a.get("almacen_virtual"),
-                    ),
-                )
+            cur.execute(
+                "SELECT id_spm, nombre, apellido, rol FROM usuario WHERE rol LIKE '%Planificador%'"
+            )
+            planners = [
+                {"usuario_id": r["id_spm"], "nombre": f"{r['nombre']} {r['apellido']}", "activo": 1}
+                for r in cur.fetchall()
+            ]
+            cur.execute("SELECT id, planificador_id, centro, sector, almacen_virtual, prioridad, activo, created_at FROM planificador_asignaciones")
+            asign = [dict(r) for r in cur.fetchall()]
 
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT id_spm, nombre, apellido, rol FROM usuario WHERE rol LIKE '%Planificador%'"
-        )
-        planners = [
-            {"usuario_id": r["id_spm"], "nombre": f"{r['nombre']} {r['apellido']}", "activo": 1}
-            for r in cur.fetchall()
-        ]
-        cur.execute("SELECT id, planificador_id, centro, sector, almacen_virtual, prioridad, activo, created_at FROM planificador_asignaciones")
-        asign = [dict(r) for r in cur.fetchall()]
-
-    return jsonify({"planificadores": planners, "asignaciones": asign}), 200
+        return jsonify({"planificadores": planners, "asignaciones": asign}), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.planificadores")
 
 
 @bp.route("/planificadores/<usuario_id>", methods=["PUT", "DELETE"])
 @require_admin
 @rate_limit(requests=20, window_seconds=60)
 def admin_planificadores_mod(usuario_id):
-    with get_db_transaction() as conn:
-        cur = conn.cursor()
-        if request.method == "PUT":
-            data = request.get_json(silent=True) or {}
-            if "asignaciones" in data:
-                cur.execute(
-                    "DELETE FROM planificador_asignaciones WHERE planificador_id=%s", (usuario_id,)
-                )
-                for a in data.get("asignaciones") or []:
+    try:
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+            if request.method == "PUT":
+                data = request.get_json(silent=True) or {}
+                if "asignaciones" in data:
                     cur.execute(
-                        "INSERT INTO planificador_asignaciones (planificador_id, centro, sector, almacen_virtual, activo) VALUES (%s,%s,%s,%s,TRUE) ON CONFLICT DO NOTHING",
-                        (usuario_id, a.get("centro"), a.get("sector"), a.get("almacen_virtual")),
+                        "DELETE FROM planificador_asignaciones WHERE planificador_id=?", (usuario_id,)
                     )
-        else:
-            cur.execute(
-                "UPDATE planificador_asignaciones SET activo=FALSE WHERE planificador_id=%s",
-                (usuario_id,),
-            )
+                    for a in data.get("asignaciones") or []:
+                        c = a.get("centro")
+                        s = a.get("sector")
+                        av = a.get("almacen_virtual")
+                        cur.execute(
+                            """INSERT INTO planificador_asignaciones (planificador_id, centro, sector, almacen_virtual, activo)
+                            SELECT ?,?,?,?,TRUE
+                            WHERE NOT EXISTS (
+                                SELECT 1 FROM planificador_asignaciones
+                                WHERE planificador_id=? AND centro=? AND sector=? AND almacen_virtual=?
+                            )""",
+                            (usuario_id, c, s, av, usuario_id, c, s, av),
+                        )
+            else:
+                cur.execute(
+                    "UPDATE planificador_asignaciones SET activo=FALSE WHERE planificador_id=?",
+                    (usuario_id,),
+                )
 
-    return jsonify({"ok": True}), 200
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.planificadores_mod")
 
 
 def _get_current_user_info():
@@ -559,8 +675,8 @@ def admin_presupuestos():
             existing = cur.fetchone()
 
             cur.execute(
-                """INSERT INTO presupuesto (centro, sector, monto_usd, saldo_usd) VALUES (%s,%s,%s,%s)
-                ON CONFLICT (centro, sector) DO UPDATE SET monto_usd = EXCLUDED.monto_usd, saldo_usd = EXCLUDED.saldo_usd""",
+                """INSERT INTO presupuestos (centro, sector, monto_usd, saldo_usd) VALUES (?,?,?,?)
+                ON CONFLICT (centro, sector) DO UPDATE SET monto_usd = excluded.monto_usd, saldo_usd = excluded.saldo_usd""",
                 (centro, sector, monto_new, saldo_new),
             )
 
@@ -634,8 +750,8 @@ def admin_presupuestos_historial():
             rows = [dict(r) for r in cur.fetchall()]
 
         return jsonify({"ok": True, "historial": rows}), 200
-    except Exception:
-        return jsonify({"ok": True, "historial": []}), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.presupuestos_historial")
 
 
 @bp.route("/presupuestos/<centro>/<sector>", methods=["PUT", "DELETE"])
@@ -732,10 +848,10 @@ def admin_metricas():
     import logging
 
     counts = {}
-    ALLOWED_TABLES = {"usuario", "materiales", "solicitud"}
+    ALLOWED_TABLES = {"usuario", "materiales_bbdd", "solicitud"}
     table_key_map = [
         ("usuario", "usuarios"),
-        ("materiales", "materiales"),
+        ("materiales_bbdd", "materiales"),
         ("solicitud", "solicitudes_totales"),
     ]
 
@@ -793,9 +909,9 @@ def admin_dashboard():
                 except Exception:
                     pass
 
-            # Materiales
+            # Materiales (tabla real: sap_materiales_bbdd, vista: materiales_bbdd)
             try:
-                cur.execute("SELECT COUNT(*) AS count FROM materiales")
+                cur.execute("SELECT COUNT(*) AS count FROM materiales_bbdd")
                 row = cur.fetchone()
                 stats["materiales"] = row["count"] if isinstance(row, dict) else row[0]
             except Exception:
@@ -840,87 +956,93 @@ def admin_dashboard():
 @require_admin
 @rate_limit(requests=30, window_seconds=60)
 def admin_config_almacenes():
-    if request.method == "POST":
-        data = request.get_json(silent=True) or {}
-        if not data.get("centro") or not data.get("almacen"):
-            return jsonify({"ok": False, "error": "centro y almacen son requeridos"}), 400
+    try:
+        if request.method == "POST":
+            data = request.get_json(silent=True) or {}
+            if not data.get("centro") or not data.get("almacen"):
+                return jsonify({"ok": False, "error": "centro y almacen son requeridos"}), 400
 
-        with get_db_transaction() as conn:
+            with get_db_transaction() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    """
+                    INSERT INTO config_almacenes (centro, almacen, nombre, libre_disponibilidad, responsable_id, excluido, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    ON CONFLICT(centro, almacen) DO UPDATE SET
+                        nombre = excluded.nombre,
+                        libre_disponibilidad = excluded.libre_disponibilidad,
+                        responsable_id = excluded.responsable_id,
+                        excluido = excluded.excluido,
+                        updated_at = CURRENT_TIMESTAMP
+                """,
+                    (
+                        data["centro"],
+                        data["almacen"],
+                        data.get("nombre"),
+                        bool(data.get("libre_disponibilidad")),
+                        data.get("responsable_id"),
+                        bool(data.get("excluido")),
+                    ),
+                )
+
+        with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
                 """
-                INSERT INTO config_almacenes (centro, almacen, nombre, libre_disponibilidad, responsable_id, excluido, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                ON CONFLICT(centro, almacen) DO UPDATE SET
-                    nombre = excluded.nombre,
-                    libre_disponibilidad = excluded.libre_disponibilidad,
-                    responsable_id = excluded.responsable_id,
-                    excluido = excluded.excluido,
-                    updated_at = CURRENT_TIMESTAMP
-            """,
-                (
-                    data["centro"],
-                    data["almacen"],
-                    data.get("nombre"),
-                    bool(data.get("libre_disponibilidad")),
-                    data.get("responsable_id"),
-                    bool(data.get("excluido")),
-                ),
-            )
-
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute(
+                SELECT ca.*, u.nombre as responsable_nombre, u.apellido as responsable_apellido
+                FROM config_almacenes ca
+                LEFT JOIN usuario u ON ca.responsable_id = u.id_spm
+                ORDER BY ca.centro, ca.almacen
             """
-            SELECT ca.*, u.nombre as responsable_nombre, u.apellido as responsable_apellido
-            FROM config_almacenes ca
-            LEFT JOIN usuario u ON ca.responsable_id = u.id_spm
-            ORDER BY ca.centro, ca.almacen
-        """
-        )
-        rows = []
-        for r in cur.fetchall():
-            row_dict = dict(r)
-            if row_dict.get("responsable_nombre"):
-                row_dict["responsable_display"] = (
-                    f"{row_dict['responsable_nombre']} {row_dict.get('responsable_apellido', '')}".strip()
-                )
-            else:
-                row_dict["responsable_display"] = None
-            rows.append(row_dict)
+            )
+            rows = []
+            for r in cur.fetchall():
+                row_dict = dict(r)
+                if row_dict.get("responsable_nombre"):
+                    row_dict["responsable_display"] = (
+                        f"{row_dict['responsable_nombre']} {row_dict.get('responsable_apellido', '')}".strip()
+                    )
+                else:
+                    row_dict["responsable_display"] = None
+                rows.append(row_dict)
 
-    return jsonify({"ok": True, "data": rows}), 200
+        return jsonify({"ok": True, "data": rows}), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.config_almacenes")
 
 
 @bp.route("/config/almacenes/<centro>/<almacen>", methods=["PUT", "DELETE"])
 @require_admin
 @rate_limit(requests=20, window_seconds=60)
 def admin_config_almacenes_mod(centro, almacen):
-    with get_db_transaction() as conn:
-        cur = conn.cursor()
-        if request.method == "PUT":
-            data = request.get_json(silent=True) or {}
-            cur.execute(
-                """
-                UPDATE config_almacenes
-                SET nombre = ?, libre_disponibilidad = ?, responsable_id = ?, excluido = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE centro = ? AND almacen = ?
-            """,
-                (
-                    data.get("nombre"),
-                    bool(data.get("libre_disponibilidad")),
-                    data.get("responsable_id"),
-                    bool(data.get("excluido")),
-                    centro,
-                    almacen,
-                ),
-            )
-        else:
-            cur.execute(
-                "DELETE FROM config_almacenes WHERE centro = ? AND almacen = ?", (centro, almacen)
-            )
+    try:
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+            if request.method == "PUT":
+                data = request.get_json(silent=True) or {}
+                cur.execute(
+                    """
+                    UPDATE config_almacenes
+                    SET nombre = ?, libre_disponibilidad = ?, responsable_id = ?, excluido = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE centro = ? AND almacen = ?
+                """,
+                    (
+                        data.get("nombre"),
+                        bool(data.get("libre_disponibilidad")),
+                        data.get("responsable_id"),
+                        bool(data.get("excluido")),
+                        centro,
+                        almacen,
+                    ),
+                )
+            else:
+                cur.execute(
+                    "DELETE FROM config_almacenes WHERE centro = ? AND almacen = ?", (centro, almacen)
+                )
 
-    return jsonify({"ok": True}), 200
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.config_almacenes_mod")
 
 
 # Alias routes for /config_almacenes (underscore variant)
@@ -953,78 +1075,81 @@ def admin_proveedores_externos():
     GET: Lista proveedores externos con sus contactos/emails
     POST: Crea un nuevo proveedor externo
     """
-    if request.method == "POST":
-        data = request.get_json(silent=True) or {}
-        if not data.get("cuit"):
-            return jsonify({"ok": False, "error": "cuit es requerido"}), 400
-        if not data.get("nombre"):
-            return jsonify({"ok": False, "error": "nombre es requerido"}), 400
+    try:
+        if request.method == "POST":
+            data = request.get_json(silent=True) or {}
+            if not data.get("cuit"):
+                return jsonify({"ok": False, "error": "cuit es requerido"}), 400
+            if not data.get("nombre"):
+                return jsonify({"ok": False, "error": "nombre es requerido"}), 400
 
-        with get_db_transaction() as conn:
+            with get_db_transaction() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    """
+                    INSERT INTO proveedores_externos
+                        (cuit, nombre, direccion, localidad, pais, origen, lead_time_dias, rubro, calificacion, activo, notas)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?)
+                    ON CONFLICT(cuit) DO UPDATE SET
+                        nombre = excluded.nombre,
+                        direccion = excluded.direccion,
+                        localidad = excluded.localidad,
+                        pais = excluded.pais,
+                        origen = excluded.origen,
+                        lead_time_dias = excluded.lead_time_dias,
+                        rubro = excluded.rubro,
+                        calificacion = excluded.calificacion,
+                        notas = excluded.notas,
+                        updated_at = CURRENT_TIMESTAMP
+                    """,
+                    (
+                        data["cuit"],
+                        data["nombre"],
+                        data.get("direccion"),
+                        data.get("localidad"),
+                        data.get("pais", "Argentina"),
+                        data.get("origen", "local"),
+                        data.get("lead_time_dias", 7),
+                        data.get("rubro"),
+                        data.get("calificacion", "sin_calificar"),
+                        data.get("notas"),
+                    ),
+                )
+
+                # Agregar email principal si se proporciona
+                if data.get("email"):
+                    # Primero eliminar emails principales existentes para este proveedor
+                    cur.execute(
+                        "DELETE FROM proveedor_externo_email WHERE cuit_proveedor = ? AND es_principal = TRUE",
+                        (data["cuit"],),
+                    )
+                    # Insertar el nuevo email principal
+                    cur.execute(
+                        """
+                        INSERT INTO proveedor_externo_email (cuit_proveedor, email, tipo, es_principal)
+                        VALUES (?, ?, 'comercial', TRUE)
+                        """,
+                        (data["cuit"], data["email"]),
+                    )
+
+        # GET: Listar proveedores con su email principal
+        with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
                 """
-                INSERT INTO proveedor_externo
-                    (cuit, nombre, direccion, localidad, pais, origen, lead_time_dias, rubro, calificacion, activo, notas)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?)
-                ON CONFLICT(cuit) DO UPDATE SET
-                    nombre = excluded.nombre,
-                    direccion = excluded.direccion,
-                    localidad = excluded.localidad,
-                    pais = excluded.pais,
-                    origen = excluded.origen,
-                    lead_time_dias = excluded.lead_time_dias,
-                    rubro = excluded.rubro,
-                    calificacion = excluded.calificacion,
-                    notas = excluded.notas,
-                    updated_at = CURRENT_TIMESTAMP
-                """,
-                (
-                    data["cuit"],
-                    data["nombre"],
-                    data.get("direccion"),
-                    data.get("localidad"),
-                    data.get("pais", "Argentina"),
-                    data.get("origen", "local"),
-                    data.get("lead_time_dias", 7),
-                    data.get("rubro"),
-                    data.get("calificacion", "sin_calificar"),
-                    data.get("notas"),
-                ),
-            )
-
-            # Agregar email principal si se proporciona
-            if data.get("email"):
-                # Primero eliminar emails principales existentes para este proveedor
-                cur.execute(
-                    "DELETE FROM proveedor_externo_email WHERE cuit_proveedor = %s AND es_principal = TRUE",
-                    (data["cuit"],),
-                )
-                # Insertar el nuevo email principal
-                cur.execute(
-                    """
-                    INSERT INTO proveedor_externo_email (cuit_proveedor, email, tipo, es_principal)
-                    VALUES (%s, %s, 'comercial', TRUE)
-                    """,
-                    (data["cuit"], data["email"]),
-                )
-
-    # GET: Listar proveedores con su email principal
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute(
+                SELECT
+                    pe.*,
+                    (SELECT email FROM proveedor_externo_email WHERE cuit_proveedor = pe.cuit AND es_principal = TRUE LIMIT 1) as email_principal,
+                    (SELECT COUNT(*) FROM proveedor_externo_contacto WHERE cuit_proveedor = pe.cuit) as num_contactos
+                FROM proveedor_externo pe
+                ORDER BY pe.nombre
             """
-            SELECT
-                pe.*,
-                (SELECT email FROM proveedor_externo_email WHERE cuit_proveedor = pe.cuit AND es_principal = TRUE LIMIT 1) as email_principal,
-                (SELECT COUNT(*) FROM proveedor_externo_contacto WHERE cuit_proveedor = pe.cuit) as num_contactos
-            FROM proveedor_externo pe
-            ORDER BY pe.nombre
-        """
-        )
-        rows = [dict(r) for r in cur.fetchall()]
+            )
+            rows = [dict(r) for r in cur.fetchall()]
 
-    return jsonify(rows), 200
+        return jsonify(rows), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.proveedores_externos")
 
 
 @bp.route("/proveedores/externos/<cuit>", methods=["GET", "PUT", "DELETE"])
@@ -1036,70 +1161,73 @@ def admin_proveedores_externos_mod(cuit):
     PUT: Actualiza un proveedor
     DELETE: Desactiva un proveedor (soft delete)
     """
-    if request.method == "GET":
-        with get_db_connection() as conn:
+    try:
+        if request.method == "GET":
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+                # Datos principales
+                cur.execute("SELECT cuit, nombre, direccion, localidad, pais, origen, lead_time_dias, rubro, calificacion, activo, notas, created_at, updated_at FROM proveedor_externo WHERE cuit = ?", (cuit,))
+                prov = cur.fetchone()
+                if not prov:
+                    return jsonify({"ok": False, "error": "Proveedor no encontrado"}), 404
+
+                result = dict(prov)
+
+                # Contactos
+                cur.execute(
+                    "SELECT id, cuit_proveedor, nombre, apellido, cargo, es_principal, created_at FROM proveedor_externo_contacto WHERE cuit_proveedor = ? ORDER BY es_principal DESC",
+                    (cuit,),
+                )
+                result["contactos"] = [dict(r) for r in cur.fetchall()]
+
+                # Emails
+                cur.execute(
+                    "SELECT id, cuit_proveedor, email, tipo, es_principal, created_at FROM proveedor_externo_email WHERE cuit_proveedor = ? ORDER BY es_principal DESC",
+                    (cuit,),
+                )
+                result["emails"] = [dict(r) for r in cur.fetchall()]
+
+                # Teléfonos
+                cur.execute("SELECT id, cuit_proveedor, telefono, tipo, created_at FROM proveedor_externo_telefono WHERE cuit_proveedor = ?", (cuit,))
+                result["telefonos"] = [dict(r) for r in cur.fetchall()]
+
+            return jsonify(result), 200
+
+        with get_db_transaction() as conn:
             cur = conn.cursor()
-            # Datos principales
-            cur.execute("SELECT cuit, nombre, direccion, localidad, pais, origen, lead_time_dias, rubro, calificacion, activo, notas, created_at, updated_at FROM proveedor_externo WHERE cuit = %s", (cuit,))
-            prov = cur.fetchone()
-            if not prov:
-                return jsonify({"ok": False, "error": "Proveedor no encontrado"}), 404
+            if request.method == "PUT":
+                data = request.get_json(silent=True) or {}
+                cur.execute(
+                    """
+                    UPDATE proveedor_externo
+                    SET nombre = ?, direccion = ?, localidad = ?, pais = ?,
+                        origen = ?, lead_time_dias = ?, rubro = ?,
+                        calificacion = ?, activo = ?, notas = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE cuit = ?
+                    """,
+                    (
+                        data.get("nombre"),
+                        data.get("direccion"),
+                        data.get("localidad"),
+                        data.get("pais", "Argentina"),
+                        data.get("origen", "local"),
+                        data.get("lead_time_dias", 7),
+                        data.get("rubro"),
+                        data.get("calificacion", "sin_calificar"),
+                        bool(data.get("activo", True)),
+                        data.get("notas"),
+                        cuit,
+                    ),
+                )
+            else:  # DELETE
+                cur.execute(
+                    "UPDATE proveedor_externo SET activo = FALSE, updated_at = CURRENT_TIMESTAMP WHERE cuit = ?",
+                    (cuit,),
+                )
 
-            result = dict(prov)
-
-            # Contactos
-            cur.execute(
-                "SELECT id, cuit_proveedor, nombre, apellido, cargo, es_principal, created_at FROM proveedor_externo_contacto WHERE cuit_proveedor = %s ORDER BY es_principal DESC",
-                (cuit,),
-            )
-            result["contactos"] = [dict(r) for r in cur.fetchall()]
-
-            # Emails
-            cur.execute(
-                "SELECT id, cuit_proveedor, email, tipo, es_principal, created_at FROM proveedor_externo_email WHERE cuit_proveedor = %s ORDER BY es_principal DESC",
-                (cuit,),
-            )
-            result["emails"] = [dict(r) for r in cur.fetchall()]
-
-            # Teléfonos
-            cur.execute("SELECT id, cuit_proveedor, telefono, tipo, created_at FROM proveedor_externo_telefono WHERE cuit_proveedor = %s", (cuit,))
-            result["telefonos"] = [dict(r) for r in cur.fetchall()]
-
-        return jsonify(result), 200
-
-    with get_db_transaction() as conn:
-        cur = conn.cursor()
-        if request.method == "PUT":
-            data = request.get_json(silent=True) or {}
-            cur.execute(
-                """
-                UPDATE proveedor_externo
-                SET nombre = %s, direccion = %s, localidad = %s, pais = %s,
-                    origen = %s, lead_time_dias = %s, rubro = %s,
-                    calificacion = %s, activo = %s, notas = %s, updated_at = CURRENT_TIMESTAMP
-                WHERE cuit = %s
-                """,
-                (
-                    data.get("nombre"),
-                    data.get("direccion"),
-                    data.get("localidad"),
-                    data.get("pais", "Argentina"),
-                    data.get("origen", "local"),
-                    data.get("lead_time_dias", 7),
-                    data.get("rubro"),
-                    data.get("calificacion", "sin_calificar"),
-                    bool(data.get("activo", True)),
-                    data.get("notas"),
-                    cuit,
-                ),
-            )
-        else:  # DELETE
-            cur.execute(
-                "UPDATE proveedor_externo SET activo = FALSE, updated_at = CURRENT_TIMESTAMP WHERE cuit = %s",
-                (cuit,),
-            )
-
-    return jsonify({"ok": True}), 200
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.proveedores_externos_mod")
 
 
 # ==============================================================================
@@ -1115,60 +1243,63 @@ def admin_proveedores_internos():
     GET: Lista proveedores internos (almacenes)
     POST: Crea/actualiza un proveedor interno
     """
-    if request.method == "POST":
-        data = request.get_json(silent=True) or {}
-        if not data.get("centro") or not data.get("almacen"):
-            return jsonify({"ok": False, "error": "centro y almacen son requeridos"}), 400
+    try:
+        if request.method == "POST":
+            data = request.get_json(silent=True) or {}
+            if not data.get("centro") or not data.get("almacen"):
+                return jsonify({"ok": False, "error": "centro y almacen son requeridos"}), 400
 
-        with get_db_transaction() as conn:
+            with get_db_transaction() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    """
+                    INSERT INTO proveedores_internos
+                        (centro, almacen, centro_nombre, almacen_nombre, sector,
+                         contacto_centro, responsable_centro, referente_id, referente_nombre, referente_email,
+                         activo, notas)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?)
+                    ON CONFLICT(centro, almacen) DO UPDATE SET
+                        centro_nombre = excluded.centro_nombre,
+                        almacen_nombre = excluded.almacen_nombre,
+                        sector = excluded.sector,
+                        contacto_centro = excluded.contacto_centro,
+                        responsable_centro = excluded.responsable_centro,
+                        referente_id = excluded.referente_id,
+                        referente_nombre = excluded.referente_nombre,
+                        referente_email = excluded.referente_email,
+                        notas = excluded.notas,
+                        updated_at = CURRENT_TIMESTAMP
+                    """,
+                    (
+                        data["centro"],
+                        data["almacen"],
+                        data.get("centro_nombre"),
+                        data.get("almacen_nombre"),
+                        data.get("sector"),
+                        data.get("contacto_centro"),
+                        data.get("responsable_centro"),
+                        data.get("referente_id"),
+                        data.get("referente_nombre"),
+                        data.get("referente_email"),
+                        data.get("notas"),
+                    ),
+                )
+
+        with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute(
                 """
-                INSERT INTO proveedor_interno
-                    (centro, almacen, centro_nombre, almacen_nombre, sector,
-                     contacto_centro, responsable_centro, referente_id, referente_nombre, referente_email,
-                     activo, notas)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?)
-                ON CONFLICT(centro, almacen) DO UPDATE SET
-                    centro_nombre = excluded.centro_nombre,
-                    almacen_nombre = excluded.almacen_nombre,
-                    sector = excluded.sector,
-                    contacto_centro = excluded.contacto_centro,
-                    responsable_centro = excluded.responsable_centro,
-                    referente_id = excluded.referente_id,
-                    referente_nombre = excluded.referente_nombre,
-                    referente_email = excluded.referente_email,
-                    notas = excluded.notas,
-                    updated_at = CURRENT_TIMESTAMP
-                """,
-                (
-                    data["centro"],
-                    data["almacen"],
-                    data.get("centro_nombre"),
-                    data.get("almacen_nombre"),
-                    data.get("sector"),
-                    data.get("contacto_centro"),
-                    data.get("responsable_centro"),
-                    data.get("referente_id"),
-                    data.get("referente_nombre"),
-                    data.get("referente_email"),
-                    data.get("notas"),
-                ),
-            )
-
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute(
+                SELECT pi.*, COALESCE(u.nombre, '') || ' ' || COALESCE(u.apellido, '') as referente_usuario_nombre
+                FROM proveedor_interno pi
+                LEFT JOIN usuario u ON pi.referente_id = u.id_spm
+                ORDER BY pi.centro, pi.almacen
             """
-            SELECT pi.*, u.nombre || ' ' || u.apellido as referente_usuario_nombre
-            FROM proveedor_interno pi
-            LEFT JOIN usuario u ON pi.referente_id = u.id_spm
-            ORDER BY pi.centro, pi.almacen
-        """
-        )
-        rows = [dict(r) for r in cur.fetchall()]
+            )
+            rows = [dict(r) for r in cur.fetchall()]
 
-    return jsonify(rows), 200
+        return jsonify(rows), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.proveedores_internos")
 
 
 @bp.route("/proveedores/internos/<centro>/<almacen>", methods=["GET", "PUT", "DELETE"])
@@ -1180,59 +1311,62 @@ def admin_proveedores_internos_mod(centro, almacen):
     PUT: Actualiza un proveedor interno
     DELETE: Desactiva un proveedor interno
     """
-    if request.method == "GET":
-        with get_db_connection() as conn:
-            cur = conn.cursor()
-            cur.execute(
-                """
-                SELECT pi.*, u.nombre || ' ' || u.apellido as referente_usuario_nombre
-                FROM proveedor_interno pi
-                LEFT JOIN usuario u ON pi.referente_id = u.id_spm
-                WHERE pi.centro = ? AND pi.almacen = ?
-            """,
-                (centro, almacen),
-            )
-            row = cur.fetchone()
-            if not row:
-                return jsonify({"ok": False, "error": "Proveedor interno no encontrado"}), 404
-
-        return jsonify(dict(row)), 200
-
-    with get_db_transaction() as conn:
-        cur = conn.cursor()
-        if request.method == "PUT":
-            data = request.get_json(silent=True) or {}
-            cur.execute(
-                """
-                UPDATE proveedor_interno
-                SET centro_nombre = ?, almacen_nombre = ?, sector = ?,
-                    contacto_centro = ?, responsable_centro = ?,
-                    referente_id = ?, referente_nombre = ?, referente_email = ?,
-                    activo = ?, notas = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE centro = ? AND almacen = ?
+    try:
+        if request.method == "GET":
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    """
+                    SELECT pi.*, COALESCE(u.nombre, '') || ' ' || COALESCE(u.apellido, '') as referente_usuario_nombre
+                    FROM proveedor_interno pi
+                    LEFT JOIN usuario u ON pi.referente_id = u.id_spm
+                    WHERE pi.centro = ? AND pi.almacen = ?
                 """,
-                (
-                    data.get("centro_nombre"),
-                    data.get("almacen_nombre"),
-                    data.get("sector"),
-                    data.get("contacto_centro"),
-                    data.get("responsable_centro"),
-                    data.get("referente_id"),
-                    data.get("referente_nombre"),
-                    data.get("referente_email"),
-                    bool(data.get("activo", True)),
-                    data.get("notas"),
-                    centro,
-                    almacen,
-                ),
-            )
-        else:  # DELETE
-            cur.execute(
-                "UPDATE proveedor_interno SET activo = FALSE, updated_at = CURRENT_TIMESTAMP WHERE centro = ? AND almacen = ?",
-                (centro, almacen),
-            )
+                    (centro, almacen),
+                )
+                row = cur.fetchone()
+                if not row:
+                    return jsonify({"ok": False, "error": "Proveedor interno no encontrado"}), 404
 
-    return jsonify({"ok": True}), 200
+            return jsonify(dict(row)), 200
+
+        with get_db_transaction() as conn:
+            cur = conn.cursor()
+            if request.method == "PUT":
+                data = request.get_json(silent=True) or {}
+                cur.execute(
+                    """
+                    UPDATE proveedor_interno
+                    SET centro_nombre = ?, almacen_nombre = ?, sector = ?,
+                        contacto_centro = ?, responsable_centro = ?,
+                        referente_id = ?, referente_nombre = ?, referente_email = ?,
+                        activo = ?, notas = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE centro = ? AND almacen = ?
+                    """,
+                    (
+                        data.get("centro_nombre"),
+                        data.get("almacen_nombre"),
+                        data.get("sector"),
+                        data.get("contacto_centro"),
+                        data.get("responsable_centro"),
+                        data.get("referente_id"),
+                        data.get("referente_nombre"),
+                        data.get("referente_email"),
+                        bool(data.get("activo", True)),
+                        data.get("notas"),
+                        centro,
+                        almacen,
+                    ),
+                )
+            else:  # DELETE
+                cur.execute(
+                    "UPDATE proveedor_interno SET activo = FALSE, updated_at = CURRENT_TIMESTAMP WHERE centro = ? AND almacen = ?",
+                    (centro, almacen),
+                )
+
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        return safe_error_response(e, logger, context="admin.proveedores_internos_mod")
 
 
 # ==============================================================================
@@ -1427,8 +1561,8 @@ def admin_delegaciones_aprobacion():
             """
             SELECT
                 d.*,
-                u1.nombre || ' ' || u1.apellido as aprobador_nombre,
-                u2.nombre || ' ' || u2.apellido as delegado_nombre
+                COALESCE(u1.nombre, '') || ' ' || COALESCE(u1.apellido, '') as aprobador_nombre,
+                COALESCE(u2.nombre, '') || ' ' || COALESCE(u2.apellido, '') as delegado_nombre
             FROM aprobadores_delegados d
             LEFT JOIN usuario u1 ON d.aprobador_original_id = u1.id_spm
             LEFT JOIN usuario u2 ON d.delegado_id = u2.id_spm
@@ -1493,6 +1627,7 @@ def admin_delegaciones_aprobacion_mod(delegacion_id):
 
 @bp.route("/auto-approval-rules", methods=["GET"])
 @require_admin
+@rate_limit(requests=20, window_seconds=60)
 def list_auto_approval_rules():
     """List all auto-approval rules."""
     import json
@@ -1518,6 +1653,7 @@ def list_auto_approval_rules():
 
 @bp.route("/auto-approval-rules", methods=["POST"])
 @require_admin
+@rate_limit(requests=20, window_seconds=60)
 def create_auto_approval_rule():
     """Create a new auto-approval rule."""
     try:
@@ -1543,6 +1679,7 @@ def create_auto_approval_rule():
 
 @bp.route("/auto-approval-rules/<int:rule_id>", methods=["PUT"])
 @require_admin
+@rate_limit(requests=20, window_seconds=60)
 def update_auto_approval_rule(rule_id):
     """Update an existing auto-approval rule."""
     try:
@@ -1568,6 +1705,7 @@ def update_auto_approval_rule(rule_id):
 
 @bp.route("/auto-approval-rules/<int:rule_id>", methods=["DELETE"])
 @require_admin
+@rate_limit(requests=20, window_seconds=60)
 def delete_auto_approval_rule(rule_id):
     """Delete an auto-approval rule."""
     try:
@@ -1589,6 +1727,7 @@ def delete_auto_approval_rule(rule_id):
 
 @bp.route("/auto-approval-rules/simulate", methods=["POST"])
 @require_admin
+@rate_limit(requests=20, window_seconds=60)
 def simulate_auto_approval():
     """Simulate auto-approval on recent solicitudes."""
     try:
@@ -1609,6 +1748,7 @@ def simulate_auto_approval():
 
 @bp.route("/auto-approval/historial", methods=["GET"])
 @require_admin
+@rate_limit(requests=20, window_seconds=60)
 def auto_approval_historial():
     """
     Obtiene historial de solicitudes auto-aprobadas.
@@ -1649,9 +1789,9 @@ def auto_approval_historial():
                     al.event_data,
                     al.created_at,
                     al.user_id,
-                    u.nombre || ' ' || u.apellido as solicitante
+                    COALESCE(u.nombre, '') || ' ' || COALESCE(u.apellido, '') as solicitante
                 FROM audit_trail al
-                LEFT JOIN usuario u ON al.user_id = u.id_spm
+                LEFT JOIN usuario u ON al.user_id::text = u.id_spm::text
                 WHERE al.event_type = 'auto_approval'
             """
             params = []
@@ -1678,12 +1818,12 @@ def auto_approval_historial():
                     s.id as solicitud_id,
                     s.created_at as fecha,
                     s.monto_usd,
-                    u.nombre || ' ' || u.apellido as solicitante,
+                    COALESCE(u.nombre, '') || ' ' || COALESCE(u.apellido, '') as solicitante,
                     s.status
                 FROM solicitud s
-                LEFT JOIN usuario u ON s.solicitante_id = u.id
+                LEFT JOIN usuario u ON s.solicitante_id::text = u.id_spm::text
                 WHERE s.status = 'approved'
-                  AND s.auto_aprobada = 1
+                  AND s.auto_aprobada = TRUE
                 ORDER BY s.created_at DESC
                 LIMIT ?
             """
@@ -1754,6 +1894,7 @@ def auto_approval_historial():
 
 @bp.route("/escalation-rules", methods=["GET"])
 @require_admin
+@rate_limit(requests=20, window_seconds=60)
 def list_escalation_rules():
     """List all escalation rules."""
     try:

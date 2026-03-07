@@ -7,19 +7,20 @@ export default function AdminMateriales() {
     <AdminCrudTemplate
       title={t('admin_mat_title', 'Materiales')}
       resource="materiales"
-      idKey="codigo"
+      idKey="codigo_material"
       columns={[
-        { key: 'codigo', label: t('admin_mat_codigo', 'Código') },
+        { key: 'codigo_material', label: t('admin_mat_codigo', 'Código') },
         { key: 'descripcion', label: t('admin_mat_descripcion', 'Descripción') },
-        { key: 'unidad', label: t('admin_mat_unidad', 'Unidad') },
-        { key: 'precio_usd', label: t('admin_mat_precio_usd', 'Precio USD') }
+        { key: 'centro', label: t('admin_mat_centro', 'Centro') },
+        { key: 'almacen', label: t('admin_mat_almacen', 'Almacén') },
+        { key: 'sector', label: t('admin_mat_sector', 'Sector') }
       ]}
       fields={[
-        { name: 'codigo', label: t('admin_mat_codigo_sap', 'Código SAP'), required: true, placeholder: '1000000001' },
-        { name: 'descripcion', label: t('admin_mat_descripcion', 'Descripción'), required: true, placeholder: t('admin_mat_descripcion_placeholder', 'Descripción breve del material') },
-        { name: 'descripcion_larga', label: t('admin_mat_descripcion_larga', 'Descripción Larga'), type: 'textarea', placeholder: t('admin_mat_descripcion_larga_placeholder', 'Descripción detallada del material') },
-        { name: 'unidad', label: t('admin_mat_unidad_medida', 'Unidad de Medida'), required: true, defaultValue: 'UNI', placeholder: 'UNI, KG, L, M, etc.' },
-        { name: 'precio_usd', label: t('admin_mat_precio_label', 'Precio (USD)'), type: 'number', required: true, defaultValue: 0, placeholder: '0.00' }
+        { name: 'codigo_material', label: t('admin_mat_codigo_sap', 'Código SAP'), required: true, placeholder: '1000-0000001' },
+        { name: 'descripcion', label: t('admin_mat_descripcion', 'Descripción'), required: true, placeholder: t('admin_mat_descripcion_placeholder', 'Descripción del material') },
+        { name: 'centro', label: t('admin_mat_centro', 'Centro'), placeholder: '1001' },
+        { name: 'almacen', label: t('admin_mat_almacen', 'Almacén'), placeholder: 'AA001' },
+        { name: 'sector', label: t('admin_mat_sector', 'Sector'), placeholder: 'MANTENIMIENTO' }
       ]}
     />
   )

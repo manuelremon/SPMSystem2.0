@@ -254,24 +254,7 @@ function UserSelector({ usuarios, selectedUser, onSelect, loading }) {
     setSearch("");
   };
 
-  
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      await exportToXLSX(
-        filteredfilteredRecords,
-        "filteredRecords",
-        "Registros"
-      );
-      setSuccess("Registros exportados correctamente");
-    } catch (err) {
-      setError(err.message || "Error al exportar filteredrecords");
-    } finally {
-      setExporting(false);
-    }
-  };
-
-return (
+  return (
     <Box sx={{ position: "relative" }}>
       <Button
         variant="outlined"
